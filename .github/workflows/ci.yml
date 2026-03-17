@@ -15,13 +15,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout ${{ github.ref_name }}
         uses: actions/checkout@v6
 
       - name: Setting up NodeJS
         uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
+
+      - name: Setting up PNPM
+        uses: pnpm/action-setup@v4
 
       - name: Install packages
         run: pnpm i
