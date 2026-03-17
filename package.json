@@ -6,7 +6,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "format": "prettier --check . && pnpm format:package-json",
+    "format": "prettier --check . && pnpm format:package-json --check",
     "format:fix": "prettier --write . && pnpm format:package-json",
     "format:package-json": "sort-package-json package.json tooling/eslint/package.json",
     "lint": "eslint . --max-warnings 0",
