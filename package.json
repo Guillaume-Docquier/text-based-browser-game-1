@@ -2,37 +2,40 @@
   "name": "text-based-browser-game-1",
   "version": "1.0.0",
   "description": "",
+  "keywords": [],
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --check . && pnpm format:package-json",
+    "format:fix": "prettier --write . && pnpm format:package-json",
+    "format:package-json": "sort-package-json package.json tooling/eslint/package.json",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "npm run lint -- --fix",
-    "format": "prettier --check .",
-    "format:fix": "prettier --write .",
-    "prepare": "husky"
-  },
-  "keywords": [],
-  "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be",
-  "devDependencies": {
-    "@tooling/eslint": "file:tooling/eslint",
-    "globals": "17.4.0",
-    "husky": "9.1.7",
-    "lint-staged": "16.4.0",
-    "prettier": "3.8.1"
-  },
-  "prettier": {
-    "printWidth": 140,
-    "semi": false
+    "prepare": "husky",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "lint-staged": {
+    "*package.json": "sort-package-json",
     "*.{md,json,yml,yaml,css,scss}": "prettier --write",
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ]
   },
+  "prettier": {
+    "printWidth": 140,
+    "semi": false
+  },
   "dependencies": {
     "eslint": "^9.39.4"
-  }
+  },
+  "devDependencies": {
+    "@tooling/eslint": "file:tooling/eslint",
+    "globals": "17.4.0",
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
+    "prettier": "3.8.1",
+    "sort-package-json": "^3.6.1"
+  },
+  "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be"
 }
