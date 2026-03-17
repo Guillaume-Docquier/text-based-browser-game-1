@@ -5,14 +5,14 @@ import nodePlugin from "eslint-plugin-n"
 import promisePlugin from "eslint-plugin-promise"
 
 export default {
-  name: "@ventionco/eslint-config-typescript",
+  name: "@project/eslint-config-typescript",
   files: ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
   languageOptions: {
     parser: tseslint.parser,
     parserOptions: {
-      project: true,
+      projectService: true,
       sourceType: "module",
-      ecmaVersion: 2022,
+      ecmaVersion: "latest",
       ecmaFeatures: {
         jsx: true,
       },

@@ -18,12 +18,8 @@ export default defineConfig([
     },
   },
   {
-    files: ["frontend/**/*"],
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-      },
-    },
+    files: ["frontend/**/*.{ts,tsx}"],
+    ...eslintConfigs.configs.react,
   },
   eslintConfigs.configs.typescript,
 ])
