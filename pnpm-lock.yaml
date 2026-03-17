@@ -7,14 +7,13 @@ settings:
 importers:
 
   .:
-    dependencies:
-      eslint:
-        specifier: ^9.39.4
-        version: 9.39.4
     devDependencies:
       '@tooling/eslint':
         specifier: file:tooling/eslint
         version: file:tooling/eslint(@typescript-eslint/parser@8.57.1(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)(typescript@5.9.3)
+      eslint:
+        specifier: 9.39.4
+        version: 9.39.4
       globals:
         specifier: 17.4.0
         version: 17.4.0
@@ -28,7 +27,7 @@ importers:
         specifier: 3.8.1
         version: 3.8.1
       sort-package-json:
-        specifier: ^3.6.1
+        specifier: 3.6.1
         version: 3.6.1
 
 packages:
