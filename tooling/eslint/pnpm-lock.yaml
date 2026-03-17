@@ -7,12 +7,12 @@ settings:
 importers:
 
   .:
-    devDependencies:
+    dependencies:
       '@stylistic/eslint-plugin':
         specifier: 5.10.0
         version: 5.10.0(eslint@9.39.4)
       eslint:
-        specifier: 9.39.4
+        specifier: ^9.39.4
         version: 9.39.4
       eslint-plugin-import:
         specifier: 2.32.0

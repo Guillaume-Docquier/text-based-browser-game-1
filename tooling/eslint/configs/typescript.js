@@ -395,6 +395,7 @@ export default {
         allowAsStatement: true,
       },
     ],
+    "no-warning-comments": "error",
     "no-with": ["error"],
     "object-shorthand": ["error", "properties"],
     "one-var": ["error", "never"],
