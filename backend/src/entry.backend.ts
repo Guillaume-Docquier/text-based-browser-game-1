@@ -5,7 +5,7 @@ import { parseEnv } from "./parseEnv.ts"
 const env = parseEnv()
 
 const app = express()
-app.use(cors({ origin: `${env.FRONTEND_HOST}:${env.FRONTEND_PORT}` }))
+app.use(cors({ origin: env.FRONTEND_HOST }))
 
 let tick = 0
 
