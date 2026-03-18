@@ -1,5 +1,4 @@
-railway
-docker local setup
 railway config as code
+docker local setup
 postgres
 clerk
