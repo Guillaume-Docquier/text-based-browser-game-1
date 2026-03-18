@@ -1,11 +1,11 @@
 import express from "express"
 import cors from "cors"
-import dotenv from "dotenv"
+import { parseEnv } from "./parseEnv.ts"
 
-dotenv.config() // load .env
+const env = parseEnv()
 
 const app = express()
-app.use(cors({ origin: `${process.env.FRONTEND_HOST}:${process.env.FRONTEND_PORT}` }))
+app.use(cors({ origin: `${env.FRONTEND_HOST}:${env.FRONTEND_PORT}` }))
 
 let tick = 0
 
@@ -20,7 +20,7 @@ app.post("/tick", (req, res) => {
   res.send({ tick })
 })
 
-const port = process.env.API_PORT
+const port = env.API_PORT
 app.listen(port, () => {
   console.log(`App listening on port ${port}`)
 })
