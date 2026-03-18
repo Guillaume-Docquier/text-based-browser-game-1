@@ -16,10 +16,8 @@ export default function App(): ReactElement {
           <img src={viteLogo} className="vite" alt="Vite logo" />
         </div>
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+          <h1>Cosmic Empires</h1>
+          <p>A deep text based strategy game where diplomacy is an option</p>
         </div>
         <button
           className="counter"
@@ -27,7 +25,7 @@ export default function App(): ReactElement {
             setCount((count) => count + 1)
           }}
         >
-          Count is {count}
+          Game tick is {count}
         </button>
       </section>
 
@@ -44,7 +42,7 @@ export default function App(): ReactElement {
             <li>
               <a href="https://vite.dev/" target="_blank" rel="noreferrer">
                 <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
+                Explore Cosmic Empires
               </a>
             </li>
             <li>
@@ -60,10 +58,10 @@ export default function App(): ReactElement {
             <use href="/icons.svg#social-icon"></use>
           </svg>
           <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
+          <p>Join the Cosmic Empires community</p>
           <ul>
             <li>
-              <a href="https://github.com/vitejs/vite" target="_blank" rel="noreferrer">
+              <a href="https://github.com/Guillaume-Docquier/text-based-browser-game-1" target="_blank" rel="noreferrer">
                 <svg className="button-icon" role="presentation" aria-hidden="true">
                   <use href="/icons.svg#github-icon"></use>
                 </svg>
