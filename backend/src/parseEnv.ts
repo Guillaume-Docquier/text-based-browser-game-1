@@ -8,6 +8,5 @@ const envSchema = z.object({
 
 export function parseEnv(): z.infer<typeof envSchema> {
   dotenv.config({ quiet: true })
-  console.log(process.env)
   return envSchema.parse(process.env)
 }
