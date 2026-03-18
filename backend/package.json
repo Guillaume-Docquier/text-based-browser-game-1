@@ -1,8 +1,8 @@
 {
   "name": "backend",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "main": "src/entry.backend.ts",
   "scripts": {
     "dev": "node --watch src/entry.backend.ts",
     "start": "node src/entry.backend.ts",
