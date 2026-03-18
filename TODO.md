@@ -1,11 +1,6 @@
-pnpm
-eslint
-prettier
-typescript
-ci
-react starter + vite
-fastify node + socket.io
+hook fe & be
+railway
 docker local setup
+railway config as code
 postgres
 clerk
-railway
