@@ -6,7 +6,7 @@ import { HomePage } from "./pages/HomePage.tsx"
 import { BackendApiClientProvider } from "./contexts/BackendApiClientContext.tsx"
 
 const queryClient = new QueryClient()
-const backendApiClient = new BackendApiClient("http://localhost:3000")
+const backendApiClient = new BackendApiClient(`${import.meta.env.VITE_BACKEND_HOST}:${import.meta.env.VITE_BACKEND_PORT}`)
 
 export default function App(): ReactElement {
   return (
