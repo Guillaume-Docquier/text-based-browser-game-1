@@ -1,0 +1,19 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/entry.backend.ts",
+  "scripts": {
+    "dev": "",
+    "start": "node src/entry.backend.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "express": "5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "25.5.0",
+    "typescript": "5.9.3"
+  }
+}
