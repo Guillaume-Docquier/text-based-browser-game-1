@@ -3,7 +3,7 @@ import { z } from "zod"
 
 const envSchema = z.object({
   FRONTEND_HOST: z.string(),
-  API_PORT: z.coerce.number(),
+  PORT: z.coerce.number(),
 })
 
 export function parseEnv(): z.infer<typeof envSchema> {

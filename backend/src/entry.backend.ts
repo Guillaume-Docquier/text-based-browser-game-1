@@ -20,7 +20,7 @@ app.post("/tick", (req, res) => {
   res.send({ tick })
 })
 
-const port = env.API_PORT
+const port = env.PORT
 app.listen(port, () => {
   console.log(`App listening on port ${port}`)
 })
