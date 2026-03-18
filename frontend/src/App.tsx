@@ -1,11 +1,35 @@
-import { useState, type ReactElement } from "react"
+import { type ReactElement } from "react"
 import reactLogo from "./assets/react.svg"
 import viteLogo from "./assets/vite.svg"
 import heroImg from "./assets/hero.png"
 import "./App.css"
+import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+
+const queryClient = new QueryClient()
 
 export default function App(): ReactElement {
-  const [count, setCount] = useState(0)
+  return (
+    <QueryClientProvider client={queryClient}>
+      <HomePage />
+    </QueryClientProvider>
+  )
+}
+
+function HomePage(): ReactElement {
+  const queryClient = useQueryClient()
+  const tick = useQuery({
+    queryKey: ["tick"],
+    queryFn: async (): Promise<{ tick: number }> => {
+      const response = await fetch("http://localhost:3000/tick")
+      return await response.json()
+    },
+  })
+  const incrementTick = useMutation({
+    mutationFn: async () => await fetch("http://localhost:3000/tick", { method: "POST" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["tick"] })
+    },
+  })
 
   return (
     <>
@@ -22,10 +46,10 @@ export default function App(): ReactElement {
         <button
           className="counter"
           onClick={() => {
-            setCount((count) => count + 1)
+            incrementTick.mutate()
           }}
         >
-          Game tick is {count}
+          Game tick is {tick.data?.tick ?? "unknown"}
         </button>
       </section>
 
