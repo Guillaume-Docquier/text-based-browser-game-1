@@ -14,9 +14,13 @@ You can also not define your whole project.
 
 There is a [community Terraform provider](https://registry.terraform.io/providers/terraform-community-providers/railway/latest/docs) available, and the Railway team seemed [open to help](https://station.railway.com/feedback/terraform-provider-954567d7) the community, but otherwise there isn't real IaC support in Railway for a project.
 
+The Railway team seems really against IaC.
+
+> [Not using IaC in big orgs] fares very well. The only people who want Config as Code (CaC) are the people who like CaC to begin with, haha.
+
 ## Decision
 
-Since the project is still small, we'll go with pure Railway for now. As it grows, we can consider giving Terraform a try.
+Since the project is still small, we'll go with pure Railway for now. As it grows, we can consider giving Terraform a try, but for now we'll embrace the Railway way.
 
 ## Consequences
 
