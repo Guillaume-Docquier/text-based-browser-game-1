@@ -4,8 +4,11 @@ import viteLogo from "../assets/vite.svg"
 import heroImg from "../assets/hero.png"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
+import { createRoute, Link } from "@tanstack/react-router"
+import { rootRoute } from "./Root.tsx"
+import { anotherPageRoute } from "./AnotherPage.tsx"
 
-export function HomePage(): ReactElement {
+function HomePage(): ReactElement {
   const backendApiClient = useBackendApiClient()
   const queryClient = useQueryClient()
   const tick = useQuery({
@@ -41,6 +44,7 @@ export function HomePage(): ReactElement {
         >
           Game tick is {tick.data ?? "unknown"}
         </button>
+        <Link to={anotherPageRoute.to}>Explore</Link>
       </section>
 
       <div className="ticks"></div>
@@ -115,3 +119,9 @@ export function HomePage(): ReactElement {
     </>
   )
 }
+
+export const homePageRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: () => <HomePage />,
+})
