@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="cosmic-empires@localhost" uuid="f7626089-52a6-4b4a-9f1a-b13f1b51d359">
+    <data-source source="LOCAL" name="railway@ballast.proxy.rlwy.net" uuid="b73a2e08-c80a-4098-a767-f678692995b9">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://ballast.proxy.rlwy.net:35558/railway</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+    <data-source source="LOCAL" name="cosmic-empires@localhost" uuid="fc018fd8-ecb7-48a9-b5c8-69e858327816">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>

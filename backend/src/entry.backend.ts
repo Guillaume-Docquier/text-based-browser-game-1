@@ -3,11 +3,10 @@ import cors from "cors"
 import { parseEnv } from "./parseEnv.ts"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { gamesTable } from "./db/schema.ts"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 
 const env = parseEnv()
 
-// You can specify any property from the node-postgres connection options
 const db = drizzle({
   connection: {
     connectionString: env.DATABASE_URL,
@@ -17,23 +16,40 @@ const db = drizzle({
 })
 
 async function main(): Promise<void> {
-  const [game] = await db.select({ tick: gamesTable.tick }).from(gamesTable).where(eq(gamesTable.id, 0))
-  console.log(game)
+  const [game] = await db.select().from(gamesTable)
+  if (game === undefined) {
+    throw new Error("There are no games in the database.")
+  }
+  console.log("Game found", { game })
 
   const app = express()
   app.use(cors({ origin: env.FRONTEND_HOST }))
 
-  let tick = 0
+  app.get("/tick", async (req, res) => {
+    const [ngame] = await db.select({ tick: gamesTable.tick }).from(gamesTable).where(eq(gamesTable.id, game.id))
+    if (ngame === undefined) {
+      return res.status(500).send({ error: "Could not get tick" })
+    }
 
-  app.get("/tick", (req, res) => {
+    const tick = ngame.tick
     console.log("GET tick", { tick })
-    res.send({ tick })
+    return res.send({ tick })
   })
 
-  app.post("/tick", (req, res) => {
-    tick++
+  app.post("/tick", async (req, res) => {
+    const [ngame] = await db
+      .update(gamesTable)
+      .set({ tick: sql`${gamesTable.tick} + 1` })
+      .where(eq(gamesTable.id, game.id))
+      .returning()
+
+    if (ngame === undefined) {
+      return res.status(500).send({ error: "Could not update tick" })
+    }
+
+    const tick = ngame.tick
     console.log("POST tick", { tick })
-    res.send({ tick })
+    return res.send({ tick })
   })
 
   const port = env.PORT
