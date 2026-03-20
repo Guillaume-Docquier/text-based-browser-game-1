@@ -1,6 +1,7 @@
 {
   "name": "text-based-browser-game-1",
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "format": "prettier --check . && pnpm format:package-json --check",
     "format:fix": "prettier --write --list-different . && pnpm format:package-json",

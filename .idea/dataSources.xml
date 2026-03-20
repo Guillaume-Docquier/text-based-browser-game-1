@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="cosmic-empires@localhost" uuid="aeb00e35-ffc4-4958-a949-b53bf2bd7e88">
+    <data-source source="LOCAL" name="cosmic-empires@localhost" uuid="f7626089-52a6-4b4a-9f1a-b13f1b51d359">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
-      <remarks>dev only</remarks>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://localhost:5431/app</jdbc-url>
+      <jdbc-url>jdbc:postgresql://localhost:5432/cosmic-empires</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
