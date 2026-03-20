@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="dev" type="CompoundRunConfigurationType">
+    <toRun name="[infra] dev" type="docker-deploy" />
+    <toRun name="[backend] dev" type="js.build_tools.npm" />
+    <toRun name="[frontend] dev" type="js.build_tools.npm" />
+    <method v="2" />
+  </configuration>
+</component>

@@ -1,0 +1,16 @@
+# this is only used for dev, don't deploy this rofl
+services:
+  db:
+    image: postgres:18.3
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pwd
+      POSTGRES_DB: cosmic-empires
+    ports:
+      - "5432:5432"
+    volumes:
+      - cosmic-empires-pgdata:/var/lib/postgresql
+
+volumes:
+  cosmic-empires-pgdata:
