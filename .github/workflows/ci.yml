@@ -27,8 +27,12 @@ jobs:
           node-version-file: ".nvmrc"
           cache: pnpm
 
+      # Linting needs all packages to be installed otherwise some types won't be found
       - name: Install packages
-        run: pnpm i
+        run: |
+          pnpm i
+          pnpm i --prefix frontend
+          pnpm i --prefix backend
 
       - name: Format
         run: pnpm format
