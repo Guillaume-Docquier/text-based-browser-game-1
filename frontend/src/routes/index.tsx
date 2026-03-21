@@ -4,17 +4,21 @@ import viteLogo from "../assets/vite.svg"
 import heroImg from "../assets/hero.png"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
-import { createRoute, Link } from "@tanstack/react-router"
-import { rootRoute } from "./Root.tsx"
-import { anotherPageRoute } from "./AnotherPage.tsx"
+import { createFileRoute, Link } from "@tanstack/react-router"
 
-function HomePage(): ReactElement {
+export const Route = createFileRoute("/")({
+  component: Index,
+})
+
+function Index(): ReactElement {
   const backendApiClient = useBackendApiClient()
   const queryClient = useQueryClient()
+
   const tick = useQuery({
     queryKey: ["tick"],
     queryFn: async () => await backendApiClient.getTick(),
   })
+
   const incrementTick = useMutation({
     mutationFn: async () => {
       await backendApiClient.incrementTick()
@@ -44,7 +48,7 @@ function HomePage(): ReactElement {
         >
           Game tick is {tick.data ?? "unknown"}
         </button>
-        <Link to={anotherPageRoute.to}>Explore</Link>
+        <Link to="/about">Explore</Link>
       </section>
 
       <div className="ticks"></div>
@@ -119,9 +123,3 @@ function HomePage(): ReactElement {
     </>
   )
 }
-
-export const homePageRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: () => <HomePage />,
-})

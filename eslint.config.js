@@ -3,7 +3,7 @@ import eslintConfigs from "@tooling/eslint"
 import globals from "globals"
 
 export default defineConfig([
-  globalIgnores(["**/dist/**"]),
+  globalIgnores(["**/dist/**", "*.gen.*"]),
   {
     linterOptions: {
       reportUnusedDisableDirectives: true,
