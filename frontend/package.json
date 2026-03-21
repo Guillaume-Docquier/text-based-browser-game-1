@@ -10,6 +10,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@clerk/react": "^6.1.2",
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-router": "^1.168.1",
     "@tanstack/react-router-devtools": "^1.166.10",

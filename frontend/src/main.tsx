@@ -7,6 +7,7 @@ import { StrictMode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BackendApiClient } from "./api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "./contexts/BackendApiClientContext.tsx"
+import { ClerkProvider } from "@clerk/react"
 
 const router = createRouter({
   routeTree,
@@ -30,11 +31,13 @@ if (rootElement.innerHTML === "") {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <BackendApiClientProvider backendApiClient={backendApiClient}>
-          <RouterProvider router={router} />
-        </BackendApiClientProvider>
-      </QueryClientProvider>
+      <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+        <QueryClientProvider client={queryClient}>
+          <BackendApiClientProvider backendApiClient={backendApiClient}>
+            <RouterProvider router={router} />
+          </BackendApiClientProvider>
+        </QueryClientProvider>
+      </ClerkProvider>
     </StrictMode>,
   )
 }
