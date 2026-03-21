@@ -28,6 +28,8 @@ function Index(): ReactElement {
     },
   })
 
+  const hue = (((tick.data ?? 0) % 10000) / 10000) * 360
+
   return (
     <>
       <section id="center">
@@ -42,6 +44,7 @@ function Index(): ReactElement {
         </div>
         <button
           className="counter"
+          style={{ backgroundColor: `hsl(${hue}, 70%, 50%)` }}
           onClick={() => {
             incrementTick.mutate()
           }}
