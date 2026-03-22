@@ -59,7 +59,8 @@ async function main(): Promise<void> {
   })
 
   const port = env.PORT
-  app.listen(port, () => {
+  // Listen to all interfaces (::) for railway's IPv6 internal network
+  app.listen(port, "::", () => {
     console.log(`App listening on port ${port}`)
   })
 }
