@@ -1,5 +1,4 @@
 import express from "express"
-import cors from "cors"
 import { parseEnv } from "./parseEnv.ts"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { gamesTable } from "./db/schema.ts"
@@ -24,10 +23,9 @@ async function main(): Promise<void> {
   console.log("Game found", { game })
 
   const app = express()
-  app.use(cors({ origin: env.FRONTEND_HOST }))
   app.use(clerkMiddleware())
 
-  app.get("/tick", async (req, res) => {
+  app.get("/api/tick", async (req, res) => {
     const [ngame] = await db.select({ tick: gamesTable.tick }).from(gamesTable).where(eq(gamesTable.id, game.id))
     if (ngame === undefined) {
       return res.status(500).send({ error: "Could not get tick" })
@@ -38,7 +36,7 @@ async function main(): Promise<void> {
     return res.send({ tick })
   })
 
-  app.post("/tick", async (req, res) => {
+  app.post("/api/tick", async (req, res) => {
     // Make this a middleware or something
     const auth = getAuth(req)
     if (!auth.isAuthenticated) {

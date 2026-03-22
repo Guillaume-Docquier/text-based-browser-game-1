@@ -1,7 +1,6 @@
 import { z } from "zod"
 
 const envSchema = z.object({
-  FRONTEND_HOST: z.string(),
   PORT: z.coerce.number(),
   DATABASE_URL: z.string(),
 })

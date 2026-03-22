@@ -22,7 +22,7 @@ declare module "@tanstack/react-router" {
 }
 
 const queryClient = new QueryClient()
-const backendApiClient = new BackendApiClient(import.meta.env.VITE_BACKEND_HOST as string)
+const backendApiClient = new BackendApiClient()
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- root will always exist
 const rootElement = document.getElementById("root")!
