@@ -4,6 +4,7 @@ import { parseEnv } from "./parseEnv.ts"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { gamesTable } from "./db/schema.ts"
 import { eq, sql } from "drizzle-orm"
+import { clerkMiddleware, getAuth } from "@clerk/express"
 
 const env = parseEnv()
 
@@ -24,6 +25,7 @@ async function main(): Promise<void> {
 
   const app = express()
   app.use(cors({ origin: env.FRONTEND_HOST }))
+  app.use(clerkMiddleware())
 
   app.get("/tick", async (req, res) => {
     const [ngame] = await db.select({ tick: gamesTable.tick }).from(gamesTable).where(eq(gamesTable.id, game.id))
@@ -37,6 +39,12 @@ async function main(): Promise<void> {
   })
 
   app.post("/tick", async (req, res) => {
+    // Make this a middleware or something
+    const auth = getAuth(req)
+    if (!auth.isAuthenticated) {
+      return res.status(401).end()
+    }
+
     const [ngame] = await db
       .update(gamesTable)
       .set({ tick: sql`${gamesTable.tick} + 1` })

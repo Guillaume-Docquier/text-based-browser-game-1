@@ -1,4 +1,3 @@
-import dotenv from "dotenv"
 import { z } from "zod"
 
 const envSchema = z.object({
@@ -8,8 +7,6 @@ const envSchema = z.object({
 })
 
 export function parseEnv(): z.infer<typeof envSchema> {
-  dotenv.config({ quiet: true })
-
   const envResult = envSchema.safeParse(process.env)
   if (!envResult.success) {
     throw new Error(z.prettifyError(envResult.error))

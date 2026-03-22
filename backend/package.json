@@ -4,23 +4,24 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/entry.backend.ts",
+    "dev": "node --watch --env-file=.env src/entry.backend.ts",
+    "seed": "node --env-file=.env src/db/seed.ts",
     "start": "node src/entry.backend.ts",
     "typecheck": "tsc"
   },
   "dependencies": {
-    "cors": "2.8.6",
-    "dotenv": "17.3.1",
+    "@clerk/express": "^2.0.6",
+    "cors": "^2.8.6",
     "drizzle-orm": "^0.45.1",
-    "express": "5.2.1",
+    "express": "^5.2.1",
     "pg": "^8.20.0",
-    "zod": "4.3.6"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@inquirer/prompts": "^8.3.2",
-    "@types/cors": "2.8.19",
-    "@types/express": "5.0.6",
-    "@types/node": "25.5.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
     "@types/pg": "^8.18.0",
     "drizzle-kit": "^0.31.10",
     "typescript": "5.9.3"
