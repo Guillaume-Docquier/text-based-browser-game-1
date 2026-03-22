@@ -11,7 +11,11 @@ export default defineConfig(({ mode }) => {
     plugins: [tanstackRouter({ target: "react", autoCodeSplitting: true }), react(), babel({ presets: [reactCompilerPreset()] })],
     server: {
       proxy: {
-        "/api": env.VITE_BACKEND_HOST ?? "http://localhost:3000",
+        "/api": {
+          target: env.VITE_BACKEND_HOST ?? "http://localhost:3000",
+          changeOrigin: true,
+          rewrite: (path): string => path.replace(/^\/api/, ""),
+        },
       },
     },
   }

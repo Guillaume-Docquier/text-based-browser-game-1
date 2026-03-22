@@ -25,7 +25,7 @@ async function main(): Promise<void> {
   const app = express()
   app.use(clerkMiddleware())
 
-  app.get("/api/tick", async (req, res) => {
+  app.get("/tick", async (req, res) => {
     const [ngame] = await db.select({ tick: gamesTable.tick }).from(gamesTable).where(eq(gamesTable.id, game.id))
     if (ngame === undefined) {
       return res.status(500).send({ error: "Could not get tick" })
@@ -36,7 +36,7 @@ async function main(): Promise<void> {
     return res.send({ tick })
   })
 
-  app.post("/api/tick", async (req, res) => {
+  app.post("/tick", async (req, res) => {
     // Make this a middleware or something
     const auth = getAuth(req)
     if (!auth.isAuthenticated) {
