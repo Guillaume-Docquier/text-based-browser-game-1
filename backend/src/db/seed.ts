@@ -81,8 +81,8 @@ async function seedUsers(db: NodePgDatabase): Promise<void> {
   await resetTable(db, usersTable)
   await db.delete(usersTable)
   console.log("├ Adding sample users")
-  for (let i = 1; i <= 3; i++) {
-    await db.insert(usersTable).values({ email: `fake${i}@email.com`, clerk_id: `fake${i}` })
-  }
+  await db
+    .insert(usersTable)
+    .values([{ clerk_id: "fake1", email: "fake1@email.com" }, { clerk_id: "fake2", email: "fake2@email.com" }, { clerk_id: "fake3" }])
   console.log("└ Done")
 }
