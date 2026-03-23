@@ -15,6 +15,7 @@ const db = drizzle({
   },
 })
 
+void main()
 async function main(): Promise<void> {
   const [game] = await db.select().from(gamesTable)
   if (game === undefined) {
@@ -64,5 +65,3 @@ async function main(): Promise<void> {
     console.log(`App listening on port ${port}`)
   })
 }
-
-void main()
