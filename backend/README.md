@@ -17,11 +17,21 @@ More on drizzle-kit here: https://orm.drizzle.team/docs/kit-overview
 Create db migrations with drizzle-kit
 
 ```bash
-pnpm drizzle-kit generate --name=NAME_OF_MIGRATION
+pnpm db:generate --name=NAME_OF_MIGRATION
 ```
 
-Which can then be applied
+Which can then be applied.  
+You need the `DATABASE_URL` env var for this.
 
 ```bash
-pnpm drizzle-kit migrate
+pnpm db:migrate
+```
+
+### Seeding the database
+
+There's a script to wipe the db and add default data.
+You need the `DATABASE_URL` env var for this.
+
+```bash
+pnpm db:seed
 ```

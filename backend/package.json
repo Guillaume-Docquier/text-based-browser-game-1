@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "node --env-file=.env src/db/seed.ts",
     "dev": "node --watch --env-file=.env src/entry.backend.ts",
-    "seed": "node --env-file=.env src/db/seed.ts",
     "start": "node src/entry.backend.ts",
     "typecheck": "tsc"
   },
