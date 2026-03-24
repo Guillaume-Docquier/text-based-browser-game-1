@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express"
-import { clerkClient, getAuth } from "@clerk/express"
+import type { AuthService } from "#auth/auth.service.ts"
 import type { User, UsersRepository } from "#db/UsersRepository.ts"
 
 declare global {
@@ -11,9 +11,20 @@ declare global {
   }
 }
 
-export function recordUserMiddleware({ usersRepository }: { usersRepository: UsersRepository }): RequestHandler {
+/**
+ * Records authenticated users to our users database if they aren't already.
+ *
+ * This is a leaky abstraction over Clerk, because we can't full rely on their webhooks to sync data.
+ */
+export function recordUserMiddleware({
+  usersRepository,
+  authService,
+}: {
+  usersRepository: UsersRepository
+  authService: AuthService
+}): RequestHandler {
   return async (req, res, next) => {
-    const auth = getAuth(req)
+    const auth = authService.getAuth(req)
     if (!auth.isAuthenticated) {
       next()
       return
@@ -21,7 +32,7 @@ export function recordUserMiddleware({ usersRepository }: { usersRepository: Use
 
     let user = await usersRepository.findByAuthId({ authId: auth.userId })
     if (user === undefined) {
-      const clerkUser = await clerkClient.users.getUser(auth.userId)
+      const clerkUser = await authService.getUser({ authId: auth.userId })
       user = await usersRepository.insert({ clerk_id: auth.userId, email: clerkUser.emailAddresses[0]?.emailAddress })
     }
 

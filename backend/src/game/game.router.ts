@@ -1,8 +1,8 @@
 import express, { type Router } from "express"
-import { authApi } from "#auth/authApi.ts"
+import type { AuthService } from "#auth/auth.service.ts"
 import { type GameController } from "./game.controller.ts"
 
-export function createGameRouter({ gameController }: { gameController: GameController }): Router {
+export function createGameRouter({ gameController, authService }: { gameController: GameController; authService: AuthService }): Router {
   const gameRouter = express.Router()
 
   gameRouter.get("/tick", async (req, res) => {
@@ -15,7 +15,7 @@ export function createGameRouter({ gameController }: { gameController: GameContr
     return res.send({ tick })
   })
 
-  gameRouter.post("/tick", authApi, async (req, res) => {
+  gameRouter.post("/tick", authService.requiresAuth(), async (req, res) => {
     const tick = await gameController.incrementTick({ by: 1 })
     if (tick === undefined) {
       return res.status(500).send({ error: "Could not update tick" })

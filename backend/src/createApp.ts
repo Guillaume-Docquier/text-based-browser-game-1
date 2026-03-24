@@ -1,17 +1,19 @@
 import express, { type Express } from "express"
-import { clerkMiddleware } from "@clerk/express"
 import { createGameRouter } from "./game/game.router.ts"
 import { GameController } from "./game/game.controller.ts"
-import { recordUserMiddleware } from "./auth/recordUserMiddleware.ts"
+import { recordUserMiddleware } from "#auth/recordUserMiddleware.ts"
 import type { GamesRepository } from "#db/GamesRepository.ts"
 import type { UsersRepository } from "#db/UsersRepository.ts"
+import type { AuthService } from "#auth/auth.service.ts"
 
 export async function createApp({
   gamesRepository,
   usersRepository,
+  authService,
 }: {
   gamesRepository: GamesRepository
   usersRepository: UsersRepository
+  authService: AuthService
 }): Promise<Express> {
   const [game] = await gamesRepository.getAll()
   if (game === undefined) {
@@ -19,13 +21,13 @@ export async function createApp({
   }
   console.log("Game found", { game })
 
-  const gameService = new GameController({ gamesRepository, gameId: game.id })
+  const gameController = new GameController({ gamesRepository, gameId: game.id })
 
   const app = express()
-  app.use(clerkMiddleware())
-  app.use(recordUserMiddleware({ usersRepository }))
+  app.use(authService.authenticationMiddleware())
+  app.use(recordUserMiddleware({ usersRepository, authService }))
 
-  app.use(createGameRouter({ gameController: gameService }))
+  app.use(createGameRouter({ gameController, authService }))
 
   return app
 }
