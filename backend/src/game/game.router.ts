@@ -1,5 +1,5 @@
 import express, { type Router } from "express"
-import { authApi } from "../auth/authApi.ts"
+import { authApi } from "#auth/authApi.ts"
 import { type GameController } from "./game.controller.ts"
 
 export function createGameRouter({ gameController }: { gameController: GameController }): Router {

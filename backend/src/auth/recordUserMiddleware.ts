@@ -1,9 +1,9 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 import type { RequestHandler } from "express"
 import { clerkClient, getAuth } from "@clerk/express"
-import { usersTable } from "../db/schema.ts"
+import { usersTable } from "#db/schema.ts"
 import { eq } from "drizzle-orm"
-import type { User } from "../db/types.ts"
+import type { User } from "#db/types.ts"
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace -- This is the way with Express

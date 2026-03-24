@@ -1,5 +1,5 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
-import { gamesTable } from "../db/schema.ts"
+import { gamesTable } from "#db/schema.ts"
 import { eq, sql } from "drizzle-orm"
 
 export class GameController {

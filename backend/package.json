@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "imports": {
+    "#db/*": "./src/db/*",
+    "#auth/*": "./src/auth/*"
+  },
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
