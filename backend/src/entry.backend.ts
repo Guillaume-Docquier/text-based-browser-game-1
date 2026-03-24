@@ -1,8 +1,11 @@
 import { parseEnv } from "./parseEnv.ts"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { createApp } from "./createApp.ts"
+import { UsersRepository } from "#db/UsersRepository.ts"
+import { GamesRepository } from "#db/GamesRepository.ts"
 
 const env = parseEnv()
+
 void main()
 async function main(): Promise<void> {
   const db = drizzle({
@@ -13,7 +16,10 @@ async function main(): Promise<void> {
     },
   })
 
-  const app = await createApp({ db })
+  const usersRepository = new UsersRepository({ db })
+  const gamesRepository = new GamesRepository({ db })
+
+  const app = await createApp({ usersRepository, gamesRepository })
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
   app.listen(env.PORT, "::", () => {

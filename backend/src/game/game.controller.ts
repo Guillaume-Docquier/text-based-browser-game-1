@@ -1,29 +1,19 @@
-import type { NodePgDatabase } from "drizzle-orm/node-postgres"
-import { gamesTable } from "#db/schema.ts"
-import { eq, sql } from "drizzle-orm"
+import type { GamesRepository } from "#db/GamesRepository.ts"
 
 export class GameController {
-  private readonly db
+  private readonly gamesRepository
   private readonly gameId
 
-  public constructor({ db, gameId }: { db: NodePgDatabase; gameId: number }) {
-    this.db = db
+  public constructor({ gamesRepository, gameId }: { gamesRepository: GamesRepository; gameId: number }) {
+    this.gamesRepository = gamesRepository
     this.gameId = gameId
   }
 
   public async getTick(): Promise<number | undefined> {
-    const [game] = await this.db.select({ tick: gamesTable.tick }).from(gamesTable).where(eq(gamesTable.id, this.gameId))
-
-    return game?.tick
+    return (await this.gamesRepository.findById({ gameId: this.gameId }))?.tick
   }
 
   public async incrementTick({ by }: { by: number }): Promise<number | undefined> {
-    const [game] = await this.db
-      .update(gamesTable)
-      .set({ tick: sql`${gamesTable.tick} + ${by}` })
-      .where(eq(gamesTable.id, this.gameId))
-      .returning()
-
-    return game?.tick
+    return (await this.gamesRepository.incrementTick({ gameId: this.gameId, by }))?.tick
   }
 }
