@@ -1,6 +1,12 @@
 import type { RequestHandler, Request } from "express"
 import { clerkClient, clerkMiddleware, getAuth, type SessionAuthObject, type User } from "@clerk/express"
 
+/**
+ * Encapsulates Clerk.
+ * This should be the only place we use Clerk directly.
+ *
+ * It'll make tests easier, and if Clerk turns out to be a problem we can change it.
+ */
 export class AuthService {
   /**
    * Express middleware that parses the authentication token for further usage.

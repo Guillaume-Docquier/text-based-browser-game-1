@@ -5,10 +5,13 @@ import { UsersRepository } from "#db/UsersRepository.ts"
 import { GamesRepository } from "#db/GamesRepository.ts"
 import { AuthService } from "#auth/auth.service.ts"
 
-const env = parseEnv()
-
 void main()
+
+/**
+ * The main entrypoint for the backend
+ */
 async function main(): Promise<void> {
+  const env = parseEnv()
   const db = drizzle({
     connection: {
       connectionString: env.DATABASE_URL,

@@ -2,6 +2,11 @@ import express, { type Router } from "express"
 import type { AuthService } from "#auth/auth.service.ts"
 import { type GameController } from "./game.controller.ts"
 
+/**
+ * Import side effect free express router creator.
+ * It receives all dependencies so we can easily mock them during tests.
+ * It also decouples the router from those dependencies, if done well.
+ */
 export function createGameRouter({ gameController, authService }: { gameController: GameController; authService: AuthService }): Router {
   const gameRouter = express.Router()
 

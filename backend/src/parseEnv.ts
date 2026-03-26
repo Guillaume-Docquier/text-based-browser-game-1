@@ -2,6 +2,7 @@ import { z } from "zod"
 
 /**
  * The schema for the environment variables.
+ * It also serves as documentation for the env.
  *
  * Default values are coherent across all services for dev.
  * Only keys that are 3rd party secret don't have default values, for safety.
@@ -29,9 +30,16 @@ const envSchema = z.object({
   CLERK_SECRET_KEY: z.string(),
 })
 
+/**
+ * Parses the env to validate that the necessary variables are defined.
+ * Returns a type safe Env object for further use.
+ *
+ * This should be the only consumer of `process.env`.
+ */
 export function parseEnv(): z.infer<typeof envSchema> {
   const envResult = envSchema.safeParse(process.env)
   if (!envResult.success) {
+    console.error("Some environment variables are missing or incorrect.")
     throw new Error(z.prettifyError(envResult.error))
   }
 
