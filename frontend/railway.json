@@ -1,6 +1,6 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "watchPatterns": ["frontend/**"]
+    "watchPatterns": ["frontend/**", "shared/toolbox/**"]
   }
 }
