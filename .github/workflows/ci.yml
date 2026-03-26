@@ -31,9 +31,9 @@ jobs:
       - name: Install packages
         run: |
           pnpm i
-          pnpm --prefix shared/toolbox i && pnpm --prefix shared/toolbox build
           pnpm --prefix frontend i
           pnpm --prefix backend i
+          cd shared/toolbox && pnpm i && pnpm build
 
       - name: Format
         run: pnpm format
@@ -62,8 +62,8 @@ jobs:
 
       - name: Install packages
         run: |
-          pnpm --prefix ../shared/toolbox i && pnpm --prefix ../shared/toolbox build
           pnpm i
+          cd ../shared/toolbox && pnpm i && pnpm build
 
       - name: Typecheck
         run: pnpm typecheck
@@ -92,8 +92,8 @@ jobs:
 
       - name: Install packages
         run: |
-          pnpm --prefix ../shared/toolbox i && pnpm --prefix ../shared/toolbox build
           pnpm i
+          cd ../shared/toolbox && pnpm i && pnpm build
 
       - name: Typecheck
         run: pnpm typecheck
