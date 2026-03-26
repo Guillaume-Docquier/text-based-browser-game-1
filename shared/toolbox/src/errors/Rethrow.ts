@@ -1,5 +1,5 @@
-import { FatalError } from "./FatalError.ts"
-import { AssertionError } from "./AssertionError.ts"
+import { FatalError } from "./FatalError.js"
+import { AssertionError } from "./AssertionError.js"
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- This is necessary to create Typescript Assertion functions
 export class Rethrow {

@@ -1,6 +1,6 @@
-import { AssertionError } from "./errors/AssertionError.ts"
+import { AssertionError } from "./errors/AssertionError.js"
 import type { EnumType, ConstructorType } from "./utility-types.ts"
-import { TypeGuard } from "./TypeGuard.ts"
+import { TypeGuard } from "./TypeGuard.js"
 
 /**
  * From Wikipedia

@@ -8,6 +8,7 @@
     "#auth/*": "./src/auth/*"
   },
   "scripts": {
+    "build:deps": "cd ../shared/toolbox && pnpm build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node --env-file=.env scripts/db/seed.ts",
@@ -17,6 +18,7 @@
   },
   "dependencies": {
     "@clerk/express": "^2.0.6",
+    "@shared/toolbox": "file:../shared/toolbox",
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
     "p-retry": "^7.1.1",

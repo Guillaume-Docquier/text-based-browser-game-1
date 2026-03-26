@@ -16,10 +16,10 @@
     "types": ["node"],
 
     // Other Outputs
-    "sourceMap": true,
+    "sourceMap": false,
     "declaration": true,
-    "declarationMap": true,
-    "noEmit": true,
+    "declarationMap": false,
+    "noEmit": false,
 
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
@@ -38,7 +38,7 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": false
   },
   "include": ["src"]
 }

@@ -1,10 +1,10 @@
-export { Rethrow } from "./errors/Rethrow.ts"
-export { AssertionError } from "./errors/AssertionError.ts"
-export { FatalError } from "./errors/FatalError.ts"
+export { Rethrow } from "./errors/Rethrow.js"
+export { AssertionError } from "./errors/AssertionError.js"
+export { FatalError } from "./errors/FatalError.js"
 
 export type * from "./utility-types.ts"
 
-export { Assert } from "./Assert.ts"
-export { Result, type Success, type Failure } from "./Result.ts"
-export { TypeGuard } from "./TypeGuard.ts"
-export { noop, asyncNoop } from "./noop.ts"
+export { Assert } from "./Assert.js"
+export { Result, type Success, type Failure } from "./Result.js"
+export { TypeGuard } from "./TypeGuard.js"
+export { noop, asyncNoop } from "./noop.js"

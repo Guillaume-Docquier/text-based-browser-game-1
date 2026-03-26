@@ -1,4 +1,4 @@
-import { FatalError } from "./FatalError.ts"
+import { FatalError } from "./FatalError.js"
 
 type AssertionContext = { paramName?: string | undefined; expected: string | number; received: string | number }
 

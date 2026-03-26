@@ -11,6 +11,9 @@ importers:
       '@clerk/express':
         specifier: ^2.0.6
         version: 2.0.6(express@5.2.1)
+      '@shared/toolbox':
+        specifier: file:../shared/toolbox
+        version: file:../shared/toolbox
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
@@ -658,6 +661,9 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
+
+  '@shared/toolbox@file:../shared/toolbox':
+    resolution: {directory: ../shared/toolbox, type: directory}
 
   '@stablelib/base64@1.0.1':
     resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
@@ -1594,6 +1600,8 @@ snapshots:
   '@inquirer/type@4.0.4(@types/node@25.5.0)':
     optionalDependencies:
       '@types/node': 25.5.0
+
+  '@shared/toolbox@file:../shared/toolbox': {}
 
   '@stablelib/base64@1.0.1': {}
 
