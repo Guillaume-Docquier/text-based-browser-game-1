@@ -12,8 +12,6 @@
 
     // Somehow I need "dom" for structuredClone, even though it is supported in browser and node
     "lib": ["esnext", "dom"],
-    // Somehow I need "node" for Error.captureStackTrace, even though it is supported in browser and node
-    "types": ["node"],
 
     // Other Outputs
     "sourceMap": false,

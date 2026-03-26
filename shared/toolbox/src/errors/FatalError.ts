@@ -23,7 +23,8 @@ export class FatalError<TContext extends Record<string, unknown>> extends Error 
     this.context = structuredClone(context)
 
     if (caller !== undefined) {
-      Error.captureStackTrace(this, caller)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This is making me crazy, captureStackTrace exists in all browsers, but you need to use node types. This shared package shouldn't use node types.
+      ;(Error as any).captureStackTrace(this, caller)
     }
   }
 }
