@@ -10,7 +10,7 @@
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "node --env-file=.env src/db/seed.ts",
+    "db:seed": "node --env-file=.env scripts/db/seed.ts",
     "dev": "node --watch --env-file=.env src/entry.backend.ts",
     "start": "node src/entry.backend.ts",
     "typecheck": "tsc"
@@ -19,6 +19,7 @@
     "@clerk/express": "^2.0.6",
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
+    "p-retry": "^7.1.1",
     "pg": "^8.20.0",
     "zod": "^4.3.6"
   },
