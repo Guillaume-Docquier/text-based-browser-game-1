@@ -5,7 +5,7 @@
   "scripts": {
     "format": "prettier --check . && pnpm format:package-json --check",
     "format:fix": "prettier --write --list-different . && pnpm format:package-json",
-    "format:package-json": "sort-package-json package.json tooling/eslint/package.json frontend/package.json backend/package.json",
+    "format:package-json": "sort-package-json package.json shared/eslint/package.json shared/toolbox/package.json frontend/package.json backend/package.json",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "npm run lint -- --fix",
     "prepare": "husky"
@@ -23,7 +23,7 @@
     "semi": false
   },
   "devDependencies": {
-    "@tooling/eslint": "file:tooling/eslint",
+    "@shared/eslint": "file:./shared/eslint",
     "eslint": "9.39.4",
     "globals": "17.4.0",
     "husky": "9.1.7",

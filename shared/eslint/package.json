@@ -1,5 +1,5 @@
 {
-  "name": "@tooling/eslint",
+  "name": "@shared/eslint",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
