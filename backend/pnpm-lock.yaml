@@ -11,6 +11,9 @@ importers:
       '@clerk/express':
         specifier: ^2.0.6
         version: 2.0.6(express@5.2.1)
+      '@guillaume-docquier/tools-ts':
+        specifier: ^1.0.1
+        version: 1.0.1
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
@@ -525,6 +528,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@guillaume-docquier/tools-ts@1.0.1':
+    resolution: {integrity: sha512-6NEpuCBCvU9A3fVlOb+KxJFkrb5LoMT1Y/Mgm7F/xxeY4DiILdhuMSmrn3oW+vqpJTBs56lHccofykVVFpAX8g==}
+
   '@inquirer/ansi@2.0.4':
     resolution: {integrity: sha512-DpcZrQObd7S0R/U3bFdkcT5ebRwbTTC4D3tCc1vsJizmgPLxNJBo+AAFmrZwe8zk30P2QzgzGWZ3Q9uJwWuhIg==}
     engines: {node: '>=23.5.0 || ^22.13.0 || ^21.7.0 || ^20.12.0'}
@@ -658,6 +664,9 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
+
+  '@logtape/logtape@2.0.5':
+    resolution: {integrity: sha512-UizDkh20ZPJVOddRxG1F77WhHdlNl/sbQgoO8T534R7XvUBMAJ9En9f35u+meW2tRsNLvjz6R87Zanwf53tspQ==}
 
   '@stablelib/base64@1.0.1':
     resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
@@ -1476,6 +1485,10 @@ snapshots:
   '@esbuild/win32-x64@0.27.4':
     optional: true
 
+  '@guillaume-docquier/tools-ts@1.0.1':
+    dependencies:
+      '@logtape/logtape': 2.0.5
+
   '@inquirer/ansi@2.0.4': {}
 
   '@inquirer/checkbox@5.1.2(@types/node@25.5.0)':
@@ -1594,6 +1607,8 @@ snapshots:
   '@inquirer/type@4.0.4(@types/node@25.5.0)':
     optionalDependencies:
       '@types/node': 25.5.0
+
+  '@logtape/logtape@2.0.5': {}
 
   '@stablelib/base64@1.0.1': {}
 

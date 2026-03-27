@@ -6,6 +6,9 @@ import { UsersRepository } from "#db/UsersRepository.ts"
 import { GamesRepository } from "#db/GamesRepository.ts"
 import { AuthService } from "#auth/auth.service.ts"
 import pRetry from "p-retry"
+import { Assert } from "@guillaume-docquier/tools-ts"
+
+Assert.isDefined(true) // for testing
 
 void main()
 
