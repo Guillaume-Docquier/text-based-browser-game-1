@@ -17,10 +17,16 @@ async function main(): Promise<void> {
   const env = parseEnv()
 
   console.log("Connecting to the database")
-  const db = await connectToDatabase({ connectionString: env.DATABASE_URL })
+  const db = drizzle({
+    connection: {
+      connectionString: env.DATABASE_URL,
+      // I probably want ssl?
+      // ssl: true,
+    },
+  })
 
   console.log("Performing database migration")
-  await migrate(db, { migrationsFolder: "./drizzle/" })
+  await migrateDatabase(db, { migrationsFolder: "./drizzle/" })
 
   const usersRepository = new UsersRepository({ db })
   const gamesRepository = new GamesRepository({ db })
@@ -41,20 +47,15 @@ async function main(): Promise<void> {
  * Retrying should quickly work that out.
  * Long term the DB won't be "serverless", so this issue should go away.
  */
-async function connectToDatabase({ connectionString }: { connectionString: string }): Promise<NodePgDatabase> {
-  return await pRetry(
-    () =>
-      drizzle({
-        connection: {
-          connectionString,
-          // I probably want ssl?
-          // ssl: true,
-        },
-      }),
+async function migrateDatabase(db: NodePgDatabase, { migrationsFolder }: { migrationsFolder: string }): Promise<void> {
+  await pRetry(
+    async () => {
+      await migrate(db, { migrationsFolder })
+    },
     {
       retries: 5,
       onFailedAttempt: ({ error, attemptNumber, retriesLeft }) => {
-        console.error("Failed to connect to the database, retrying", { error, attemptNumber, retriesLeft })
+        console.error("Failed to migrate the database. It might not be awake, retrying", { error, attemptNumber, retriesLeft })
       },
     },
   )
