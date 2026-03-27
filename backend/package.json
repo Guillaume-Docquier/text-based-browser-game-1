@@ -8,7 +8,6 @@
     "#auth/*": "./src/auth/*"
   },
   "scripts": {
-    "build:deps": "cd ../shared/toolbox && pnpm build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node --env-file=.env scripts/db/seed.ts",
