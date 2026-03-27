@@ -8,7 +8,7 @@ const BackendApiClientContext = createContext<BackendApiClientContextInterface |
 export const useBackendApiClient = (): BackendApiClientContextInterface => {
   const context = useContext(BackendApiClientContext)
   if (context === undefined) {
-    throw new Error("useBackendApiClientContext must be used within a BackendApiClientProvider")
+    throw new Error("useBackendApiClient must be used within a BackendApiClientProvider")
   }
   return context
 }

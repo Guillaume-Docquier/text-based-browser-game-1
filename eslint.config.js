@@ -9,6 +9,7 @@ export default defineConfig([
       reportUnusedDisableDirectives: true,
     },
   },
+  eslintConfigs.configs.typescript,
   {
     files: ["backend/**/*"],
     languageOptions: {
@@ -18,8 +19,13 @@ export default defineConfig([
     },
   },
   {
+    files: ["backend/scripts/**/*"],
+    rules: {
+      "no-console": "off", // Scripts don't need to use a logger, it's not part of the application runtime
+    },
+  },
+  {
     files: ["frontend/**/*.{ts,tsx}"],
     ...eslintConfigs.configs.react,
   },
-  eslintConfigs.configs.typescript,
 ])

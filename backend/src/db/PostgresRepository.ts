@@ -1,9 +1,9 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
-export class PostgresRepository {
+export abstract class PostgresRepository {
   protected readonly db
 
-  constructor({ db }: { db: NodePgDatabase }) {
+  public constructor({ db }: { db: NodePgDatabase }) {
     this.db = db
   }
 }

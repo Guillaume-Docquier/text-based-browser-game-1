@@ -143,6 +143,7 @@ export default {
       },
     ],
     "@typescript-eslint/no-loss-of-precision": ["error"],
+    "@typescript-eslint/explicit-member-accessibility": ["error"],
     "@typescript-eslint/no-misused-new": ["error"],
     "@typescript-eslint/no-misused-promises": ["error"],
     "@typescript-eslint/no-namespace": ["error"],
@@ -303,6 +304,7 @@ export default {
     "no-class-assign": ["error"],
     "no-compare-neg-zero": ["error"],
     "no-cond-assign": ["error"],
+    "no-console": ["error"],
     "no-const-assign": ["error"],
     "no-constant-condition": [
       "error",

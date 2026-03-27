@@ -1,4 +1,5 @@
 import { z } from "zod"
+import type { Logger } from "@guillaume-docquier/tools-ts"
 
 /**
  * The schema for the environment variables.
@@ -36,10 +37,10 @@ const envSchema = z.object({
  *
  * This should be the only consumer of `process.env`.
  */
-export function parseEnv(): z.infer<typeof envSchema> {
+export function parseEnv({ logger }: { logger?: Logger } = {}): z.infer<typeof envSchema> {
   const envResult = envSchema.safeParse(process.env)
   if (!envResult.success) {
-    console.error("Some environment variables are missing or incorrect.")
+    ;(logger ?? console).error("Some environment variables are missing or incorrect.")
     throw new Error(z.prettifyError(envResult.error))
   }
 

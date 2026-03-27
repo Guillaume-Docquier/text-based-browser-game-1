@@ -12,8 +12,8 @@ importers:
         specifier: ^2.0.6
         version: 2.0.6(express@5.2.1)
       '@guillaume-docquier/tools-ts':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.1.1
+        version: 1.1.1
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
@@ -528,8 +528,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@guillaume-docquier/tools-ts@1.0.1':
-    resolution: {integrity: sha512-6NEpuCBCvU9A3fVlOb+KxJFkrb5LoMT1Y/Mgm7F/xxeY4DiILdhuMSmrn3oW+vqpJTBs56lHccofykVVFpAX8g==}
+  '@guillaume-docquier/tools-ts@1.1.1':
+    resolution: {integrity: sha512-NbU2D8t/7I3dLR+PZMLv56J9k70vKRzNrZu+1F5duLuwbrro2dNVL9CXh6IVO/NVe+nOLDKuuzNmEcOEcO6ynA==}
 
   '@inquirer/ansi@2.0.4':
     resolution: {integrity: sha512-DpcZrQObd7S0R/U3bFdkcT5ebRwbTTC4D3tCc1vsJizmgPLxNJBo+AAFmrZwe8zk30P2QzgzGWZ3Q9uJwWuhIg==}
@@ -667,6 +667,11 @@ packages:
 
   '@logtape/logtape@2.0.5':
     resolution: {integrity: sha512-UizDkh20ZPJVOddRxG1F77WhHdlNl/sbQgoO8T534R7XvUBMAJ9En9f35u+meW2tRsNLvjz6R87Zanwf53tspQ==}
+
+  '@logtape/redaction@2.0.5':
+    resolution: {integrity: sha512-EyC6gaTITsZCujGvEl6jNf1+od6YtY8H+Y6Rs9aWXtbr0LDMcts/Tk2v6T3uXf1M/YPwb+xCmcBU+r8NQcJmxA==}
+    peerDependencies:
+      '@logtape/logtape': ^2.0.5
 
   '@stablelib/base64@1.0.1':
     resolution: {integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==}
@@ -1485,9 +1490,10 @@ snapshots:
   '@esbuild/win32-x64@0.27.4':
     optional: true
 
-  '@guillaume-docquier/tools-ts@1.0.1':
+  '@guillaume-docquier/tools-ts@1.1.1':
     dependencies:
       '@logtape/logtape': 2.0.5
+      '@logtape/redaction': 2.0.5(@logtape/logtape@2.0.5)
 
   '@inquirer/ansi@2.0.4': {}
 
@@ -1609,6 +1615,10 @@ snapshots:
       '@types/node': 25.5.0
 
   '@logtape/logtape@2.0.5': {}
+
+  '@logtape/redaction@2.0.5(@logtape/logtape@2.0.5)':
+    dependencies:
+      '@logtape/logtape': 2.0.5
 
   '@stablelib/base64@1.0.1': {}
 
