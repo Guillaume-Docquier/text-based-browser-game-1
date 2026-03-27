@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+MESSAGE="$(cat $1)"
+
+CONVENTIONAL_COMMIT_REGEX="^(((project|frontend|backend): .*))"
+
+if ! [[ $MESSAGE =~ $CONVENTIONAL_COMMIT_REGEX ]]; then
+	echo -e "\n❌ Commit should start with project|frontend|backend:, e.g: backend: fixed some stuff"
+	exit 1
+fi
