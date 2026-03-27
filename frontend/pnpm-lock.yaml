@@ -11,9 +11,6 @@ importers:
       '@clerk/react':
         specifier: ^6.1.2
         version: 6.1.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@shared/toolbox':
-        specifier: file:../shared/toolbox
-        version: file:../shared/toolbox
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.90.21(react@19.2.4)
@@ -476,9 +473,6 @@ packages:
 
   '@rolldown/pluginutils@1.0.0-rc.9':
     resolution: {integrity: sha512-w6oiRWgEBl04QkFZgmW+jnU1EC9b57Oihi2ot3HNWIQRqgHp5PnYDia5iZ5FF7rpa4EQdiqMDXjlqKGXBhsoXw==}
-
-  '@shared/toolbox@file:../shared/toolbox':
-    resolution: {directory: ../shared/toolbox, type: directory}
 
   '@tanstack/history@1.161.6':
     resolution: {integrity: sha512-NaOGLRrddszbQj9upGat6HG/4TKvXLvu+osAIgfxPYA+eIvYKv8GKDJOrY2D3/U9MRnKfMWD7bU4jeD4xmqyIg==}
@@ -1368,8 +1362,6 @@ snapshots:
   '@rolldown/pluginutils@1.0.0-rc.7': {}
 
   '@rolldown/pluginutils@1.0.0-rc.9': {}
-
-  '@shared/toolbox@file:../shared/toolbox': {}
 
   '@tanstack/history@1.161.6': {}
 

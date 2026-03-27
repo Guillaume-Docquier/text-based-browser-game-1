@@ -8,9 +8,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BackendApiClient } from "./api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "./contexts/BackendApiClientContext.tsx"
 import { ClerkProvider } from "@clerk/react"
-import { Assert } from "@shared/toolbox"
-
-Assert.isDefined(true) // for testing
 
 const router = createRouter({
   routeTree,

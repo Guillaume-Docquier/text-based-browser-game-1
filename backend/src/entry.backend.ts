@@ -6,7 +6,6 @@ import { UsersRepository } from "#db/UsersRepository.ts"
 import { GamesRepository } from "#db/GamesRepository.ts"
 import { AuthService } from "#auth/auth.service.ts"
 import pRetry from "p-retry"
-import { Assert } from "@shared/toolbox"
 
 void main()
 
@@ -14,7 +13,6 @@ void main()
  * The main entrypoint for the backend
  */
 async function main(): Promise<void> {
-  Assert.isDefined(true) // Just a test for a full ci run and deployment
   console.log("Parsing environment")
   const env = parseEnv()
 
