@@ -8,19 +8,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BackendApiClient } from "./api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "./contexts/BackendApiClientContext.tsx"
 import { ClerkProvider } from "@clerk/react"
-import { Logger, createConsoleLogSink, jsonLineFormatter, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
+import { Logger, createConsoleLogSink, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
 import { LoggerProvider } from "./contexts/LoggerContext.tsx"
 
-const isProd = import.meta.env.NODE_ENV === "production"
 await Logger.configure({
   sinks: {
     console: createConsoleLogSink({
-      formatter: isProd ? jsonLineFormatter : prettyConsoleFormatter,
-      redaction: { enabled: isProd },
+      formatter: prettyConsoleFormatter,
+      redaction: { enabled: false },
     }),
   },
 }).then((logger) => {
-  logger.info("logger initialized", { isProd })
+  logger.info("logger initialized")
 })
 
 const router = createRouter({

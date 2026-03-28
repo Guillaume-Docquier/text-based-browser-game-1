@@ -39,7 +39,7 @@ function Index(): ReactElement {
           <img src={viteLogo} className="vite" alt="Vite logo" />
         </div>
         <div>
-          <h1>Cosmic Empires</h1>
+          <h1 className="text-3xl font-bold underline">Cosmic Empires</h1>
           <p>A deep text based strategy game where diplomacy is an option</p>
         </div>
         <button
