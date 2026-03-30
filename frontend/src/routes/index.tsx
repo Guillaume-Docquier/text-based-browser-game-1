@@ -1,48 +1,22 @@
 import { type ReactElement } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
+import { Button } from "@headlessui/react"
 
 export const Route = createFileRoute("/")({
   component: Index,
 })
 
 function Index(): ReactElement {
-  const backendApiClient = useBackendApiClient()
-  const queryClient = useQueryClient()
-
-  const tick = useQuery({
-    queryKey: ["tick"],
-    queryFn: async () => await backendApiClient.getTick(),
-  })
-
-  const incrementTick = useMutation({
-    mutationFn: async () => {
-      await backendApiClient.incrementTick()
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["tick"] })
-    },
-  })
-
-  const hue = (((tick.data ?? 0) % 10000) / 10000) * 360
-
   return (
-    <>
-      <div>
-        <h1 className="text-3xl font-bold underline">Cosmic Empires</h1>
-        <p>A deep text based strategy game where diplomacy is an option</p>
+    <div className="flex flex-col items-center bg-[url(/src/assets/home-bg-spaceships.png)] text-white h-[calc(100vh-theme(space.16))] py-30">
+      <div className="flex flex-col items-center w-200 text-center justify-between h-full">
+        <h1 className="text-6xl font-bold [text-shadow:0px_0px_20px_rgba(29,185,208,1)]">Build your empire and dominate the galaxy</h1>
+        <p className="text-3xl [text-shadow:0px_0px_20px_rgba(0,0,0,1)]">
+          Cosmic Empires is a deep text based strategy game. Build bases, develop an economy, craft specialized spaceships and position your
+          fleets. Trade technologies and intel to establish dominance.
+        </p>
+        <Button className="text-4xl uppercase bg-blue-800 py-6 px-10 rounded-2xl cursor-pointer">Play for free</Button>
       </div>
-      <button
-        className="counter"
-        style={{ backgroundColor: `hsl(${hue}, 70%, 50%)` }}
-        onClick={() => {
-          incrementTick.mutate()
-        }}
-      >
-        Game tick is {tick.data ?? "unknown"}
-      </button>
-      <Link to="/about">Explore</Link>
-    </>
+    </div>
   )
 }
