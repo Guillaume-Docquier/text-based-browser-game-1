@@ -1,1 +1,57 @@
 @import "tailwindcss";
+
+/* https://colorffy.com/dark-theme-generator?colors=f76430-121212&success=22946E&warning=A87A2A&danger=9C2121&info=21498A&primaryCount=6&surfaceCount=6 */
+@theme {
+  /** Base colors */
+  --color-dark-50: #000000;
+  --color-light-50: #ffffff;
+
+  /** Theme primary colors */
+  --color-primary-50: #f76430;
+  --color-primary-100: #fc7747;
+  --color-primary-200: #ff895d;
+  --color-primary-300: #ff9b73;
+  --color-primary-400: #ffac89;
+  --color-primary-500: #ffbda0;
+
+  /** Theme surface colors */
+  --color-surface-50: #121212;
+  --color-surface-100: #282828;
+  --color-surface-200: #3f3f3f;
+  --color-surface-300: #575757;
+  --color-surface-400: #717171;
+  --color-surface-500: #8b8b8b;
+
+  /** Theme tonal surface colors */
+  --color-surface-tonal-50: #271b16;
+  --color-surface-tonal-100: #3c302b;
+  --color-surface-tonal-200: #524642;
+  --color-surface-tonal-300: #685e5a;
+  --color-surface-tonal-400: #807773;
+  --color-surface-tonal-500: #98908d;
+
+  /** Success colors */
+  --color-success-50: #22946e;
+  --color-success-100: #47d5a6;
+  --color-success-200: #9ae8ce;
+
+  /** Warning colors */
+  --color-warning-50: #a87a2a;
+  --color-warning-100: #d7ac61;
+  --color-warning-200: #ecd7b2;
+
+  /** Danger colors */
+  --color-danger-50: #9c2121;
+  --color-danger-100: #d94a4a;
+  --color-danger-200: #eb9e9e;
+
+  /** Info colors */
+  --color-info-50: #21498a;
+  --color-info-100: #4077d1;
+  --color-info-200: #92b2e5;
+}
+
+body {
+  background-color: var(--color-surface-50);
+  color: var(--color-light-50);
+}
