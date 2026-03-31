@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import type { ReactElement } from "react"
 import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react"
 import { UserSearch } from "lucide-react"
+import logo from "../assets/logo.png"
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -14,7 +15,7 @@ function RootComponent(): ReactElement {
       <header className="h-16 items-center bg-surface-100 p-3 flex justify-between border-b border-primary-400 text-xl">
         <div className="flex-1 h-full">
           <Link to="/" className="h-full flex items-center gap-2 text-2xl font-bold">
-            <img src="src/assets/logo.png" alt="logo" className="h-full" />
+            <img src={logo} alt="logo" className="h-full" />
             <div>Cosmic Empires</div>
           </Link>
         </div>
