@@ -1,10 +1,11 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
 import { parseEnv } from "../../src/parseEnv.ts"
-import { gamesTable, usersTable } from "#db/schema.ts"
+import { gamePlayersTable, gamesTable, playersTable } from "#db/schema.ts"
 import { Pool } from "pg"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
+import { Assert } from "@guillaume-docquier/tools-ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -29,7 +30,7 @@ async function main(connectionString: string): Promise<void> {
   const pool = new Pool({ connectionString })
   const db = drizzle({ client: pool })
 
-  const seedFuncs = [seedGames, seedUsers]
+  const seedFuncs = [seedPlayers, seedGames]
   for (const seedFunc of seedFuncs) {
     console.log("")
     await seedFunc(db)
@@ -74,23 +75,37 @@ async function resetTable(db: NodePgDatabase, table: Table): Promise<void> {
   await db.execute(sql`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`)
 }
 
-async function seedGames(db: NodePgDatabase): Promise<void> {
-  console.log("Games")
-  console.log("├ Cleaning up the games")
-  await resetTable(db, gamesTable)
-  console.log("├ Adding the default game")
-  await db.insert(gamesTable).values({ name: "default game", tick: 0 })
+async function seedPlayers(db: NodePgDatabase): Promise<void> {
+  console.log("Users")
+  console.log("├ Cleaning up the users")
+  await resetTable(db, playersTable)
+  await db.delete(playersTable)
+  console.log("├ Adding sample users")
+  await db
+    .insert(playersTable)
+    .values([{ clerk_id: "fake1", email: "fake1@email.com" }, { clerk_id: "fake2", email: "fake2@email.com" }, { clerk_id: "fake3" }])
   console.log("└ Done")
 }
 
-async function seedUsers(db: NodePgDatabase): Promise<void> {
-  console.log("Users")
-  console.log("├ Cleaning up the users")
-  await resetTable(db, usersTable)
-  await db.delete(usersTable)
-  console.log("├ Adding sample users")
-  await db
-    .insert(usersTable)
-    .values([{ clerk_id: "fake1", email: "fake1@email.com" }, { clerk_id: "fake2", email: "fake2@email.com" }, { clerk_id: "fake3" }])
+async function seedGames(db: NodePgDatabase): Promise<void> {
+  const players = await db.select().from(playersTable)
+  Assert.isDefined(players[0])
+  Assert.isDefined(players[1])
+  Assert.isDefined(players[2])
+
+  console.log("Games")
+  console.log("├ Cleaning up the games")
+  await resetTable(db, gamesTable)
+  console.log("├ Adding default games")
+  await db.insert(gamesTable).values([
+    { name: "battle to the death", createdByPlayerId: players[0].id, maxPlayerCount: 5 },
+    { name: "noobs only", createdByPlayerId: players[1].id, maxPlayerCount: 10 },
+  ])
+  console.log("├ Adding players to games")
+  const game = (await db.select().from(gamesTable))[0]
+  Assert.isDefined(game)
+
+  await db.insert(gamePlayersTable).values({ gameId: game.id, playerId: players[1].id })
+  await db.insert(gamePlayersTable).values({ gameId: game.id, playerId: players[2].id })
   console.log("└ Done")
 }

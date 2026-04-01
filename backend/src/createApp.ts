@@ -1,9 +1,9 @@
 import express, { type Express } from "express"
-import { createGameRouter } from "./game/game.router.ts"
-import { GameController } from "./game/game.controller.ts"
-import { recordUserMiddleware } from "#auth/recordUserMiddleware.ts"
+import { createGamesRouter } from "./game/games.router.ts"
+import { GamesController } from "./game/games.controller.ts"
+import { recordPlayerMiddleware } from "#auth/recordPlayerMiddleware.ts"
 import type { GamesRepository } from "#db/GamesRepository.ts"
-import type { UsersRepository } from "#db/UsersRepository.ts"
+import type { PlayersRepository } from "#db/PlayersRepository.ts"
 import type { AuthService } from "#auth/auth.service.ts"
 import type { Logger } from "@guillaume-docquier/tools-ts"
 
@@ -15,29 +15,23 @@ import type { Logger } from "@guillaume-docquier/tools-ts"
 export async function createApp({
   logger,
   gamesRepository,
-  usersRepository,
+  playersRepository,
   authService,
 }: {
   logger: Logger
   gamesRepository: GamesRepository
-  usersRepository: UsersRepository
+  playersRepository: PlayersRepository
   authService: AuthService
 }): Promise<Express> {
   const appLogger = logger.child({ scope: "app" })
 
-  const [game] = await gamesRepository.getAll()
-  if (game === undefined) {
-    throw new Error("There are no games in the database.")
-  }
-  appLogger.info("Game found", { game })
-
-  const gameController = new GameController({ gamesRepository, gameId: game.id })
+  const gameController = new GamesController({ gamesRepository })
 
   const app = express()
   app.use(authService.authenticationMiddleware())
-  app.use(recordUserMiddleware({ usersRepository, authService }))
+  app.use(recordPlayerMiddleware({ playersRepository, authService }))
 
-  app.use(createGameRouter({ gameController, authService, logger: appLogger }))
+  app.use("/games", createGamesRouter({ gameController, authService, logger: appLogger }))
 
   return app
 }

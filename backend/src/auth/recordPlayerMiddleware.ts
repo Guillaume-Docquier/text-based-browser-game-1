@@ -1,26 +1,26 @@
 import type { RequestHandler } from "express"
 import type { AuthService } from "#auth/auth.service.ts"
-import type { User, UsersRepository } from "#db/UsersRepository.ts"
+import type { Player, PlayersRepository } from "#db/PlayersRepository.ts"
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace -- This is the way with Express
   namespace Express {
     interface Request {
-      user?: User | undefined
+      player?: Player | undefined
     }
   }
 }
 
 /**
- * Records authenticated users to our users database if they aren't already.
+ * Records authenticated players to our players database if they aren't already.
  *
  * This is a leaky abstraction over Clerk, because we can't full rely on their webhooks to sync data.
  */
-export function recordUserMiddleware({
-  usersRepository,
+export function recordPlayerMiddleware({
+  playersRepository,
   authService,
 }: {
-  usersRepository: UsersRepository
+  playersRepository: PlayersRepository
   authService: AuthService
 }): RequestHandler {
   return async (req, res, next) => {
@@ -30,13 +30,13 @@ export function recordUserMiddleware({
       return
     }
 
-    let user = await usersRepository.findByAuthId({ authId: auth.userId })
-    if (user === undefined) {
+    let player = await playersRepository.findByAuthId({ authId: auth.userId })
+    if (player === undefined) {
       const clerkUser = await authService.getUser({ authId: auth.userId })
-      user = await usersRepository.insert({ clerk_id: auth.userId, email: clerkUser.emailAddresses[0]?.emailAddress })
+      player = await playersRepository.insert({ clerk_id: auth.userId, email: clerkUser.emailAddresses[0]?.emailAddress })
     }
 
-    req.user = user
+    req.player = player
 
     next()
   }

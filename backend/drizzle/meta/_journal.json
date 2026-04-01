@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1773971457027,
+      "when": 1775014552564,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1774225523037,
-      "tag": "0001_users-table",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1774233649816,
-      "tag": "0002_users-optional-email",
       "breakpoints": true
     }
   ]

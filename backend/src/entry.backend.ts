@@ -2,7 +2,7 @@ import { parseEnv } from "./parseEnv.ts"
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { createApp } from "./createApp.ts"
-import { UsersRepository } from "#db/UsersRepository.ts"
+import { PlayersRepository } from "#db/PlayersRepository.ts"
 import { GamesRepository } from "#db/GamesRepository.ts"
 import { AuthService } from "#auth/auth.service.ts"
 import pRetry from "p-retry"
@@ -42,13 +42,13 @@ async function main(): Promise<void> {
   logger.info("Performing database migration")
   await migrateDatabase(db, { migrationsFolder: "./drizzle/", logger })
 
-  const usersRepository = new UsersRepository({ db })
+  const playersRepository = new PlayersRepository({ db })
   const gamesRepository = new GamesRepository({ db })
 
   const authService = new AuthService()
 
   logger.info("Creating the API")
-  const app = await createApp({ usersRepository, gamesRepository, authService, logger })
+  const app = await createApp({ playersRepository, gamesRepository, authService, logger })
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
   app.listen(env.PORT, "::", () => {
