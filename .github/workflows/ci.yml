@@ -60,7 +60,9 @@ jobs:
           cache: pnpm
 
       - name: Install packages
-        run: pnpm i
+        run: |
+          pnpm i
+          cd ../backend && pnpm i
 
       - name: Typecheck
         run: pnpm typecheck
