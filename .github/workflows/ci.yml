@@ -59,6 +59,7 @@ jobs:
           node-version-file: ".nvmrc"
           cache: pnpm
 
+      # We install backend packages because we import their types
       - name: Install packages
         run: |
           pnpm i
