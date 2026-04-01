@@ -1,23 +1,72 @@
-import type { ReactElement } from "react"
+import { type ReactElement, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Search } from "lucide-react"
+import { TextInput } from "../design-system/TextInput.tsx"
+import { useQuery } from "@tanstack/react-query"
+import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
+import type { Game } from "../../../backend/src/db/GamesRepository.ts"
 
 export const Route = createFileRoute("/games")({
   component: Games,
 })
 
 function Games(): ReactElement {
-  const games = []
+  const [gameNameFilter, setGameNameFilter] = useState("")
+  const backendApiClient = useBackendApiClient()
+
+  const gamesQuery = useQuery({
+    queryKey: ["games"],
+    queryFn: async () => await backendApiClient.getGames(),
+  })
+
+  const games = gamesQuery.data?.filter((game) => game.name.includes(gameNameFilter))
 
   return (
     <div className="flex flex-col items-center text-white h-[calc(100vh-theme(space.16))] py-30">
       <div className="p-8 w-200 bg-surface-100 flex flex-col gap-y-3 rounded-xl">
         <div className="flex flex-row gap-2 items-center">
           <Search />
-          <input placeholder="search for games" className="w-full py-1 px-2" />
+          <TextInput value={gameNameFilter} onChange={setGameNameFilter} placeholder="search for games" />
         </div>
-        <div>{games.length === 0 ? "No games found" : "Games"}</div>
+        <div className="flex flex-col gap-2">
+          {games === undefined || games.length === 0 ? "No games found" : games.map((game) => <Game key={game.id} game={game} />)}
+        </div>
       </div>
     </div>
   )
+}
+
+function Game({ game }: { game: Game }): ReactElement {
+  return (
+    <div className="flex gap-2">
+      <div>#{game.id}</div>
+      <div>{game.name}</div>
+      <div>0/{game.maxPlayerCount} players</div>
+      <div>{game.endedAt !== null ? "Ended" : game.startedAt !== null ? "In Progress" : "Waiting for more players"}</div>
+      <div>created {timeAgo(game.createdAt as unknown as string)}</div>
+    </div>
+  )
+}
+
+function timeAgo(timestamp: string): string {
+  const now = Date.now()
+  const diffMs = now - new Date(timestamp).getTime()
+
+  const seconds = Math.floor(diffMs / 1000)
+  if (seconds < 60) {
+    return `${seconds} seconds ago`
+  }
+
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) {
+    return `${minutes} minutes ago`
+  }
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) {
+    return `${hours} hours ago`
+  }
+
+  const days = Math.floor(hours / 24)
+  return `${days} days ago`
 }

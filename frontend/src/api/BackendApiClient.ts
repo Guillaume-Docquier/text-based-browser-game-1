@@ -1,14 +1,19 @@
+import type { Game } from "../../../backend/src/db/GamesRepository"
+
 export class BackendApiClient {
   private readonly baseUrl = "/api"
 
-  public async getTick(): Promise<number> {
-    const response = await fetch(`${this.baseUrl}/tick`)
-    const body = (await response.json()) as { tick: number }
+  public async getGames(): Promise<Game[]> {
+    const response = await fetch(`${this.baseUrl}/games`, { method: "GET" })
+    const body = await response.json()
 
-    return body.tick
+    return body.games
   }
 
-  public async incrementTick(): Promise<void> {
-    await fetch(`${this.baseUrl}/tick`, { method: "POST" })
+  public async getGame({ gameId }: { gameId: number }): Promise<Game> {
+    const response = await fetch(`${this.baseUrl}/games/${gameId}`, { method: "GET" })
+    const body = await response.json()
+
+    return body.game
   }
 }

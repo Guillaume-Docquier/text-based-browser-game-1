@@ -12,8 +12,8 @@ importers:
         specifier: ^6.1.2
         version: 6.1.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@guillaume-docquier/tools-ts':
-        specifier: ^1.1.1
-        version: 1.1.1
+        specifier: ^1.2.0
+        version: 1.2.0
       '@tanstack/react-query':
         specifier: ^5.90.21
         version: 5.90.21(react@19.2.4)
@@ -342,8 +342,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@guillaume-docquier/tools-ts@1.1.1':
-    resolution: {integrity: sha512-NbU2D8t/7I3dLR+PZMLv56J9k70vKRzNrZu+1F5duLuwbrro2dNVL9CXh6IVO/NVe+nOLDKuuzNmEcOEcO6ynA==}
+  '@guillaume-docquier/tools-ts@1.2.0':
+    resolution: {integrity: sha512-7y1kqs89wpIRM+FwgeUBa5gYcjjCOhOJ1n/HXLn0ikEm827klARPJ08ZkinthrGO5Zn4MHpJ6o8zQ9C2oNbq1w==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -1417,7 +1417,7 @@ snapshots:
   '@esbuild/win32-x64@0.27.4':
     optional: true
 
-  '@guillaume-docquier/tools-ts@1.1.1':
+  '@guillaume-docquier/tools-ts@1.2.0':
     dependencies:
       '@logtape/logtape': 2.0.5
       '@logtape/redaction': 2.0.5(@logtape/logtape@2.0.5)
