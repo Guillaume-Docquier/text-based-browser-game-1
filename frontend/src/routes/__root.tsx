@@ -20,7 +20,7 @@ function RootComponent(): ReactElement {
           </Link>
         </div>
         <div className="flex-1 flex justify-center">
-          <Link to="/games" className="flex items-center font-semibold gap-1">
+          <Link to="/games" className="[&.active]:text-primary-200 flex items-center font-semibold gap-1">
             <UserSearch />
             <div>Games</div>
           </Link>
