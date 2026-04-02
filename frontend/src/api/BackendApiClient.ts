@@ -1,4 +1,4 @@
-import type { Game } from "../../../backend/src/db/GamesRepository"
+import type { Game } from "@backend"
 
 export class BackendApiClient {
   private readonly baseUrl = "/api"

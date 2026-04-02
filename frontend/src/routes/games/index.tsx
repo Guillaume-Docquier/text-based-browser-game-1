@@ -4,7 +4,7 @@ import { Search } from "lucide-react"
 import { TextInput } from "../../design-system/TextInput.tsx"
 import { useQuery } from "@tanstack/react-query"
 import { useBackendApiClient } from "../../contexts/BackendApiClientContext.tsx"
-import type { Game } from "../../../../backend/src/db/GamesRepository.ts"
+import type { Game } from "@backend"
 
 export const Route = createFileRoute("/games/")({
   component: Games,

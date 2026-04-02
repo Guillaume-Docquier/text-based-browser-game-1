@@ -1,5 +1,10 @@
 {
   "compilerOptions": {
+    "paths": {
+      // Can't use until https://github.com/vitejs/vite/issues/21889 is fixed
+      // "@/*": ["src/*"],
+      "@backend": ["../backend/src/api-types"]
+    },
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2023",
     "useDefineForClassFields": true,

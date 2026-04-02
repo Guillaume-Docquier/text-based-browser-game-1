@@ -15,6 +15,10 @@ export default defineConfig(({ mode }) => {
       react(),
       babel({ presets: [reactCompilerPreset()] }),
     ],
+    // Can't use until https://github.com/vitejs/vite/issues/21889 is fixed
+    // resolve: {
+    //   tsconfigPaths: true,
+    // },
     server: {
       proxy: {
         "/api": {
