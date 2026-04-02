@@ -1,12 +1,12 @@
 import { type ReactElement, useState } from "react"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { Search } from "lucide-react"
-import { TextInput } from "../design-system/TextInput.tsx"
+import { TextInput } from "../../design-system/TextInput.tsx"
 import { useQuery } from "@tanstack/react-query"
-import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
-import type { Game } from "../../../backend/src/db/GamesRepository.ts"
+import { useBackendApiClient } from "../../contexts/BackendApiClientContext.tsx"
+import type { Game } from "../../../../backend/src/db/GamesRepository.ts"
 
-export const Route = createFileRoute("/games")({
+export const Route = createFileRoute("/games/")({
   component: Games,
 })
 
@@ -38,13 +38,17 @@ function Games(): ReactElement {
 
 function Game({ game }: { game: Game }): ReactElement {
   return (
-    <div className="flex gap-2">
+    <Link
+      to="/games/$gameId"
+      params={{ gameId: game.id }}
+      className="flex gap-2 rounded border border-surface-500 p-2 hover:bg-surface-200 cursor-pointer"
+    >
       <div>#{game.id}</div>
       <div>{game.name}</div>
       <div>0/{game.maxPlayerCount} players</div>
       <div>{game.endedAt !== null ? "Ended" : game.startedAt !== null ? "In Progress" : "Waiting for more players"}</div>
       <div>created {timeAgo(game.createdAt as unknown as string)}</div>
-    </div>
+    </Link>
   )
 }
 

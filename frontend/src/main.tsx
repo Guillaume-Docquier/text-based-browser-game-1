@@ -27,6 +27,12 @@ const router = createRouter({
   scrollRestoration: true,
 })
 
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router
+  }
+}
+
 const queryClient = new QueryClient()
 const backendApiClient = new BackendApiClient()
 
