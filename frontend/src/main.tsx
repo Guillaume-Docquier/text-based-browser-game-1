@@ -4,7 +4,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 import { StrictMode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { BackendApiClient } from "./api/BackendApiClient.ts"
+import { createBackendApiClient } from "./api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "./contexts/BackendApiClientContext.tsx"
 import { ClerkProvider } from "@clerk/react"
 import { Logger, createConsoleLogSink, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
@@ -34,7 +34,7 @@ declare module "@tanstack/react-router" {
 }
 
 const queryClient = new QueryClient()
-const backendApiClient = new BackendApiClient()
+const backendApiClient = createBackendApiClient({ queryClient })
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- root will always exist
 const rootElement = document.getElementById("root")!

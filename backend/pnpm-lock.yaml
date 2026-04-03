@@ -14,6 +14,9 @@ importers:
       '@guillaume-docquier/tools-ts':
         specifier: ^1.1.1
         version: 1.1.1
+      '@trpc/server':
+        specifier: ^11.16.0
+        version: 11.16.0(typescript@6.0.2)
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
@@ -678,6 +681,12 @@ packages:
 
   '@tanstack/query-core@5.90.16':
     resolution: {integrity: sha512-MvtWckSVufs/ja463/K4PyJeqT+HMlJWtw6PrCpywznd2NSgO3m4KwO9RqbFqGg6iDE8vVMFWMeQI4Io3eEYww==}
+
+  '@trpc/server@11.16.0':
+    resolution: {integrity: sha512-XgGuUMddrUTd04+za/WE5GFuZ1/YU9XQG0t3VL5WOIu2JspkOlq6k4RYEiqS6HSJt+S0RXaPdIoE2anIP/BBRQ==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.7.2'
 
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
@@ -1623,6 +1632,10 @@ snapshots:
   '@stablelib/base64@1.0.1': {}
 
   '@tanstack/query-core@5.90.16': {}
+
+  '@trpc/server@11.16.0(typescript@6.0.2)':
+    dependencies:
+      typescript: 6.0.2
 
   '@types/body-parser@1.19.6':
     dependencies:

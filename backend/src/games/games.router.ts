@@ -9,10 +9,10 @@ import type { Logger } from "@guillaume-docquier/tools-ts"
  * It also decouples the router from those dependencies, if done well.
  */
 export function createGamesRouter({
-  gameController,
+  gamesController,
   logger,
 }: {
-  gameController: GamesController
+  gamesController: GamesController
   authService: AuthService
   logger: Logger
 }): Router {
@@ -23,7 +23,7 @@ export function createGamesRouter({
    * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
    */
   gamesRouter.get("/", async (req, res) => {
-    const games = await gameController.getAll()
+    const games = await gamesController.getAll()
 
     gamesRouterLogger.info("GET games", { count: games.length })
     return res.send({ games })
@@ -34,7 +34,7 @@ export function createGamesRouter({
    */
   gamesRouter.get("/:id", async (req, res) => {
     const gameId = Number(req.query.id)
-    const game = await gameController.findById({ gameId })
+    const game = await gamesController.findById({ gameId })
 
     gamesRouterLogger.info(`GET game ${gameId}`, { game })
     if (game === undefined) {

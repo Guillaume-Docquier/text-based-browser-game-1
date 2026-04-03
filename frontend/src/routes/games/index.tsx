@@ -4,7 +4,7 @@ import { Search } from "lucide-react"
 import { TextInput } from "../../design-system/TextInput.tsx"
 import { useQuery } from "@tanstack/react-query"
 import { useBackendApiClient } from "../../contexts/BackendApiClientContext.tsx"
-import type { Game } from "@backend"
+import type * as ApiTypes from "@api-types"
 
 export const Route = createFileRoute("/games/")({
   component: Games,
@@ -14,12 +14,9 @@ function Games(): ReactElement {
   const [gameNameFilter, setGameNameFilter] = useState("")
   const backendApiClient = useBackendApiClient()
 
-  const gamesQuery = useQuery({
-    queryKey: ["games"],
-    queryFn: async () => await backendApiClient.getGames(),
-  })
+  const gamesQuery = useQuery(backendApiClient.games.getAll.queryOptions())
 
-  const games = gamesQuery.data?.filter((game) => game.name.includes(gameNameFilter))
+  const games = gamesQuery.data?.games.filter((game) => game.name.includes(gameNameFilter))
 
   return (
     <div className="flex flex-col items-center text-white h-[calc(100vh-theme(space.16))] py-30">
@@ -36,7 +33,7 @@ function Games(): ReactElement {
   )
 }
 
-function Game({ game }: { game: Game }): ReactElement {
+function Game({ game }: { game: ApiTypes.Game }): ReactElement {
   return (
     <Link
       to="/games/$gameId"
