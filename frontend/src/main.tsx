@@ -9,17 +9,18 @@ import { BackendApiClientProvider } from "./contexts/BackendApiClientContext.tsx
 import { ClerkProvider } from "@clerk/react"
 import { Logger, createConsoleLogSink, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
 import { LoggerProvider } from "./contexts/LoggerContext.tsx"
+import { parseEnv } from "./parseEnv.ts"
 
-await Logger.configure({
+const logger = await Logger.configure({
   sinks: {
     console: createConsoleLogSink({
       formatter: prettyConsoleFormatter,
       redaction: { enabled: false },
     }),
   },
-}).then((logger) => {
-  logger.info("logger initialized")
 })
+
+const env = parseEnv({ logger })
 
 const router = createRouter({
   routeTree,
@@ -34,7 +35,7 @@ declare module "@tanstack/react-router" {
 }
 
 const queryClient = new QueryClient()
-const backendApiClient = createBackendApiClient({ queryClient })
+const backendApiClient = createBackendApiClient({ baseUrl: env.VITE_BACKEND_BASE_URL, queryClient })
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- root will always exist
 const rootElement = document.getElementById("root")!
@@ -44,7 +45,7 @@ if (rootElement.innerHTML === "") {
   root.render(
     <StrictMode>
       <LoggerProvider logger={Logger.get()}>
-        <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+        <ClerkProvider publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}>
           <QueryClientProvider client={queryClient}>
             <BackendApiClientProvider backendApiClient={backendApiClient}>
               <RouterProvider router={router} />

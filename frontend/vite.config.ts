@@ -3,10 +3,12 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import babel from "@rolldown/plugin-babel"
 import tanstackRouter from "@tanstack/router-plugin/vite"
 import tailwindcss from "@tailwindcss/vite"
+import { parseEnv } from "./src/parseEnv"
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd())
+  const env = parseEnv({ env: loadEnv(mode, process.cwd()) })
+  const proxyRewriteRegex = new RegExp(`^${env.VITE_BACKEND_BASE_URL}`)
 
   return {
     plugins: [
@@ -20,11 +22,12 @@ export default defineConfig(({ mode }) => {
     //   tsconfigPaths: true,
     // },
     server: {
+      // Matches the reverse proxy configuration in production
       proxy: {
-        "/api": {
-          target: env.VITE_BACKEND_HOST ?? "http://localhost:3000",
+        [env.VITE_BACKEND_BASE_URL]: {
+          target: env.VITE_BACKEND_HOST,
           changeOrigin: true,
-          rewrite: (path): string => path.replace(/^\/api/, ""),
+          rewrite: (path): string => path.replace(proxyRewriteRegex, ""),
         },
       },
     },

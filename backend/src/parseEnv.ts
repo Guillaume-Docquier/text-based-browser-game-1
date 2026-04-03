@@ -4,9 +4,6 @@ import type { Logger } from "@guillaume-docquier/tools-ts"
 /**
  * The schema for the environment variables.
  * It also serves as documentation for the env.
- *
- * Default values are coherent across all services for dev.
- * Only keys that are 3rd party secret don't have default values, for safety.
  */
 const envSchema = z.object({
   /**
@@ -15,18 +12,18 @@ const envSchema = z.object({
   PORT: z.coerce.number(),
 
   /**
-   * See the infra docker-compose file for the dev db url
+   * See the infra docker-compose file for the dev db url.
    * postgres://<user>:<pwd>@localhost:<port>/<db>
    */
   DATABASE_URL: z.string(),
 
   /**
-   * Fetch the dev key from clerk and keep put it in your .env file
+   * Fetch the dev key from clerk and keep put it in your .env file.
    */
   CLERK_PUBLISHABLE_KEY: z.string(),
 
   /**
-   * Fetch the dev key from clerk and keep put it in your .env file
+   * Fetch the dev key from clerk and keep put it in your .env file.
    */
   CLERK_SECRET_KEY: z.string(),
 })

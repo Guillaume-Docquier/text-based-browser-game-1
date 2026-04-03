@@ -5,12 +5,12 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client"
 
 export type BackendApiClient = ReturnType<typeof createBackendApiClient>
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
-export function createBackendApiClient({ queryClient }: { queryClient: QueryClient }) {
+export function createBackendApiClient({ baseUrl, queryClient }: { baseUrl: string; queryClient: QueryClient }) {
   return createTRPCOptionsProxy<TrpcRouter>({
     client: createTRPCClient<TrpcRouter>({
       links: [
         httpBatchLink({
-          url: "/api/trpc",
+          url: `${baseUrl}/trpc`,
         }),
       ],
     }),
