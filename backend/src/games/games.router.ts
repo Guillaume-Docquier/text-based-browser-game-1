@@ -44,7 +44,7 @@ export function createGamesRouter({
       )
       .output(
         z.object({
-          game: Game.or(z.undefined()),
+          game: Game,
         }),
       )
       .query(async ({ input: { gameId } }) => {
