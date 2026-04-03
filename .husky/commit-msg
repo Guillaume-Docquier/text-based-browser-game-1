@@ -2,7 +2,7 @@
 
 MESSAGE="$(cat $1)"
 
-CONVENTIONAL_COMMIT_REGEX="^(((project|frontend|backend|ci|adr): .*))"
+CONVENTIONAL_COMMIT_REGEX="^(((project|frontend|backend|ci|adr|infra): .*))"
 
 if ! [[ $MESSAGE =~ $CONVENTIONAL_COMMIT_REGEX ]]; then
 	echo -e "\n❌ Commit should start with project|frontend|backend|ci|adr:, e.g: backend: fixed some stuff"
