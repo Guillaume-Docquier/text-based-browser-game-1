@@ -1,14 +1,14 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import type { ReactElement } from "react"
+import { Assert } from "@guillaume-docquier/tools-ts"
 
 export const Route = createFileRoute("/games/$gameId")({
   component: GameLobby,
   params: {
     parse: (rawParams) => {
       const gameId = Number(rawParams.gameId)
-      if (isNaN(gameId)) {
-        throw new Error(`gameId '${rawParams.gameId}' is not a number`)
-      }
+      Assert.isTrue(!isNaN(gameId))
+
       return { gameId }
     },
   },
