@@ -2,13 +2,13 @@
  * Exports API types for the frontend
  */
 
-import type { AppRouter } from "./createApp.ts"
+import type { TrpcRouter } from "./createApp.ts"
 import type { inferRouterOutputs } from "@trpc/server"
 
-type AppRouterOutput = inferRouterOutputs<AppRouter>
+type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 
-export type { AppRouter }
+export type { TrpcRouter }
 
 // Games router
-type GamesOutput = AppRouterOutput["games"]["getAll"]
+type GamesOutput = TrpcRouterOutput["games"]["getAll"]
 export type Game = GamesOutput["games"][number]

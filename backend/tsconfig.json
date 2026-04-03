@@ -12,10 +12,10 @@
     "lib": ["esnext"],
     "types": ["node"],
 
-    // Other Outputs
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
+    // No Outputs - We run natively with node
+    "sourceMap": false,
+    "declaration": false,
+    "declarationMap": false,
     "noEmit": true,
 
     // Stricter Typechecking Options
