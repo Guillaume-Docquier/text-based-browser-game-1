@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-/* https://colorffy.com/dark-theme-generator?colors=f76430-121212&success=22946E&warning=A87A2A&danger=9C2121&info=21498A&primaryCount=6&surfaceCount=6 */
+/* Inspired by material design: https://m2.material.io/design/color/dark-theme.html */
+/* Palette generated from: https://colorffy.com/dark-theme-generator?colors=f76430-121212&success=22946E&warning=A87A2A&danger=9C2121&info=21498A&primaryCount=6&surfaceCount=6 */
 @theme {
   /** Base colors */
   --color-dark-50: #000000;
