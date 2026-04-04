@@ -1,12 +1,12 @@
 import type { RequestHandler } from "express"
 import type { AuthService } from "#auth/auth.service.ts"
-import type { Player, PlayersRepository } from "#db/PlayersRepository.ts"
+import type { PlayerRow, PlayersRepository } from "#db/PlayersRepository.ts"
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace -- This is the way with Express
   namespace Express {
     interface Request {
-      player?: Player | undefined
+      player?: PlayerRow | undefined
     }
   }
 }

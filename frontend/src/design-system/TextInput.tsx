@@ -1,4 +1,4 @@
-import type { FC } from "react"
+import type { ReactElement } from "react"
 
 interface TextInputProps {
   value: string
@@ -7,14 +7,15 @@ interface TextInputProps {
   placeholder?: string
 }
 
-export const TextInput: FC<TextInputProps> = ({ value, onChange, className, placeholder }) => {
+export function TextInput({ value, onChange, className, placeholder }: TextInputProps): ReactElement {
   return (
     <input
+      type="text"
       value={value}
       onChange={(event) => {
         onChange(event.target.value)
       }}
-      className={`w-full py-1 px-2 ${className}`}
+      className={`w-full py-1 px-2 border rounded ${className}`}
       placeholder={placeholder}
     />
   )

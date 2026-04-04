@@ -14,6 +14,7 @@ import type { Trpc } from "../trpc.ts"
 export function createGamesRouter({
   t,
   publicProcedure,
+  authProcedure,
   gamesController,
   logger,
 }: Trpc & {
@@ -24,29 +25,32 @@ export function createGamesRouter({
   const gamesRouterLogger = logger.child({ scope: "games-router" })
 
   return t.router({
-    getAll: publicProcedure
-      .output(
-        z.object({
-          games: z.array(Game),
-        }),
-      )
-      .query(async () => {
-        const games = await gamesController.getAll()
-
-        gamesRouterLogger.info("GET games", { count: games.length })
-        return { games }
+    /**
+     * Creates a new game.
+     */
+    create: authProcedure
+      .input(z.object({ newGame: Game.pick({ name: true, maxPlayerCount: true }) }))
+      .output(z.object({ newGame: Game }))
+      .mutation(async ({ input: { newGame }, ctx: { player } }) => {
+        return { newGame: await gamesController.create({ ...newGame, createdByPlayerId: player.id }) }
       }),
+
+    /**
+     * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
+     */
+    getAll: publicProcedure.output(z.object({ games: z.array(Game) })).query(async () => {
+      const games = await gamesController.getAll()
+
+      gamesRouterLogger.info("GET games", { count: games.length })
+      return { games }
+    }),
+
+    /**
+     * Gets a game by id
+     */
     getById: publicProcedure
-      .input(
-        z.object({
-          gameId: z.coerce.number(),
-        }),
-      )
-      .output(
-        z.object({
-          game: Game,
-        }),
-      )
+      .input(z.object({ gameId: z.coerce.number() }))
+      .output(z.object({ game: Game }))
       .query(async ({ input: { gameId } }) => {
         const game = await gamesController.findById({ gameId })
         gamesRouterLogger.info(`GET game ${gameId}`, { game })

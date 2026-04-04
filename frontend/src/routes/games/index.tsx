@@ -31,6 +31,9 @@ function Games(): ReactElement {
   return (
     <div className="flex flex-col items-center text-white h-[calc(100vh-theme(space.16))] py-30">
       <div className="p-8 w-200 bg-surface-100 flex flex-col gap-y-3 rounded-xl">
+        <Link to="/games/new" className="self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer">
+          New game
+        </Link>
         <div className="flex flex-row gap-2 items-center">
           <Search />
           <TextInput value={gameNameFilter} onChange={setGameNameFilter} placeholder="search for games" />

@@ -1,4 +1,4 @@
-import type { GameRow, GamesRepository } from "#db/GamesRepository.ts"
+import type { GameRow, GameRowInsert, GamesRepository } from "#db/GamesRepository.ts"
 import z from "zod"
 
 export class GamesController {
@@ -6,6 +6,10 @@ export class GamesController {
 
   public constructor({ gamesRepository }: { gamesRepository: GamesRepository }) {
     this.gamesRepository = gamesRepository
+  }
+
+  public async create(newGame: GameRowInsert): Promise<Game> {
+    return toGame(await this.gamesRepository.create(newGame))
   }
 
   public async getAll(): Promise<Game[]> {
