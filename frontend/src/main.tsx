@@ -34,7 +34,14 @@ declare module "@tanstack/react-router" {
   }
 }
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // GET game/bad_id retries, but it'll never work. Why retry?
+      retry: false,
+    },
+  },
+})
 const backendApiClient = createBackendApiClient({ baseUrl: env.VITE_BACKEND_BASE_URL, queryClient })
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- root will always exist
