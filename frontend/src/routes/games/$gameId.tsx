@@ -55,7 +55,7 @@ function Game({ game }: { game: ApiTypes.Game }): ReactElement {
       <div>{game.name}</div>
       <div>0/{game.maxPlayerCount} players</div>
       <div>{game.endedAt !== null ? "Ended" : game.startedAt !== null ? "In Progress" : "Waiting for more players"}</div>
-      <div>created {timeAgo(game.createdAt as unknown as string)}</div>
+      <div>created {timeAgo(game.createdAt)}</div>
     </div>
   )
 }
