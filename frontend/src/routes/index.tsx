@@ -1,5 +1,5 @@
 import { type ReactElement } from "react"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -14,9 +14,9 @@ function Index(): ReactElement {
           Cosmic Empires is a deep text based strategy game. Build bases, develop an economy, craft specialized spaceships and position your
           fleets. Trade technologies and intel to establish dominance.
         </p>
-        <button className="text-3xl font-semibold uppercase bg-primary-50 text-dark-50 py-6 px-10 rounded-xl cursor-pointer">
+        <Link to="/games" className="text-3xl font-semibold uppercase bg-primary-50 text-dark-50 py-6 px-10 rounded-xl cursor-pointer">
           Play for free
-        </button>
+        </Link>
       </div>
     </div>
   )
