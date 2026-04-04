@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createBackendApiClient } from "./api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "./contexts/BackendApiClientContext.tsx"
 import { ClerkProvider } from "@clerk/react"
+import { dark } from "@clerk/ui/themes"
 import { Logger, createConsoleLogSink, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
 import { LoggerProvider } from "./contexts/LoggerContext.tsx"
 import { parseEnv } from "./parseEnv.ts"
@@ -52,7 +53,12 @@ if (rootElement.innerHTML === "") {
   root.render(
     <StrictMode>
       <LoggerProvider logger={Logger.get()}>
-        <ClerkProvider publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}>
+        <ClerkProvider
+          publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
+          appearance={{
+            theme: dark,
+          }}
+        >
           <QueryClientProvider client={queryClient}>
             <BackendApiClientProvider backendApiClient={backendApiClient}>
               <RouterProvider router={router} />

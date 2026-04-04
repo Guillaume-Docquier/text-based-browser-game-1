@@ -1,7 +1,7 @@
 import { Outlet, createRootRoute, Link } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import type { ReactElement } from "react"
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/react"
+import { Show, UserButton } from "@clerk/react"
 import { UserSearch } from "lucide-react"
 import logo from "../assets/logo.png"
 
@@ -27,15 +27,17 @@ function RootComponent(): ReactElement {
         </div>
         <div className="flex-1 flex gap-2 justify-end">
           <Show when="signed-out" treatPendingAsSignedOut={true}>
-            <SignInButton />
-            <SignUpButton />
+            <Link to="/sign-in">Sign in</Link>
+            <Link to="/sign-up">Sign up</Link>
           </Show>
           <Show when="signed-in" treatPendingAsSignedOut={true}>
             <UserButton />
           </Show>
         </div>
       </header>
-      <Outlet />
+      <div className="flex justify-center p-8">
+        <Outlet />
+      </div>
       <TanStackRouterDevtools />
     </>
   )
