@@ -1,12 +1,12 @@
 import { createFileRoute, Navigate, redirect } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { Assert } from "@guillaume-docquier/tools-ts"
-import { useBackendApiClient } from "../../contexts/BackendApiClientContext.tsx"
+import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useQuery } from "@tanstack/react-query"
 import type * as ApiTypes from "@api-types"
-import { timeAgo } from "../../timeAgo.ts"
-import { Skeleton } from "../../design-system/Skeleton.tsx"
-import { useLogger } from "../../contexts/LoggerContext.tsx"
+import { timeAgo } from "../timeAgo.ts"
+import { Skeleton } from "../design-system/Skeleton.tsx"
+import { useLogger } from "../contexts/LoggerContext.tsx"
 
 export const Route = createFileRoute("/games/$gameId")({
   component: GameLobby,

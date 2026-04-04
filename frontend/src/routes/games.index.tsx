@@ -1,13 +1,13 @@
 import { type ReactElement, useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Search } from "lucide-react"
-import { TextInput } from "../../design-system/TextInput.tsx"
+import { TextInput } from "../design-system/TextInput.tsx"
 import { useQuery } from "@tanstack/react-query"
-import { useBackendApiClient } from "../../contexts/BackendApiClientContext.tsx"
+import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import type * as ApiTypes from "@api-types"
-import { timeAgo } from "../../timeAgo.ts"
-import { Skeleton } from "../../design-system/Skeleton.tsx"
-import { ErrorMessage } from "../../design-system/ErrorMessage.tsx"
+import { timeAgo } from "../timeAgo.ts"
+import { Skeleton } from "../design-system/Skeleton.tsx"
+import { ErrorMessage } from "../design-system/ErrorMessage.tsx"
 
 export const Route = createFileRoute("/games/")({
   component: Games,

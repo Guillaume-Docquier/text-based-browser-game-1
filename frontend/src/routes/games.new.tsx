@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { type ReactElement, useState } from "react"
-import { TextInput } from "../../design-system/TextInput.tsx"
-import { NumberInput } from "../../design-system/NumberInput.tsx"
-import { useBackendApiClient } from "../../contexts/BackendApiClientContext.tsx"
+import { TextInput } from "../design-system/TextInput.tsx"
+import { NumberInput } from "../design-system/NumberInput.tsx"
+import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useMutation } from "@tanstack/react-query"
 
 export const Route = createFileRoute("/games/new")({
