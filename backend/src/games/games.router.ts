@@ -1,5 +1,5 @@
 import type { AuthService } from "#auth/auth.service.ts"
-import { Game, GameInsert, type GamesController } from "./games.controller.ts"
+import { CreatedGame, GameInsert, type GamesController, GameSummary } from "./games.controller.ts"
 import type { Logger } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
@@ -30,7 +30,7 @@ export function createGamesRouter({
      */
     create: authProcedure
       .input(z.object({ newGame: GameInsert.omit({ createdByPlayerId: true }) }))
-      .output(z.object({ newGame: Game }))
+      .output(z.object({ newGame: CreatedGame }))
       .mutation(async ({ input: { newGame }, ctx: { player } }) => {
         return { newGame: await gamesController.create({ ...newGame, createdByPlayerId: player.id }) }
       }),
@@ -38,7 +38,7 @@ export function createGamesRouter({
     /**
      * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getAll: publicProcedure.output(z.object({ games: z.array(Game) })).query(async () => {
+    getAll: publicProcedure.output(z.object({ games: z.array(GameSummary) })).query(async () => {
       const games = await gamesController.getAll()
 
       gamesRouterLogger.info("GET games", { count: games.length })
@@ -50,7 +50,7 @@ export function createGamesRouter({
      */
     getById: publicProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ game: Game }))
+      .output(z.object({ game: GameSummary }))
       .query(async ({ input: { gameId } }) => {
         const game = await gamesController.findById({ gameId })
         gamesRouterLogger.info(`GET game ${gameId}`, { game })

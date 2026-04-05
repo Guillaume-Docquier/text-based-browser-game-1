@@ -1,4 +1,4 @@
-import type { GameRow, GamesRepository } from "#db/GamesRepository.ts"
+import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#db/GamesRepository.ts"
 import z from "zod"
 
 export class GamesController {
@@ -8,16 +8,16 @@ export class GamesController {
     this.gamesRepository = gamesRepository
   }
 
-  public async create(newGame: GameInsert): Promise<Game> {
-    return toGame(await this.gamesRepository.create(newGame))
+  public async create(newGame: GameInsert): Promise<CreatedGame> {
+    return await this.gamesRepository.create(newGame)
   }
 
-  public async getAll(): Promise<Game[]> {
-    return (await this.gamesRepository.getAll()).map((gameRow) => toGame(gameRow))
+  public async getAll(): Promise<GameSummary[]> {
+    return await this.gamesRepository.getAll()
   }
 
-  public async findById({ gameId }: { gameId: number }): Promise<Game | undefined> {
-    return toGame(await this.gamesRepository.findById({ gameId }))
+  public async findById({ gameId }: { gameId: number }): Promise<GameSummary | undefined> {
+    return await this.gamesRepository.findById({ gameId })
   }
 }
 
@@ -26,14 +26,10 @@ export const GameInsert = z.object({
   name: z.string(),
   createdByPlayerId: z.number(),
   maxPlayerCount: z.number(),
-})
+}) satisfies z.ZodType<GameRowInsert>
 
-export type Game = z.infer<typeof Game>
-/**
- * For now Game and GameRow are the same, but they won't always be.
- * This is a POC for mapping from one to the other, to decouple the DB and the app
- */
-export const Game = z.object({
+export type CreatedGame = z.infer<typeof CreatedGame>
+export const CreatedGame = z.object({
   name: z.string(),
   id: z.number(),
   createdByPlayerId: z.number(),
@@ -41,14 +37,22 @@ export const Game = z.object({
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
-})
+}) satisfies z.ZodType<GameRow>
 
-function toGame(gameRow: GameRow): Game
-function toGame(gameRow: GameRow | undefined): Game | undefined
-function toGame(gameRow: GameRow | undefined): Game | undefined {
-  if (gameRow === undefined) {
-    return undefined
-  }
+export type GameSummaryPlayer = z.infer<typeof GameSummaryPlayer>
+export const GameSummaryPlayer = z.object({
+  id: z.number(),
+  alias: z.string().nullable(),
+}) satisfies z.ZodType<GameSummaryPlayerRow>
 
-  return gameRow
-}
+export type GameSummary = z.infer<typeof GameSummary>
+export const GameSummary = z.object({
+  name: z.string(),
+  id: z.number(),
+  maxPlayerCount: z.number(),
+  createdAt: z.date(),
+  startedAt: z.date().nullable(),
+  endedAt: z.date().nullable(),
+  creator: GameSummaryPlayer,
+  players: z.array(GameSummaryPlayer),
+}) satisfies z.ZodType<GameSummaryRow>

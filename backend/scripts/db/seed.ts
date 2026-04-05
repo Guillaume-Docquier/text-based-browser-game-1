@@ -83,7 +83,11 @@ async function seedPlayers(db: NodePgDatabase): Promise<void> {
   console.log("├ Adding sample users")
   await db
     .insert(playersTable)
-    .values([{ clerk_id: "fake1", email: "fake1@email.com" }, { clerk_id: "fake2", email: "fake2@email.com" }, { clerk_id: "fake3" }])
+    .values([
+      { clerk_id: "fake1", email: "fake1@email.com", alias: "fake1 name" },
+      { clerk_id: "fake2", email: "fake2@email.com" },
+      { clerk_id: "fake3" },
+    ])
   console.log("└ Done")
 }
 
