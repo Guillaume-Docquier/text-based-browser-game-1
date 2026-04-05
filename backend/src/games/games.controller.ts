@@ -1,14 +1,14 @@
-import type { GameRow, GameRowInsert, GamesRepository } from "#db/GamesRepository.ts"
+import type { GameRow, GamesRepository } from "#db/GamesRepository.ts"
 import z from "zod"
 
 export class GamesController {
-  private readonly gamesRepository
+  private readonly gamesRepository: GamesRepository
 
   public constructor({ gamesRepository }: { gamesRepository: GamesRepository }) {
     this.gamesRepository = gamesRepository
   }
 
-  public async create(newGame: GameRowInsert): Promise<Game> {
+  public async create(newGame: GameInsert): Promise<Game> {
     return toGame(await this.gamesRepository.create(newGame))
   }
 
@@ -20,6 +20,13 @@ export class GamesController {
     return toGame(await this.gamesRepository.findById({ gameId }))
   }
 }
+
+export type GameInsert = z.infer<typeof GameInsert>
+export const GameInsert = z.object({
+  name: z.string(),
+  createdByPlayerId: z.number(),
+  maxPlayerCount: z.number(),
+})
 
 export type Game = z.infer<typeof Game>
 /**

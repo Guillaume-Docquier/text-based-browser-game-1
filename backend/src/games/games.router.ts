@@ -1,5 +1,5 @@
 import type { AuthService } from "#auth/auth.service.ts"
-import { Game, type GamesController } from "./games.controller.ts"
+import { Game, GameInsert, type GamesController } from "./games.controller.ts"
 import type { Logger } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
@@ -29,7 +29,7 @@ export function createGamesRouter({
      * Creates a new game.
      */
     create: authProcedure
-      .input(z.object({ newGame: Game.pick({ name: true, maxPlayerCount: true }) }))
+      .input(z.object({ newGame: GameInsert.omit({ createdByPlayerId: true }) }))
       .output(z.object({ newGame: Game }))
       .mutation(async ({ input: { newGame }, ctx: { player } }) => {
         return { newGame: await gamesController.create({ ...newGame, createdByPlayerId: player.id }) }
