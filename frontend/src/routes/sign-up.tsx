@@ -1,11 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { SignUp } from "@clerk/react"
+import { z } from "zod"
 
-export const Route = createFileRoute("/sign-up")({
-  component: RouteComponent,
+const RedirectSchema = z.object({
+  redirect: z.string().default("/games"),
 })
 
-function RouteComponent(): ReactElement {
-  return <SignUp signInUrl="/sign-in" fallbackRedirectUrl="/games" />
+export const Route = createFileRoute("/sign-up")({
+  component: SignUpComponent,
+  validateSearch: RedirectSchema,
+})
+
+function SignUpComponent(): ReactElement {
+  const { redirect } = Route.useSearch()
+
+  return <SignUp signInUrl={`/sign-in?redirect=${redirect}`} fallbackRedirectUrl={redirect} />
 }

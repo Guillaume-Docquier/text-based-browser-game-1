@@ -4,9 +4,11 @@ import { TextInput } from "../design-system/TextInput.tsx"
 import { NumberInput } from "../design-system/NumberInput.tsx"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useMutation } from "@tanstack/react-query"
+import { privateRoute } from "../privateRoute.ts"
 
 export const Route = createFileRoute("/games/new")({
   component: CreateGame,
+  beforeLoad: privateRoute,
 })
 
 function CreateGame(): ReactElement {

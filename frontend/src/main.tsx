@@ -2,15 +2,16 @@ import "./index.css"
 import ReactDOM from "react-dom/client"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
-import { StrictMode } from "react"
+import { type ReactElement, StrictMode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createBackendApiClient } from "./api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "./contexts/BackendApiClientContext.tsx"
-import { ClerkProvider } from "@clerk/react"
+import { ClerkProvider, useAuth } from "@clerk/react"
 import { dark } from "@clerk/ui/themes"
 import { Logger, createConsoleLogSink, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
 import { LoggerProvider } from "./contexts/LoggerContext.tsx"
 import { parseEnv } from "./parseEnv.ts"
+import type { RouterContext } from "./routes/__root.tsx"
 
 const logger = await Logger.configure({
   sinks: {
@@ -22,18 +23,6 @@ const logger = await Logger.configure({
 })
 
 const env = parseEnv({ logger })
-
-const router = createRouter({
-  routeTree,
-  defaultPreload: "intent",
-  scrollRestoration: true,
-})
-
-declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router
-  }
-}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,11 +50,36 @@ if (rootElement.innerHTML === "") {
         >
           <QueryClientProvider client={queryClient}>
             <BackendApiClientProvider backendApiClient={backendApiClient}>
-              <RouterProvider router={router} />
+              <App />
             </BackendApiClientProvider>
           </QueryClientProvider>
         </ClerkProvider>
       </LoggerProvider>
     </StrictMode>,
   )
+}
+
+function App(): ReactElement {
+  const auth = useAuth()
+  const router = createAppRouter({ auth })
+
+  return <RouterProvider router={router} />
+}
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let tanstack inference do the work
+function createAppRouter({ auth }: RouterContext) {
+  return createRouter({
+    routeTree,
+    defaultPreload: "intent",
+    scrollRestoration: true,
+    context: {
+      auth,
+    },
+  })
+}
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: ReturnType<typeof createAppRouter>
+  }
 }

@@ -1,11 +1,15 @@
-import { Outlet, createRootRoute, Link } from "@tanstack/react-router"
+import { Outlet, createRootRouteWithContext, Link } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import type { ReactElement } from "react"
-import { Show, UserButton } from "@clerk/react"
+import { Show, UserButton, type useAuth } from "@clerk/react"
 import { UserSearch } from "lucide-react"
 import logo from "../assets/logo.png"
 
-export const Route = createRootRoute({
+export interface RouterContext {
+  auth: ReturnType<typeof useAuth>
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 })
 
