@@ -49,24 +49,36 @@ export class GamesRepository extends PostgresRepository {
       .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
       .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId))
 
-    return gameSummaries.map((gameSummary) => {
-      const { creatorId, creatorAlias, playerId: _playerId, playerAlias: _playerAlias, ...gameInfo } = gameSummary
+    // That is ugly af
+    // Might need to learn proper sql here
+    const dedupedGameIds = new Set()
+    return gameSummaries
+      .filter((gameSummary) => {
+        if (!dedupedGameIds.has(gameSummary.id)) {
+          dedupedGameIds.add(gameSummary.id)
+          return true
+        }
 
-      return {
-        ...gameInfo,
-        creator: {
-          id: creatorId,
-          alias: creatorAlias,
-        },
-        players: gameSummaries
-          .filter((row) => row.playerId !== null)
-          .map((row) => ({
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- The filter above should have narrowed this type?
-            id: row.playerId!,
-            alias: row.playerAlias,
-          })),
-      }
-    })
+        return false
+      })
+      .map((gameSummary) => {
+        const { creatorId, creatorAlias, playerId: _playerId, playerAlias: _playerAlias, ...gameInfo } = gameSummary
+
+        return {
+          ...gameInfo,
+          creator: {
+            id: creatorId,
+            alias: creatorAlias,
+          },
+          players: gameSummaries
+            .filter((row) => row.id === gameSummary.id && row.playerId !== null)
+            .map((row) => ({
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- The filter above should have narrowed this type?
+              id: row.playerId!,
+              alias: row.playerAlias,
+            })),
+        }
+      })
   }
 
   public async findById({ gameId }: { gameId: number }): Promise<GameSummaryRow | undefined> {
