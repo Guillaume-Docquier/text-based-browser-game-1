@@ -48,14 +48,33 @@ function GameLobby(): ReactElement {
   )
 }
 
-function Game({ game }: { game: ApiTypes.Game }): ReactElement {
+function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
   return (
-    <div className="flex gap-2 rounded border p-2">
-      <div>#{game.id}</div>
-      <div>{game.name}</div>
-      <div>0/{game.maxPlayerCount} players</div>
-      <div>{game.endedAt !== null ? "Ended" : game.startedAt !== null ? "In Progress" : "Waiting for more players"}</div>
-      <div>created {timeAgo(game.createdAt)}</div>
+    <div className="flex flex-col gap-2 rounded border p-2">
+      <div>Id: #{game.id}</div>
+      <div>Name: {game.name}</div>
+      <div>Creator:</div>
+      <div className=" pl-2">
+        <Player player={game.creator} />
+      </div>
+      <div>
+        players ({game.players.length}/{game.maxPlayerCount})
+      </div>
+      <div className="flex flex-col gap-2 pl-2">
+        {game.players.map((player) => (
+          <Player player={player} key={player.id} />
+        ))}
+      </div>
+      <div>Status: {game.endedAt !== null ? "Ended" : game.startedAt !== null ? "In Progress" : "Waiting for more players"}</div>
+      <div>Created: {timeAgo(game.createdAt)}</div>
+    </div>
+  )
+}
+
+function Player({ player }: { player: ApiTypes.GameSummaryPlayer }): ReactElement {
+  return (
+    <div>
+      <div>{player.alias ?? `Player ${player.id}`}</div>
     </div>
   )
 }

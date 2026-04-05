@@ -46,7 +46,7 @@ function Games(): ReactElement {
   )
 }
 
-function GameSummary({ game }: { game: ApiTypes.Game }): ReactElement {
+function GameSummary({ game }: { game: ApiTypes.GameSummary }): ReactElement {
   return (
     <Link
       to="/games/$gameId"
@@ -55,7 +55,9 @@ function GameSummary({ game }: { game: ApiTypes.Game }): ReactElement {
     >
       <div>#{game.id}</div>
       <div>{game.name}</div>
-      <div>0/{game.maxPlayerCount} players</div>
+      <div>
+        {game.players.length}/{game.maxPlayerCount} players
+      </div>
       <div>{game.endedAt !== null ? "Ended" : game.startedAt !== null ? "In Progress" : "Waiting for more players"}</div>
       <div>created {timeAgo(game.createdAt)}</div>
     </Link>

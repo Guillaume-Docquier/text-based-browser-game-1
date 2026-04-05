@@ -11,4 +11,5 @@ export type { TrpcRouter }
 
 // Games router
 type GamesOutput = TrpcRouterOutput["games"]["getAll"]
-export type Game = GamesOutput["games"][number]
+export type GameSummary = GamesOutput["games"][number]
+export type GameSummaryPlayer = GameSummary["creator"]
