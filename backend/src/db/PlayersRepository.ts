@@ -11,7 +11,7 @@ export class PlayersRepository extends PostgresRepository {
     const players = await this.db
       .insert(playersTable)
       .values({
-        clerk_id: newPlayer.clerk_id,
+        ...newPlayer,
         email: newPlayer.email?.toLowerCase(),
       })
       .returning()

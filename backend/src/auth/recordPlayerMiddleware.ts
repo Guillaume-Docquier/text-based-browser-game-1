@@ -33,7 +33,11 @@ export function recordPlayerMiddleware({
     let player = await playersRepository.findByAuthId({ authId: auth.userId })
     if (player === undefined) {
       const clerkUser = await authService.getUser({ authId: auth.userId })
-      player = await playersRepository.insert({ clerk_id: auth.userId, email: clerkUser.emailAddresses[0]?.emailAddress })
+      player = await playersRepository.insert({
+        clerk_id: auth.userId,
+        email: clerkUser.primaryEmailAddress?.emailAddress,
+        alias: clerkUser.fullName,
+      })
     }
 
     req.player = player

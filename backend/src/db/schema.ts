@@ -10,6 +10,7 @@ export const playersTable = pgTable(
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
     clerk_id: varchar({ length: 255 }).notNull(),
     email: varchar({ length: 255 }),
+    alias: varchar({ length: 255 }),
   },
   (table) => [uniqueIndex("clerk_id_idx").on(table.clerk_id)],
 )
