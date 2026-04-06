@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "imports": {
+    "#src/*": "./src/*",
     "#db/*": "./src/db/*",
     "#auth/*": "./src/auth/*"
   },

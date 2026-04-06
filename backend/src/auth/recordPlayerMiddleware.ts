@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express"
 import type { AuthService } from "#auth/auth.service.ts"
-import type { PlayerRow, PlayersRepository } from "#db/PlayersRepository.ts"
+import type { PlayerRow, PlayersRepository } from "#src/players/players.repository.ts"
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace -- This is the way with Express

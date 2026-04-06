@@ -1,4 +1,4 @@
-import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#db/GamesRepository.ts"
+import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "./games.repository.ts"
 import z from "zod"
 
 export class GamesController {
