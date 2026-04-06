@@ -1,9 +1,7 @@
 import express, { type Express } from "express"
 import { createGamesRouter } from "./games/games.router.ts"
 import { GamesController } from "./games/games.controller.ts"
-import { recordPlayerMiddleware } from "#auth/recordPlayerMiddleware.ts"
 import type { GamesRepository } from "#src/games/games.repository.ts"
-import type { PlayersRepository } from "#src/players/players.repository.ts"
 import type { AuthService } from "#auth/auth.service.ts"
 import type { Logger } from "@guillaume-docquier/tools-ts"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
@@ -18,12 +16,10 @@ import { createTrpc, createTrpcContext } from "./trpc.ts"
 export async function createApp({
   logger,
   gamesRepository,
-  playersRepository,
   authService,
 }: {
   logger: Logger
   gamesRepository: GamesRepository
-  playersRepository: PlayersRepository
   authService: AuthService
 }): Promise<Express> {
   const appLogger = logger.child({ scope: "app" })
@@ -32,8 +28,7 @@ export async function createApp({
 
   const app = express()
   app.use(requestLoggerMiddleware({ logger: appLogger }))
-  app.use(authService.authenticationMiddleware())
-  app.use(recordPlayerMiddleware({ playersRepository, authService }))
+  app.use(...authService.authenticationMiddlewares())
 
   app.use(
     "/trpc",

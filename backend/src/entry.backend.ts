@@ -45,10 +45,10 @@ async function main(): Promise<void> {
   const playersRepository = new PlayersRepository({ db })
   const gamesRepository = new GamesRepository({ db })
 
-  const authService = new AuthService()
+  const authService = new AuthService({ playersRepository })
 
   logger.info("Creating the API")
-  const app = await createApp({ playersRepository, gamesRepository, authService, logger })
+  const app = await createApp({ gamesRepository, authService, logger })
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
   app.listen(env.PORT, "::", () => {
