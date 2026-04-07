@@ -8,6 +8,7 @@ import type * as ApiTypes from "@api-types"
 import { timeAgo } from "../timeAgo.ts"
 import { Skeleton } from "../design-system/Skeleton.tsx"
 import { ErrorMessage } from "../design-system/ErrorMessage.tsx"
+import { formatGameSummaryStatus } from "../lib/formatGameSummaryStatus.ts"
 
 export const Route = createFileRoute("/games/")({
   component: Games,
@@ -58,7 +59,7 @@ function GameSummary({ game }: { game: ApiTypes.GameSummary }): ReactElement {
       <div>
         {game.players.length}/{game.maxPlayerCount} players
       </div>
-      <div>{game.endedAt !== null ? "Ended" : game.startedAt !== null ? "In Progress" : "Waiting for more players"}</div>
+      <div>{formatGameSummaryStatus(game.status)}</div>
       <div>created {timeAgo(game.createdAt)}</div>
     </Link>
   )

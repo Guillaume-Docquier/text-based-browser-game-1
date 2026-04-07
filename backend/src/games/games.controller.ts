@@ -13,11 +13,31 @@ export class GamesController {
   }
 
   public async getSummaries(): Promise<GameSummary[]> {
-    return await this.gamesRepository.getSummaries()
+    return (await this.gamesRepository.getSummaries()).map(toGameSummary)
   }
 
   public async getSummaryById({ gameId }: { gameId: number }): Promise<GameSummary | undefined> {
-    return await this.gamesRepository.getSummaryById({ gameId })
+    const gameSummaryRow = await this.gamesRepository.getSummaryById({ gameId })
+    if (gameSummaryRow === undefined) {
+      return undefined
+    }
+
+    return toGameSummary(gameSummaryRow)
+  }
+}
+
+// Maybe this should go into the repository. I don't know yet.
+function toGameSummary(gameSummaryRow: GameSummaryRow): GameSummary {
+  return {
+    ...gameSummaryRow,
+    status:
+      gameSummaryRow.endedAt !== null
+        ? GameSummaryStatus.ENDED
+        : gameSummaryRow.startedAt !== null
+          ? GameSummaryStatus.STARTED
+          : gameSummaryRow.players.length <= gameSummaryRow.maxPlayerCount
+            ? GameSummaryStatus.READY_TO_START
+            : GameSummaryStatus.WAITING_FOR_PLAYERS,
   }
 }
 
@@ -39,6 +59,13 @@ export const CreatedGame = z.object({
   endedAt: z.date().nullable(),
 }) satisfies z.ZodType<GameRow>
 
+const GameSummaryStatus = {
+  WAITING_FOR_PLAYERS: "WAITING_FOR_PLAYERS",
+  READY_TO_START: "READY_TO_START",
+  STARTED: "STARTED",
+  ENDED: "ENDED",
+} as const
+
 export type GameSummaryPlayer = z.infer<typeof GameSummaryPlayer>
 export const GameSummaryPlayer = z.object({
   id: z.number(),
@@ -55,4 +82,5 @@ export const GameSummary = z.object({
   endedAt: z.date().nullable(),
   creator: GameSummaryPlayer,
   players: z.array(GameSummaryPlayer),
+  status: z.enum(GameSummaryStatus),
 }) satisfies z.ZodType<GameSummaryRow>

@@ -7,6 +7,7 @@ import type * as ApiTypes from "@api-types"
 import { timeAgo } from "../timeAgo.ts"
 import { Skeleton } from "../design-system/Skeleton.tsx"
 import { useLogger } from "../contexts/LoggerContext.tsx"
+import { formatGameSummaryStatus } from "../lib/formatGameSummaryStatus.ts"
 
 export const Route = createFileRoute("/games/$gameId")({
   component: GameLobby,
@@ -65,7 +66,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
           <Player player={player} key={player.id} />
         ))}
       </div>
-      <div>Status: {game.endedAt !== null ? "Ended" : game.startedAt !== null ? "In Progress" : "Waiting for more players"}</div>
+      <div>Status: {formatGameSummaryStatus(game.status)}</div>
       <div>Created: {timeAgo(game.createdAt)}</div>
     </div>
   )
