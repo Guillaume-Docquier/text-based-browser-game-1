@@ -14,7 +14,7 @@ import type { Trpc } from "../trpc.ts"
 export function createGamesRouter({
   t,
   publicProcedure,
-  authProcedure,
+  privateProcedure,
   gamesController,
   logger,
 }: Trpc & {
@@ -28,7 +28,7 @@ export function createGamesRouter({
     /**
      * Creates a new game.
      */
-    create: authProcedure
+    create: privateProcedure
       .input(z.object({ newGame: GameInsert.omit({ createdByPlayerId: true }) }))
       .output(z.object({ newGame: CreatedGame }))
       .mutation(async ({ input: { newGame }, ctx: { player } }) => {

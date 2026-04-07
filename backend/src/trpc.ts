@@ -16,17 +16,17 @@ export type Trpc = ReturnType<typeof createTrpc>
 export function createTrpc() {
   const t = initTRPC.context<TrpcContext>().create()
 
-  const publicProcedure = t.procedure
+  const publicProcedure = t.procedure.use(async ({ next, ctx }) => {
+    return await next({ ctx: { player: ctx.req.player } })
+  })
 
-  const authProcedure = publicProcedure.use(
-    t.middleware(async ({ next, ctx }) => {
-      if (ctx.req.player === undefined) {
-        throw new TRPCError({ code: "UNAUTHORIZED" })
-      }
+  const privateProcedure = publicProcedure.use(async ({ next, ctx }) => {
+    if (ctx.player === undefined) {
+      throw new TRPCError({ code: "UNAUTHORIZED" })
+    }
 
-      return await next({ ctx: { player: ctx.req.player } })
-    }),
-  )
+    return await next({ ctx: { player: ctx.player } })
+  })
 
-  return { t, publicProcedure, authProcedure }
+  return { t, publicProcedure, privateProcedure }
 }
