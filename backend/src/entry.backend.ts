@@ -42,8 +42,9 @@ async function main(): Promise<void> {
   logger.info("Performing database migration")
   await migrateDatabase(db, { migrationsFolder: "./drizzle/", logger })
 
+  logger.info("Creating services")
   const playersRepository = new PlayersRepository({ db })
-  const gamesRepository = new GamesRepository({ db })
+  const gamesRepository = new GamesRepository({ db, logger })
 
   const authService = new AuthService({ playersRepository })
 

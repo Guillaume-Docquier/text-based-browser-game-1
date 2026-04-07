@@ -24,7 +24,7 @@ export async function createApp({
 }): Promise<Express> {
   const appLogger = logger.child({ scope: "app" })
 
-  const gamesController = new GamesController({ gamesRepository })
+  const gamesController = new GamesController({ gamesRepository, logger: appLogger })
 
   const app = express()
   app.use(requestLoggerMiddleware({ logger: appLogger }))

@@ -2,7 +2,7 @@ import { createFileRoute, Navigate, redirect } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import type * as ApiTypes from "@api-types"
 import { timeAgo } from "../timeAgo.ts"
 import { Skeleton } from "../design-system/Skeleton.tsx"
@@ -50,24 +50,52 @@ function GameLobby(): ReactElement {
 }
 
 function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
+  const backendApiClient = useBackendApiClient()
+  const joinGame = useMutation(backendApiClient.games.join.mutationOptions())
+  const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions())
+
   return (
-    <div className="flex flex-col gap-2 rounded border p-2">
-      <div>Id: #{game.id}</div>
-      <div>Name: {game.name}</div>
-      <div>Creator:</div>
-      <div className=" pl-2">
-        <Player player={game.creator} />
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 rounded border p-2">
+        <div>Id: #{game.id}</div>
+        <div>Name: {game.name}</div>
+        <div>Creator:</div>
+        <div className=" pl-2">
+          <Player player={game.creator} />
+        </div>
+        <div>
+          players ({game.players.length}/{game.maxPlayerCount})
+        </div>
+        <div className="flex flex-col gap-2 pl-2">
+          {game.players.map((player) => (
+            <Player player={player} key={player.id} />
+          ))}
+        </div>
+        <div>Status: {formatGameSummaryStatus(game.status)}</div>
+        <div>Created: {timeAgo(game.createdAt)}</div>
       </div>
-      <div>
-        players ({game.players.length}/{game.maxPlayerCount})
+      <div className="flex">
+        {game.canJoin && (
+          <div
+            className="self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+            onClick={() => {
+              joinGame.mutate({ gameId: game.id })
+            }}
+          >
+            Join game
+          </div>
+        )}
+        {game.canLeave && (
+          <div
+            className="self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+            onClick={() => {
+              leaveGame.mutate({ gameId: game.id })
+            }}
+          >
+            Leave game
+          </div>
+        )}
       </div>
-      <div className="flex flex-col gap-2 pl-2">
-        {game.players.map((player) => (
-          <Player player={player} key={player.id} />
-        ))}
-      </div>
-      <div>Status: {formatGameSummaryStatus(game.status)}</div>
-      <div>Created: {timeAgo(game.createdAt)}</div>
     </div>
   )
 }

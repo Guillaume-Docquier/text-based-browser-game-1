@@ -1,6 +1,6 @@
 import type { AuthService } from "#auth/auth.service.ts"
 import { CreatedGame, GameInsert, type GamesController, GameSummary } from "./games.controller.ts"
-import type { Logger } from "@guillaume-docquier/tools-ts"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
 import type { Trpc } from "../trpc.ts"
@@ -38,8 +38,8 @@ export function createGamesRouter({
     /**
      * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getAll: publicProcedure.output(z.object({ games: z.array(GameSummary) })).query(async () => {
-      const games = await gamesController.getSummaries()
+    getAll: publicProcedure.output(z.object({ games: z.array(GameSummary) })).query(async ({ ctx: { player } }) => {
+      const games = await gamesController.getSummaries({ playerId: player?.id })
 
       gamesRouterLogger.info("GET games", { count: games.length })
       return { games }
@@ -51,19 +51,54 @@ export function createGamesRouter({
     getById: publicProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ game: GameSummary }))
-      .query(async ({ input: { gameId } }) => {
-        const game = await gamesController.getSummaryById({ gameId })
+      .query(async ({ input: { gameId }, ctx: { player } }) => {
+        const game = await gamesController.getSummaryById({ gameId, playerId: player?.id })
         gamesRouterLogger.info(`GET game ${gameId}`, { game })
 
         if (game === undefined) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Game not found",
-            cause: `No game exists with id ${gameId}}`,
+            message: `No game exists with id ${gameId}}`,
           })
         }
 
         return { game }
+      }),
+
+    /**
+     * Joins a game, if possible.
+     */
+    join: privateProcedure
+      .input(z.object({ gameId: z.coerce.number() }))
+      .output(z.object({ joinedGame: GameSummary }))
+      .mutation(async ({ input: { gameId }, ctx: { player } }) => {
+        const joinGameResult = await gamesController.join({ gameId, playerId: player.id })
+        if (Result.isFailure(joinGameResult)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: joinGameResult.error,
+          })
+        }
+
+        return { joinedGame: joinGameResult.value }
+      }),
+
+    /**
+     * Leaves a game, if possible.
+     */
+    leave: privateProcedure
+      .input(z.object({ gameId: z.coerce.number() }))
+      .output(z.object({ leftGame: GameSummary }))
+      .mutation(async ({ input: { gameId }, ctx: { player } }) => {
+        const leaveGameResult = await gamesController.leave({ gameId, playerId: player.id })
+        if (Result.isFailure(leaveGameResult)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: leaveGameResult.error,
+          })
+        }
+
+        return { leftGame: leaveGameResult.value }
       }),
   })
 }
