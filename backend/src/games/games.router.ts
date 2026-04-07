@@ -39,7 +39,7 @@ export function createGamesRouter({
      * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
      */
     getAll: publicProcedure.output(z.object({ games: z.array(GameSummary) })).query(async () => {
-      const games = await gamesController.getAll()
+      const games = await gamesController.getSummaries()
 
       gamesRouterLogger.info("GET games", { count: games.length })
       return { games }
@@ -52,7 +52,7 @@ export function createGamesRouter({
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ game: GameSummary }))
       .query(async ({ input: { gameId } }) => {
-        const game = await gamesController.findById({ gameId })
+        const game = await gamesController.getSummaryById({ gameId })
         gamesRouterLogger.info(`GET game ${gameId}`, { game })
 
         if (game === undefined) {

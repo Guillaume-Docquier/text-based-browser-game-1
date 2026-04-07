@@ -12,12 +12,12 @@ export class GamesController {
     return await this.gamesRepository.create(newGame)
   }
 
-  public async getAll(): Promise<GameSummary[]> {
-    return await this.gamesRepository.getAll()
+  public async getSummaries(): Promise<GameSummary[]> {
+    return await this.gamesRepository.getSummaries()
   }
 
-  public async findById({ gameId }: { gameId: number }): Promise<GameSummary | undefined> {
-    return await this.gamesRepository.findById({ gameId })
+  public async getSummaryById({ gameId }: { gameId: number }): Promise<GameSummary | undefined> {
+    return await this.gamesRepository.getSummaryById({ gameId })
   }
 }
 

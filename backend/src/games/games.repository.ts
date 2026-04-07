@@ -26,7 +26,7 @@ export class GamesRepository extends PostgresRepository {
     return games[0]
   }
 
-  public async getAll(): Promise<GameSummaryRow[]> {
+  public async getSummaries(): Promise<GameSummaryRow[]> {
     const gameSummaries = await this.db
       .select({
         // game info
@@ -81,7 +81,7 @@ export class GamesRepository extends PostgresRepository {
       })
   }
 
-  public async findById({ gameId }: { gameId: number }): Promise<GameSummaryRow | undefined> {
+  public async getSummaryById({ gameId }: { gameId: number }): Promise<GameSummaryRow | undefined> {
     const gameSummaries = await this.db
       .select({
         // game info
