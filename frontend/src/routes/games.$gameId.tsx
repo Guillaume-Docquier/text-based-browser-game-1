@@ -76,24 +76,26 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
       </div>
       <div className="flex">
         {game.canJoin && (
-          <div
-            className="self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+          <button
+            className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+            disabled={joinGame.isPending}
             onClick={() => {
               joinGame.mutate({ gameId: game.id })
             }}
           >
             Join game
-          </div>
+          </button>
         )}
         {game.canLeave && (
-          <div
-            className="self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+          <button
+            className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+            disabled={leaveGame.isPending}
             onClick={() => {
               leaveGame.mutate({ gameId: game.id })
             }}
           >
             Leave game
-          </div>
+          </button>
         )}
       </div>
     </div>
