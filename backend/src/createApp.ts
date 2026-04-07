@@ -3,7 +3,7 @@ import { createGamesRouter } from "./games/games.router.ts"
 import { GamesController } from "./games/games.controller.ts"
 import type { GamesRepository } from "#src/games/games.repository.ts"
 import type { AuthService } from "#auth/auth.service.ts"
-import type { Logger } from "@guillaume-docquier/tools-ts"
+import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
@@ -35,6 +35,26 @@ export async function createApp({
     createExpressMiddleware({
       router: createTrpcRouter({ gamesController, authService, logger: appLogger }),
       createContext: createTrpcContext,
+      onError({ error }) {
+        // Let's not leak stack traces
+        delete error.stack
+
+        // Nothing to do for plausible trpc errors
+        if (error.code !== "INTERNAL_SERVER_ERROR") {
+          return
+        }
+
+        // Not sure how that happens?
+        if (error.cause === undefined) {
+          return
+        }
+
+        // Let bad things kill the server
+        Rethrow.ifFatal(error.cause)
+
+        // Log uncaught errors for visibility
+        appLogger.error("Uncaught error", { error: error.cause })
+      },
     }),
   )
 

@@ -11,7 +11,7 @@ export class GamesController {
     this.logger = logger.child({ scope: "games-controller" })
   }
 
-  public async create(newGame: GameInsert): Promise<CreatedGame> {
+  public async create(newGame: GameInsert): Promise<Result<CreatedGame, string>> {
     return await this.gamesRepository.create(newGame)
   }
 

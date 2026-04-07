@@ -32,7 +32,16 @@ export function createGamesRouter({
       .input(z.object({ newGame: GameInsert.omit({ createdByPlayerId: true }) }))
       .output(z.object({ newGame: CreatedGame }))
       .mutation(async ({ input: { newGame }, ctx: { player } }) => {
-        return { newGame: await gamesController.create({ ...newGame, createdByPlayerId: player.id }) }
+        const createResult = await gamesController.create({ ...newGame, createdByPlayerId: player.id })
+        if (Result.isFailure(createResult)) {
+          gamesRouterLogger.error("Could not create game.", { newGame, playerId: player.id, error: createResult.error })
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Game could not be created.",
+          })
+        }
+
+        return { newGame: createResult.value }
       }),
 
     /**
