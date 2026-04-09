@@ -5,7 +5,7 @@
   "type": "module",
   "imports": {
     "#api/*": "./src/api/*",
-    "#worker/*": "./src/worker/*",
+    "#tick-processing/*": "./src/tick-processing/*",
     "#lib/*": "./src/lib/*"
   },
   "scripts": {

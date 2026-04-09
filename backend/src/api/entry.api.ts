@@ -7,6 +7,7 @@ import { PlayersRepository } from "#lib/db/players.repository.ts"
 import { AuthService } from "./auth/auth.service.ts"
 import pRetry from "p-retry"
 import { Logger, createConsoleLogSink, jsonLineFormatter, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
+import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -55,6 +56,8 @@ async function main(): Promise<void> {
   app.listen(env.PORT, "::", () => {
     logger.info(`API listening on port ${env.PORT}`)
   })
+
+  startTickProcessing({ logger })
 }
 
 /**
