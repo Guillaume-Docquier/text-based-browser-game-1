@@ -22,18 +22,16 @@ export async function createApp({
   gamesRepository: GamesRepository
   authService: AuthService
 }): Promise<Express> {
-  const appLogger = logger.child({ scope: "app" })
-
-  const gamesController = new GamesController({ gamesRepository, logger: appLogger })
+  const gamesController = new GamesController({ gamesRepository, logger })
 
   const app = express()
-  app.use(requestLoggerMiddleware({ logger: appLogger }))
+  app.use(requestLoggerMiddleware({ logger }))
   app.use(...authService.authenticationMiddlewares())
 
   app.use(
     "/trpc",
     createExpressMiddleware({
-      router: createTrpcRouter({ gamesController, authService, logger: appLogger }),
+      router: createTrpcRouter({ gamesController, authService, logger }),
       createContext: createTrpcContext,
       onError({ error }) {
         // Let's not leak stack traces
@@ -53,7 +51,7 @@ export async function createApp({
         Rethrow.ifFatal(error.cause)
 
         // Log uncaught errors for visibility
-        appLogger.error("Uncaught error", { error: error.cause })
+        logger.error("Uncaught error", { error: error.cause })
       },
     }),
   )

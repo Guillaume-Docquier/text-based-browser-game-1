@@ -1,6 +1,10 @@
-import { type Logger } from "@guillaume-docquier/tools-ts"
+import { createConsoleLogSink, jsonLineFormatter, Logger, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
 import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
 import { processTick } from "#tick-processing/processTick.ts"
+import { parseEnv } from "#lib/parseEnv.ts"
+import { drizzle } from "drizzle-orm/node-postgres"
+import { PlayersRepository } from "#lib/db/players.repository.ts"
+import { GamesRepository } from "#lib/db/games.repository.ts"
 
 /**
  * Starts tick processing.
@@ -24,7 +28,36 @@ export function startTickProcessing({ logger }: { logger: Logger }): void {
 }
 
 if (!isMainThread) {
+  const isProd = process.env.NODE_ENV === "production"
+  const logger = (
+    await Logger.configure({
+      sinks: {
+        console: createConsoleLogSink({
+          formatter: isProd ? jsonLineFormatter : prettyConsoleFormatter,
+          redaction: { enabled: isProd },
+        }),
+      },
+    })
+  ).child({ scope: "tick-processing" })
+
+  logger.info("Parsing environment")
+  const env = parseEnv({ logger })
+
+  logger.info("Connecting to the database")
+  const db = drizzle({
+    connection: {
+      connectionString: env.DATABASE_URL,
+      // I probably want ssl?
+      // ssl: true,
+    },
+  })
+
+  logger.info("Creating services")
+  const playersRepository = new PlayersRepository({ db })
+  const gamesRepository = new GamesRepository({ db, logger })
+
+  logger.info("Processing ticks")
   setInterval(() => {
-    processTick()
+    void processTick({ logger, playersRepository, gamesRepository })
   }, 1000)
 }

@@ -19,14 +19,16 @@ main().catch((error) => {
  */
 async function main(): Promise<void> {
   const isProd = process.env.NODE_ENV === "production"
-  const logger = await Logger.configure({
-    sinks: {
-      console: createConsoleLogSink({
-        formatter: isProd ? jsonLineFormatter : prettyConsoleFormatter,
-        redaction: { enabled: isProd },
-      }),
-    },
-  })
+  const logger = (
+    await Logger.configure({
+      sinks: {
+        console: createConsoleLogSink({
+          formatter: isProd ? jsonLineFormatter : prettyConsoleFormatter,
+          redaction: { enabled: isProd },
+        }),
+      },
+    })
+  ).child({ scope: "api" })
 
   logger.info("Parsing environment")
   const env = parseEnv({ logger })
