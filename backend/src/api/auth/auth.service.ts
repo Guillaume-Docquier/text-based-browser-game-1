@@ -1,6 +1,6 @@
 import type { RequestHandler, Request } from "express"
 import { clerkClient, clerkMiddleware, getAuth, type SessionAuthObject, type User } from "@clerk/express"
-import type { PlayerRow, PlayersRepository } from "#lib/players/players.repository.ts"
+import type { PlayerRow, PlayersRepository } from "#lib/db/players.repository.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
 // I just don't really know how to adapt clerk to trpc yet. For now this does the job.
