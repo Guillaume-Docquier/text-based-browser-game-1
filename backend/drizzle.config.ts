@@ -1,5 +1,5 @@
 import { defineConfig } from "drizzle-kit"
-import { parseEnv } from "./src/parseEnv.ts"
+import { parseEnv } from "#lib/parseEnv.ts"
 import * as fs from "node:fs"
 
 const envFromFile = fs

@@ -4,16 +4,16 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#src/*": "./src/*",
-    "#db/*": "./src/db/*",
-    "#auth/*": "./src/auth/*"
+    "#api/*": "./src/api/*",
+    "#worker/*": "./src/worker/*",
+    "#lib/*": "./src/lib/*"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node --env-file=.env scripts/db/seed.ts",
-    "dev": "node --watch --env-file=.env src/entry.backend.ts",
-    "start": "node src/entry.backend.ts",
+    "dev": "node --watch --env-file=.env src/api/entry.api.ts",
+    "start": "node src/api/entry.api.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

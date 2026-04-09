@@ -1,9 +1,9 @@
-import { PostgresRepository } from "#db/PostgresRepository.ts"
-import { gamePlayersTable, gamesTable, playersTable } from "#db/schema.ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { gamePlayersTable, gamesTable, playersTable } from "#lib/db/schema.ts"
 import { and, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
-import { couldNot } from "#src/errors.ts"
+import { couldNot } from "#lib/errors.ts"
 
 export type GameRow = typeof gamesTable.$inferSelect
 export type GameRowInsert = typeof gamesTable.$inferInsert

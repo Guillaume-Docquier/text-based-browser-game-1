@@ -1,6 +1,6 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
-import { parseEnv } from "../../src/parseEnv.ts"
-import { gamePlayersTable, gamesTable, playersTable } from "#db/schema.ts"
+import { parseEnv } from "#lib/parseEnv.ts"
+import { gamePlayersTable, gamesTable, playersTable } from "#lib/db/schema.ts"
 import { Pool } from "pg"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"

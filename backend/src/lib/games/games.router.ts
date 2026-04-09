@@ -1,9 +1,9 @@
-import type { AuthService } from "#auth/auth.service.ts"
+import type { AuthService } from "#lib/auth/auth.service.ts"
 import { CreatedGame, GameInsert, type GamesController, GameSummary } from "./games.controller.ts"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
-import type { Trpc } from "../trpc.ts"
+import type { Trpc } from "#api/trpc.ts"
 
 /**
  * Import side effect free express router creator.
