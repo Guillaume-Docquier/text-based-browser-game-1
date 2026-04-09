@@ -1,10 +1,11 @@
-import { createConsoleLogSink, jsonLineFormatter, Logger, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
+import { type Logger } from "@guillaume-docquier/tools-ts"
 import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
 import { processTick } from "#tick-processing/processTick.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
-import { drizzle } from "drizzle-orm/node-postgres"
 import { PlayersRepository } from "#lib/db/players.repository.ts"
 import { GamesRepository } from "#lib/db/games.repository.ts"
+import { configureLogger } from "#lib/configureLogger.ts"
+import { connectToDb } from "#lib/db/connectToDb.ts"
 
 /**
  * Starts tick processing.
@@ -12,7 +13,7 @@ import { GamesRepository } from "#lib/db/games.repository.ts"
  * No synchronization needed, auto restarts.
  */
 export function startTickProcessing({ logger }: { logger: Logger }): void {
-  logger.info("Starting tick processing")
+  logger.info("Creating a single tick processing worker")
   const tickProcessor = new Worker(new URL(import.meta.url), {
     env: SHARE_ENV,
   })
@@ -27,30 +28,17 @@ export function startTickProcessing({ logger }: { logger: Logger }): void {
   })
 }
 
+/**
+ * Tick processing worker entry point.
+ */
 if (!isMainThread) {
-  const isProd = process.env.NODE_ENV === "production"
-  const logger = (
-    await Logger.configure({
-      sinks: {
-        console: createConsoleLogSink({
-          formatter: isProd ? jsonLineFormatter : prettyConsoleFormatter,
-          redaction: { enabled: isProd },
-        }),
-      },
-    })
-  ).child({ scope: "tick-processing" })
+  const logger = await configureLogger({ scope: "tick-processing" })
 
   logger.info("Parsing environment")
   const env = parseEnv({ logger })
 
   logger.info("Connecting to the database")
-  const db = drizzle({
-    connection: {
-      connectionString: env.DATABASE_URL,
-      // I probably want ssl?
-      // ssl: true,
-    },
-  })
+  const db = connectToDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Creating services")
   const playersRepository = new PlayersRepository({ db })

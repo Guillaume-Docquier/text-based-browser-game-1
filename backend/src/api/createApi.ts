@@ -13,7 +13,7 @@ import { createTrpc, createTrpcContext } from "./trpc.ts"
  * It receives all dependencies that talk to the outside world (auth, db) so we can easily mock them during tests.
  * It also decouples the application from those 3rd parties, if done well.
  */
-export async function createApp({
+export async function createApi({
   logger,
   gamesRepository,
   authService,

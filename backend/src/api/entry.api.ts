@@ -1,13 +1,15 @@
 import { parseEnv } from "#lib/parseEnv.ts"
-import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
+import { type NodePgDatabase } from "drizzle-orm/node-postgres"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
-import { createApp } from "./createApp.ts"
+import { createApi } from "./createApi.ts"
 import { GamesRepository } from "#lib/db/games.repository.ts"
 import { PlayersRepository } from "#lib/db/players.repository.ts"
 import { AuthService } from "./auth/auth.service.ts"
 import pRetry from "p-retry"
-import { Logger, createConsoleLogSink, jsonLineFormatter, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
+import { Logger } from "@guillaume-docquier/tools-ts"
 import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
+import { configureLogger } from "#lib/configureLogger.ts"
+import { connectToDb } from "#lib/db/connectToDb.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -18,31 +20,16 @@ main().catch((error) => {
  * The main entrypoint for the backend
  */
 async function main(): Promise<void> {
-  const isProd = process.env.NODE_ENV === "production"
-  const logger = (
-    await Logger.configure({
-      sinks: {
-        console: createConsoleLogSink({
-          formatter: isProd ? jsonLineFormatter : prettyConsoleFormatter,
-          redaction: { enabled: isProd },
-        }),
-      },
-    })
-  ).child({ scope: "api" })
+  const logger = await configureLogger({ scope: "api" })
 
   logger.info("Parsing environment")
   const env = parseEnv({ logger })
 
   logger.info("Connecting to the database")
-  const db = drizzle({
-    connection: {
-      connectionString: env.DATABASE_URL,
-      // I probably want ssl?
-      // ssl: true,
-    },
-  })
+  const db = connectToDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Performing database migration")
+  // migrationsFolder path is relative to cwd, not to the script path
   await migrateDatabase(db, { migrationsFolder: "./drizzle/", logger })
 
   logger.info("Creating services")
@@ -52,13 +39,14 @@ async function main(): Promise<void> {
   const authService = new AuthService({ playersRepository })
 
   logger.info("Creating the API")
-  const app = await createApp({ gamesRepository, authService, logger })
+  const app = await createApi({ gamesRepository, authService, logger })
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
   app.listen(env.PORT, "::", () => {
     logger.info(`API listening on port ${env.PORT}`)
   })
 
+  logger.info("Starting tick processing")
   startTickProcessing({ logger })
 }
 
