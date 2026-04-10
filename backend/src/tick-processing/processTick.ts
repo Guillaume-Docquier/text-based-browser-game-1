@@ -2,7 +2,7 @@ import type { Logger } from "@guillaume-docquier/tools-ts"
 import type { PlayersRepository } from "#lib/db/players.repository.ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
 
-let tick = 1
+const tick = 1
 
 export async function processTick({
   logger,
@@ -17,7 +17,4 @@ export async function processTick({
   const games = await gamesRepository.getSummaries()
 
   logger.info("Processing tick...", { tick, nbGames: games.length, nbPlayers: players?.alias ?? null })
-  if (tick++ >= 5) {
-    throw new Error("ouch!")
-  }
 }

@@ -13,6 +13,10 @@ import { connectToDb } from "#lib/db/connectToDb.ts"
  * No synchronization needed, auto restarts.
  */
 export function startTickProcessing({ logger }: { logger: Logger }): void {
+  setInterval(() => {
+    printMemory({ logger })
+  }, 5000)
+
   logger.info("Creating a single tick processing worker")
   const tickProcessor = new Worker(new URL(import.meta.url), {
     env: SHARE_ENV,
@@ -48,4 +52,23 @@ if (!isMainThread) {
   setInterval(() => {
     void processTick({ logger, playersRepository, gamesRepository })
   }, 1000)
+
+  setInterval(() => {
+    printMemory({ logger })
+  }, 5000)
+}
+
+function printMemory({ logger }: { logger: Logger }): void {
+  const used = process.memoryUsage()
+  logger.info("memory usage", {
+    rss: bytesToMb(used.rss),
+    heapTotal: bytesToMb(used.heapTotal),
+    heapUsed: bytesToMb(used.heapUsed),
+    external: bytesToMb(used.external),
+    arrayBuffers: bytesToMb(used.arrayBuffers),
+  })
+}
+
+function bytesToMb(bytes: number): string {
+  return `${Math.round(bytes / 1024 / 1024).toFixed(2)} MB`
 }
