@@ -106,7 +106,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
               startGame.mutate({ gameId: game.id })
             }}
           >
-            Leave game
+            Start game
           </button>
         )}
       </div>
