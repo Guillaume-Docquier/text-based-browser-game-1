@@ -1,5 +1,5 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
-import { gamePlayersTable, gamesTable, playersTable } from "./schema.ts"
+import { gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "./schema.ts"
 import { and, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
@@ -243,5 +243,76 @@ export class GamesRepository extends PostgresRepository {
 
       return Result.Success(true)
     })
+  }
+
+  /**
+   * Starts a game if `canStart` allows it.
+   * To start a game, we need to:
+   * - Update the game start time
+   * - Create a game state
+   * - Schedule the tick
+   */
+  public async start({
+    gameId,
+    playerId,
+    canStart,
+  }: {
+    gameId: number
+    playerId: number
+    canStart: (gameSummaryRow: GameSummaryRow) => boolean
+  }): Promise<Result<true, string>> {
+    const startResult = await Result.tryCatch(
+      async () =>
+        await this.db.transaction(async (tx): Promise<true> => {
+          const gameSummaryRow = await this.getSummaryByIdInternal({ gameId }, tx)
+          if (gameSummaryRow === undefined) {
+            throw new Error(`Game with id ${gameId} does not exist. Cannot start.`)
+          }
+
+          if (!canStart(gameSummaryRow)) {
+            throw new Error(`Game with id ${gameId} is not startable.`)
+          }
+
+          const updateTablesResult = await Result.tryCatch(async () => {
+            // Update the game start time
+            const startedAt = new Date()
+            await tx
+              .update(gamesTable)
+              .set({ startedAt })
+              .where(and(eq(gamesTable.id, gameId)))
+
+            // Create the game state
+            // 1 minute per tick for now, we'll make this configurable
+            const nextTickAt = new Date(startedAt)
+            nextTickAt.setMinutes(nextTickAt.getMinutes() + 1)
+
+            const gameStates = await tx.insert(gameStatesTable).values({ gameId, nextTickAt }).returning()
+            Assert.isTrue(gameStates.length === 1)
+            Assert.isDefined(gameStates[0])
+            const gameState = gameStates[0]
+
+            // Schedule the next tick
+            await tx.insert(gameTicksTable).values({ gameId, tick: gameState.tick, scheduledFor: gameState.nextTickAt })
+          })
+
+          if (Result.isFailure(updateTablesResult)) {
+            this.logger.error("Could not update all tables to start game, rolling back", {
+              gameId,
+              playerId,
+              error: updateTablesResult.error,
+            })
+            tx.rollback() // Kinda sucks that we can't give any more info: https://github.com/drizzle-team/drizzle-orm/issues/1957
+          }
+
+          return true
+        }),
+    )
+
+    if (Result.isFailure(startResult)) {
+      this.logger.error("Could not start game", { gameId, error: startResult.error })
+      return Result.Failure(couldNot(`start game with id ${gameId}`))
+    }
+
+    return startResult
   }
 }

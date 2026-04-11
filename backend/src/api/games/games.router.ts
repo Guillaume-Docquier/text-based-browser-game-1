@@ -109,5 +109,23 @@ export function createGamesRouter({
 
         return { leftGame: leaveGameResult.value }
       }),
+
+    /**
+     * Starts a game, if possible.
+     */
+    start: privateProcedure
+      .input(z.object({ gameId: z.coerce.number() }))
+      .output(z.object({ startedGame: GameSummary }))
+      .mutation(async ({ input: { gameId }, ctx: { player } }) => {
+        const startGameResult = await gamesController.start({ gameId, playerId: player.id })
+        if (Result.isFailure(startGameResult)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: startGameResult.error,
+          })
+        }
+
+        return { startedGame: startGameResult.value }
+      }),
   })
 }

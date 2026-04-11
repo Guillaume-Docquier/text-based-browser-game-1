@@ -63,6 +63,24 @@ export class GamesController {
 
     return Result.Success(gameSummary)
   }
+
+  public async start({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummary, string>> {
+    const gameStartResult = await this.gamesRepository.start({
+      gameId,
+      playerId,
+      canStart: (gameSummaryRow) => toGameSummary({ gameSummaryRow, playerId }).canStart,
+    })
+
+    if (Result.isFailure(gameStartResult)) {
+      this.logger.error("Failed to start game.", { gameId, playerId, error: gameStartResult.error })
+      return gameStartResult
+    }
+
+    const gameSummary = await this.getSummaryById({ gameId, playerId })
+    Assert.isDefined(gameSummary)
+
+    return Result.Success(gameSummary)
+  }
 }
 
 // Maybe this should go into the repository. I don't know yet.
@@ -84,11 +102,16 @@ function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSumma
     gameSummaryRow.creator.id !== playerId &&
     gameSummaryRow.players.some((player) => player.id === playerId)
 
+  const canStart =
+    (status === GameSummaryStatus.WAITING_FOR_PLAYERS || status === GameSummaryStatus.READY_TO_START) &&
+    gameSummaryRow.creator.id === playerId
+
   return {
     ...gameSummaryRow,
     status,
     canJoin,
     canLeave,
+    canStart,
   }
 }
 
@@ -142,4 +165,8 @@ export const GameSummary = z.object({
    * Whether the current player can leave the game.
    */
   canLeave: z.boolean(),
+  /**
+   * Whether the current player can start the game.
+   */
+  canStart: z.boolean(),
 }) satisfies z.ZodType<GameSummaryRow>
