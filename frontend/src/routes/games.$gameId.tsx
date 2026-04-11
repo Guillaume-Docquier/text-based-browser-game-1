@@ -53,6 +53,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
   const backendApiClient = useBackendApiClient()
   const joinGame = useMutation(backendApiClient.games.join.mutationOptions())
   const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions())
+  const startGame = useMutation(backendApiClient.games.start.mutationOptions())
 
   return (
     <div className="flex flex-col gap-4">
@@ -92,6 +93,17 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
             disabled={leaveGame.isPending}
             onClick={() => {
               leaveGame.mutate({ gameId: game.id })
+            }}
+          >
+            Leave game
+          </button>
+        )}
+        {game.canStart && (
+          <button
+            className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+            disabled={startGame.isPending}
+            onClick={() => {
+              startGame.mutate({ gameId: game.id })
             }}
           >
             Leave game
