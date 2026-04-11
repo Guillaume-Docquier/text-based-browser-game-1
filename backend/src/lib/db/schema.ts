@@ -1,4 +1,4 @@
-import { integer, pgTable, uniqueIndex, varchar, timestamp, primaryKey } from "drizzle-orm/pg-core"
+import { integer, pgTable, uniqueIndex, varchar, timestamp, primaryKey, index } from "drizzle-orm/pg-core"
 
 /**
  * All registered players.
@@ -50,5 +50,38 @@ export const gamePlayersTable = pgTable(
     primaryKey({
       columns: [table.gameId, table.playerId],
     }),
+  ],
+)
+
+/**
+ * The state of running games.
+ */
+export const gameStatesTable = pgTable("game_states", {
+  gameId: integer()
+    .primaryKey()
+    .references(() => gamesTable.id, { onDelete: "cascade" }),
+  tick: integer().notNull().default(0),
+  nextTickAt: timestamp().notNull(),
+})
+
+/**
+ * The state of tick computation
+ */
+export const gameTicksTable = pgTable(
+  "game_ticks",
+  {
+    gameId: integer()
+      .notNull()
+      .references(() => gamesTable.id, { onDelete: "cascade" }),
+    tick: integer().notNull(),
+    scheduledFor: timestamp().notNull(),
+    processingStartedAt: timestamp(),
+    processingEndedAt: timestamp(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.gameId, table.tick],
+    }),
+    index().on(table.scheduledFor),
   ],
 )

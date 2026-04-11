@@ -9,8 +9,8 @@
     "#lib/*": "./src/lib/*"
   },
   "scripts": {
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate --config ./drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
     "db:seed": "node --env-file=.env scripts/db/seed.ts",
     "dev": "node --watch --env-file=.env src/api/entry.api.ts",
     "start": "node src/api/entry.api.ts",
