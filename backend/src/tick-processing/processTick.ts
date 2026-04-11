@@ -1,20 +1,37 @@
 import type { Logger } from "@guillaume-docquier/tools-ts"
-import type { PlayersRepository } from "#lib/db/players.repository.ts"
-import type { GamesRepository } from "#lib/db/games.repository.ts"
-
-const tick = 1
+import { type GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
+import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 
 export async function processTick({
   logger,
-  playersRepository,
-  gamesRepository,
+  gameTicksRepository,
+  gameStatesRepository,
 }: {
   logger: Logger
-  playersRepository: PlayersRepository
-  gamesRepository: GamesRepository
+  gameTicksRepository: GameTicksRepository
+  gameStatesRepository: GameStatesRepository
 }): Promise<void> {
-  const players = await playersRepository.findByAuthId({ authId: "blah" })
-  const games = await gamesRepository.getSummaries()
+  // Lock the tables, can't update state or submit actions during ticks
 
-  logger.info("Processing tick...", { tick, nbGames: games.length, nbPlayers: players?.alias ?? null })
+  const ticksToProcess = await gameTicksRepository.getTicksToProcess()
+  if (ticksToProcess.length === 0) {
+    logger.info("No ticks to process")
+    return
+  }
+
+  for (const { game_ticks: gameTick, game_states: gameState } of ticksToProcess) {
+    logger.info("Processing tick", { gameTick, gameState })
+    await gameTicksRepository.startProcessingTick(gameTick)
+
+    // 1 minute per tick for now, we'll make this configurable
+    const nextScheduledFor = new Date(gameTick.scheduledFor)
+    nextScheduledFor.setMinutes(nextScheduledFor.getMinutes() + 1)
+
+    const nextTick = gameTick.tick + 1
+
+    await gameTicksRepository.create({ gameId: gameTick.gameId, tick: nextTick, scheduledFor: nextScheduledFor })
+    await gameStatesRepository.update({ gameId: gameState.gameId }, { tick: nextTick, nextTickAt: nextScheduledFor })
+
+    await gameTicksRepository.finishProcessingTick(gameTick)
+  }
 }

@@ -2,10 +2,10 @@ import { type Logger } from "@guillaume-docquier/tools-ts"
 import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
 import { processTick } from "#tick-processing/processTick.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
-import { PlayersRepository } from "#lib/db/players.repository.ts"
-import { GamesRepository } from "#lib/db/games.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { connectToDb } from "#lib/db/connectToDb.ts"
+import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
+import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 
 /**
  * Starts tick processing.
@@ -41,11 +41,11 @@ if (!isMainThread) {
   const db = connectToDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Creating services")
-  const playersRepository = new PlayersRepository({ db })
-  const gamesRepository = new GamesRepository({ db, logger })
+  const gameTicksRepository = new GameTicksRepository({ db, logger })
+  const gameStatesRepository = new GameStatesRepository({ db, logger })
 
   logger.info("Processing ticks")
   setInterval(() => {
-    void processTick({ logger, playersRepository, gamesRepository })
+    void processTick({ logger, gameTicksRepository, gameStatesRepository })
   }, 1000)
 }
