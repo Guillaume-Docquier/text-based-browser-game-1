@@ -7,6 +7,10 @@ import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
+import { createGameStatesRouter } from "#api/gameStates/gameStates.router.ts"
+import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
+import type { TRPCError } from "@trpc/server"
+import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 
 /**
  * Import side effect free express app creator.
@@ -14,45 +18,31 @@ import { createTrpc, createTrpcContext } from "./trpc.ts"
  * It also decouples the application from those 3rd parties, if done well.
  */
 export async function createApi({
-  logger,
   gamesRepository,
   authService,
+  ...services
 }: {
   logger: Logger
   gamesRepository: GamesRepository
+  gameStatesRepository: GameStatesRepository
   authService: AuthService
 }): Promise<Express> {
-  const gamesController = new GamesController({ gamesRepository, logger })
+  const controllerServices = { gamesRepository, ...services }
+  const controllers = {
+    gamesController: new GamesController(controllerServices),
+    gameStatesController: new GameStatesController(controllerServices),
+  }
 
   const app = express()
-  app.use(requestLoggerMiddleware({ logger }))
+  app.use(requestLoggerMiddleware(services))
   app.use(...authService.authenticationMiddlewares())
 
   app.use(
     "/trpc",
     createExpressMiddleware({
-      router: createTrpcRouter({ gamesController, authService, logger }),
+      router: createTrpcRouter({ ...controllers, ...services }),
       createContext: createTrpcContext,
-      onError({ error }) {
-        // Let's not leak stack traces
-        delete error.stack
-
-        // Nothing to do for plausible trpc errors
-        if (error.code !== "INTERNAL_SERVER_ERROR") {
-          return
-        }
-
-        // Not sure how that happens?
-        if (error.cause === undefined) {
-          return
-        }
-
-        // Let bad things kill the server
-        Rethrow.ifFatal(error.cause)
-
-        // Log uncaught errors for visibility
-        logger.error("Uncaught error", { error: error.cause })
-      },
+      onError: createErrorHandler({ logger: services.logger }),
     }),
   )
 
@@ -61,18 +51,38 @@ export async function createApi({
 
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
-function createTrpcRouter({
-  gamesController,
-  authService,
-  logger,
-}: {
-  gamesController: GamesController
-  authService: AuthService
-  logger: Logger
-}) {
+function createTrpcRouter(services: { gamesController: GamesController; gameStatesController: GameStatesController; logger: Logger }) {
   const trpc = createTrpc()
+  const routerServices = { ...trpc, ...services }
 
   return trpc.t.router({
-    games: createGamesRouter({ ...trpc, gamesController, authService, logger }),
+    games: createGamesRouter(routerServices),
+    gameStates: createGameStatesRouter(routerServices),
   })
+}
+
+/**
+ * trpc catches all errors and doesn't log them.
+ * We want to log unexpected errors, which trpc will return as "INTERNAL_SERVER_ERROR".
+ *
+ * Does nothing to other kinds of errors, since they are expected errors (thrown by routers.)
+ */
+function createErrorHandler({ logger }: { logger: Logger }) {
+  return ({ error }: { error: TRPCError }): void => {
+    // Nothing to do for plausible trpc errors
+    if (error.code !== "INTERNAL_SERVER_ERROR") {
+      return
+    }
+
+    // Not sure how that happens?
+    if (error.cause === undefined) {
+      return
+    }
+
+    // Let bad things kill the server
+    Rethrow.ifFatal(error.cause)
+
+    // Log uncaught errors for visibility
+    logger.error("Uncaught error", { error: error.cause })
+  }
 }

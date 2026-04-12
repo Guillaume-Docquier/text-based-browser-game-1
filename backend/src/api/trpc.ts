@@ -14,7 +14,8 @@ export const createTrpcContext = ({ req, res }: ExpressContextOptions): ExpressC
 export type Trpc = ReturnType<typeof createTrpc>
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
 export function createTrpc() {
-  const t = initTRPC.context<TrpcContext>().create()
+  // { isDev: false } disables stack traces, see https://trpc.io/docs/server/error-handling#stack-traces-in-production
+  const t = initTRPC.context<TrpcContext>().create({ isDev: false })
 
   const publicProcedure = t.procedure.use(async ({ next, ctx }) => {
     return await next({ ctx: { player: ctx.req.player } })

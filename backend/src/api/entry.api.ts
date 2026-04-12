@@ -10,6 +10,7 @@ import { Logger } from "@guillaume-docquier/tools-ts"
 import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { connectToDb } from "#lib/db/connectToDb.ts"
+import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -33,13 +34,16 @@ async function main(): Promise<void> {
   await migrateDatabase(db, { migrationsFolder: "./drizzle/", logger })
 
   logger.info("Creating services")
-  const playersRepository = new PlayersRepository({ db })
-  const gamesRepository = new GamesRepository({ db, logger })
+  const repositories = {
+    playersRepository: new PlayersRepository({ db }),
+    gamesRepository: new GamesRepository({ db, logger }),
+    gameStatesRepository: new GameStatesRepository({ db, logger }),
+  }
 
-  const authService = new AuthService({ playersRepository })
+  const authService = new AuthService({ playersRepository: repositories.playersRepository })
 
   logger.info("Creating the API")
-  const app = await createApi({ gamesRepository, authService, logger })
+  const app = await createApi({ logger, authService, ...repositories })
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
   app.listen(env.PORT, "::", () => {

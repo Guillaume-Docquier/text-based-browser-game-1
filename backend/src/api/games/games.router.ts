@@ -1,4 +1,3 @@
-import type { AuthService } from "#api/auth/auth.service.ts"
 import { CreatedGame, GameInsert, type GamesController, GameSummary } from "./games.controller.ts"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
@@ -16,13 +15,12 @@ export function createGamesRouter({
   publicProcedure,
   privateProcedure,
   gamesController,
-  logger,
+  ...others
 }: Trpc & {
   gamesController: GamesController
-  authService: AuthService
   logger: Logger
 }) {
-  const gamesRouterLogger = logger.child({ scope: "games-router" })
+  const gamesRouterLogger = others.logger.child({ scope: "games-router" })
 
   return t.router({
     /**
@@ -47,7 +45,7 @@ export function createGamesRouter({
     /**
      * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getAll: publicProcedure.output(z.object({ games: z.array(GameSummary) })).query(async ({ ctx: { player } }) => {
+    getSummaries: publicProcedure.output(z.object({ games: z.array(GameSummary) })).query(async ({ ctx: { player } }) => {
       const games = await gamesController.getSummaries({ playerId: player?.id })
 
       gamesRouterLogger.info("GET games", { count: games.length })
@@ -57,7 +55,7 @@ export function createGamesRouter({
     /**
      * Gets a game by id
      */
-    getById: publicProcedure
+    getSummaryById: publicProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ game: GameSummary }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
@@ -67,7 +65,7 @@ export function createGamesRouter({
         if (game === undefined) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: `No game exists with id ${gameId}}`,
+            message: `No game exists with id ${gameId}`,
           })
         }
 

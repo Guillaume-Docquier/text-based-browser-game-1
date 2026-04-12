@@ -10,7 +10,7 @@ type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 export type { TrpcRouter }
 
 // Games router
-type GamesOutput = TrpcRouterOutput["games"]["getAll"]
+type GamesOutput = TrpcRouterOutput["games"]["getSummaries"]
 export type GameSummary = GamesOutput["games"][number]
 export type GameSummaryStatus = GameSummary["status"]
 export type GameSummaryPlayer = GameSummary["creator"]
