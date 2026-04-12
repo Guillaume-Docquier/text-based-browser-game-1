@@ -22,9 +22,6 @@
     "printWidth": 140,
     "semi": false
   },
-  "dependencies": {
-    "lucide-react": "^1.7.0"
-  },
   "devDependencies": {
     "@shared/eslint": "file:./shared/eslint",
     "eslint": "9.39.4",
