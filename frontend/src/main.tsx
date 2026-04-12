@@ -41,7 +41,7 @@ if (rootElement.innerHTML === "") {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <LoggerProvider logger={Logger.get()}>
+      <LoggerProvider logger={logger}>
         <ClerkProvider
           publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
           appearance={{
