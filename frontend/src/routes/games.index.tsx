@@ -17,7 +17,7 @@ export const Route = createFileRoute("/games/")({
 function Games(): ReactElement {
   const [gameNameFilter, setGameNameFilter] = useState("")
   const backendApiClient = useBackendApiClient()
-  const gamesQuery = useQuery(backendApiClient.games.getAll.queryOptions())
+  const gamesQuery = useQuery(backendApiClient.games.getSummaries.queryOptions())
 
   if (gamesQuery.isPending) {
     return <Skeleton />

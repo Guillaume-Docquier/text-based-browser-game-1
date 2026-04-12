@@ -1,4 +1,4 @@
-import type { GameSummaryStatus } from "../../../backend/src/api/types.ts"
+import type { GameSummaryStatus } from "@api-types"
 
 export function formatGameSummaryStatus(gameStatus: GameSummaryStatus): string {
   switch (gameStatus) {

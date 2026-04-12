@@ -1,6 +1,5 @@
-import { createFileRoute, Navigate, redirect } from "@tanstack/react-router"
+import { createFileRoute, Navigate, redirect, useNavigate } from "@tanstack/react-router"
 import type { ReactElement } from "react"
-import { Assert } from "@guillaume-docquier/tools-ts"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import type * as ApiTypes from "../../../backend/src/api/types"
@@ -8,16 +7,16 @@ import { timeAgo } from "../timeAgo.ts"
 import { Skeleton } from "../design-system/Skeleton.tsx"
 import { useLogger } from "../contexts/LoggerContext.tsx"
 import { formatGameSummaryStatus } from "../lib/formatGameSummaryStatus.ts"
+import { z } from "zod"
+
+const paramsSchema = z.object({
+  gameId: z.coerce.number(),
+})
 
 export const Route = createFileRoute("/games/$gameId")({
   component: GameLobby,
   params: {
-    parse: (rawParams) => {
-      const gameId = Number(rawParams.gameId)
-      Assert.isTrue(!isNaN(gameId))
-
-      return { gameId }
-    },
+    parse: (params) => paramsSchema.parse(params),
   },
   onError: (error) => {
     if (error?.routerCode === "PARSE_PARAMS") {
@@ -31,7 +30,7 @@ function GameLobby(): ReactElement {
   const logger = useLogger()
   const { gameId } = Route.useParams()
   const backendApiClient = useBackendApiClient()
-  const gameQuery = useQuery(backendApiClient.games.getById.queryOptions({ gameId }))
+  const gameQuery = useQuery(backendApiClient.games.getSummaryById.queryOptions({ gameId }))
 
   if (gameQuery.isPending) {
     return <Skeleton />
@@ -50,6 +49,7 @@ function GameLobby(): ReactElement {
 }
 
 function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
+  const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
   const joinGame = useMutation(backendApiClient.games.join.mutationOptions())
   const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions())
@@ -107,6 +107,17 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
             }}
           >
             Start game
+          </button>
+        )}
+        {game.status === "STARTED" && (
+          <button
+            className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+            disabled={startGame.isPending}
+            onClick={() => {
+              void navigate({ to: "/play/$gameId", params: { gameId: game.id } })
+            }}
+          >
+            Open game
           </button>
         )}
       </div>

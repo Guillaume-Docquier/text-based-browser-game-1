@@ -1,4 +1,4 @@
-import { Outlet, createRootRouteWithContext, Link } from "@tanstack/react-router"
+import { Outlet, createRootRouteWithContext, Link, Navigate } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import type { ReactElement } from "react"
 import { Show, UserButton, type useAuth } from "@clerk/react"
@@ -11,6 +11,9 @@ export interface RouterContext {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
+  notFoundComponent: () => {
+    return <Navigate to="/" replace />
+  },
 })
 
 function RootComponent(): ReactElement {
