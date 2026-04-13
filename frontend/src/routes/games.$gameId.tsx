@@ -2,7 +2,7 @@ import { createFileRoute, Navigate, redirect, useNavigate } from "@tanstack/reac
 import type { ReactElement } from "react"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import type * as ApiTypes from "../../../backend/src/api/types"
+import type * as ApiTypes from "@api-types"
 import { timeAgo } from "../timeAgo.ts"
 import { Skeleton } from "../design-system/Skeleton.tsx"
 import { useLogger } from "../contexts/LoggerContext.tsx"
