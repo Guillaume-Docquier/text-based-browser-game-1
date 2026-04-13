@@ -19,7 +19,7 @@ export async function processTick({
 
   const ticksToProcess = await gameTicksRepository.getTicksToProcess()
   if (ticksToProcess.length === 0) {
-    logger.info("No ticks to process")
+    logger.debug("No ticks to process")
     return
   }
 
