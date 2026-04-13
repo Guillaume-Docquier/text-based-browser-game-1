@@ -65,7 +65,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
           <Player player={game.creator} />
         </div>
         <div>
-          players ({game.players.length}/{game.maxPlayerCount})
+          players ({game.players.length}/{game.nbSeats})
         </div>
         <div className="flex flex-col gap-2 pl-2">
           {game.players.map((player) => (

@@ -1,1 +1,0 @@
-ALTER TABLE "players" ADD COLUMN "alias" varchar(255);

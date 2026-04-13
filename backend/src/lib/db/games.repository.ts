@@ -1,9 +1,10 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
 import { gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "./schema.ts"
-import { and, eq } from "drizzle-orm"
+import { and, eq, getTableColumns } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
 import { couldNot } from "#lib/errors.ts"
+import { computeNextTickDate } from "#tick-processing/processTick.ts"
 
 export type GameRow = typeof gamesTable.$inferSelect
 export type GameRowInsert = typeof gamesTable.$inferInsert
@@ -58,12 +59,7 @@ export class GamesRepository extends PostgresRepository {
     const gameSummaries = await this.db
       .select({
         // game info
-        id: gamesTable.id,
-        name: gamesTable.name,
-        maxPlayerCount: gamesTable.maxPlayerCount,
-        createdAt: gamesTable.createdAt,
-        startedAt: gamesTable.startedAt,
-        endedAt: gamesTable.endedAt,
+        ...getTableColumns(gamesTable),
 
         // player info
         creatorId: pgCreatorAlias.id,
@@ -120,12 +116,7 @@ export class GamesRepository extends PostgresRepository {
     const gameSummaries = await dbOrTx
       .select({
         // game info
-        id: gamesTable.id,
-        name: gamesTable.name,
-        maxPlayerCount: gamesTable.maxPlayerCount,
-        createdAt: gamesTable.createdAt,
-        startedAt: gamesTable.startedAt,
-        endedAt: gamesTable.endedAt,
+        ...getTableColumns(gamesTable),
 
         // player info
         creatorId: pgCreatorAlias.id,
@@ -282,9 +273,7 @@ export class GamesRepository extends PostgresRepository {
               .where(and(eq(gamesTable.id, gameId)))
 
             // Create the game state
-            // 1 minute per tick for now, we'll make this configurable
-            const nextTickAt = new Date(startedAt)
-            nextTickAt.setMinutes(nextTickAt.getMinutes() + 1)
+            const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: gameSummaryRow.tickIntervalSeconds })
 
             const gameStates = await tx.insert(gameStatesTable).values({ gameId, nextTickAt }).returning()
             Assert.isTrue(gameStates.length === 1)

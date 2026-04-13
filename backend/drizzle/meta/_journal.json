@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1775014552564,
+      "when": 1776049672826,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1775358022142,
-      "tag": "0001_usernames",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1775868059452,
-      "tag": "0002_game-states-and-ticks",
       "breakpoints": true
     }
   ]

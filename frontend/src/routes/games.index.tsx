@@ -57,7 +57,7 @@ function GameSummary({ game }: { game: ApiTypes.GameSummary }): ReactElement {
       <div>#{game.id}</div>
       <div>{game.name}</div>
       <div>
-        {game.players.length}/{game.maxPlayerCount} players
+        {game.players.length}/{game.nbSeats} players
       </div>
       <div>{formatGameSummaryStatus(game.status)}</div>
       <div>created {timeAgo(game.createdAt)}</div>

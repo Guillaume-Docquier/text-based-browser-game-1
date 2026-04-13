@@ -102,8 +102,8 @@ async function seedGames(db: NodePgDatabase): Promise<void> {
   await resetTable(db, gamesTable)
   console.log("├ Adding default games")
   await db.insert(gamesTable).values([
-    { name: "battle to the death", createdByPlayerId: players[0].id, maxPlayerCount: 5 },
-    { name: "noobs only", createdByPlayerId: players[1].id, maxPlayerCount: 10 },
+    { name: "insanely fast game", createdByPlayerId: players[0].id, nbSeats: 5, tickIntervalSeconds: 60 },
+    { name: "fast game", createdByPlayerId: players[1].id, nbSeats: 10, tickIntervalSeconds: 7200 },
   ])
   console.log("├ Adding players to games")
   const game = (await db.select().from(gamesTable))[0]

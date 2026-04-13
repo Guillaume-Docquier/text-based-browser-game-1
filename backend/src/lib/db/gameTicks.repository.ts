@@ -1,8 +1,9 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
-import { gameStatesTable, gameTicksTable } from "./schema.ts"
+import { gamesTable, gameStatesTable, gameTicksTable } from "./schema.ts"
 import { and, eq, lte, isNull } from "drizzle-orm"
 import { Assert, type Logger } from "@guillaume-docquier/tools-ts"
 import type { GameStateRow } from "#lib/db/gameStates.repository.ts"
+import type { GameRow } from "#lib/db/games.repository.ts"
 
 export type GameTickRow = typeof gameTicksTable.$inferSelect
 export type GameTickRowInsert = typeof gameTicksTable.$inferInsert
@@ -23,12 +24,19 @@ export class GameTicksRepository extends PostgresRepository {
     return gameTicks[0]
   }
 
-  public async getTicksToProcess(): Promise<Array<{ game_ticks: GameTickRow; game_states: GameStateRow }>> {
-    return await this.db
+  public async getTicksToProcess(): Promise<Array<{ game: GameRow; gameTick: GameTickRow; gameState: GameStateRow }>> {
+    const ticksToProcess = await this.db
       .select()
       .from(gameTicksTable)
       .innerJoin(gameStatesTable, eq(gameStatesTable.gameId, gameTicksTable.gameId))
+      .innerJoin(gamesTable, eq(gamesTable.id, gameTicksTable.gameId))
       .where(and(isNull(gameTicksTable.processingStartedAt), lte(gameTicksTable.scheduledFor, new Date())))
+
+    return ticksToProcess.map((tickToProcess) => ({
+      game: tickToProcess.games,
+      gameTick: tickToProcess.game_ticks,
+      gameState: tickToProcess.game_states,
+    }))
   }
 
   public async startProcessingTick({ gameId, tick }: { gameId: number; tick: number }): Promise<void> {

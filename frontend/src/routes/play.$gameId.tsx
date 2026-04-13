@@ -84,7 +84,7 @@ function calculateTimeLeft(config: { past: Date; future: Date }): TimeLeft {
   const past = Temporal.Instant.fromEpochMilliseconds(config.past.getTime())
   const future = Temporal.Instant.fromEpochMilliseconds(config.future.getTime())
 
-  const duration = future.since(past)
+  const duration = future.since(past).round({ largestUnit: "days" })
 
   return {
     noTimeLeft: duration.total("seconds") <= 0,

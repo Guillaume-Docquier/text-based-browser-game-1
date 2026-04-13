@@ -17,7 +17,7 @@ export const playersTable = pgTable(
 
 /**
  * All games, past and present.
- * This is only the game settings. Game state will exist in another table?
+ * This is only the game settings. Game state will exist in the {@link gameStatesTable}.
  */
 export const gamesTable = pgTable("games", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
@@ -25,7 +25,8 @@ export const gamesTable = pgTable("games", {
   createdByPlayerId: integer()
     .notNull()
     .references(() => playersTable.id, { onDelete: "cascade" }),
-  maxPlayerCount: integer().notNull(),
+  nbSeats: integer().notNull(),
+  tickIntervalSeconds: integer().notNull(),
   createdAt: timestamp().defaultNow().notNull(),
   startedAt: timestamp(),
   endedAt: timestamp(),

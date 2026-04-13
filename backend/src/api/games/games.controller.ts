@@ -90,7 +90,7 @@ function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSumma
       ? GameSummaryStatus.ENDED
       : gameSummaryRow.startedAt !== null
         ? GameSummaryStatus.STARTED
-        : gameSummaryRow.players.length >= gameSummaryRow.maxPlayerCount
+        : gameSummaryRow.players.length >= gameSummaryRow.nbSeats
           ? GameSummaryStatus.READY_TO_START
           : GameSummaryStatus.WAITING_FOR_PLAYERS
 
@@ -119,7 +119,8 @@ export type GameInsert = z.infer<typeof GameInsert>
 export const GameInsert = z.object({
   name: z.string(),
   createdByPlayerId: z.number(),
-  maxPlayerCount: z.number(),
+  nbSeats: z.number(),
+  tickIntervalSeconds: z.number(),
 }) satisfies z.ZodType<GameRowInsert>
 
 export type CreatedGame = z.infer<typeof CreatedGame>
@@ -127,7 +128,8 @@ export const CreatedGame = z.object({
   name: z.string(),
   id: z.number(),
   createdByPlayerId: z.number(),
-  maxPlayerCount: z.number(),
+  nbSeats: z.number(),
+  tickIntervalSeconds: z.number(),
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
@@ -150,7 +152,8 @@ export type GameSummary = z.infer<typeof GameSummary>
 export const GameSummary = z.object({
   name: z.string(),
   id: z.number(),
-  maxPlayerCount: z.number(),
+  nbSeats: z.number(),
+  tickIntervalSeconds: z.number(),
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),

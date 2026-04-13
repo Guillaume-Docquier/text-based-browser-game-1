@@ -1,5 +1,5 @@
 {
-  "id": "5d017c86-e5df-41a4-8348-15cd1ef065b6",
+  "id": "e6a54849-2afc-42e8-aa2b-ec42a685c807",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -60,6 +60,122 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.game_states": {
+      "name": "game_states",
+      "schema": "",
+      "columns": {
+        "gameId": {
+          "name": "gameId",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tick": {
+          "name": "tick",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "nextTickAt": {
+          "name": "nextTickAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "game_states_gameId_games_id_fk": {
+          "name": "game_states_gameId_games_id_fk",
+          "tableFrom": "game_states",
+          "tableTo": "games",
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.game_ticks": {
+      "name": "game_ticks",
+      "schema": "",
+      "columns": {
+        "gameId": {
+          "name": "gameId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tick": {
+          "name": "tick",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduledFor": {
+          "name": "scheduledFor",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "processingStartedAt": {
+          "name": "processingStartedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "processingEndedAt": {
+          "name": "processingEndedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "game_ticks_scheduledFor_index": {
+          "name": "game_ticks_scheduledFor_index",
+          "columns": [
+            {
+              "expression": "scheduledFor",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "game_ticks_gameId_games_id_fk": {
+          "name": "game_ticks_gameId_games_id_fk",
+          "tableFrom": "game_ticks",
+          "tableTo": "games",
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "game_ticks_gameId_tick_pk": {
+          "name": "game_ticks_gameId_tick_pk",
+          "columns": ["gameId", "tick"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.games": {
       "name": "games",
       "schema": "",
@@ -93,8 +209,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "maxPlayerCount": {
-          "name": "maxPlayerCount",
+        "nbSeats": {
+          "name": "nbSeats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tickIntervalSeconds": {
+          "name": "tickIntervalSeconds",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -166,6 +288,12 @@
         },
         "email": {
           "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alias": {
+          "name": "alias",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false

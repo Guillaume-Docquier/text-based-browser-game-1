@@ -5,6 +5,14 @@ import { NumberInput } from "../design-system/NumberInput.tsx"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useMutation } from "@tanstack/react-query"
 import { privateRoute } from "../privateRoute.ts"
+import type { Enumify } from "@guillaume-docquier/tools-ts"
+
+type TickIntervalUnit = Enumify<typeof TickIntervalUnit>
+const TickIntervalUnit = {
+  days: "days",
+  hours: "hours",
+  minutes: "minutes",
+} as const
 
 export const Route = createFileRoute("/games/new")({
   component: CreateGame,
@@ -13,7 +21,9 @@ export const Route = createFileRoute("/games/new")({
 
 function CreateGame(): ReactElement {
   const [name, setName] = useState("")
-  const [maxPlayerCount, setMaxPlayerCount] = useState(5)
+  const [nbSeats, setNbSeats] = useState(5)
+  const [tickIntervalMultiplier, setTickIntervalMultiplier] = useState(1)
+  const [tickIntervalUnit, setTickIntervalUnit] = useState<TickIntervalUnit>(TickIntervalUnit.days)
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
   const createGame = useMutation(backendApiClient.games.create.mutationOptions())
@@ -28,15 +38,39 @@ function CreateGame(): ReactElement {
         </div>
         <div>
           <div>Max number of players</div>
-          <NumberInput value={maxPlayerCount} integer onChange={setMaxPlayerCount} />
+          <NumberInput value={nbSeats} integer onChange={setNbSeats} />
+        </div>
+        <div>
+          <div>Turn length</div>
+          <div className="flex flex-row gap-2">
+            <NumberInput value={tickIntervalMultiplier} integer onChange={setTickIntervalMultiplier} />
+            <select
+              value={tickIntervalUnit}
+              onChange={(event) => {
+                setTickIntervalUnit(event.target.value as TickIntervalUnit)
+              }}
+            >
+              {Object.values(TickIntervalUnit).map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
       <button
         className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
-        disabled={name === "" || maxPlayerCount < 2}
+        disabled={name === "" || nbSeats < 2}
         onClick={() => {
           createGame.mutate(
-            { newGame: { name, maxPlayerCount } },
+            {
+              newGame: {
+                name,
+                nbSeats,
+                tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
+              },
+            },
             {
               onSuccess: ({ newGame }) => {
                 void navigate({ to: "/games/$gameId", params: { gameId: newGame.id } })

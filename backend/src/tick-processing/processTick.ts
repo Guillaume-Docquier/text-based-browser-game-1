@@ -1,7 +1,11 @@
-import type { Logger } from "@guillaume-docquier/tools-ts"
+import { type Logger } from "@guillaume-docquier/tools-ts"
 import { type GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
+import { type GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 
+/**
+ * Processes all ticks that should advance at this point in time.
+ * This will resolve all player actions, update the game state and schedule the next tick.
+ */
 export async function processTick({
   logger,
   gameTicksRepository,
@@ -19,14 +23,11 @@ export async function processTick({
     return
   }
 
-  for (const { game_ticks: gameTick, game_states: gameState } of ticksToProcess) {
-    logger.info("Processing tick", { gameTick, gameState })
+  for (const { game, gameTick, gameState } of ticksToProcess) {
+    logger.info("Processing tick", { game, gameTick, gameState })
     await gameTicksRepository.startProcessingTick(gameTick)
 
-    // 1 minute per tick for now, we'll make this configurable
-    const nextScheduledFor = new Date(gameTick.scheduledFor)
-    nextScheduledFor.setMinutes(nextScheduledFor.getMinutes() + 1)
-
+    const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds: game.tickIntervalSeconds })
     const nextTick = gameTick.tick + 1
 
     await gameTicksRepository.create({ gameId: gameTick.gameId, tick: nextTick, scheduledFor: nextScheduledFor })
@@ -34,4 +35,12 @@ export async function processTick({
 
     await gameTicksRepository.finishProcessingTick(gameTick)
   }
+}
+
+/**
+ * Computes the date at which the next tick should happen.
+ * The date argument is the last tick date to which we'll add tickIntervalSeconds.
+ */
+export function computeNextTickDate({ date, tickIntervalSeconds }: { date: Date; tickIntervalSeconds: number }): Date {
+  return new Date(date.getTime() + tickIntervalSeconds * 1000)
 }
