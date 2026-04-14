@@ -1,4 +1,4 @@
-import { type Logger } from "@guillaume-docquier/tools-ts"
+import { Result, type Logger } from "@guillaume-docquier/tools-ts"
 import { type GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { type GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 
@@ -17,23 +17,47 @@ export async function processTick({
 }): Promise<void> {
   // Lock the tables, can't update state or submit actions during ticks
 
-  const ticksToProcess = await gameTicksRepository.getTicksToProcess()
+  const ticksToProcessResult = await gameTicksRepository.getTicksToProcess()
+  if (Result.isFailure(ticksToProcessResult)) {
+    logger.error("Could not get ticks to process", { error: ticksToProcessResult.error })
+    return
+  }
+
+  const ticksToProcess = ticksToProcessResult.value
   if (ticksToProcess.length === 0) {
     logger.debug("No ticks to process")
     return
   }
 
+  // Needs to be a rollbackable transaction
   for (const { game, gameTick, gameState } of ticksToProcess) {
     logger.info("Processing tick", { game, gameTick, gameState })
-    await gameTicksRepository.startProcessingTick(gameTick)
+    const startProcessingTickResult = await gameTicksRepository.startProcessingTick(gameTick)
+    if (Result.isFailure(startProcessingTickResult)) {
+      logger.error("Could not start processing tick", { gameTick, error: startProcessingTickResult.error })
+      continue
+    }
 
     const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds: game.tickIntervalSeconds })
     const nextTick = gameTick.tick + 1
 
-    await gameTicksRepository.create({ gameId: gameTick.gameId, tick: nextTick, scheduledFor: nextScheduledFor })
+    const createGameTickResult = await gameTicksRepository.create({
+      gameId: gameTick.gameId,
+      tick: nextTick,
+      scheduledFor: nextScheduledFor,
+    })
+    if (Result.isFailure(createGameTickResult)) {
+      logger.error("Could not create next game tick", { gameTick, nextTick, nextScheduledFor, error: createGameTickResult.error })
+      continue
+    }
+
     await gameStatesRepository.update({ gameId: gameState.gameId }, { tick: nextTick, nextTickAt: nextScheduledFor })
 
-    await gameTicksRepository.finishProcessingTick(gameTick)
+    const finishProcessingTickResult = await gameTicksRepository.finishProcessingTick(gameTick)
+    if (Result.isFailure(finishProcessingTickResult)) {
+      logger.error("Could not finish processing tick", { gameTick, error: finishProcessingTickResult.error })
+      continue
+    }
   }
 }
 
