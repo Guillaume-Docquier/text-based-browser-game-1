@@ -1,6 +1,8 @@
-import type { RequestHandler, Request } from "express"
-import { clerkClient, clerkMiddleware, getAuth, type SessionAuthObject, type User } from "@clerk/express"
+import type { RequestHandler } from "express"
+import { clerkClient, clerkMiddleware, getAuth, type User } from "@clerk/express"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { PlayerRow, PlayersRepository } from "#lib/db/players.repository.ts"
+import { couldNot } from "#lib/errors.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
 // I just don't really know how to adapt clerk to trpc yet. For now this does the job.
@@ -20,77 +22,80 @@ declare global {
  * It'll make tests easier, and if Clerk turns out to be a problem we can change it.
  */
 export class AuthService {
+  private readonly logger: Logger
   private readonly playersRepository: PlayersRepository
 
-  public constructor({ playersRepository }: { playersRepository: PlayersRepository }) {
+  public constructor({ logger, playersRepository }: { logger: Logger; playersRepository: PlayersRepository }) {
+    this.logger = logger.child({ scope: "auth-service" })
     this.playersRepository = playersRepository
   }
 
   /**
    * Express middleware that parses the authentication token for further usage.
-   * Use this in combination with {@link requiresAuth} or {@link getAuth}.
+   * The trpc procedures will consume this information.
    */
   public authenticationMiddlewares(): RequestHandler[] {
     return [clerkMiddleware(), this.recordPlayerMiddleware()]
   }
 
   /**
-   * Express middleware that returns 401 unless the user is authenticated.
-   * Relies on the {@link authenticationMiddlewares} to be registered before using {@link requiresAuth}.
-   */
-  public requiresAuth(): RequestHandler {
-    return (req, res, next) => {
-      const auth = this.getAuth(req)
-      if (!auth.isAuthenticated) {
-        res.status(401).end()
-      } else {
-        next()
-      }
-    }
-  }
-
-  /**
-   * Gets authentication information from the auth token.
-   * Relies on the {@link authenticationMiddlewares} to be registered before using {@link getAuth}.
-   * This returns poorer data than {@link getUser}.
-   */
-  public getAuth(req: Request): SessionAuthObject {
-    return getAuth(req)
-  }
-
-  /**
    * Gets complete authentication information for a given authenticated user.
    * This returns richer data than {@link getAuth}.
    */
-  public async getUser({ authId }: { authId: string }): Promise<User> {
-    return await clerkClient.users.getUser(authId)
+  private async getUser({ authId }: { authId: string }): Promise<Result<User, string>> {
+    const getUserResult = await Result.tryCatch(async () => await clerkClient.users.getUser(authId))
+    if (Result.isFailure(getUserResult)) {
+      this.logger.error("Could not get user data from clerk", { authId, error: getUserResult.error })
+      return Result.Failure(couldNot("get user data from clerk"))
+    }
+
+    return getUserResult
   }
 
   /**
    * Records authenticated players to our players database if they aren't already.
    *
-   * This is an abstraction over Clerk, because we can't full rely on their webhooks to sync data.
+   * This is an abstraction over Clerk, because we can't full rely on their webhooks to sync data (and we haven't set up one yet anyway).
    */
   private recordPlayerMiddleware(): RequestHandler {
     return async (req, res, next) => {
-      const auth = this.getAuth(req)
+      const auth = getAuth(req)
       if (!auth.isAuthenticated) {
         next()
         return
       }
 
-      let player = await this.playersRepository.findByAuthId({ authId: auth.userId })
+      const authId = auth.userId
+      const findPlayerResult = await this.playersRepository.findByAuthId({ authId })
+      if (Result.isFailure(findPlayerResult)) {
+        this.logger.error("Could not get player from the clerk id", { authId, error: findPlayerResult.error })
+        next()
+        return
+      }
+
+      let player = findPlayerResult.value
       if (player === undefined) {
-        const clerkUser = await this.getUser({ authId: auth.userId })
-        player = await this.playersRepository.insert({
-          clerk_id: auth.userId,
-          email: clerkUser.primaryEmailAddress?.emailAddress,
-          alias: clerkUser.fullName,
+        const clerkUser = await this.getUser({ authId })
+        if (Result.isFailure(clerkUser)) {
+          next()
+          return
+        }
+
+        const insertPlayerResult = await this.playersRepository.insert({
+          clerk_id: authId,
+          email: clerkUser.value.primaryEmailAddress?.emailAddress,
+          alias: clerkUser.value.fullName,
         })
+        if (Result.isFailure(insertPlayerResult)) {
+          this.logger.error("Could not record new player", { authId, error: insertPlayerResult.error })
+          next()
+          return
+        }
+
+        player = insertPlayerResult.value
       }
 
       req.player = player
-
       next()
     }
   }

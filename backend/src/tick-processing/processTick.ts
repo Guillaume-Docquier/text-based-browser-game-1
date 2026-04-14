@@ -51,7 +51,14 @@ export async function processTick({
       continue
     }
 
-    await gameStatesRepository.update({ gameId: gameState.gameId }, { tick: nextTick, nextTickAt: nextScheduledFor })
+    const updateGameStateResult = await gameStatesRepository.update(
+      { gameId: gameState.gameId },
+      { tick: nextTick, nextTickAt: nextScheduledFor },
+    )
+    if (Result.isFailure(updateGameStateResult)) {
+      logger.error("Could not update game state", { gameState, nextTick, nextScheduledFor, error: updateGameStateResult.error })
+      continue
+    }
 
     const finishProcessingTickResult = await gameTicksRepository.finishProcessingTick(gameTick)
     if (Result.isFailure(finishProcessingTickResult)) {
