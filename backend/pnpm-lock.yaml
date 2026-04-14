@@ -12,8 +12,8 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0(express@5.2.1)
       '@guillaume-docquier/tools-ts':
-        specifier: ^1.3.0
-        version: 1.3.0
+        specifier: ^1.3.1
+        version: 1.3.1
       '@trpc/server':
         specifier: ^11.16.0
         version: 11.16.0(typescript@6.0.2)
@@ -531,8 +531,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@guillaume-docquier/tools-ts@1.3.0':
-    resolution: {integrity: sha512-qbgs37GPvWFbecJLeB6TZXzMUiX/PyKE2LMPkq7O1JxidDBYR2a6yvoz3vGjdv70rdSC9rA/7S5Flp44BFVpjg==}
+  '@guillaume-docquier/tools-ts@1.3.1':
+    resolution: {integrity: sha512-7u2w1j9nuMeNGuO34D2ieNW3LLVDXNOZ7OdFSBTHE+4UFHM7CctIFijHcr+0AXNIs3sqUyrV1cuf335/+da/Vw==}
 
   '@inquirer/ansi@2.0.5':
     resolution: {integrity: sha512-doc2sWgJpbFQ64UflSVd17ibMGDuxO1yKgOgLMwavzESnXjFWJqUeG8saYosqKpHp4kWiM5x1nXvEjbpx90gzw==}
@@ -1499,7 +1499,7 @@ snapshots:
   '@esbuild/win32-x64@0.27.7':
     optional: true
 
-  '@guillaume-docquier/tools-ts@1.3.0':
+  '@guillaume-docquier/tools-ts@1.3.1':
     dependencies:
       '@logtape/logtape': 2.0.5
       '@logtape/redaction': 2.0.5(@logtape/logtape@2.0.5)
