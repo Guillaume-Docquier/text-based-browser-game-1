@@ -37,3 +37,7 @@ There is no dedicated test runner configured yet. Until one is added, contributo
 ## Commit & Pull Request Guidelines
 
 Husky enforces scoped commit prefixes: `project:`, `frontend:`, `backend:`, `ci:`, `adr:`, or `infra:`. Example: `backend: rollback failed transactions in repositories`. Pre-commit runs `pnpm lint-staged`, so keep commits focused. PRs should include a short description, note any env or migration changes, link the related issue when applicable, and attach screenshots for visible frontend changes.
+
+## Env vars
+
+Never change the values of environment variables. Ask me to do it. You can suggest what should change.
