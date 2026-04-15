@@ -11,6 +11,8 @@ import { createGameStatesRouter } from "#api/gameStates/gameStates.router.ts"
 import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 import type { TRPCError } from "@trpc/server"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
+import { PlayersController } from "#api/players/players.controller.ts"
+import type { PlayersRepository } from "#lib/db/players.repository.ts"
 
 /**
  * Import side effect free express app creator.
@@ -18,24 +20,24 @@ import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
  * It also decouples the application from those 3rd parties, if done well.
  */
 export async function createApi({
-  gamesRepository,
   authService,
   ...services
 }: {
+  authService: AuthService
   logger: Logger
+  playersRepository: PlayersRepository
   gamesRepository: GamesRepository
   gameStatesRepository: GameStatesRepository
-  authService: AuthService
 }): Promise<Express> {
-  const controllerServices = { gamesRepository, ...services }
   const controllers = {
-    gamesController: new GamesController(controllerServices),
-    gameStatesController: new GameStatesController(controllerServices),
+    gamesController: new GamesController(services),
+    gameStatesController: new GameStatesController(services),
+    playersController: new PlayersController(services),
   }
 
   const app = express()
   app.use(requestLoggerMiddleware(services))
-  app.use(...authService.authenticationMiddlewares())
+  app.use(...authService.authenticationMiddlewares(controllers))
 
   app.use(
     "/trpc",

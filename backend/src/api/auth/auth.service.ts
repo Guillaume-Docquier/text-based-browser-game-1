@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express"
 import { clerkClient, clerkMiddleware, getAuth, type User } from "@clerk/express"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { PlayerRow, PlayersRepository } from "#lib/db/players.repository.ts"
+import type { Player, PlayersController } from "#api/players/players.controller.ts"
 import { couldNot } from "#lib/errors.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
@@ -10,7 +10,7 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace -- This is the way with Express
   namespace Express {
     interface Request {
-      player?: PlayerRow | undefined
+      player?: Player | undefined
     }
   }
 }
@@ -23,19 +23,17 @@ declare global {
  */
 export class AuthService {
   private readonly logger: Logger
-  private readonly playersRepository: PlayersRepository
 
-  public constructor({ logger, playersRepository }: { logger: Logger; playersRepository: PlayersRepository }) {
+  public constructor({ logger }: { logger: Logger }) {
     this.logger = logger.child({ scope: "auth-service" })
-    this.playersRepository = playersRepository
   }
 
   /**
    * Express middleware that parses the authentication token for further usage.
    * The trpc procedures will consume this information.
    */
-  public authenticationMiddlewares(): RequestHandler[] {
-    return [clerkMiddleware(), this.recordPlayerMiddleware()]
+  public authenticationMiddlewares({ playersController }: { playersController: PlayersController }): RequestHandler[] {
+    return [clerkMiddleware(), this.recordPlayerMiddleware({ playersController })]
   }
 
   /**
@@ -57,7 +55,7 @@ export class AuthService {
    *
    * This is an abstraction over Clerk, because we can't full rely on their webhooks to sync data (and we haven't set up one yet anyway).
    */
-  private recordPlayerMiddleware(): RequestHandler {
+  private recordPlayerMiddleware({ playersController }: { playersController: PlayersController }): RequestHandler {
     return async (req, res, next) => {
       const auth = getAuth(req)
       if (!auth.isAuthenticated) {
@@ -66,7 +64,7 @@ export class AuthService {
       }
 
       const authId = auth.userId
-      const findPlayerResult = await this.playersRepository.findByAuthId({ authId })
+      const findPlayerResult = await playersController.getByAuthId({ authId })
       if (Result.isFailure(findPlayerResult)) {
         this.logger.error("Could not get player from the clerk id", { authId, error: findPlayerResult.error })
         next()
@@ -81,7 +79,7 @@ export class AuthService {
           return
         }
 
-        const insertPlayerResult = await this.playersRepository.insert({
+        const insertPlayerResult = await playersController.create({
           clerk_id: authId,
           email: clerkUser.value.primaryEmailAddress?.emailAddress,
           alias: clerkUser.value.fullName,

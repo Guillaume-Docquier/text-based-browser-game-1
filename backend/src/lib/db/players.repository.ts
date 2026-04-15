@@ -15,6 +15,10 @@ export class PlayersRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "players-repository" })
   }
 
+  /**
+   * Inserts a new player and returns the created player with its generated id.
+   * If the insert fails, a Failure is return with a description.
+   */
   public async insert(newPlayer: PlayerRowInsert): Promise<Result<PlayerRow, string>> {
     const insertResult = await Result.tryCatch(async () => {
       const players = await this.db
@@ -38,7 +42,12 @@ export class PlayersRepository extends PostgresRepository {
     return insertResult
   }
 
-  public async findByAuthId({ authId }: { authId: string }): Promise<Result<PlayerRow | undefined, string>> {
+  /**
+   * Gets a player by the auth id.
+   * Returns undefined when no matching player was found.
+   * Returns a Failure when an error prevented getting the user. The user might exist, but we couldn't retrieve it.
+   */
+  public async getByAuthId({ authId }: { authId: string }): Promise<Result<PlayerRow | undefined, string>> {
     const findByAuthIdResult = await Result.tryCatch(async () => {
       const players = await this.db.select().from(playersTable).where(eq(playersTable.clerk_id, authId))
       Assert.isTrue(players.length <= 1)
@@ -47,8 +56,8 @@ export class PlayersRepository extends PostgresRepository {
     })
 
     if (Result.isFailure(findByAuthIdResult)) {
-      this.logger.error("Could not find player by auth id", { authId, error: findByAuthIdResult.error })
-      return Result.Failure(couldNot("find player by auth id"))
+      this.logger.error("Could not get player by auth id", { authId, error: findByAuthIdResult.error })
+      return Result.Failure(couldNot("get player by auth id"))
     }
 
     return findByAuthIdResult

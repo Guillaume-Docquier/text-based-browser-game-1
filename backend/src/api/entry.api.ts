@@ -40,7 +40,7 @@ async function main(): Promise<void> {
     gameStatesRepository: new GameStatesRepository({ db, logger }),
   }
 
-  const authService = new AuthService({ logger, ...repositories })
+  const authService = new AuthService({ logger })
 
   logger.info("Creating the API")
   const app = await createApi({ logger, authService, ...repositories })
