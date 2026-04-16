@@ -1,30 +1,16 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
-import { type GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { type GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
-import { ResourceType } from "#lib/gameResources.ts"
+import { type GameStatesRepository, type PlayerGameStateRow } from "#lib/db/gameStates.repository.ts"
 
 export class GameStatesController {
   private readonly gameStatesRepository: GameStatesRepository
-  private readonly gamePlayerResourcesRepository: GamePlayerResourcesRepository
-  private readonly logger: Logger
 
-  public constructor({
-    gameStatesRepository,
-    gamePlayerResourcesRepository,
-    logger,
-  }: {
-    gameStatesRepository: GameStatesRepository
-    gamePlayerResourcesRepository: GamePlayerResourcesRepository
-    logger: Logger
-  }) {
+  public constructor({ gameStatesRepository }: { gameStatesRepository: GameStatesRepository }) {
     this.gameStatesRepository = gameStatesRepository
-    this.gamePlayerResourcesRepository = gamePlayerResourcesRepository
-    this.logger = logger.child({ scope: "game-states-controller" })
   }
 
   public async getById({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameState | undefined, string>> {
-    const gameStateResult = await this.gameStatesRepository.getById({ gameId })
+    const gameStateResult = await this.gameStatesRepository.getByGameIdAndPlayerId({ gameId, playerId })
     if (Result.isFailure(gameStateResult)) {
       return gameStateResult
     }
@@ -33,25 +19,17 @@ export class GameStatesController {
       return Result.Success(undefined)
     }
 
-    const playerResourcesResult = await this.gamePlayerResourcesRepository.getByGameAndPlayer({ gameId, playerId })
-    if (Result.isFailure(playerResourcesResult)) {
-      this.logger.error("Could not get player resources for game state", { gameId, playerId, error: playerResourcesResult.error })
-      return playerResourcesResult
-    }
+    return Result.Success(toGameState(gameStateResult.value))
+  }
+}
 
-    const money = playerResourcesResult.value.find((resource) => resource.resourceType === ResourceType.MONEY)
-    Assert.isDefined(money)
-
-    return Result.Success({
-      gameId,
-      playerId,
-      tick: gameStateResult.value.tick,
-      nextTickAt: gameStateResult.value.nextTickAt,
-      resources: {
-        // This should be generic, when I have to add a new one here, let's change it to resources.reduce
-        money: money.amount,
-      },
-    })
+function toGameState(gameStateRow: PlayerGameStateRow): GameState {
+  return {
+    gameId: gameStateRow.gameId,
+    playerId: gameStateRow.playerId,
+    tick: gameStateRow.tick,
+    nextTickAt: gameStateRow.nextTickAt,
+    resources: gameStateRow.resources,
   }
 }
 

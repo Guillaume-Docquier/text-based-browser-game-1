@@ -1,11 +1,18 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
-import { gameStatesTable } from "./schema.ts"
-import { eq } from "drizzle-orm"
+import { gamePlayerResourcesTable, gameStatesTable } from "./schema.ts"
+import { and, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
+import { ResourceType } from "#lib/gameResources.ts"
 
 export type GameStateRow = typeof gameStatesTable.$inferSelect
 export type GameStateRowInsert = typeof gameStatesTable.$inferInsert
+export type PlayerGameStateRow = GameStateRow & {
+  playerId: number
+  resources: {
+    money: number
+  }
+}
 
 export class GameStatesRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -60,5 +67,49 @@ export class GameStatesRepository extends PostgresRepository {
     Assert.isTrue(gameStatesResult.value.length <= 1)
 
     return Result.Success(gameStatesResult.value[0])
+  }
+
+  public async getByGameIdAndPlayerId({
+    gameId,
+    playerId,
+  }: {
+    gameId: number
+    playerId: number
+  }): Promise<Result<PlayerGameStateRow | undefined, string>> {
+    const playerGameStateResult = await Result.tryCatch(
+      async () =>
+        await this.db.transaction(async (tx) => {
+          const gameStates = await tx.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId))
+          Assert.isTrue(gameStates.length === 1)
+
+          const gameState = gameStates[0]
+          if (gameState === undefined) {
+            return undefined
+          }
+
+          const playerResources = await tx
+            .select()
+            .from(gamePlayerResourcesTable)
+            .where(and(eq(gamePlayerResourcesTable.gameId, gameId), eq(gamePlayerResourcesTable.playerId, playerId)))
+          const money = playerResources.find((resource) => resource.resourceType === ResourceType.MONEY)
+          Assert.isDefined(money)
+
+          return {
+            ...gameState,
+            playerId,
+            resources: {
+              // Long term this should be generic
+              money: money.amount,
+            },
+          }
+        }),
+    )
+
+    if (Result.isFailure(playerGameStateResult)) {
+      this.logger.error("Could not get player game state by ids", { gameId, playerId, error: playerGameStateResult.error })
+      return Result.Failure(couldNot("get player game state by ids"))
+    }
+
+    return playerGameStateResult
   }
 }
