@@ -18,7 +18,7 @@ This repository is a lightweight monorepo with deployable projects by folder:
 - `pnpm --dir frontend build`: produce the frontend production build.
 - `pnpm --dir backend dev`: run the backend with `node --watch` and `.env`.
 - `pnpm --dir backend typecheck` / `pnpm --dir frontend typecheck`: run TypeScript checks.
-- `pnpm --dir backend db:generate`, `db:migrate`, `db:seed`: manage Drizzle migrations and seed data.
+- `pnpm --dir backend db:generate --name <descriptive-migration-name>`, `db:migrate`, `db:seed`: manage Drizzle migrations and seed data. Always pass `--name` to `db:generate`, and make the migration name descriptive of the schema change.
 
 ## Coding Style & Naming Conventions
 
@@ -29,6 +29,8 @@ Avoid import side effects and global shared state; backend code favors DI and se
 Never throw. Return errors as values with Result. Wrap third party calls that can throw with Result.tryCatch. See @adr/013-never-throw.md
 
 Use explicit Assert for invariants.
+
+Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Follow the pattern from `backend/src/lib/gameResources.ts`: declare a `const` object with `as const`, then derive the union type from it (for example with `Enumify<typeof ResourceType>`).
 
 ## Testing Guidelines
 
