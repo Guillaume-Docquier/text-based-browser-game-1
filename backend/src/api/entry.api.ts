@@ -1,4 +1,4 @@
-import { parseEnv } from "#lib/parseEnv.ts"
+import { envSchema, parseEnv } from "#lib/parseEnv.ts"
 import { type NodePgDatabase } from "drizzle-orm/node-postgres"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { createApi } from "./createApi.ts"
@@ -25,7 +25,7 @@ async function main(): Promise<void> {
   const logger = await configureLogger({ scope: "api" })
 
   logger.info("Parsing environment")
-  const env = parseEnv({ logger })
+  const env = parseEnv({ logger, envSchema })
 
   logger.info("Connecting to the database")
   const db = connectToDb({ databaseUrl: env.DATABASE_URL })

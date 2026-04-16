@@ -6,10 +6,51 @@ import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
 import { Assert } from "@guillaume-docquier/tools-ts"
+import { z } from "zod"
 
 const YES_I_KNOW = "yes i know"
 
-void main(parseEnv().DATABASE_URL)
+const envSchema = z.object({
+  /**
+   * See the infra docker-compose file for the dev db url.
+   * postgres://<user>:<pwd>@localhost:<port>/<db>
+   */
+  DATABASE_URL: z.string(),
+
+  /**
+   * Clerk id if adding yourself.
+   */
+  CLERK_ID: z.string().optional(),
+
+  /**
+   * User email if adding yourself.
+   */
+  USER_EMAIL: z.string().optional(),
+
+  /**
+   * User alias if adding yourself.
+   */
+  USER_ALIAS: z.string().optional(),
+})
+
+const env = parseEnv({ envSchema })
+void main({
+  connectionString: env.DATABASE_URL,
+  user:
+    env.CLERK_ID === undefined
+      ? undefined
+      : {
+          clerkId: env.CLERK_ID,
+          email: env.USER_EMAIL,
+          alias: env.USER_ALIAS,
+        },
+})
+
+type User = {
+  clerkId: string
+  email: string | undefined
+  alias: string | undefined
+}
 
 /**
  * Populates the database with basic data.
@@ -18,7 +59,7 @@ void main(parseEnv().DATABASE_URL)
  *
  * The db to seed is determined by the DATABASE_URL env var.
  */
-async function main(connectionString: string): Promise<void> {
+async function main({ connectionString, user }: { connectionString: string; user: User | undefined }): Promise<void> {
   const host = getDbHost(connectionString)
   if (!(await confirmSeeding(host))) {
     console.log("Saved your ass, lol.")
@@ -33,7 +74,7 @@ async function main(connectionString: string): Promise<void> {
   const seedFuncs = [seedPlayers, seedGames]
   for (const seedFunc of seedFuncs) {
     console.log("")
-    await seedFunc(db)
+    await seedFunc(db, user)
   }
   console.log("")
 
@@ -75,7 +116,7 @@ async function resetTable(db: NodePgDatabase, table: Table): Promise<void> {
   await db.execute(sql`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`)
 }
 
-async function seedPlayers(db: NodePgDatabase): Promise<void> {
+async function seedPlayers(db: NodePgDatabase, user: User | undefined): Promise<void> {
   console.log("Users")
   console.log("├ Cleaning up the users")
   await resetTable(db, playersTable)
@@ -84,6 +125,7 @@ async function seedPlayers(db: NodePgDatabase): Promise<void> {
   await db
     .insert(playersTable)
     .values([
+      ...(user !== undefined ? [{ clerk_id: user.clerkId, email: user.email, alias: user.alias }] : []),
       { clerk_id: "fake1", email: "fake1@email.com", alias: "fake1 name" },
       { clerk_id: "fake2", email: "fake2@email.com" },
       { clerk_id: "fake3" },

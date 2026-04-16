@@ -5,7 +5,7 @@ import type { Logger } from "@guillaume-docquier/tools-ts"
  * The schema for the environment variables.
  * It also serves as documentation for the env.
  */
-const envSchema = z.object({
+export const envSchema = z.object({
   /**
    * PORT is injected by Railway and is not configurable, you can't rename this.
    */
@@ -34,7 +34,13 @@ const envSchema = z.object({
  *
  * This should be the only consumer of `process.env`.
  */
-export function parseEnv({ logger }: { logger?: Logger } = {}): z.infer<typeof envSchema> {
+export function parseEnv<TEnvSchema extends z.ZodObject>({
+  logger,
+  envSchema,
+}: {
+  logger?: Logger
+  envSchema: TEnvSchema
+}): z.infer<TEnvSchema> {
   const envResult = envSchema.safeParse(process.env)
   if (!envResult.success) {
     ;(logger ?? console).error("Some environment variables are missing or incorrect.")

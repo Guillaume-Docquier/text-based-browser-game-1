@@ -1,7 +1,7 @@
 import { type Logger } from "@guillaume-docquier/tools-ts"
 import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
 import { processTick } from "#tick-processing/processTick.ts"
-import { parseEnv } from "#lib/parseEnv.ts"
+import { envSchema, parseEnv } from "#lib/parseEnv.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { connectToDb } from "#lib/db/connectToDb.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
@@ -37,7 +37,7 @@ if (!isMainThread) {
   const logger = await configureLogger({ scope: "tick-processing" })
 
   logger.info("Parsing environment")
-  const env = parseEnv({ logger })
+  const env = parseEnv({ logger, envSchema })
 
   logger.info("Connecting to the database")
   const db = connectToDb({ databaseUrl: env.DATABASE_URL })
