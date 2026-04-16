@@ -6,6 +6,8 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { connectToDb } from "#lib/db/connectToDb.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
+import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
+import { GamesRepository } from "#lib/db/games.repository.ts"
 
 /**
  * Starts tick processing.
@@ -41,11 +43,15 @@ if (!isMainThread) {
   const db = connectToDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Creating services")
-  const gameTicksRepository = new GameTicksRepository({ db, logger })
-  const gameStatesRepository = new GameStatesRepository({ db, logger })
+  const repositories = {
+    gamesRepository: new GamesRepository({ db, logger }),
+    gameTicksRepository: new GameTicksRepository({ db, logger }),
+    gameStatesRepository: new GameStatesRepository({ db, logger }),
+    gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
+  }
 
   logger.info("Processing ticks")
   setInterval(() => {
-    void processTick({ logger, gameTicksRepository, gameStatesRepository })
+    void processTick({ logger, ...repositories })
   }, 1000)
 }

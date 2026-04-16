@@ -1,12 +1,9 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
 import { gamePlayerResourcesTable } from "./schema.ts"
-import { and, eq } from "drizzle-orm"
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { and, eq, sql } from "drizzle-orm"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
-import type { ResourceType } from "#lib/gameResources.ts"
-
-export type GamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferSelect
-export type GamePlayerResourceRowInsert = typeof gamePlayerResourcesTable.$inferInsert
+import { type ResourceType } from "#lib/gameResources.ts"
 
 export class GamePlayerResourcesRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -16,82 +13,32 @@ export class GamePlayerResourcesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "game-player-resources-repository" })
   }
 
-  public async createMany(newResources: GamePlayerResourceRowInsert[]): Promise<Result<GamePlayerResourceRow[], string>> {
-    const createResult = await Result.tryCatch(async () => {
-      const resources = await this.db.insert(gamePlayerResourcesTable).values(newResources).returning()
-      Assert.isTrue(resources.length === newResources.length)
-
-      return resources
-    })
-
-    if (Result.isFailure(createResult)) {
-      this.logger.error("Could not create game player resources", { newResources, error: createResult.error })
-      return Result.Failure(couldNot("create game player resources"))
-    }
-
-    return createResult
-  }
-
-  public async getByGameAndPlayer({
-    gameId,
-    playerId,
-  }: {
-    gameId: number
-    playerId: number
-  }): Promise<Result<GamePlayerResourceRow[], string>> {
-    const getResourcesResult = await Result.tryCatch(
-      async () =>
-        await this.db
-          .select()
-          .from(gamePlayerResourcesTable)
-          .where(and(eq(gamePlayerResourcesTable.gameId, gameId), eq(gamePlayerResourcesTable.playerId, playerId))),
-    )
-
-    if (Result.isFailure(getResourcesResult)) {
-      this.logger.error("Could not get game player resources", { gameId, playerId, error: getResourcesResult.error })
-      return Result.Failure(couldNot("get game player resources"))
-    }
-
-    return getResourcesResult
-  }
-
-  public async updateAmount({
-    gameId,
-    playerId,
-    resourceType,
-    amount,
-  }: {
+  public async updateResource(params: {
     gameId: number
     playerId: number
     resourceType: ResourceType
-    amount: number
+    amountDelta: number
   }): Promise<Result<true, string>> {
-    const updateAmountResult = await Result.tryCatch(async (): Promise<true> => {
+    const updateResourceResult = await Result.tryCatch(async (): Promise<true> => {
       await this.db
         .update(gamePlayerResourcesTable)
-        .set({ amount })
+        .set({ amount: sql`${gamePlayerResourcesTable.amount} + ${params.amountDelta}` })
         .where(
           and(
-            eq(gamePlayerResourcesTable.gameId, gameId),
-            eq(gamePlayerResourcesTable.playerId, playerId),
-            eq(gamePlayerResourcesTable.resourceType, resourceType),
+            eq(gamePlayerResourcesTable.gameId, params.gameId),
+            eq(gamePlayerResourcesTable.playerId, params.playerId),
+            eq(gamePlayerResourcesTable.resourceType, params.resourceType),
           ),
         )
 
       return true
     })
 
-    if (Result.isFailure(updateAmountResult)) {
-      this.logger.error("Could not update game player resource", {
-        gameId,
-        playerId,
-        resourceType,
-        amount,
-        error: updateAmountResult.error,
-      })
-      return Result.Failure(couldNot("update game player resource"))
+    if (Result.isFailure(updateResourceResult)) {
+      this.logger.error("Could not update resource for game and player", { ...params, error: updateResourceResult.error })
+      return Result.Failure(couldNot("update resource for game and player"))
     }
 
-    return updateAmountResult
+    return updateResourceResult
   }
 }

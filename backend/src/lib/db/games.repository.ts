@@ -120,6 +120,20 @@ export class GamesRepository extends PostgresRepository {
     return await this.getSummaryByIdInternal(options, this.db)
   }
 
+  public async getPlayerIds({ gameId }: { gameId: number }): Promise<Result<number[], string>> {
+    const gamePlayersResult = await Result.tryCatch(
+      async () =>
+        await this.db.select({ playerId: gamePlayersTable.playerId }).from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId)),
+    )
+
+    if (Result.isFailure(gamePlayersResult)) {
+      this.logger.error("Could not get player ids", { gameId, error: gamePlayersResult.error })
+      return Result.Failure(couldNot("get player ids"))
+    }
+
+    return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
+  }
+
   private async getSummaryByIdInternal(
     { gameId }: Parameters<GamesRepository["getSummaryById"]>[0],
     dbOrTx: PostgresRepository["db"],

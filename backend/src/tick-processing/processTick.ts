@@ -1,6 +1,9 @@
 import { Result, type Logger } from "@guillaume-docquier/tools-ts"
 import { type GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { type GameStatesRepository } from "#lib/db/gameStates.repository.ts"
+import { type GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
+import { type GamesRepository } from "#lib/db/games.repository.ts"
+import { ResourceType } from "#lib/gameResources.ts"
 
 /**
  * Processes all ticks that should advance at this point in time.
@@ -10,10 +13,14 @@ export async function processTick({
   logger,
   gameTicksRepository,
   gameStatesRepository,
+  gamePlayerResourcesRepository,
+  gamesRepository,
 }: {
   logger: Logger
   gameTicksRepository: GameTicksRepository
   gameStatesRepository: GameStatesRepository
+  gamePlayerResourcesRepository: GamePlayerResourcesRepository
+  gamesRepository: GamesRepository
 }): Promise<void> {
   // Lock the tables, can't update state or submit actions during ticks
 
@@ -40,6 +47,30 @@ export async function processTick({
 
     const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds: game.tickIntervalSeconds })
     const nextTick = gameTick.tick + 1
+
+    const playerIdsResult = await gamesRepository.getPlayerIds({ gameId: game.id })
+    if (Result.isFailure(playerIdsResult)) {
+      logger.error("Could not get game players while processing tick", { gameTick, error: playerIdsResult.error })
+      continue
+    }
+
+    let couldNotIncrementPlayersMoney = false
+    for (const playerId of playerIdsResult.value) {
+      const incrementMoneyResult = await gamePlayerResourcesRepository.updateResource({
+        gameId: game.id,
+        playerId,
+        resourceType: ResourceType.MONEY,
+        amountDelta: 1,
+      })
+      if (Result.isFailure(incrementMoneyResult)) {
+        logger.error("Could not increment player money", { playerId, gameTick, error: incrementMoneyResult.error })
+        couldNotIncrementPlayersMoney = true
+        break
+      }
+    }
+    if (couldNotIncrementPlayersMoney) {
+      continue
+    }
 
     const createGameTickResult = await gameTicksRepository.create({
       gameId: gameTick.gameId,
