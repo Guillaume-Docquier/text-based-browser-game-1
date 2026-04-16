@@ -43,6 +43,7 @@ function GameClient(): ReactElement {
   return (
     <div className="flex flex-col items-center justify-center">
       <div>Current tick: {gameState.tick}</div>
+      <div>Money: {gameState.resources.money}</div>
       <Countdown targetTimestamp={gameState.nextTickAt} />
     </div>
   )

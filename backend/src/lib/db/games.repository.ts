@@ -1,10 +1,11 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
-import { gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "./schema.ts"
+import { gamePlayerResourcesTable, gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "./schema.ts"
 import { and, eq, getTableColumns } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
 import { couldNot } from "#lib/errors.ts"
 import { computeNextTickDate } from "#tick-processing/processTick.ts"
+import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/gameResources.ts"
 
 export type GameRow = typeof gamesTable.$inferSelect
 export type GameRowInsert = typeof gamesTable.$inferInsert
@@ -311,6 +312,21 @@ export class GamesRepository extends PostgresRepository {
           Assert.isTrue(gameStates.length === 1)
           Assert.isDefined(gameStates[0])
           const gameState = gameStates[0]
+
+          // Initialize starting resources for each player in the game.
+          const gamePlayers = await tx.select().from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId))
+
+          await tx.insert(gamePlayerResourcesTable).values(
+            gamePlayers.flatMap(({ gameId, playerId }) =>
+              // Long term this should be data-driven, not hardcoded
+              Object.values(ResourceType).map((resourceType) => ({
+                gameId,
+                playerId,
+                resourceType,
+                amount: STARTING_RESOURCE_AMOUNTS[resourceType],
+              })),
+            ),
+          )
 
           // Schedule the next tick
           await tx.insert(gameTicksTable).values({ gameId, tick: gameState.tick, scheduledFor: gameState.nextTickAt })

@@ -1,4 +1,4 @@
-import { integer, pgTable, uniqueIndex, varchar, timestamp, primaryKey, index } from "drizzle-orm/pg-core"
+import { integer, pgTable, uniqueIndex, varchar, timestamp, primaryKey, index, foreignKey } from "drizzle-orm/pg-core"
 
 /**
  * All registered players.
@@ -51,6 +51,30 @@ export const gamePlayersTable = pgTable(
     primaryKey({
       columns: [table.gameId, table.playerId],
     }),
+  ],
+)
+
+/**
+ * Resources owned by a player in a specific game.
+ * One row per resource type.
+ */
+export const gamePlayerResourcesTable = pgTable(
+  "game_player_resources",
+  {
+    gameId: integer().notNull(),
+    playerId: integer().notNull(),
+    resourceType: varchar({ length: 255 }).notNull(),
+    amount: integer().notNull().default(0),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.gameId, table.playerId, table.resourceType],
+    }),
+    foreignKey({
+      columns: [table.gameId, table.playerId],
+      foreignColumns: [gamePlayersTable.gameId, gamePlayersTable.playerId],
+      name: "game_player_resources_gameId_playerId_game_players_fk",
+    }).onDelete("cascade"),
   ],
 )
 

@@ -13,6 +13,7 @@ import type { TRPCError } from "@trpc/server"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { PlayersController } from "#api/players/players.controller.ts"
 import type { PlayersRepository } from "#lib/db/players.repository.ts"
+import type { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 
 /**
  * Import side effect free express app creator.
@@ -28,6 +29,7 @@ export async function createApi({
   playersRepository: PlayersRepository
   gamesRepository: GamesRepository
   gameStatesRepository: GameStatesRepository
+  gamePlayerResourcesRepository: GamePlayerResourcesRepository
 }): Promise<Express> {
   const controllers = {
     gamesController: new GamesController(services),
