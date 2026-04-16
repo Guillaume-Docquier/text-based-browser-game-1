@@ -14,7 +14,7 @@ export function createGameStatesRouter({
 }) {
   return t.router({
     /**
-     * Starts a game, if possible.
+     * Gets the state for a game if it exists.
      */
     getById: privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
