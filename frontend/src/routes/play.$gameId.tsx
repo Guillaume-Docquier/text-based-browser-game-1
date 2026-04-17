@@ -64,19 +64,16 @@ function GameClient(): ReactElement {
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {PLAYER_ACTIONS.map((action) => {
               const isSelected = currentAction?.actionType === action.actionType
-              const disabledReason =
-                currentActionQuery.isError
-                  ? "Actions are currently unavailable."
-                  : gameState.resources.money < action.costMoney
-                    ? `Requires ${action.costMoney} money.`
-                    : undefined
+              const disabledReason = currentActionQuery.isError
+                ? "Actions are currently unavailable."
+                : gameState.resources.money < action.costMoney
+                  ? `Requires ${action.costMoney} money.`
+                  : undefined
 
               return (
                 <button
                   className={`flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 text-left transition ${
-                    isSelected
-                      ? "border-primary-50 bg-surface-tonal-50"
-                      : "border-surface-200 bg-surface-50 hover:border-primary-200"
+                    isSelected ? "border-primary-50 bg-surface-tonal-50" : "border-surface-200 bg-surface-50 hover:border-primary-200"
                   } disabled:cursor-not-allowed disabled:border-surface-200 disabled:bg-surface-100 disabled:text-surface-500`}
                   disabled={disabledReason !== undefined || setCurrentAction.isPending}
                   key={action.actionType}
@@ -95,7 +92,9 @@ function GameClient(): ReactElement {
                   <div className="text-sm text-surface-500">{action.description}</div>
                   <div className="text-sm">
                     Cost: {action.costMoney} money
-                    {action.rewardMoney > 0 ? ` | Effect: +${action.rewardMoney} money after paying the cost` : " | Effect: End the game immediately"}
+                    {action.rewardMoney > 0
+                      ? ` | Effect: +${action.rewardMoney} money after paying the cost`
+                      : " | Effect: End the game immediately"}
                   </div>
                   {disabledReason !== undefined && <div className="text-sm text-danger-100">{disabledReason}</div>}
                 </button>

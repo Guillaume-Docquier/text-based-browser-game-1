@@ -104,11 +104,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
     return Result.Success(getResult.value.map(toGamePlayerActionRow))
   }
 
-  public async deleteByGameIdPlayerIdAndTick(params: {
-    gameId: number
-    playerId: number
-    tick: number
-  }): Promise<Result<true, string>> {
+  public async deleteByGameIdPlayerIdAndTick(params: { gameId: number; playerId: number; tick: number }): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(async (): Promise<true> => {
       await this.db
         .delete(gamePlayerActionsTable)

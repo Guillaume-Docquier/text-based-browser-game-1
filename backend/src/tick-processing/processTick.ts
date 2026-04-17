@@ -64,7 +64,9 @@ export async function processTick({
       continue
     }
 
-    const gamePlayerActionByPlayerId = new Map(gamePlayerActionsResult.value.map((gamePlayerAction) => [gamePlayerAction.playerId, gamePlayerAction]))
+    const gamePlayerActionByPlayerId = new Map(
+      gamePlayerActionsResult.value.map((gamePlayerAction) => [gamePlayerAction.playerId, gamePlayerAction]),
+    )
 
     let couldNotProcessPlayers = false
     let winnerPlayerId: number | undefined
@@ -88,7 +90,11 @@ export async function processTick({
 
       const actionRule = GAME_PLAYER_ACTION_RULES[selectedAction.actionType]
       if (actionRule === undefined) {
-        logger.error("Encountered unsupported action type while processing tick", { gameTick, playerId, actionType: selectedAction.actionType })
+        logger.error("Encountered unsupported action type while processing tick", {
+          gameTick,
+          playerId,
+          actionType: selectedAction.actionType,
+        })
         couldNotProcessPlayers = true
         break
       }
@@ -100,7 +106,12 @@ export async function processTick({
         amountDelta: -actionRule.costMoney,
       })
       if (Result.isFailure(subtractActionCostResult)) {
-        logger.error("Could not subtract action cost", { playerId, gameTick, actionType: selectedAction.actionType, error: subtractActionCostResult.error })
+        logger.error("Could not subtract action cost", {
+          playerId,
+          gameTick,
+          actionType: selectedAction.actionType,
+          error: subtractActionCostResult.error,
+        })
         couldNotProcessPlayers = true
         break
       }
@@ -113,7 +124,12 @@ export async function processTick({
           amountDelta: actionRule.rewardMoney,
         })
         if (Result.isFailure(addActionRewardResult)) {
-          logger.error("Could not add action reward", { playerId, gameTick, actionType: selectedAction.actionType, error: addActionRewardResult.error })
+          logger.error("Could not add action reward", {
+            playerId,
+            gameTick,
+            actionType: selectedAction.actionType,
+            error: addActionRewardResult.error,
+          })
           couldNotProcessPlayers = true
           break
         }

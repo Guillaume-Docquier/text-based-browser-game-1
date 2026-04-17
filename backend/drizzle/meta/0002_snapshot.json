@@ -40,14 +40,8 @@
           "name": "game_player_resources_gameId_playerId_game_players_fk",
           "tableFrom": "game_player_resources",
           "tableTo": "game_players",
-          "columnsFrom": [
-            "gameId",
-            "playerId"
-          ],
-          "columnsTo": [
-            "gameId",
-            "playerId"
-          ],
+          "columnsFrom": ["gameId", "playerId"],
+          "columnsTo": ["gameId", "playerId"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -55,11 +49,7 @@
       "compositePrimaryKeys": {
         "game_player_resources_gameId_playerId_resourceType_pk": {
           "name": "game_player_resources_gameId_playerId_resourceType_pk",
-          "columns": [
-            "gameId",
-            "playerId",
-            "resourceType"
-          ]
+          "columns": ["gameId", "playerId", "resourceType"]
         }
       },
       "uniqueConstraints": {},
@@ -97,12 +87,8 @@
           "name": "game_players_gameId_games_id_fk",
           "tableFrom": "game_players",
           "tableTo": "games",
-          "columnsFrom": [
-            "gameId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -110,12 +96,8 @@
           "name": "game_players_playerId_players_id_fk",
           "tableFrom": "game_players",
           "tableTo": "players",
-          "columnsFrom": [
-            "playerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["playerId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -123,10 +105,7 @@
       "compositePrimaryKeys": {
         "game_players_gameId_playerId_pk": {
           "name": "game_players_gameId_playerId_pk",
-          "columns": [
-            "gameId",
-            "playerId"
-          ]
+          "columns": ["gameId", "playerId"]
         }
       },
       "uniqueConstraints": {},
@@ -164,12 +143,8 @@
           "name": "game_states_gameId_games_id_fk",
           "tableFrom": "game_states",
           "tableTo": "games",
-          "columnsFrom": [
-            "gameId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -237,12 +212,8 @@
           "name": "game_ticks_gameId_games_id_fk",
           "tableFrom": "game_ticks",
           "tableTo": "games",
-          "columnsFrom": [
-            "gameId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -250,10 +221,7 @@
       "compositePrimaryKeys": {
         "game_ticks_gameId_tick_pk": {
           "name": "game_ticks_gameId_tick_pk",
-          "columns": [
-            "gameId",
-            "tick"
-          ]
+          "columns": ["gameId", "tick"]
         }
       },
       "uniqueConstraints": {},
@@ -338,12 +306,8 @@
           "name": "games_createdByPlayerId_players_id_fk",
           "tableFrom": "games",
           "tableTo": "players",
-          "columnsFrom": [
-            "createdByPlayerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["createdByPlayerId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -351,12 +315,8 @@
           "name": "games_winnerPlayerId_players_id_fk",
           "tableFrom": "games",
           "tableTo": "players",
-          "columnsFrom": [
-            "winnerPlayerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["winnerPlayerId"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -480,14 +440,8 @@
           "name": "game_player_actions_gameId_playerId_game_players_fk",
           "tableFrom": "game_player_actions",
           "tableTo": "game_players",
-          "columnsFrom": [
-            "gameId",
-            "playerId"
-          ],
-          "columnsTo": [
-            "gameId",
-            "playerId"
-          ],
+          "columnsFrom": ["gameId", "playerId"],
+          "columnsTo": ["gameId", "playerId"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -495,11 +449,7 @@
       "compositePrimaryKeys": {
         "game_player_actions_gameId_playerId_tick_pk": {
           "name": "game_player_actions_gameId_playerId_tick_pk",
-          "columns": [
-            "gameId",
-            "playerId",
-            "tick"
-          ]
+          "columns": ["gameId", "playerId", "tick"]
         }
       },
       "uniqueConstraints": {},

@@ -1,16 +1,20 @@
 # Player Actions V1
 
 ## Summary
+
 Add per-player, per-game action selection for active games with two actions: `MAKE_MORE_MONEY` and `WIN_THE_GAME`. Players choose at most one action for the upcoming tick from the play screen, can change it any time before processing starts, and their current selection persists across page refreshes. Tick processing resolves the selected action for the current tick without deleting historical action rows.
 
 Chosen product rules for this plan:
+
 - Ticks keep the existing passive `+1 money`.
 - Action submission is rejected unless the player can already afford the action at submit time.
 - Current selections are private to the current player only.
 - Winning must persist the winner.
 
 ## Implementation Phases
+
 ### Phase 1: Data model and backend primitives
+
 1. Add `winnerPlayerId` to `games` and add the append-only `game_player_actions` table keyed by `(gameId, playerId, tick)`.
 2. Update Drizzle schema, inferred row types, and migration files for both schema changes.
 3. Add backend action constants and types for:
@@ -23,6 +27,7 @@ Chosen product rules for this plan:
    - fetch all actions for `(gameId, tick)`
 
 ### Phase 2: API and business rules
+
 1. Add a `gamePlayerActions` controller following the existing controller pattern.
 2. In action submission, resolve the game’s current tick from `game_states`.
 3. Enforce submission rules:
@@ -37,6 +42,7 @@ Chosen product rules for this plan:
 5. Register the router in `createApi.ts` and expose any required frontend API types.
 
 ### Phase 3: Tick resolution
+
 1. Extend tick processing to fetch all actions for `(gameId, gameState.tick)` before resolving players.
 2. Keep the existing passive `+1 money` income.
 3. Resolve submitted actions for that tick:
@@ -52,6 +58,7 @@ Chosen product rules for this plan:
    - leave existing action rows untouched
 
 ### Phase 4: Frontend play screen
+
 1. Extend `/play/$gameId` to fetch both the player game state and the current action for the current tick.
 2. Add a basic action selection UI with two choices:
    - `Make More Money`
@@ -62,13 +69,16 @@ Chosen product rules for this plan:
 6. After tick advancement, show no current selection for the new tick until the player picks again.
 
 ### Phase 5: Verification
+
 1. Run repository-level checks for append-only per-tick action behavior.
 2. Run controller/router checks for membership, game lifecycle, and affordability rules.
 3. Run tick-processing checks for normal income, action resolution, and win handling.
 4. Run frontend manual verification on refresh persistence, selection changes, and post-tick empty state.
 
 ## Implementation Changes
+
 ### Data model
+
 - Add a new `game_player_actions` table keyed by `(gameId, playerId, tick)` with:
   - `gameId`
   - `playerId`
@@ -85,6 +95,7 @@ Chosen product rules for this plan:
 - Add a uniqueness guarantee via the primary key so each player has at most one action row per game tick.
 
 ### Backend API and business logic
+
 - Add a dedicated player-actions backend slice following the existing router/controller/repository pattern.
 - Repository responsibilities:
   - upsert the current player action for `(gameId, playerId, tick)`
@@ -102,6 +113,7 @@ Chosen product rules for this plan:
 - Add the new router to `createApi.ts` and export any needed frontend API types.
 
 ### Tick processing
+
 - Extend `processTick` to load all selected actions for `(gameId, gameState.tick)` before resolving players.
 - Per player, resolve in this order:
   1. apply the existing passive `+1 MONEY`
@@ -121,6 +133,7 @@ Chosen product rules for this plan:
 - Keep the implementation dependency-injected and `Result`-based, with no new module-scope state.
 
 ### Frontend
+
 - Extend the `/play/$gameId` page to fetch both:
   - current game state
   - current player action
@@ -135,18 +148,22 @@ Chosen product rules for this plan:
 - If winner persistence is surfaced in existing game summary/status views, show ended state consistently; winner display on the frontend can be limited to the play page or deferred unless already needed by the changed screens.
 
 ## Detailed Steps
+
 ### Step 1: Schema and types
+
 - Add `winnerPlayerId` to `gamesTable` with a nullable FK to `playersTable`.
 - Add `gamePlayerActionsTable` with `gameId`, `playerId`, `tick`, `actionType`, `createdAt`, and `updatedAt`.
 - Use FK constraints back to the game/player membership shape so action rows stay tied to valid game participants.
 - Update generated migration artifacts and any inferred repository row types.
 
 ### Step 2: Action domain model
+
 - Add a backend module for player action constants using the repo’s `as const` pattern.
 - Define the supported action ids and their cost/effect metadata in one place.
 - Add a Zod schema and exported type for `GamePlayerAction`.
 
 ### Step 3: Repository layer
+
 - Create a `GamePlayerActionsRepository`.
 - Implement upsert-by-primary-key for `(gameId, playerId, tick)`.
 - Implement `getByGameIdPlayerIdAndTick`.
@@ -154,6 +171,7 @@ Chosen product rules for this plan:
 - Keep all DB access isolated in this repository.
 
 ### Step 4: Controller layer
+
 - Create a `GamePlayerActionsController`.
 - On `setCurrent`, fetch the player’s current game state to obtain the active tick and current money.
 - Reject writes when the game state does not exist, the player is not in the game, the game has ended, or the action is unaffordable.
@@ -161,6 +179,7 @@ Chosen product rules for this plan:
 - On `getCurrent`, read the current tick first and then fetch the action for that tick only.
 
 ### Step 5: Router integration
+
 - Add `gamePlayerActions.router.ts`.
 - Add private procedures for `getCurrent` and `setCurrent`.
 - Keep the same DI and return-type pattern as the existing routers.
@@ -168,6 +187,7 @@ Chosen product rules for this plan:
 - Export any frontend-consumed output types if needed.
 
 ### Step 6: Tick-processing integration
+
 - Inject `GamePlayerActionsRepository` into the tick-processing entrypoint and `processTick`.
 - For each game tick being processed, fetch actions by `(gameId, gameState.tick)` once before looping players.
 - Match actions to players during resolution.
@@ -177,6 +197,7 @@ Chosen product rules for this plan:
 - Do not delete or mutate historical action rows once the tick is processed.
 
 ### Step 7: Frontend integration
+
 - Add frontend usage of the new router methods in `play.$gameId.tsx`.
 - Query the current action alongside the existing game-state query.
 - Render a minimal action menu with clear selected/unselected states.
@@ -184,12 +205,14 @@ Chosen product rules for this plan:
 - Keep the UI resilient when no action exists for the current tick.
 
 ### Step 8: Verification pass
+
 - Validate append-only DB behavior for multiple ticks.
 - Validate that changing the action before processing overwrites only the current tick row.
 - Validate that advancing the tick results in no selected action for the new tick.
 - Validate that winning ends the game and persists the winner.
 
 ## Public Interfaces / Types
+
 - New backend action type enum-like constant and Zod schema for `GamePlayerAction`.
 - New tRPC router namespace: `gamePlayerActions`.
 - New API payload shape:
@@ -197,6 +220,7 @@ Chosen product rules for this plan:
 - Extend game types as needed to include `winnerPlayerId: number | null` where ended-game winner display is required.
 
 ## Test Plan
+
 - DB/repository checks:
   - can upsert an action for a player in a game and tick
   - updating the action replaces the previous selection for the same `(gameId, playerId, tick)` instead of creating duplicates
@@ -220,6 +244,7 @@ Chosen product rules for this plan:
   - winning action transitions the game to ended state and prevents further play actions
 
 ## Assumptions
+
 - Action visibility is private: only the current player can read their own selected action.
 - “Hard error on affordability” means affordability is checked at submission time, not deferred to tick resolution.
 - `game_player_actions` is the action-history system for v1, but reads and writes only target the current tick unless tick processing is fetching rows to resolve.
