@@ -11,6 +11,4 @@ export function formatGameSummaryStatus(gameStatus: GameSummaryStatus): string {
     case "ENDED":
       return "Ended"
   }
-
-  return String(gameStatus)
 }
