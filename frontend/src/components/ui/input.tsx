@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { cn } from "../../lib/utils"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">): React.JSX.Element {
+export function Input({ className, type, ...props }: React.ComponentProps<"input">): React.JSX.Element {
   return (
     <input
       type={type}
@@ -15,5 +15,3 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">): Re
     />
   )
 }
-
-export { Input }

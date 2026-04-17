@@ -55,6 +55,7 @@ These come from the ADRs and should be treated as default constraints, not sugge
 ## Coding Conventions
 
 - TypeScript ESM
+- Prefer inline exports on declarations such as `export function foo()` or `export const bar = ...` instead of collecting exports in a bottom-of-file export block.
 - Follow existing naming conventions:
   - React components: PascalCase files like `TextInput.tsx`
   - Utilities: camelCase files like `timeAgo.ts`
