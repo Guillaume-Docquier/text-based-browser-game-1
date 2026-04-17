@@ -2,10 +2,10 @@
 
 MESSAGE="$(cat $1)"
 
-CONVENTIONAL_COMMIT_REGEX="^(((project|frontend|backend|ci|adr|infra): .*))"
+CONVENTIONAL_COMMIT_REGEX="^(((project|frontend|backend|ci|adr|infra|docs): .*))"
 
 if ! [[ $MESSAGE =~ $CONVENTIONAL_COMMIT_REGEX ]]; then
-	echo -e "\n❌ Commit should start with project|frontend|backend|ci|adr|infra:, e.g: backend: fixed some stuff"
+	echo -e "\n❌ Commit should start with project|frontend|backend|ci|adr|infra|docs:, e.g: backend: fixed some stuff"
 	echo "message=$MESSAGE"
 	exit 1
 fi

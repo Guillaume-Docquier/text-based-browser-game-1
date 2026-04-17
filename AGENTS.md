@@ -1,45 +1,79 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
+## Project Structure
 
-This repository is a lightweight monorepo with deployable projects by folder:
+This repo is a lightweight monorepo with separate deployable projects:
 
-- `frontend/`: React 19 + Vite UI, file-based routes in `src/routes/`, shared UI in `src/design-system/`, static assets in `public/` and `src/assets/`.
-- `backend/`: Express + tRPC API and tick-processing logic. API code lives in `src/api/`, shared backend utilities in `src/lib/`, database schema and repositories under `src/lib/db/`, and seed scripts in `scripts/db/`.
-- `shared/eslint/`: shared ESLint presets used across the repo.
+- `frontend/`: React 19 + Vite UI. File-based routes live in `src/routes/`, shared UI in `src/design-system/`, static assets in `public/` and `src/assets/`.
+- `backend/`: Express + tRPC API plus tick-processing code. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
+- `shared/eslint/`: shared lint config only. Do not share runtime code between backend and frontend.
 - `infra/`: deployment and reverse-proxy config.
-- `adr/`: architecture decision records; read these before changing core patterns.
+- `adr/`: architecture decision records. Read the relevant ADRs before changing established patterns.
 
-## Build, Test, and Development Commands
+## Commands
 
-- `pnpm lint:fix`: run ESLint across the repo and apply automatic fixes.
-- `pnpm format:fix`: apply Prettier fixes and sort package manifests.
-- `pnpm --dir frontend dev`: start the Vite frontend locally in watch mode.
-- `pnpm --dir frontend build`: produce the frontend production build.
-- `pnpm --dir backend dev`: run the backend with `node --watch` and `.env`.
-- `pnpm --dir backend typecheck` / `pnpm --dir frontend typecheck`: run TypeScript checks.
-- `pnpm --dir backend db:generate --name <descriptive-migration-name>`, `db:migrate`, `db:seed`: manage Drizzle migrations and seed data. Always pass `--name` to `db:generate`, and make the migration name descriptive of the schema change.
+- `pnpm lint:fix`: run ESLint.
+- `pnpm format:fix`: run Prettier.
+- `pnpm --dir frontend dev`: start the Vite frontend with watch mode.
+- `pnpm --dir frontend build`: build the frontend.
+- `pnpm --dir frontend typecheck`: frontend TypeScript check.
+- `pnpm --dir backend dev`: run the backend with watch mode.
+- `pnpm --dir backend start`: run the backend without watch mode.
+- `pnpm --dir backend typecheck`: backend TypeScript check.
+- `pnpm --dir backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
+- `pnpm --dir backend db:migrate`: apply migrations.
+- `pnpm --dir backend db:seed`: seed the database.
 
-## Coding Style & Naming Conventions
+## Architecture Rules
 
-TypeScript ESM is the default. Prettier enforces `semi: false` and a `printWidth` of 140. Use the existing folder conventions: React components in PascalCase files (`TextInput.tsx`), utilities in camelCase (`timeAgo.ts`), and route files following TanStack Router patterns (`games.$gameId.tsx`).
+These come from the ADRs and should be treated as default constraints, not suggestions:
 
-Avoid import side effects and global shared state; backend code favors DI and separation between routers, controllers, and repositories.
+- Never throw for expected errors. Return `Result` values instead. Wrap third-party calls that may throw with `Result.tryCatch`. Only fatal crash-the-process errors may throw.
+- Use explicit `Assert` calls for invariants.
+- No import side effects outside app entrypoints. Do not create stateful objects in module global scope; pass dependencies through arguments.
+- Keep backend layering strict:
+  - Routers are the only layer that knows about Express/tRPC.
+  - Repositories are the only layer that knows about Drizzle/Postgres.
+  - Controllers contain business logic between routers and repositories.
+- Only dedicated service/repository boundaries may talk to third parties directly:
+  - Clerk only in auth services.
+  - Drizzle only in repositories.
+- For tRPC routers, preserve the local factory pattern used for DI and type inference:
+  - export `type TrpcRouter = ReturnType<typeof createTrpcRouter>`
+  - create the router in a function, not in global scope
+- Tick processing should stay decoupled from the web server so it can be extracted later. The web server may depend on worker code; worker code should not depend on the web server.
+- Worker threads are intended to be long-lived. Do not introduce designs that repeatedly crash/spawn workers unless explicitly required.
 
-Never throw. Return errors as values with Result. Wrap third party calls that can throw with Result.tryCatch. See @adr/013-never-throw.md
+## Shared Code
 
-Use explicit Assert for invariants.
+- Do not add new cross-project runtime sharing inside this monorepo unless there is already a clear established pattern for it.
+- Shared utilities are intentionally published through `@guillaume-docquier/tools-ts` rather than imported from another local app/package.
+- Shared TypeScript types between backend and frontend are acceptable when they are type-only and fit the existing tRPC setup.
 
-Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Follow the pattern from `backend/src/lib/gameResources.ts`: declare a `const` object with `as const`, then derive the union type from it (for example with `Enumify<typeof ResourceType>`).
+## Coding Conventions
 
-## Testing Guidelines
+- TypeScript ESM
+- Follow existing naming conventions:
+  - React components: PascalCase files like `TextInput.tsx`
+  - Utilities: camelCase files like `timeAgo.ts`
+  - Route files: TanStack Router naming like `games.$gameId.tsx`
+- Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Use `as const` objects plus derived union types, following `backend/src/lib/gameResources.ts`.
 
-There is no dedicated test runner configured yet. Until one is added, contributors should treat `pnpm lint`, both `typecheck` commands, and relevant manual verification as the minimum quality gate.
+## Testing And Verification
 
-## Commit & Pull Request Guidelines
+There is no dedicated test runner configured yet. Minimum verification for meaningful changes:
 
-Husky enforces scoped commit prefixes: `project:`, `frontend:`, `backend:`, `ci:`, `adr:`, or `infra:`. Example: `backend: rollback failed transactions in repositories`. Pre-commit runs `pnpm lint-staged`, so keep commits focused. PRs should include a short description, note any env or migration changes, link the related issue when applicable, and attach screenshots for visible frontend changes.
+- `pnpm lint`
+- `pnpm --dir frontend typecheck`
+- `pnpm --dir backend typecheck`
+- relevant manual verification for the area changed
 
-## Env vars
+## Commits And PRs
 
-Never change the values of environment variables. Ask me to do it. You can suggest what should change.
+- Husky enforces scoped commit prefixes: `project:`, `frontend:`, `backend:`, `ci:`, `adr:`, `infra:`.
+- Pre-commit runs `pnpm lint-staged`, so keep changes focused.
+- If a change affects schema, env usage, or deployment behavior, call that out explicitly in the PR.
+
+## Env Vars
+
+Never change environment variable values yourself. Ask the user to do it, and suggest the required change if needed.
