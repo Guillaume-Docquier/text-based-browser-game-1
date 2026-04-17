@@ -81,7 +81,10 @@ function GameClient(): ReactElement {
                   disabled={disabledReason !== undefined || setCurrentAction.isPending}
                   key={action.actionType}
                   onClick={() => {
-                    setCurrentAction.mutate({ gameId, actionType: action.actionType })
+                    setCurrentAction.mutate({
+                      gameId,
+                      actionType: isSelected ? null : action.actionType,
+                    })
                   }}
                   type="button"
                 >

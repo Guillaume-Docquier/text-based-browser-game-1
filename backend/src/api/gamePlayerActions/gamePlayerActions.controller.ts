@@ -60,14 +60,28 @@ export class GamePlayerActionsController {
   }: {
     gameId: number
     playerId: number
-    actionType: GamePlayerActionType
-  }): Promise<Result<GamePlayerAction, string>> {
+    actionType: GamePlayerActionType | null
+  }): Promise<Result<GamePlayerAction | undefined, string>> {
     const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
     if (Result.isFailure(activeGameResult)) {
       return activeGameResult
     }
 
     const { tick, money } = activeGameResult.value
+    if (actionType === null) {
+      const deleteResult = await this.gamePlayerActionsRepository.deleteByGameIdPlayerIdAndTick({
+        gameId,
+        playerId,
+        tick,
+      })
+      if (Result.isFailure(deleteResult)) {
+        this.logger.error("Could not clear current game player action", { gameId, playerId, error: deleteResult.error })
+        return deleteResult
+      }
+
+      return Result.Success(undefined)
+    }
+
     const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
     if (money < actionRule.costMoney) {
       return Result.Failure(`You need ${actionRule.costMoney} money to select this action.`)

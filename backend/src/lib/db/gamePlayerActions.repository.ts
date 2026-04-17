@@ -103,4 +103,31 @@ export class GamePlayerActionsRepository extends PostgresRepository {
 
     return Result.Success(getResult.value.map(toGamePlayerActionRow))
   }
+
+  public async deleteByGameIdPlayerIdAndTick(params: {
+    gameId: number
+    playerId: number
+    tick: number
+  }): Promise<Result<true, string>> {
+    const deleteResult = await Result.tryCatch(async (): Promise<true> => {
+      await this.db
+        .delete(gamePlayerActionsTable)
+        .where(
+          and(
+            eq(gamePlayerActionsTable.gameId, params.gameId),
+            eq(gamePlayerActionsTable.playerId, params.playerId),
+            eq(gamePlayerActionsTable.tick, params.tick),
+          ),
+        )
+
+      return true
+    })
+
+    if (Result.isFailure(deleteResult)) {
+      this.logger.error("Could not delete game player action", { ...params, error: deleteResult.error })
+      return Result.Failure(couldNot("delete game player action"))
+    }
+
+    return deleteResult
+  }
 }

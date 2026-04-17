@@ -33,10 +33,10 @@ export function createGamePlayerActionsRouter({
       .input(
         z.object({
           gameId: z.coerce.number(),
-          actionType: GamePlayerActionTypeSchema,
+          actionType: GamePlayerActionTypeSchema.nullable(),
         }),
       )
-      .output(z.object({ action: GamePlayerAction }))
+      .output(z.object({ action: GamePlayerAction.nullable() }))
       .mutation(async ({ input: { gameId, actionType }, ctx: { player } }) => {
         const setCurrentResult = await gamePlayerActionsController.setCurrent({ gameId, playerId: player.id, actionType })
         if (Result.isFailure(setCurrentResult)) {
@@ -46,7 +46,7 @@ export function createGamePlayerActionsRouter({
           })
         }
 
-        return { action: setCurrentResult.value }
+        return { action: setCurrentResult.value ?? null }
       }),
   })
 }
