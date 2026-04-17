@@ -39,9 +39,13 @@ function GameClient(): ReactElement {
     return <Skeleton />
   }
 
-  if (gameQuery.isError || gameStateQuery.isError) {
-    const errorMessage = gameQuery.isError ? gameQuery.error.message : gameStateQuery.error.message
-    logger.error("Could not fetch game", { gameId, error: errorMessage })
+  if (gameQuery.isError) {
+    logger.error("Could not fetch game", { gameId, error: gameQuery.error.message })
+    return <Navigate to="/games" />
+  }
+
+  if (gameStateQuery.isError) {
+    logger.error("Could not fetch game", { gameId, error: gameStateQuery.error.message })
     return <Navigate to="/games" />
   }
 
