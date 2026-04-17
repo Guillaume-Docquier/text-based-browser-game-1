@@ -2,7 +2,11 @@ import * as React from "react"
 
 import { cn } from "../../lib/utils"
 
-export function Card({ className, size = "default", ...props }: React.ComponentProps<"div"> & { size?: "default" | "sm" }): React.JSX.Element {
+export function Card({
+  className,
+  size = "default",
+  ...props
+}: React.ComponentProps<"div"> & { size?: "default" | "sm" }): React.JSX.Element {
   return (
     <div
       data-slot="card"
