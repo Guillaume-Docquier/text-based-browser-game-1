@@ -30,19 +30,22 @@ function GameClient(): ReactElement {
   const logger = useLogger()
   const { gameId } = Route.useParams()
   const backendApiClient = useBackendApiClient()
+  const gameQuery = useQuery(backendApiClient.games.getSummaryById.queryOptions({ gameId }))
   const gameStateQuery = useQuery(backendApiClient.gameStates.getById.queryOptions({ gameId }))
   const currentActionQuery = useQuery(backendApiClient.gamePlayerActions.getCurrent.queryOptions({ gameId }))
   const setCurrentAction = useMutation(backendApiClient.gamePlayerActions.setCurrent.mutationOptions())
 
-  if (gameStateQuery.isPending || currentActionQuery.isPending) {
+  if (gameQuery.isPending || gameStateQuery.isPending || currentActionQuery.isPending) {
     return <Skeleton />
   }
 
-  if (gameStateQuery.isError) {
-    logger.error("Could not fetch game", { gameId, error: gameStateQuery.error.message })
+  if (gameQuery.isError || gameStateQuery.isError) {
+    const errorMessage = gameQuery.isError ? gameQuery.error.message : gameStateQuery.error.message
+    logger.error("Could not fetch game", { gameId, error: errorMessage })
     return <Navigate to="/games" />
   }
 
+  const game = gameQuery.data.game
   const gameState = gameStateQuery.data.gameState
   const currentAction = currentActionQuery.data?.action ?? null
 
@@ -51,6 +54,9 @@ function GameClient(): ReactElement {
       <div className="flex w-full max-w-3xl flex-col gap-6">
         <div className="rounded-2xl border border-surface-200 bg-surface-100 p-6">
           <div className="text-sm uppercase tracking-wide text-surface-500">Game #{gameId}</div>
+          {game.winnerPlayerId !== null && (
+            <div className="mt-2 text-lg font-semibold text-success-100">Winner: {getWinnerLabel(game)}</div>
+          )}
           <div className="mt-2 text-2xl font-semibold">Current tick: {gameState.tick}</div>
           <div className="mt-2 text-lg">Money: {gameState.resources.money}</div>
           <div className="mt-4">
@@ -140,6 +146,16 @@ function getActionLabel(actionType: ApiTypes.GamePlayerAction["actionType"]): st
   const action = PLAYER_ACTIONS.find((playerAction) => playerAction.actionType === actionType)
 
   return action?.label ?? actionType
+}
+
+function getWinnerLabel(game: ApiTypes.GameSummary): string {
+  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerPlayerId)
+
+  if (winner === undefined) {
+    return `Player ${game.winnerPlayerId}`
+  }
+
+  return winner.alias ?? `Player ${winner.id}`
 }
 
 function Countdown({ targetTimestamp }: { targetTimestamp: string }): ReactElement {
