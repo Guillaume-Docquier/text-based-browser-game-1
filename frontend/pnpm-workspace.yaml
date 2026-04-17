@@ -3,4 +3,5 @@ allowBuilds:
   bufferutil: true
   core-js: true
   esbuild: true
+  msw: true
   utf-8-validate: true

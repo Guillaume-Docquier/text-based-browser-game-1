@@ -1,13 +1,18 @@
+import { useMutation, useQuery, type UseMutationOptions } from "@tanstack/react-query"
 import { createFileRoute, Navigate, redirect, useNavigate } from "@tanstack/react-router"
 import type { ReactElement } from "react"
-import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { z } from "zod"
 import type * as ApiTypes from "@api-types"
-import { timeAgo } from "../timeAgo.ts"
-import { Skeleton } from "../design-system/Skeleton.tsx"
+import { GameStatusBadge } from "../components/GameStatusBadge.tsx"
+import { PageHeader } from "../components/PageHeader.tsx"
+import { Button } from "../components/ui/button.tsx"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.tsx"
+import { Separator } from "../components/ui/separator.tsx"
+import { Skeleton } from "../components/ui/skeleton.tsx"
+import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useLogger } from "../contexts/LoggerContext.tsx"
 import { formatGameSummaryStatus } from "../lib/formatGameSummaryStatus.ts"
-import { z } from "zod"
+import { timeAgo } from "../timeAgo.ts"
 
 const paramsSchema = z.object({
   gameId: z.coerce.number(),
@@ -33,7 +38,7 @@ function GameLobby(): ReactElement {
   const gameQuery = useQuery(backendApiClient.games.getSummaryById.queryOptions({ gameId }))
 
   if (gameQuery.isPending) {
-    return <Skeleton />
+    return <GameLobbyLoadingState />
   }
 
   if (gameQuery.isError) {
@@ -41,9 +46,11 @@ function GameLobby(): ReactElement {
     return <Navigate to="/games" />
   }
 
+  const gameData = gameQuery.data as { game: ApiTypes.GameSummary }
+
   return (
-    <div className="p-8">
-      <Game game={gameQuery.data.game} />
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+      <Game game={gameData.game} />
     </div>
   )
 }
@@ -51,85 +58,137 @@ function GameLobby(): ReactElement {
 function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const joinGame = useMutation(backendApiClient.games.join.mutationOptions())
-  const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions())
-  const startGame = useMutation(backendApiClient.games.start.mutationOptions())
+  const joinGame = useMutation(backendApiClient.games.join.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
+  const leaveGame = useMutation(
+    backendApiClient.games.leave.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>,
+  )
+  const startGame = useMutation(backendApiClient.games.start.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 rounded border p-2">
-        <div>Id: #{game.id}</div>
-        <div>Name: {game.name}</div>
-        {game.winnerPlayerId !== null && <div>Winner: {getWinnerLabel(game)}</div>}
-        <div>Creator:</div>
-        <div className=" pl-2">
-          <Player player={game.creator} />
-        </div>
-        <div>
-          players ({game.players.length}/{game.nbSeats})
-        </div>
-        <div className="flex flex-col gap-2 pl-2">
-          {game.players.map((player) => (
-            <Player player={player} key={player.id} />
-          ))}
-        </div>
-        <div>Status: {formatGameSummaryStatus(game.status)}</div>
-        <div>Created: {timeAgo(game.createdAt)}</div>
-      </div>
-      <div className="flex">
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={game.name}
+        description={`Game #${game.id} created ${timeAgo(game.createdAt)}.`}
+        actions={<GameStatusBadge status={game.status} />}
+      />
+      <Card className="border border-border/60">
+        <CardHeader>
+          <CardTitle>Lobby details</CardTitle>
+          <CardDescription>Review the roster, join or leave the lobby, and start once the game is ready.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <DetailBlock label="Status" value={formatGameSummaryStatus(game.status)} />
+            <DetailBlock label="Seats" value={`${game.players.length}/${game.nbSeats} players`} />
+            <div className="space-y-1">
+              <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Creator</div>
+              <Player player={game.creator} />
+            </div>
+            <DetailBlock label="Created" value={timeAgo(game.createdAt)} />
+            {game.winnerPlayerId !== null ? <DetailBlock label="Winner" value={getWinnerLabel(game)} /> : null}
+          </div>
+          <Separator />
+          <div className="space-y-3">
+            <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
+              Players ({game.players.length}/{game.nbSeats})
+            </div>
+            <div className="grid gap-2">
+              {game.players.map((player) => (
+                <Player player={player} key={player.id} />
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <div className="flex flex-wrap gap-3">
         {game.canJoin && (
-          <button
-            className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+          <Button
             disabled={joinGame.isPending}
             onClick={() => {
               joinGame.mutate({ gameId: game.id })
             }}
           >
             Join game
-          </button>
+          </Button>
         )}
         {game.canLeave && (
-          <button
-            className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+          <Button
+            variant="outline"
             disabled={leaveGame.isPending}
             onClick={() => {
               leaveGame.mutate({ gameId: game.id })
             }}
           >
             Leave game
-          </button>
+          </Button>
         )}
         {game.canStart && (
-          <button
-            className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+          <Button
             disabled={startGame.isPending}
             onClick={() => {
               startGame.mutate({ gameId: game.id })
             }}
           >
             Start game
-          </button>
+          </Button>
         )}
         {game.status === "STARTED" && (
-          <button
-            className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
+          <Button
+            variant="secondary"
             disabled={startGame.isPending}
             onClick={() => {
               void navigate({ to: "/play/$gameId", params: { gameId: game.id } })
             }}
           >
             Open game
-          </button>
+          </Button>
         )}
       </div>
     </div>
   )
 }
 
+function DetailBlock({ label, value }: { label: string; value: string }): ReactElement {
+  return (
+    <div className="space-y-1">
+      <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">{label}</div>
+      <div className="text-sm text-foreground">{value}</div>
+    </div>
+  )
+}
+
 function Player({ player }: { player: ApiTypes.GameSummaryPlayer }): ReactElement {
   return (
-    <div>
-      <div>{player.alias ?? `Player ${player.id}`}</div>
+    <div className="rounded-3xl border border-border/60 bg-muted/20 px-4 py-3">
+      <div className="font-medium text-foreground">{player.alias ?? `Player ${player.id}`}</div>
+    </div>
+  )
+}
+
+function GameLobbyLoadingState(): ReactElement {
+  return (
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+      <PageHeader
+        title="Loading game"
+        description="Fetching lobby details and available actions."
+        actions={<Skeleton className="h-6 w-28 rounded-full" />}
+      />
+      <Card className="border border-border/60">
+        <CardHeader>
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-4 w-80 max-w-full" />
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-px w-full" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+        </CardContent>
+      </Card>
+      <div className="flex gap-3">
+        <Skeleton className="h-9 w-24 rounded-4xl" />
+        <Skeleton className="h-9 w-24 rounded-4xl" />
+      </div>
     </div>
   )
 }
