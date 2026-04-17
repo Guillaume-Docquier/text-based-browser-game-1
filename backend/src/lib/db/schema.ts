@@ -25,6 +25,7 @@ export const gamesTable = pgTable("games", {
   createdByPlayerId: integer()
     .notNull()
     .references(() => playersTable.id, { onDelete: "cascade" }),
+  winnerPlayerId: integer().references(() => playersTable.id, { onDelete: "set null" }),
   nbSeats: integer().notNull(),
   tickIntervalSeconds: integer().notNull(),
   createdAt: timestamp().defaultNow().notNull(),
@@ -88,6 +89,32 @@ export const gameStatesTable = pgTable("game_states", {
   tick: integer().notNull().default(0),
   nextTickAt: timestamp().notNull(),
 })
+
+/**
+ * Player actions selected for a specific game tick.
+ * Rows are kept as append-only history across ticks.
+ */
+export const gamePlayerActionsTable = pgTable(
+  "game_player_actions",
+  {
+    gameId: integer().notNull(),
+    playerId: integer().notNull(),
+    tick: integer().notNull(),
+    actionType: varchar({ length: 255 }).notNull(),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp().defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.gameId, table.playerId, table.tick],
+    }),
+    foreignKey({
+      columns: [table.gameId, table.playerId],
+      foreignColumns: [gamePlayersTable.gameId, gamePlayersTable.playerId],
+      name: "game_player_actions_gameId_playerId_game_players_fk",
+    }).onDelete("cascade"),
+  ],
+)
 
 /**
  * The state of tick computation
