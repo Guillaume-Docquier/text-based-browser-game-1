@@ -8,7 +8,9 @@
     "format:package-json": "sort-package-json package.json shared/eslint/package.json frontend/package.json backend/package.json",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "npm run lint -- --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "project:checks": "pnpm lint:fix && pnpm format:fix && pnpm --dir backend typecheck && pnpm --dir frontend typecheck",
+    "project:setup": "pnpm i && pnpm --dir backend i && pnpm --dir frontend i"
   },
   "lint-staged": {
     "*package.json": "sort-package-json",

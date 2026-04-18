@@ -12,6 +12,8 @@ This repo is a lightweight monorepo with separate deployable projects:
 
 ## Commands
 
+- `pnpm project:setup`: setup all packages
+- `pnpm project:checks`: sanitiy checks for all packages
 - `pnpm lint:fix`: run ESLint.
 - `pnpm format:fix`: run Prettier.
 - `pnpm --dir frontend dev`: start the Vite frontend with watch mode.
