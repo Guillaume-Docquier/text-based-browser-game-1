@@ -8,8 +8,7 @@ on:
       - synchronize
 
 permissions:
-  pull-requests: read
-  issues: write
+  pull-requests: write
 
 jobs:
   validate-pr-title:
@@ -36,7 +35,7 @@ jobs:
         with:
           header: pr-title-validation
           message: |
-            ### ❌ The PR title is invalid.
+            ### ❌ The PR title is invalid ❌
 
             Expected format: `<project|frontend|backend|ci|adr|infra|docs>(<scope>)?: <description>`
 
@@ -50,4 +49,4 @@ jobs:
         with:
           header: pr-title-validation
           message: |
-            ### ✅ The PR title is valid.
+            ### ✅ The PR title is valid ✅
