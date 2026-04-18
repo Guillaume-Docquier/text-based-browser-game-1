@@ -14,22 +14,22 @@ export function createGamePlayerActionsRouter({
   gamePlayerActionsController: GamePlayerActionsController
 }) {
   return t.router({
-    getCurrent: privateProcedure
+    getCurrentAction: privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ action: GamePlayerAction.nullable() }))
+      .output(z.object({ action: GamePlayerAction.or(z.undefined()) }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
-        const getCurrentResult = await gamePlayerActionsController.getCurrent({ gameId, playerId: player.id })
-        if (Result.isFailure(getCurrentResult)) {
+        const getCurrentActionResult = await gamePlayerActionsController.getCurrentAction({ gameId, playerId: player.id })
+        if (Result.isFailure(getCurrentActionResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: getCurrentResult.error,
+            message: getCurrentActionResult.error,
           })
         }
 
-        return { action: getCurrentResult.value ?? null }
+        return { action: getCurrentActionResult.value }
       }),
 
-    setCurrent: privateProcedure
+    setCurrentAction: privateProcedure
       .input(
         z.object({
           gameId: z.coerce.number(),
@@ -38,7 +38,7 @@ export function createGamePlayerActionsRouter({
       )
       .output(z.object({ action: GamePlayerAction.nullable() }))
       .mutation(async ({ input: { gameId, actionType }, ctx: { player } }) => {
-        const setCurrentResult = await gamePlayerActionsController.setCurrent({ gameId, playerId: player.id, actionType })
+        const setCurrentResult = await gamePlayerActionsController.setCurrentAction({ gameId, playerId: player.id, actionType })
         if (Result.isFailure(setCurrentResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",

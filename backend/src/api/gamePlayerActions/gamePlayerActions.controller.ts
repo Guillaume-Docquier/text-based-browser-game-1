@@ -27,7 +27,7 @@ export class GamePlayerActionsController {
     this.logger = logger.child({ scope: "game-player-actions-controller" })
   }
 
-  public async getCurrent({
+  public async getCurrentAction({
     gameId,
     playerId,
   }: {
@@ -39,21 +39,24 @@ export class GamePlayerActionsController {
       return activeGameResult
     }
 
-    const getCurrentResult = await this.gamePlayerActionsRepository.getByGameIdPlayerIdAndTick({
+    const getCurrentActionResult = await this.gamePlayerActionsRepository.getByGameIdPlayerIdAndTick({
       gameId,
       playerId,
       tick: activeGameResult.value.tick,
     })
-    if (Result.isFailure(getCurrentResult)) {
-      this.logger.error("Could not get current game player action", { gameId, playerId, error: getCurrentResult.error })
-      return getCurrentResult
+    if (Result.isFailure(getCurrentActionResult)) {
+      return getCurrentActionResult
     }
 
-    const currentAction = getCurrentResult.value
-    return Result.Success(currentAction === undefined ? undefined : toGamePlayerAction(currentAction))
+    const currentAction = getCurrentActionResult.value
+    if (currentAction === undefined) {
+      return Result.Success(undefined)
+    }
+
+    return Result.Success(toGamePlayerAction(currentAction))
   }
 
-  public async setCurrent({
+  public async setCurrentAction({
     gameId,
     playerId,
     actionType,
@@ -75,7 +78,6 @@ export class GamePlayerActionsController {
         tick,
       })
       if (Result.isFailure(deleteResult)) {
-        this.logger.error("Could not clear current game player action", { gameId, playerId, error: deleteResult.error })
         return deleteResult
       }
 
@@ -84,6 +86,13 @@ export class GamePlayerActionsController {
 
     const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
     if (money < actionRule.costMoney) {
+      this.logger.error("Player cannot afford selected game player action", {
+        gameId,
+        playerId,
+        actionType,
+        money,
+        costMoney: actionRule.costMoney,
+      })
       return Result.Failure(`You need ${actionRule.costMoney} money to select this action.`)
     }
 
@@ -94,7 +103,6 @@ export class GamePlayerActionsController {
       actionType,
     })
     if (Result.isFailure(upsertResult)) {
-      this.logger.error("Could not set current game player action", { gameId, playerId, actionType, error: upsertResult.error })
       return upsertResult
     }
 
@@ -110,35 +118,38 @@ export class GamePlayerActionsController {
   }): Promise<Result<{ tick: number; money: number }, string>> {
     const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId })
     if (Result.isFailure(gameSummaryResult)) {
-      this.logger.error("Could not get game summary while resolving action context", { gameId, playerId, error: gameSummaryResult.error })
-      return Result.Failure(gameSummaryResult.error)
+      return gameSummaryResult
     }
 
     const gameSummary = gameSummaryResult.value
     if (gameSummary === undefined) {
+      this.logger.error("Cannot resolve action context because game does not exist", { gameId, playerId })
       return Result.Failure("Game does not exist.")
     }
 
     if (gameSummary.startedAt === null) {
+      this.logger.error("Cannot resolve action context because game has not started", { gameId, playerId })
       return Result.Failure("Game has not started.")
     }
 
     if (gameSummary.endedAt !== null) {
+      this.logger.error("Cannot resolve action context because game has ended", { gameId, playerId, endedAt: gameSummary.endedAt })
       return Result.Failure("Game has ended.")
     }
 
     if (!gameSummary.players.some((player) => player.id === playerId)) {
+      this.logger.error("Cannot resolve action context because player is not in game", { gameId, playerId })
       return Result.Failure("Player is not in this game.")
     }
 
     const gameStateResult = await this.gameStatesRepository.getByGameIdAndPlayerId({ gameId, playerId })
     if (Result.isFailure(gameStateResult)) {
-      this.logger.error("Could not get game state while resolving action context", { gameId, playerId, error: gameStateResult.error })
-      return Result.Failure(gameStateResult.error)
+      return gameStateResult
     }
 
     const gameState = gameStateResult.value
     if (gameState === undefined) {
+      this.logger.error("Cannot resolve action context because game state does not exist", { gameId, playerId })
       return Result.Failure("Game state does not exist.")
     }
 

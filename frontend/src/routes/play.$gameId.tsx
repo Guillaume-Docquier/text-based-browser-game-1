@@ -32,8 +32,8 @@ function GameClient(): ReactElement {
   const backendApiClient = useBackendApiClient()
   const gameQuery = useQuery(backendApiClient.games.getSummaryById.queryOptions({ gameId }))
   const gameStateQuery = useQuery(backendApiClient.gameStates.getById.queryOptions({ gameId }))
-  const currentActionQuery = useQuery(backendApiClient.gamePlayerActions.getCurrent.queryOptions({ gameId }))
-  const setCurrentAction = useMutation(backendApiClient.gamePlayerActions.setCurrent.mutationOptions())
+  const currentActionQuery = useQuery(backendApiClient.gamePlayerActions.getCurrentAction.queryOptions({ gameId }))
+  const setCurrentAction = useMutation(backendApiClient.gamePlayerActions.setCurrentAction.mutationOptions())
 
   if (gameQuery.isPending || gameStateQuery.isPending || currentActionQuery.isPending) {
     return <Skeleton />
@@ -173,7 +173,7 @@ function Countdown({ targetTimestamp }: { targetTimestamp: string }): ReactEleme
 
     return (): void => {
       clearInterval(interval)
-    } // cleanup
+    }
   }, [targetTimestamp])
 
   if (timeLeft.noTimeLeft) {
@@ -198,7 +198,7 @@ function calculateTimeLeft(config: { past: Date; future: Date }): TimeLeft {
   const past = Temporal.Instant.fromEpochMilliseconds(config.past.getTime())
   const future = Temporal.Instant.fromEpochMilliseconds(config.future.getTime())
 
-  const duration = future.since(past).round({ largestUnit: "days" })
+  const duration = past.until(future).round({ largestUnit: "days" })
 
   return {
     noTimeLeft: duration.total("seconds") <= 0,
