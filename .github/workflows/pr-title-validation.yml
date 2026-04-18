@@ -1,11 +1,10 @@
 name: PR Title Validation
 
 on:
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - edited
-      - reopened
       - synchronize
 
 permissions:
@@ -24,28 +23,20 @@ jobs:
         run: |
           REGEX='^(project|frontend|backend|ci|adr|infra|docs)(\([a-z0-9][a-z0-9._/-]*\))?: .+'
 
-          if [[ "$PR_TITLE" =~ $REGEX ]]; then
-            echo "is_valid=true" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [[ ! "$PR_TITLE" =~ $REGEX ]]; then
+            echo "is_valid=false" >> "$GITHUB_OUTPUT"
+            exit 1
           fi
 
-          echo "is_valid=false" >> "$GITHUB_OUTPUT"
-
-      - name: Comment on valid title
-        if: steps.validate.outputs.is_valid == 'true'
-        uses: marocchino/sticky-pull-request-comment@v3
-        with:
-          header: pr-title-validation
-          message: |
-            ✅ The PR title is valid.
+          echo "is_valid=true" >> "$GITHUB_OUTPUT"
 
       - name: Comment on invalid title
-        if: steps.validate.outputs.is_valid == 'false'
+        if: always() && steps.validate.outputs.is_valid == 'false'
         uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: pr-title-validation
           message: |
-            ❌ The PR title is invalid.
+            ### ❌ The PR title is invalid.
 
             Expected format: `<project|frontend|backend|ci|adr|infra|docs>(<scope>)?: <description>`
 
@@ -53,6 +44,10 @@ jobs:
             - `backend: some work`
             - `project(deps): some work`
 
-      - name: Fail on invalid title
-        if: steps.validate.outputs.is_valid == 'false'
-        run: exit 1
+      - name: Comment on valid title
+        if: steps.validate.outputs.is_valid == 'true'
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: pr-title-validation
+          message: |
+            ### ✅ The PR title is valid.
