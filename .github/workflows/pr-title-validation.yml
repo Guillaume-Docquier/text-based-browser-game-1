@@ -1,0 +1,58 @@
+name: PR Title Validation
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+
+permissions:
+  pull-requests: read
+  issues: write
+
+jobs:
+  validate-pr-title:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate pull request title
+        id: validate
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          REGEX='^(project|frontend|backend|ci|adr|infra|docs)(\([a-z0-9][a-z0-9._/-]*\))?: .+'
+
+          if [[ "$PR_TITLE" =~ $REGEX ]]; then
+            echo "is_valid=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "is_valid=false" >> "$GITHUB_OUTPUT"
+
+      - name: Comment on valid title
+        if: steps.validate.outputs.is_valid == 'true'
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: pr-title-validation
+          message: |
+            ✅ The PR title is valid.
+
+      - name: Comment on invalid title
+        if: steps.validate.outputs.is_valid == 'false'
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: pr-title-validation
+          message: |
+            ❌ The PR title is invalid.
+
+            Expected format: `<project|frontend|backend|ci|adr|infra|docs>(<scope>)?: <description>`
+
+            Examples:
+            - `backend: some work`
+            - `project(deps): some work`
+
+      - name: Fail on invalid title
+        if: steps.validate.outputs.is_valid == 'false'
+        run: exit 1
