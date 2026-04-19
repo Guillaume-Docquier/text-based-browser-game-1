@@ -59,9 +59,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
   const joinGame = useMutation(backendApiClient.games.join.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
-  const leaveGame = useMutation(
-    backendApiClient.games.leave.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>,
-  )
+  const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
   const startGame = useMutation(backendApiClient.games.start.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
 
   return (
