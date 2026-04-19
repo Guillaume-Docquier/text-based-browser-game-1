@@ -7,14 +7,14 @@ import { GamePlayerAction, GamePlayerActionTypeSchema } from "#lib/gamePlayerAct
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
 export function createGamePlayerActionsRouter({
-  t,
-  privateProcedure,
+  trpc,
   gamePlayerActionsController,
-}: Trpc & {
+}: {
+  trpc: Trpc
   gamePlayerActionsController: GamePlayerActionsController
 }) {
-  return t.router({
-    getCurrentAction: privateProcedure
+  return trpc.router({
+    getCurrentAction: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ action: GamePlayerAction.or(z.undefined()) }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
@@ -29,7 +29,7 @@ export function createGamePlayerActionsRouter({
         return { action: getCurrentActionResult.value }
       }),
 
-    setCurrentAction: privateProcedure
+    setCurrentAction: trpc.privateProcedure
       .input(
         z.object({
           gameId: z.coerce.number(),

@@ -16,5 +16,5 @@ export type GameSummaryStatus = GameSummary["status"]
 export type GameSummaryPlayer = GameSummary["creator"]
 
 // Game player actions router
-type GamePlayerActionsOutput = TrpcRouterOutput["gamePlayerActions"]["getCurrent"]
+type GamePlayerActionsOutput = TrpcRouterOutput["gamePlayerActions"]["getCurrentAction"]
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
