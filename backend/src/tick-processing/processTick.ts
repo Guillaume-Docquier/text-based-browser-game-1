@@ -4,6 +4,8 @@ import { type GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { type GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import { type GamesRepository } from "#lib/db/games.repository.ts"
 import { ResourceType } from "#lib/gameResources.ts"
+import { GAME_PLAYER_ACTION_RULES, GamePlayerActionType } from "#lib/gamePlayerActions.ts"
+import { type GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 
 /**
  * Processes all ticks that should advance at this point in time.
@@ -15,12 +17,14 @@ export async function processTick({
   gameStatesRepository,
   gamePlayerResourcesRepository,
   gamesRepository,
+  gamePlayerActionsRepository,
 }: {
   logger: Logger
   gameTicksRepository: GameTicksRepository
   gameStatesRepository: GameStatesRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamesRepository: GamesRepository
+  gamePlayerActionsRepository: GamePlayerActionsRepository
 }): Promise<void> {
   // Lock the tables, can't update state or submit actions during ticks
 
@@ -54,7 +58,18 @@ export async function processTick({
       continue
     }
 
-    let couldNotIncrementPlayersMoney = false
+    const gamePlayerActionsResult = await gamePlayerActionsRepository.getByGameIdAndTick({ gameId: game.id, tick: gameState.tick })
+    if (Result.isFailure(gamePlayerActionsResult)) {
+      logger.error("Could not get game player actions while processing tick", { gameTick, error: gamePlayerActionsResult.error })
+      continue
+    }
+
+    const gamePlayerActionByPlayerId = new Map(
+      gamePlayerActionsResult.value.map((gamePlayerAction) => [gamePlayerAction.playerId, gamePlayerAction]),
+    )
+
+    let couldNotProcessPlayers = false
+    let winnerPlayerId: number | undefined
     for (const playerId of playerIdsResult.value) {
       const incrementMoneyResult = await gamePlayerResourcesRepository.updateResource({
         gameId: game.id,
@@ -64,31 +79,99 @@ export async function processTick({
       })
       if (Result.isFailure(incrementMoneyResult)) {
         logger.error("Could not increment player money", { playerId, gameTick, error: incrementMoneyResult.error })
-        couldNotIncrementPlayersMoney = true
+        couldNotProcessPlayers = true
+        break
+      }
+
+      const selectedAction = gamePlayerActionByPlayerId.get(playerId)
+      if (selectedAction === undefined) {
+        continue
+      }
+
+      const actionRule = GAME_PLAYER_ACTION_RULES[selectedAction.actionType as GamePlayerActionType] // probably would want to validate this, or store in db as enum
+      if (actionRule === undefined) {
+        logger.error("Encountered unsupported action type while processing tick", {
+          gameTick,
+          playerId,
+          actionType: selectedAction.actionType,
+        })
+        couldNotProcessPlayers = true
+        break
+      }
+
+      const subtractActionCostResult = await gamePlayerResourcesRepository.updateResource({
+        gameId: game.id,
+        playerId,
+        resourceType: ResourceType.MONEY,
+        amountDelta: -actionRule.costMoney,
+      })
+      if (Result.isFailure(subtractActionCostResult)) {
+        logger.error("Could not subtract action cost", {
+          playerId,
+          gameTick,
+          actionType: selectedAction.actionType,
+          error: subtractActionCostResult.error,
+        })
+        couldNotProcessPlayers = true
+        break
+      }
+
+      if (selectedAction.actionType === GamePlayerActionType.MAKE_MORE_MONEY) {
+        const addActionRewardResult = await gamePlayerResourcesRepository.updateResource({
+          gameId: game.id,
+          playerId,
+          resourceType: ResourceType.MONEY,
+          amountDelta: actionRule.rewardMoney,
+        })
+        if (Result.isFailure(addActionRewardResult)) {
+          logger.error("Could not add action reward", {
+            playerId,
+            gameTick,
+            actionType: selectedAction.actionType,
+            error: addActionRewardResult.error,
+          })
+          couldNotProcessPlayers = true
+          break
+        }
+
+        continue
+      }
+
+      if (selectedAction.actionType === GamePlayerActionType.WIN_THE_GAME) {
+        const endGameResult = await gamesRepository.endWithWinner({ gameId: game.id, winnerPlayerId: playerId })
+        if (Result.isFailure(endGameResult)) {
+          logger.error("Could not end game with winner", { playerId, gameTick, error: endGameResult.error })
+          couldNotProcessPlayers = true
+        } else {
+          winnerPlayerId = playerId
+        }
+
         break
       }
     }
-    if (couldNotIncrementPlayersMoney) {
+    if (couldNotProcessPlayers) {
       continue
     }
 
-    const createGameTickResult = await gameTicksRepository.create({
-      gameId: gameTick.gameId,
-      tick: nextTick,
-      scheduledFor: nextScheduledFor,
-    })
-    if (Result.isFailure(createGameTickResult)) {
-      logger.error("Could not create next game tick", { gameTick, nextTick, nextScheduledFor, error: createGameTickResult.error })
-      continue
-    }
+    if (winnerPlayerId === undefined) {
+      const createGameTickResult = await gameTicksRepository.create({
+        gameId: gameTick.gameId,
+        tick: nextTick,
+        scheduledFor: nextScheduledFor,
+      })
+      if (Result.isFailure(createGameTickResult)) {
+        logger.error("Could not create next game tick", { gameTick, nextTick, nextScheduledFor, error: createGameTickResult.error })
+        continue
+      }
 
-    const updateGameStateResult = await gameStatesRepository.update(
-      { gameId: gameState.gameId },
-      { tick: nextTick, nextTickAt: nextScheduledFor },
-    )
-    if (Result.isFailure(updateGameStateResult)) {
-      logger.error("Could not update game state", { gameState, nextTick, nextScheduledFor, error: updateGameStateResult.error })
-      continue
+      const updateGameStateResult = await gameStatesRepository.update(
+        { gameId: gameState.gameId },
+        { tick: nextTick, nextTickAt: nextScheduledFor },
+      )
+      if (Result.isFailure(updateGameStateResult)) {
+        logger.error("Could not update game state", { gameState, nextTick, nextScheduledFor, error: updateGameStateResult.error })
+        continue
+      }
     }
 
     const finishProcessingTickResult = await gameTicksRepository.finishProcessingTick(gameTick)

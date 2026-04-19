@@ -134,6 +134,21 @@ export class GamesRepository extends PostgresRepository {
     return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
   }
 
+  public async endWithWinner({ gameId, winnerPlayerId }: { gameId: number; winnerPlayerId: number }): Promise<Result<true, string>> {
+    const endResult = await Result.tryCatch(async (): Promise<true> => {
+      await this.db.update(gamesTable).set({ endedAt: new Date(), winnerPlayerId }).where(eq(gamesTable.id, gameId))
+
+      return true
+    })
+
+    if (Result.isFailure(endResult)) {
+      this.logger.error("Could not end game with winner", { gameId, winnerPlayerId, error: endResult.error })
+      return Result.Failure(couldNot("end game with winner"))
+    }
+
+    return endResult
+  }
+
   private async getSummaryByIdInternal(
     { gameId }: Parameters<GamesRepository["getSummaryById"]>[0],
     dbOrTx: PostgresRepository["db"],

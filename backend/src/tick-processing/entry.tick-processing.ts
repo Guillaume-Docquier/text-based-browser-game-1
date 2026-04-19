@@ -8,6 +8,7 @@ import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import { GamesRepository } from "#lib/db/games.repository.ts"
+import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 
 /**
  * Starts tick processing.
@@ -48,6 +49,7 @@ if (!isMainThread) {
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
+    gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
   }
 
   logger.info("Processing ticks")

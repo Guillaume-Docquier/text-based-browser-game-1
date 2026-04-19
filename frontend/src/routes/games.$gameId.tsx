@@ -60,6 +60,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
       <div className="flex flex-col gap-2 rounded border p-2">
         <div>Id: #{game.id}</div>
         <div>Name: {game.name}</div>
+        {game.winnerPlayerId !== null && <div>Winner: {getWinnerLabel(game)}</div>}
         <div>Creator:</div>
         <div className=" pl-2">
           <Player player={game.creator} />
@@ -131,4 +132,14 @@ function Player({ player }: { player: ApiTypes.GameSummaryPlayer }): ReactElemen
       <div>{player.alias ?? `Player ${player.id}`}</div>
     </div>
   )
+}
+
+function getWinnerLabel(game: ApiTypes.GameSummary): string {
+  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerPlayerId)
+
+  if (winner === undefined) {
+    return `Player ${game.winnerPlayerId}`
+  }
+
+  return winner.alias ?? `Player ${winner.id}`
 }

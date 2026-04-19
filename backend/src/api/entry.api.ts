@@ -12,6 +12,7 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { connectToDb } from "#lib/db/connectToDb.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
+import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -40,6 +41,7 @@ async function main(): Promise<void> {
     gamesRepository: new GamesRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
+    gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
   }
 
   const authService = new AuthService({ logger })

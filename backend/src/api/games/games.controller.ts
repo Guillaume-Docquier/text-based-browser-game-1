@@ -139,6 +139,7 @@ export const CreatedGame = z.object({
   name: z.string(),
   id: z.number(),
   createdByPlayerId: z.number(),
+  winnerPlayerId: z.number().nullable(),
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
   createdAt: z.date(),
@@ -163,6 +164,7 @@ export type GameSummary = z.infer<typeof GameSummary>
 export const GameSummary = z.object({
   name: z.string(),
   id: z.number(),
+  winnerPlayerId: z.number().nullable(),
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
   createdAt: z.date(),

@@ -14,6 +14,9 @@ import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { PlayersController } from "#api/players/players.controller.ts"
 import type { PlayersRepository } from "#lib/db/players.repository.ts"
 import type { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
+import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
+import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
+import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
 
 /**
  * Import side effect free express app creator.
@@ -30,11 +33,13 @@ export async function createApi({
   gamesRepository: GamesRepository
   gameStatesRepository: GameStatesRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
+  gamePlayerActionsRepository: GamePlayerActionsRepository
 }): Promise<Express> {
   const controllers = {
     gamesController: new GamesController(services),
     gameStatesController: new GameStatesController(services),
     playersController: new PlayersController(services),
+    gamePlayerActionsController: new GamePlayerActionsController(services),
   }
 
   const app = express()
@@ -55,13 +60,19 @@ export async function createApi({
 
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
-function createTrpcRouter(services: { gamesController: GamesController; gameStatesController: GameStatesController; logger: Logger }) {
+function createTrpcRouter(services: {
+  gamesController: GamesController
+  gameStatesController: GameStatesController
+  gamePlayerActionsController: GamePlayerActionsController
+  logger: Logger
+}) {
   const trpc = createTrpc()
   const routerServices = { trpc, ...services }
 
   return trpc.router({
     games: createGamesRouter(routerServices),
     gameStates: createGameStatesRouter(routerServices),
+    gamePlayerActions: createGamePlayerActionsRouter(routerServices),
   })
 }
 
