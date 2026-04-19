@@ -57,9 +57,9 @@ export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: { gamesController: GamesController; gameStatesController: GameStatesController; logger: Logger }) {
   const trpc = createTrpc()
-  const routerServices = { ...trpc, ...services }
+  const routerServices = { trpc, ...services }
 
-  return trpc.t.router({
+  return trpc.router({
     games: createGamesRouter(routerServices),
     gameStates: createGameStatesRouter(routerServices),
   })

@@ -5,18 +5,12 @@ import type { Trpc } from "#api/trpc.ts"
 import { GameState, type GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
-export function createGameStatesRouter({
-  t,
-  privateProcedure,
-  gameStatesController,
-}: Trpc & {
-  gameStatesController: GameStatesController
-}) {
-  return t.router({
+export function createGameStatesRouter({ trpc, gameStatesController }: { trpc: Trpc; gameStatesController: GameStatesController }) {
+  return trpc.router({
     /**
      * Gets the state for a game if it exists.
      */
-    getById: privateProcedure
+    getById: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ gameState: GameState }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
