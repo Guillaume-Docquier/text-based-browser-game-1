@@ -29,5 +29,5 @@ export function createTrpc() {
     return await next({ ctx: { player: ctx.player } })
   })
 
-  return { t, publicProcedure, privateProcedure }
+  return { router: t.router, publicProcedure, privateProcedure }
 }

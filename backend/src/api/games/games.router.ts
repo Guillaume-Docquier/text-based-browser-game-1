@@ -10,23 +10,14 @@ import type { Trpc } from "#api/trpc.ts"
  * It also decouples the router from those dependencies, if done well.
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
-export function createGamesRouter({
-  t,
-  publicProcedure,
-  privateProcedure,
-  gamesController,
-  ...others
-}: Trpc & {
-  gamesController: GamesController
-  logger: Logger
-}) {
+export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: Trpc; gamesController: GamesController; logger: Logger }) {
   const gamesRouterLogger = others.logger.child({ scope: "games-router" })
 
-  return t.router({
+  return trpc.router({
     /**
      * Creates a new game.
      */
-    create: privateProcedure
+    create: trpc.privateProcedure
       .input(z.object({ newGame: GameInsert.omit({ createdByPlayerId: true }) }))
       .output(z.object({ newGame: CreatedGame }))
       .mutation(async ({ input: { newGame }, ctx: { player } }) => {
@@ -45,7 +36,7 @@ export function createGamesRouter({
     /**
      * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getSummaries: publicProcedure.output(z.object({ games: z.array(GameSummary) })).query(async ({ ctx: { player } }) => {
+    getSummaries: trpc.publicProcedure.output(z.object({ games: z.array(GameSummary) })).query(async ({ ctx: { player } }) => {
       const games = await gamesController.getSummaries({ playerId: player?.id })
 
       gamesRouterLogger.info("GET games", { count: games.length })
@@ -55,7 +46,7 @@ export function createGamesRouter({
     /**
      * Gets a game by id
      */
-    getSummaryById: publicProcedure
+    getSummaryById: trpc.publicProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ game: GameSummary }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
@@ -75,7 +66,7 @@ export function createGamesRouter({
     /**
      * Joins a game, if possible.
      */
-    join: privateProcedure
+    join: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ joinedGame: GameSummary }))
       .mutation(async ({ input: { gameId }, ctx: { player } }) => {
@@ -93,7 +84,7 @@ export function createGamesRouter({
     /**
      * Leaves a game, if possible.
      */
-    leave: privateProcedure
+    leave: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ leftGame: GameSummary }))
       .mutation(async ({ input: { gameId }, ctx: { player } }) => {
@@ -111,7 +102,7 @@ export function createGamesRouter({
     /**
      * Starts a game, if possible.
      */
-    start: privateProcedure
+    start: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ startedGame: GameSummary }))
       .mutation(async ({ input: { gameId }, ctx: { player } }) => {
