@@ -45,13 +45,18 @@ function GameClient(): ReactElement {
   }
 
   if (gameStateQuery.isError) {
-    logger.error("Could not fetch game", { gameId, error: gameStateQuery.error.message })
+    logger.error("Could not fetch game state", { gameId, error: gameStateQuery.error.message })
+    return <Navigate to="/games" />
+  }
+
+  if (currentActionQuery.isError) {
+    logger.error("Could not fetch current action", { gameId, error: currentActionQuery.error.message })
     return <Navigate to="/games" />
   }
 
   const game = gameQuery.data.game
   const gameState = gameStateQuery.data.gameState
-  const currentAction = currentActionQuery.data?.action ?? null
+  const currentAction = currentActionQuery.data.action
 
   return (
     <div className="flex flex-col items-center justify-center p-8">
@@ -90,6 +95,7 @@ function GameClient(): ReactElement {
                   onClick={() => {
                     setCurrentAction.mutate({
                       gameId,
+                      tick: gameState.tick,
                       actionType: isSelected ? null : action.actionType,
                     })
                   }}
@@ -115,7 +121,6 @@ function GameClient(): ReactElement {
           <div className="mt-4 text-sm text-surface-500">
             Current selection: {currentAction === null ? "No action selected yet." : getActionLabel(currentAction.actionType)}
           </div>
-          {currentActionQuery.isError && <div className="mt-2 text-sm text-danger-100">{currentActionQuery.error.message}</div>}
           {setCurrentAction.isError && <div className="mt-2 text-sm text-danger-100">{setCurrentAction.error.message}</div>}
         </div>
       </div>

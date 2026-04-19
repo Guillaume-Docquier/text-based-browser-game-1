@@ -58,11 +58,13 @@ export class GamePlayerActionsController {
 
   public async setCurrentAction({
     gameId,
+    tick,
     playerId,
     actionType,
   }: {
     gameId: number
     playerId: number
+    tick: number
     actionType: GamePlayerActionType | null
   }): Promise<Result<GamePlayerAction | null, string>> {
     const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
@@ -70,7 +72,10 @@ export class GamePlayerActionsController {
       return activeGameResult
     }
 
-    const { tick, money } = activeGameResult.value
+    if (activeGameResult.value.tick !== tick) {
+      return Result.Failure(`Cannot submit action for tick ${tick}, the game is currently at tick ${activeGameResult.value.tick}.`)
+    }
+
     if (actionType === null) {
       const deleteResult = await this.gamePlayerActionsRepository.deleteByGameIdPlayerIdAndTick({
         gameId,
@@ -85,12 +90,12 @@ export class GamePlayerActionsController {
     }
 
     const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
-    if (money < actionRule.costMoney) {
+    if (activeGameResult.value.money < actionRule.costMoney) {
       this.logger.error("Player cannot afford selected game player action", {
         gameId,
         playerId,
         actionType,
-        money,
+        money: activeGameResult.value.money,
         costMoney: actionRule.costMoney,
       })
       return Result.Failure(`You need ${actionRule.costMoney} money to select this action.`)

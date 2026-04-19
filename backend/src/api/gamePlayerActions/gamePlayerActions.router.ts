@@ -41,12 +41,13 @@ export function createGamePlayerActionsRouter({
       .input(
         z.object({
           gameId: z.coerce.number(),
+          tick: z.coerce.number(),
           actionType: GamePlayerActionTypeSchema.nullable(),
         }),
       )
       .output(z.object({ action: GamePlayerActionSchema.nullable() }))
-      .mutation(async ({ input: { gameId, actionType }, ctx: { player } }) => {
-        const setCurrentActionResult = await gamePlayerActionsController.setCurrentAction({ gameId, playerId: player.id, actionType })
+      .mutation(async ({ input: { gameId, tick, actionType }, ctx: { player } }) => {
+        const setCurrentActionResult = await gamePlayerActionsController.setCurrentAction({ gameId, playerId: player.id, tick, actionType })
         if (Result.isFailure(setCurrentActionResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
