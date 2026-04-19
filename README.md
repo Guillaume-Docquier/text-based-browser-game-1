@@ -2,6 +2,14 @@
 
 A space strategy game
 
+## Project status
+
+The game has achieved its [proof of concept](https://github.com/Guillaume-Docquier/text-based-browser-game-1/milestone/1) stage.
+
+We are now working on [the MVP](https://github.com/Guillaume-Docquier/text-based-browser-game-1/milestone/2).
+
+For more info on the project, see [the milestones](https://github.com/Guillaume-Docquier/text-based-browser-game-1/milestones).
+
 ## Architecture
 
 The project is structured as a basic monorepo, where each folder is a deployable project.
