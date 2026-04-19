@@ -14,9 +14,13 @@ export function createGamePlayerActionsRouter({
   gamePlayerActionsController: GamePlayerActionsController
 }) {
   return trpc.router({
+    /**
+     * Gets the current action of a player for a given game.
+     * Long term you won't have just a single action, and it'll probably be bundled into a single game state query.
+     */
     getCurrentAction: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ action: GamePlayerAction.or(z.undefined()) }))
+      .output(z.object({ action: GamePlayerAction.nullable() }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
         const getCurrentActionResult = await gamePlayerActionsController.getCurrentAction({ gameId, playerId: player.id })
         if (Result.isFailure(getCurrentActionResult)) {
@@ -29,6 +33,10 @@ export function createGamePlayerActionsRouter({
         return { action: getCurrentActionResult.value }
       }),
 
+    /**
+     * Sets the current action of a player for a given game.
+     * Long term you won't have just a single action.
+     */
     setCurrentAction: trpc.privateProcedure
       .input(
         z.object({
@@ -38,15 +46,15 @@ export function createGamePlayerActionsRouter({
       )
       .output(z.object({ action: GamePlayerAction.nullable() }))
       .mutation(async ({ input: { gameId, actionType }, ctx: { player } }) => {
-        const setCurrentResult = await gamePlayerActionsController.setCurrentAction({ gameId, playerId: player.id, actionType })
-        if (Result.isFailure(setCurrentResult)) {
+        const setCurrentActionResult = await gamePlayerActionsController.setCurrentAction({ gameId, playerId: player.id, actionType })
+        if (Result.isFailure(setCurrentActionResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: setCurrentResult.error,
+            message: setCurrentActionResult.error,
           })
         }
 
-        return { action: setCurrentResult.value ?? null }
+        return { action: setCurrentActionResult.value }
       }),
   })
 }

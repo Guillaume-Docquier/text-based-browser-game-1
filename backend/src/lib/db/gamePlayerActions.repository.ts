@@ -62,7 +62,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
     gameId: number
     playerId: number
     tick: number
-  }): Promise<Result<GamePlayerActionRow | undefined, string>> {
+  }): Promise<Result<GamePlayerActionRow | null, string>> {
     const getResult = await Result.tryCatch(
       async () =>
         await this.db
@@ -84,7 +84,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
 
     Assert.isTrue(getResult.value.length <= 1)
     const gamePlayerAction = getResult.value[0]
-    return Result.Success(gamePlayerAction === undefined ? undefined : toGamePlayerActionRow(gamePlayerAction))
+    return Result.Success(gamePlayerAction === undefined ? null : toGamePlayerActionRow(gamePlayerAction))
   }
 
   public async getByGameIdAndTick(params: { gameId: number; tick: number }): Promise<Result<GamePlayerActionRow[], string>> {

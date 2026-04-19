@@ -33,7 +33,7 @@ export class GamePlayerActionsController {
   }: {
     gameId: number
     playerId: number
-  }): Promise<Result<GamePlayerAction | undefined, string>> {
+  }): Promise<Result<GamePlayerAction | null, string>> {
     const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
     if (Result.isFailure(activeGameResult)) {
       return activeGameResult
@@ -49,8 +49,8 @@ export class GamePlayerActionsController {
     }
 
     const currentAction = getCurrentActionResult.value
-    if (currentAction === undefined) {
-      return Result.Success(undefined)
+    if (currentAction === null) {
+      return Result.Success(null)
     }
 
     return Result.Success(toGamePlayerAction(currentAction))
@@ -64,7 +64,7 @@ export class GamePlayerActionsController {
     gameId: number
     playerId: number
     actionType: GamePlayerActionType | null
-  }): Promise<Result<GamePlayerAction | undefined, string>> {
+  }): Promise<Result<GamePlayerAction | null, string>> {
     const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
     if (Result.isFailure(activeGameResult)) {
       return activeGameResult
@@ -81,7 +81,7 @@ export class GamePlayerActionsController {
         return deleteResult
       }
 
-      return Result.Success(undefined)
+      return Result.Success(null)
     }
 
     const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
