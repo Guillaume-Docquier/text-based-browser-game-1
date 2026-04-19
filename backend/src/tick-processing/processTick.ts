@@ -88,7 +88,7 @@ export async function processTick({
         continue
       }
 
-      const actionRule = GAME_PLAYER_ACTION_RULES[selectedAction.actionType]
+      const actionRule = GAME_PLAYER_ACTION_RULES[selectedAction.actionType as GamePlayerActionType] // probably would want to validate this, or store in db as enum
       if (actionRule === undefined) {
         logger.error("Encountered unsupported action type while processing tick", {
           gameTick,

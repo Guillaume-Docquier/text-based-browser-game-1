@@ -3,7 +3,7 @@ import z from "zod"
 import { TRPCError } from "@trpc/server"
 import type { Trpc } from "#api/trpc.ts"
 import type { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
-import { GamePlayerAction, GamePlayerActionTypeSchema } from "#lib/gamePlayerActions.ts"
+import { GamePlayerActionSchema, GamePlayerActionTypeSchema } from "#lib/gamePlayerActions.ts"
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
 export function createGamePlayerActionsRouter({
@@ -20,7 +20,7 @@ export function createGamePlayerActionsRouter({
      */
     getCurrentAction: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ action: GamePlayerAction.nullable() }))
+      .output(z.object({ action: GamePlayerActionSchema.nullable() }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
         const getCurrentActionResult = await gamePlayerActionsController.getCurrentAction({ gameId, playerId: player.id })
         if (Result.isFailure(getCurrentActionResult)) {
@@ -44,7 +44,7 @@ export function createGamePlayerActionsRouter({
           actionType: GamePlayerActionTypeSchema.nullable(),
         }),
       )
-      .output(z.object({ action: GamePlayerAction.nullable() }))
+      .output(z.object({ action: GamePlayerActionSchema.nullable() }))
       .mutation(async ({ input: { gameId, actionType }, ctx: { player } }) => {
         const setCurrentActionResult = await gamePlayerActionsController.setCurrentAction({ gameId, playerId: player.id, actionType })
         if (Result.isFailure(setCurrentActionResult)) {

@@ -2,7 +2,7 @@ import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamePlayerActionsRepository, GamePlayerActionRow } from "#lib/db/gamePlayerActions.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
-import { type GamePlayerAction, GAME_PLAYER_ACTION_RULES, type GamePlayerActionType } from "#lib/gamePlayerActions.ts"
+import { GAME_PLAYER_ACTION_RULES, type GamePlayerActionType, type GamePlayerAction } from "#lib/gamePlayerActions.ts"
 
 export class GamePlayerActionsController {
   private readonly gamePlayerActionsRepository: GamePlayerActionsRepository
@@ -165,7 +165,7 @@ function toGamePlayerAction(gamePlayerActionRow: GamePlayerActionRow): GamePlaye
     gameId: gamePlayerActionRow.gameId,
     playerId: gamePlayerActionRow.playerId,
     tick: gamePlayerActionRow.tick,
-    actionType: gamePlayerActionRow.actionType,
+    actionType: gamePlayerActionRow.actionType as GamePlayerActionType, // probably would want to validate this, or store in db as enum
     updatedAt: gamePlayerActionRow.updatedAt,
   }
 }

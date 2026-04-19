@@ -5,16 +5,7 @@ import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import { type GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 
-export type GamePlayerActionRow = Omit<typeof gamePlayerActionsTable.$inferSelect, "actionType"> & {
-  actionType: GamePlayerActionType
-}
-
-function toGamePlayerActionRow(gamePlayerActionRow: typeof gamePlayerActionsTable.$inferSelect): GamePlayerActionRow {
-  return {
-    ...gamePlayerActionRow,
-    actionType: gamePlayerActionRow.actionType as GamePlayerActionType,
-  }
-}
+export type GamePlayerActionRow = typeof gamePlayerActionsTable.$inferSelect
 
 export class GamePlayerActionsRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -47,7 +38,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
       Assert.isTrue(gamePlayerActions.length === 1)
       Assert.isDefined(gamePlayerActions[0])
 
-      return toGamePlayerActionRow(gamePlayerActions[0])
+      return gamePlayerActions[0]
     })
 
     if (Result.isFailure(upsertResult)) {
@@ -83,8 +74,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
     }
 
     Assert.isTrue(getResult.value.length <= 1)
-    const gamePlayerAction = getResult.value[0]
-    return Result.Success(gamePlayerAction === undefined ? null : toGamePlayerActionRow(gamePlayerAction))
+    return Result.Success(getResult.value[0] ?? null)
   }
 
   public async getByGameIdAndTick(params: { gameId: number; tick: number }): Promise<Result<GamePlayerActionRow[], string>> {
@@ -101,7 +91,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
       return Result.Failure(couldNot("get game player actions by tick"))
     }
 
-    return Result.Success(getResult.value.map(toGamePlayerActionRow))
+    return Result.Success(getResult.value)
   }
 
   public async deleteByGameIdPlayerIdAndTick(params: { gameId: number; playerId: number; tick: number }): Promise<Result<true, string>> {
