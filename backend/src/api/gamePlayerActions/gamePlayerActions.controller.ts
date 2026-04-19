@@ -137,11 +137,6 @@ export class GamePlayerActionsController {
       return Result.Failure("Game has not started.")
     }
 
-    if (gameSummary.endedAt !== null) {
-      this.logger.error("Cannot resolve action context because game has ended", { gameId, playerId, endedAt: gameSummary.endedAt })
-      return Result.Failure("Game has ended.")
-    }
-
     if (!gameSummary.players.some((player) => player.id === playerId)) {
       this.logger.error("Cannot resolve action context because player is not in game", { gameId, playerId })
       return Result.Failure("Player is not in this game.")

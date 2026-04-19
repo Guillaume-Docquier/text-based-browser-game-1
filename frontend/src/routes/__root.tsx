@@ -2,8 +2,10 @@ import { Outlet, createRootRouteWithContext, Link, Navigate } from "@tanstack/re
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import type { ReactElement } from "react"
 import { Show, UserButton, type useAuth } from "@clerk/react"
-import { UserSearch } from "lucide-react"
+import { Rocket, UserSearch } from "lucide-react"
 import logo from "../assets/logo.png"
+import { Button } from "../components/ui/button.tsx"
+import { Separator } from "../components/ui/separator.tsx"
 
 export interface RouterContext {
   auth: ReturnType<typeof useAuth>
@@ -18,34 +20,56 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent(): ReactElement {
   return (
-    <>
-      <header className="h-16 items-center bg-surface-100 p-3 flex justify-between border-b border-primary-400 text-xl">
-        <div className="flex-1 h-full">
-          <Link to="/" className="h-full flex items-center gap-2 text-2xl font-bold">
-            <img src={logo} alt="logo" className="h-full" />
-            <div>Cosmic Empires</div>
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
+      <header className="border-b border-border/70 bg-background/80 backdrop-blur">
+        <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
+          <Link to="/" className="flex min-w-0 items-center gap-3">
+            <img src={logo} alt="Cosmic Empires logo" className="h-10 w-10 rounded-2xl object-cover shadow-sm ring-1 ring-border/60" />
+            <div className="min-w-0">
+              <div className="font-heading text-lg font-semibold tracking-tight sm:text-xl">Cosmic Empires</div>
+              <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Persistent galactic strategy</div>
+            </div>
           </Link>
-        </div>
-        <div className="flex-1 flex justify-center">
-          <Link to="/games" className="[&.active]:text-primary-200 flex items-center font-semibold gap-1">
-            <UserSearch />
-            <div>Games</div>
-          </Link>
-        </div>
-        <div className="flex-1 flex gap-2 justify-end">
-          <Show when="signed-out" treatPendingAsSignedOut={true}>
-            <Link to="/sign-in">Sign in</Link>
-            <Link to="/sign-up">Sign up</Link>
-          </Show>
-          <Show when="signed-in" treatPendingAsSignedOut={true}>
-            <UserButton />
-          </Show>
+          <Separator orientation="vertical" className="hidden h-8 md:block" />
+          <nav className="flex flex-1 items-center gap-2">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/" activeProps={{ className: "bg-muted text-foreground" }}>
+                <Rocket className="size-4" />
+                Home
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/games" activeProps={{ className: "bg-muted text-foreground" }}>
+                <UserSearch className="size-4" />
+                Games
+              </Link>
+            </Button>
+          </nav>
+          <div className="flex items-center gap-2">
+            <Show when="signed-out" treatPendingAsSignedOut={true}>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/sign-in">Sign in</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link to="/sign-up">Sign up</Link>
+              </Button>
+            </Show>
+            <Show when="signed-in" treatPendingAsSignedOut={true}>
+              <UserButton />
+            </Show>
+          </div>
         </div>
       </header>
-      <div className="flex justify-center p-8">
-        <Outlet />
+      <main className="relative mx-auto flex w-full max-w-7xl justify-center px-4 py-8 sm:px-6 sm:py-10">
+        <div className="w-full">
+          <Outlet />
+        </div>
+      </main>
+      <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
+        <Separator className="bg-border/60" />
       </div>
       <TanStackRouterDevtools />
-    </>
+    </div>
   )
 }

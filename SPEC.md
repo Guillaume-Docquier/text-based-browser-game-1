@@ -1,251 +1,179 @@
-# Player Actions V1
+# shadcn Preset Migration for Frontend
 
 ## Summary
 
-Add per-player, per-game action selection for active games with two actions: `MAKE_MORE_MONEY` and `WIN_THE_GAME`. Players choose at most one action for the upcoming tick from the play screen, can change it any time before processing starts, and their current selection persists across page refreshes. Tick processing resolves the selected action for the current tick without deleting historical action rows.
+Migrate the existing Vite frontend to shadcn using preset `b3SRblUw7`, then modernize every route to use shadcn primitives and any needed app-level reusable components under `frontend/src/components/`. Remove the old local design system entirely so `frontend/src/design-system/` is deleted and no imports remain.
 
-Chosen product rules for this plan:
+## Key Changes
 
-- Ticks keep the existing passive `+1 money`.
-- Action submission is rejected unless the player can already afford the action at submit time.
-- Current selections are private to the current player only.
-- Winning must persist the winner.
+- Initialize shadcn inside the existing `frontend/` app using the existing-project flow, not the scaffold flow:
+  - do the required manual Vite/existing-project setup steps first
+  - run `pnpm dlx shadcn@latest init --yes` from `frontend/`
+  - apply the target preset afterward with `pnpm dlx shadcn@latest apply --preset b3SRblUw7 --yes` if the preset is not handled during initialization
+  - do not use `--template vite` in this repo because this is already an existing Vite project
+- Configure shadcn without introducing `@/*` aliases:
+  - preserve the existing `@api-types` alias
+  - do not add `@/*` path aliases in TS config or `resolve.alias` in Vite because of the current TanStack Router + Vite incompatibility already documented in the repo
+  - if the shadcn CLI assumes alias-based imports, immediately normalize generated imports to relative paths
+  - accept the generated `components.json`, but adapt any alias fields or generated code so the app compiles without `@/*`
+- Keep shadcn-generated primitives in `frontend/src/components/ui/` and place any non-primitive shared frontend components directly under `frontend/src/components/`, using relative imports between frontend source files.
+- Add only the primitives needed by the current app. Baseline set:
+  `button`, `input`, `label`, `card`, `badge`, `alert`, `skeleton`, `separator`, `select`
+- Replace the existing design-system primitives as follows:
+  - `TextInput` -> shadcn `Input`
+  - `NumberInput` -> shadcn `Input` with `type="number"` and existing integer parsing preserved in route logic
+  - `Skeleton` -> shadcn `Skeleton`
+  - `ErrorMessage` -> page-local shadcn `Alert`; keep logging explicit in the route branch instead of inside a reusable render-side-effect component
+- Modernize each route with shadcn-based layout and controls while preserving current behavior and data flow:
+  - `__root.tsx`: rebuild header/nav/auth actions with shadcn buttons and separators; keep Router/Clerk/TanStack behavior unchanged
+  - `/`: convert to a proper hero/landing page using card/button styling from the preset
+  - `/games`: card-based list view with search input, clearer empty state, skeleton rows, status badges, and a primary CTA for new game
+  - `/games/new`: form card with labeled fields, shadcn select for turn unit, consistent disabled/loading button states
+  - `/games/$gameId`: lobby detail card, player list, status badge, grouped action buttons for join/leave/start/open
+  - `/play/$gameId`: dashboard-style status cards for current tick, money, and countdown; keep countdown logic unchanged
+  - `/sign-in` and `/sign-up`: wrap Clerk widgets in a shadcn page shell/card so these routes match the rest of the app; Clerk internals stay provided by Clerk
+- After all routes are migrated, delete `frontend/src/design-system/` and remove any dead imports/classes left over from the old design system.
+
+## Public Interfaces / Constraints
+
+- No backend changes.
+- No route-path changes.
+- No behavioral changes to fetching, mutations, auth guards, or countdown math.
+- Do not introduce module-global stateful UI helpers; stay consistent with repo constraints.
+- New reusable frontend components must live in `frontend/src/components/`, not in a revived `design-system` directory.
+- Do not rely on `@/*` imports anywhere in frontend code until the TanStack Router + Vite issue is no longer relevant for this project.
 
 ## Implementation Phases
 
-### Phase 1: Data model and backend primitives
+### Phase 1: Prepare shadcn in the existing frontend
 
-1. Add `winnerPlayerId` to `games` and add the append-only `game_player_actions` table keyed by `(gameId, playerId, tick)`.
-2. Update Drizzle schema, inferred row types, and migration files for both schema changes.
-3. Add backend action constants and types for:
-   - action ids
-   - action cost/reward rules
-   - shared Zod schema for API output
-4. Add repository methods to:
-   - upsert one action for `(gameId, playerId, tick)`
-   - fetch one action for `(gameId, playerId, tick)`
-   - fetch all actions for `(gameId, tick)`
+Goal: establish the shadcn foundation in `frontend/` without breaking the existing app structure.
 
-### Phase 2: API and business rules
+Steps:
 
-1. Add a `gamePlayerActions` controller following the existing controller pattern.
-2. In action submission, resolve the game’s current tick from `game_states`.
-3. Enforce submission rules:
-   - game exists
-   - game is started
-   - game is not ended
-   - player belongs to the game
-   - player can afford the selected action now
-4. Add tRPC routes:
-   - `getCurrent({ gameId })`
-   - `setCurrent({ gameId, actionType })`
-5. Register the router in `createApi.ts` and expose any required frontend API types.
+- Review the current frontend setup so generated shadcn files land in the correct locations for this repo.
+- Complete the manual existing-project/Vite setup required before CLI initialization.
+- Run shadcn initialization from `frontend/` using the existing-project flow, then apply preset `b3SRblUw7` if it is not applied during init.
+- Normalize any generated config or source imports so the app uses relative imports instead of `@/*`.
+- Preserve the existing `@api-types` alias and avoid introducing any new alias-based frontend import pattern.
 
-### Phase 3: Tick resolution
+Definition of done:
 
-1. Extend tick processing to fetch all actions for `(gameId, gameState.tick)` before resolving players.
-2. Keep the existing passive `+1 money` income.
-3. Resolve submitted actions for that tick:
-   - `MAKE_MORE_MONEY`: `-2 money`, then `+5 money`
-   - `WIN_THE_GAME`: `-10 money`, set `endedAt`, set `winnerPlayerId`
-4. If a player wins:
-   - finish the current tick
-   - do not schedule the next tick
-   - leave existing action rows untouched
-5. If no player wins:
-   - schedule the next tick as today
-   - update `game_states` to the next tick
-   - leave existing action rows untouched
+- `components.json` and required shadcn support files exist and match repo constraints.
+- The frontend compiles with shadcn installed and no `@/*` dependency introduced.
+- The baseline primitives needed for this migration are available under `frontend/src/components/ui/`.
 
-### Phase 4: Frontend play screen
+### Phase 2: Establish shared app-level UI building blocks
 
-1. Extend `/play/$gameId` to fetch both the player game state and the current action for the current tick.
-2. Add a basic action selection UI with two choices:
-   - `Make More Money`
-   - `Win The Game`
-3. Show the currently selected action and its cost/effect.
-4. Disable unavailable actions when the player lacks money and show an inline reason.
-5. Submit selection changes through the new mutation and refresh the current-action query so refreshes remain consistent.
-6. After tick advancement, show no current selection for the new tick until the player picks again.
+Goal: create the minimum reusable app-owned components needed to migrate routes cleanly.
 
-### Phase 5: Verification
+Steps:
 
-1. Run repository-level checks for append-only per-tick action behavior.
-2. Run controller/router checks for membership, game lifecycle, and affordability rules.
-3. Run tick-processing checks for normal income, action resolution, and win handling.
-4. Run frontend manual verification on refresh persistence, selection changes, and post-tick empty state.
+- Add any shared non-primitive components under `frontend/src/components/`.
+- Keep these components thin and route-focused, using shadcn primitives rather than recreating a design system layer.
+- Replace old reusable patterns only where reuse is still justified across multiple routes.
+- Ensure error, loading, and empty-state presentation patterns are compatible with the route behaviors described above.
 
-## Implementation Changes
+Definition of done:
 
-### Data model
+- Shared app components exist only where they reduce duplication materially.
+- No new UI abstraction recreates `frontend/src/design-system/`.
+- Shared components use relative imports and existing frontend architecture patterns.
 
-- Add a new `game_player_actions` table keyed by `(gameId, playerId, tick)` with:
-  - `gameId`
-  - `playerId`
-  - `tick`
-  - `actionType`
-  - `createdAt`
-  - `updatedAt`
-- Treat this table as append-only history. A player’s current action is the row for the game’s current tick, and changing the action before processing updates that same `(gameId, playerId, tick)` row.
-- Add a `winnerPlayerId` nullable FK on `games` so ended games can persist the winner.
-- Keep action costs and rewards in backend constants, using the existing `as const` pattern:
-  - `MAKE_MORE_MONEY`: cost `2 MONEY`, reward `5 MONEY`
-  - `WIN_THE_GAME`: cost `10 MONEY`, ends the game, no resource reward
-- Generate a migration for both schema changes and update Drizzle schema/types accordingly.
-- Add a uniqueness guarantee via the primary key so each player has at most one action row per game tick.
+### Phase 3: Migrate global layout and entry routes
 
-### Backend API and business logic
+Goal: convert the global shell and simple top-level routes first so the app has a consistent shadcn frame.
 
-- Add a dedicated player-actions backend slice following the existing router/controller/repository pattern.
-- Repository responsibilities:
-  - upsert the current player action for `(gameId, playerId, tick)`
-  - fetch the current player action for `(gameId, playerId, tick)`
-  - fetch all actions for `(gameId, tick)` during tick processing
-- Controller responsibilities:
-  - verify the game exists and is started but not ended
-  - verify the player belongs to the game
-  - resolve the game’s current tick from `game_states` and always submit against that tick
-  - verify affordability at submission time using current resources
-  - map DB rows to API types
-- tRPC routes:
-  - `gamePlayerActions.getCurrent({ gameId }) -> { action: GamePlayerAction | null }`
-  - `gamePlayerActions.setCurrent({ gameId, actionType }) -> { action: GamePlayerAction }`
-- Add the new router to `createApi.ts` and export any needed frontend API types.
+Steps:
 
-### Tick processing
+- Rebuild `__root.tsx` header, navigation, and auth actions with shadcn primitives while preserving Router, Clerk, and TanStack behavior.
+- Migrate `/` into the new hero/landing page treatment defined in this spec.
+- Wrap `/sign-in` and `/sign-up` in the new app shell/card presentation without modifying Clerk-provided internals.
 
-- Extend `processTick` to load all selected actions for `(gameId, gameState.tick)` before resolving players.
-- Per player, resolve in this order:
-  1. apply the existing passive `+1 MONEY`
-  2. if no selected action, continue
-  3. if selected action is `MAKE_MORE_MONEY`, subtract `2 MONEY` then add `5 MONEY`
-  4. if selected action is `WIN_THE_GAME`, subtract `10 MONEY`, mark the game ended, and set `winnerPlayerId`
-- Since submission already enforces affordability, tick processing can treat selected actions as executable invariants; if data is inconsistent, log and fail that tick rather than silently changing behavior.
-- When a winning action succeeds:
-  - update `games.endedAt` and `games.winnerPlayerId`
-  - do not schedule another tick for that game
-  - still mark the current tick as finished
-- For non-winning ticks:
-  - preserve current next-tick scheduling/state update behavior
-  - do not delete or clear any action rows; the next tick naturally reads a different `(gameId, tick)` slice
-- For non-winning ticks:
-  - preserve current next-tick scheduling/state update behavior
-- Keep the implementation dependency-injected and `Result`-based, with no new module-scope state.
+Definition of done:
 
-### Frontend
+- Root layout behavior is unchanged apart from presentation.
+- Public/auth routes visually align with the new preset-driven styling.
+- No auth flows or route guards regress.
 
-- Extend the `/play/$gameId` page to fetch both:
-  - current game state
-  - current player action
-- Add a basic action menu on the play screen, colocated with current tick/resources, with:
-  - a button or simple selectable card for `Make More Money`
-  - a button or simple selectable card for `Win The Game`
-  - disabled state and inline reason when the current money is below the action cost
-  - visible indication of the currently selected action
-- Mutating the selection should refresh the current action query so a page refresh shows the persisted choice.
-- After a tick processes and actions are reset, the page should show no selected action on the next successful refetch.
-- After a tick processes, the page should show no selected action for the new current tick unless the player chooses another one.
-- If winner persistence is surfaced in existing game summary/status views, show ended state consistently; winner display on the frontend can be limited to the play page or deferred unless already needed by the changed screens.
+### Phase 4: Migrate game management routes
 
-## Detailed Steps
+Goal: modernize the CRUD and lobby flows before touching the live play screen.
 
-### Step 1: Schema and types
+Steps:
 
-- Add `winnerPlayerId` to `gamesTable` with a nullable FK to `playersTable`.
-- Add `gamePlayerActionsTable` with `gameId`, `playerId`, `tick`, `actionType`, `createdAt`, and `updatedAt`.
-- Use FK constraints back to the game/player membership shape so action rows stay tied to valid game participants.
-- Update generated migration artifacts and any inferred repository row types.
+- Migrate `/games` to the new card/list presentation with search, empty state, skeletons, badges, and primary CTA.
+- Migrate `/games/new` to the new form-card layout with labeled controls and shadcn select usage for turn unit.
+- Migrate `/games/$gameId` to the new lobby detail layout with grouped actions and status presentation.
+- Preserve all existing route data loading, mutation wiring, conditional rendering, and integer parsing behavior.
 
-### Step 2: Action domain model
+Definition of done:
 
-- Add a backend module for player action constants using the repo’s `as const` pattern.
-- Define the supported action ids and their cost/effect metadata in one place.
-- Add a Zod schema and exported type for `GamePlayerAction`.
+- The games list, create flow, and lobby flow behave exactly as before.
+- All route-level controls use shadcn primitives or app-level components built from them.
+- Loading, disabled, and empty states are visibly improved without changing business logic.
 
-### Step 3: Repository layer
+### Phase 5: Migrate the live play route
 
-- Create a `GamePlayerActionsRepository`.
-- Implement upsert-by-primary-key for `(gameId, playerId, tick)`.
-- Implement `getByGameIdPlayerIdAndTick`.
-- Implement `getByGameIdAndTick`.
-- Keep all DB access isolated in this repository.
+Goal: restyle the gameplay screen last so the more stateful route is updated after the shared patterns are stable.
 
-### Step 4: Controller layer
+Steps:
 
-- Create a `GamePlayerActionsController`.
-- On `setCurrent`, fetch the player’s current game state to obtain the active tick and current money.
-- Reject writes when the game state does not exist, the player is not in the game, the game has ended, or the action is unaffordable.
-- Return the persisted action row mapped to the API schema.
-- On `getCurrent`, read the current tick first and then fetch the action for that tick only.
+- Rebuild `/play/$gameId` using dashboard-style shadcn cards and supporting primitives.
+- Preserve the existing countdown logic, tick display, and resource presentation semantics.
+- Reuse app-level components from earlier phases only when they already fit cleanly.
 
-### Step 5: Router integration
+Definition of done:
 
-- Add `gamePlayerActions.router.ts`.
-- Add private procedures for `getCurrent` and `setCurrent`.
-- Keep the same DI and return-type pattern as the existing routers.
-- Register the new router namespace in `createApi.ts`.
-- Export any frontend-consumed output types if needed.
+- The play screen keeps the same data flow and timing behavior.
+- The route matches the new visual system and remains readable for active gameplay.
 
-### Step 6: Tick-processing integration
+### Phase 6: Remove the old design system and verify the migration
 
-- Inject `GamePlayerActionsRepository` into the tick-processing entrypoint and `processTick`.
-- For each game tick being processed, fetch actions by `(gameId, gameState.tick)` once before looping players.
-- Match actions to players during resolution.
-- Preserve the current money increment behavior.
-- Apply action effects after the passive income.
-- On `WIN_THE_GAME`, persist `endedAt` and `winnerPlayerId`, skip next-tick creation, and finish the current tick cleanly.
-- Do not delete or mutate historical action rows once the tick is processed.
+Goal: finish the cutover cleanly so only the shadcn-based UI remains.
 
-### Step 7: Frontend integration
+Steps:
 
-- Add frontend usage of the new router methods in `play.$gameId.tsx`.
-- Query the current action alongside the existing game-state query.
-- Render a minimal action menu with clear selected/unselected states.
-- Use a mutation to change the current action and refetch the current-action query on success.
-- Keep the UI resilient when no action exists for the current tick.
+- Remove all remaining imports from `frontend/src/design-system/`.
+- Delete `frontend/src/design-system/` after confirming nothing still depends on it.
+- Clean up dead classes, wrappers, or compatibility code left behind by the migration.
+- Run the required verification commands and perform the manual smoke test from this spec.
 
-### Step 8: Verification pass
+Definition of done:
 
-- Validate append-only DB behavior for multiple ticks.
-- Validate that changing the action before processing overwrites only the current tick row.
-- Validate that advancing the tick results in no selected action for the new tick.
-- Validate that winning ends the game and persists the winner.
+- `frontend/src/design-system/` no longer exists.
+- No frontend source imports the old design system.
+- Lint, typecheck, and build pass, and the manual smoke checks complete successfully.
 
-## Public Interfaces / Types
+### Recommended agent execution model
 
-- New backend action type enum-like constant and Zod schema for `GamePlayerAction`.
-- New tRPC router namespace: `gamePlayerActions`.
-- New API payload shape:
-  - `GamePlayerAction = { gameId: number; playerId: number; tick: number; actionType: "MAKE_MORE_MONEY" | "WIN_THE_GAME"; updatedAt: Date }`
-- Extend game types as needed to include `winnerPlayerId: number | null` where ended-game winner display is required.
+Use the phases above as strict sequencing boundaries:
+
+- Complete Phase 1 before route migration begins.
+- Complete Phase 2 before broad route conversion to avoid duplicating ad hoc components.
+- Phases 3, 4, and 5 may be split across agents by route ownership, but each agent must preserve behavior and use the shared shadcn foundation established earlier.
+- Phase 6 should be treated as a final integration pass after all route work is merged.
 
 ## Test Plan
 
-- DB/repository checks:
-  - can upsert an action for a player in a game and tick
-  - updating the action replaces the previous selection for the same `(gameId, playerId, tick)` instead of creating duplicates
-  - actions for prior ticks remain stored after processing
-  - fetching actions by `(gameId, tick)` returns only that tick’s rows
-- Controller/router checks:
-  - rejects action submission for non-members
-  - rejects action submission for not-started or ended games
-  - rejects `MAKE_MORE_MONEY` below `2 money`
-  - rejects `WIN_THE_GAME` below `10 money`
-  - returns persisted current action after refresh/read
-- Tick-processing scenarios:
-  - no selected action: player still gets `+1 money`
-  - `MAKE_MORE_MONEY`: player with `2` money ends tick at `6` (`2 + 1 - 2 + 5`)
-  - `WIN_THE_GAME`: player with `10` money ends the game, winner is stored, no next tick is scheduled
-  - after a tick advances, the next tick has no current selection until a new row is submitted for that new tick
-- Manual verification:
-  - select action on `/play/$gameId`, refresh, selection remains
-  - change selection before tick, latest choice is the one persisted
-  - once the tick passes and data refetches, selection is empty for the new current tick while the old row remains in the database
-  - winning action transitions the game to ended state and prevents further play actions
+- Run:
+  - `pnpm lint`
+  - `pnpm --dir frontend typecheck`
+  - `pnpm --dir backend typecheck`
+  - `pnpm --dir frontend build`
+- Manual smoke test:
+  - home page renders with new hero styling
+  - games list loads, filters, shows empty state, and links still work
+  - create game form validates and submits
+  - lobby actions still render correctly by game state
+  - play screen still shows countdown/tick/resources
+  - sign-in and sign-up routes render correctly inside the new shell
+  - confirm no imports from `frontend/src/design-system`
+  - confirm `frontend/src/design-system/` is deleted
 
 ## Assumptions
 
-- Action visibility is private: only the current player can read their own selected action.
-- “Hard error on affordability” means affordability is checked at submission time, not deferred to tick resolution.
-- `game_player_actions` is the action-history system for v1, but reads and writes only target the current tick unless tick processing is fetching rows to resolve.
-- Tick processing remains sequential per game as it is now; this plan does not add broader locking or transactional refactors beyond what is needed for action resolution and reset.
+- “Modernize with shadcn” means use shadcn primitives and preset-driven styling for all app-owned pages; Clerk auth widgets themselves are not rewritten.
+- Use the preset’s generated theme/tokens as the new source of truth instead of preserving the current hand-written palette exactly.
+- It is acceptable to create a small number of app-level shared components in `frontend/src/components/` when that reduces duplication across routes.
+- The implementation must work with relative imports for shadcn components and utils instead of the usual `@/` import style.

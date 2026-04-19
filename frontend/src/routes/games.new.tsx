@@ -1,13 +1,29 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { type ReactElement, useState } from "react"
-import { TextInput } from "../design-system/TextInput.tsx"
-import { NumberInput } from "../design-system/NumberInput.tsx"
-import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import { privateRoute } from "../privateRoute.ts"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
+import { PageHeader } from "../components/PageHeader.tsx"
+import { Button } from "../components/ui/button.tsx"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.tsx"
+import { Input } from "../components/ui/input.tsx"
+import { Label } from "../components/ui/label.tsx"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select.tsx"
+import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 
 type TickIntervalUnit = Enumify<typeof TickIntervalUnit>
+type CreateGameInput = {
+  newGame: {
+    name: string
+    nbSeats: number
+    tickIntervalSeconds: number
+  }
+}
+type CreateGameResult = {
+  newGame: {
+    id: number
+  }
+}
 const TickIntervalUnit = {
   days: "days",
   hours: "hours",
@@ -26,61 +42,99 @@ function CreateGame(): ReactElement {
   const [tickIntervalUnit, setTickIntervalUnit] = useState<TickIntervalUnit>(TickIntervalUnit.days)
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const createGame = useMutation(backendApiClient.games.create.mutationOptions())
+  const createGame = useMutation(
+    backendApiClient.games.create.mutationOptions() as UseMutationOptions<CreateGameResult, Error, CreateGameInput>,
+  )
+  const isCreateDisabled = name === "" || nbSeats < 2
 
   return (
-    <div className="p-8 flex flex-col gap-4">
-      <div className="text-2xl">Create a new game</div>
-      <div className="flex flex-row gap-4">
-        <div>
-          <div>Game name</div>
-          <TextInput value={name} onChange={setName} />
-        </div>
-        <div>
-          <div>Max number of players</div>
-          <NumberInput value={nbSeats} integer onChange={setNbSeats} />
-        </div>
-        <div>
-          <div>Turn length</div>
-          <div className="flex flex-row gap-2">
-            <NumberInput value={tickIntervalMultiplier} integer onChange={setTickIntervalMultiplier} />
-            <select
-              value={tickIntervalUnit}
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <PageHeader
+        title="Create a new game"
+        description="Set the lobby name, seat count, and turn cadence. Submission behavior and validation are unchanged."
+      />
+      <Card className="border border-border/60">
+        <CardHeader>
+          <CardTitle>Lobby settings</CardTitle>
+          <CardDescription>Invite players once the game is created, then start when the lobby is ready.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="game-name">Game name</Label>
+            <Input
+              id="game-name"
+              value={name}
               onChange={(event) => {
-                setTickIntervalUnit(event.target.value as TickIntervalUnit)
+                setName(event.target.value)
+              }}
+              placeholder="Galactic trade league"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="nb-seats">Max number of players</Label>
+            <Input
+              id="nb-seats"
+              type="number"
+              value={nbSeats}
+              onChange={(event) => {
+                setNbSeats(parseInt(event.target.value))
+              }}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Turn length</Label>
+            <div className="flex gap-3">
+              <Input
+                type="number"
+                value={tickIntervalMultiplier}
+                onChange={(event) => {
+                  setTickIntervalMultiplier(parseInt(event.target.value))
+                }}
+              />
+              <Select
+                value={tickIntervalUnit}
+                onValueChange={(value) => {
+                  setTickIntervalUnit(value as TickIntervalUnit)
+                }}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(TickIntervalUnit).map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <Button
+              disabled={isCreateDisabled || createGame.isPending}
+              onClick={() => {
+                createGame.mutate(
+                  {
+                    newGame: {
+                      name,
+                      nbSeats,
+                      tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
+                    },
+                  },
+                  {
+                    onSuccess: ({ newGame }) => {
+                      void navigate({ to: "/games/$gameId", params: { gameId: newGame.id } })
+                    },
+                  },
+                )
               }}
             >
-              {Object.values(TickIntervalUnit).map((unit) => (
-                <option key={unit} value={unit}>
-                  {unit}
-                </option>
-              ))}
-            </select>
+              {createGame.isPending ? "Creating..." : "Create"}
+            </Button>
           </div>
-        </div>
-      </div>
-      <button
-        className="disabled:bg-primary-500 disabled:text-surface-300 disabled:cursor-auto self-start font-semibold uppercase bg-primary-50 text-dark-50 py-3 px-5 rounded-xl cursor-pointer"
-        disabled={name === "" || nbSeats < 2}
-        onClick={() => {
-          createGame.mutate(
-            {
-              newGame: {
-                name,
-                nbSeats,
-                tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
-              },
-            },
-            {
-              onSuccess: ({ newGame }) => {
-                void navigate({ to: "/games/$gameId", params: { gameId: newGame.id } })
-              },
-            },
-          )
-        }}
-      >
-        Create
-      </button>
+        </CardContent>
+      </Card>
     </div>
   )
 }
