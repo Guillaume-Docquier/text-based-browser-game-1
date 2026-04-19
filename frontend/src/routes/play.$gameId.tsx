@@ -7,12 +7,13 @@ import type * as ApiTypes from "@api-types"
 import { GameStatusBadge } from "../components/GameStatusBadge.tsx"
 import { PageHeader } from "../components/PageHeader.tsx"
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert.tsx"
-import { Button } from "../components/ui/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.tsx"
 import { Skeleton } from "../components/ui/skeleton.tsx"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useLogger } from "../contexts/LoggerContext.tsx"
 import { privateRoute } from "../privateRoute.ts"
+import { cn } from "../lib/cn.ts"
+import { Assert } from "@guillaume-docquier/tools-ts"
 
 type PlayGameState = {
   tick: number
@@ -106,24 +107,13 @@ function GameClient(): ReactElement {
       {game.winnerPlayerId !== null ? (
         <Alert className="border-emerald-400/30 bg-emerald-500/10 text-emerald-50">
           <Crown className="size-4" />
-          <AlertTitle>Winner decided</AlertTitle>
-          <AlertDescription>{getWinnerLabel(game)} has already won this game.</AlertDescription>
+          <AlertTitle>{getWinnerLabel(game)} has won the game!</AlertTitle>
         </Alert>
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-3">
-        <MetricCard
-          title="Current tick"
-          description="The active game loop step."
-          value={gameState.tick.toString()}
-          icon={<TimerReset className="size-5 text-primary" />}
-        />
-        <MetricCard
-          title="Money"
-          description="Your currently available resource balance."
-          value={gameState.resources.money.toString()}
-          icon={<Coins className="size-5 text-primary" />}
-        />
+        <MetricCard title="Current tick" value={gameState.tick.toString()} icon={<TimerReset className="size-5 text-primary" />} />
+        <MetricCard title="Money" value={gameState.resources.money.toString()} icon={<Coins className="size-5 text-primary" />} />
         <CountdownCard targetTimestamp={gameState.nextTickAt} />
       </section>
 
@@ -136,15 +126,25 @@ function GameClient(): ReactElement {
           <div className="grid gap-4 md:grid-cols-2">
             {PLAYER_ACTIONS.map((action) => {
               const isSelected = currentAction?.actionType === action.actionType
-              const disabledReason =
-                gameState.resources.money < action.costMoney ? `Requires ${action.costMoney} money.` : undefined
+              const disabledReason = gameState.resources.money < action.costMoney ? `Requires ${action.costMoney} money.` : undefined
+              const canSubmitAction = disabledReason === undefined && !setCurrentAction.isPending
 
               return (
                 <Card
                   key={action.actionType}
-                  className={`border transition-colors ${
-                    isSelected ? "border-primary/50 bg-primary/5" : "border-border/60"
-                  } ${disabledReason === undefined ? "hover:bg-muted/30" : "opacity-80"}`}
+                  className={cn("border transition-colors", {
+                    "border-primary/50 bg-primary/5": isSelected,
+                    "border-border/60": !isSelected,
+                    "hover:bg-muted/30 cursor-pointer": canSubmitAction,
+                    "opacity-80 cursor-not-allowed": !canSubmitAction,
+                  })}
+                  onClick={() => {
+                    setCurrentAction.mutate({
+                      gameId,
+                      tick: gameState.tick,
+                      actionType: isSelected ? null : action.actionType,
+                    })
+                  }}
                 >
                   <CardHeader className="gap-3">
                     <div className="flex items-start justify-between gap-4">
@@ -169,35 +169,11 @@ function GameClient(): ReactElement {
                         <AlertDescription>{disabledReason}</AlertDescription>
                       </Alert>
                     ) : null}
-                    <div>
-                      <Button
-                        variant={isSelected ? "secondary" : "default"}
-                        disabled={disabledReason !== undefined || setCurrentAction.isPending}
-                        onClick={() => {
-                          setCurrentAction.mutate({
-                            gameId,
-                            tick: gameState.tick,
-                            actionType: isSelected ? null : action.actionType,
-                          })
-                        }}
-                        type="button"
-                      >
-                        {isSelected ? "Clear selection" : "Select action"}
-                      </Button>
-                    </div>
                   </CardContent>
                 </Card>
               )
             })}
           </div>
-
-          <Alert>
-            <CheckCircle2 className="size-4" />
-            <AlertTitle>Current selection</AlertTitle>
-            <AlertDescription>
-              {currentAction === null ? "No action selected yet." : getActionLabel(currentAction.actionType)}
-            </AlertDescription>
-          </Alert>
 
           {setCurrentAction.isError ? (
             <Alert variant="destructive">
@@ -206,18 +182,6 @@ function GameClient(): ReactElement {
               <AlertDescription>{setCurrentAction.error.message}</AlertDescription>
             </Alert>
           ) : null}
-        </CardContent>
-      </Card>
-
-      <Card className="border border-border/70 bg-card/95">
-        <CardHeader>
-          <CardTitle>Tick timing</CardTitle>
-          <CardDescription>
-            The next server tick is scheduled from the backend state. Refresh after it completes to view the updated state.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Next tick scheduled for <span className="font-medium text-foreground">{new Date(gameState.nextTickAt).toLocaleString()}</span>.
         </CardContent>
       </Card>
     </div>
@@ -244,15 +208,13 @@ function CountdownCard({ targetTimestamp }: { targetTimestamp: string | Date }):
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock3 className="size-5 text-amber-200" />
-            Countdown
+            This tick is over
           </CardTitle>
-          <CardDescription className="text-amber-100/80">The active tick window has ended.</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert className="border-amber-400/30 bg-transparent text-amber-50">
             <AlertTriangle className="size-4" />
             <AlertTitle>Tick is over, refresh the page!</AlertTitle>
-            <AlertDescription>The countdown reached zero and waits for the next game state fetch.</AlertDescription>
           </Alert>
         </CardContent>
       </Card>
@@ -261,8 +223,7 @@ function CountdownCard({ targetTimestamp }: { targetTimestamp: string | Date }):
 
   return (
     <MetricCard
-      title="Countdown"
-      description="Time remaining before the next tick."
+      title="Next tick in"
       value={`${timeLeft.duration.days}d ${timeLeft.duration.hours}h ${timeLeft.duration.minutes}m ${timeLeft.duration.seconds}s`}
       icon={<Clock3 className="size-5 text-primary" />}
     />
@@ -276,7 +237,7 @@ function MetricCard({
   icon,
 }: {
   title: string
-  description: string
+  description?: string
   value: string
   icon: ReactElement
 }): ReactElement {
@@ -286,7 +247,7 @@ function MetricCard({
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+            {description !== undefined && <CardDescription>{description}</CardDescription>}
           </div>
           <div className="rounded-full border border-border/70 bg-muted/70 p-2">{icon}</div>
         </div>
@@ -316,18 +277,9 @@ function GameClientSkeleton(): ReactElement {
   )
 }
 
-function getActionLabel(actionType: ApiTypes.GamePlayerAction["actionType"]): string {
-  const action = PLAYER_ACTIONS.find((playerAction) => playerAction.actionType === actionType)
-
-  return action?.label ?? actionType
-}
-
 function getWinnerLabel(game: ApiTypes.GameSummary): string {
-  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerPlayerId)
-
-  if (winner === undefined) {
-    return `Player ${game.winnerPlayerId}`
-  }
+  const winner = game.players.find((player) => player.id === game.winnerPlayerId)
+  Assert.isDefined(winner)
 
   return winner.alias ?? `Player ${winner.id}`
 }
