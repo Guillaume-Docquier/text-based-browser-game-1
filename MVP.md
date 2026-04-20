@@ -1,4 +1,4 @@
-# MVP
+# MVP - Cosmic Empires
 
 The scope for the MVP
 
@@ -7,6 +7,97 @@ The minimum viable product will implement the core game mechanics and basic UI f
 - No responsive UI
 - Core game mechanics, strict minimum to showcase the game's ambiance and vision
 - Easily extensible game mechanics architecture
+- Fully customizable ruleset
+
+# High Level Concept
+
+## Concept
+
+Cosmic Empires is a turn-based space strategy game where every decision shapes your rise to power.  
+Build your empire over time through military conquest, economic dominance, technological innovation or cultural influence.  
+Multiple paths lead to victory.
+
+Plan long-term, forge strategic alliances and outmaneuver rival players in a dynamic galaxy.  
+Whether you prefer commanding fleets, mastering trade networks, advancing cutting-edge research or spreading your influence across civilizations,  
+Cosmic Empires rewards smart strategy and precise timing.
+
+In Cosmic Empires, strategy isn't just about reacting, it's about anticipating and orchestrating.  
+Long-term strategy matters more than short-term tactics.
+
+## Genre
+
+Multiplayer sci-fi 4X strategy game focused on long-term planning, diplomacy and asymmetric power systems.
+
+The game is a "computer-aided board game" (a board game that you play on a computer).
+
+## Target Audience
+
+<!--- Motivations and relevant interests; potentially age, gender, etc.; and the desired ESRB rating for the game. --->
+
+The game targets gamers or ages 20+ that have real-life commitments but are looking for long strategic games that can be played in a group.  
+They would probably enjoy real-time persistent games if they could spend the time.
+
+Fans of games like Astroempires, Stellaris, Diplomacy and Axis & Allies should enjoy this game.
+
+## Unique Selling Points
+
+<!--- Critically important. What makes your game stand out? How is it different from all other games? --->
+
+Most space strategy games feature military win conditions. Cosmic Empires offers a game loop that isn't reduced to having the strongest army.  
+The game offers asymmetric elements and partially hidden identities that make diplomacy highly strategic.
+
+Finally, players have total control of game balance. Every single number can be tweaked if players wish and published as presets.  
+This allows the community to create alternative game modes or patch imbalanced strategies.
+
+# Product Design
+
+## Player Experience and Game POV
+
+<!--- Who is the player? What is the setting? What is the fantasy the game grants the player? --->
+<!--- What emotions do you want the player to feel? What keeps the player engaged for the duration of their play? --->
+
+## Visual Style
+
+<!--- What is the “look and feel” of the game? How does this support the desired player's experience? --->
+<!--- What concept art or reference art can you show to give the feel of the game? --->
+
+## Game World Fiction
+
+<!--- Briefly describe the game world and any narrative in player-relevant terms (as presented to the player). --->
+
+## Monetization
+
+<!--- How will the game make money? Premium purchase? F2P? How do you justify this within the design? --->
+
+## Platforms, Technology and Scope
+
+<!--- PC or mobile? Table or phone? 2D or 3D? Unity or Javascript? How long to make, and how big a team? --->
+<!--- How long to first-playable? How long to complete the game? Major risks? --->
+
+# Game Systems Design
+
+## Core Loops
+
+<!--- How do game objects and the player's actions form loops? Why is this engaging? How does this support player goals? --->
+<!--- What emergent results do you expect/hope to see? If F2P, where are the monetization points? --->
+
+## Objectives and Progression
+
+<!--- How does the player move through the game, literally and figuratively, from tutorial to end? --->
+<!--- What are their short-term and long-term goals (explicit or implicit)? --->
+<!--- How do these support the game concept, style, and player-fantasy? --->
+
+## Game Systems
+
+<!--- What systems are needed to make this game? Which ones are internal (simulation, etc.) and which does the player interact with? --->
+
+## Interactivity
+
+<!--- How are different kinds of interactivity used? (Action/Feedback, ST Cog, LT Cog, Emotional, Social, Cultural) --->
+<!--- What is the player doing moment-by-moment? How does the player move through the world? --->
+<!--- How does physics/combat/etc. work? A clear, professional-looking sketch of the primary game UX is helpful. --->
+
+# Initial ideas
 
 ## Dimensions
 
