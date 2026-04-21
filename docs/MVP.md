@@ -1,210 +1,256 @@
 # MVP - Cosmic Empires
 
-The scope for the MVP
+This document defines the minimum viable product for Cosmic Empires. It is an internal design brief: it should make the MVP direction clear enough to guide design, implementation and scope decisions without becoming a complete rules reference.
 
-The minimum viable product will implement the core game mechanics and basic UI features:
+The MVP must prove that Cosmic Empires works as a long-turn, multiplayer, text-first strategy game with asymmetric entities, diplomacy, hidden intent, deterministic tick resolution and fully customizable rulesets.
 
-- No responsive UI
-- Core game mechanics, strict minimum to showcase the game's ambiance and vision
-- Easily extensible game mechanics architecture
-- Fully customizable ruleset
+The MVP includes:
+
+- Three playable entity types: Empires, Corporations and Faiths.
+- A unified final player score built from all entities controlled or affiliated by that player.
+- Long-turn, server-authoritative gameplay where players submit actions and ticks resolve deterministically.
+- Meaningful diplomacy and partial information.
+- A fully data-driven ruleset model that can configure mechanics, numbers, action availability and resolution order.
+- A focused browser UI for desktop play. Responsive/mobile polish is not required for the MVP.
 
 # High Level Concept
 
 ## Concept
 
-Cosmic Empires is a turn-based space strategy game where every decision shapes your rise to power.  
-Build your empire over time through military conquest, economic dominance, technological innovation or cultural influence.  
-Multiple paths lead to victory.
+Cosmic Empires is a multiplayer sci-fi 4X strategy game where players compete through military pressure, economic leverage, technological development, cultural influence, diplomacy and timing.
 
-Plan long-term, forge strategic alliances and outmaneuver rival players in a dynamic galaxy.  
-Whether you prefer commanding fleets, mastering trade networks, advancing cutting-edge research or spreading your influence across civilizations,  
-Cosmic Empires rewards smart strategy and precise timing.
+The game should feel like a computer-aided board game: the computer handles state, validation, hidden information, simultaneous turns and resolution, while the core fun comes from planning, negotiation and reading other players.
 
-In Cosmic Empires, strategy isn't just about reacting, it's about anticipating and orchestrating.  
-Long-term strategy matters more than short-term tactics.
+Players are not meant to win by reacting faster. They win by building a coherent plan over many turns, coordinating the right deals and using the right entity at the right moment.
 
 ## Genre
 
-Multiplayer sci-fi 4X strategy game focused on long-term planning, diplomacy and asymmetric power systems.
+Cosmic Empires is a browser-based, multiplayer, sci-fi 4X strategy game focused on long-term planning, diplomacy, asymmetric power systems and configurable rules.
 
-The game is a "computer-aided board game" (a board game that you play on a computer).
+It borrows from persistent browser strategy games, grand strategy games, negotiation-heavy board games and economic sandbox games, but the MVP should stay text-first and systems-first.
 
 ## Target Audience
 
-<!--- Motivations and relevant interests; potentially age, gender, etc.; and the desired ESRB rating for the game. --->
+The target audience is strategy players aged 20+ who enjoy long games with friends but cannot commit to real-time play sessions or constant monitoring.
 
-The game targets gamers or ages 20+ that have real-life commitments but are looking for long strategic games that can be played in a group.  
-They would probably enjoy real-time persistent games if they could spend the time.
+These players are likely to enjoy games such as Astro Empires, Stellaris, Diplomacy, Axis & Allies, Twilight Imperium or Dune. They want strategic depth, political tension and room for clever plans, but they need a pace that fits around real-life commitments.
 
-Fans of games like Astroempires, Stellaris, Diplomacy and Axis & Allies should enjoy this game.
+The MVP should serve players who can check in once or a few times per day, review the state of the game, negotiate, submit orders and then wait for the next turn to resolve.
 
 ## Unique Selling Points
 
-<!--- Critically important. What makes your game stand out? How is it different from all other games? --->
+Most space strategy games collapse toward military dominance. Cosmic Empires must make force useful without making it the only rational path.
 
-Most space strategy games feature military win conditions. Cosmic Empires offers a game loop that isn't reduced to having the strongest army.
+The MVP does this through three playable entity types:
 
-In Cosmic Empires, you play as multiple distinct entities: Empire, Corporations and Churches.
-Each entity is distinct but will contribute to your Empire score at the end of the game. The Empire has your name on it, but Corporations and Churches are anonymous unless you opt into affiliating them to your Empire.  
-This creates interesting diplomatic relations because you do not always know who you are partnering with.  
-Empires, Corporations and Churches all have different playstyles, with unique actions and specializations.  
-War is designed to not trivialize the game. One cannot annihilate another player without suffering an opportunity cost that would cost themselves the game.  
-This makes peace plays possible. The use of force will only be beneficial in certain situations if planned correctly, like all the other dimensions of the game.
+- Empires control territory, population, law, diplomacy and military posture.
+- Corporations exploit resources, build infrastructure, create economic leverage and offer specialized services.
+- Faiths influence politics, gather intelligence, shape social pressure and execute covert operations.
 
-Finally, players have total control of game balance. Every single number can be tweaked if players wish and published as presets.  
-This allows the community to create alternative game modes or patch imbalanced strategies.
+Each entity type has a different role in the game, but all contribute to the player's unified final score. An Empire is openly tied to the player. Corporations and Faiths can create uncertainty because their ownership or affiliation may not always be public unless the player reveals it or the ruleset requires it.
+
+This structure should create deals where players do not always know who benefits. A player might negotiate with a corporation that secretly serves a rival empire, tolerate a faith because it helps their population or accept military protection that creates an economic dependency.
+
+Ruleset customization is also part of the MVP identity. The game should ship with a default balance, but it should also let players define their own balance through rules customization. Players should be able to create alternate modes by changing numbers, enabled mechanics, action availability, turn pace and scoring emphasis.
 
 # Product Design
 
 ## Player Experience and Game POV
 
-<!--- Who is the player? What is the setting? What is the fantasy the game grants the player? --->
-<!--- What emotions do you want the player to feel? What keeps the player engaged for the duration of their play? --->
+The player is the strategic mind behind an Empire and any Corporations or Faiths they control or affiliate with. They are not only managing a nation-state; they are shaping a web of political, economic, military and ideological power.
 
-The player plays as an Empire. The Empire owns planets and is responsible for the legislation on their territory.  
-An Empire might open their borders for economic activities, or be a warmonger that can provide protection in exchange for certain services, allow or disallow criminality, etc.
+Empires operate at the territorial and legal level. They own planets, govern populations, shape policy, control borders, authorize or restrict activity and decide when to threaten or use force.
 
-The player will also play, if they so choose, as one or more Corporations and Churches. Corporations and churches operate on different planes and scope as the Empire.  
-Corporations are more micro and highly specialized. You might found a mining company, or a tech lab, or defense contractor.  
-Churches are more covert and macro. A church might try to influence certain empire choices, sabotage or enable certain Corporation activities through ideology, etc.
+Corporations operate through specialization and leverage. They extract resources, build infrastructure, develop technologies, fulfill contracts and make themselves useful or indispensable to other players.
 
-This diversity aims at enabling all sorts of plays. If a player wants to be an Empire mastermind, they can focus on playing as Empire. Or they could choose to found many Corporations and offer services to all Empires, to their benefit.  
-Players should feel like they are executing a large-scale plan. They should be thinking multiple turns at a time and anticipate which actions they'll take to achieve long-term objectives.
+Faiths operate through influence, belief, pressure and secrecy. They can shape political incentives, gather information, support or undermine other entities, and create long-term consequences that are not always obvious immediately.
 
-Diplomacy should be a calculated risk. Make the right deals, and you'll put yourself in the top spot, or make a few bad deals with your rivals and they'll gain the advantage on you.  
-Without having to engage with the game all day to be sure to react, players should look forward the turn to end to see what others have done and how their plan holds up.
+The MVP player experience should be:
+
+- Review the current state and previous tick outcomes.
+- Identify whether the current long-term plan still makes sense.
+- Negotiate, coordinate, threaten or mislead through diplomacy.
+- Allocate actions across Empire, Corporation and Faith entities.
+- Ready up or wait for the turn timer.
+- Read the resolved results and adapt.
+
+Players should feel that they are executing a large-scale plan, not optimizing isolated tactical clicks. A strong turn might not score immediately if it creates leverage for a later payoff.
+
+Diplomacy should be a calculated risk. Good deals can create a winning position, but because not all ownership, affiliation or intent is public, players will need social reading to assess if a deal is good for them and doesn't benefit a rival more.
 
 ## Visual Style
 
-<!--- What is the “look and feel” of the game? How does this support the desired player's experience? --->
-<!--- What concept art or reference art can you show to give the feel of the game? --->
+Cosmic Empires is a space strategy game, but it is also a browser text game. The UI should provide atmosphere and clarity without relying on expensive visual production for every object.
 
-This is a space game, but also a browser text game. While there will be visual elements, the fantasy should take place in the player's head.  
-The game will have a polished, high-tech sci-fi look but might not provide images for every single thing.
+The MVP should feel polished, high-tech and serious. It should use visual assets selectively to establish tone, orient the player, and make important game surfaces feel tangible. The fantasy should still live mostly in the player's head, supported by clean information design and evocative language.
 
-The visuals (and lore) will be inspired by books like Dune and The Expanse and games like Homeworld 2.
+The visual direction is inspired by Dune, The Expanse and Homeworld 2: tactical, political, industrial, and grounded rather than flashy or arcade-like.
 
 ### Ships
 
-| The Expanse Roccinante                                                | Homeworld 2 Corvettes                                                      |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| ![The Expanse Roccinante](.github/images/inspiration-the-expanse.png) | ![Homeworld 2 Corvettes](.github/images/inspiration-homeworld-2-ships.png) |
+| The Expanse Rocinante                                                   | Homeworld 2 Corvettes                                                         |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| ![The Expanse Rocinante](../.github/images/inspiration-the-expanse.png) | ![Homeworld 2 Corvettes](../.github/images/inspiration-homeworld-2-ships.png) |
 
 ### Maps
 
-| Dune Board Game Map                                         | Homeworld 2 Tactical Map                                                 |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
-| ![Dune Board Game Map](.github/images/inspiration-dune.png) | ![Homeworld 2 Corvettes](.github/images/inspiration-homeworld-2-map.png) |
+| Dune Board Game Map                                            | Homeworld 2 Tactical Map                                                       |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| ![Dune Board Game Map](../.github/images/inspiration-dune.png) | ![Homeworld 2 Tactical Map](../.github/images/inspiration-homeworld-2-map.png) |
 
 ### AI Generated UI
 
-| AI Generated Solar System UI                                                    | AI Generated Planet UI                                              |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| ![AI Generated Solar System UI](.github/images/mockup-ai-solar-system-view.png) | ![AI Generated Planet UI](.github/images/mockup-ai-planet-view.png) |
+| AI Generated Solar System UI                                                       | AI Generated Planet UI                                                 |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| ![AI Generated Solar System UI](../.github/images/mockup-ai-solar-system-view.png) | ![AI Generated Planet UI](../.github/images/mockup-ai-planet-view.png) |
 
 ## Game World Fiction
 
-<!--- Briefly describe the game world and any narrative in player-relevant terms (as presented to the player). --->
+Humanity has colonized the solar system and is approaching the point where expansion beyond it may become possible. Different factions now compete to define the future: mercantile blocs, technocratic societies, authoritarian powers, ideological movements, industrial networks and covert institutions.
 
-Humanity has achieved space colonization within the solar system and is not far off from being able to colonize other systems.  
-Different factions emerged throughout the solar system, each competing for the rise of their ideologies and lifestyle.  
-While not at war, the factions' relations have been tense at times and small conflicts have happened in the past.
+Open war is not constant, but tensions are high. Small conflicts, proxy struggles, resource disputes, political sabotage and ideological movements shape the balance of power.
 
-Will you lead a mercantile empire, a progressive technocratic society or an authoritarian warmonger faction? The choice is up to you.
+The MVP should present enough fiction to make the systems feel grounded. Players should understand why Empires, Corporations and Faiths coexist, overlap, and compete:
+
+- Empires need resources, legitimacy, security and population support.
+- Corporations need access, contracts, protection and markets.
+- Faiths need believers, influence, secrecy and ideological momentum.
+
+The fiction should support player choice rather than prescribe a fixed story. A player can lead a mercantile empire, a progressive technocracy, a militarized hegemon, a quiet economic network or an ideological movement hiding behind other powers.
 
 ## Monetization
 
-<!--- How will the game make money? Premium purchase? F2P? How do you justify this within the design? --->
+The MVP should be free to play and must not include pay-to-win mechanics.
 
-The game will be entirely free to play with no pay to win mechanics.  
-Players will be encouraged to support the development of the game via QoL benefits outside the games, such as being able to customize game settings or participate in more games at the same time.  
-There might be cosmetics as well, such as profile banners or badges, etc.
-
-The goal won't be to make money, but rather just pay for the infrastructure, which should be relatively cheap to start with (expected 5-10 CAD per month).
+All quality-of-life features will be available to all players, but eventually will be offered to paying users only. These features will never provide an in-game advantage.
 
 ## Platforms, Technology and Scope
 
-<!--- PC or mobile? Table or phone? 2D or 3D? Unity or Javascript? How long to make, and how big a team? --->
-<!--- How long to first-playable? How long to complete the game? Major risks? --->
+The MVP is a desktop-first browser game with a backend server to process ticks and a database to persist games.
 
-The game will be a browser text game written in javascript. Mobile will be supported through responsive design, not an app.  
-It will take about 3 months to create an MVP, and 9 months until the open beta.  
-The expected team will be 1 developer.
+Mobile may work incidentally, but responsive UI is not a release requirement for the MVP. The main requirement is that a player on a desktop browser can create or join a game, review state, communicate, submit actions, and follow tick results clearly.
+
+The MVP is designed for a one-developer team. Scope should favor a complete, coherent strategic loop over a large number of shallow mechanics.
 
 # Game Systems Design
 
 ## Core Loops
 
-<!--- How do game objects and the player's actions form loops? Why is this engaging? How does this support player goals? --->
-<!--- What emergent results do you expect/hope to see? If F2P, where are the monetization points? --->
+The core loop is turn submission followed by deterministic tick resolution.
 
-THE core loop is the game turns. During a turn, players will have a budget of actions they can take.  
-Each unit, building, planet, etc. will offer a set of actions that can be taken, and the player will have to choose the best course of action for their strategy.  
-When all actions are chosen, player can choose to Ready themselves and the turn will progress after the time runs out or if all players are Ready.
+During a turn, players review the current game state and choose actions from the entities they control. Actions can come from Empires, Corporations, Faiths, territories, buildings, units, technologies, treaties or other ruleset-defined objects.
 
-Players will be exchanging messages, drafting contracts and treaties, building infrastructure, positioning units, doing espionage, etc.  
-There will be synergies that encourage players to specialize, but also to encourage them to make deals with other players.  
-It should be hard to specialize in many aspects of the game, but having access to multiple highly specialized products will yield high rewards.
+When players are done, they can mark themselves ready. The tick resolves when all required players are ready or when the turn timer expires. Resolution is server-authoritative and deterministic: the backend validates submitted actions, orders them according to the ruleset, applies their effects, advances the game state and schedules the next tick.
 
-We hope to see different metas emerge with players gaming the core ruleset and discuss different strategies. It would be nice to see players use game mechanics in a way that they weren't designed for, as long as their use is clever and invested in a strategy.  
-We also hope to see players design their own game modes through custom rulesets, playing with very fast or slow turns, with fewer or more players.  
-We hope that the game will offer a flexible enough sandbox to have fun in different ways.
+The moment-to-moment MVP loop is:
+
+- Open the game and inspect the current tick.
+- Review event logs and previous outcomes.
+- Check available actions and resources for each entity type.
+- Exchange messages, offers, threats, contracts or treaty proposals.
+- Submit orders for Empires, Corporations and Faiths.
+- Ready up.
+- Return after resolution to understand what changed.
+
+The strategic loop is:
+
+- Choose a path to victory through territory, economy, technology, culture, influence, diplomacy or force.
+- Build the entities and relationships needed to support that path.
+- Use partial information to hide intent or expose rivals.
+- Trade short-term gains for long-term position.
+- Adapt when other players reveal their plans.
+
+The MVP should support specialization. A player should be able to lean into military power, economic services, technology, ideology, diplomacy or hybrid strategies. No single path should automatically dominate every ruleset.
 
 ## Objectives and Progression
 
-<!--- How does the player move through the game, literally and figuratively, from tutorial to end? --->
-<!--- What are their short-term and long-term goals (explicit or implicit)? --->
-<!--- How do these support the game concept, style, and player-fantasy? --->
+The MVP has no meta-progression requirement. A player joins a game, plays it to completion, receives a final result and can start another game.
 
-There will be no tutorial, but there will be extensive documentation of the game mechanics.  
-The best way for players to learn the game will be to play a game with the "beginner ruleset" with new players.  
-This ruleset will be designed to offer a forgiving setting where misplays don't have devastating consequences and where you can explore multiple game mechanics easily.  
-It might also disable certain mechanics altogether, as to not overwhelm newcomers.
+Within a game, the objective is to maximize the unified score. That score comes from the combined performance of the player's Empire, Corporations and Faiths. The exact scoring formula is ruleset-defined, but the default MVP ruleset should reward multiple viable strategies rather than only conquest.
 
-In terms of progression, there will be no real meta-progression. To its core, you play a game from start to end, then start another one.  
-If the game has a large enough playerbase, we will probably host tournaments, or leagues, with players participating in a variety of games and accumulating score to compete for the top spot.
+Short-term goals should include:
 
-Within the game itself, the long-term goals will be to decide on a strategy to go for to win the game and adjust depending on what other players do.  
-The short-term goals will be to optimize every step of the way to achieve their strategy. We hope that certain turns might not score a lot of points but will be necessary setup to score higher points later, rewarding long term planning.
+- Securing resources and action capacity.
+- Understanding the previous tick to determine rival strategies and entity allegiances.
+- Making useful deals.
+- Positioning entities for future turns.
+- Avoiding obvious exposure to rivals.
 
-These support the philosophy of the game being strategic, not tactical.  
-Games will reward players who can execute a vision and not be distracted by short-term gains.  
-Leagues will reward being able to play different strategies on different rulesets.
+Long-term goals should include:
+
+- Building a durable scoring engine.
+- Creating leverage over other players.
+- Controlling or influencing valuable locations.
+- Developing specialized entities that other players must account for.
+- Timing major actions for maximum payoff.
+
+The MVP should include enough documentation in the UI or companion docs for players to understand rules, actions, scoring and tick order. A full tutorial is not required, but the beginner/default ruleset should be forgiving enough that new players can learn by playing.
 
 ## Game Systems
 
-<!--- What systems are needed to make this game? Which ones are internal (simulation, etc.) and which does the player interact with? --->
+The MVP needs the following product systems:
 
-We will need:
+- Game creation, joining, starting, active play, completion and winner display.
+- Authentication and player access control.
+- Persistent game state and history.
+- Server-authoritative action submission and validation.
+- Long-turn tick processing in a worker thread.
+- Event logs that explain relevant tick outcomes.
+- Player messaging and diplomacy surfaces.
+- Ruleset configuration and persistence.
+- Data-driven UI that can show available ruleset-driven actions and state.
 
-- Highly modular, data-driven tick processing pipeline with reasonable performance to support a variety of rulesets but also to be able to add game mechanics.
-- Data-driven UI to correctly display ui sections and actions that are available in the game's ruleset.
-- Real-time communication for notifications (chat messages, treaty & contract offers, etc).
-- Database persistence.
-- Authoritative server with solid validation to prevent cheating and bugs.
-- Authentication to identify players and control their access.
+The MVP needs the following game systems:
 
-In terms of game mechanics, we will need:
+- Empires as territorial and political entities.
+- Corporations as economic and infrastructure entities.
+- Faiths as influence, information and ideological entities.
+- Resources and currencies.
+- Action budgets or action capacity.
+- Movement or spatial positioning.
+- Alliances, treaties, contracts or similar diplomatic commitments.
+- Scoring and end-game resolution.
+- Technology, progression or unlock systems where needed to support long-term planning.
+- Trade or exchange systems that let players create interdependence.
 
-- Empire
-- Corporations
-- Churches
-- Alliances
-- Chat
-- Movement
-- Tech trees & other progression systems
-- Scoring system
-- Resources and currencies
-- Trade system
+Rulesets are a first-class MVP system. A ruleset should define:
+
+- Enabled mechanics.
+- Static game attributes such as player count, map size, turn duration, starting resources and game length.
+- Entity types, objects, resources, units, buildings, technologies or equivalent game pieces.
+- Available actions, their costs, requirements, targets, effects and scoring impact.
+- Resolution order for mechanics and actions.
+- Visibility rules for ownership, affiliation, actions, events and outcomes.
+- Victory and scoring rules.
+
+The implementation should support presets, but presets are not a substitute for the underlying data-driven model. The default ruleset should demonstrate the intended game identity; custom rulesets should demonstrate that the architecture can support alternate balance and modes.
 
 ## Interactivity
 
-<!--- How are different kinds of interactivity used? (Action/Feedback, ST Cog, LT Cog, Emotional, Social, Cultural) --->
-<!--- What is the player doing moment-by-moment? How does the player move through the world? --->
-<!--- How does physics/combat/etc. work? A clear, professional-looking sketch of the primary game UX is helpful. --->
+Cosmic Empires is a tick-based simulation. Players see the current state, submit orders and then see the results after the tick resolves.
 
-The game is a tick-based simulation for a text game. The players see the current state, lock in actions and see the resolution when the turn ends.  
-They interact with other players through in game messages and notifications.  
-Everything will be deterministic, but players will not have access to all information (such as other players' chosen actions).  
-The UI is there to make the game feel nice and set the fantasy and tone, but is accessory. True fans would still enjoy the game if it was a big spreadsheet.
+The MVP should use interactivity in four main ways:
+
+- Strategic interaction: players choose actions that shape future turns.
+- Social interaction: players communicate, negotiate, coordinate and deceive.
+- Information interaction: players interpret logs, hidden ownership, public state and partial signals.
+- Systems interaction: players adjust to ruleset-defined costs, timing, scoring and resolution order.
+
+Everything important must be deterministic and server-authoritative, but not everything must be public. The game should clearly distinguish between known facts, visible outcomes, hidden information and player claims.
+
+The UI exists to make the game readable and atmospheric. It should reduce bookkeeping, expose meaningful choices and help players understand why the tick resolved the way it did. The underlying game should still be compelling to players who would enjoy it as a large spreadsheet, but the MVP should present that spreadsheet as a coherent sci-fi strategy experience.
+
+## MVP Success Criteria
+
+The MVP is successful when:
+
+- A player can create or join a game.
+- Multiple players can participate in the same game over multiple ticks.
+- Players can submit meaningful actions through Empires, Corporations and Faiths.
+- Tick processing resolves actions deterministically and advances the game state.
+- Players can understand major outcomes through event logs or equivalent feedback.
+- Diplomacy and partial information matter to the result.
+- The game can end and show a unified winner or final score.
+- Rulesets can materially change balance, enabled mechanics, action behavior, resolution order and scoring.
+
+The MVP does not need production-scale balancing, mobile polish, monetization, a complete tutorial or a large content library. It does need a complete strategic loop that proves the game can create interesting long-term decisions.
