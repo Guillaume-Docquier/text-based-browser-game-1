@@ -43,8 +43,14 @@ Fans of games like Astroempires, Stellaris, Diplomacy and Axis & Allies should e
 
 <!--- Critically important. What makes your game stand out? How is it different from all other games? --->
 
-Most space strategy games feature military win conditions. Cosmic Empires offers a game loop that isn't reduced to having the strongest army.  
-The game offers asymmetric elements and partially hidden identities that make diplomacy highly strategic.
+Most space strategy games feature military win conditions. Cosmic Empires offers a game loop that isn't reduced to having the strongest army.
+
+In Cosmic Empires, you play as multiple distinct entities: Empire, Corporations and Churches.
+Each entity is distinct but will contribute to your Empire score at the end of the game. The Empire has your name on it, but Corporations and Churches are anonymous unless you opt into affiliating them to your Empire.  
+This creates interesting diplomatic relations because you do not always know who you are partnering with.  
+Empires, Corporations and Churches all have different playstyles, with unique actions and specializations.  
+War is designed to not trivialize the game. One cannot annihilate another player without suffering an opportunity cost that would cost themselves the game.  
+This makes peace plays possible. The use of force will only be beneficial in certain situations if planned correctly, like all the other dimensions of the game.
 
 Finally, players have total control of game balance. Every single number can be tweaked if players wish and published as presets.  
 This allows the community to create alternative game modes or patch imbalanced strategies.
@@ -56,23 +62,75 @@ This allows the community to create alternative game modes or patch imbalanced s
 <!--- Who is the player? What is the setting? What is the fantasy the game grants the player? --->
 <!--- What emotions do you want the player to feel? What keeps the player engaged for the duration of their play? --->
 
+The player plays as an Empire. The Empire owns planets and is responsible for the legislation on their territory.  
+An Empire might open their borders for economic activities, or be a warmonger that can provide protection in exchange for certain services, allow or disallow criminality, etc.
+
+The player will also play, if they so choose, as one or more Corporations and Churches. Corporations and churches operate on different planes and scope as the Empire.  
+Corporations are more micro and highly specialized. You might found a mining company, or a tech lab, or defense contractor.  
+Churches are more covert and macro. A church might try to influence certain empire choices, sabotage or enable certain Corporation activities through ideology, etc.
+
+This diversity aims at enabling all sorts of plays. If a player wants to be an Empire mastermind, they can focus on playing as Empire. Or they could choose to found many Corporations and offer services to all Empires, to their benefit.  
+Players should feel like they are executing a large-scale plan. They should be thinking multiple turns at a time and anticipate which actions they'll take to achieve long-term objectives.
+
+Diplomacy should be a calculated risk. Make the right deals, and you'll put yourself in the top spot, or make a few bad deals with your rivals and they'll gain the advantage on you.  
+Without having to engage with the game all day to be sure to react, players should look forward the turn to end to see what others have done and how their plan holds up.
+
 ## Visual Style
 
 <!--- What is the “look and feel” of the game? How does this support the desired player's experience? --->
 <!--- What concept art or reference art can you show to give the feel of the game? --->
 
+This is a space game, but also a browser text game. While there will be visual elements, the fantasy should take place in the player's head.  
+The game will have a polished, high-tech sci-fi look but might not provide images for every single thing.
+
+The visuals (and lore) will be inspired by books like Dune and The Expanse and games like Homeworld 2.
+
+### Ships
+
+| The Expanse Roccinante                                                | Homeworld 2 Corvettes                                                      |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| ![The Expanse Roccinante](.github/images/inspiration-the-expanse.png) | ![Homeworld 2 Corvettes](.github/images/inspiration-homeworld-2-ships.png) |
+
+### Maps
+
+| Dune Board Game Map                                         | Homeworld 2 Tactical Map                                                 |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| ![Dune Board Game Map](.github/images/inspiration-dune.png) | ![Homeworld 2 Corvettes](.github/images/inspiration-homeworld-2-map.png) |
+
+### AI Generated UI
+
+| AI Generated Solar System UI                                                    | AI Generated Planet UI                                              |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| ![AI Generated Solar System UI](.github/images/mockup-ai-solar-system-view.png) | ![AI Generated Planet UI](.github/images/mockup-ai-planet-view.png) |
+
 ## Game World Fiction
 
 <!--- Briefly describe the game world and any narrative in player-relevant terms (as presented to the player). --->
+
+Humanity has achieved space colonization within the solar system and is not far off from being able to colonize other systems.  
+Different factions emerged throughout the solar system, each competing for the rise of their ideologies and lifestyle.  
+While not at war, the factions' relations have been tense at times and small conflicts have happened in the past.
+
+Will you lead a mercantile empire, a progressive technocratic society or an authoritarian warmonger faction? The choice is up to you.
 
 ## Monetization
 
 <!--- How will the game make money? Premium purchase? F2P? How do you justify this within the design? --->
 
+The game will be entirely free to play with no pay to win mechanics.  
+Players will be encouraged to support the development of the game via QoL benefits outside the games, such as being able to customize game settings or participate in more games at the same time.  
+There might be cosmetics as well, such as profile banners or badges, etc.
+
+The goal won't be to make money, but rather just pay for the infrastructure, which should be relatively cheap to start with (expected 5-10 CAD per month).
+
 ## Platforms, Technology and Scope
 
 <!--- PC or mobile? Table or phone? 2D or 3D? Unity or Javascript? How long to make, and how big a team? --->
 <!--- How long to first-playable? How long to complete the game? Major risks? --->
+
+The game will be a browser text game written in javascript. Mobile will be supported through responsive design, not an app.  
+It will take about 3 months to create an MVP, and 9 months until the open beta.  
+The expected team will be 1 developer.
 
 # Game Systems Design
 
