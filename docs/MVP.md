@@ -139,15 +139,64 @@ The expected team will be 1 developer.
 <!--- How do game objects and the player's actions form loops? Why is this engaging? How does this support player goals? --->
 <!--- What emergent results do you expect/hope to see? If F2P, where are the monetization points? --->
 
+THE core loop is the game turns. During a turn, players will have a budget of actions they can take.  
+Each unit, building, planet, etc. will offer a set of actions that can be taken, and the player will have to choose the best course of action for their strategy.  
+When all actions are chosen, player can choose to Ready themselves and the turn will progress after the time runs out or if all players are Ready.
+
+Players will be exchanging messages, drafting contracts and treaties, building infrastructure, positioning units, doing espionage, etc.  
+There will be synergies that encourage players to specialize, but also to encourage them to make deals with other players.  
+It should be hard to specialize in many aspects of the game, but having access to multiple highly specialized products will yield high rewards.
+
+We hope to see different metas emerge with players gaming the core ruleset and discuss different strategies. It would be nice to see players use game mechanics in a way that they weren't designed for, as long as their use is clever and invested in a strategy.  
+We also hope to see players design their own game modes through custom rulesets, playing with very fast or slow turns, with fewer or more players.  
+We hope that the game will offer a flexible enough sandbox to have fun in different ways.
+
 ## Objectives and Progression
 
 <!--- How does the player move through the game, literally and figuratively, from tutorial to end? --->
 <!--- What are their short-term and long-term goals (explicit or implicit)? --->
 <!--- How do these support the game concept, style, and player-fantasy? --->
 
+There will be no tutorial, but there will be extensive documentation of the game mechanics.  
+The best way for players to learn the game will be to play a game with the "beginner ruleset" with new players.  
+This ruleset will be designed to offer a forgiving setting where misplays don't have devastating consequences and where you can explore multiple game mechanics easily.  
+It might also disable certain mechanics altogether, as to not overwhelm newcomers.
+
+In terms of progression, there will be no real meta-progression. To its core, you play a game from start to end, then start another one.  
+If the game has a large enough playerbase, we will probably host tournaments, or leagues, with players participating in a variety of games and accumulating score to compete for the top spot.
+
+Within the game itself, the long-term goals will be to decide on a strategy to go for to win the game and adjust depending on what other players do.  
+The short-term goals will be to optimize every step of the way to achieve their strategy. We hope that certain turns might not score a lot of points but will be necessary setup to score higher points later, rewarding long term planning.
+
+These support the philosophy of the game being strategic, not tactical.  
+Games will reward players who can execute a vision and not be distracted by short-term gains.  
+Leagues will reward being able to play different strategies on different rulesets.
+
 ## Game Systems
 
 <!--- What systems are needed to make this game? Which ones are internal (simulation, etc.) and which does the player interact with? --->
+
+We will need:
+
+- Highly modular, data-driven tick processing pipeline with reasonable performance to support a variety of rulesets but also to be able to add game mechanics.
+- Data-driven UI to correctly display ui sections and actions that are available in the game's ruleset.
+- Real-time communication for notifications (chat messages, treaty & contract offers, etc).
+- Database persistence.
+- Authoritative server with solid validation to prevent cheating and bugs.
+- Authentication to identify players and control their access.
+
+In terms of game mechanics, we will need:
+
+- Empire
+- Corporations
+- Churches
+- Alliances
+- Chat
+- Movement
+- Tech trees & other progression systems
+- Scoring system
+- Resources and currencies
+- Trade system
 
 ## Interactivity
 
@@ -155,96 +204,7 @@ The expected team will be 1 developer.
 <!--- What is the player doing moment-by-moment? How does the player move through the world? --->
 <!--- How does physics/combat/etc. work? A clear, professional-looking sketch of the primary game UX is helpful. --->
 
-# Initial ideas
-
-## Dimensions
-
-Empire:
-
-- Enables economic activities
-- Enables population & territory growth
-- Drives laws & doctrines
-
-Corporations:
-
-- Exploit resources
-- Develop technologies
-- Build infrastructure
-
-Religions:
-
-- Influence politics
-- Gather intel
-- Sabotage & Smuggling
-
-## Turns
-
-Game plays with long ticks / turns (maybe 1-3 turns a day)
-Real time is fun, but too addictive and makes you check the game non stop
-
-## Special Turns
-
-Every X turns, there is a special turn, where all entities (empires, corporations and religions) vote on certain things that affect the whole empire.
-
-It could be things like:
-
-- bonus to certain exploitations
-- bonus tech gains
-- disallow certain actions (like wars, or colonization)
-- choice of free tech / perk
-
-## Actions
-
-Each player has a clear number of actions to submit.
-Something like:
-
-- Each owned planet: 2 planet action points
-- Each owned moon: 1 moon action point
-- Each corporation: 1 action point per unit
-- Each religion: 1 action point per planet
-
-Action points can be distributed however you want within their pools (empire/corpo/religion) as long as they don't conflict.
-For example:
-
-- You could spend all your empire actions on a single planet
-- You could have a corporation unit move and harvest, but it cannot move twice
-
-Some actions might cost multiple action points. It is possible that a unit has to idle.
-It is possible to save action points for future turns.
-Some actions might also take multiple turns to complete or cost additional resources.
-
-## Resource Gains
-
-Empire takes a cut from active corporation contracts (even when the corp is not harvesting)
-Corporations earn money/resources based on their actions (harvest)
-Religions earn favour based on their level of influence
-
-## Score Gains
-
-Empire scores based on planet owned and total population
-Corporations score based on short term contracts
-Religions score based on long term hidden agendas
-
-## Gameplay loop
-
-Open the game
-Clearly see all your entities and the number of actions left to submit for each
-Browse event logs for the previous turn(s) to understand what other players are doing
-Evaluate if the current strategy still makes sense
-Send messages and offers to other players
-Execute via orders
-Submit ready
-
-# UI inspiration
-
-## Galaxy view
-
-| wireframe                                                                                 | hifi                                                                                                                                 |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| ![Image](https://github.com/user-attachments/assets/6a56e815-f439-4fdf-a811-951069e6badc) | <img width="1024" height="1536" alt="Image" src="https://github.com/user-attachments/assets/1ad4eec5-cb0b-476f-98cf-1ea0f0d610a0" /> |
-
-## Planet overview view
-
-| wireframe                                                                                 | hifi                                                                                                                                 |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| ![Image](https://github.com/user-attachments/assets/79a424fe-abba-46c1-bff4-0188af453310) | <img width="1024" height="1536" alt="Image" src="https://github.com/user-attachments/assets/5475ab03-4ce6-4327-b57b-327e7c64e8d2" /> |
+The game is a tick-based simulation for a text game. The players see the current state, lock in actions and see the resolution when the turn ends.  
+They interact with other players through in game messages and notifications.  
+Everything will be deterministic, but players will not have access to all information (such as other players' chosen actions).  
+The UI is there to make the game feel nice and set the fantasy and tone, but is accessory. True fans would still enjoy the game if it was a big spreadsheet.

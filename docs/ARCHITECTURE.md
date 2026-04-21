@@ -1,6 +1,6 @@
 # Architecture
 
-Describes the current architecture in details
+Describes the current architecture in details. This is a living document.
 
 ## Tick processing
 
