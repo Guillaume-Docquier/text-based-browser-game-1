@@ -13,7 +13,7 @@ We use DI for inversion of control to make code easier to test and decoupled fro
 ## Architecture Decision Records (ADRs)
 
 Architecture Decision Records are simple snapshots of decisions that were made, with their status and context.  
-They are all version controlled in the root [adr/](../adr/) directory.
+They are all version controlled in the [docs/adr/](../docs/adr/) directory.
 
 ## Database
 

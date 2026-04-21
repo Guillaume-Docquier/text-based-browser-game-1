@@ -51,4 +51,9 @@ While Express and Typescript everywhere might not be the most suitable options, 
 ## Architecture Decision Records (ADRs)
 
 Architecture Decision Records are simple snapshots of decisions that were made, with their status and context.  
-They are all version controlled in the root [adr/](../adr/) directory.
+They are all version controlled in the [docs/adr/](./docs/adr/) directory.
+
+## Game design
+
+The game design, at every stage of its life, will be documented in [docs/](./docs/) in Markdown files.  
+One file will contain the latest, up-to-date game design & philosophy, but we'll keep the original documents as well (mvp, alpha, beta, 1.0, etc)
