@@ -63,6 +63,6 @@ sequenceDiagram
             P4->>P2: insert(newGameState)
             P4->>P1: insert(newTick)
           end
-        P4->>P3: void
+          P4->>P3: void
         end
 ```
