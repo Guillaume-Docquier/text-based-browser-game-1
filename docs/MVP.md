@@ -2,12 +2,12 @@
 
 This document defines the minimum viable product for Cosmic Empires. It is an internal design brief: it should make the MVP direction clear enough to guide design, implementation and scope decisions without becoming a complete rules reference.
 
-The MVP must prove that Cosmic Empires works as a long-turn, multiplayer, text-first strategy game with asymmetric entities, diplomacy, hidden intent, deterministic tick resolution and fully customizable rulesets.
+The MVP must prove that Cosmic Empires works as a long-turn, multiplayer, text-first strategy game with asymmetric Institutions, diplomacy, hidden intent, deterministic tick resolution and fully customizable rulesets.
 
 The MVP includes:
 
-- Three playable entity types: Empires, Corporations and Faiths.
-- A unified final player score built from all entities controlled or affiliated by that player.
+- Three playable Institution types: Empires, Corporations and Faiths.
+- A unified final player score built from all Institutions controlled or affiliated by that player.
 - Long-turn, server-authoritative gameplay where players submit actions and ticks resolve deterministically.
 - Meaningful diplomacy and partial information.
 - A fully data-driven ruleset model that can configure mechanics, numbers, action availability and resolution order.
@@ -21,7 +21,7 @@ Cosmic Empires is a multiplayer sci-fi 4X strategy game where players compete th
 
 The game should feel like a computer-aided board game: the computer handles state, validation, hidden information, simultaneous turns and resolution, while the core fun comes from planning, negotiation and reading other players.
 
-Players are not meant to win by reacting faster. They win by building a coherent plan over many turns, coordinating the right deals and using the right entity at the right moment.
+Players are not meant to win by reacting faster. They win by building a coherent plan over many turns, coordinating the right deals and using the right Institution at the right moment.
 
 ## Genre
 
@@ -41,13 +41,13 @@ The MVP should serve players who can check in once or a few times per day, revie
 
 Most space strategy games collapse toward military dominance. Cosmic Empires must make force useful without making it the only rational path.
 
-The MVP does this through three playable entity types:
+The MVP does this through three playable Institution types:
 
 - Empires control territory, population, law, diplomacy and military posture.
 - Corporations exploit resources, build infrastructure, create economic leverage and offer specialized services.
 - Faiths influence politics, gather intelligence, shape social pressure and execute covert operations.
 
-Each entity type has a different role in the game, but all contribute to the player's unified final score. An Empire is openly tied to the player. Corporations and Faiths can create uncertainty because their ownership or affiliation may not always be public unless the player reveals it or the ruleset requires it.
+Each Institution type has a different role in the game, but all contribute to the player's unified final score. An Empire is openly tied to the player. Corporations and Faiths can create uncertainty because their ownership or affiliation may not always be public unless the player reveals it or the ruleset requires it.
 
 This structure should create deals where players do not always know who benefits. A player might negotiate with a corporation that secretly serves a rival empire, tolerate a faith because it helps their population or accept military protection that creates an economic dependency.
 
@@ -63,14 +63,14 @@ Empires operate at the territorial and legal level. They own planets, govern pop
 
 Corporations operate through specialization and leverage. They extract resources, build infrastructure, develop technologies, fulfill contracts and make themselves useful or indispensable to other players.
 
-Faiths operate through influence, belief, pressure and secrecy. They can shape political incentives, gather information, support or undermine other entities, and create long-term consequences that are not always obvious immediately.
+Faiths operate through influence, belief, pressure and secrecy. They can shape political incentives, gather information, support or undermine other Institutions, and create long-term consequences that are not always obvious immediately.
 
 The MVP player experience should be:
 
 - Review the current state and previous tick outcomes.
 - Identify whether the current long-term plan still makes sense.
 - Negotiate, coordinate, threaten or mislead through diplomacy.
-- Allocate actions across Empire, Corporation and Faith entities.
+- Allocate actions across Empire, Corporation and Faith Institutions.
 - Ready up or wait for the turn timer.
 - Read the resolved results and adapt.
 
@@ -138,7 +138,7 @@ The MVP is designed for a one-developer team. Scope should favor a complete, coh
 
 The core loop is turn submission followed by deterministic tick resolution.
 
-During a turn, players review the current game state and choose actions from the entities they control. Actions can come from Empires, Corporations, Faiths, territories, buildings, units, technologies, treaties or other ruleset-defined objects.
+During a turn, players review the current game state and choose actions from the Institutions they control. Actions can come from Empires, Corporations, Faiths, territories, buildings, units, technologies, treaties or other ruleset-defined objects.
 
 When players are done, they can mark themselves ready. The tick resolves when all required players are ready or when the turn timer expires. Resolution is server-authoritative and deterministic: the backend validates submitted actions, orders them according to the ruleset, applies their effects, advances the game state and schedules the next tick.
 
@@ -146,7 +146,7 @@ The moment-to-moment MVP loop is:
 
 - Open the game and inspect the current tick.
 - Review event logs and previous outcomes.
-- Check available actions and resources for each entity type.
+- Check available actions and resources for each Institution type.
 - Exchange messages, offers, threats, contracts or treaty proposals.
 - Submit orders for Empires, Corporations and Faiths.
 - Ready up.
@@ -155,7 +155,7 @@ The moment-to-moment MVP loop is:
 The strategic loop is:
 
 - Choose a path to victory through territory, economy, technology, culture, influence, diplomacy or force.
-- Build the entities and relationships needed to support that path.
+- Build the Institutions and relationships needed to support that path.
 - Use partial information to hide intent or expose rivals.
 - Trade short-term gains for long-term position.
 - Adapt when other players reveal their plans.
@@ -171,9 +171,9 @@ Within a game, the objective is to maximize the unified score. That score comes 
 Short-term goals should include:
 
 - Securing resources and action capacity.
-- Understanding the previous tick to determine rival strategies and entity allegiances.
+- Understanding the previous tick to determine rival strategies and Institution allegiances.
 - Making useful deals.
-- Positioning entities for future turns.
+- Positioning Institutions for future turns.
 - Avoiding obvious exposure to rivals.
 
 Long-term goals should include:
@@ -181,7 +181,7 @@ Long-term goals should include:
 - Building a durable scoring engine.
 - Creating leverage over other players.
 - Controlling or influencing valuable locations.
-- Developing specialized entities that other players must account for.
+- Developing specialized Institutions that other players must account for.
 - Timing major actions for maximum payoff.
 
 The MVP should include enough documentation in the UI or companion docs for players to understand rules, actions, scoring and tick order. A full tutorial is not required, but the beginner/default ruleset should be forgiving enough that new players can learn by playing.
@@ -202,9 +202,9 @@ The MVP needs the following product systems:
 
 The MVP needs the following game systems:
 
-- Empires as territorial and political entities.
-- Corporations as economic and infrastructure entities.
-- Faiths as influence, information and ideological entities.
+- Empires as territorial and political Institutions.
+- Corporations as economic and infrastructure Institutions.
+- Faiths as influence, information and ideological Institutions.
 - Resources and currencies.
 - Action budgets or action capacity.
 - Movement or spatial positioning.
@@ -217,7 +217,7 @@ Rulesets are a first-class MVP system. A ruleset should define:
 
 - Enabled mechanics.
 - Static game attributes such as player count, map size, turn duration, starting resources and game length.
-- Entity types, objects, resources, units, buildings, technologies or equivalent game pieces.
+- Institution types, objects, resources, units, buildings, technologies or equivalent game pieces.
 - Available actions, their costs, requirements, targets, effects and scoring impact.
 - Resolution order for mechanics and actions.
 - Visibility rules for ownership, affiliation, actions, events and outcomes.
