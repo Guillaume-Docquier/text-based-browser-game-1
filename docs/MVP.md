@@ -2,12 +2,12 @@
 
 This document defines the minimum viable product for Cosmic Empires. It is an internal design brief: it should make the MVP direction clear enough to guide design, implementation and scope decisions without becoming a complete rules reference.
 
-The MVP must prove that Cosmic Empires works as a long-turn, multiplayer, text-first strategy game with asymmetric Institutions, diplomacy, hidden intent, deterministic tick resolution and fully customizable rulesets.
+The MVP must prove that Cosmic Empires works as a long-turn, multiplayer, text-first strategy game with asymmetric Institutions, hidden intent, deterministic tick resolution and fully customizable rulesets.
 
 The MVP includes:
 
 - Three playable Institution types: Empires, Corporations and Faiths.
-- A unified final player score built from all Institutions controlled or affiliated by that player.
+- A total score from all Institutions controlled or affiliated by that player.
 - Long-turn, server-authoritative gameplay where players submit actions and ticks resolve deterministically.
 - Meaningful diplomacy and partial information.
 - A fully data-driven ruleset model that can configure mechanics, numbers, action availability and resolution order.
@@ -21,7 +21,7 @@ Cosmic Empires is a multiplayer sci-fi 4X strategy game where players compete th
 
 The game should feel like a computer-aided board game: the computer handles state, validation, hidden information, simultaneous turns and resolution, while the core fun comes from planning, negotiation and reading other players.
 
-Players are not meant to win by reacting faster. They win by building a coherent plan over many turns, coordinating the right deals and using the right Institution at the right moment.
+Players are not meant to win by reacting quickly. They win by building a coherent plan over many turns, coordinating the right deals and using the right Institution at the right moment.
 
 ## Genre
 
@@ -47,7 +47,7 @@ The MVP does this through three playable Institution types:
 - Corporations exploit resources, build infrastructure, create economic leverage and offer specialized services.
 - Faiths influence politics, gather intelligence, shape social pressure and execute covert operations.
 
-Each Institution type has a different role in the game, but all contribute to the player's unified final score. An Empire is openly tied to the player. Corporations and Faiths can create uncertainty because their ownership or affiliation may not always be public unless the player reveals it or the ruleset requires it.
+Each Institution type has a different role in the game, but all contribute to the player's Total Score. An Empire is openly tied to the player. Corporations and Faiths can create uncertainty because their ownership is not public unless the player reveals it or the ruleset requires it.
 
 This structure should create deals where players do not always know who benefits. A player might negotiate with a corporation that secretly serves a rival empire, tolerate a faith because it helps their population or accept military protection that creates an economic dependency.
 
@@ -57,9 +57,9 @@ Ruleset customization is also part of the MVP identity. The game should ship wit
 
 ## Player Experience and Game POV
 
-The player is the strategic mind behind an Empire and any Corporations or Faiths they control or affiliate with. They are not only managing a nation-state; they are shaping a web of political, economic, military and ideological power.
+The player is the strategic mind behind an Empire and any Corporations or Faiths they own. They are not only managing a nation-state; they are shaping a web of political, economic, military and ideological power.
 
-Empires operate at the territorial and legal level. They own planets, govern populations, shape policy, control borders, authorize or restrict activity and decide when to threaten or use force.
+Empires operate at the territorial and legal level. They occupy planets, govern populations, shape policy, control borders, authorize or restrict activity and decide when to threaten or use force.
 
 Corporations operate through specialization and leverage. They extract resources, build infrastructure, develop technologies, fulfill contracts and make themselves useful or indispensable to other players.
 
@@ -76,7 +76,7 @@ The MVP player experience should be:
 
 Players should feel that they are executing a large-scale plan, not optimizing isolated tactical clicks. A strong turn might not score immediately if it creates leverage for a later payoff.
 
-Diplomacy should be a calculated risk. Good deals can create a winning position, but because not all ownership, affiliation or intent is public, players will need social reading to assess if a deal is good for them and doesn't benefit a rival more.
+Diplomacy should be a calculated risk. Good deals can create a winning position, but because not all ownership or intent is public, players will need social reading to assess if a deal is good for them and doesn't benefit a rival more.
 
 ## Visual Style
 
@@ -166,7 +166,7 @@ The MVP should support specialization. A player should be able to lean into mili
 
 The MVP has no meta-progression requirement. A player joins a game, plays it to completion, receives a final result and can start another game.
 
-Within a game, the objective is to maximize the unified score. That score comes from the combined performance of the player's Empire, Corporations and Faiths. The exact scoring formula is ruleset-defined, but the default MVP ruleset should reward multiple viable strategies rather than only conquest.
+Within a game, the objective is to maximize the Total Score. That score comes from the combined performance of the player's Institutions. The exact scoring formula is ruleset-defined, but the default MVP ruleset should reward multiple viable strategies rather than only conquest.
 
 Short-term goals should include:
 
@@ -250,18 +250,18 @@ The MVP is successful when:
 - Tick processing resolves actions deterministically and advances the game state.
 - Players can understand major outcomes through event logs or equivalent feedback.
 - Diplomacy and partial information matter to the result.
-- The game can end and show a unified winner or final score.
+- The game can end and show the winner.
 - Rulesets can materially change balance, enabled mechanics, action behavior, resolution order and scoring.
 
 The MVP does not need production-scale balancing, mobile polish, monetization, a complete tutorial or a large content library. It does need a complete strategic loop that proves the game can create interesting long-term decisions.
 
 ## Glossary
 
-- Institution: An independent playable entity. Each institution has a separate Action and Resource pool.
+- Institution: An independent playable entity. Each Institution has a separate Action and Resource pool.
   - Empire: A territorial and political Institution.
   - Corporation: An economic and infrastructure Institution.
   - Faith: An ideological and influence-based Institution.
-- Owner: Who controls an Institution or other game object. Ownership can be hidden information.
+- Owner: The player who controls an Institution or other game object. Ownership can be hidden information.
   - Affiliation: An official declaration of Institution ownership.
 - Ruleset: The game's data-driven rule definition.
 - Action: An Institution command submitted by a player.
@@ -271,4 +271,4 @@ The MVP does not need production-scale balancing, mobile polish, monetization, a
 - Tick: The server-resolved step that advances the game state.
 - Turn: The play period before the next Tick.
 - Event Log: A record of important Tick outcomes.
-- Unified Score: A player's final combined score.
+- Total Score: A player's final combined score.
