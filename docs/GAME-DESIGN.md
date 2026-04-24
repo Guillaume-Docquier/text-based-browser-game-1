@@ -2,6 +2,15 @@
 
 Describes the current game design in details. This is a living document.
 
+# Ideas dump
+
+## Distinct planet-bound resource packs
+
+Each planet-moon-asteroid system has tiered resource packs. Resources in the same resource pack allow for all basic development, but you'll need to mix resource packs to develop to higher tiers.  
+This creates incentives for players to work on territory they do not own because it's the main way to get access to resources that will put them ahead.  
+The incentive to accept foreign aid should be that it is cheaper/faster/more lucrative than doing it alone.  
+Maybe the technology or infrastructure required to exploit a resource pack might be disproportionate compared with the alternate resources cost from other territories. This would encourage early game collaboration while enabling late game solo play if a player stockpiles the right resources.
+
 # Initial ideas (to evolve into the actual doc)
 
 ## Dimensions
