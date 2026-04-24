@@ -2,7 +2,7 @@
 
 This document defines the minimum viable product for Cosmic Empires. It is an internal design brief: it should make the MVP direction clear enough to guide design, implementation and scope decisions without becoming a complete rules reference.
 
-The MVP must prove that Cosmic Empires works as a long-turn, multiplayer, text-first strategy game with asymmetric Institutions, hidden intent, deterministic tick resolution and fully customizable rulesets.
+The MVP must prove that Cosmic Empires works as a long-turn, multiplayer, text-first strategy game with asymmetric Institutions, diplomacy, hidden intent, deterministic tick resolution and fully customizable rulesets.
 
 The MVP includes:
 
