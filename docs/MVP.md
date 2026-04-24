@@ -254,3 +254,21 @@ The MVP is successful when:
 - Rulesets can materially change balance, enabled mechanics, action behavior, resolution order and scoring.
 
 The MVP does not need production-scale balancing, mobile polish, monetization, a complete tutorial or a large content library. It does need a complete strategic loop that proves the game can create interesting long-term decisions.
+
+## Glossary
+
+- Institution: An independent playable entity. Each institution has a separate Action and Resource pool.
+  - Empire: A territorial and political Institution.
+  - Corporation: An economic and infrastructure Institution.
+  - Faith: An ideological and influence-based Institution.
+- Owner: Who controls an Institution or other game object. Ownership can be hidden information.
+  - Affiliation: An official declaration of Institution ownership.
+- Ruleset: The game's data-driven rule definition.
+- Action: An Institution command submitted by a player.
+- Resource: Currency that can be spent as an Action cost.
+- Treaty: A formal diplomatic commitment.
+- Contract: A formal economic agreement.
+- Tick: The server-resolved step that advances the game state.
+- Turn: The play period before the next Tick.
+- Event Log: A record of important Tick outcomes.
+- Unified Score: A player's final combined score.
