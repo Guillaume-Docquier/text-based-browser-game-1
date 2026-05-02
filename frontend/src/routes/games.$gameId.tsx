@@ -46,7 +46,7 @@ function GameLobby(): ReactElement {
     return <Navigate to="/games" />
   }
 
-  const gameData = gameQuery.data as { game: ApiTypes.GameSummary }
+  const gameData = gameQuery.data
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">

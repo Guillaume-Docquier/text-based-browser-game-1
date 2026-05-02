@@ -46,7 +46,7 @@ function Games(): ReactElement {
     )
   }
 
-  const gamesData = gamesQuery.data as { games: ApiTypes.GameSummary[] }
+  const gamesData = gamesQuery.data
   const games = gamesData.games.filter((game) => game.name.includes(gameNameFilter))
 
   return (

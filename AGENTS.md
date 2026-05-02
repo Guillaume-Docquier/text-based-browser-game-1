@@ -21,6 +21,7 @@ This repo is a lightweight monorepo with separate deployable projects:
 - `pnpm --dir frontend typecheck`: frontend TypeScript check.
 - `pnpm --dir backend dev`: run the backend with watch mode.
 - `pnpm --dir backend start`: run the backend without watch mode.
+- `pnpm --dir backend test`: run backend unit tests.
 - `pnpm --dir backend typecheck`: backend TypeScript check.
 - `pnpm --dir backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
 - `pnpm --dir backend db:migrate`: apply migrations.
@@ -64,9 +65,12 @@ These come from the ADRs and should be treated as default constraints, not sugge
 
 ## Testing And Verification
 
-There is no dedicated test runner configured yet. Minimum verification for meaningful changes:
+Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
+
+Minimum verification for meaningful changes:
 
 - `pnpm lint`
+- `pnpm --dir backend test`
 - `pnpm --dir frontend typecheck`
 - `pnpm --dir backend typecheck`
 - relevant manual verification for the area changed
