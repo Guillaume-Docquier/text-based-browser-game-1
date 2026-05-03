@@ -6,7 +6,8 @@
   "imports": {
     "#api/*": "./src/api/*",
     "#tick-processing/*": "./src/tick-processing/*",
-    "#lib/*": "./src/lib/*"
+    "#lib/*": "./src/lib/*",
+    "#tests/*": "./src/tests/*"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate --config ./drizzle.config.ts",

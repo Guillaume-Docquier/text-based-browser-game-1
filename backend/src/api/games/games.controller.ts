@@ -147,7 +147,7 @@ export const CreatedGame = z.object({
   endedAt: z.date().nullable(),
 }) satisfies z.ZodType<GameRow>
 
-const GameSummaryStatus = {
+export const GameSummaryStatus = {
   WAITING_FOR_PLAYERS: "WAITING_FOR_PLAYERS",
   READY_TO_START: "READY_TO_START",
   STARTED: "STARTED",
