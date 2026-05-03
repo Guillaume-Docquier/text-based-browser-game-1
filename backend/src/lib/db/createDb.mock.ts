@@ -1,17 +1,14 @@
 import { type NodePgDatabase } from "drizzle-orm/node-postgres"
 import { drizzle } from "drizzle-orm/pglite"
-import { pushSchema } from "drizzle-kit/api"
-import * as schema from "#lib/db/schema.ts"
+import { getPGLiteInstanceWithSchemas } from "#tests/pglite.ts"
 
 /**
  * Creates an in-memory Postgres database using PGLite.
  * The db will have all the tables ready, but no data.
  */
 export async function createDbMock(): Promise<NodePgDatabase> {
-  const db = drizzle() // PGLite
-
-  const push = await pushSchema(schema, db)
-  await push.apply()
+  const pg = await getPGLiteInstanceWithSchemas()
+  const db = drizzle(pg)
 
   // TS2375: Type
   // PgliteDatabase<Record<string, never>> & {
