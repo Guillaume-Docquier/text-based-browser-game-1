@@ -3,7 +3,7 @@ import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
 import { processTick } from "#tick-processing/processTick.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
-import { connectToDb } from "#lib/db/connectToDb.ts"
+import { createDb } from "#lib/db/createDb.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
@@ -41,7 +41,7 @@ if (!isMainThread) {
   const env = parseEnv({ logger, envSchema })
 
   logger.info("Connecting to the database")
-  const db = connectToDb({ databaseUrl: env.DATABASE_URL })
+  const db = createDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Creating services")
   const repositories = {

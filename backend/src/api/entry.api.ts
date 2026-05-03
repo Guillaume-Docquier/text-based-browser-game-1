@@ -9,7 +9,7 @@ import pRetry from "p-retry"
 import { Logger } from "@guillaume-docquier/tools-ts"
 import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
-import { connectToDb } from "#lib/db/connectToDb.ts"
+import { createDb } from "#lib/db/createDb.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   const env = parseEnv({ logger, envSchema })
 
   logger.info("Connecting to the database")
-  const db = connectToDb({ databaseUrl: env.DATABASE_URL })
+  const db = createDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Performing database migration")
   // migrationsFolder path is relative to cwd, not to the script path

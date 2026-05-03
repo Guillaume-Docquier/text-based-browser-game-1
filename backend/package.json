@@ -14,7 +14,7 @@
     "db:seed": "node --env-file=.env scripts/db/seed.ts",
     "dev": "node --watch --env-file=.env src/api/entry.api.ts",
     "start": "node src/api/entry.api.ts",
-    "test": "vitest run",
+    "test": "vitest run --silent",
     "test:watch": "vitest",
     "typecheck": "tsc"
   },
@@ -29,6 +29,7 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.4.5",
     "@inquirer/prompts": "^8.4.2",
     "@trpc/client": "^11.17.0",
     "@types/express": "^5.0.6",
