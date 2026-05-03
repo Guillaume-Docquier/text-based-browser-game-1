@@ -6,7 +6,8 @@
   "imports": {
     "#api/*": "./src/api/*",
     "#tick-processing/*": "./src/tick-processing/*",
-    "#lib/*": "./src/lib/*"
+    "#lib/*": "./src/lib/*",
+    "#tests/*": "./src/tests/*"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate --config ./drizzle.config.ts",
@@ -14,6 +15,8 @@
     "db:seed": "node --env-file=.env scripts/db/seed.ts",
     "dev": "node --watch --env-file=.env src/api/entry.api.ts",
     "start": "node src/api/entry.api.ts",
+    "test": "vitest run --silent",
+    "test:watch": "vitest",
     "typecheck": "tsc"
   },
   "dependencies": {
@@ -27,12 +30,15 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.4.5",
     "@inquirer/prompts": "^8.4.2",
+    "@trpc/client": "^11.17.0",
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.5"
   },
   "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
 }

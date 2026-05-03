@@ -2,7 +2,7 @@ import express, { type Express } from "express"
 import { createGamesRouter } from "./games/games.router.ts"
 import { GamesController } from "./games/games.controller.ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
-import type { AuthService } from "./auth/auth.service.ts"
+import type { IAuthService } from "./auth/auth.service.ts"
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
@@ -27,7 +27,7 @@ export async function createApi({
   authService,
   ...services
 }: {
-  authService: AuthService
+  authService: IAuthService
   logger: Logger
   playersRepository: PlayersRepository
   gamesRepository: GamesRepository

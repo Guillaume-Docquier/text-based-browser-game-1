@@ -15,13 +15,17 @@ declare global {
   }
 }
 
+export interface IAuthService {
+  authenticationMiddlewares: ({ playersController }: { playersController: PlayersController }) => RequestHandler[]
+}
+
 /**
  * Encapsulates Clerk.
  * This should be the only place we use Clerk directly.
  *
- * It'll make tests easier, and if Clerk turns out to be a problem we can change it.
+ * It'll make tests easier, and if Clerk turns out to be a problem, we can change it.
  */
-export class AuthService {
+export class AuthService implements IAuthService {
   private readonly logger: Logger
 
   public constructor({ logger }: { logger: Logger }) {

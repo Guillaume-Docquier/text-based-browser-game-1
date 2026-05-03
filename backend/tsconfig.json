@@ -37,5 +37,5 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "drizzle.config.ts", "scripts"]
+  "include": ["src", "drizzle.config.ts", "scripts", "vitest.config.ts"]
 }
