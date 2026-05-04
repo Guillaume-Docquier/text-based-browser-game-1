@@ -244,4 +244,26 @@ Indexes and constraints:
 - Primary key `(game_id, from_node_id, to_node_id)`.
 - Index `(game_id, from_node_id)`.
 
+### Repositories
+
+TODO
+
+### Controllers
+
+TODO
+
+### Routers
+
+TODO
+
+### Star Map View
+
+TODO
+
+### Game Creation View
+
+TODO
+
 ## Implementation Plan
+
+TODO
