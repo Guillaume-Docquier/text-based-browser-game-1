@@ -24,29 +24,34 @@ For example, these are the coordinate capabilities:
 - `01:02:11:05` (view and movement)
 - `01:02:11:05:03` (view and movement)
 
+The Orbit 1 will always be an Orbit with 1 Sector that contains the central Star.
+
 The game creation menu will allow customizing the following aspects:
 
 - Number of Systems (range)
   - Planet density (range)
   - Number of Planets per System (range)
   - Number of Sites per Planet (range)
+  - Number of Sites per Home Planet (range)
+- Presence of Moons (yes/no)
+  - Number of Moons per Planet (range)
+  - Number of Moons per Home Planet (range)
+  - Number of Sites per Moon (range)
+  - Number of Sites per Home Moon (range)
 - Presence of Asteroids (yes/no)
   - Number of Asteroids per Sector (range)
   - Number of Sites per Asteroid (range)
-- Presence of Moons (yes/no)
-  - Number of Moons per Planet (range)
-  - Number of Sites per Moon (range)
 
 Here's a representation of a System with 3 orbits and 14 sectors
 ![star system](../../.github/images/star-system.png)
 
 The central dot is the Star, each circle is an Orbit and each dot on an Orbit is a Sector.
 
-In this image, the Sector count per Orbit starts at 2 and doubles for each additional Orbit.
+In this image, the Sector count per Orbit starts at 1 (the Star) and doubles for each additional Orbit.
 
 Asteroids will be featured through Asteroid belts. An Asteroid belt is an orbit where each sector contains Asteroids only. There can be one or more Asteroid per Sector. Any Orbit can be an Asteroid belt, this will be chosen at random. In the core Ruleset, Asteroids will have a single Site and won't be claimable, like Planets or Moons.
 
-Moons will be attached to planets. Visually, a Moon will orbit around a Planet. However, this will have little incidence on movement. In the core Ruleset, Moons will have fewer Sites than Planets.
+Moons will be attached to planets. Visually, a Moon will orbit around a Planet. However, this will have no incidence on movement. In the core Ruleset, Moons will have fewer Sites than Planets.
 
 ### Movement
 
@@ -67,109 +72,147 @@ This can be represented as a graph, where each edge has a weight of 1.
 
 ## Architecture
 
-Note: AI dump to review
+The map will be stored in a relational database with the following tables:
 
-The generated map should be stored as normal relational data. Coordinates are derived from the hierarchy and can be cached for display, but the source of truth is the map hierarchy plus the movement graph.
+- Maps: all maps, by game id, and their generation settings
+- Systems
+- Orbits
+- Sectors
+- Bodies
+- Sites
 
-Use `varchar` columns for type-like values such as `body_type`, `orbit_type`, `node_type` and `edge_type`. Backend code should expose those values through `as const` objects plus derived union types, not TypeScript enums.
+The movement graph will be stored in a relational database with the following tables:
 
-### Map Tables
+- LocationNodes: nodes that can be moved to (currently Bodies and Sites)
+- LocationEdges: the connections between nodes
 
-#### `game_maps`
+The frontend will consume DTOs derived from this data:
 
-One row per generated game map.
+- MapDTO: All the information about the map to render it (movement graph, Systems, Orbits, Sectors, Bodies and Sites) with limited details about each Body and Site
+- BodyDTO: Detailed information about a Body
+- SiteDTO: Detailed information about a Site
 
-| Column              | Type           | Constraints                                           | Notes                                            |
-| ------------------- | -------------- | ----------------------------------------------------- | ------------------------------------------------ |
-| `game_id`           | `integer`      | primary key, references `games(id)` on delete cascade | The map belongs to one game.                     |
-| `generation_seed`   | `varchar(255)` | not null                                              | Seed used to generate the map deterministically. |
-| `settings_snapshot` | `jsonb`        | not null                                              | Map generation settings used for this game.      |
-| `created_at`        | `timestamp`    | not null, default now                                 | Creation timestamp.                              |
+### game_maps table
 
-#### `game_map_systems`
+| Column                | Type        | Constraints                                           | Notes                                            |
+| --------------------- | ----------- | ----------------------------------------------------- | ------------------------------------------------ |
+| `game_id`             | `integer`   | primary key, references `games(id)` on delete cascade | The map belongs to one game.                     |
+| `generation_seed`     | `integer`   | not null                                              | Seed used to generate the map deterministically. |
+| `generation_settings` | `jsonb`     | not null                                              | Map generation settings used for this game.      |
+| `created_at`          | `timestamp` | not null, default now                                 | Creation timestamp.                              |
 
-Systems are the first coordinate tier.
+The generation settings will have the following shape:
 
-| Column          | Type           | Constraints                                                 | Notes                             |
-| --------------- | -------------- | ----------------------------------------------------------- | --------------------------------- |
-| `id`            | `integer`      | primary key, generated identity                             | Stable row id.                    |
-| `game_id`       | `integer`      | not null, references `game_maps(game_id)` on delete cascade | Parent map.                       |
-| `system_number` | `integer`      | not null                                                    | Coordinate segment, such as `01`. |
-| `name`          | `varchar(255)` | nullable                                                    | Optional display name.            |
+```ts
+type Range = {
+  /**
+   * Inclusive
+   */
+  min: number
+  /**
+   * Inclusive
+   */
+  max: number
+}
+
+type MapGenerationSettings = {
+  general: {
+    nbSystems: Range
+  }
+  planets: {
+    /**
+     * Percentage between 0 and 1
+     */
+    planetDensity: Range
+    nbPlanetsPerSystem: Range
+    nbSitesPerPlanet: Range
+    nbSitesPerHomePlanet: Range
+  }
+  moons: {
+    enableMoons: boolean
+    nbMoonsPerPlanet: Range
+    nbMoonsPerHomePlanet: Range
+    nbSitesPerMoon: Range
+    nbSitesPerHomeMoon: Range
+  }
+  asteroids: {
+    enableAsteroidBelts: boolean
+    nbAsteroidsPerSector: Range
+    nbSitesPerAsteroid: Range
+  }
+}
+```
+
+### game_map_systems
+
+| Column          | Type      | Constraints                                                 | Notes                            |
+| --------------- | --------- | ----------------------------------------------------------- | -------------------------------- |
+| `id`            | `integer` | primary key, generated identity                             | Stable row id.                   |
+| `game_id`       | `integer` | not null, references `game_maps(game_id)` on delete cascade | Parent map.                      |
+| `system_number` | `integer` | not null                                                    | Coordinate segment, starts at 1. |
 
 Indexes and constraints:
 
 - Unique `(game_id, system_number)`.
+- Index `(game_id)`.
 
-#### `game_map_orbits`
+### game_map_orbits
 
-Orbits are the second coordinate tier.
-
-| Column         | Type           | Constraints                                                   | Notes                                     |
-| -------------- | -------------- | ------------------------------------------------------------- | ----------------------------------------- |
-| `id`           | `integer`      | primary key, generated identity                               | Stable row id.                            |
-| `game_id`      | `integer`      | not null, references `game_maps(game_id)` on delete cascade   | Parent map.                               |
-| `system_id`    | `integer`      | not null, references `game_map_systems(id)` on delete cascade | Parent system.                            |
-| `orbit_number` | `integer`      | not null                                                      | Coordinate segment, such as `02`.         |
-| `sector_count` | `integer`      | not null                                                      | Number of sectors on this orbit.          |
-| `orbit_type`   | `varchar(255)` | not null                                                      | For example, `NORMAL` or `ASTEROID_BELT`. |
+| Column         | Type      | Constraints                                                   | Notes                            |
+| -------------- | --------- | ------------------------------------------------------------- | -------------------------------- |
+| `id`           | `integer` | primary key, generated identity                               | Stable row id.                   |
+| `game_id`      | `integer` | not null, references `game_maps(game_id)` on delete cascade   | Parent map.                      |
+| `system_id`    | `integer` | not null, references `game_map_systems(id)` on delete cascade | Parent system.                   |
+| `orbit_number` | `integer` | not null                                                      | Coordinate segment, starts at 1. |
+| `sector_count` | `integer` | not null                                                      | Number of sectors on this orbit. |
 
 Indexes and constraints:
 
 - Unique `(system_id, orbit_number)`.
 - Index `(game_id, system_id)`.
 
-#### `game_map_sectors`
+### game_map_sectors
 
-Sectors are the third coordinate tier.
-
-| Column          | Type      | Constraints                                                  | Notes                             |
-| --------------- | --------- | ------------------------------------------------------------ | --------------------------------- |
-| `id`            | `integer` | primary key, generated identity                              | Stable row id.                    |
-| `game_id`       | `integer` | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                       |
-| `orbit_id`      | `integer` | not null, references `game_map_orbits(id)` on delete cascade | Parent orbit.                     |
-| `sector_number` | `integer` | not null                                                     | Coordinate segment, such as `11`. |
-| `sort_order`    | `integer` | not null                                                     | Clockwise order on the orbit.     |
+| Column          | Type      | Constraints                                                  | Notes                            |
+| --------------- | --------- | ------------------------------------------------------------ | -------------------------------- |
+| `id`            | `integer` | primary key, generated identity                              | Stable row id.                   |
+| `game_id`       | `integer` | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                      |
+| `orbit_id`      | `integer` | not null, references `game_map_orbits(id)` on delete cascade | Parent orbit.                    |
+| `sector_number` | `integer` | not null                                                     | Coordinate segment, starts at 1. |
 
 Indexes and constraints:
 
 - Unique `(orbit_id, sector_number)`.
-- Unique `(orbit_id, sort_order)`.
 - Index `(game_id, orbit_id)`.
 
-#### `game_map_bodies`
+### game_map_bodies
 
-Bodies are the fourth coordinate tier. Planets, asteroids and moons are all bodies.
-
-| Column           | Type           | Constraints                                                   | Notes                                        |
-| ---------------- | -------------- | ------------------------------------------------------------- | -------------------------------------------- |
-| `id`             | `integer`      | primary key, generated identity                               | Stable row id.                               |
-| `game_id`        | `integer`      | not null, references `game_maps(game_id)` on delete cascade   | Parent map.                                  |
-| `sector_id`      | `integer`      | not null, references `game_map_sectors(id)` on delete cascade | Parent sector.                               |
-| `body_number`    | `integer`      | not null                                                      | Coordinate segment, such as `05`.            |
-| `body_type`      | `varchar(255)` | not null                                                      | For example, `PLANET`, `ASTEROID` or `MOON`. |
-| `parent_body_id` | `integer`      | nullable, references `game_map_bodies(id)` on delete cascade  | Parent planet for moons.                     |
-| `claimable`      | `boolean`      | not null                                                      | Whether gameplay can claim this body.        |
-| `name`           | `varchar(255)` | nullable                                                      | Optional display name.                       |
+| Column         | Type           | Constraints                                                   | Notes                                       |
+| -------------- | -------------- | ------------------------------------------------------------- | ------------------------------------------- |
+| `id`           | `integer`      | primary key, generated identity                               | Stable row id.                              |
+| `game_id`      | `integer`      | not null, references `game_maps(game_id)` on delete cascade   | Parent Map.                                 |
+| `sector_id`    | `integer`      | not null, references `game_map_sectors(id)` on delete cascade | Parent Sector.                              |
+| `body_number`  | `integer`      | not null                                                      | Coordinate segment, starts at 1.            |
+| `body_type`    | `enum`         | not null                                                      | `PLANET`, `MOON`, `ASTEROID` or `STAR`.     |
+| `can_be_owned` | `boolean`      | not null                                                      | Whether this Body can be owned by a player. |
+| `owner_id`     | `integer`      | nullable, references `game_players(game_id, owner_id)`        | The id of the Player who owns this Body.    |
+| `name`         | `varchar(255)` | not null                                                      | Body display name.                          |
 
 Indexes and constraints:
 
 - Unique `(sector_id, body_number)`.
 - Index `(game_id, sector_id)`.
-- Index `(parent_body_id)`.
+- Index `(game_id, owner_id)`.
+- Check `((can_be_owned = false AND owner_id IS NULL) OR can_be_owned = true)`.
 
-#### `game_map_sites`
+### game_map_sites
 
-Sites are the fifth coordinate tier.
-
-| Column        | Type           | Constraints                                                  | Notes                                |
-| ------------- | -------------- | ------------------------------------------------------------ | ------------------------------------ |
-| `id`          | `integer`      | primary key, generated identity                              | Stable row id.                       |
-| `game_id`     | `integer`      | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                          |
-| `body_id`     | `integer`      | not null, references `game_map_bodies(id)` on delete cascade | Parent body.                         |
-| `site_number` | `integer`      | not null                                                     | Coordinate segment, such as `03`.    |
-| `site_type`   | `varchar(255)` | nullable                                                     | Ruleset-defined site classification. |
-| `name`        | `varchar(255)` | nullable                                                     | Optional display name.               |
+| Column        | Type      | Constraints                                                  | Notes                            |
+| ------------- | --------- | ------------------------------------------------------------ | -------------------------------- |
+| `id`          | `integer` | primary key, generated identity                              | Stable row id.                   |
+| `game_id`     | `integer` | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                      |
+| `body_id`     | `integer` | not null, references `game_map_bodies(id)` on delete cascade | Parent body.                     |
+| `site_number` | `integer` | not null                                                     | Coordinate segment, starts at 1. |
 
 Indexes and constraints:
 
