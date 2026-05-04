@@ -83,8 +83,10 @@ The map will be stored in a relational database with the following tables:
 
 The movement graph will be stored in a relational database with the following tables:
 
-- LocationNodes: nodes that can be moved to (currently Bodies and Sites)
-- LocationEdges: the connections between nodes
+- MovementNodes: nodes that can be moved to (currently Bodies and Sites)
+- MovementEdges: the connections between nodes
+
+This data will only be used to validate movements. Units and buildings will always refer to Bodies or Sites, never to MovementNodes.
 
 The frontend will consume DTOs derived from this data:
 
@@ -187,16 +189,17 @@ Indexes and constraints:
 
 ### game_map_bodies
 
-| Column         | Type           | Constraints                                                   | Notes                                       |
-| -------------- | -------------- | ------------------------------------------------------------- | ------------------------------------------- |
-| `id`           | `integer`      | primary key, generated identity                               | Stable row id.                              |
-| `game_id`      | `integer`      | not null, references `game_maps(game_id)` on delete cascade   | Parent Map.                                 |
-| `sector_id`    | `integer`      | not null, references `game_map_sectors(id)` on delete cascade | Parent Sector.                              |
-| `body_number`  | `integer`      | not null                                                      | Coordinate segment, starts at 1.            |
-| `body_type`    | `enum`         | not null                                                      | `PLANET`, `MOON`, `ASTEROID` or `STAR`.     |
-| `can_be_owned` | `boolean`      | not null                                                      | Whether this Body can be owned by a player. |
-| `owner_id`     | `integer`      | nullable, references `game_players(game_id, owner_id)`        | The id of the Player who owns this Body.    |
-| `name`         | `varchar(255)` | not null                                                      | Body display name.                          |
+| Column             | Type           | Constraints                                                   | Notes                                             |
+| ------------------ | -------------- | ------------------------------------------------------------- | ------------------------------------------------- |
+| `id`               | `integer`      | primary key, generated identity                               | Stable row id.                                    |
+| `game_id`          | `integer`      | not null, references `game_maps(game_id)` on delete cascade   | Parent Map.                                       |
+| `sector_id`        | `integer`      | not null, references `game_map_sectors(id)` on delete cascade | Parent Sector.                                    |
+| `body_number`      | `integer`      | not null                                                      | Coordinate segment, starts at 1.                  |
+| `body_type`        | `enum`         | not null                                                      | `PLANET`, `MOON`, `ASTEROID` or `STAR`.           |
+| `can_be_owned`     | `boolean`      | not null                                                      | Whether this Body can be owned by a player.       |
+| `owner_id`         | `integer`      | nullable, references `game_players(game_id, owner_id)`        | The id of the Player who owns this Body.          |
+| `name`             | `varchar(255)` | not null                                                      | Body display name.                                |
+| `movement_node_id` | `integer`      | not null, references `game_map_movement_nodes(id)`            | The id of the movement node for movement queries. |
 
 Indexes and constraints:
 
@@ -207,71 +210,38 @@ Indexes and constraints:
 
 ### game_map_sites
 
-| Column        | Type      | Constraints                                                  | Notes                            |
-| ------------- | --------- | ------------------------------------------------------------ | -------------------------------- |
-| `id`          | `integer` | primary key, generated identity                              | Stable row id.                   |
-| `game_id`     | `integer` | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                      |
-| `body_id`     | `integer` | not null, references `game_map_bodies(id)` on delete cascade | Parent body.                     |
-| `site_number` | `integer` | not null                                                     | Coordinate segment, starts at 1. |
+| Column             | Type      | Constraints                                                  | Notes                                             |
+| ------------------ | --------- | ------------------------------------------------------------ | ------------------------------------------------- |
+| `id`               | `integer` | primary key, generated identity                              | Stable row id.                                    |
+| `game_id`          | `integer` | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                                       |
+| `body_id`          | `integer` | not null, references `game_map_bodies(id)` on delete cascade | Parent body.                                      |
+| `site_number`      | `integer` | not null                                                     | Coordinate segment, starts at 1.                  |
+| `movement_node_id` | `integer` | not null, references `game_map_movement_nodes(id)`           | The id of the movement node for movement queries. |
 
 Indexes and constraints:
 
 - Unique `(body_id, site_number)`.
 - Index `(game_id, body_id)`.
 
-### Movement Graph Tables
+### game_map_movement_nodes
 
-Only bodies and sites are valid movement destinations, so the movement graph should only contain body and site nodes. The frontend can still receive the whole graph as JSON from the API; these tables are the canonical backend model used for validation and tick processing.
+| Column    | Type      | Constraints                                                 | Notes           |
+| --------- | --------- | ----------------------------------------------------------- | --------------- |
+| `id`      | `integer` | primary key, generated identity                             | Stable node id. |
+| `game_id` | `integer` | not null, references `game_maps(game_id)` on delete cascade | Parent map.     |
 
-#### `game_map_movement_nodes`
+### game_map_movement_edges
 
-Canonical movement nodes for body and site coordinates.
-
-| Column       | Type           | Constraints                                                  | Notes                                        |
-| ------------ | -------------- | ------------------------------------------------------------ | -------------------------------------------- |
-| `id`         | `integer`      | primary key, generated identity                              | Stable node id.                              |
-| `game_id`    | `integer`      | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                                  |
-| `node_type`  | `varchar(255)` | not null                                                     | `BODY` or `SITE`.                            |
-| `body_id`    | `integer`      | nullable, references `game_map_bodies(id)` on delete cascade | Set for body nodes.                          |
-| `site_id`    | `integer`      | nullable, references `game_map_sites(id)` on delete cascade  | Set for site nodes.                          |
-| `coordinate` | `varchar(255)` | not null                                                     | Cached coordinate string for API and UI use. |
-
-Indexes and constraints:
-
-- Unique `(game_id, coordinate)`.
-- Unique `(body_id)` where `body_id is not null`.
-- Unique `(site_id)` where `site_id is not null`.
-- Index `(game_id, node_type)`.
-- Exactly one of `body_id` or `site_id` must be set.
-
-#### `game_map_movement_edges`
-
-Directed graph edges between movement nodes. Insert both directions when movement should be symmetric.
-
-| Column         | Type           | Constraints                                                          | Notes                                                                                                 |
-| -------------- | -------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `game_id`      | `integer`      | not null, references `game_maps(game_id)` on delete cascade          | Parent map.                                                                                           |
-| `from_node_id` | `integer`      | not null, references `game_map_movement_nodes(id)` on delete cascade | Origin node.                                                                                          |
-| `to_node_id`   | `integer`      | not null, references `game_map_movement_nodes(id)` on delete cascade | Destination node.                                                                                     |
-| `weight`       | `integer`      | not null, default `1`                                                | Movement cost. Always `1` for now.                                                                    |
-| `edge_type`    | `varchar(255)` | not null                                                             | For example, `SITE_BODY`, `SAME_SECTOR`, `CLOCKWISE_SECTOR`, `ANTICLOCKWISE_SECTOR` or `LOWER_ORBIT`. |
+| Column         | Type      | Constraints                                                          | Notes                              |
+| -------------- | --------- | -------------------------------------------------------------------- | ---------------------------------- |
+| `game_id`      | `integer` | not null, references `game_maps(game_id)` on delete cascade          | Parent map.                        |
+| `from_node_id` | `integer` | not null, references `game_map_movement_nodes(id)` on delete cascade | Origin node.                       |
+| `to_node_id`   | `integer` | not null, references `game_map_movement_nodes(id)` on delete cascade | Destination node.                  |
+| `weight`       | `integer` | not null, default `1`                                                | Movement cost. Always `1` for now. |
 
 Indexes and constraints:
 
 - Primary key `(game_id, from_node_id, to_node_id)`.
-- Index `(game_id, to_node_id)`.
-
-#### `game_map_graph_snapshots`
-
-Optional cached read model for fetching the whole movement graph quickly.
-
-| Column          | Type        | Constraints                                                    | Notes                                                     |
-| --------------- | ----------- | -------------------------------------------------------------- | --------------------------------------------------------- |
-| `game_id`       | `integer`   | primary key, references `game_maps(game_id)` on delete cascade | Parent map.                                               |
-| `graph_version` | `integer`   | not null                                                       | Increment when the graph snapshot is rebuilt.             |
-| `graph_json`    | `jsonb`     | not null                                                       | Serialized `{ nodes, edges }` graph for frontend display. |
-| `updated_at`    | `timestamp` | not null, default now                                          | Last rebuild timestamp.                                   |
-
-The snapshot is not the source of truth. It should be rebuilt from `game_map_movement_nodes` and `game_map_movement_edges`.
+- Index `(game_id, from_node_id)`.
 
 ## Implementation Plan
