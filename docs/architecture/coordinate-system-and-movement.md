@@ -81,6 +81,8 @@ The map will be stored in a relational database with the following tables:
 - Bodies
 - Sites
 
+This data will only be used to express static data about the entities, not mutable game state.
+
 The movement graph will be stored in a relational database with the following tables:
 
 - MovementNodes: nodes that can be moved to (currently Bodies and Sites)
@@ -197,7 +199,6 @@ Indexes and constraints:
 | `body_number`      | `integer`      | not null                                                      | Coordinate segment, starts at 1.                  |
 | `body_type`        | `enum`         | not null                                                      | `PLANET`, `MOON`, `ASTEROID` or `STAR`.           |
 | `can_be_owned`     | `boolean`      | not null                                                      | Whether this Body can be owned by a player.       |
-| `owner_id`         | `integer`      | nullable, references `game_players(game_id, owner_id)`        | The id of the Player who owns this Body.          |
 | `name`             | `varchar(255)` | not null                                                      | Body display name.                                |
 | `movement_node_id` | `integer`      | not null, references `game_map_movement_nodes(id)`            | The id of the movement node for movement queries. |
 
@@ -205,8 +206,6 @@ Indexes and constraints:
 
 - Unique `(sector_id, body_number)`.
 - Index `(game_id, sector_id)`.
-- Index `(game_id, owner_id)`.
-- Check `((can_be_owned = false AND owner_id IS NULL) OR can_be_owned = true)`.
 
 ### game_map_sites
 
