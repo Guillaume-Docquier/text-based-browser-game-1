@@ -96,5 +96,11 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Tests
-        run: pnpm test
+      - name: Tests with coverage
+        run: pnpm test:coverage
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          flags: backend
+          token: ${{ secrets.CODECOV_TOKEN }}
