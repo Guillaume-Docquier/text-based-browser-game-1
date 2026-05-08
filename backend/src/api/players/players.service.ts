@@ -2,7 +2,7 @@ import { type Result } from "@guillaume-docquier/tools-ts"
 import { type PlayerRow, type PlayerRowInsert, type PlayersRepository } from "#lib/db/players.repository.ts"
 import z from "zod"
 
-export class PlayersController {
+export class PlayersService {
   private readonly playersRepository: PlayersRepository
 
   public constructor({ playersRepository }: { playersRepository: PlayersRepository }) {

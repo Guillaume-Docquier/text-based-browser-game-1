@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express"
-import type { Player } from "#api/players/players.controller.ts"
+import type { Player } from "#api/players/players.service.ts"
 import { type IAuthService } from "./auth.service.ts"
 
 export class AuthServiceMock implements IAuthService {

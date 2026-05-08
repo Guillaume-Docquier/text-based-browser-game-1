@@ -4,7 +4,7 @@ import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
 import { GAME_PLAYER_ACTION_RULES, type GamePlayerActionType, type GamePlayerAction } from "#lib/gamePlayerActions.ts"
 
-export class GamePlayerActionsController {
+export class GamePlayerActionsService {
   private readonly gamePlayerActionsRepository: GamePlayerActionsRepository
   private readonly gameStatesRepository: GameStatesRepository
   private readonly gamesRepository: GamesRepository
@@ -24,7 +24,7 @@ export class GamePlayerActionsController {
     this.gamePlayerActionsRepository = gamePlayerActionsRepository
     this.gameStatesRepository = gameStatesRepository
     this.gamesRepository = gamesRepository
-    this.logger = logger.child({ scope: "game-player-actions-controller" })
+    this.logger = logger.child({ scope: "game-player-actions-service" })
   }
 
   public async getCurrentAction({

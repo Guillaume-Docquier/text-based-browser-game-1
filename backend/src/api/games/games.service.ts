@@ -2,13 +2,13 @@ import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games.repository.ts"
 import z from "zod"
 
-export class GamesController {
+export class GamesService {
   private readonly gamesRepository: GamesRepository
   private readonly logger: Logger
 
   public constructor({ gamesRepository, logger }: { gamesRepository: GamesRepository; logger: Logger }) {
     this.gamesRepository = gamesRepository
-    this.logger = logger.child({ scope: "games-controller" })
+    this.logger = logger.child({ scope: "games-service" })
   }
 
   public async create(newGame: GameInsert): Promise<Result<CreatedGame, string>> {

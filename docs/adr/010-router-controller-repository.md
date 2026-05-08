@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [Router - Service - Repository](./014-router-service-repository.md)
 
 ## Context
 

@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The usual Express documentation shows the app, routers and controllers created in the global scope. This is quick to get started, but relies on stateful objects being created in the global scope.
+The usual Express documentation shows the app, routers and services created in the global scope. This is quick to get started, but relies on stateful objects being created in the global scope.
 
 This makes tests hard, because you have to mock imports.
 

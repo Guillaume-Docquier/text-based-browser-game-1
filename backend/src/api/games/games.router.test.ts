@@ -5,7 +5,7 @@ import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/playerRowInsert.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
-import { GameSummaryStatus } from "#api/games/games.controller.ts"
+import { GameSummaryStatus } from "#api/games/games.service.ts"
 
 describe("games.router", () => {
   describe("create", () => {

@@ -2,10 +2,10 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
 import type { Trpc } from "#api/trpc.ts"
-import { GameState, type GameStatesController } from "#api/gameStates/gameStates.controller.ts"
+import { GameState, type GameStatesService } from "#api/gameStates/gameStates.service.ts"
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
-export function createGameStatesRouter({ trpc, gameStatesController }: { trpc: Trpc; gameStatesController: GameStatesController }) {
+export function createGameStatesRouter({ trpc, gameStatesService }: { trpc: Trpc; gameStatesService: GameStatesService }) {
   return trpc.router({
     /**
      * Gets the state for a game if it exists.
@@ -14,7 +14,7 @@ export function createGameStatesRouter({ trpc, gameStatesController }: { trpc: T
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ gameState: GameState }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
-        const getByIdResult = await gameStatesController.getById({ gameId, playerId: player.id })
+        const getByIdResult = await gameStatesService.getById({ gameId, playerId: player.id })
         if (Result.isFailure(getByIdResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",

@@ -37,7 +37,7 @@ These come from the ADRs and should be treated as default constraints, not sugge
 - Keep backend layering strict:
   - Routers are the only layer that knows about Express/tRPC.
   - Repositories are the only layer that knows about Drizzle/Postgres.
-  - Controllers contain business logic between routers and repositories.
+  - Services contain business logic between routers and repositories.
 - Only dedicated service/repository boundaries may talk to third parties directly:
   - Clerk only in auth services.
   - Drizzle only in repositories.

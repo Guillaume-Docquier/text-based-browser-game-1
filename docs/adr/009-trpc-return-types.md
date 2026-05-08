@@ -23,7 +23,7 @@ function createTrpcRouter() {
   const trpc = createTrpc()
 
   return trpc.t.router({
-    games: createGamesRouter({ ...trpc, gamesController, authService, logger }),
+    games: createGamesRouter({ ...trpc, gamesService, authService, logger }),
   })
 }
 ```

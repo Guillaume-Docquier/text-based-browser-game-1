@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express"
 import { clerkClient, clerkMiddleware, getAuth, type User } from "@clerk/express"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { Player, PlayersController } from "#api/players/players.controller.ts"
+import type { Player, PlayersService } from "#api/players/players.service.ts"
 import { couldNot } from "#lib/errors.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
@@ -16,7 +16,7 @@ declare global {
 }
 
 export interface IAuthService {
-  authenticationMiddlewares: ({ playersController }: { playersController: PlayersController }) => RequestHandler[]
+  authenticationMiddlewares: ({ playersService }: { playersService: PlayersService }) => RequestHandler[]
 }
 
 /**
@@ -36,8 +36,8 @@ export class AuthService implements IAuthService {
    * Express middleware that parses the authentication token for further usage.
    * The trpc procedures will consume this information.
    */
-  public authenticationMiddlewares({ playersController }: { playersController: PlayersController }): RequestHandler[] {
-    return [clerkMiddleware(), this.recordPlayerMiddleware({ playersController })]
+  public authenticationMiddlewares({ playersService }: { playersService: PlayersService }): RequestHandler[] {
+    return [clerkMiddleware(), this.recordPlayerMiddleware({ playersService })]
   }
 
   /**
@@ -59,7 +59,7 @@ export class AuthService implements IAuthService {
    *
    * This is an abstraction over Clerk, because we can't full rely on their webhooks to sync data (and we haven't set up one yet anyway).
    */
-  private recordPlayerMiddleware({ playersController }: { playersController: PlayersController }): RequestHandler {
+  private recordPlayerMiddleware({ playersService }: { playersService: PlayersService }): RequestHandler {
     return async (req, res, next) => {
       const auth = getAuth(req)
       if (!auth.isAuthenticated) {
@@ -68,7 +68,7 @@ export class AuthService implements IAuthService {
       }
 
       const authId = auth.userId
-      const findPlayerResult = await playersController.getByAuthId({ authId })
+      const findPlayerResult = await playersService.getByAuthId({ authId })
       if (Result.isFailure(findPlayerResult)) {
         this.logger.error("Could not get player from the clerk id", { authId, error: findPlayerResult.error })
         next()
@@ -83,7 +83,7 @@ export class AuthService implements IAuthService {
           return
         }
 
-        const insertPlayerResult = await playersController.create({
+        const insertPlayerResult = await playersService.create({
           clerk_id: authId,
           email: clerkUser.value.primaryEmailAddress?.emailAddress,
           alias: clerkUser.value.fullName,

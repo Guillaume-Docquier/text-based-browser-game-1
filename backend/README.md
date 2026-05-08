@@ -2,7 +2,7 @@
 
 ## Architecture
 
-3rd parties (Auth, Db), the networking layer (routers) and the domain logic (controllers) are decoupled.  
+3rd parties (Auth, Db), the networking layer (routers) and the domain logic (services) are decoupled.  
 This allows changing tech at any time with low incidence, if done well.  
 We chose Express for now, but it might be lackluster. If the only Express footprint is in the routers, then changing Express is easy.
 

@@ -1,6 +1,6 @@
 import express, { type Express } from "express"
 import { createGamesRouter } from "./games/games.router.ts"
-import { GamesController } from "./games/games.controller.ts"
+import { GamesService } from "./games/games.service.ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
 import type { IAuthService } from "./auth/auth.service.ts"
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
@@ -8,14 +8,14 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
 import { createGameStatesRouter } from "#api/gameStates/gameStates.router.ts"
-import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
+import { GameStatesService } from "#api/gameStates/gameStates.service.ts"
 import type { TRPCError } from "@trpc/server"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { PlayersController } from "#api/players/players.controller.ts"
+import { PlayersService } from "#api/players/players.service.ts"
 import type { PlayersRepository } from "#lib/db/players.repository.ts"
 import type { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
-import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
+import { GamePlayerActionsService } from "#api/gamePlayerActions/gamePlayerActions.service.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
 
 /**
@@ -25,7 +25,7 @@ import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayer
  */
 export async function createApi({
   authService,
-  ...services
+  ...dependencies
 }: {
   authService: IAuthService
   logger: Logger
@@ -35,23 +35,23 @@ export async function createApi({
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
 }): Promise<Express> {
-  const controllers = {
-    gamesController: new GamesController(services),
-    gameStatesController: new GameStatesController(services),
-    playersController: new PlayersController(services),
-    gamePlayerActionsController: new GamePlayerActionsController(services),
+  const services = {
+    gamesService: new GamesService(dependencies),
+    gameStatesService: new GameStatesService(dependencies),
+    playersService: new PlayersService(dependencies),
+    gamePlayerActionsService: new GamePlayerActionsService(dependencies),
   }
 
   const app = express()
-  app.use(requestLoggerMiddleware(services))
-  app.use(...authService.authenticationMiddlewares(controllers))
+  app.use(requestLoggerMiddleware(dependencies))
+  app.use(...authService.authenticationMiddlewares(services))
 
   app.use(
     "/trpc",
     createExpressMiddleware({
-      router: createTrpcRouter({ ...controllers, ...services }),
+      router: createTrpcRouter({ ...services, ...dependencies }),
       createContext: createTrpcContext,
-      onError: createErrorHandler({ logger: services.logger }),
+      onError: createErrorHandler({ logger: dependencies.logger }),
     }),
   )
 
@@ -61,9 +61,9 @@ export async function createApi({
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: {
-  gamesController: GamesController
-  gameStatesController: GameStatesController
-  gamePlayerActionsController: GamePlayerActionsController
+  gamesService: GamesService
+  gameStatesService: GameStatesService
+  gamePlayerActionsService: GamePlayerActionsService
   logger: Logger
 }) {
   const trpc = createTrpc()

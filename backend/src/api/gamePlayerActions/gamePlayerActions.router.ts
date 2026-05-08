@@ -2,16 +2,16 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
 import type { Trpc } from "#api/trpc.ts"
-import type { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
+import type { GamePlayerActionsService } from "#api/gamePlayerActions/gamePlayerActions.service.ts"
 import { GamePlayerActionSchema, GamePlayerActionTypeSchema } from "#lib/gamePlayerActions.ts"
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
 export function createGamePlayerActionsRouter({
   trpc,
-  gamePlayerActionsController,
+  gamePlayerActionsService,
 }: {
   trpc: Trpc
-  gamePlayerActionsController: GamePlayerActionsController
+  gamePlayerActionsService: GamePlayerActionsService
 }) {
   return trpc.router({
     /**
@@ -22,7 +22,7 @@ export function createGamePlayerActionsRouter({
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ action: GamePlayerActionSchema.nullable() }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
-        const getCurrentActionResult = await gamePlayerActionsController.getCurrentAction({ gameId, playerId: player.id })
+        const getCurrentActionResult = await gamePlayerActionsService.getCurrentAction({ gameId, playerId: player.id })
         if (Result.isFailure(getCurrentActionResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -47,7 +47,7 @@ export function createGamePlayerActionsRouter({
       )
       .output(z.object({ action: GamePlayerActionSchema.nullable() }))
       .mutation(async ({ input: { gameId, tick, actionType }, ctx: { player } }) => {
-        const setCurrentActionResult = await gamePlayerActionsController.setCurrentAction({ gameId, playerId: player.id, tick, actionType })
+        const setCurrentActionResult = await gamePlayerActionsService.setCurrentAction({ gameId, playerId: player.id, tick, actionType })
         if (Result.isFailure(setCurrentActionResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
