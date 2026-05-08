@@ -23,9 +23,9 @@ export class GameTicksRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "ticks-repository" })
   }
 
-  public async create(newGameTick: GameTickRowInsert): Promise<Result<GameTickRow, string>> {
+  public async create(newGameTick: GameTickRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<GameTickRow, string>> {
     const createResult = await Result.tryCatch(async () => {
-      const gameTicks = await this.db.insert(gameTicksTable).values(newGameTick).returning()
+      const gameTicks = await db.insert(gameTicksTable).values(newGameTick).returning()
       Assert.isTrue(gameTicks.length === 1)
       Assert.isDefined(gameTicks[0])
 
@@ -40,10 +40,10 @@ export class GameTicksRepository extends PostgresRepository {
     return createResult
   }
 
-  public async getTicksToProcess(): Promise<Result<TickToProcess[], string>> {
+  public async getTicksToProcess(db: PostgresRepository["db"] = this.db): Promise<Result<TickToProcess[], string>> {
     const ticksToProcessResult = await Result.tryCatch(
       async () =>
-        await this.db
+        await db
           .select()
           .from(gameTicksTable)
           .innerJoin(gameStatesTable, eq(gameStatesTable.gameId, gameTicksTable.gameId))
@@ -65,9 +65,12 @@ export class GameTicksRepository extends PostgresRepository {
     )
   }
 
-  public async startProcessingTick({ gameId, tick }: { gameId: number; tick: number }): Promise<Result<true, string>> {
+  public async startProcessingTick(
+    { gameId, tick }: { gameId: number; tick: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<true, string>> {
     const startProcessingTickResult = await Result.tryCatch(async (): Promise<true> => {
-      await this.db
+      await db
         .update(gameTicksTable)
         .set({ processingStartedAt: new Date() })
         .where(and(eq(gameTicksTable.gameId, gameId), eq(gameTicksTable.tick, tick)))
@@ -83,9 +86,12 @@ export class GameTicksRepository extends PostgresRepository {
     return startProcessingTickResult
   }
 
-  public async finishProcessingTick({ gameId, tick }: { gameId: number; tick: number }): Promise<Result<true, string>> {
+  public async finishProcessingTick(
+    { gameId, tick }: { gameId: number; tick: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<true, string>> {
     const finishProcessingTickResult = await Result.tryCatch(async (): Promise<true> => {
-      await this.db
+      await db
         .update(gameTicksTable)
         .set({ processingEndedAt: new Date() })
         .where(and(eq(gameTicksTable.gameId, gameId), eq(gameTicksTable.tick, tick)))

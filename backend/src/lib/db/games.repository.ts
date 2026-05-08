@@ -28,17 +28,17 @@ export class GamesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "games-repository" })
   }
 
-  public async create(newGame: GameRowInsert): Promise<Result<GameRow, string>> {
+  public async create(newGame: GameRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<GameRow, string>> {
     const createResult = await Result.tryCatch(
       async () =>
-        await this.db.transaction(async (tx) => {
+        await db.transaction(async (tx) => {
           const games = await tx.insert(gamesTable).values(newGame).returning()
           Assert.isTrue(games.length === 1)
           Assert.isDefined(games[0])
 
           const game = games[0]
 
-          const joinGameResult = await this.joinInternal({ gameId: game.id, playerId: game.createdByPlayerId, canJoin: () => true }, tx)
+          const joinGameResult = await this.join({ gameId: game.id, playerId: game.createdByPlayerId, canJoin: () => true }, tx)
           if (Result.isFailure(joinGameResult)) {
             this.logger.error("Could not join game after creating it, rolling back", { newGame, error: joinGameResult.error })
             tx.rollback() // Kinda sucks that we can't give any more info: https://github.com/drizzle-team/drizzle-orm/issues/1957
@@ -56,10 +56,10 @@ export class GamesRepository extends PostgresRepository {
     return createResult
   }
 
-  public async getSummaries(): Promise<Result<GameSummaryRow[], string>> {
+  public async getSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryRow[], string>> {
     const gameSummariesResult = await Result.tryCatch(
       async () =>
-        await this.db
+        await db
           .select({
             // game info
             ...getTableColumns(gamesTable),
@@ -116,46 +116,13 @@ export class GamesRepository extends PostgresRepository {
     )
   }
 
-  public async getSummaryById(options: { gameId: number }): Promise<Result<GameSummaryRow | undefined, string>> {
-    return await this.getSummaryByIdInternal(options, this.db)
-  }
-
-  public async getPlayerIds({ gameId }: { gameId: number }): Promise<Result<number[], string>> {
-    const gamePlayersResult = await Result.tryCatch(
-      async () =>
-        await this.db.select({ playerId: gamePlayersTable.playerId }).from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId)),
-    )
-
-    if (Result.isFailure(gamePlayersResult)) {
-      this.logger.error("Could not get player ids", { gameId, error: gamePlayersResult.error })
-      return Result.Failure(couldNot("get player ids"))
-    }
-
-    return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
-  }
-
-  public async endWithWinner({ gameId, winnerPlayerId }: { gameId: number; winnerPlayerId: number }): Promise<Result<true, string>> {
-    const endResult = await Result.tryCatch(async (): Promise<true> => {
-      await this.db.update(gamesTable).set({ endedAt: new Date(), winnerPlayerId }).where(eq(gamesTable.id, gameId))
-
-      return true
-    })
-
-    if (Result.isFailure(endResult)) {
-      this.logger.error("Could not end game with winner", { gameId, winnerPlayerId, error: endResult.error })
-      return Result.Failure(couldNot("end game with winner"))
-    }
-
-    return endResult
-  }
-
-  private async getSummaryByIdInternal(
-    { gameId }: Parameters<GamesRepository["getSummaryById"]>[0],
-    dbOrTx: PostgresRepository["db"],
+  public async getSummaryById(
+    { gameId }: { gameId: number },
+    db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GameSummaryRow | undefined, string>> {
     const gameSummariesResult = await Result.tryCatch(
       async () =>
-        await dbOrTx
+        await db
           .select({
             // game info
             ...getTableColumns(gamesTable),
@@ -202,28 +169,54 @@ export class GamesRepository extends PostgresRepository {
     })
   }
 
-  /**
-   * Joins a game if `canJoin` allows it.
-   */
-  public async join(options: {
-    gameId: number
-    playerId: number
-    canJoin: (gameSummaryRow: GameSummaryRow) => boolean
-  }): Promise<Result<true, string>> {
-    return await this.joinInternal(options, this.db)
+  public async getPlayerIds({ gameId }: { gameId: number }, db: PostgresRepository["db"] = this.db): Promise<Result<number[], string>> {
+    const gamePlayersResult = await Result.tryCatch(
+      async () =>
+        await db.select({ playerId: gamePlayersTable.playerId }).from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId)),
+    )
+
+    if (Result.isFailure(gamePlayersResult)) {
+      this.logger.error("Could not get player ids", { gameId, error: gamePlayersResult.error })
+      return Result.Failure(couldNot("get player ids"))
+    }
+
+    return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
+  }
+
+  public async endWithWinner(
+    { gameId, winnerPlayerId }: { gameId: number; winnerPlayerId: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<true, string>> {
+    const endResult = await Result.tryCatch(async (): Promise<true> => {
+      await db.update(gamesTable).set({ endedAt: new Date(), winnerPlayerId }).where(eq(gamesTable.id, gameId))
+
+      return true
+    })
+
+    if (Result.isFailure(endResult)) {
+      this.logger.error("Could not end game with winner", { gameId, winnerPlayerId, error: endResult.error })
+      return Result.Failure(couldNot("end game with winner"))
+    }
+
+    return endResult
   }
 
   /**
    * Joins a game if `canJoin` allows it.
    */
-  private async joinInternal(
-    { gameId, playerId, canJoin }: Parameters<GamesRepository["join"]>[0],
-    dbOrTx: PostgresRepository["db"],
+  public async join(
+    options: {
+      gameId: number
+      playerId: number
+      canJoin: (gameSummaryRow: GameSummaryRow) => boolean
+    },
+    db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
+    const { gameId, playerId, canJoin } = options
     const joinResult = await Result.tryCatch(
       async () =>
-        await dbOrTx.transaction(async (tx): Promise<true> => {
-          const gameSummaryRowResult = await this.getSummaryByIdInternal({ gameId }, tx)
+        await db.transaction(async (tx): Promise<true> => {
+          const gameSummaryRowResult = await this.getSummaryById({ gameId }, tx)
           if (Result.isFailure(gameSummaryRowResult)) {
             throw new Error(gameSummaryRowResult.error)
           }
@@ -256,19 +249,22 @@ export class GamesRepository extends PostgresRepository {
    * Leaves a game if `canLeave` allows it.
    * If the player is not in the game, a Success will be returned.
    */
-  public async leave({
-    gameId,
-    playerId,
-    canLeave,
-  }: {
-    gameId: number
-    playerId: number
-    canLeave: (gameSummaryRow: GameSummaryRow) => boolean
-  }): Promise<Result<true, string>> {
+  public async leave(
+    {
+      gameId,
+      playerId,
+      canLeave,
+    }: {
+      gameId: number
+      playerId: number
+      canLeave: (gameSummaryRow: GameSummaryRow) => boolean
+    },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<true, string>> {
     const leaveResult = await Result.tryCatch(
       async () =>
-        await this.db.transaction(async (tx): Promise<true> => {
-          const gameSummaryRowResult = await this.getSummaryByIdInternal({ gameId }, tx)
+        await db.transaction(async (tx): Promise<true> => {
+          const gameSummaryRowResult = await this.getSummaryById({ gameId }, tx)
           if (Result.isFailure(gameSummaryRowResult)) {
             throw new Error(gameSummaryRowResult.error)
           }
@@ -303,17 +299,20 @@ export class GamesRepository extends PostgresRepository {
    * - Create a game state
    * - Schedule the tick
    */
-  public async start({
-    gameId,
-    canStart,
-  }: {
-    gameId: number
-    canStart: (gameSummaryRow: GameSummaryRow) => boolean
-  }): Promise<Result<true, string>> {
+  public async start(
+    {
+      gameId,
+      canStart,
+    }: {
+      gameId: number
+      canStart: (gameSummaryRow: GameSummaryRow) => boolean
+    },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<true, string>> {
     const startResult = await Result.tryCatch(
       async () =>
-        await this.db.transaction(async (tx): Promise<true> => {
-          const gameSummaryRowResult = await this.getSummaryByIdInternal({ gameId }, tx)
+        await db.transaction(async (tx): Promise<true> => {
+          const gameSummaryRowResult = await this.getSummaryById({ gameId }, tx)
           if (Result.isFailure(gameSummaryRowResult)) {
             throw new Error(gameSummaryRowResult.error)
           }

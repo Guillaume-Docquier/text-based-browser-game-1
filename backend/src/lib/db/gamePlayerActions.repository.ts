@@ -15,15 +15,18 @@ export class GamePlayerActionsRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "game-player-actions-repository" })
   }
 
-  public async upsert(params: {
-    gameId: number
-    playerId: number
-    tick: number
-    actionType: GamePlayerActionType
-  }): Promise<Result<GamePlayerActionRow, string>> {
+  public async upsert(
+    params: {
+      gameId: number
+      playerId: number
+      tick: number
+      actionType: GamePlayerActionType
+    },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<GamePlayerActionRow, string>> {
     const upsertResult = await Result.tryCatch(async () => {
       const updatedAt = new Date()
-      const gamePlayerActions = await this.db
+      const gamePlayerActions = await db
         .insert(gamePlayerActionsTable)
         .values({ ...params, updatedAt })
         .onConflictDoUpdate({
@@ -49,14 +52,17 @@ export class GamePlayerActionsRepository extends PostgresRepository {
     return upsertResult
   }
 
-  public async getByGameIdPlayerIdAndTick(params: {
-    gameId: number
-    playerId: number
-    tick: number
-  }): Promise<Result<GamePlayerActionRow | null, string>> {
+  public async getByGameIdPlayerIdAndTick(
+    params: {
+      gameId: number
+      playerId: number
+      tick: number
+    },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<GamePlayerActionRow | null, string>> {
     const getResult = await Result.tryCatch(
       async () =>
-        await this.db
+        await db
           .select()
           .from(gamePlayerActionsTable)
           .where(
@@ -77,10 +83,13 @@ export class GamePlayerActionsRepository extends PostgresRepository {
     return Result.Success(getResult.value[0] ?? null)
   }
 
-  public async getByGameIdAndTick(params: { gameId: number; tick: number }): Promise<Result<GamePlayerActionRow[], string>> {
+  public async getByGameIdAndTick(
+    params: { gameId: number; tick: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<GamePlayerActionRow[], string>> {
     const getResult = await Result.tryCatch(
       async () =>
-        await this.db
+        await db
           .select()
           .from(gamePlayerActionsTable)
           .where(and(eq(gamePlayerActionsTable.gameId, params.gameId), eq(gamePlayerActionsTable.tick, params.tick))),
@@ -94,9 +103,12 @@ export class GamePlayerActionsRepository extends PostgresRepository {
     return Result.Success(getResult.value)
   }
 
-  public async deleteByGameIdPlayerIdAndTick(params: { gameId: number; playerId: number; tick: number }): Promise<Result<true, string>> {
+  public async deleteByGameIdPlayerIdAndTick(
+    params: { gameId: number; playerId: number; tick: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(async (): Promise<true> => {
-      await this.db
+      await db
         .delete(gamePlayerActionsTable)
         .where(
           and(
