@@ -22,9 +22,9 @@ export class GameStatesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "game-states-repository" })
   }
 
-  public async create(newGameState: GameStateRowInsert): Promise<Result<GameStateRow, string>> {
+  public async create(newGameState: GameStateRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<GameStateRow, string>> {
     const createResult = await Result.tryCatch(async () => {
-      const gameTicks = await this.db.insert(gameStatesTable).values(newGameState).returning()
+      const gameTicks = await db.insert(gameStatesTable).values(newGameState).returning()
       Assert.isTrue(gameTicks.length === 1)
       Assert.isDefined(gameTicks[0])
 
@@ -39,9 +39,13 @@ export class GameStatesRepository extends PostgresRepository {
     return createResult
   }
 
-  public async update({ gameId }: { gameId: number }, gameState: Partial<GameStateRowInsert>): Promise<Result<true, string>> {
+  public async update(
+    { gameId }: { gameId: number },
+    gameState: Partial<GameStateRowInsert>,
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<true, string>> {
     const updateResult = await Result.tryCatch(async (): Promise<true> => {
-      await this.db.update(gameStatesTable).set(gameState).where(eq(gameStatesTable.gameId, gameId))
+      await db.update(gameStatesTable).set(gameState).where(eq(gameStatesTable.gameId, gameId))
 
       return true
     })
@@ -54,9 +58,12 @@ export class GameStatesRepository extends PostgresRepository {
     return updateResult
   }
 
-  public async getById({ gameId }: { gameId: number }): Promise<Result<GameStateRow | undefined, string>> {
+  public async getById(
+    { gameId }: { gameId: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<GameStateRow | undefined, string>> {
     const gameStatesResult = await Result.tryCatch(
-      async () => await this.db.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId)),
+      async () => await db.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId)),
     )
 
     if (Result.isFailure(gameStatesResult)) {
@@ -69,16 +76,19 @@ export class GameStatesRepository extends PostgresRepository {
     return Result.Success(gameStatesResult.value[0])
   }
 
-  public async getByGameIdAndPlayerId({
-    gameId,
-    playerId,
-  }: {
-    gameId: number
-    playerId: number
-  }): Promise<Result<PlayerGameStateRow | undefined, string>> {
+  public async getByGameIdAndPlayerId(
+    {
+      gameId,
+      playerId,
+    }: {
+      gameId: number
+      playerId: number
+    },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<PlayerGameStateRow | undefined, string>> {
     const playerGameStateResult = await Result.tryCatch(
       async () =>
-        await this.db.transaction(async (tx) => {
+        await db.transaction(async (tx) => {
           const gameStates = await tx.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId))
           Assert.isTrue(gameStates.length === 1)
 

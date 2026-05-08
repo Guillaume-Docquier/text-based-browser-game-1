@@ -13,14 +13,17 @@ export class GamePlayerResourcesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "game-player-resources-repository" })
   }
 
-  public async updateResource(params: {
-    gameId: number
-    playerId: number
-    resourceType: ResourceType
-    amountDelta: number
-  }): Promise<Result<true, string>> {
+  public async updateResource(
+    params: {
+      gameId: number
+      playerId: number
+      resourceType: ResourceType
+      amountDelta: number
+    },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<true, string>> {
     const updateResourceResult = await Result.tryCatch(async (): Promise<true> => {
-      await this.db
+      await db
         .update(gamePlayerResourcesTable)
         .set({ amount: sql`${gamePlayerResourcesTable.amount} + ${params.amountDelta}` })
         .where(
