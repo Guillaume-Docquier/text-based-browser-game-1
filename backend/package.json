@@ -20,7 +20,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.6",
+    "@clerk/express": "^2.1.13",
     "@guillaume-docquier/tools-ts": "^1.4.0",
     "@trpc/server": "^11.17.0",
     "drizzle-orm": "^0.45.2",
