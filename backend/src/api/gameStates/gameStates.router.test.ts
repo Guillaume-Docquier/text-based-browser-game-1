@@ -44,17 +44,6 @@ describe("gameStates.router", () => {
       })
     })
 
-    it("should reject anonymous game state reads", async () => {
-      // Arrange
-      const api = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
-
-      // Act & Assert
-      await expect(trpcClient.client.gameStates.getById.query({ gameId: 1 })).rejects.toMatchObject({
-        data: { code: "UNAUTHORIZED" },
-      })
-    })
-
     it("should reject invalid game ids", async () => {
       // Arrange
       const db = await createDbMock()
@@ -67,6 +56,17 @@ describe("gameStates.router", () => {
       // Act & Assert
       await expect(trpcClient.client.gameStates.getById.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
+      })
+    })
+
+    it("should reject anonymous game state reads", async () => {
+      // Arrange
+      const api = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      // Act & Assert
+      await expect(trpcClient.client.gameStates.getById.query({ gameId: 1 })).rejects.toMatchObject({
+        data: { code: "UNAUTHORIZED" },
       })
     })
   })

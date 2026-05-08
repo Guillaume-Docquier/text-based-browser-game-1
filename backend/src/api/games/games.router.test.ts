@@ -58,7 +58,7 @@ describe("games.router", () => {
   })
 
   describe("getSummaries", () => {
-    it("should get summaries anonymously with all capability flags disabled", async () => {
+    it("should get summaries anonymously", async () => {
       // Arrange
       const db = await createDbMock()
       const player = await createPlayer(db, createPlayerRowInsertStub())
@@ -170,7 +170,7 @@ describe("games.router", () => {
   })
 
   describe("getSummaryById", () => {
-    it("should get a summary by id", async () => {
+    it("should get a summary by id when authenticated", async () => {
       // Arrange
       const db = await createDbMock()
       const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
@@ -219,6 +219,57 @@ describe("games.router", () => {
           ],
           status: GameSummaryStatus.WAITING_FOR_PLAYERS,
           canJoin: true,
+          canLeave: false,
+          canStart: false,
+        },
+      })
+    })
+
+    it("should get a summary by id anonymously", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
+
+      const authService = new AuthServiceMock({ player: creator })
+      const api = await createApiStub({ db, authService })
+      using trpcClient = new TrpcClient({ api })
+
+      const createGameResult = await trpcClient.client.games.create.mutate({
+        newGame: {
+          name: "specific game",
+          nbSeats: 2,
+          tickIntervalSeconds: 60,
+        },
+      })
+
+      authService.player = undefined
+
+      // Act
+      const getSummaryByIdResult = await trpcClient.client.games.getSummaryById.query({ gameId: createGameResult.newGame.id })
+
+      // Assert
+      expect(getSummaryByIdResult).toEqual<typeof getSummaryByIdResult>({
+        game: {
+          id: createGameResult.newGame.id,
+          createdAt: expect.any(String),
+          endedAt: null,
+          winnerPlayerId: null,
+          name: "specific game",
+          nbSeats: 2,
+          tickIntervalSeconds: 60,
+          startedAt: null,
+          creator: {
+            id: creator.id,
+            alias: creator.alias,
+          },
+          players: [
+            {
+              id: creator.id,
+              alias: creator.alias,
+            },
+          ],
+          status: GameSummaryStatus.WAITING_FOR_PLAYERS,
+          canJoin: false,
           canLeave: false,
           canStart: false,
         },
