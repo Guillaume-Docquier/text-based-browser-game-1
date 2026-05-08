@@ -12,7 +12,7 @@ For more info on the project, see [the milestones](https://github.com/Guillaume-
 
 ## Architecture
 
-The project is structured as a basic monorepo, where each folder is a deployable project.
+The project is structured as a pnpm workspace monorepo with separate deployable frontend and backend packages.
 
 The game will have:
 
@@ -37,7 +37,7 @@ For example, we chose:
 - Typescript (proficient)
 - React (proficient)
 - Express (proficient)
-- pnpm (familiar)
+- pnpm workspaces (familiar)
 - Tanstack query (familiar)
 - Tanstack router (new)
 - No monorepo power tool (new)

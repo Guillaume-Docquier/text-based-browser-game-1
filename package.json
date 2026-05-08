@@ -1,16 +1,30 @@
 {
   "name": "text-based-browser-game-1",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
+    "backend:db:generate": "pnpm --filter backend db:generate",
+    "backend:db:migrate": "pnpm --filter backend db:migrate",
+    "backend:db:seed": "pnpm --filter backend db:seed",
+    "backend:dev": "pnpm --filter backend dev",
+    "backend:start": "pnpm --filter backend start",
+    "backend:test": "pnpm --filter backend test",
+    "backend:test:coverage": "pnpm --filter backend test:coverage",
+    "backend:typecheck": "pnpm --filter backend typecheck",
     "format": "prettier --check . && pnpm format:package-json --check",
     "format:fix": "prettier --write --list-different . && pnpm format:package-json",
     "format:package-json": "sort-package-json package.json shared/eslint/package.json frontend/package.json backend/package.json",
+    "frontend:build": "pnpm --filter frontend build",
+    "frontend:dev": "pnpm --filter frontend dev",
+    "frontend:preview": "pnpm --filter frontend preview",
+    "frontend:start": "pnpm --filter frontend start",
+    "frontend:typecheck": "pnpm --filter frontend typecheck",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "npm run lint -- --fix",
+    "lint:fix": "pnpm lint -- --fix",
     "prepare": "husky",
-    "project:checks": "pnpm lint:fix && pnpm format:fix && pnpm --dir backend typecheck && pnpm --dir frontend typecheck",
-    "project:setup": "pnpm i && pnpm --dir backend i && pnpm --dir frontend i"
+    "project:checks": "pnpm lint:fix && pnpm format:fix && pnpm backend:typecheck && pnpm frontend:typecheck",
+    "project:setup": "pnpm install"
   },
   "lint-staged": {
     "*package.json": "sort-package-json",
@@ -25,7 +39,7 @@
     "semi": false
   },
   "devDependencies": {
-    "@shared/eslint": "file:./shared/eslint",
+    "@shared/eslint": "workspace:*",
     "eslint": "9.39.4",
     "globals": "17.6.0",
     "husky": "9.1.7",

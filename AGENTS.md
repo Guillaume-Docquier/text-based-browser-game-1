@@ -16,16 +16,16 @@ This repo is a lightweight monorepo with separate deployable projects:
 - `pnpm project:checks`: sanitiy checks for all packages
 - `pnpm lint:fix`: run ESLint.
 - `pnpm format:fix`: run Prettier.
-- `pnpm --dir frontend dev`: start the Vite frontend with watch mode.
-- `pnpm --dir frontend build`: build the frontend.
-- `pnpm --dir frontend typecheck`: frontend TypeScript check.
-- `pnpm --dir backend dev`: run the backend with watch mode.
-- `pnpm --dir backend start`: run the backend without watch mode.
-- `pnpm --dir backend test`: run backend unit tests.
-- `pnpm --dir backend typecheck`: backend TypeScript check.
-- `pnpm --dir backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
-- `pnpm --dir backend db:migrate`: apply migrations.
-- `pnpm --dir backend db:seed`: seed the database.
+- `pnpm frontend:dev`: start the Vite frontend with watch mode.
+- `pnpm frontend:build`: build the frontend.
+- `pnpm frontend:typecheck`: frontend TypeScript check.
+- `pnpm backend:dev`: run the backend with watch mode.
+- `pnpm backend:start`: run the backend without watch mode.
+- `pnpm backend:test`: run backend unit tests.
+- `pnpm backend:typecheck`: backend TypeScript check.
+- `pnpm backend:db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
+- `pnpm backend:db:migrate`: apply migrations.
+- `pnpm backend:db:seed`: seed the database.
 
 ## Architecture Rules
 
@@ -70,9 +70,9 @@ Do not create shared utility/helper files or folders. Create dedicated files wit
 Minimum verification for meaningful changes:
 
 - `pnpm lint`
-- `pnpm --dir backend test`
-- `pnpm --dir frontend typecheck`
-- `pnpm --dir backend typecheck`
+- `pnpm backend:test`
+- `pnpm frontend:typecheck`
+- `pnpm backend:typecheck`
 - relevant manual verification for the area changed
 
 ## Commits And PRs
