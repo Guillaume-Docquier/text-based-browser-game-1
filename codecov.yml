@@ -1,0 +1,14 @@
+coverage:
+  status:
+    project:
+      default:
+        flags:
+          - backend
+        informational: true
+        target: 0%
+    patch:
+      default:
+        flags:
+          - backend
+        informational: true
+        target: 0%
