@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ${{ github.ref_name }}
+      - name: Checkout ${{ github.head_ref || github.ref_name }}
         uses: actions/checkout@v6
 
       - name: Setting up pnpm
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ${{ github.ref_name }}
+      - name: Checkout ${{ github.head_ref || github.ref_name }}
         uses: actions/checkout@v6
 
       - name: Setting up pnpm
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ${{ github.ref_name }}
+      - name: Checkout ${{ github.head_ref || github.ref_name }}
         uses: actions/checkout@v6
 
       - name: Setting up pnpm
