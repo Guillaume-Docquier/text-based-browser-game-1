@@ -2,9 +2,6 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "buildCommand": "pnpm --filter frontend build",
-    "watchPatterns": [".nvmrc", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "frontend/**"]
-  },
-  "deploy": {
-    "startCommand": "pnpm --filter frontend start"
+    "watchPatterns": ["frontend/**"]
   }
 }
