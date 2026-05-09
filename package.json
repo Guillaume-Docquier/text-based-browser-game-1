@@ -1,16 +1,16 @@
 {
   "name": "text-based-browser-game-1",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
+    "checks": "pnpm lint:fix && pnpm format:fix && pnpm -r checks",
     "format": "prettier --check . && pnpm format:package-json --check",
     "format:fix": "prettier --write --list-different . && pnpm format:package-json",
     "format:package-json": "sort-package-json package.json shared/eslint/package.json frontend/package.json backend/package.json",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "npm run lint -- --fix",
-    "prepare": "husky",
-    "project:checks": "pnpm lint:fix && pnpm format:fix && pnpm --dir backend typecheck && pnpm --dir frontend typecheck",
-    "project:setup": "pnpm i && pnpm --dir backend i && pnpm --dir frontend i"
+    "lint:fix": "pnpm lint --fix",
+    "prepare": "husky"
   },
   "lint-staged": {
     "*package.json": "sort-package-json",
@@ -25,7 +25,7 @@
     "semi": false
   },
   "devDependencies": {
-    "@shared/eslint": "file:./shared/eslint",
+    "@shared/eslint": "workspace:*",
     "eslint": "9.39.4",
     "globals": "17.6.0",
     "husky": "9.1.7",
@@ -33,5 +33,5 @@
     "prettier": "3.8.3",
     "sort-package-json": "3.6.1"
   },
-  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
+  "packageManager": "pnpm@11.0.9+sha512.34ce82e6780233cf9cad8685029a8f81d2e06196c5a9bad98879f7424940c6817c4e4524fb7d38b8553ceed48b9758b8ebaf1abd3600c232c4c8cf7366086f38"
 }

@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ${{ github.ref_name }}
+      - name: Checkout ${{ github.head_ref || github.ref_name }}
         uses: actions/checkout@v6
 
       - name: Setting up pnpm
@@ -27,12 +27,8 @@ jobs:
           node-version-file: ".nvmrc"
           cache: pnpm
 
-      # Linting needs all packages to be installed otherwise some types won't be found
       - name: Install packages
-        run: |
-          pnpm i
-          pnpm --prefix frontend i
-          pnpm --prefix backend i
+        run: pnpm i
 
       - name: Format
         run: pnpm format
@@ -41,44 +37,10 @@ jobs:
         run: pnpm lint
 
   frontend:
-    defaults:
-      run:
-        working-directory: ./frontend
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ${{ github.ref_name }}
-        uses: actions/checkout@v6
-
-      - name: Setting up pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setting up nodejs
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: ".nvmrc"
-          cache: pnpm
-
-      # We install backend packages because we import their types
-      - name: Install packages
-        run: |
-          pnpm i
-          cd ../backend && pnpm i
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Tests
-        run: pnpm test --if-present
-
-  backend:
-    defaults:
-      run:
-        working-directory: ./backend
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout ${{ github.ref_name }}
+      - name: Checkout ${{ github.head_ref || github.ref_name }}
         uses: actions/checkout@v6
 
       - name: Setting up pnpm
@@ -94,10 +56,35 @@ jobs:
         run: pnpm i
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: pnpm --filter frontend typecheck
+
+      - name: Tests
+        run: pnpm --filter frontend test
+
+  backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout ${{ github.head_ref || github.ref_name }}
+        uses: actions/checkout@v6
+
+      - name: Setting up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setting up nodejs
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - name: Install packages
+        run: pnpm i
+
+      - name: Typecheck
+        run: pnpm --filter backend typecheck
 
       - name: Tests with coverage
-        run: pnpm test:coverage
+        run: pnpm --filter backend test:coverage
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v6

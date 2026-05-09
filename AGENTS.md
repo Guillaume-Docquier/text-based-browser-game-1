@@ -8,24 +8,21 @@ This repo is a lightweight monorepo with separate deployable projects:
 - `backend/`: Express + tRPC API plus tick-processing code. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
 - `shared/eslint/`: shared lint config only. Do not share runtime code between backend and frontend.
 - `infra/`: deployment and reverse-proxy config.
-- `adr/`: architecture decision records. Read the relevant ADRs before changing established patterns.
+- `docs/`: all project documentation. It includes past, present, and future tech/game designs, adrs, etc.
+- `docs/adr/`: architecture decision records. Read the relevant ADRs before changing established patterns.
 
 ## Commands
 
-- `pnpm project:setup`: setup all packages
-- `pnpm project:checks`: sanitiy checks for all packages
+- `pnpm i`: install node_modules for all packages.
+- `pnpm checks`: runs all quality checks (lint, format, typecheck, test) on all packages.
 - `pnpm lint:fix`: run ESLint.
 - `pnpm format:fix`: run Prettier.
-- `pnpm --dir frontend dev`: start the Vite frontend with watch mode.
-- `pnpm --dir frontend build`: build the frontend.
-- `pnpm --dir frontend typecheck`: frontend TypeScript check.
-- `pnpm --dir backend dev`: run the backend with watch mode.
-- `pnpm --dir backend start`: run the backend without watch mode.
-- `pnpm --dir backend test`: run backend unit tests.
-- `pnpm --dir backend typecheck`: backend TypeScript check.
-- `pnpm --dir backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
-- `pnpm --dir backend db:migrate`: apply migrations.
-- `pnpm --dir backend db:seed`: seed the database.
+- `pnpm --filter frontend build`: build the frontend.
+- `pnpm --filter frontend checks`: run all backend quality checks (typecheck).
+- `pnpm --filter backend checks`: run all backend quality checks (typecheck, test).
+- `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
+- `pnpm --filter backend db:migrate`: apply migrations.
+- `pnpm --filter backend db:seed`: seed the database.
 
 ## Architecture Rules
 
@@ -62,22 +59,20 @@ These come from the ADRs and should be treated as default constraints, not sugge
   - Utilities: camelCase files like `timeAgo.ts`
   - Route files: TanStack Router naming like `games.$gameId.tsx`
 - Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Use `as const` objects plus derived union types, following `backend/src/lib/gameResources.ts`.
+- Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
 
 ## Testing And Verification
 
-Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
-
 Minimum verification for meaningful changes:
 
-- `pnpm lint`
-- `pnpm --dir backend test`
-- `pnpm --dir frontend typecheck`
-- `pnpm --dir backend typecheck`
+- `pnpm checks` (when touching all projects)
+- `pnpm --filter backend checks` (when touching only backend)
+- `pnpm --filter frontend checks` (when touching only frontend)
 - relevant manual verification for the area changed
 
 ## Commits And PRs
 
-- Husky enforces scoped commit prefixes: `project:`, `frontend:`, `backend:`, `ci:`, `adr:`, `infra:`.
+- Husky enforces scoped commit prefixes: `project:`, `frontend:`, `backend:`, `ci:`, `adr:`, `infra:`, `docs:`.
 - Pre-commit runs `pnpm lint-staged`, so keep changes focused.
 - If a change affects schema, env usage, or deployment behavior, call that out explicitly in the PR.
 
