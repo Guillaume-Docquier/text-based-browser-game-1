@@ -1,38 +1,37 @@
 # Coordinate System and Movement
 
-This document describes how the star map will be built based on a 5-tier coordinate system and graph structure to allow movements in the game.
+This document describes how the star map will be built based on a 4-tier coordinate system and graph structure to allow movements in the game.
 
 ## Description
 
 ### The World
 
-The world will feature a `System:Orbit:Sector:Body:Site` coordinate system. The coordinate system will be read from left to right and any coordinate will contain one to five of the five tiers.
+The world consists of a single star system. At the center of the system will be a star, with concentric Orbits around it. Each Orbit will be divided into Sectors and each Sector will contain Bodies. Finally, each Body is composed of Sites.
+
+The world will feature a `Orbit:Sector:Body:Site` coordinate system. The coordinate system will be read from left to right, and any coordinate will contain one to four of the four tiers.
 
 For example, these are all valid coordinates:
 
-- `01` (system 1)
-- `01:02:11` (system 1, orbit 2, sector 11)
-- `01:02:11:05:03` (system 1, orbit 2, sector 11, body 5, site 3)
+- `02:11` (orbit 2, sector 11)
+- `02:11:05:03` (orbit 2, sector 11, body 5, site 3)
 
-While all the above coordinates will be valid, not all of them will be valid for movement. Players will be able to view any of those coordinates. A link to `01:02` would bring the view of the player to system 1, orbit 2. However, units will only be able to move to Body or Sites.
+While all the above coordinates will be valid, not all of them will be valid for movement. Players will be able to view any of those coordinates. A link to `02` would bring the view of the player to orbit 2. However, units will only be able to move to Sectors, Bodies or Sites.
 
 For example, these are the coordinate capabilities:
 
-- `01` (view)
-- `01:02` (view)
-- `01:02:11` (view)
-- `01:02:11:05` (view and movement)
-- `01:02:11:05:03` (view and movement)
+- `02` (view)
+- `02:11` (view and movement)
+- `02:11:05` (view and movement)
+- `02:11:05:03` (view and movement)
 
-The Orbit 1 will always be an Orbit with 1 Sector that contains the central Star.
+The star is artificial and only for display purposes. It is not a Body.
 
 The game creation menu will allow customizing the following aspects:
 
-- Number of Systems (range)
-  - Planet density (range)
-  - Number of Planets per System (range)
-  - Number of Sites per Planet (range)
-  - Number of Sites per Home Planet (range)
+- Planet density of the System (range)
+- Number of Planets per System (range)
+- Number of Sites per Planet (range)
+- Number of Sites per Home Planet (range)
 - Presence of Moons (yes/no)
   - Number of Moons per Planet (range)
   - Number of Moons per Home Planet (range)
@@ -45,9 +44,9 @@ The game creation menu will allow customizing the following aspects:
 Here's a representation of a System with 3 orbits and 14 sectors
 ![star system](../../.github/images/star-system.png)
 
-The central dot is the Star, each circle is an Orbit and each dot on an Orbit is a Sector.
+The central dot is the star, each circle is an Orbit and each dot on an Orbit is a Sector.
 
-In this image, the Sector count per Orbit starts at 1 (the Star) and doubles for each additional Orbit.
+In this image, the Sector count per Orbit starts at 2 and doubles for each additional Orbit.
 
 Asteroids will be featured through Asteroid belts. An Asteroid belt is an orbit where each sector contains Asteroids only. There can be one or more Asteroid per Sector. Any Orbit can be an Asteroid belt, this will be chosen at random. In the core Ruleset, Asteroids will have a single Site and won't be claimable, like Planets or Moons.
 
@@ -55,27 +54,24 @@ Moons will be attached to planets. Visually, a Moon will orbit around a Planet. 
 
 ### Movement
 
-We can only move to Planets or Sites:
+We can only move to Sectors, Bodies or Sites:
 
 - Each Site is connected to the lower orbit of its Body.
 - Each Body is connected to all Bodies in the same Sector.
-- Each Body in a Sector is connected to all Bodies in the closest Sector clockwise on the same Orbit.
-- Each Body in a Sector is connected to all Bodies in the closest Sector anti-clockwise on the same Orbit.
-- Each Body in a Sector is connected to all Bodies in the closest Sector (absolute distance) of the lower Orbits.
+- Each Body in a Sector is connected to all adjacent Sectors.
 
 Here's an example:
-![movement](../../.github/images/movement.png)
+![movement](../../.github/images/movement-sector-based.png)
 
-When moving, distance does not matter for now.
+In the example above every Sector has 3 to 5 adjacent Sectors
 
-This can be represented as a graph, where each edge has a weight of 1.
+This can be represented as a graph, where each edge (arrow) has a weight of 1.
 
 ## Architecture
 
 The map will be stored in a relational database with the following tables:
 
 - Maps: all maps, by game id, and their generation settings
-- Systems
 - Orbits
 - Sectors
 - Bodies
@@ -85,14 +81,15 @@ This data will only be used to express static data about the entities, not mutab
 
 The movement graph will be stored in a relational database with the following tables:
 
-- MovementNodes: nodes that can be moved to (currently Bodies and Sites)
+- MovementNodes: nodes that can be moved to (currently Sectors, Bodies and Sites)
 - MovementEdges: the connections between nodes
 
 This data will only be used to validate movements. Units and buildings will always refer to Bodies or Sites, never to MovementNodes.
 
 The frontend will consume DTOs derived from this data:
 
-- MapDTO: All the information about the map to render it (movement graph, Systems, Orbits, Sectors, Bodies and Sites) with limited details about each Body and Site
+- MapDTO: All the information about the map to render it (movement graph, Orbits, Sectors, Bodies and Sites) with limited details about each Body and Site
+- SectorDTO: Detailed information about a Sector
 - BodyDTO: Detailed information about a Body
 - SiteDTO: Detailed information about a Site
 
@@ -120,14 +117,11 @@ type Range = {
 }
 
 type MapGenerationSettings = {
-  general: {
-    nbSystems: Range
-  }
   planets: {
     /**
      * Percentage between 0 and 1
      */
-    planetDensity: Range
+    planetDensityOfSystem: Range
     nbPlanetsPerSystem: Range
     nbSitesPerPlanet: Range
     nbSitesPerHomePlanet: Range
@@ -147,42 +141,28 @@ type MapGenerationSettings = {
 }
 ```
 
-### game_map_systems
-
-| Column          | Type      | Constraints                                                 | Notes                            |
-| --------------- | --------- | ----------------------------------------------------------- | -------------------------------- |
-| `id`            | `integer` | primary key, generated identity                             | Stable row id.                   |
-| `game_id`       | `integer` | not null, references `game_maps(game_id)` on delete cascade | Parent map.                      |
-| `system_number` | `integer` | not null                                                    | Coordinate segment, starts at 1. |
-
-Indexes and constraints:
-
-- Unique `(game_id, system_number)`.
-- Index `(game_id)`.
-
 ### game_map_orbits
 
-| Column         | Type      | Constraints                                                   | Notes                            |
-| -------------- | --------- | ------------------------------------------------------------- | -------------------------------- |
-| `id`           | `integer` | primary key, generated identity                               | Stable row id.                   |
-| `game_id`      | `integer` | not null, references `game_maps(game_id)` on delete cascade   | Parent map.                      |
-| `system_id`    | `integer` | not null, references `game_map_systems(id)` on delete cascade | Parent system.                   |
-| `orbit_number` | `integer` | not null                                                      | Coordinate segment, starts at 1. |
-| `sector_count` | `integer` | not null                                                      | Number of sectors on this orbit. |
+| Column         | Type      | Constraints                                                 | Notes                            |
+| -------------- | --------- | ----------------------------------------------------------- | -------------------------------- |
+| `id`           | `integer` | primary key, generated identity                             | Stable row id.                   |
+| `game_id`      | `integer` | not null, references `game_maps(game_id)` on delete cascade | Parent map.                      |
+| `orbit_number` | `integer` | not null                                                    | Coordinate segment, starts at 1. |
 
 Indexes and constraints:
 
-- Unique `(system_id, orbit_number)`.
-- Index `(game_id, system_id)`.
+- Unique `(game_id, orbit_number)`.
+- Index `(game_id)`.
 
 ### game_map_sectors
 
-| Column          | Type      | Constraints                                                  | Notes                            |
-| --------------- | --------- | ------------------------------------------------------------ | -------------------------------- |
-| `id`            | `integer` | primary key, generated identity                              | Stable row id.                   |
-| `game_id`       | `integer` | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                      |
-| `orbit_id`      | `integer` | not null, references `game_map_orbits(id)` on delete cascade | Parent orbit.                    |
-| `sector_number` | `integer` | not null                                                     | Coordinate segment, starts at 1. |
+| Column             | Type      | Constraints                                                  | Notes                                             |
+| ------------------ | --------- | ------------------------------------------------------------ | ------------------------------------------------- |
+| `id`               | `integer` | primary key, generated identity                              | Stable row id.                                    |
+| `game_id`          | `integer` | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                                       |
+| `orbit_id`         | `integer` | not null, references `game_map_orbits(id)` on delete cascade | Parent orbit.                                     |
+| `sector_number`    | `integer` | not null                                                     | Coordinate segment, starts at 1.                  |
+| `movement_node_id` | `integer` | not null, references `game_map_movement_nodes(id)`           | The id of the movement node for movement queries. |
 
 Indexes and constraints:
 
@@ -197,7 +177,7 @@ Indexes and constraints:
 | `game_id`          | `integer`      | not null, references `game_maps(game_id)` on delete cascade   | Parent Map.                                       |
 | `sector_id`        | `integer`      | not null, references `game_map_sectors(id)` on delete cascade | Parent Sector.                                    |
 | `body_number`      | `integer`      | not null                                                      | Coordinate segment, starts at 1.                  |
-| `body_type`        | `enum`         | not null                                                      | `PLANET`, `MOON`, `ASTEROID` or `STAR`.           |
+| `body_type`        | `enum`         | not null                                                      | `PLANET`, `MOON` or `ASTEROID`.                   |
 | `can_be_owned`     | `boolean`      | not null                                                      | Whether this Body can be owned by a player.       |
 | `name`             | `varchar(255)` | not null                                                      | Body display name.                                |
 | `movement_node_id` | `integer`      | not null, references `game_map_movement_nodes(id)`            | The id of the movement node for movement queries. |
