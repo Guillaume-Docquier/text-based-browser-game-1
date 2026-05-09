@@ -53,6 +53,9 @@ if (!isMainThread) {
   }
 
   logger.info("Processing ticks")
+  if (logger !== undefined) {
+    logger.info("Processing ticks")
+  }
   setInterval(() => {
     void processTick({ logger, ...repositories })
   }, 1000)
