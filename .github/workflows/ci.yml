@@ -11,7 +11,7 @@ permissions:
   packages: read
 
 jobs:
-  checks:
+  code-quality:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,7 +28,7 @@ jobs:
           cache: pnpm
 
       - name: Install packages
-        run: pnpm install --frozen-lockfile
+        run: pnpm i
 
       - name: Format
         run: pnpm format
@@ -36,14 +36,55 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Frontend typecheck
-        run: pnpm frontend:typecheck
+  frontend:
+    runs-on: ubuntu-latest
 
-      - name: Backend typecheck
-        run: pnpm backend:typecheck
+    steps:
+      - name: Checkout ${{ github.ref_name }}
+        uses: actions/checkout@v6
 
-      - name: Backend tests with coverage
-        run: pnpm backend:test:coverage
+      - name: Setting up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setting up nodejs
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - name: Install packages
+        run: pnpm i
+
+      - name: Typecheck
+        run: pnpm --filter frontend typecheck
+
+      - name: Tests
+        run: pnpm --filter frontend test
+
+  backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout ${{ github.ref_name }}
+        uses: actions/checkout@v6
+
+      - name: Setting up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setting up nodejs
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - name: Install packages
+        run: pnpm i
+
+      - name: Typecheck
+        run: pnpm --filter backend typecheck
+
+      - name: Tests with coverage
+        run: pnpm --filter backend test:coverage
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v6

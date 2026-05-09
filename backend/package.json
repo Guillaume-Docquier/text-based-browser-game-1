@@ -10,6 +10,7 @@
     "#tests/*": "./src/tests/*"
   },
   "scripts": {
+    "checks": "pnpm typecheck && pnpm test",
     "db:generate": "drizzle-kit generate --config ./drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
     "db:seed": "node --env-file=.env scripts/db/seed.ts",

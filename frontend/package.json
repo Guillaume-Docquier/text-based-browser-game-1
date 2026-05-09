@@ -5,9 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "checks": "pnpm typecheck",
     "dev": "vite",
-    "preview": "vite preview",
-    "start": "vite preview",
     "typecheck": "tsc -b"
   },
   "dependencies": {
