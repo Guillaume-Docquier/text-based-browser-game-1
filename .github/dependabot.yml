@@ -2,15 +2,50 @@ version: 2
 
 updates:
   - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
+    directory: /
     commit-message:
       prefix: "ci(deps)"
 
-  - package-ecosystem: "npm"
-    directory: "/"
     schedule:
-      interval: "weekly"
+      interval: weekly
+      day: wednesday
+
+    # Only accept updates that have been published for at least 3 days
+    cooldown:
+      default-days: 3
+
+    # Create a grouped PR for minor/patch updates with majors getting dedicated PRs
+    groups:
+      actions:
+        update-types:
+          - patch
+          - minor
+
+  - package-ecosystem: npm
+    directory: /
     commit-message:
       prefix: "project(deps)"
+
+    schedule:
+      interval: weekly
+      day: wednesday
+
+    # Only accept updates that have been published for at least 3 days
+    cooldown:
+      default-days: 3
+
+    # Ensure the new version is stored in `package.json`
+    versioning-strategy: increase
+
+    # Create a grouped PR for minor/patch updates with majors getting dedicated PRs
+    groups:
+      production:
+        dependency-type: production
+        update-types:
+          - patch
+          - minor
+      development:
+        dependency-type: development
+        update-types:
+          - patch
+          - minor
