@@ -4,7 +4,7 @@
 
 This repo is a lightweight monorepo with separate deployable projects:
 
-- `frontend/`: React 19 + Vite UI. File-based routes live in `src/routes/`, shared UI in `src/design-system/`, static assets in `public/` and `src/assets/`.
+- `frontend/`: React 19 + Vite UI. File-based routes live in `src/routes/`, reusable Shadcn components and shared UI in `src/components/`, static assets in `public/` and `src/assets/`.
 - `backend/`: Express + tRPC API plus tick-processing code. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
 - `shared/eslint/`: shared lint config only. Do not share runtime code between backend and frontend.
 - `infra/`: deployment and reverse-proxy config.
