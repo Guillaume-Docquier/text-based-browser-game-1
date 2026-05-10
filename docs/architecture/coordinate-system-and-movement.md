@@ -8,7 +8,7 @@ This document describes how the star map will be built based on a 3-tier coordin
 
 The world consists of a single star system. At the center of the system will be a star, with concentric Orbits around it. Each Orbit will be divided into Sectors and each Sector will contain Bodies.
 
-The world will feature a `Orbit:Sector:Body` coordinate system. The coordinate system will be read from left to right, and any coordinate will contain one to four of the four tiers.
+The world will feature a `Orbit:Sector:Body` coordinate system. The coordinate system will be read from left to right, and any coordinate will contain one to all the tiers.
 
 For example, these are all valid coordinates:
 
@@ -41,7 +41,7 @@ The central dot is the star, each circle is an Orbit and each dot on an Orbit is
 
 In this image, the Sector count per Orbit starts at 2 and doubles for each additional Orbit.
 
-Asteroids will be featured through Asteroid belts. An Asteroid belt is an orbit where each sector contains Asteroids only. There can be one or more Asteroid per Sector. Any Orbit can be an Asteroid belt, this will be chosen at random.
+Asteroids will be featured through Asteroid belts. An Asteroid belt is an Orbit where each sector contains Asteroids only. There can be one or more Asteroid per Sector. Any Orbit can be an Asteroid belt, this will be chosen at random.
 
 Moons will be attached to planets. Visually, a Moon will orbit around a Planet. However, this will have no incidence on movement.
 
@@ -80,11 +80,7 @@ The movement graph will be stored in a relational database with the following ta
 
 This data will only be used to validate movements. Units and buildings will always refer to Sectors or Bodies, never to MovementNodes.
 
-The frontend will consume DTOs derived from this data:
-
-- MapDTO: All the information about the map to render it (movement graph, Orbits, Sectors and Bodies) with limited details about each Sector and Body
-- SectorDTO: Detailed information about a Sector
-- BodyDTO: Detailed information about a Body
+Although some Orbits will be Asteroid belts, it is not relevant to tag Orbits as Asteroid belts. The only effect of being an Asteroid belt is that the Sectors will all contain Asteroids instead of Planets and Moons. This will be decided during the world generation. After that, it will not be important to know about Asteroid belts.
 
 ### World generation
 
@@ -325,8 +321,8 @@ The key points are:
 
 The navigation bar at this point will contain 2 pages:
 
-1. Star Map, shows the map
-2. Actions, lets the user chose actions
+1. Star Map, at `/play/$gameId` and `/play/$gameId/map`, shows the map
+2. Actions, at `/play/$gameId/actions`, lets the user chose actions
 
 The star map itself should:
 
@@ -369,6 +365,8 @@ The work will be divided in multiple PRs, some dependent on others, but not all:
 2. Game view layout revamp and Actions view revamp
 3. Game creation view update, GamesController update with world generation algorithm
 4. Star map view
+
+For each phase, backend router tests should be added. The world generation algorithm should be unit tested. No frontend tests for now.
 
 Dependencies:
 
