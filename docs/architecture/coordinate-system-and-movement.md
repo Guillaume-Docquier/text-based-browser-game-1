@@ -150,39 +150,48 @@ type MapGenerationSettings = {
 
 Indexes and constraints:
 
+- Unique `(game_id, id)`, so child tables can use same-game composite foreign keys.
 - Unique `(game_id, orbit_number)`.
 - Index `(game_id)`.
 
 ### game_map_sectors
 
-| Column             | Type      | Constraints                                                  | Notes                                             |
-| ------------------ | --------- | ------------------------------------------------------------ | ------------------------------------------------- |
-| `id`               | `integer` | primary key, generated identity                              | Stable row id.                                    |
-| `game_id`          | `integer` | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                                       |
-| `orbit_id`         | `integer` | not null, references `game_map_orbits(id)` on delete cascade | Parent orbit.                                     |
-| `sector_number`    | `integer` | not null                                                     | Coordinate segment, starts at 1.                  |
-| `movement_node_id` | `integer` | not null, references `game_map_movement_nodes(id)`           | The id of the movement node for movement queries. |
+| Column             | Type      | Constraints                                                 | Notes                                             |
+| ------------------ | --------- | ----------------------------------------------------------- | ------------------------------------------------- |
+| `id`               | `integer` | primary key, generated identity                             | Stable row id.                                    |
+| `game_id`          | `integer` | not null, references `game_maps(game_id)` on delete cascade | Parent map.                                       |
+| `orbit_id`         | `integer` | not null                                                    | Parent orbit. Same-game foreign key listed below. |
+| `sector_number`    | `integer` | not null                                                    | Coordinate segment, starts at 1.                  |
+| `movement_node_id` | `integer` | not null                                                    | The id of the movement node for movement queries. |
 
 Indexes and constraints:
 
+- Unique `(game_id, id)`, so child tables can use same-game composite foreign keys.
 - Unique `(orbit_id, sector_number)`.
+- Unique `(movement_node_id)`.
+- Foreign key `(game_id, orbit_id)` references `game_map_orbits(game_id, id)` on delete cascade.
+- Foreign key `(game_id, movement_node_id)` references `game_map_movement_nodes(game_id, id)` on delete no action.
 - Index `(game_id, orbit_id)`.
 
 ### game_map_bodies
 
-| Column             | Type           | Constraints                                                   | Notes                                             |
-| ------------------ | -------------- | ------------------------------------------------------------- | ------------------------------------------------- |
-| `id`               | `integer`      | primary key, generated identity                               | Stable row id.                                    |
-| `game_id`          | `integer`      | not null, references `game_maps(game_id)` on delete cascade   | Parent Map.                                       |
-| `sector_id`        | `integer`      | not null, references `game_map_sectors(id)` on delete cascade | Parent Sector.                                    |
-| `body_number`      | `integer`      | not null                                                      | Coordinate segment, starts at 1.                  |
-| `body_type`        | `enum`         | not null                                                      | `PLANET`, `MOON` or `ASTEROID`.                   |
-| `name`             | `varchar(255)` | not null                                                      | Body display name.                                |
-| `movement_node_id` | `integer`      | not null, references `game_map_movement_nodes(id)`            | The id of the movement node for movement queries. |
+| Column             | Type           | Constraints                                                 | Notes                                              |
+| ------------------ | -------------- | ----------------------------------------------------------- | -------------------------------------------------- |
+| `id`               | `integer`      | primary key, generated identity                             | Stable row id.                                     |
+| `game_id`          | `integer`      | not null, references `game_maps(game_id)` on delete cascade | Parent Map.                                        |
+| `sector_id`        | `integer`      | not null                                                    | Parent Sector. Same-game foreign key listed below. |
+| `body_number`      | `integer`      | not null                                                    | Coordinate segment, starts at 1.                   |
+| `body_type`        | `enum`         | not null                                                    | `PLANET`, `MOON` or `ASTEROID`.                    |
+| `name`             | `varchar(255)` | not null                                                    | Body display name.                                 |
+| `movement_node_id` | `integer`      | not null                                                    | The id of the movement node for movement queries.  |
 
 Indexes and constraints:
 
+- Unique `(game_id, id)`, so child tables can use same-game composite foreign keys.
 - Unique `(sector_id, body_number)`.
+- Unique `(movement_node_id)`.
+- Foreign key `(game_id, sector_id)` references `game_map_sectors(game_id, id)` on delete cascade.
+- Foreign key `(game_id, movement_node_id)` references `game_map_movement_nodes(game_id, id)` on delete no action.
 - Index `(game_id, sector_id)`.
 
 ### game_map_movement_nodes
@@ -192,19 +201,30 @@ Indexes and constraints:
 | `id`      | `integer` | primary key, generated identity                             | Stable node id. |
 | `game_id` | `integer` | not null, references `game_maps(game_id)` on delete cascade | Parent map.     |
 
+Indexes and constraints:
+
+- Unique `(game_id, id)`, so sectors, bodies and edges can use same-game composite foreign keys.
+- Index `(game_id)`.
+
+Each movement node must belong to exactly one movement target: either one Sector or one Body. The DB uniqueness constraints prevent duplicate `movement_node_id` values inside each concrete target table; `WorldMapsRepository.createSystem` must create nodes and targets in one transaction and must not create orphan nodes or reuse one node across target types.
+
 ### game_map_movement_edges
 
-| Column         | Type      | Constraints                                                          | Notes                              |
-| -------------- | --------- | -------------------------------------------------------------------- | ---------------------------------- |
-| `game_id`      | `integer` | not null, references `game_maps(game_id)` on delete cascade          | Parent map.                        |
-| `from_node_id` | `integer` | not null, references `game_map_movement_nodes(id)` on delete cascade | Origin node.                       |
-| `to_node_id`   | `integer` | not null, references `game_map_movement_nodes(id)` on delete cascade | Destination node.                  |
-| `weight`       | `integer` | not null, default `1`                                                | Movement cost. Always `1` for now. |
+| Column         | Type      | Constraints                                                 | Notes                                                 |
+| -------------- | --------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| `game_id`      | `integer` | not null, references `game_maps(game_id)` on delete cascade | Parent map.                                           |
+| `from_node_id` | `integer` | not null                                                    | Origin node. Same-game foreign key listed below.      |
+| `to_node_id`   | `integer` | not null                                                    | Destination node. Same-game foreign key listed below. |
+| `weight`       | `integer` | not null, default `1`                                       | Movement cost. Always `1` for now.                    |
 
 Indexes and constraints:
 
 - Primary key `(game_id, from_node_id, to_node_id)`.
+- Foreign key `(game_id, from_node_id)` references `game_map_movement_nodes(game_id, id)` on delete cascade.
+- Foreign key `(game_id, to_node_id)` references `game_map_movement_nodes(game_id, id)` on delete cascade.
 - Index `(game_id, from_node_id)`.
+
+Movement edges are stored as directed rows. For undirected movement, the repository inserts both `A -> B` and `B -> A` in the same transaction.
 
 ### Repositories
 
