@@ -7,7 +7,7 @@ import {
   gameMapsTable,
   gameMapSectorsTable,
 } from "./schema.ts"
-import { and, asc, eq } from "drizzle-orm"
+import { and, asc, eq, inArray } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
@@ -110,7 +110,6 @@ export type MovementEdgeWriteModel = {
   weight?: number | undefined
 }
 
-type SectorSelector = { sectorId: number; coordinate?: never } | { sectorId?: never; coordinate: string }
 type BodySelector = { bodyId: number; coordinate?: never } | { bodyId?: never; coordinate: string }
 
 type GameMapRow = typeof gameMapsTable.$inferSelect
@@ -262,34 +261,62 @@ export class WorldMapsRepository extends PostgresRepository {
   }
 
   public async getSector(
-    // TODO GD By id only, not by coordinates
-    { gameId, selector }: { gameId: number; selector: SectorSelector },
+    { gameId, sectorId }: { gameId: number; sectorId: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<SectorDetailsReadModel, string>> {
     const getSectorResult = await Result.tryCatch(async () => {
-      // TODO GD Why do we fetch the whole world? Just get the sector from the table
-      const getWorldMapResult = await this.getWorldMap({ gameId }, db)
-      if (Result.isFailure(getWorldMapResult)) {
-        throw new Error(`Cannot get Sector: ${getWorldMapResult.error}`)
+      const sectors = await db
+        .select({
+          id: gameMapSectorsTable.id,
+          number: gameMapSectorsTable.sectorNumber,
+          movementNodeId: gameMapSectorsTable.movementNodeId,
+          orbitNumber: gameMapOrbitsTable.orbitNumber,
+        })
+        .from(gameMapSectorsTable)
+        .innerJoin(
+          gameMapOrbitsTable,
+          and(eq(gameMapOrbitsTable.gameId, gameMapSectorsTable.gameId), eq(gameMapOrbitsTable.id, gameMapSectorsTable.orbitId)),
+        )
+        .where(and(eq(gameMapSectorsTable.gameId, gameId), eq(gameMapSectorsTable.id, sectorId)))
+
+      Assert.isTrue(sectors.length <= 1)
+      const sector = sectors[0]
+      if (sector === undefined) {
+        throw new Error(`Cannot get Sector with id ${sectorId}`)
       }
 
-      const system = toStarSystem(getWorldMapResult.value)
-      const sector = findSector(system, selector)
-      if (sector === undefined) {
-        throw new Error(`Cannot get Sector with selector ${JSON.stringify(selector)}`)
-      }
+      const bodies = await db
+        .select()
+        .from(gameMapBodiesTable)
+        .where(and(eq(gameMapBodiesTable.gameId, gameId), eq(gameMapBodiesTable.sectorId, sectorId)))
+        .orderBy(asc(gameMapBodiesTable.bodyNumber))
+
+      const movementNodeIds = [sector.movementNodeId, ...bodies.map((body) => body.movementNodeId)]
+      const movementEdges = await db
+        .select()
+        .from(gameMapMovementEdgesTable)
+        .where(and(eq(gameMapMovementEdgesTable.gameId, gameId), inArray(gameMapMovementEdgesTable.fromNodeId, movementNodeIds)))
+        .orderBy(asc(gameMapMovementEdgesTable.fromNodeId), asc(gameMapMovementEdgesTable.toNodeId))
 
       return {
-        ...sector,
-        movementGraph: getLocalMovementGraph(system.movementGraph, [
-          sector.movementNodeId,
-          ...sector.bodies.map((body) => body.movementNodeId),
-        ]),
+        id: sector.id,
+        number: sector.number,
+        coordinates: formatCoordinates(sector.orbitNumber, sector.number),
+        bodies: bodies.map((body) => ({
+          id: body.id,
+          number: body.bodyNumber,
+          coordinates: formatCoordinates(sector.orbitNumber, sector.number, body.bodyNumber),
+          name: body.name,
+          type: body.bodyType,
+          movementNodeId: body.movementNodeId,
+        })),
+        movementNodeId: sector.movementNodeId,
+        movementGraph: toMovementGraph(movementEdges),
       }
     })
 
     if (Result.isFailure(getSectorResult)) {
-      this.logger.error("Could not get Sector", { gameId, selector, error: getSectorResult.error })
+      this.logger.error("Could not get Sector", { gameId, sectorId, error: getSectorResult.error })
       return Result.Failure(couldNot("get Sector"))
     }
 
@@ -501,24 +528,6 @@ function getLocalMovementGraph(movementGraph: MovementGraphReadModel, movementNo
   }
 
   return localMovementGraph
-}
-
-function findSector(system: StarSystemReadModel, selector: SectorSelector): SectorReadModel | undefined {
-  for (const orbit of system.orbits) {
-    const sector = orbit.sectors.find((candidateSector) => {
-      if (selector.sectorId !== undefined) {
-        return candidateSector.id === selector.sectorId
-      }
-
-      return candidateSector.coordinates === selector.coordinate
-    })
-
-    if (sector !== undefined) {
-      return sector
-    }
-  }
-
-  return undefined
 }
 
 function findBody(

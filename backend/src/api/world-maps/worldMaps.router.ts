@@ -11,13 +11,9 @@ import type { Trpc } from "#api/trpc.ts"
 
 const GameId = z.coerce.number().int().positive()
 const RowId = z.coerce.number().int().positive()
-const SectorCoordinate = z.string().regex(/^\d{2}:\d{2}$/)
 const BodyCoordinate = z.string().regex(/^\d{2}:\d{2}:\d{2}$/)
 
-const SectorInput = z.union([
-  z.object({ gameId: GameId, sectorId: RowId }).strict(),
-  z.object({ gameId: GameId, coordinate: SectorCoordinate }).strict(),
-])
+const SectorInput = z.object({ gameId: GameId, sectorId: RowId }).strict()
 
 const BodyInput = z.union([
   z.object({ gameId: GameId, bodyId: RowId }).strict(),
@@ -45,9 +41,8 @@ export function createWorldMapsRouter({ trpc, worldMapsController }: { trpc: Trp
     getSector: trpc.privateProcedure
       .input(SectorInput)
       .output(z.object({ sector: WorldMapSectorDetailsReadModel }))
-      .query(async ({ input, ctx: { player } }) => {
-        const selector = "sectorId" in input ? { sectorId: input.sectorId } : { coordinate: input.coordinate }
-        const getSectorResult = await worldMapsController.getSector({ gameId: input.gameId, playerId: player.id, selector })
+      .query(async ({ input: { gameId, sectorId }, ctx: { player } }) => {
+        const getSectorResult = await worldMapsController.getSector({ gameId, playerId: player.id, sectorId })
         if (Result.isFailure(getSectorResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",

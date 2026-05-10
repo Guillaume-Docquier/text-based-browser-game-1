@@ -187,11 +187,16 @@ describe("worldMaps.router", () => {
         },
       })
       await createStoredWorldMap({ db, logger, gameId: createGameResult.newGame.id })
+      const getSystemResult = await trpcClient.client.worldMaps.getSystem.query({ gameId: createGameResult.newGame.id })
+      const sector = getSystemResult.system.orbits[0]?.sectors[0]
+      if (sector === undefined) {
+        throw new Error("Expected world map fixture to contain sector data.")
+      }
 
       // Act
       const getSectorResult = await trpcClient.client.worldMaps.getSector.query({
         gameId: createGameResult.newGame.id,
-        coordinate: "01:01",
+        sectorId: sector.id,
       })
 
       // Assert
@@ -222,21 +227,19 @@ describe("worldMaps.router", () => {
       expect(Object.keys(getSectorResult.sector.movementGraph.edges)).toContain(getSectorResult.sector.movementNodeId.toString())
     })
 
-    it("should reject invalid coordinate strings at the router boundary", async () => {
+    it("should reject coordinate sector lookups at the router boundary", async () => {
       // Arrange
       const db = await createDbMock()
       const player = await createPlayer(db, createPlayerRowInsertStub())
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
       using trpcClient = new TrpcClient({ api })
+      const coordinateLookup = { gameId: 1, coordinate: "01:01" } as unknown as Parameters<
+        typeof trpcClient.client.worldMaps.getSector.query
+      >[0]
 
       // Act & Assert
-      await expect(
-        trpcClient.client.worldMaps.getSector.query({
-          gameId: 1,
-          coordinate: "1:1",
-        }),
-      ).rejects.toMatchObject({
+      await expect(trpcClient.client.worldMaps.getSector.query(coordinateLookup)).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })

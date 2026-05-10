@@ -137,7 +137,6 @@ export const WorldMapSystemWriteModel = z.object({
   movementEdges: z.array(WorldMapMovementEdgeWriteModel),
 }) satisfies z.ZodType<StarSystemWriteModel>
 
-type WorldMapSectorSelector = { sectorId: number; coordinate?: never } | { sectorId?: never; coordinate: string }
 type WorldMapBodySelector = { bodyId: number; coordinate?: never } | { bodyId?: never; coordinate: string }
 
 export class WorldMapsController {
@@ -175,11 +174,11 @@ export class WorldMapsController {
   public async getSector({
     gameId,
     playerId,
-    selector,
+    sectorId,
   }: {
     gameId: number
     playerId: number
-    selector: WorldMapSectorSelector
+    sectorId: number
   }): Promise<Result<SectorDetailsReadModel, string>> {
     const canReadGameResult = await this.canReadGame({ gameId, playerId })
     if (Result.isFailure(canReadGameResult)) {
@@ -190,7 +189,7 @@ export class WorldMapsController {
       return this.notAuthorizedFailure({ playerId, gameId })
     }
 
-    return await this.worldMapsRepository.getSector({ gameId, selector })
+    return await this.worldMapsRepository.getSector({ gameId, sectorId })
   }
 
   public async getBody({

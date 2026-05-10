@@ -415,12 +415,12 @@ Implementation steps:
 9. Make repository methods return `Result`, wrap Drizzle calls in `Result.tryCatch`, log only where a new `Failure` is created, and accept an optional trailing `db = this.db` parameter for transaction reuse.
 10. Make `createSystem` accept an already-generated system payload and insert the map, movement nodes, Orbits, Sectors, Bodies, and directed edges in one transaction. It must never leave orphan MovementNodes or partially inserted targets. Business logic not validated by the database through the specified constraints should be enforced by the controller, not the repository. The repository is only handling access patterns.
 11. Make `getSystem` return Orbits ordered by `orbit_number`, Sectors by `sector_number`, Bodies by `body_number`, generated coordinates like `02:11:05`, and a MovementGraph keyed by `MovementNodeId`. Account for the fact that numeric object keys serialize as strings over JSON/tRPC.
-12. Make `getSector` return one Sector with its Bodies and local movement graph edges. Accept identifiers by `gameId` plus Sector id or coordinate, and normalize the repository output to the same DTO shape used by `getSystem`.
+12. Make `getSector` return one Sector with its Bodies and local movement graph edges. Accept identifiers by `gameId` plus Sector id, and normalize the repository output to the same DTO shape used by `getSystem`.
 13. Make `getBody` return one Body with its parent Sector/Orbit coordinate context and local movement graph edges. Accept identifiers by `gameId` plus Body id or coordinate.
 14. Make `areNeighbors` compare MovementNode ids through `game_map_movement_edges`; movement remains valid only between Sectors and Bodies.
 15. Implement `WorldMapsController` with `getSystem`, `getSector` and `getBody`. Each method must first verify that the requesting player is in the game through a new `GamesRepository.hasPlayerJoinedGame(gameId, playerId)`.
 16. Return `Result` values for expected failures: missing game, player not in game, missing map, missing Sector, and missing Body.
-17. Implement `createWorldMapsRouter` with private procedures for `getSystem`, `getSector` and `getBody`. Use Zod input parsing for `gameId`, ids and coordinate strings; map controller failures to `TRPCError` with `BAD_REQUEST` or `NOT_FOUND` as appropriate.
+17. Implement `createWorldMapsRouter` with private procedures for `getSystem`, `getSector` and `getBody`. Use Zod input parsing for `gameId`, ids and Body coordinate strings; map controller failures to `TRPCError` with `BAD_REQUEST` or `NOT_FOUND` as appropriate.
 18. Wire `WorldMapsRepository`, `WorldMapsController` and `createWorldMapsRouter` through `createApi.ts`, `createApi.stub.ts` and `entry.api.ts`, preserving the local factory pattern and `TrpcRouter` inference.
 19. Export frontend-consumable world map output types from `backend/src/api/types.ts`.
 
@@ -431,7 +431,7 @@ Backend tests:
 - `worldMaps.getSystem` rejects a player who is authenticated but not in the game.
 - `worldMaps.getSector` returns a Sector, its Bodies, and local movement data.
 - `worldMaps.getBody` returns a Body, its coordinate, and local movement data.
-- Invalid coordinate strings reject at the router boundary with `BAD_REQUEST`.
+- Unsupported Sector coordinate lookups reject at the router boundary with `BAD_REQUEST`.
 - Existing game with no map returns `NOT_FOUND`.
 
 Definition of done:
@@ -608,7 +608,7 @@ Implementation steps:
 Backend tests:
 
 - Add a `worldMaps.getSystem` router test for a generated map created through `games.create`; assert the output contains Orbits, Sectors, Bodies, and MovementGraph data suitable for the Star Map.
-- Add a `worldMaps.getSector` or `worldMaps.getBody` router test for the route selected by the frontend when deep-linking from a coordinate, if Phase 4 chooses to fetch detailed data after selection.
+- Add a `worldMaps.getSector` router test using the selected Sector id, or a `worldMaps.getBody` router test for the route selected by the frontend when deep-linking from a coordinate, if Phase 4 chooses to fetch detailed data after selection.
 
 Manual verification:
 
