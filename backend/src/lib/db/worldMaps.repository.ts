@@ -113,13 +113,6 @@ export type MovementEdgeWriteModel = {
 type SectorSelector = { sectorId: number; coordinate?: never } | { sectorId?: never; coordinate: string }
 type BodySelector = { bodyId: number; coordinate?: never } | { bodyId?: never; coordinate: string }
 
-export type SectorLookupReadModel =
-  | { status: "found"; sector: SectorDetailsReadModel }
-  | { status: "missing-map" }
-  | { status: "missing-sector" }
-
-export type BodyLookupReadModel = { status: "found"; body: BodyDetailsReadModel } | { status: "missing-map" } | { status: "missing-body" }
-
 type GameMapRow = typeof gameMapsTable.$inferSelect
 type GameMapOrbitRow = typeof gameMapOrbitsTable.$inferSelect
 type GameMapSectorRow = typeof gameMapSectorsTable.$inferSelect
@@ -240,106 +233,104 @@ export class WorldMapsRepository extends PostgresRepository {
     })
 
     if (Result.isFailure(createSystemResult)) {
-      this.logger.error("Could not create star system", { system, error: createSystemResult.error })
-      return Result.Failure(couldNot("create star system"))
+      this.logger.error("Could not create Star System", { system, error: createSystemResult.error })
+      return Result.Failure(couldNot("create Star System"))
     }
 
     return createSystemResult
   }
 
-  public async getSystem(
+  public async getStarSystem(
     { gameId }: { gameId: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<StarSystemReadModel, string>> {
     const getStarSystemResult = await Result.tryCatch(async () => {
-      const worldMap = await this.getSystemRows({ gameId }, db)
-      if (worldMap === undefined) {
-        throw new Error(`No star system found for game with id ${gameId}`)
+      const getWorldMapResult = await this.getWorldMap({ gameId }, db)
+      if (Result.isFailure(getWorldMapResult)) {
+        throw new Error(`Cannot get Star System: ${getWorldMapResult.error}`)
       }
 
-      return toStarSystem(worldMap)
+      return toStarSystem(getWorldMapResult.value)
     })
 
     if (Result.isFailure(getStarSystemResult)) {
-      this.logger.error("Could not get star system", { gameId, error: getStarSystemResult.error })
-      return Result.Failure(couldNot("get star system"))
+      this.logger.error("Could not get Star System", { gameId, error: getStarSystemResult.error })
+      return Result.Failure(couldNot("get Star System"))
     }
 
     return getStarSystemResult
   }
 
   public async getSector(
+    // TODO GD By id only, not by coordinates
     { gameId, selector }: { gameId: number; selector: SectorSelector },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<SectorLookupReadModel, string>> {
-    const getResult = await Result.tryCatch(async (): Promise<SectorLookupReadModel> => {
-      const rows = await this.getSystemRows({ gameId }, db)
-      if (rows === undefined) {
-        return { status: "missing-map" }
+  ): Promise<Result<SectorDetailsReadModel, string>> {
+    const getSectorResult = await Result.tryCatch(async () => {
+      // TODO GD Why do we fetch the whole world? Just get the sector from the table
+      const getWorldMapResult = await this.getWorldMap({ gameId }, db)
+      if (Result.isFailure(getWorldMapResult)) {
+        throw new Error(`Cannot get Sector: ${getWorldMapResult.error}`)
       }
 
-      const system = toStarSystem(rows)
+      const system = toStarSystem(getWorldMapResult.value)
       const sector = findSector(system, selector)
       if (sector === undefined) {
-        return { status: "missing-sector" }
+        throw new Error(`Cannot get Sector with selector ${JSON.stringify(selector)}`)
       }
 
       return {
-        status: "found",
-        sector: {
-          ...sector,
-          movementGraph: getLocalMovementGraph(system.movementGraph, [
-            sector.movementNodeId,
-            ...sector.bodies.map((body) => body.movementNodeId),
-          ]),
-        },
+        ...sector,
+        movementGraph: getLocalMovementGraph(system.movementGraph, [
+          sector.movementNodeId,
+          ...sector.bodies.map((body) => body.movementNodeId),
+        ]),
       }
     })
 
-    if (Result.isFailure(getResult)) {
-      this.logger.error("Could not get world map sector", { gameId, selector, error: getResult.error })
-      return Result.Failure(couldNot("get world map sector"))
+    if (Result.isFailure(getSectorResult)) {
+      this.logger.error("Could not get Sector", { gameId, selector, error: getSectorResult.error })
+      return Result.Failure(couldNot("get Sector"))
     }
 
-    return getResult
+    return getSectorResult
   }
 
   public async getBody(
+    // TODO GD By id only, not by coordinates
     { gameId, selector }: { gameId: number; selector: BodySelector },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<BodyLookupReadModel, string>> {
-    const getResult = await Result.tryCatch(async (): Promise<BodyLookupReadModel> => {
-      const rows = await this.getSystemRows({ gameId }, db)
-      if (rows === undefined) {
-        return { status: "missing-map" }
+  ): Promise<Result<BodyDetailsReadModel, string>> {
+    const getResult = await Result.tryCatch(async () => {
+      // TODO GD Why do we fetch the whole world? Just get the sector from the table
+      const getWorldMapResult = await this.getWorldMap({ gameId }, db)
+      if (Result.isFailure(getWorldMapResult)) {
+        throw new Error(`Cannot get Body: ${getWorldMapResult.error}`)
       }
 
-      const system = toStarSystem(rows)
+      const system = toStarSystem(getWorldMapResult.value)
       const bodyWithContext = findBody(system, selector)
       if (bodyWithContext === undefined) {
-        return { status: "missing-body" }
+        throw new Error(`Cannot get Body with selector ${JSON.stringify(selector)}`)
       }
 
       const { orbit, sector, body } = bodyWithContext
 
       return {
-        status: "found",
-        body: {
-          ...body,
-          orbitId: orbit.id,
-          orbitNumber: orbit.number,
-          orbitCoordinates: orbit.coordinates,
-          sectorId: sector.id,
-          sectorNumber: sector.number,
-          sectorCoordinates: sector.coordinates,
-          movementGraph: getLocalMovementGraph(system.movementGraph, [body.movementNodeId]),
-        },
+        ...body,
+        orbitId: orbit.id,
+        orbitNumber: orbit.number,
+        orbitCoordinates: orbit.coordinates,
+        sectorId: sector.id,
+        sectorNumber: sector.number,
+        sectorCoordinates: sector.coordinates,
+        movementGraph: getLocalMovementGraph(system.movementGraph, [body.movementNodeId]),
       }
     })
 
     if (Result.isFailure(getResult)) {
-      this.logger.error("Could not get world map body", { gameId, selector, error: getResult.error })
-      return Result.Failure(couldNot("get world map body"))
+      this.logger.error("Could not get Body", { gameId, selector, error: getResult.error })
+      return Result.Failure(couldNot("get Body"))
     }
 
     return getResult
@@ -385,13 +376,13 @@ export class WorldMapsRepository extends PostgresRepository {
     return Result.Success(getResult.value[0] !== undefined)
   }
 
-  private async getSystemRows({ gameId }: { gameId: number }, db: PostgresRepository["db"]): Promise<WorldMapReadModel | undefined> {
+  private async getWorldMap({ gameId }: { gameId: number }, db: PostgresRepository["db"]): Promise<Result<WorldMapReadModel, string>> {
     const maps = await db.select().from(gameMapsTable).where(eq(gameMapsTable.gameId, gameId))
     Assert.isTrue(maps.length <= 1)
 
     const map = maps[0]
     if (map === undefined) {
-      return undefined
+      return Result.Failure(`No world map found for game id ${gameId}`)
     }
 
     const orbits = await db
@@ -418,7 +409,7 @@ export class WorldMapsRepository extends PostgresRepository {
       .where(eq(gameMapMovementEdgesTable.gameId, gameId))
       .orderBy(asc(gameMapMovementEdgesTable.fromNodeId), asc(gameMapMovementEdgesTable.toNodeId))
 
-    return { map, orbits, sectors, bodies, movementEdges }
+    return Result.Success({ map, orbits, sectors, bodies, movementEdges })
   }
 }
 

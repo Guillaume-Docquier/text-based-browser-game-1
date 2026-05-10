@@ -172,7 +172,7 @@ export class WorldMapsController {
       return canReadGameResult
     }
 
-    const getSystemResult = await this.worldMapsRepository.getSystem({ gameId })
+    const getSystemResult = await this.worldMapsRepository.getStarSystem({ gameId })
     if (Result.isFailure(getSystemResult)) {
       return getSystemResult
     }
