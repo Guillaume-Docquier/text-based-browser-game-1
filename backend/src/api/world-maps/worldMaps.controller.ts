@@ -4,31 +4,23 @@ import { BodyType } from "#lib/db/schema.ts"
 import type {
   MapGenerationSettingsReadModel as MapGenerationSettingsReadModelType,
   MapGenerationSettingsWriteModel as MapGenerationSettingsWriteModelType,
-  BodyDetailsReadModel as WorldMapBodyDetailsReadModelType,
-  BodyReadModel as WorldMapBodyReadModelType,
-  BodyWriteModel as WorldMapBodyWriteModelType,
-  MovementEdgeReadModel as WorldMapMovementEdgeReadModelType,
-  MovementEdgeWriteModel as WorldMapMovementEdgeWriteModelType,
-  MovementGraphReadModel as WorldMapMovementGraphReadModelType,
-  OrbitReadModel as WorldMapOrbitReadModelType,
-  OrbitWriteModel as WorldMapOrbitWriteModelType,
+  BodyDetailsReadModel,
+  BodyReadModel,
+  BodyWriteModel,
+  MovementEdgeReadModel,
+  MovementEdgeWriteModel,
+  MovementGraphReadModel,
+  OrbitReadModel,
+  OrbitWriteModel,
   WorldMapsRepository,
-  SectorDetailsReadModel as WorldMapSectorDetailsReadModelType,
-  SectorReadModel as WorldMapSectorReadModelType,
-  SectorWriteModel as WorldMapSectorWriteModelType,
-  StarSystemReadModel as WorldMapSystemReadModelType,
-  StarSystemWriteModel as WorldMapSystemWriteModelType,
+  SectorDetailsReadModel,
+  SectorReadModel,
+  SectorWriteModel,
+  StarSystemReadModel,
+  StarSystemWriteModel,
 } from "#lib/db/worldMaps.repository.ts"
 import z from "zod"
 import type { IntegerRange, IntegerRange as MapGenerationRangeWriteModelType } from "#lib/Range.ts"
-
-export const WorldMapsControllerFailure = {
-  GAME_NOT_FOUND: "Game does not exist.",
-  PLAYER_NOT_IN_GAME: "Player is not in this game.",
-  WORLD_MAP_NOT_FOUND: "World map does not exist.",
-  SECTOR_NOT_FOUND: "Sector does not exist.",
-  BODY_NOT_FOUND: "Body does not exist.",
-} as const
 
 export const MapGenerationRangeWriteModel = z.object({ min: z.number(), max: z.number() }).refine(({ min, max }) => min <= max, {
   message: "Range min must be lower than or equal to max.",
@@ -62,11 +54,11 @@ export const WorldMapMovementEdgeReadModel = z.object({
   from: z.number(),
   to: z.number(),
   weight: z.number(),
-}) satisfies z.ZodType<WorldMapMovementEdgeReadModelType>
+}) satisfies z.ZodType<MovementEdgeReadModel>
 
 export const WorldMapMovementGraphReadModel = z.object({
   edges: z.record(z.string(), z.array(WorldMapMovementEdgeReadModel)),
-}) satisfies z.ZodType<WorldMapMovementGraphReadModelType>
+}) satisfies z.ZodType<MovementGraphReadModel>
 
 export const WorldMapBodyReadModel = z.object({
   id: z.number(),
@@ -75,7 +67,7 @@ export const WorldMapBodyReadModel = z.object({
   name: z.string(),
   type: BodyTypeReadModel,
   movementNodeId: z.number(),
-}) satisfies z.ZodType<WorldMapBodyReadModelType>
+}) satisfies z.ZodType<BodyReadModel>
 
 export const WorldMapSectorReadModel = z.object({
   id: z.number(),
@@ -83,11 +75,11 @@ export const WorldMapSectorReadModel = z.object({
   coordinates: z.string(),
   bodies: z.array(WorldMapBodyReadModel),
   movementNodeId: z.number(),
-}) satisfies z.ZodType<WorldMapSectorReadModelType>
+}) satisfies z.ZodType<SectorReadModel>
 
 export const WorldMapSectorDetailsReadModel = WorldMapSectorReadModel.extend({
   movementGraph: WorldMapMovementGraphReadModel,
-}) satisfies z.ZodType<WorldMapSectorDetailsReadModelType>
+}) satisfies z.ZodType<SectorDetailsReadModel>
 
 export const WorldMapBodyDetailsReadModel = WorldMapBodyReadModel.extend({
   orbitId: z.number(),
@@ -97,52 +89,52 @@ export const WorldMapBodyDetailsReadModel = WorldMapBodyReadModel.extend({
   sectorNumber: z.number(),
   sectorCoordinates: z.string(),
   movementGraph: WorldMapMovementGraphReadModel,
-}) satisfies z.ZodType<WorldMapBodyDetailsReadModelType>
+}) satisfies z.ZodType<BodyDetailsReadModel>
 
 export const WorldMapOrbitReadModel = z.object({
   id: z.number(),
   number: z.number(),
   coordinates: z.string(),
   sectors: z.array(WorldMapSectorReadModel),
-}) satisfies z.ZodType<WorldMapOrbitReadModelType>
+}) satisfies z.ZodType<OrbitReadModel>
 
 export const WorldMapSystemReadModel = z.object({
   gameId: z.number(),
   generationSettings: MapGenerationSettingsReadModel,
   orbits: z.array(WorldMapOrbitReadModel),
   movementGraph: WorldMapMovementGraphReadModel,
-}) satisfies z.ZodType<WorldMapSystemReadModelType>
+}) satisfies z.ZodType<StarSystemReadModel>
 
 export const WorldMapMovementEdgeWriteModel = z.object({
   from: z.string(),
   to: z.string(),
   weight: z.number().optional(),
-}) satisfies z.ZodType<WorldMapMovementEdgeWriteModelType>
+}) satisfies z.ZodType<MovementEdgeWriteModel>
 
 export const WorldMapBodyWriteModel = z.object({
   number: z.number(),
   type: BodyTypeReadModel,
   name: z.string(),
   movementNodeKey: z.string(),
-}) satisfies z.ZodType<WorldMapBodyWriteModelType>
+}) satisfies z.ZodType<BodyWriteModel>
 
 export const WorldMapSectorWriteModel = z.object({
   number: z.number(),
   movementNodeKey: z.string(),
   bodies: z.array(WorldMapBodyWriteModel),
-}) satisfies z.ZodType<WorldMapSectorWriteModelType>
+}) satisfies z.ZodType<SectorWriteModel>
 
 export const WorldMapOrbitWriteModel = z.object({
   number: z.number(),
   sectors: z.array(WorldMapSectorWriteModel),
-}) satisfies z.ZodType<WorldMapOrbitWriteModelType>
+}) satisfies z.ZodType<OrbitWriteModel>
 
 export const WorldMapSystemWriteModel = z.object({
   gameId: z.number(),
   generationSettings: MapGenerationSettingsWriteModel,
   orbits: z.array(WorldMapOrbitWriteModel),
   movementEdges: z.array(WorldMapMovementEdgeWriteModel),
-}) satisfies z.ZodType<WorldMapSystemWriteModelType>
+}) satisfies z.ZodType<StarSystemWriteModel>
 
 type WorldMapSectorSelector = { sectorId: number; coordinate?: never } | { sectorId?: never; coordinate: string }
 type WorldMapBodySelector = { bodyId: number; coordinate?: never } | { bodyId?: never; coordinate: string }
@@ -166,23 +158,13 @@ export class WorldMapsController {
     this.logger = logger.child({ scope: "world-maps-controller" })
   }
 
-  public async getSystem({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<WorldMapSystemReadModelType, string>> {
+  public async getSystem({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<StarSystemReadModel, string>> {
     const canReadGameResult = await this.canReadGame({ gameId, playerId })
     if (Result.isFailure(canReadGameResult)) {
       return canReadGameResult
     }
 
-    const getSystemResult = await this.worldMapsRepository.getStarSystem({ gameId })
-    if (Result.isFailure(getSystemResult)) {
-      return getSystemResult
-    }
-
-    const system = getSystemResult.value
-    if (system === undefined) {
-      return Result.Failure(WorldMapsControllerFailure.WORLD_MAP_NOT_FOUND)
-    }
-
-    return Result.Success(system)
+    return await this.worldMapsRepository.getStarSystem({ gameId })
   }
 
   public async getSector({
@@ -193,26 +175,13 @@ export class WorldMapsController {
     gameId: number
     playerId: number
     selector: WorldMapSectorSelector
-  }): Promise<Result<WorldMapSectorDetailsReadModelType, string>> {
+  }): Promise<Result<SectorDetailsReadModel, string>> {
     const canReadGameResult = await this.canReadGame({ gameId, playerId })
     if (Result.isFailure(canReadGameResult)) {
       return canReadGameResult
     }
 
-    const getSectorResult = await this.worldMapsRepository.getSector({ gameId, selector })
-    if (Result.isFailure(getSectorResult)) {
-      return getSectorResult
-    }
-
-    if (getSectorResult.value.status === "missing-map") {
-      return Result.Failure(WorldMapsControllerFailure.WORLD_MAP_NOT_FOUND)
-    }
-
-    if (getSectorResult.value.status === "missing-sector") {
-      return Result.Failure(WorldMapsControllerFailure.SECTOR_NOT_FOUND)
-    }
-
-    return Result.Success(getSectorResult.value.sector)
+    return await this.worldMapsRepository.getSector({ gameId, selector })
   }
 
   public async getBody({
@@ -223,44 +192,16 @@ export class WorldMapsController {
     gameId: number
     playerId: number
     selector: WorldMapBodySelector
-  }): Promise<Result<WorldMapBodyDetailsReadModelType, string>> {
+  }): Promise<Result<BodyDetailsReadModel, string>> {
     const canReadGameResult = await this.canReadGame({ gameId, playerId })
     if (Result.isFailure(canReadGameResult)) {
       return canReadGameResult
     }
 
-    const getBodyResult = await this.worldMapsRepository.getBody({ gameId, selector })
-    if (Result.isFailure(getBodyResult)) {
-      return getBodyResult
-    }
-
-    if (getBodyResult.value.status === "missing-map") {
-      return Result.Failure(WorldMapsControllerFailure.WORLD_MAP_NOT_FOUND)
-    }
-
-    if (getBodyResult.value.status === "missing-body") {
-      return Result.Failure(WorldMapsControllerFailure.BODY_NOT_FOUND)
-    }
-
-    return Result.Success(getBodyResult.value.body)
+    return await this.worldMapsRepository.getBody({ gameId, selector })
   }
 
-  private async canReadGame({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<true, string>> {
-    const hasPlayerJoinedGameResult = await this.gamesRepository.hasPlayerJoinedGame({ gameId, playerId })
-    if (Result.isFailure(hasPlayerJoinedGameResult)) {
-      return hasPlayerJoinedGameResult
-    }
-
-    if (hasPlayerJoinedGameResult.value === undefined) {
-      this.logger.info("Player cannot read world map because game does not exist", { gameId, playerId })
-      return Result.Failure(WorldMapsControllerFailure.GAME_NOT_FOUND)
-    }
-
-    if (!hasPlayerJoinedGameResult.value) {
-      this.logger.info("Player cannot read world map because player is not in game", { gameId, playerId })
-      return Result.Failure(WorldMapsControllerFailure.PLAYER_NOT_IN_GAME)
-    }
-
-    return Result.Success(true)
+  private async canReadGame({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<boolean, string>> {
+    return await this.gamesRepository.hasPlayerJoinedGame({ gameId, playerId })
   }
 }

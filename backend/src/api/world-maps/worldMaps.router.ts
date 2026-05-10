@@ -3,7 +3,6 @@ import { TRPCError } from "@trpc/server"
 import z from "zod"
 import {
   WorldMapBodyDetailsReadModel,
-  WorldMapsControllerFailure,
   type WorldMapsController,
   WorldMapSectorDetailsReadModel,
   WorldMapSystemReadModel,
@@ -34,7 +33,10 @@ export function createWorldMapsRouter({ trpc, worldMapsController }: { trpc: Trp
       .query(async ({ input: { gameId }, ctx: { player } }) => {
         const getSystemResult = await worldMapsController.getSystem({ gameId, playerId: player.id })
         if (Result.isFailure(getSystemResult)) {
-          throw toTrpcError(getSystemResult.error)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: getSystemResult.error,
+          })
         }
 
         return { system: getSystemResult.value }
@@ -47,7 +49,10 @@ export function createWorldMapsRouter({ trpc, worldMapsController }: { trpc: Trp
         const selector = "sectorId" in input ? { sectorId: input.sectorId } : { coordinate: input.coordinate }
         const getSectorResult = await worldMapsController.getSector({ gameId: input.gameId, playerId: player.id, selector })
         if (Result.isFailure(getSectorResult)) {
-          throw toTrpcError(getSectorResult.error)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: getSectorResult.error,
+          })
         }
 
         return { sector: getSectorResult.value }
@@ -60,24 +65,13 @@ export function createWorldMapsRouter({ trpc, worldMapsController }: { trpc: Trp
         const selector = "bodyId" in input ? { bodyId: input.bodyId } : { coordinate: input.coordinate }
         const getBodyResult = await worldMapsController.getBody({ gameId: input.gameId, playerId: player.id, selector })
         if (Result.isFailure(getBodyResult)) {
-          throw toTrpcError(getBodyResult.error)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: getBodyResult.error,
+          })
         }
 
         return { body: getBodyResult.value }
       }),
-  })
-}
-
-function toTrpcError(error: string): TRPCError {
-  const notFoundFailures: string[] = [
-    WorldMapsControllerFailure.GAME_NOT_FOUND,
-    WorldMapsControllerFailure.WORLD_MAP_NOT_FOUND,
-    WorldMapsControllerFailure.SECTOR_NOT_FOUND,
-    WorldMapsControllerFailure.BODY_NOT_FOUND,
-  ]
-
-  return new TRPCError({
-    code: notFoundFailures.includes(error) ? "NOT_FOUND" : "BAD_REQUEST",
-    message: error,
   })
 }

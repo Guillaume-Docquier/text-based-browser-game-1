@@ -186,7 +186,7 @@ export class GamesRepository extends PostgresRepository {
   public async hasPlayerJoinedGame(
     { gameId, playerId }: { gameId: number; playerId: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<boolean | undefined, string>> {
+  ): Promise<Result<boolean, string>> {
     const joinedGameResult = await Result.tryCatch(
       async () =>
         await db
@@ -201,12 +201,8 @@ export class GamesRepository extends PostgresRepository {
       return Result.Failure(couldNot("check if player joined game"))
     }
 
-    const gamePlayer = joinedGameResult.value[0]
-    if (gamePlayer === undefined) {
-      return Result.Success(undefined)
-    }
-
-    return Result.Success(gamePlayer.joinedPlayerId === playerId)
+    Assert.isTrue(joinedGameResult.value.length <= 1)
+    return Result.Success(joinedGameResult.value[0]?.joinedPlayerId === playerId)
   }
 
   public async endWithWinner(
