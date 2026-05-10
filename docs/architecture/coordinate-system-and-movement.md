@@ -45,6 +45,8 @@ Asteroids will be featured through Asteroid belts. An Asteroid belt is an orbit 
 
 Moons will be attached to planets. Visually, a Moon will orbit around a Planet. However, this will have no incidence on movement.
 
+The world is completely public. Every player in the game can see everything.
+
 ### Movement
 
 We can only move to Sectors and Bodies:
@@ -236,6 +238,53 @@ We will need 1 new repository, the `WorldMapsRepository`. This repository will e
 - `getBody`: Gets the full body data (type, other body properties, units, body movement graph, etc)
 - `areNeighbors`: Given two sectors or bodies, returns if the two are adjacent
 
+`getSystem` should return something along the lines of:
+
+```ts
+type System = {
+  gameId: number
+  orbits: Orbit[]
+  movementGraph: MovementGraph
+}
+
+type Orbit = {
+  id: number
+  number: number
+  coordinates: string
+  sectors: Sector[]
+}
+
+type Sector = {
+  id: number
+  number: number
+  coordinates: string
+  bodies: Body[]
+  movementNodeId: MovementNodeId
+}
+
+type Body = {
+  id: number
+  number: number
+  coordinates: string
+  name: string
+  type: "PLANET" | "MOON" | "ASTEROID"
+  movementNodeId: MovementNodeId
+}
+
+type MovementGraph = {
+  edges: Record<MovementNodeId, MovementEdge[]>
+}
+
+type MovementNodeId = number
+
+type MovementEdge = {
+  id: number
+  from: MovementNodeId
+  to: MovementNodeId
+  weight: number
+}
+```
+
 ### Controllers
 
 We will need 1 new controller, the `WorldMapsController`. This controller will expose queries to the world:
@@ -292,6 +341,13 @@ The star map itself should:
 - Allow selecting Sectors and Bodies and showing their information in the bottom section (coordinates, name, type, etc)
 - Show the coordinates of Sectors but not of Planets because it would clutter the UI
 
+Sectors should be ordered by their number and distributed on the Orbit with the first Sector starting at 12 o'clock (0 degrees) and proceeding clockwise. For example, with 4 sectors:
+
+- Sector 1 should start at 0 degrees and end at 90 degrees
+- Sector 2 should start at 90 degrees and end at 180 degrees
+- Sector 3 should start at 180 degrees and end at 270 degrees
+- Sector 4 should start at 270 degrees and end at 360 degrees
+
 In terms of libraries/tech, we will start with SVG + d3-zoom:
 
 - We will generate 1 asset for a Planet
@@ -309,9 +365,9 @@ The game creation view will have an extra section for the 6 world generation set
 
 The work will be divided in multiple PRs, some dependent on others, but not all:
 
-1. Database schema & migration, WorldMapsRepository, WorldMapsController and WorldMapsRouter
+1. Database schema update & migration, WorldMapsRepository, WorldMapsController and WorldMapsRouter
 2. Game view layout revamp and Actions view revamp
-3. Game creation view update, GamesController update and world generation algorithm
+3. Game creation view update, GamesController update with world generation algorithm
 4. Star map view
 
 Dependencies:
