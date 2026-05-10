@@ -4,7 +4,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/playerRowInsert.stub.ts"
 import { BodyType } from "#lib/db/schema.ts"
-import { type WorldMapSystemWriteModel, WorldMapsRepository } from "#lib/db/worldMaps.repository.ts"
+import { type StarSystemWriteModel, WorldMapsRepository } from "#lib/db/worldMaps.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 import { Logger, Result } from "@guillaume-docquier/tools-ts"
@@ -303,7 +303,7 @@ async function createStoredWorldMap({
   }
 }
 
-function createWorldMapSystemFixture({ gameId }: { gameId: number }): WorldMapSystemWriteModel {
+function createWorldMapSystemFixture({ gameId }: { gameId: number }): StarSystemWriteModel {
   return {
     gameId,
     generationSettings: createMapGenerationSettings(),
@@ -359,7 +359,7 @@ function createWorldMapSystemFixture({ gameId }: { gameId: number }): WorldMapSy
   }
 }
 
-function createMapGenerationSettings(): WorldMapSystemWriteModel["generationSettings"] {
+function createMapGenerationSettings(): StarSystemWriteModel["generationSettings"] {
   return {
     planetDensityOfSystem: { min: 0.5, max: 0.5 },
     nbPlanets: { min: 1, max: 1 },
