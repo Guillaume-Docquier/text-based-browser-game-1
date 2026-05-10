@@ -1,9 +1,14 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import z from "zod"
-import { WorldMapsControllerFailure, type WorldMapsController } from "#api/world-maps/worldMaps.controller.ts"
+import {
+  WorldMapBodyDetailsReadModel,
+  WorldMapsControllerFailure,
+  type WorldMapsController,
+  WorldMapSectorDetailsReadModel,
+  WorldMapSystemReadModel,
+} from "#api/world-maps/worldMaps.controller.ts"
 import type { Trpc } from "#api/trpc.ts"
-import { WorldMapBodyDetails, WorldMapSectorDetails, WorldMapSystem } from "#lib/db/worldMaps.repository.ts"
 
 const GameId = z.coerce.number().int().positive()
 const RowId = z.coerce.number().int().positive()
@@ -25,7 +30,7 @@ export function createWorldMapsRouter({ trpc, worldMapsController }: { trpc: Trp
   return trpc.router({
     getSystem: trpc.privateProcedure
       .input(z.object({ gameId: GameId }))
-      .output(z.object({ system: WorldMapSystem }))
+      .output(z.object({ system: WorldMapSystemReadModel }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
         const getSystemResult = await worldMapsController.getSystem({ gameId, playerId: player.id })
         if (Result.isFailure(getSystemResult)) {
@@ -37,7 +42,7 @@ export function createWorldMapsRouter({ trpc, worldMapsController }: { trpc: Trp
 
     getSector: trpc.privateProcedure
       .input(SectorInput)
-      .output(z.object({ sector: WorldMapSectorDetails }))
+      .output(z.object({ sector: WorldMapSectorDetailsReadModel }))
       .query(async ({ input, ctx: { player } }) => {
         const selector = "sectorId" in input ? { sectorId: input.sectorId } : { coordinate: input.coordinate }
         const getSectorResult = await worldMapsController.getSector({ gameId: input.gameId, playerId: player.id, selector })
@@ -50,7 +55,7 @@ export function createWorldMapsRouter({ trpc, worldMapsController }: { trpc: Trp
 
     getBody: trpc.privateProcedure
       .input(BodyInput)
-      .output(z.object({ body: WorldMapBodyDetails }))
+      .output(z.object({ body: WorldMapBodyDetailsReadModel }))
       .query(async ({ input, ctx: { player } }) => {
         const selector = "bodyId" in input ? { bodyId: input.bodyId } : { coordinate: input.coordinate }
         const getBodyResult = await worldMapsController.getBody({ gameId: input.gameId, playerId: player.id, selector })

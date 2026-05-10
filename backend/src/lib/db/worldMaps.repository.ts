@@ -1,6 +1,6 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
 import {
-  BodyType,
+  type BodyType,
   gameMapBodiesTable,
   gameMapMovementEdgesTable,
   gameMapMovementNodesTable,
@@ -11,134 +11,130 @@ import {
 import { and, asc, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
-import z from "zod"
 
-export const MapGenerationRange = z.object({ min: z.number(), max: z.number() }).refine(({ min, max }) => min <= max, {
-  message: "Range min must be lower than or equal to max.",
-})
-
-export const MapGenerationIntegerRange = z.object({ min: z.number().int(), max: z.number().int() }).refine(({ min, max }) => min <= max, {
-  message: "Range min must be lower than or equal to max.",
-})
-
-export type MapGenerationSettings = z.infer<typeof MapGenerationSettings>
-export const MapGenerationSettings = z.object({
-  planetDensityOfSystem: MapGenerationRange.refine(({ min, max }) => min >= 0 && max <= 1, {
-    message: "Planet density must be between 0 and 1.",
-  }),
-  nbPlanets: MapGenerationIntegerRange,
-  nbMoonsPerPlanet: MapGenerationIntegerRange,
-  nbAsteroidBelts: MapGenerationIntegerRange,
-  nbAsteroidsPerSector: MapGenerationIntegerRange,
-  seed: z.number(),
-})
-
-export const BodyTypeSchema = z.enum(BodyType)
-
-export type WorldMapMovementEdge = z.infer<typeof WorldMapMovementEdge>
-export const WorldMapMovementEdge = z.object({
-  from: z.number(),
-  to: z.number(),
-  weight: z.number(),
-})
-
-export type WorldMapMovementGraph = z.infer<typeof WorldMapMovementGraph>
-export const WorldMapMovementGraph = z.object({
-  edges: z.record(z.string(), z.array(WorldMapMovementEdge)),
-})
-
-export type WorldMapBody = z.infer<typeof WorldMapBody>
-export const WorldMapBody = z.object({
-  id: z.number(),
-  number: z.number(),
-  coordinates: z.string(),
-  name: z.string(),
-  type: BodyTypeSchema,
-  movementNodeId: z.number(),
-})
-
-export type WorldMapSector = z.infer<typeof WorldMapSector>
-export const WorldMapSector = z.object({
-  id: z.number(),
-  number: z.number(),
-  coordinates: z.string(),
-  bodies: z.array(WorldMapBody),
-  movementNodeId: z.number(),
-})
-
-export type WorldMapSectorDetails = z.infer<typeof WorldMapSectorDetails>
-export const WorldMapSectorDetails = WorldMapSector.extend({
-  movementGraph: WorldMapMovementGraph,
-})
-
-export type WorldMapBodyDetails = z.infer<typeof WorldMapBodyDetails>
-export const WorldMapBodyDetails = WorldMapBody.extend({
-  orbitId: z.number(),
-  orbitNumber: z.number(),
-  orbitCoordinates: z.string(),
-  sectorId: z.number(),
-  sectorNumber: z.number(),
-  sectorCoordinates: z.string(),
-  movementGraph: WorldMapMovementGraph,
-})
-
-export type WorldMapOrbit = z.infer<typeof WorldMapOrbit>
-export const WorldMapOrbit = z.object({
-  id: z.number(),
-  number: z.number(),
-  coordinates: z.string(),
-  sectors: z.array(WorldMapSector),
-})
-
-export type WorldMapSystem = z.infer<typeof WorldMapSystem>
-export const WorldMapSystem = z.object({
-  gameId: z.number(),
-  generationSettings: MapGenerationSettings,
-  orbits: z.array(WorldMapOrbit),
-  movementGraph: WorldMapMovementGraph,
-})
-
-export type CreateWorldMapSystem = {
-  gameId: number
-  generationSettings: MapGenerationSettings
-  orbits: CreateWorldMapOrbit[]
-  movementEdges: CreateWorldMapMovementEdge[]
+export type MapGenerationRangeWriteModel = {
+  min: number
+  max: number
 }
 
-export type CreateWorldMapOrbit = {
+export type MapGenerationIntegerRangeWriteModel = MapGenerationRangeWriteModel
+export type MapGenerationRangeReadModel = MapGenerationRangeWriteModel
+export type MapGenerationIntegerRangeReadModel = MapGenerationIntegerRangeWriteModel
+
+export type MapGenerationSettingsWriteModel = {
+  planetDensityOfSystem: MapGenerationRangeWriteModel
+  nbPlanets: MapGenerationIntegerRangeWriteModel
+  nbMoonsPerPlanet: MapGenerationIntegerRangeWriteModel
+  nbAsteroidBelts: MapGenerationIntegerRangeWriteModel
+  nbAsteroidsPerSector: MapGenerationIntegerRangeWriteModel
+  seed: number
+}
+
+export type MapGenerationSettingsReadModel = {
+  planetDensityOfSystem: MapGenerationRangeReadModel
+  nbPlanets: MapGenerationIntegerRangeReadModel
+  nbMoonsPerPlanet: MapGenerationIntegerRangeReadModel
+  nbAsteroidBelts: MapGenerationIntegerRangeReadModel
+  nbAsteroidsPerSector: MapGenerationIntegerRangeReadModel
+  seed: number
+}
+
+export type WorldMapMovementEdgeReadModel = {
+  from: number
+  to: number
+  weight: number
+}
+
+export type WorldMapMovementGraphReadModel = {
+  edges: Record<string, WorldMapMovementEdgeReadModel[]>
+}
+
+export type WorldMapBodyReadModel = {
+  id: number
   number: number
-  sectors: CreateWorldMapSector[]
+  coordinates: string
+  name: string
+  type: BodyType
+  movementNodeId: number
 }
 
-export type CreateWorldMapSector = {
+export type WorldMapSectorReadModel = {
+  id: number
+  number: number
+  coordinates: string
+  bodies: WorldMapBodyReadModel[]
+  movementNodeId: number
+}
+
+export type WorldMapSectorDetailsReadModel = WorldMapSectorReadModel & {
+  movementGraph: WorldMapMovementGraphReadModel
+}
+
+export type WorldMapBodyDetailsReadModel = WorldMapBodyReadModel & {
+  orbitId: number
+  orbitNumber: number
+  orbitCoordinates: string
+  sectorId: number
+  sectorNumber: number
+  sectorCoordinates: string
+  movementGraph: WorldMapMovementGraphReadModel
+}
+
+export type WorldMapOrbitReadModel = {
+  id: number
+  number: number
+  coordinates: string
+  sectors: WorldMapSectorReadModel[]
+}
+
+export type WorldMapSystemReadModel = {
+  gameId: number
+  generationSettings: MapGenerationSettingsReadModel
+  orbits: WorldMapOrbitReadModel[]
+  movementGraph: WorldMapMovementGraphReadModel
+}
+
+export type WorldMapSystemWriteModel = {
+  gameId: number
+  generationSettings: MapGenerationSettingsWriteModel
+  orbits: WorldMapOrbitWriteModel[]
+  movementEdges: WorldMapMovementEdgeWriteModel[]
+}
+
+export type WorldMapOrbitWriteModel = {
+  number: number
+  sectors: WorldMapSectorWriteModel[]
+}
+
+export type WorldMapSectorWriteModel = {
   number: number
   movementNodeKey: string
-  bodies: CreateWorldMapBody[]
+  bodies: WorldMapBodyWriteModel[]
 }
 
-export type CreateWorldMapBody = {
+export type WorldMapBodyWriteModel = {
   number: number
   type: BodyType
   name: string
   movementNodeKey: string
 }
 
-export type CreateWorldMapMovementEdge = {
+export type WorldMapMovementEdgeWriteModel = {
   from: string
   to: string
-  weight?: number
+  weight?: number | undefined
 }
 
-export type WorldMapSectorSelector = { sectorId: number; coordinate?: never } | { sectorId?: never; coordinate: string }
-export type WorldMapBodySelector = { bodyId: number; coordinate?: never } | { bodyId?: never; coordinate: string }
+type WorldMapSectorSelector = { sectorId: number; coordinate?: never } | { sectorId?: never; coordinate: string }
+type WorldMapBodySelector = { bodyId: number; coordinate?: never } | { bodyId?: never; coordinate: string }
 
-export type WorldMapSectorRepositoryResult =
-  | { status: "found"; sector: WorldMapSectorDetails }
+export type WorldMapSectorLookupReadModel =
+  | { status: "found"; sector: WorldMapSectorDetailsReadModel }
   | { status: "missing-map" }
   | { status: "missing-sector" }
 
-export type WorldMapBodyRepositoryResult =
-  | { status: "found"; body: WorldMapBodyDetails }
+export type WorldMapBodyLookupReadModel =
+  | { status: "found"; body: WorldMapBodyDetailsReadModel }
   | { status: "missing-map" }
   | { status: "missing-body" }
 
@@ -164,7 +160,7 @@ export class WorldMapsRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "world-maps-repository" })
   }
 
-  public async createSystem(system: CreateWorldMapSystem, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
+  public async createSystem(system: WorldMapSystemWriteModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
     const createResult = await Result.tryCatch(async (): Promise<true> => {
       await db.transaction(async (tx) => {
         await tx.insert(gameMapsTable).values({
@@ -272,7 +268,7 @@ export class WorldMapsRepository extends PostgresRepository {
   public async getSystem(
     { gameId }: { gameId: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<WorldMapSystem | undefined, string>> {
+  ): Promise<Result<WorldMapSystemReadModel | undefined, string>> {
     const getResult = await Result.tryCatch(async () => {
       const rows = await this.getSystemRows({ gameId }, db)
       if (rows === undefined) {
@@ -293,8 +289,8 @@ export class WorldMapsRepository extends PostgresRepository {
   public async getSector(
     { gameId, selector }: { gameId: number; selector: WorldMapSectorSelector },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<WorldMapSectorRepositoryResult, string>> {
-    const getResult = await Result.tryCatch(async (): Promise<WorldMapSectorRepositoryResult> => {
+  ): Promise<Result<WorldMapSectorLookupReadModel, string>> {
+    const getResult = await Result.tryCatch(async (): Promise<WorldMapSectorLookupReadModel> => {
       const rows = await this.getSystemRows({ gameId }, db)
       if (rows === undefined) {
         return { status: "missing-map" }
@@ -329,8 +325,8 @@ export class WorldMapsRepository extends PostgresRepository {
   public async getBody(
     { gameId, selector }: { gameId: number; selector: WorldMapBodySelector },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<WorldMapBodyRepositoryResult, string>> {
-    const getResult = await Result.tryCatch(async (): Promise<WorldMapBodyRepositoryResult> => {
+  ): Promise<Result<WorldMapBodyLookupReadModel, string>> {
+    const getResult = await Result.tryCatch(async (): Promise<WorldMapBodyLookupReadModel> => {
       const rows = await this.getSystemRows({ gameId }, db)
       if (rows === undefined) {
         return { status: "missing-map" }
@@ -444,7 +440,7 @@ export class WorldMapsRepository extends PostgresRepository {
   }
 }
 
-function getMovementNodeKeys(system: CreateWorldMapSystem): string[] {
+function getMovementNodeKeys(system: WorldMapSystemWriteModel): string[] {
   const movementNodeKeys = system.orbits.flatMap((orbit) =>
     orbit.sectors.flatMap((sector) => [sector.movementNodeKey, ...sector.bodies.map((body) => body.movementNodeKey)]),
   )
@@ -466,7 +462,7 @@ function getSectorRowKey({ orbitId, sectorNumber }: { orbitId: number; sectorNum
   return `${orbitId}:${sectorNumber}`
 }
 
-function toWorldMapSystem(rows: WorldMapRows): WorldMapSystem {
+function toWorldMapSystem(rows: WorldMapRows): WorldMapSystemReadModel {
   const bodiesBySectorId = new Map<number, GameMapBodyRow[]>()
   for (const body of rows.bodies) {
     bodiesBySectorId.set(body.sectorId, [...(bodiesBySectorId.get(body.sectorId) ?? []), body])
@@ -479,7 +475,7 @@ function toWorldMapSystem(rows: WorldMapRows): WorldMapSystem {
 
   return {
     gameId: rows.map.gameId,
-    generationSettings: MapGenerationSettings.parse(rows.map.generationSettings),
+    generationSettings: rows.map.generationSettings as MapGenerationSettingsReadModel,
     orbits: rows.orbits.map((orbit) => ({
       id: orbit.id,
       number: orbit.orbitNumber,
@@ -503,8 +499,8 @@ function toWorldMapSystem(rows: WorldMapRows): WorldMapSystem {
   }
 }
 
-function toMovementGraph(edges: GameMapMovementEdgeRow[]): WorldMapMovementGraph {
-  const movementGraph: WorldMapMovementGraph = { edges: {} }
+function toMovementGraph(edges: GameMapMovementEdgeRow[]): WorldMapMovementGraphReadModel {
+  const movementGraph: WorldMapMovementGraphReadModel = { edges: {} }
 
   for (const edge of edges) {
     const key = edge.fromNodeId.toString()
@@ -520,8 +516,8 @@ function toMovementGraph(edges: GameMapMovementEdgeRow[]): WorldMapMovementGraph
   return movementGraph
 }
 
-function getLocalMovementGraph(movementGraph: WorldMapMovementGraph, movementNodeIds: number[]): WorldMapMovementGraph {
-  const localMovementGraph: WorldMapMovementGraph = { edges: {} }
+function getLocalMovementGraph(movementGraph: WorldMapMovementGraphReadModel, movementNodeIds: number[]): WorldMapMovementGraphReadModel {
+  const localMovementGraph: WorldMapMovementGraphReadModel = { edges: {} }
 
   for (const movementNodeId of movementNodeIds) {
     const key = movementNodeId.toString()
@@ -534,7 +530,7 @@ function getLocalMovementGraph(movementGraph: WorldMapMovementGraph, movementNod
   return localMovementGraph
 }
 
-function findSector(system: WorldMapSystem, selector: WorldMapSectorSelector): WorldMapSector | undefined {
+function findSector(system: WorldMapSystemReadModel, selector: WorldMapSectorSelector): WorldMapSectorReadModel | undefined {
   for (const orbit of system.orbits) {
     const sector = orbit.sectors.find((candidateSector) => {
       if (selector.sectorId !== undefined) {
@@ -553,9 +549,9 @@ function findSector(system: WorldMapSystem, selector: WorldMapSectorSelector): W
 }
 
 function findBody(
-  system: WorldMapSystem,
+  system: WorldMapSystemReadModel,
   selector: WorldMapBodySelector,
-): { orbit: WorldMapOrbit; sector: WorldMapSector; body: WorldMapBody } | undefined {
+): { orbit: WorldMapOrbitReadModel; sector: WorldMapSectorReadModel; body: WorldMapBodyReadModel } | undefined {
   for (const orbit of system.orbits) {
     for (const sector of orbit.sectors) {
       const body = sector.bodies.find((candidateBody) => {
