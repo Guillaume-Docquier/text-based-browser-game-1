@@ -164,7 +164,7 @@ describe("worldMaps.router", () => {
 
       // Act & Assert
       await expect(trpcClient.client.worldMaps.getSystem.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
-        data: { code: "NOT_FOUND" },
+        data: { code: "BAD_REQUEST" },
       })
     })
   })

@@ -1,4 +1,4 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
 import { BodyType } from "#lib/db/schema.ts"
 import type {
@@ -21,6 +21,7 @@ import type {
 } from "#lib/db/worldMaps.repository.ts"
 import z from "zod"
 import type { IntegerRange, IntegerRange as MapGenerationRangeWriteModelType } from "#lib/Range.ts"
+import { notAuthorized } from "#lib/errors.ts"
 
 export const MapGenerationRangeWriteModel = z.object({ min: z.number(), max: z.number() }).refine(({ min, max }) => min <= max, {
   message: "Range min must be lower than or equal to max.",
@@ -164,6 +165,10 @@ export class WorldMapsController {
       return canReadGameResult
     }
 
+    if (!canReadGameResult.value) {
+      return this.notAuthorizedFailure({ playerId, gameId })
+    }
+
     return await this.worldMapsRepository.getStarSystem({ gameId })
   }
 
@@ -179,6 +184,10 @@ export class WorldMapsController {
     const canReadGameResult = await this.canReadGame({ gameId, playerId })
     if (Result.isFailure(canReadGameResult)) {
       return canReadGameResult
+    }
+
+    if (!canReadGameResult.value) {
+      return this.notAuthorizedFailure({ playerId, gameId })
     }
 
     return await this.worldMapsRepository.getSector({ gameId, selector })
@@ -198,10 +207,20 @@ export class WorldMapsController {
       return canReadGameResult
     }
 
+    if (!canReadGameResult.value) {
+      return this.notAuthorizedFailure({ playerId, gameId })
+    }
+
     return await this.worldMapsRepository.getBody({ gameId, selector })
   }
 
   private async canReadGame({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<boolean, string>> {
     return await this.gamesRepository.hasPlayerJoinedGame({ gameId, playerId })
+  }
+
+  private notAuthorizedFailure({ playerId, gameId }: { playerId: number; gameId: number }): Failure<string> {
+    const error = notAuthorized({ playerId, operationName: `read game with id ${gameId}` })
+    this.logger.error(error)
+    return Result.Failure(error)
   }
 }
