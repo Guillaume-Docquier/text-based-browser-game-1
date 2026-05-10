@@ -1,6 +1,6 @@
 # Coordinate System and Movement
 
-This document describes how the star map will be built based on a 4-tier coordinate system and graph structure to allow movements in the game.
+This document describes how the star map will be built based on a 3-tier coordinate system and graph structure to allow movements in the game.
 
 ## Description
 
@@ -22,7 +22,6 @@ For example, these are the coordinate capabilities:
 - `02` (view)
 - `02:11` (view and movement)
 - `02:11:05` (view and movement)
-- `02:11:05:03` (view and movement)
 
 The star is artificial and only for display purposes. It is not a Body.
 
@@ -51,7 +50,7 @@ Moons will be attached to planets. Visually, a Moon will orbit around a Planet. 
 We can only move to Sectors and Bodies:
 
 - Each Body is connected to all Bodies in the same Sector.
-- Each Body in a Sector is connected to the parent Sectors.
+- Each Body in a Sector is connected to that Sector.
 - Each Sector is connected to all adjacent Sectors.
 
 Here's an example:
@@ -91,17 +90,20 @@ A world will be generated deterministically from the user's settings and a seed.
 
 The world generation algorithm will try to satisfy the user's settings with as few orbits as possible. To do so, it will:
 
-1. Roll the density, number of planets and number of Asteroid belts ranges to get fixed values
-2. Create the next orbit and roll for Asteroid belt
-3. If not Asteroid belt, count the sectors, multiply by the desired density
-4. If Asteroid belt, fill each Sector in the belt with X Asteroids, where X is rolled from the range of Asteroids per Sector
-5. If there aren't enough sectors to satisfy the planet count, repeat from #2
-6. Select all empty Sectors, shuffle them and put a Planet in the first Y, where Y is the desired number of planets
-7. For each Planet, add Z Moons in that Sector, where Z is rolled from the range of Moons per Planet
+1. Initialize the pseudo random number generator with the seed
+2. Roll the density, number of planets and number of Asteroid belts ranges to get fixed values
+3. Create the next orbit and roll for Asteroid belt
+4. If not Asteroid belt, count the sectors, multiply by the desired density
+5. If Asteroid belt, fill each Sector in the belt with X Asteroids, where X is rolled from the range of Asteroids per Sector
+6. If there aren't enough sectors to satisfy the planet count, repeat from #2
+7. Select all empty Sectors, shuffle them and put a Planet in the first Y, where Y is the desired number of planets
+8. For each Planet, add Z Moons in that Sector, where Z is rolled from the range of Moons per Planet
 
 Each orbit has double the Sectors than the previous one.
 
 The movement graph is then computed, and all the data is saved to the DB.
+
+The world will not change after being generated.
 
 ### game_maps table
 
@@ -230,7 +232,7 @@ Validating move orders using `WorldMapsRepository.areNeighbors` will be part of 
 
 ### Routers
 
-We will need 1 new router, the `WorldMapsRouter`. This controller will expose queries to the world:
+We will need 1 new router, the `WorldMapsRouter`. This router will expose queries to the world:
 
 - `getSystem`
 - `getSector`
@@ -267,8 +269,8 @@ The star map itself should:
 - Have a starry background
 - Allow zooming and panning
 - Have a coordinate input to zoom in on an Orbit/Sector/Body
-- Allow selecting Sectors and Bodies and showing their information in the bottom section
-- Show the coordinates of sectors, but not of planets
+- Allow selecting Sectors and Bodies and showing their information in the bottom section (coordinates, name, type, etc)
+- Show the coordinates of Sectors but not of Planets because it would clutter the UI
 
 In terms of libraries/tech, we will start with SVG + d3-zoom:
 
@@ -289,7 +291,7 @@ The work will be divided in multiple PRs, some dependent on others, but not all:
 
 1. Database schema & migration, WorldMapsRepository, WorldMapsController and WorldMapsRouter
 2. Game view layout revamp and Actions view revamp
-3. Game creation view update, GamesController update and world generation
+3. Game creation view update, GamesController update and world generation algorithm
 4. Star map view
 
 Dependencies:
