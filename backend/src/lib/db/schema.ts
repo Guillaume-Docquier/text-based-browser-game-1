@@ -11,16 +11,17 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core"
+import { BodyType } from "#lib/world-maps/BodyType.ts"
 
-export const BodyType = {
-  PLANET: "PLANET",
-  MOON: "MOON",
-  ASTEROID: "ASTEROID",
-} as const
+/**
+ * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
+ * This is just type gymnastics
+ */
+function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>): [TEnumLike, ...TEnumLike[]] {
+  return Object.values(enumLike) as [TEnumLike, ...TEnumLike[]]
+}
 
-export type BodyType = (typeof BodyType)[keyof typeof BodyType]
-
-export const gameMapBodyTypeEnum = pgEnum("game_map_body_type", [BodyType.PLANET, BodyType.MOON, BodyType.ASTEROID])
+export const gameMapBodyTypeEnum = pgEnum("game_map_body_type", pgEnumify(BodyType))
 
 /**
  * All registered players.
@@ -172,23 +173,6 @@ export const gameMapsTable = pgTable("game_maps", {
 })
 
 /**
- * Movement graph nodes for all concrete movement targets in a map.
- */
-export const gameMapMovementNodesTable = pgTable(
-  "game_map_movement_nodes",
-  {
-    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-    gameId: integer("game_id")
-      .notNull()
-      .references(() => gameMapsTable.gameId, { onDelete: "cascade" }),
-  },
-  (table) => [
-    unique("game_map_movement_nodes_game_id_id_unique").on(table.gameId, table.id),
-    index("game_map_movement_nodes_game_id_idx").on(table.gameId),
-  ],
-)
-
-/**
  * Star system orbits. Orbit numbers are the first coordinate segment.
  */
 export const gameMapOrbitsTable = pgTable(
@@ -270,6 +254,23 @@ export const gameMapBodiesTable = pgTable(
       name: "game_map_bodies_game_id_movement_node_id_game_map_movement_nodes_fk",
     }).onDelete("no action"),
     index("game_map_bodies_game_id_sector_id_idx").on(table.gameId, table.sectorId),
+  ],
+)
+
+/**
+ * Movement graph nodes for all concrete movement targets in a map.
+ */
+export const gameMapMovementNodesTable = pgTable(
+  "game_map_movement_nodes",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => gameMapsTable.gameId, { onDelete: "cascade" }),
+  },
+  (table) => [
+    unique("game_map_movement_nodes_game_id_id_unique").on(table.gameId, table.id),
+    index("game_map_movement_nodes_game_id_idx").on(table.gameId),
   ],
 )
 

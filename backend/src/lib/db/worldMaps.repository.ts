@@ -1,6 +1,5 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
 import {
-  type BodyType,
   gameMapBodiesTable,
   gameMapMovementEdgesTable,
   gameMapMovementNodesTable,
@@ -12,6 +11,7 @@ import { and, asc, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
+import type { BodyType } from "#lib/world-maps/BodyType.ts"
 
 export type MapGenerationSettingsWriteModel = {
   planetDensityOfSystem: PercentageRange

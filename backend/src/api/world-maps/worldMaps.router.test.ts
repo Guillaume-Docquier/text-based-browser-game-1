@@ -3,11 +3,11 @@ import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/playerRowInsert.stub.ts"
-import { BodyType } from "#lib/db/schema.ts"
 import { type StarSystemWriteModel, WorldMapsRepository } from "#lib/db/worldMaps.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 import { Logger, Result } from "@guillaume-docquier/tools-ts"
+import { BodyType } from "#lib/world-maps/BodyType.ts"
 
 describe("worldMaps.router", () => {
   describe("getSystem", () => {

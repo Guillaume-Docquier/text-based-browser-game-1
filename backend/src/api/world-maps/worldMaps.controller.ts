@@ -1,6 +1,5 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
-import { BodyType } from "#lib/db/schema.ts"
 import type {
   MapGenerationSettingsReadModel as MapGenerationSettingsReadModelType,
   MapGenerationSettingsWriteModel as MapGenerationSettingsWriteModelType,
@@ -22,6 +21,7 @@ import type {
 import z from "zod"
 import type { IntegerRange, IntegerRange as MapGenerationRangeWriteModelType } from "#lib/Range.ts"
 import { notAuthorized } from "#lib/errors.ts"
+import { BodyType } from "#lib/world-maps/BodyType.ts"
 
 export const MapGenerationRangeWriteModel = z.object({ min: z.number(), max: z.number() }).refine(({ min, max }) => min <= max, {
   message: "Range min must be lower than or equal to max.",
