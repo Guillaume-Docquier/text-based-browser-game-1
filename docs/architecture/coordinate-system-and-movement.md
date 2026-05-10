@@ -6,16 +6,16 @@ This document describes how the star map will be built based on a 4-tier coordin
 
 ### The World
 
-The world consists of a single star system. At the center of the system will be a star, with concentric Orbits around it. Each Orbit will be divided into Sectors and each Sector will contain Bodies. Finally, each Body is composed of Sites.
+The world consists of a single star system. At the center of the system will be a star, with concentric Orbits around it. Each Orbit will be divided into Sectors and each Sector will contain Bodies.
 
-The world will feature a `Orbit:Sector:Body:Site` coordinate system. The coordinate system will be read from left to right, and any coordinate will contain one to four of the four tiers.
+The world will feature a `Orbit:Sector:Body` coordinate system. The coordinate system will be read from left to right, and any coordinate will contain one to four of the four tiers.
 
 For example, these are all valid coordinates:
 
 - `02:11` (orbit 2, sector 11)
-- `02:11:05:03` (orbit 2, sector 11, body 5, site 3)
+- `02:11:05` (orbit 2, sector 11, body 5)
 
-While all the above coordinates will be valid, not all of them will be valid for movement. Players will be able to view any of those coordinates. A link to `02` would bring the view of the player to orbit 2. However, units will only be able to move to Sectors, Bodies or Sites.
+While all the above coordinates will be valid, not all of them will be valid for movement. Players will be able to view any of those coordinates. A link to `02` would bring the view of the player to orbit 2. However, units will only be able to move to Sectors or Bodies.
 
 For example, these are the coordinate capabilities:
 
@@ -29,17 +29,11 @@ The star is artificial and only for display purposes. It is not a Body.
 The game creation menu will allow customizing the following aspects:
 
 - Planet density of the System (range)
-- Number of Planets per System (range)
-- Number of Sites per Planet (range)
-- Number of Sites per Home Planet (range)
-- Presence of Moons (yes/no)
-  - Number of Moons per Planet (range)
-  - Number of Moons per Home Planet (range)
-  - Number of Sites per Moon (range)
-  - Number of Sites per Home Moon (range)
-- Presence of Asteroids (yes/no)
-  - Number of Asteroids per Sector (range)
-  - Number of Sites per Asteroid (range)
+- Number of Planets (range)
+- Number of Moons per Planet (range)
+- Number of Asteroid belts (range)
+- Number of Asteroids per Sector (range)
+- Seed (number, optional)
 
 Here's a representation of a System with 3 orbits and 14 sectors
 ![star system](../../.github/images/star-system.png)
@@ -48,17 +42,17 @@ The central dot is the star, each circle is an Orbit and each dot on an Orbit is
 
 In this image, the Sector count per Orbit starts at 2 and doubles for each additional Orbit.
 
-Asteroids will be featured through Asteroid belts. An Asteroid belt is an orbit where each sector contains Asteroids only. There can be one or more Asteroid per Sector. Any Orbit can be an Asteroid belt, this will be chosen at random. In the core Ruleset, Asteroids will have a single Site and won't be claimable, like Planets or Moons.
+Asteroids will be featured through Asteroid belts. An Asteroid belt is an orbit where each sector contains Asteroids only. There can be one or more Asteroid per Sector. Any Orbit can be an Asteroid belt, this will be chosen at random.
 
-Moons will be attached to planets. Visually, a Moon will orbit around a Planet. However, this will have no incidence on movement. In the core Ruleset, Moons will have fewer Sites than Planets.
+Moons will be attached to planets. Visually, a Moon will orbit around a Planet. However, this will have no incidence on movement.
 
 ### Movement
 
-We can only move to Sectors, Bodies or Sites:
+We can only move to Sectors and Bodies:
 
-- Each Site is connected to the lower orbit of its Body.
 - Each Body is connected to all Bodies in the same Sector.
-- Each Body in a Sector is connected to all adjacent Sectors.
+- Each Body in a Sector is connected to the parent Sectors.
+- Each Sector is connected to all adjacent Sectors.
 
 Here's an example:
 ![movement](../../.github/images/movement-sector-based.png)
@@ -75,32 +69,47 @@ The map will be stored in a relational database with the following tables:
 - Orbits
 - Sectors
 - Bodies
-- Sites
 
 This data will only be used to express static data about the entities, not mutable game state.
 
 The movement graph will be stored in a relational database with the following tables:
 
-- MovementNodes: nodes that can be moved to (currently Sectors, Bodies and Sites)
+- MovementNodes: nodes that can be moved to (currently Sectors and Bodies)
 - MovementEdges: the connections between nodes
 
-This data will only be used to validate movements. Units and buildings will always refer to Bodies or Sites, never to MovementNodes.
+This data will only be used to validate movements. Units and buildings will always refer to Sectors or Bodies, never to MovementNodes.
 
 The frontend will consume DTOs derived from this data:
 
-- MapDTO: All the information about the map to render it (movement graph, Orbits, Sectors, Bodies and Sites) with limited details about each Body and Site
+- MapDTO: All the information about the map to render it (movement graph, Orbits, Sectors and Bodies) with limited details about each Sector and Body
 - SectorDTO: Detailed information about a Sector
 - BodyDTO: Detailed information about a Body
-- SiteDTO: Detailed information about a Site
+
+### World generation
+
+A world will be generated deterministically from the user's settings and a seed. Users can provide a seed. If no seed is provided, a random one will be used.
+
+The world generation algorithm will try to satisfy the user's settings with as few orbits as possible. To do so, it will:
+
+1. Roll the density, number of planets and number of Asteroid belts ranges to get fixed values
+2. Create the next orbit and roll for Asteroid belt
+3. If not Asteroid belt, count the sectors, multiply by the desired density
+4. If Asteroid belt, fill each Sector in the belt with X Asteroids, where X is rolled from the range of Asteroids per Sector
+5. If there aren't enough sectors to satisfy the planet count, repeat from #2
+6. Select all empty Sectors, shuffle them and put a Planet in the first Y, where Y is the desired number of planets
+7. For each Planet, add Z Moons in that Sector, where Z is rolled from the range of Moons per Planet
+
+Each orbit has double the Sectors than the previous one.
+
+The movement graph is then computed, and all the data is saved to the DB.
 
 ### game_maps table
 
-| Column                | Type        | Constraints                                           | Notes                                            |
-| --------------------- | ----------- | ----------------------------------------------------- | ------------------------------------------------ |
-| `game_id`             | `integer`   | primary key, references `games(id)` on delete cascade | The map belongs to one game.                     |
-| `generation_seed`     | `integer`   | not null                                              | Seed used to generate the map deterministically. |
-| `generation_settings` | `jsonb`     | not null                                              | Map generation settings used for this game.      |
-| `created_at`          | `timestamp` | not null, default now                                 | Creation timestamp.                              |
+| Column                | Type        | Constraints                                           | Notes                                       |
+| --------------------- | ----------- | ----------------------------------------------------- | ------------------------------------------- |
+| `game_id`             | `integer`   | primary key, references `games(id)` on delete cascade | The map belongs to one game.                |
+| `generation_settings` | `jsonb`     | not null                                              | Map generation settings used for this game. |
+| `created_at`          | `timestamp` | not null, default now                                 | Creation timestamp.                         |
 
 The generation settings will have the following shape:
 
@@ -117,27 +126,15 @@ type Range = {
 }
 
 type MapGenerationSettings = {
-  planets: {
-    /**
-     * Percentage between 0 and 1
-     */
-    planetDensityOfSystem: Range
-    nbPlanetsPerSystem: Range
-    nbSitesPerPlanet: Range
-    nbSitesPerHomePlanet: Range
-  }
-  moons: {
-    enableMoons: boolean
-    nbMoonsPerPlanet: Range
-    nbMoonsPerHomePlanet: Range
-    nbSitesPerMoon: Range
-    nbSitesPerHomeMoon: Range
-  }
-  asteroids: {
-    enableAsteroidBelts: boolean
-    nbAsteroidsPerSector: Range
-    nbSitesPerAsteroid: Range
-  }
+  /**
+   * Percentage between 0 and 1
+   */
+  planetDensityOfSystem: Range
+  nbPlanets: Range
+  nbMoonsPerPlanet: Range
+  nbAsteroidBelts: Range
+  nbAsteroidsPerSector: Range
+  seed: number
 }
 ```
 
@@ -178,7 +175,6 @@ Indexes and constraints:
 | `sector_id`        | `integer`      | not null, references `game_map_sectors(id)` on delete cascade | Parent Sector.                                    |
 | `body_number`      | `integer`      | not null                                                      | Coordinate segment, starts at 1.                  |
 | `body_type`        | `enum`         | not null                                                      | `PLANET`, `MOON` or `ASTEROID`.                   |
-| `can_be_owned`     | `boolean`      | not null                                                      | Whether this Body can be owned by a player.       |
 | `name`             | `varchar(255)` | not null                                                      | Body display name.                                |
 | `movement_node_id` | `integer`      | not null, references `game_map_movement_nodes(id)`            | The id of the movement node for movement queries. |
 
@@ -186,21 +182,6 @@ Indexes and constraints:
 
 - Unique `(sector_id, body_number)`.
 - Index `(game_id, sector_id)`.
-
-### game_map_sites
-
-| Column             | Type      | Constraints                                                  | Notes                                             |
-| ------------------ | --------- | ------------------------------------------------------------ | ------------------------------------------------- |
-| `id`               | `integer` | primary key, generated identity                              | Stable row id.                                    |
-| `game_id`          | `integer` | not null, references `game_maps(game_id)` on delete cascade  | Parent map.                                       |
-| `body_id`          | `integer` | not null, references `game_map_bodies(id)` on delete cascade | Parent body.                                      |
-| `site_number`      | `integer` | not null                                                     | Coordinate segment, starts at 1.                  |
-| `movement_node_id` | `integer` | not null, references `game_map_movement_nodes(id)`           | The id of the movement node for movement queries. |
-
-Indexes and constraints:
-
-- Unique `(body_id, site_number)`.
-- Index `(game_id, body_id)`.
 
 ### game_map_movement_nodes
 
@@ -225,24 +206,96 @@ Indexes and constraints:
 
 ### Repositories
 
-TODO
+We will need 1 new repository, the `WorldMapsRepository`. This repository will expose all the data about the map:
+
+- `createSystem`: Creates a full system (orbits, sectors, bodies, full movement graph, etc)
+- `getSystem`: Gets the full system data (orbits, sectors, bodies, full movement graph, etc)
+- `getSector`: Gets the full sector data (bodies, units, sector movement graph, etc)
+- `getBody`: Gets the full body data (type, other body properties, units, body movement graph, etc)
+- `areNeighbors`: Given two sectors or bodies, returns if the two are adjacent
 
 ### Controllers
 
-TODO
+We will need 1 new controller, the `WorldMapsController`. This controller will expose queries to the world:
+
+- `getSystem`
+- `getSector`
+- `getBody`
+
+The controller will make sure the player is allowed to see the data (must be a player in the game).
+
+Creating a system using `WorldMapsRepository.createSystem` will be part of the `GamesController`.
+
+Validating move orders using `WorldMapsRepository.areNeighbors` will be part of the `GamePlayerActionsController`.
 
 ### Routers
 
-TODO
+We will need 1 new router, the `WorldMapsRouter`. This controller will expose queries to the world:
+
+- `getSystem`
+- `getSector`
+- `getBody`
+
+The router will make sure the player is authenticated and will forward the player id to the controller.
 
 ### Star Map View
 
-TODO
+The star map view will look something like this:
+
+| inspiration 1                                                                         | inspiration 2                                                                             |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| ![AI Generated Solar System UI](../../.github/images/mockup-ai-solar-system-view.png) | ![AI Generated Solar System UI 2](../../.github/images/mockup-ai-solar-system-view-3.png) |
+
+The key points are:
+
+- The game layout will feature a left navigation bar
+- The game layout will feature a top game info bar
+- The game layout will feature a central tile, islands style, for the current view
+
+The navigation bar at this point will contain 2 pages:
+
+1. Star Map, shows the map
+2. Actions, lets the user chose actions
+
+The star map itself should:
+
+- Show the star in the middle
+- Show each sector as a zone
+- Show each body in the center of their sector
+  - Moons should orbit around planets
+  - Asteroids float in the sector
+- Have a starry background
+- Allow zooming and panning
+- Have a coordinate input to zoom in on an Orbit/Sector/Body
+- Allow selecting Sectors and Bodies and showing their information in the bottom section
+- Show the coordinates of sectors, but not of planets
+
+In terms of libraries/tech, we will start with SVG + d3-zoom:
+
+- We will generate 1 asset for a Planet
+- We will generate 1 asset for a Moon
+- We will generate 1 asset for an Asteroid
+- We will generate 1 asset for the star
+- We will generate a few assets for the starry background
+- We will use annular sector paths for Sectors
 
 ### Game Creation View
 
-TODO
+The game creation view will have an extra section for the 6 world generation settings.
 
-## Implementation Plan
+## Implementation Phases
 
-TODO
+The work will be divided in multiple PRs, some dependent on others, but not all:
+
+1. Database schema & migration, WorldMapsRepository, WorldMapsController and WorldMapsRouter
+2. Game view layout revamp and Actions view revamp
+3. Game creation view update, GamesController update and world generation
+4. Star map view
+
+Dependencies:
+
+- 1 & 2 are completely independent
+- 3 depends on 1, but can do everything and save the world to DB once 1 is done
+- 4 depends on 1, 2 and 3
+
+Any UI created should use the images as inspiration but should not change the current Shadcn preset.
