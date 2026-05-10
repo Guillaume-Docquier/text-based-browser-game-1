@@ -15,7 +15,7 @@ export function GameLayout({
   children: ReactNode
 }): ReactElement {
   return (
-    <div className="flex min-h-[calc(100vh-11rem)] w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
+    <div className="flex min-h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
       <GameSideNav gameId={game.id} />
       <div className="flex min-w-0 flex-1 flex-col">
         <GameTopBar game={game} gameState={gameState} />
@@ -27,7 +27,7 @@ export function GameLayout({
 
 export function GameLayoutSkeleton(): ReactElement {
   return (
-    <div className="flex min-h-[calc(100vh-11rem)] w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
+    <div className="flex min-h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
       <aside className="border-b border-border/70 p-4 lg:w-56 lg:border-r lg:border-b-0">
         <Skeleton className="mb-5 h-5 w-28" />
         <div className="flex gap-2 lg:flex-col">

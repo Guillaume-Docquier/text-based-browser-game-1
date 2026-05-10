@@ -13,7 +13,7 @@ import { Skeleton } from "../components/ui/skeleton.tsx"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { timeAgo } from "../timeAgo.ts"
 
-export const Route = createFileRoute("/games/")({
+export const Route = createFileRoute("/_app/games/")({
   component: Games,
 })
 

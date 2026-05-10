@@ -4,7 +4,7 @@ import { ArrowRight, ShieldCheck, TimerReset, Waypoints } from "lucide-react"
 import { Button } from "../components/ui/button.tsx"
 import { Card, CardContent } from "../components/ui/card.tsx"
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_app/")({
   component: Index,
 })
 

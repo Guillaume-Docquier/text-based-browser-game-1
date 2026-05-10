@@ -18,7 +18,7 @@ const paramsSchema = z.object({
   gameId: z.coerce.number(),
 })
 
-export const Route = createFileRoute("/games/$gameId")({
+export const Route = createFileRoute("/_app/games/$gameId")({
   component: GameLobby,
   params: {
     parse: (params) => paramsSchema.parse(params),

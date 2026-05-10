@@ -30,7 +30,7 @@ const TickIntervalUnit = {
   minutes: "minutes",
 } as const
 
-export const Route = createFileRoute("/games/new")({
+export const Route = createFileRoute("/_app/games/new")({
   component: CreateGame,
   beforeLoad: privateRoute,
 })

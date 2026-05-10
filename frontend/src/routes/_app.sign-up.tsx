@@ -8,7 +8,7 @@ const RedirectSchema = z.object({
   redirect: z.string().default("/games"),
 })
 
-export const Route = createFileRoute("/sign-up")({
+export const Route = createFileRoute("/_app/sign-up")({
   component: SignUpComponent,
   validateSearch: RedirectSchema,
 })
