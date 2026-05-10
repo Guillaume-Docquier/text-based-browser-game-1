@@ -2,10 +2,6 @@ import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
 import { BodyType } from "#lib/db/schema.ts"
 import type {
-  MapGenerationIntegerRangeReadModel as MapGenerationIntegerRangeReadModelType,
-  MapGenerationIntegerRangeWriteModel as MapGenerationIntegerRangeWriteModelType,
-  MapGenerationRangeReadModel as MapGenerationRangeReadModelType,
-  MapGenerationRangeWriteModel as MapGenerationRangeWriteModelType,
   MapGenerationSettingsReadModel as MapGenerationSettingsReadModelType,
   MapGenerationSettingsWriteModel as MapGenerationSettingsWriteModelType,
   WorldMapBodyDetailsReadModel as WorldMapBodyDetailsReadModelType,
@@ -24,6 +20,7 @@ import type {
   WorldMapSystemWriteModel as WorldMapSystemWriteModelType,
 } from "#lib/db/worldMaps.repository.ts"
 import z from "zod"
+import type { IntegerRange, IntegerRange as MapGenerationRangeWriteModelType } from "#lib/Range.ts"
 
 export const WorldMapsControllerFailure = {
   GAME_NOT_FOUND: "Game does not exist.",
@@ -41,10 +38,10 @@ export const MapGenerationIntegerRangeWriteModel = z
   .object({ min: z.number().int(), max: z.number().int() })
   .refine(({ min, max }) => min <= max, {
     message: "Range min must be lower than or equal to max.",
-  }) satisfies z.ZodType<MapGenerationIntegerRangeWriteModelType>
+  }) satisfies z.ZodType<IntegerRange>
 
-export const MapGenerationRangeReadModel: z.ZodType<MapGenerationRangeReadModelType> = MapGenerationRangeWriteModel
-export const MapGenerationIntegerRangeReadModel: z.ZodType<MapGenerationIntegerRangeReadModelType> = MapGenerationIntegerRangeWriteModel
+export const MapGenerationRangeReadModel = MapGenerationIntegerRangeWriteModel
+export const MapGenerationIntegerRangeReadModel = MapGenerationIntegerRangeWriteModel
 
 export const MapGenerationSettingsWriteModel = z.object({
   planetDensityOfSystem: MapGenerationRangeWriteModel.refine(({ min, max }) => min >= 0 && max <= 1, {

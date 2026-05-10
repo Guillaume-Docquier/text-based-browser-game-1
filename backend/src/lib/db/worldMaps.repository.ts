@@ -11,33 +11,18 @@ import {
 import { and, asc, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
-
-export type MapGenerationRangeWriteModel = {
-  min: number
-  max: number
-}
-
-export type MapGenerationIntegerRangeWriteModel = MapGenerationRangeWriteModel
-export type MapGenerationRangeReadModel = MapGenerationRangeWriteModel
-export type MapGenerationIntegerRangeReadModel = MapGenerationIntegerRangeWriteModel
+import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
 
 export type MapGenerationSettingsWriteModel = {
-  planetDensityOfSystem: MapGenerationRangeWriteModel
-  nbPlanets: MapGenerationIntegerRangeWriteModel
-  nbMoonsPerPlanet: MapGenerationIntegerRangeWriteModel
-  nbAsteroidBelts: MapGenerationIntegerRangeWriteModel
-  nbAsteroidsPerSector: MapGenerationIntegerRangeWriteModel
+  planetDensityOfSystem: PercentageRange
+  nbPlanets: IntegerRange
+  nbMoonsPerPlanet: IntegerRange
+  nbAsteroidBelts: IntegerRange
+  nbAsteroidsPerSector: IntegerRange
   seed: number
 }
 
-export type MapGenerationSettingsReadModel = {
-  planetDensityOfSystem: MapGenerationRangeReadModel
-  nbPlanets: MapGenerationIntegerRangeReadModel
-  nbMoonsPerPlanet: MapGenerationIntegerRangeReadModel
-  nbAsteroidBelts: MapGenerationIntegerRangeReadModel
-  nbAsteroidsPerSector: MapGenerationIntegerRangeReadModel
-  seed: number
-}
+export type MapGenerationSettingsReadModel = MapGenerationSettingsWriteModel
 
 export type WorldMapMovementEdgeReadModel = {
   from: number
