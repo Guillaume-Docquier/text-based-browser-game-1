@@ -1,7 +1,7 @@
 import { Clock3, Crown, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import type * as ApiTypes from "@api-types"
-import type { PlayGameState } from "../routes/play.$gameId.tsx"
+import type { PlayGameState } from "../contexts/PlayGameContext.tsx"
 import { GameStatusBadge } from "./GameStatusBadge.tsx"
 
 export function GameTopBar({ game, gameState }: { game: ApiTypes.GameSummary; gameState: PlayGameState }): ReactElement {

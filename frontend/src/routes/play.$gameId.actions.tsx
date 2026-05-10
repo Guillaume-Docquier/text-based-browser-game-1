@@ -6,7 +6,7 @@ import { GameActionSelector, GameActionSelectorSkeleton } from "../components/Ga
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert.tsx"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useLogger } from "../contexts/LoggerContext.tsx"
-import { usePlayGameContext } from "./play.$gameId.tsx"
+import { usePlayGameContext } from "../contexts/PlayGameContext.tsx"
 
 export const Route = createFileRoute("/play/$gameId/actions")({
   component: PlayGameActions,

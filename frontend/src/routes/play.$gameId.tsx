@@ -1,27 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Navigate, Outlet, redirect } from "@tanstack/react-router"
-import { createContext, type ReactElement, useContext } from "react"
+import type { ReactElement } from "react"
 import { z } from "zod"
-import type * as ApiTypes from "@api-types"
 import { GameLayout, GameLayoutSkeleton } from "../components/GameLayout.tsx"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useLogger } from "../contexts/LoggerContext.tsx"
+import { PlayGameContextProvider, type PlayGameContextValue } from "../contexts/PlayGameContext.tsx"
 import { privateRoute } from "../privateRoute.ts"
-
-export type PlayGameState = {
-  tick: number
-  nextTickAt: string | Date
-  resources: {
-    money: number
-  }
-}
-
-type PlayGameContextValue = {
-  game: ApiTypes.GameSummary
-  gameState: PlayGameState
-}
-
-const PlayGameContext = createContext<PlayGameContextValue | undefined>(undefined)
 
 const paramsSchema = z.object({
   gameId: z.coerce.number(),
@@ -40,16 +25,6 @@ export const Route = createFileRoute("/play/$gameId")({
     }
   },
 })
-
-export function usePlayGameContext(): PlayGameContextValue {
-  const context = useContext(PlayGameContext)
-
-  if (context === undefined) {
-    throw new Error("usePlayGameContext must be used under the play game route")
-  }
-
-  return context
-}
 
 function PlayGameLayout(): ReactElement {
   const logger = useLogger()
@@ -78,10 +53,10 @@ function PlayGameLayout(): ReactElement {
   }
 
   return (
-    <PlayGameContext.Provider value={context}>
+    <PlayGameContextProvider value={context}>
       <GameLayout game={context.game} gameState={context.gameState}>
         <Outlet />
       </GameLayout>
-    </PlayGameContext.Provider>
+    </PlayGameContextProvider>
   )
 }
