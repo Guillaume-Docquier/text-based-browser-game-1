@@ -10,7 +10,8 @@
     "format:package-json": "sort-package-json package.json shared/eslint/package.json frontend/package.json backend/package.json",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "pnpm lint --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "wts": "pnpm i && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
   },
   "lint-staged": {
     "*package.json": "sort-package-json",
