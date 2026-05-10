@@ -17,6 +17,9 @@ import type { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.
 import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
+import type { WorldMapsRepository } from "#lib/db/worldMaps.repository.ts"
+import { WorldMapsController } from "#api/world-maps/worldMaps.controller.ts"
+import { createWorldMapsRouter } from "#api/world-maps/worldMaps.router.ts"
 
 /**
  * Import side effect free express app creator.
@@ -34,12 +37,14 @@ export async function createApi({
   gameStatesRepository: GameStatesRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
+  worldMapsRepository: WorldMapsRepository
 }): Promise<Express> {
   const controllers = {
     gamesController: new GamesController(services),
     gameStatesController: new GameStatesController(services),
     playersController: new PlayersController(services),
     gamePlayerActionsController: new GamePlayerActionsController(services),
+    worldMapsController: new WorldMapsController(services),
   }
 
   const app = express()
@@ -64,6 +69,7 @@ function createTrpcRouter(services: {
   gamesController: GamesController
   gameStatesController: GameStatesController
   gamePlayerActionsController: GamePlayerActionsController
+  worldMapsController: WorldMapsController
   logger: Logger
 }) {
   const trpc = createTrpc()
@@ -73,6 +79,7 @@ function createTrpcRouter(services: {
     games: createGamesRouter(routerServices),
     gameStates: createGameStatesRouter(routerServices),
     gamePlayerActions: createGamePlayerActionsRouter(routerServices),
+    worldMaps: createWorldMapsRouter(routerServices),
   })
 }
 

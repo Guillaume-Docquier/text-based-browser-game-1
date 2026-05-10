@@ -183,6 +183,32 @@ export class GamesRepository extends PostgresRepository {
     return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
   }
 
+  public async hasPlayerJoinedGame(
+    { gameId, playerId }: { gameId: number; playerId: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<boolean | undefined, string>> {
+    const joinedGameResult = await Result.tryCatch(
+      async () =>
+        await db
+          .select({ gameId: gamesTable.id, joinedPlayerId: gamePlayersTable.playerId })
+          .from(gamesTable)
+          .leftJoin(gamePlayersTable, and(eq(gamePlayersTable.gameId, gamesTable.id), eq(gamePlayersTable.playerId, playerId)))
+          .where(eq(gamesTable.id, gameId)),
+    )
+
+    if (Result.isFailure(joinedGameResult)) {
+      this.logger.error("Could not check if player joined game", { gameId, playerId, error: joinedGameResult.error })
+      return Result.Failure(couldNot("check if player joined game"))
+    }
+
+    const gamePlayer = joinedGameResult.value[0]
+    if (gamePlayer === undefined) {
+      return Result.Success(undefined)
+    }
+
+    return Result.Success(gamePlayer.joinedPlayerId === playerId)
+  }
+
   public async endWithWinner(
     { gameId, winnerPlayerId }: { gameId: number; winnerPlayerId: number },
     db: PostgresRepository["db"] = this.db,

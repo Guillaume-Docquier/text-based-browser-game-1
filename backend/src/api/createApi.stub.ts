@@ -10,6 +10,7 @@ import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repos
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { PlayersRepository } from "#lib/db/players.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
+import { WorldMapsRepository } from "#lib/db/worldMaps.repository.ts"
 
 /**
  * Creates a real api with test dependencies.
@@ -35,5 +36,6 @@ export async function createApiStub({
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     playersRepository: new PlayersRepository({ db, logger }),
+    worldMapsRepository: new WorldMapsRepository({ db, logger }),
   })
 }

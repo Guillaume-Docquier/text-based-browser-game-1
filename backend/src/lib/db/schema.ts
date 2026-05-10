@@ -1,4 +1,26 @@
-import { integer, pgTable, uniqueIndex, varchar, timestamp, primaryKey, index, foreignKey } from "drizzle-orm/pg-core"
+import {
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  timestamp,
+  unique,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/pg-core"
+
+export const BodyType = {
+  PLANET: "PLANET",
+  MOON: "MOON",
+  ASTEROID: "ASTEROID",
+} as const
+
+export type BodyType = (typeof BodyType)[keyof typeof BodyType]
+
+export const gameMapBodyTypeEnum = pgEnum("game_map_body_type", [BodyType.PLANET, BodyType.MOON, BodyType.ASTEROID])
 
 /**
  * All registered players.
@@ -135,5 +157,149 @@ export const gameTicksTable = pgTable(
       columns: [table.gameId, table.tick],
     }),
     index().on(table.scheduledFor),
+  ],
+)
+
+/**
+ * Static world map data for a game.
+ */
+export const gameMapsTable = pgTable("game_maps", {
+  gameId: integer("game_id")
+    .primaryKey()
+    .references(() => gamesTable.id, { onDelete: "cascade" }),
+  generationSettings: jsonb("generation_settings").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+/**
+ * Movement graph nodes for all concrete movement targets in a map.
+ */
+export const gameMapMovementNodesTable = pgTable(
+  "game_map_movement_nodes",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => gameMapsTable.gameId, { onDelete: "cascade" }),
+  },
+  (table) => [
+    unique("game_map_movement_nodes_game_id_id_unique").on(table.gameId, table.id),
+    index("game_map_movement_nodes_game_id_idx").on(table.gameId),
+  ],
+)
+
+/**
+ * Star system orbits. Orbit numbers are the first coordinate segment.
+ */
+export const gameMapOrbitsTable = pgTable(
+  "game_map_orbits",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => gameMapsTable.gameId, { onDelete: "cascade" }),
+    orbitNumber: integer("orbit_number").notNull(),
+  },
+  (table) => [
+    unique("game_map_orbits_game_id_id_unique").on(table.gameId, table.id),
+    unique("game_map_orbits_game_id_orbit_number_unique").on(table.gameId, table.orbitNumber),
+    index("game_map_orbits_game_id_idx").on(table.gameId),
+  ],
+)
+
+/**
+ * Sectors inside orbits. Sectors are movement targets.
+ */
+export const gameMapSectorsTable = pgTable(
+  "game_map_sectors",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => gameMapsTable.gameId, { onDelete: "cascade" }),
+    orbitId: integer("orbit_id").notNull(),
+    sectorNumber: integer("sector_number").notNull(),
+    movementNodeId: integer("movement_node_id").notNull(),
+  },
+  (table) => [
+    unique("game_map_sectors_game_id_id_unique").on(table.gameId, table.id),
+    unique("game_map_sectors_orbit_id_sector_number_unique").on(table.orbitId, table.sectorNumber),
+    unique("game_map_sectors_movement_node_id_unique").on(table.movementNodeId),
+    foreignKey({
+      columns: [table.gameId, table.orbitId],
+      foreignColumns: [gameMapOrbitsTable.gameId, gameMapOrbitsTable.id],
+      name: "game_map_sectors_game_id_orbit_id_game_map_orbits_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.movementNodeId],
+      foreignColumns: [gameMapMovementNodesTable.gameId, gameMapMovementNodesTable.id],
+      name: "game_map_sectors_game_id_movement_node_id_game_map_movement_nodes_fk",
+    }).onDelete("no action"),
+    index("game_map_sectors_game_id_orbit_id_idx").on(table.gameId, table.orbitId),
+  ],
+)
+
+/**
+ * Bodies inside sectors. Bodies are movement targets.
+ */
+export const gameMapBodiesTable = pgTable(
+  "game_map_bodies",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => gameMapsTable.gameId, { onDelete: "cascade" }),
+    sectorId: integer("sector_id").notNull(),
+    bodyNumber: integer("body_number").notNull(),
+    bodyType: gameMapBodyTypeEnum("body_type").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    movementNodeId: integer("movement_node_id").notNull(),
+  },
+  (table) => [
+    unique("game_map_bodies_game_id_id_unique").on(table.gameId, table.id),
+    unique("game_map_bodies_sector_id_body_number_unique").on(table.sectorId, table.bodyNumber),
+    unique("game_map_bodies_movement_node_id_unique").on(table.movementNodeId),
+    foreignKey({
+      columns: [table.gameId, table.sectorId],
+      foreignColumns: [gameMapSectorsTable.gameId, gameMapSectorsTable.id],
+      name: "game_map_bodies_game_id_sector_id_game_map_sectors_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.movementNodeId],
+      foreignColumns: [gameMapMovementNodesTable.gameId, gameMapMovementNodesTable.id],
+      name: "game_map_bodies_game_id_movement_node_id_game_map_movement_nodes_fk",
+    }).onDelete("no action"),
+    index("game_map_bodies_game_id_sector_id_idx").on(table.gameId, table.sectorId),
+  ],
+)
+
+/**
+ * Directed movement graph edges. Undirected movement is stored as two directed rows.
+ */
+export const gameMapMovementEdgesTable = pgTable(
+  "game_map_movement_edges",
+  {
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => gameMapsTable.gameId, { onDelete: "cascade" }),
+    fromNodeId: integer("from_node_id").notNull(),
+    toNodeId: integer("to_node_id").notNull(),
+    weight: integer("weight").notNull().default(1),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.gameId, table.fromNodeId, table.toNodeId],
+    }),
+    foreignKey({
+      columns: [table.gameId, table.fromNodeId],
+      foreignColumns: [gameMapMovementNodesTable.gameId, gameMapMovementNodesTable.id],
+      name: "game_map_movement_edges_game_id_from_node_id_game_map_movement_nodes_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.toNodeId],
+      foreignColumns: [gameMapMovementNodesTable.gameId, gameMapMovementNodesTable.id],
+      name: "game_map_movement_edges_game_id_to_node_id_game_map_movement_nodes_fk",
+    }).onDelete("cascade"),
+    index("game_map_movement_edges_game_id_from_node_id_idx").on(table.gameId, table.fromNodeId),
   ],
 )

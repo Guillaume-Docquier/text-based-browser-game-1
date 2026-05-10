@@ -13,6 +13,7 @@ import { createDb } from "#lib/db/createDb.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
+import { WorldMapsRepository } from "#lib/db/worldMaps.repository.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -42,6 +43,7 @@ async function main(): Promise<void> {
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
+    worldMapsRepository: new WorldMapsRepository({ db, logger }),
   }
 
   const authService = new AuthService({ logger })
