@@ -81,7 +81,6 @@ export const WorldMapOrbitReadModel = z.object({
 
 export const WorldMapSystemReadModel = z.object({
   gameId: z.number(),
-  generationSettings: MapGenerationSettingsReadModel,
   orbits: z.array(WorldMapOrbitReadModel),
   movementGraph: WorldMapMovementGraphReadModel,
 }) satisfies z.ZodType<StarSystemReadModel>

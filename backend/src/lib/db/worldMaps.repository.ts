@@ -14,65 +14,6 @@ import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
 import type { BodyType } from "#lib/world-maps/BodyType.ts"
 import { toCoordinates } from "#lib/world-maps/Coordinates.ts"
 
-export type MapGenerationSettingsWriteModel = {
-  planetDensityOfSystem: PercentageRange
-  nbPlanets: IntegerRange
-  nbMoonsPerPlanet: IntegerRange
-  nbAsteroidBelts: IntegerRange
-  nbAsteroidsPerSector: IntegerRange
-  seed: number
-}
-
-export type MapGenerationSettingsReadModel = MapGenerationSettingsWriteModel
-
-export type MovementEdgeReadModel = {
-  from: number
-  to: number
-  weight: number
-}
-
-export type MovementGraphReadModel = {
-  edges: Record<string, MovementEdgeReadModel[]>
-}
-
-export type BodyReadModel = {
-  id: number
-  number: number
-  coordinates: string
-  name: string
-  type: BodyType
-  movementNodeId: number
-}
-
-export type SectorReadModel = {
-  id: number
-  number: number
-  coordinates: string
-  bodies: BodyReadModel[]
-  movementNodeId: number
-}
-
-export type SectorDetailsReadModel = SectorReadModel & {
-  movementGraph: MovementGraphReadModel
-}
-
-export type BodyDetailsReadModel = BodyReadModel & {
-  orbitId: number
-  orbitNumber: number
-  orbitCoordinates: string
-  sectorId: number
-  sectorNumber: number
-  sectorCoordinates: string
-  movementGraph: MovementGraphReadModel
-}
-
-export type OrbitReadModel = {
-  id: number
-  number: number
-  coordinates: string
-  sectors: SectorReadModel[]
-}
-
 export type StarSystemWriteModel = {
   gameId: number
   generationSettings: MapGenerationSettingsWriteModel
@@ -80,11 +21,13 @@ export type StarSystemWriteModel = {
   movementEdges: MovementEdgeWriteModel[]
 }
 
-export type StarSystemReadModel = {
-  gameId: number
-  generationSettings: MapGenerationSettingsReadModel
-  orbits: OrbitReadModel[]
-  movementGraph: MovementGraphReadModel
+export type MapGenerationSettingsWriteModel = {
+  planetDensityOfSystem: PercentageRange
+  nbPlanets: IntegerRange
+  nbMoonsPerPlanet: IntegerRange
+  nbAsteroidBelts: IntegerRange
+  nbAsteroidsPerSector: IntegerRange
+  seed: number
 }
 
 export type OrbitWriteModel = {
@@ -109,6 +52,46 @@ export type MovementEdgeWriteModel = {
   from: string
   to: string
   weight?: number | undefined
+}
+
+export type StarSystemReadModel = {
+  gameId: number
+  orbits: OrbitReadModel[]
+  movementGraph: MovementGraphReadModel
+}
+
+export type OrbitReadModel = {
+  id: number
+  number: number
+  coordinates: string
+  sectors: SectorReadModel[]
+}
+
+export type SectorReadModel = {
+  id: number
+  number: number
+  coordinates: string
+  bodies: BodyReadModel[]
+  movementNodeId: number
+}
+
+export type BodyReadModel = {
+  id: number
+  number: number
+  coordinates: string
+  name: string
+  type: BodyType
+  movementNodeId: number
+}
+
+export type MovementGraphReadModel = {
+  edges: Record<string, MovementEdgeReadModel[]>
+}
+
+export type MovementEdgeReadModel = {
+  from: number
+  to: number
+  weight: number
 }
 
 type GameMapRow = typeof gameMapsTable.$inferSelect
@@ -371,7 +354,6 @@ function toStarSystem(worldMap: WorldMapReadModel): StarSystemReadModel {
 
   return {
     gameId: worldMap.map.gameId,
-    generationSettings: worldMap.map.generationSettings as MapGenerationSettingsReadModel,
     orbits: worldMap.orbits.map((orbit) => ({
       id: orbit.id,
       number: orbit.orbitNumber,

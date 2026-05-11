@@ -34,7 +34,6 @@ describe("worldMaps.router", () => {
 
       // Assert
       expect(getSystemResult.system.gameId).toBe(createGameResult.newGame.id)
-      expect(getSystemResult.system.generationSettings).toEqual(createMapGenerationSettings())
       expect(getSystemResult.system.orbits).toEqual([
         {
           id: expect.any(Number),
