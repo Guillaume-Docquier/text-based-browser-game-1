@@ -10,7 +10,7 @@ import { Logger, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/world-maps/BodyType.ts"
 
 describe("worldMaps.router", () => {
-  describe("getSystem", () => {
+  describe("getStarSystem", () => {
     it("should get the full stored system for an authenticated player in the game", async () => {
       // Arrange
       const db = await createDbMock()
@@ -30,7 +30,7 @@ describe("worldMaps.router", () => {
       await createStoredWorldMap({ db, logger, gameId: createGameResult.newGame.id })
 
       // Act
-      const getSystemResult = await trpcClient.client.worldMaps.getSystem.query({ gameId: createGameResult.newGame.id })
+      const getSystemResult = await trpcClient.client.worldMaps.getStarSystem.query({ gameId: createGameResult.newGame.id })
 
       // Assert
       expect(getSystemResult.system.gameId).toBe(createGameResult.newGame.id)
@@ -112,7 +112,7 @@ describe("worldMaps.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.worldMaps.getSystem.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcClient.client.worldMaps.getStarSystem.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
@@ -141,7 +141,7 @@ describe("worldMaps.router", () => {
       authService.player = outsider
 
       // Act & Assert
-      await expect(trpcClient.client.worldMaps.getSystem.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.worldMaps.getStarSystem.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -163,129 +163,9 @@ describe("worldMaps.router", () => {
       })
 
       // Act & Assert
-      await expect(trpcClient.client.worldMaps.getSystem.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.worldMaps.getStarSystem.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
-    })
-  })
-
-  describe("getSector", () => {
-    it("should get a sector, its bodies, and local movement data", async () => {
-      // Arrange
-      const db = await createDbMock()
-      const logger = Logger.get()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService, logger })
-      using trpcClient = new TrpcClient({ api })
-
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "sector game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-        },
-      })
-      await createStoredWorldMap({ db, logger, gameId: createGameResult.newGame.id })
-      const getSystemResult = await trpcClient.client.worldMaps.getSystem.query({ gameId: createGameResult.newGame.id })
-      const sector = getSystemResult.system.orbits[0]?.sectors[0]
-      if (sector === undefined) {
-        throw new Error("Expected world map fixture to contain sector data.")
-      }
-
-      // Act
-      const getSectorResult = await trpcClient.client.worldMaps.getSector.query({
-        gameId: createGameResult.newGame.id,
-        sectorId: sector.id,
-      })
-
-      // Assert
-      expect(getSectorResult.sector).toMatchObject({
-        id: expect.any(Number),
-        number: 1,
-        coordinates: "01:01",
-        movementNodeId: expect.any(Number),
-        bodies: [
-          {
-            id: expect.any(Number),
-            number: 1,
-            coordinates: "01:01:01",
-            name: "World",
-            type: BodyType.PLANET,
-            movementNodeId: expect.any(Number),
-          },
-          {
-            id: expect.any(Number),
-            number: 2,
-            coordinates: "01:01:02",
-            name: "Moon",
-            type: BodyType.MOON,
-            movementNodeId: expect.any(Number),
-          },
-        ],
-      })
-      expect(Object.keys(getSectorResult.sector.movementGraph.edges)).toContain(getSectorResult.sector.movementNodeId.toString())
-    })
-
-    it("should reject coordinate sector lookups at the router boundary", async () => {
-      // Arrange
-      const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService })
-      using trpcClient = new TrpcClient({ api })
-      const coordinateLookup = { gameId: 1, coordinate: "01:01" } as unknown as Parameters<
-        typeof trpcClient.client.worldMaps.getSector.query
-      >[0]
-
-      // Act & Assert
-      await expect(trpcClient.client.worldMaps.getSector.query(coordinateLookup)).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
-    })
-  })
-
-  describe("getBody", () => {
-    it("should get a body, its coordinate context, and local movement data", async () => {
-      // Arrange
-      const db = await createDbMock()
-      const logger = Logger.get()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService, logger })
-      using trpcClient = new TrpcClient({ api })
-
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "body game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-        },
-      })
-      await createStoredWorldMap({ db, logger, gameId: createGameResult.newGame.id })
-
-      // Act
-      const getBodyResult = await trpcClient.client.worldMaps.getBody.query({
-        gameId: createGameResult.newGame.id,
-        coordinate: "01:01:01",
-      })
-
-      // Assert
-      expect(getBodyResult.body).toMatchObject({
-        id: expect.any(Number),
-        number: 1,
-        coordinates: "01:01:01",
-        name: "World",
-        type: BodyType.PLANET,
-        movementNodeId: expect.any(Number),
-        orbitId: expect.any(Number),
-        orbitNumber: 1,
-        orbitCoordinates: "01",
-        sectorId: expect.any(Number),
-        sectorNumber: 1,
-        sectorCoordinates: "01:01",
-      })
-      expect(Object.keys(getBodyResult.body.movementGraph.edges)).toEqual([getBodyResult.body.movementNodeId.toString()])
     })
   })
 })

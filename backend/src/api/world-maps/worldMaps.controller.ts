@@ -1,9 +1,7 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
 import type {
-  MapGenerationSettingsReadModel as MapGenerationSettingsReadModelType,
   MapGenerationSettingsWriteModel as MapGenerationSettingsWriteModelType,
-  BodyDetailsReadModel,
   BodyReadModel,
   BodyWriteModel,
   MovementEdgeReadModel,
@@ -12,7 +10,6 @@ import type {
   OrbitReadModel,
   OrbitWriteModel,
   WorldMapsRepository,
-  SectorDetailsReadModel,
   SectorReadModel,
   SectorWriteModel,
   StarSystemReadModel,
@@ -33,9 +30,6 @@ export const MapGenerationIntegerRangeWriteModel = z
     message: "Range min must be lower than or equal to max.",
   }) satisfies z.ZodType<IntegerRange>
 
-export const MapGenerationRangeReadModel = MapGenerationIntegerRangeWriteModel
-export const MapGenerationIntegerRangeReadModel = MapGenerationIntegerRangeWriteModel
-
 export const MapGenerationSettingsWriteModel = z.object({
   planetDensityOfSystem: MapGenerationRangeWriteModel.refine(({ min, max }) => min >= 0 && max <= 1, {
     message: "Planet density must be between 0 and 1.",
@@ -47,7 +41,7 @@ export const MapGenerationSettingsWriteModel = z.object({
   seed: z.number(),
 }) satisfies z.ZodType<MapGenerationSettingsWriteModelType>
 
-export const MapGenerationSettingsReadModel: z.ZodType<MapGenerationSettingsReadModelType> = MapGenerationSettingsWriteModel
+export const MapGenerationSettingsReadModel = MapGenerationSettingsWriteModel
 
 const BodyTypeReadModel = z.enum(BodyType)
 
@@ -77,20 +71,6 @@ export const WorldMapSectorReadModel = z.object({
   bodies: z.array(WorldMapBodyReadModel),
   movementNodeId: z.number(),
 }) satisfies z.ZodType<SectorReadModel>
-
-export const WorldMapSectorDetailsReadModel = WorldMapSectorReadModel.extend({
-  movementGraph: WorldMapMovementGraphReadModel,
-}) satisfies z.ZodType<SectorDetailsReadModel>
-
-export const WorldMapBodyDetailsReadModel = WorldMapBodyReadModel.extend({
-  orbitId: z.number(),
-  orbitNumber: z.number(),
-  orbitCoordinates: z.string(),
-  sectorId: z.number(),
-  sectorNumber: z.number(),
-  sectorCoordinates: z.string(),
-  movementGraph: WorldMapMovementGraphReadModel,
-}) satisfies z.ZodType<BodyDetailsReadModel>
 
 export const WorldMapOrbitReadModel = z.object({
   id: z.number(),
@@ -137,8 +117,6 @@ export const WorldMapSystemWriteModel = z.object({
   movementEdges: z.array(WorldMapMovementEdgeWriteModel),
 }) satisfies z.ZodType<StarSystemWriteModel>
 
-type WorldMapBodySelector = { bodyId: number; coordinate?: never } | { bodyId?: never; coordinate: string }
-
 export class WorldMapsController {
   private readonly gamesRepository: GamesRepository
   private readonly worldMapsRepository: WorldMapsRepository
@@ -158,7 +136,7 @@ export class WorldMapsController {
     this.logger = logger.child({ scope: "world-maps-controller" })
   }
 
-  public async getSystem({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<StarSystemReadModel, string>> {
+  public async getStarSystem({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<StarSystemReadModel, string>> {
     const canReadGameResult = await this.canReadGame({ gameId, playerId })
     if (Result.isFailure(canReadGameResult)) {
       return canReadGameResult
@@ -169,48 +147,6 @@ export class WorldMapsController {
     }
 
     return await this.worldMapsRepository.getStarSystem({ gameId })
-  }
-
-  public async getSector({
-    gameId,
-    playerId,
-    sectorId,
-  }: {
-    gameId: number
-    playerId: number
-    sectorId: number
-  }): Promise<Result<SectorDetailsReadModel, string>> {
-    const canReadGameResult = await this.canReadGame({ gameId, playerId })
-    if (Result.isFailure(canReadGameResult)) {
-      return canReadGameResult
-    }
-
-    if (!canReadGameResult.value) {
-      return this.notAuthorizedFailure({ playerId, gameId })
-    }
-
-    return await this.worldMapsRepository.getSector({ gameId, sectorId })
-  }
-
-  public async getBody({
-    gameId,
-    playerId,
-    selector,
-  }: {
-    gameId: number
-    playerId: number
-    selector: WorldMapBodySelector
-  }): Promise<Result<BodyDetailsReadModel, string>> {
-    const canReadGameResult = await this.canReadGame({ gameId, playerId })
-    if (Result.isFailure(canReadGameResult)) {
-      return canReadGameResult
-    }
-
-    if (!canReadGameResult.value) {
-      return this.notAuthorizedFailure({ playerId, gameId })
-    }
-
-    return await this.worldMapsRepository.getBody({ gameId, selector })
   }
 
   private async canReadGame({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<boolean, string>> {

@@ -20,12 +20,8 @@ type GamePlayerActionsOutput = TrpcRouterOutput["gamePlayerActions"]["getCurrent
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
 
 // World maps router
-type WorldMapsGetSystemOutput = TrpcRouterOutput["worldMaps"]["getSystem"]
-type WorldMapsGetSectorOutput = TrpcRouterOutput["worldMaps"]["getSector"]
-type WorldMapsGetBodyOutput = TrpcRouterOutput["worldMaps"]["getBody"]
-export type WorldMapSystem = WorldMapsGetSystemOutput["system"]
-export type WorldMapOrbit = WorldMapSystem["orbits"][number]
-export type WorldMapSector = WorldMapsGetSectorOutput["sector"]
-export type WorldMapBody = WorldMapsGetBodyOutput["body"]
-export type WorldMapMovementGraph = WorldMapSystem["movementGraph"]
-export type WorldMapMovementEdge = WorldMapMovementGraph["edges"][string][number]
+type GetStarSystemOutput = TrpcRouterOutput["worldMaps"]["getStarSystem"]
+export type StarSystem = GetStarSystemOutput["system"]
+export type Orbit = StarSystem["orbits"][number]
+export type MovementGraph = StarSystem["movementGraph"]
+export type MovementEdge = MovementGraph["edges"][string][number]
