@@ -143,15 +143,22 @@ async function seedGames(db: NodePgDatabase): Promise<void> {
   console.log("├ Cleaning up the games")
   await resetTable(db, gamesTable)
   console.log("├ Adding default games")
-  await db.insert(gamesTable).values([
-    { name: "insanely fast game", createdByPlayerId: players[0].id, nbSeats: 5, tickIntervalSeconds: 60 },
-    { name: "fast game", createdByPlayerId: players[1].id, nbSeats: 10, tickIntervalSeconds: 7200 },
-  ])
+  const games = await db
+    .insert(gamesTable)
+    .values([
+      { name: "insanely fast game", createdByPlayerId: players[0].id, nbSeats: 5, tickIntervalSeconds: 60 },
+      { name: "fast game", createdByPlayerId: players[1].id, nbSeats: 10, tickIntervalSeconds: 7200 },
+    ])
+    .returning()
   console.log("├ Adding players to games")
-  const game = (await db.select().from(gamesTable))[0]
-  Assert.isDefined(game)
+  Assert.isDefined(games[0])
 
-  await db.insert(gamePlayersTable).values({ gameId: game.id, playerId: players[1].id })
-  await db.insert(gamePlayersTable).values({ gameId: game.id, playerId: players[2].id })
+  await db.insert(gamePlayersTable).values([
+    // Add creators to their games
+    ...games.map((game) => ({ gameId: game.id, playerId: game.createdByPlayerId })),
+    // Extra players for game 0
+    { gameId: games[0].id, playerId: players[1].id },
+    { gameId: games[0].id, playerId: players[2].id },
+  ])
   console.log("└ Done")
 }
