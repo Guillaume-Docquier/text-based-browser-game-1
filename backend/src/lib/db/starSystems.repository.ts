@@ -94,7 +94,7 @@ type SectorRow = typeof sectorsTable.$inferSelect
 type BodyRow = typeof bodiesTable.$inferSelect
 type MovementEdgeRow = typeof movementEdgesTable.$inferSelect
 
-type StarSystemRowsReadModel = {
+type StarSystemAggregatedRows = {
   starSystem: StarSystemRow
   orbits: OrbitRow[]
   sectors: SectorRow[]
@@ -209,7 +209,7 @@ export class StarSystemsRepository extends PostgresRepository {
     { gameId }: { gameId: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<StarSystemReadModel | undefined, string>> {
-    const getRowsResult = await this.getStarSystemRows({ gameId }, db)
+    const getRowsResult = await this.getStarSystemAggregatedRows({ gameId }, db)
     if (Result.isFailure(getRowsResult)) {
       return getRowsResult
     }
@@ -261,10 +261,10 @@ export class StarSystemsRepository extends PostgresRepository {
     return Result.Success(getResult.value[0] !== undefined)
   }
 
-  private async getStarSystemRows(
+  private async getStarSystemAggregatedRows(
     { gameId }: { gameId: number },
     db: PostgresRepository["db"],
-  ): Promise<Result<StarSystemRowsReadModel | undefined, string>> {
+  ): Promise<Result<StarSystemAggregatedRows | undefined, string>> {
     const rowsResult = await Result.tryCatch(async () => {
       const starSystems = await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, gameId))
       Assert.isTrue(starSystems.length <= 1)
@@ -334,7 +334,7 @@ function getSectorRowKey({ orbitId, sectorNumber }: { orbitId: string; sectorNum
   return `${orbitId}:${sectorNumber}`
 }
 
-function toStarSystem(starSystemRows: StarSystemRowsReadModel): StarSystemReadModel {
+function toStarSystem(starSystemRows: StarSystemAggregatedRows): StarSystemReadModel {
   const bodiesBySectorId = new Map<string, BodyRow[]>()
   for (const body of starSystemRows.bodies) {
     bodiesBySectorId.set(body.sectorId, [...(bodiesBySectorId.get(body.sectorId) ?? []), body])
