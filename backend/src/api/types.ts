@@ -19,9 +19,9 @@ export type GameSummaryPlayer = GameSummary["creator"]
 type GamePlayerActionsOutput = TrpcRouterOutput["gamePlayerActions"]["getCurrentAction"]
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
 
-// World maps router
-type GetStarSystemOutput = TrpcRouterOutput["worldMaps"]["getStarSystem"]
-export type StarSystem = GetStarSystemOutput["system"]
+// Star Systems router
+type GetSystemOutput = TrpcRouterOutput["starSystems"]["getByGameId"]
+export type StarSystem = GetSystemOutput["starSystem"]
 export type Orbit = StarSystem["orbits"][number]
 export type MovementGraph = StarSystem["movementGraph"]
 export type MovementEdge = MovementGraph["edges"][string][number]

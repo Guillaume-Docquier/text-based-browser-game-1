@@ -3,14 +3,14 @@ import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/playerRowInsert.stub.ts"
-import { type StarSystemWriteModel, WorldMapsRepository } from "#lib/db/worldMaps.repository.ts"
+import { type StarSystemWriteModel, StarSystemsRepository } from "#lib/db/starSystems.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 import { Logger, Result } from "@guillaume-docquier/tools-ts"
-import { BodyType } from "#lib/world-maps/BodyType.ts"
+import { BodyType } from "#lib/star-systems/BodyType.ts"
 
-describe("worldMaps.router", () => {
-  describe("getStarSystem", () => {
+describe("starSystems.router", () => {
+  describe("getSystem", () => {
     it("should get the full stored system for an authenticated player in the game", async () => {
       // Arrange
       const db = await createDbMock()
@@ -27,56 +27,56 @@ describe("worldMaps.router", () => {
           tickIntervalSeconds: 60,
         },
       })
-      await createStoredWorldMap({ db, logger, gameId: createGameResult.newGame.id })
+      await createStoredStarSystem({ db, logger, gameId: createGameResult.newGame.id })
 
       // Act
-      const getSystemResult = await trpcClient.client.worldMaps.getStarSystem.query({ gameId: createGameResult.newGame.id })
+      const getSystemResult = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
 
       // Assert
-      expect(getSystemResult.system.gameId).toBe(createGameResult.newGame.id)
-      expect(getSystemResult.system.orbits).toEqual([
+      expect(getSystemResult.starSystem.gameId).toBe(createGameResult.newGame.id)
+      expect(getSystemResult.starSystem.orbits).toEqual([
         {
-          id: expect.any(Number),
+          id: expect.any(String),
           number: 1,
           coordinates: "01",
           sectors: [
             {
-              id: expect.any(Number),
+              id: expect.any(String),
               number: 1,
               coordinates: "01:01",
-              movementNodeId: expect.any(Number),
+              movementNodeId: expect.any(String),
               bodies: [
                 {
-                  id: expect.any(Number),
+                  id: expect.any(String),
                   number: 1,
                   coordinates: "01:01:01",
                   name: "World",
                   type: BodyType.PLANET,
-                  movementNodeId: expect.any(Number),
+                  movementNodeId: expect.any(String),
                 },
                 {
-                  id: expect.any(Number),
+                  id: expect.any(String),
                   number: 2,
                   coordinates: "01:01:02",
                   name: "Moon",
                   type: BodyType.MOON,
-                  movementNodeId: expect.any(Number),
+                  movementNodeId: expect.any(String),
                 },
               ],
             },
             {
-              id: expect.any(Number),
+              id: expect.any(String),
               number: 2,
               coordinates: "01:02",
-              movementNodeId: expect.any(Number),
+              movementNodeId: expect.any(String),
               bodies: [
                 {
-                  id: expect.any(Number),
+                  id: expect.any(String),
                   number: 1,
                   coordinates: "01:02:01",
                   name: "Rock",
                   type: BodyType.ASTEROID,
-                  movementNodeId: expect.any(Number),
+                  movementNodeId: expect.any(String),
                 },
               ],
             },
@@ -84,8 +84,8 @@ describe("worldMaps.router", () => {
         },
       ])
 
-      const sector1 = getSystemResult.system.orbits[0]?.sectors[0]
-      const sector2 = getSystemResult.system.orbits[0]?.sectors[1]
+      const sector1 = getSystemResult.starSystem.orbits[0]?.sectors[0]
+      const sector2 = getSystemResult.starSystem.orbits[0]?.sectors[1]
       const planet = sector1?.bodies[0]
       const moon = sector1?.bodies[1]
       expect(sector1).toBeDefined()
@@ -93,10 +93,10 @@ describe("worldMaps.router", () => {
       expect(planet).toBeDefined()
       expect(moon).toBeDefined()
       if (sector1 === undefined || sector2 === undefined || planet === undefined || moon === undefined) {
-        throw new Error("Expected world map fixture to contain sector and body data.")
+        throw new Error("Expected Star System fixture to contain sector and body data.")
       }
 
-      expect(getSystemResult.system.movementGraph.edges[sector1.movementNodeId.toString()]).toEqual(
+      expect(getSystemResult.starSystem.movementGraph.edges[sector1.movementNodeId]).toEqual(
         expect.arrayContaining([
           { from: sector1.movementNodeId, to: planet.movementNodeId, weight: 1 },
           { from: sector1.movementNodeId, to: moon.movementNodeId, weight: 1 },
@@ -111,7 +111,7 @@ describe("worldMaps.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.worldMaps.getStarSystem.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
@@ -136,16 +136,16 @@ describe("worldMaps.router", () => {
           tickIntervalSeconds: 60,
         },
       })
-      await createStoredWorldMap({ db, logger, gameId: createGameResult.newGame.id })
+      await createStoredStarSystem({ db, logger, gameId: createGameResult.newGame.id })
       authService.player = outsider
 
       // Act & Assert
-      await expect(trpcClient.client.worldMaps.getStarSystem.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
 
-    it("should return not found for an existing game with no map", async () => {
+    it("should return not found for an existing game with no Star System", async () => {
       // Arrange
       const db = await createDbMock()
       const player = await createPlayer(db, createPlayerRowInsertStub())
@@ -162,33 +162,33 @@ describe("worldMaps.router", () => {
       })
 
       // Act & Assert
-      await expect(trpcClient.client.worldMaps.getStarSystem.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
+      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+        data: { code: "NOT_FOUND" },
       })
     })
   })
 })
 
-async function createStoredWorldMap({
+async function createStoredStarSystem({
   db,
   logger,
   gameId,
 }: {
-  db: ConstructorParameters<typeof WorldMapsRepository>[0]["db"]
+  db: ConstructorParameters<typeof StarSystemsRepository>[0]["db"]
   logger: Logger
   gameId: number
 }): Promise<void> {
-  const worldMapsRepository = new WorldMapsRepository({ db, logger })
-  const createSystemResult = await worldMapsRepository.createSystem(createWorldMapSystemFixture({ gameId }))
+  const starSystemsRepository = new StarSystemsRepository({ db, logger })
+  const createSystemResult = await starSystemsRepository.create(createStarSystemFixture({ gameId }))
   if (Result.isFailure(createSystemResult)) {
     throw new Error(createSystemResult.error)
   }
 }
 
-function createWorldMapSystemFixture({ gameId }: { gameId: number }): StarSystemWriteModel {
+function createStarSystemFixture({ gameId }: { gameId: number }): StarSystemWriteModel {
   return {
     gameId,
-    generationSettings: createMapGenerationSettings(),
+    generationSettings: createStarSystemGenerationSettings(),
     orbits: [
       {
         number: 1,
@@ -241,9 +241,9 @@ function createWorldMapSystemFixture({ gameId }: { gameId: number }): StarSystem
   }
 }
 
-function createMapGenerationSettings(): StarSystemWriteModel["generationSettings"] {
+function createStarSystemGenerationSettings(): StarSystemWriteModel["generationSettings"] {
   return {
-    planetDensityOfSystem: { min: 0.5, max: 0.5 },
+    planetDensity: { min: 0.5, max: 0.5 },
     nbPlanets: { min: 1, max: 1 },
     nbMoonsPerPlanet: { min: 1, max: 1 },
     nbAsteroidBelts: { min: 0, max: 0 },

@@ -209,7 +209,7 @@ Indexes and constraints:
 - Unique `(game_id, id)`, so sectors, bodies, and edges can use same-game composite foreign keys.
 - Index `(game_id)`.
 
-Each movement node must belong to exactly one movement target: either one Sector or one Body. The DB uniqueness constraints prevent duplicate `movement_node_id` values inside each concrete target table; `StarSystemsRepository.createSystem` must create nodes and targets in one transaction and must not create orphan nodes or reuse one node across target types.
+Each movement node must belong to exactly one movement target: either one Sector or one Body. The DB uniqueness constraints prevent duplicate `movement_node_id` values inside each concrete target table; `StarSystemsRepository.create` must create nodes and targets in one transaction and must not create orphan nodes or reuse one node across target types.
 
 ### movement_edges
 
@@ -233,11 +233,11 @@ Movement edges are stored as directed rows. For undirected movement, the reposit
 
 We will need 1 new repository, the `StarSystemsRepository`. This repository will expose all the data about the Star System:
 
-- `createSystem`: Creates a Star System (orbits, sectors, bodies, movement graph, etc)
-- `getSystem`: Gets a Star System (orbits, sectors, bodies, movement graph, etc)
+- `create`: Creates a Star System (orbits, sectors, bodies, movement graph, etc)
+- `getByGameId`: Gets a Star System (orbits, sectors, bodies, movement graph, etc)
 - `areNeighbors`: Given two sectors or bodies, returns if the two are adjacent
 
-`getSystem` should return something along the lines of:
+`getByGameId` should return something along the lines of:
 
 ```ts
 type System = {
@@ -290,11 +290,11 @@ type MovementEdge = {
 
 We will need 1 new controller, the `StarSystemsController`. This controller will expose queries to the Star System:
 
-- `getSystem`
+- `getByGameId`
 
 The controller will make sure the player is allowed to see the data (must be a player in the game).
 
-Creating a system using `StarSystemsRepository.createSystem` will be part of the `GamesController`.
+Creating a system using `StarSystemsRepository.create` will be part of the `GamesController`.
 
 Validating move orders using `StarSystemsRepository.areNeighbors` will be part of the `GamePlayerActionsController`.
 
@@ -302,7 +302,7 @@ Validating move orders using `StarSystemsRepository.areNeighbors` will be part o
 
 We will need 1 new router, the `StarSystemsRouter`. This router will expose queries to the Star System:
 
-- `getSystem`
+- `getByGameId`
 
 The router will make sure the player is authenticated and will forward the player id to the controller.
 
@@ -412,24 +412,24 @@ Implementation steps:
 5. Represent Body types as `PLANET`, `MOON` and `ASTEROID`. Use a backend `BodyType` const object and derived union type. If the schema uses a Postgres enum, keep it as a Drizzle runtime schema construct, not a TypeScript enum.
 6. Follow the table definition for `movement_edges`: do not add an undocumented edge id just because the illustrative `MovementEdge` type above contains one. Return `{ from, to, weight }` from API DTOs.
 7. Generate the migration with `pnpm --filter backend db:generate --name star-systems`.
-8. Implement `StarSystemsRepository` with public methods `createSystem`, `getSystem`, `getSector`, `getBody` and `areNeighbors`.
+8. Implement `StarSystemsRepository` with public methods `create`, `getByGameId`, `getSector`, `getBody` and `areNeighbors`.
 9. Make repository methods return `Result`, wrap Drizzle calls in `Result.tryCatch`, log only where a new `Failure` is created, and accept an optional trailing `db = this.db` parameter for transaction reuse.
-10. Make `createSystem` accept an already-generated Star System payload and insert the Star System, movement nodes, Orbits, Sectors, Bodies, and directed edges in one transaction. It must never leave orphan MovementNodes or partially inserted targets. Business logic not validated by the database through the specified constraints should be enforced by the controller, not the repository. The repository is only handling access patterns.
-11. Make `getSystem` return Orbits ordered by `orbit_number`, Sectors by `sector_number`, Bodies by `body_number`, generated coordinates like `02:11:05`, and a MovementGraph keyed by `MovementNodeId`. Account for the fact that numeric object keys serialize as strings over JSON/tRPC.
-12. Make `getSector` return one Sector with its Bodies and local movement graph edges. Accept identifiers by `gameId` plus Sector id, and normalize the repository output to the same DTO shape used by `getSystem`.
+10. Make `create` accept an already-generated Star System payload and insert the Star System, movement nodes, Orbits, Sectors, Bodies, and directed edges in one transaction. It must never leave orphan MovementNodes or partially inserted targets. Business logic not validated by the database through the specified constraints should be enforced by the controller, not the repository. The repository is only handling access patterns.
+11. Make `getByGameId` return Orbits ordered by `orbit_number`, Sectors by `sector_number`, Bodies by `body_number`, generated coordinates like `02:11:05`, and a MovementGraph keyed by `MovementNodeId`. Account for the fact that numeric object keys serialize as strings over JSON/tRPC.
+12. Make `getSector` return one Sector with its Bodies and local movement graph edges. Accept identifiers by `gameId` plus Sector id, and normalize the repository output to the same DTO shape used by `getByGameId`.
 13. Make `getBody` return one Body with its parent Sector/Orbit coordinate context and local movement graph edges. Accept identifiers by `gameId` plus Body id or coordinate.
 14. Make `areNeighbors` compare MovementNode ids through `movement_edges`; movement remains valid only between Sectors and Bodies.
-15. Implement `StarSystemsController` with `getSystem`, `getSector` and `getBody`. Each method must first verify that the requesting player is in the game through a new `GamesRepository.hasPlayerJoinedGame(gameId, playerId)`.
+15. Implement `StarSystemsController` with `getByGameId`, `getSector` and `getBody`. Each method must first verify that the requesting player is in the game through a new `GamesRepository.hasPlayerJoinedGame(gameId, playerId)`.
 16. Return `Result` values for expected failures: missing game, player not in game, missing Star System, missing Sector, and missing Body.
-17. Implement `createStarSystemsRouter` with private procedures for `getSystem`, `getSector` and `getBody`. Use Zod input parsing for `gameId`, ids and Body coordinate strings; Star System controller failures to `TRPCError` with `BAD_REQUEST` or `NOT_FOUND` as appropriate.
-18. Wire `StarSystemsRepository`, `StarSystemsController` and `createStarSystemsRouter` through `createApi.ts`, `createApi.stub.ts` and `entry.api.ts`, preserving the local factory pattern and `TrpcRouter` inference.
+17. Implement `createsRouter` with private procedures for `getByGameId`, `getSector` and `getBody`. Use Zod input parsing for `gameId`, ids and Body coordinate strings; Star System controller failures to `TRPCError` with `BAD_REQUEST` or `NOT_FOUND` as appropriate.
+18. Wire `StarSystemsRepository`, `StarSystemsController` and `createsRouter` through `createApi.ts`, `createApi.stub.ts` and `entry.api.ts`, preserving the local factory pattern and `TrpcRouter` inference.
 19. Export frontend-consumable Star System output types from `backend/src/api/types.ts`.
 
 Backend tests:
 
-- `starSystems.getSystem` returns the full stored System for an authenticated player in the game.
-- `starSystems.getSystem` rejects anonymous reads with `UNAUTHORIZED`.
-- `starSystems.getSystem` rejects a player who is authenticated but not in the game.
+- `starSystems.getByGameId` returns the full stored System for an authenticated player in the game.
+- `starSystems.getByGameId` rejects anonymous reads with `UNAUTHORIZED`.
+- `starSystems.getByGameId` rejects a player who is authenticated but not in the game.
 - `starSystems.getSector` returns a Sector, its Bodies, and local movement data.
 - `starSystems.getBody` returns a Body, its coordinate, and local movement data.
 - Unsupported Sector coordinate lookups reject at the router boundary with `BAD_REQUEST`.
@@ -525,7 +525,7 @@ Implementation steps:
 5. Update the `games.create` router input to require `StarSystemGenerationSettings` alongside `name`, `nbSeats` and `tickIntervalSeconds`.
 6. Normalize a missing seed in `GamesController.create` using the unix timestamp before generation and persistence. The value persisted in `star_systems.generation_settings.seed` must always be numeric.
 7. Inject `StarSystemsRepository` into `GamesController`.
-8. Implement `generateStarSystem` as a pure function that accepts normalized `StarSystemGenerationSettings` and returns the full payload expected by `StarSystemsRepository.createSystem`.
+8. Implement `generateStarSystem` as a pure function that accepts normalized `StarSystemGenerationSettings` and returns the full payload expected by `StarSystemsRepository.create`.
 9. Implement a deterministic local PRNG using the Mulberry32 algorithm in `backend/src/lib/mulberry32prng.ts`
 10. Add explicit generation limits, including a `MAX_ORBITS` guard of 6, so invalid or extreme settings cannot create infinite loops or huge accidental inserts.
 11. Roll the fixed generation values from the configured ranges: planet density, number of Planets, number of Asteroid belts. Moons per Planet and Asteroids per Sector will be rolled per Planet/Sector to allow variance, not once per Star System generation.
@@ -539,11 +539,11 @@ Implementation steps:
 19. Build directed MovementEdges for every undirected relation: Body-to-Body inside the same Sector, Body-to-Sector inside the same Sector, same-Orbit neighboring Sectors, and radial Sector adjacency between doubled Orbits.
 20. Compute Sector adjacency from the generated Orbits and Sector numbering rules. Lock the exact adjacency rule in tests because the document specifies the desired graph behavior but not every arithmetic detail.
 21. Add coordinate formatting helpers in `Coordinates.ts` for `02`, `02:11` and `02:11:05`; use these in repository DTOs and tests.
-22. Save game creation and Star System creation atomically. Extend `GamesRepository.create` with a repository-level transaction hook that receives the created game and transaction handle; `GamesController.create` passes a hook that calls `StarSystemsRepository.createSystem(..., tx)` before the game creation transaction commits.
+22. Save game creation and Star System creation atomically. Extend `GamesRepository.create` with a repository-level transaction hook that receives the created game and transaction handle; `GamesController.create` passes a hook that calls `StarSystemsRepository.create(..., tx)` before the game creation transaction commits.
 23. Keep `GamesController.create` as the orchestrator that validates input, normalizes seed/settings, calls `generateStarSystem`, and requests persistence.
 24. Wire the new `StarSystemsRepository` dependency through `createApi.ts`, `createApi.stub.ts` and `entry.api.ts`.
 25. Update `games.router.test.ts` fixtures so every game creation passes deterministic Star System generation settings.
-26. Add a router test proving `games.create` persists a Star System that is readable through `starSystems.getSystem`.
+26. Add a router test proving `games.create` persists a Star System that is readable through `starSystems.getByGameId`.
 27. Add a router test proving invalid generation ranges fail with `BAD_REQUEST`.
 28. Add a router test proving omitted seed is persisted as a generated numeric seed.
 29. Add unit tests for the generator: same settings plus same seed returns identical output, different seeds return different Body placement, exact counts with min=max ranges, minimal Orbit count, Asteroid belts contain only Asteroids, MovementEdges are reciprocal, and MovementNodes target only Sectors or Bodies.
@@ -561,7 +561,7 @@ Frontend steps:
 Definition of done:
 
 - Creating a game stores its deterministic Star System in the Phase 1 tables.
-- A saved Star System can be read through `starSystems.getSystem` immediately after game creation.
+- A saved Star System can be read through `starSystems.getByGameId` immediately after game creation.
 - The generation seed is persisted in `star_systems.generation_settings`.
 - `pnpm -r checks` pass.
 
@@ -588,7 +588,7 @@ Files to create or update:
 Implementation steps:
 
 1. Add the frontend dependencies required by this document: `d3-zoom` and `d3-selection`. Add TypeScript types if the packages do not ship the needed declarations.
-2. Query `backendApiClient.starSystems.getSystem` from `play.$gameId.star-system.tsx`.
+2. Query `backendApiClient.starSystems.getByGameId` from `play.$gameId.star-system.tsx`.
 3. Make `play.$gameId.index.tsx` render the same Map view as `/play/$gameId/star-system` so both documented routes show the map.
 4. Add runtime visual assets for one Planet, one Moon, one Asteroid, one star, and a few starry background variants under `frontend/src/assets/star-system/`. Do not load files from `.github/images` at runtime.
 5. Implement `StarSystemView` as the page-level composition: loading state, error state, coordinate controls, central map, and selection panel.
@@ -600,15 +600,15 @@ Implementation steps:
 11. Implement `StarSystemCoordinateInput` accepting `Orbit`, `Orbit:Sector` and `Orbit:Sector:Body` formats. Submitting an Orbit zooms to the Orbit, submitting a Sector zooms to the Sector, and submitting a Body zooms to the Body.
 12. Implement coordinate parsing in `frontend/src/lib/starSystemCoordinates.ts`; keep it frontend-specific and aligned with backend output formatting.
 13. Allow selecting Sectors and Bodies. Selection updates `StarSystemSelectionPanel` with coordinates, name, type, and movement-neighbor summary.
-14. Use the MovementGraph from `getSystem` to highlight immediate movement neighbors for the selected Sector or Body.
+14. Use the MovementGraph from `getByGameId` to highlight immediate movement neighbors for the selected Sector or Body.
 15. Add empty states for games with no Star System and error states for failed Star System queries.
 16. Keep the map inside the Phase 2 game layout with the left nav and top info bar visible.
 17. Keep the UI responsive: on narrow screens, controls and selection panel stack below the SVG; on desktop, the SVG remains the central focus.
-18. Confirm that pan/zoom state changes do not repeatedly refetch `starSystems.getSystem`.
+18. Confirm that pan/zoom state changes do not repeatedly refetch `starSystems.getByGameId`.
 
 Backend tests:
 
-- Add a `starSystems.getSystem` router test for a generated Star System created through `games.create`; assert the output contains Orbits, Sectors, Bodies, and MovementGraph data suitable for the Star System.
+- Add a `starSystems.getByGameId` router test for a generated Star System created through `games.create`; assert the output contains Orbits, Sectors, Bodies, and MovementGraph data suitable for the Star System.
 - Add a `starSystems.getSector` router test using the selected Sector id, or a `starSystems.getBody` router test for the route selected by the frontend when deep-linking from a coordinate, if Phase 4 chooses to fetch detailed data after selection.
 
 Manual verification:
