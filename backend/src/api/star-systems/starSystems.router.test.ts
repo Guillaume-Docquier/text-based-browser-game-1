@@ -8,6 +8,7 @@ import { TrpcClient } from "#tests/TrpcClient.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 import { Logger, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
+import { randomUUID } from "node:crypto"
 
 describe("starSystems.router", () => {
   describe("getSystem", () => {
@@ -186,57 +187,82 @@ async function createStoredStarSystem({
 }
 
 function createStarSystemFixture({ gameId }: { gameId: number }): StarSystemWriteModel {
+  const orbitId = randomUUID()
+  const sector1Id = randomUUID()
+  const sector2Id = randomUUID()
+  const sector1MovementNodeId = randomUUID()
+  const sector2MovementNodeId = randomUUID()
+  const planetMovementNodeId = randomUUID()
+  const moonMovementNodeId = randomUUID()
+  const asteroidMovementNodeId = randomUUID()
+
   return {
     gameId,
     generationSettings: createStarSystemGenerationSettings(),
+    movementNodes: [
+      { id: sector1MovementNodeId },
+      { id: sector2MovementNodeId },
+      { id: planetMovementNodeId },
+      { id: moonMovementNodeId },
+      { id: asteroidMovementNodeId },
+    ],
     orbits: [
       {
-        number: 1,
-        sectors: [
-          {
-            number: 1,
-            movementNodeKey: "sector-1",
-            bodies: [
-              {
-                number: 1,
-                type: BodyType.PLANET,
-                name: "World",
-                movementNodeKey: "planet-1",
-              },
-              {
-                number: 2,
-                type: BodyType.MOON,
-                name: "Moon",
-                movementNodeKey: "moon-1",
-              },
-            ],
-          },
-          {
-            number: 2,
-            movementNodeKey: "sector-2",
-            bodies: [
-              {
-                number: 1,
-                type: BodyType.ASTEROID,
-                name: "Rock",
-                movementNodeKey: "asteroid-1",
-              },
-            ],
-          },
-        ],
+        id: orbitId,
+        orbitNumber: 1,
+      },
+    ],
+    sectors: [
+      {
+        id: sector1Id,
+        orbitId,
+        sectorNumber: 1,
+        movementNodeId: sector1MovementNodeId,
+      },
+      {
+        id: sector2Id,
+        orbitId,
+        sectorNumber: 2,
+        movementNodeId: sector2MovementNodeId,
+      },
+    ],
+    bodies: [
+      {
+        id: randomUUID(),
+        sectorId: sector1Id,
+        bodyNumber: 1,
+        bodyType: BodyType.PLANET,
+        name: "World",
+        movementNodeId: planetMovementNodeId,
+      },
+      {
+        id: randomUUID(),
+        sectorId: sector1Id,
+        bodyNumber: 2,
+        bodyType: BodyType.MOON,
+        name: "Moon",
+        movementNodeId: moonMovementNodeId,
+      },
+      {
+        id: randomUUID(),
+        sectorId: sector2Id,
+        bodyNumber: 1,
+        bodyType: BodyType.ASTEROID,
+        name: "Rock",
+        movementNodeId: asteroidMovementNodeId,
       },
     ],
     movementEdges: [
-      { from: "sector-1", to: "planet-1" },
-      { from: "planet-1", to: "sector-1" },
-      { from: "sector-1", to: "moon-1" },
-      { from: "moon-1", to: "sector-1" },
-      { from: "planet-1", to: "moon-1" },
-      { from: "moon-1", to: "planet-1" },
-      { from: "sector-1", to: "sector-2" },
-      { from: "sector-2", to: "sector-1" },
-      { from: "sector-2", to: "asteroid-1" },
-      { from: "asteroid-1", to: "sector-2" },
+      { fromNodeId: sector1MovementNodeId, toNodeId: planetMovementNodeId, weight: 1 },
+      { fromNodeId: planetMovementNodeId, toNodeId: sector1MovementNodeId, weight: 1 },
+      { fromNodeId: sector1MovementNodeId, toNodeId: moonMovementNodeId, weight: 1 },
+      { fromNodeId: moonMovementNodeId, toNodeId: sector1MovementNodeId, weight: 1 },
+      { fromNodeId: planetMovementNodeId, toNodeId: moonMovementNodeId, weight: 1 },
+      { fromNodeId: moonMovementNodeId, toNodeId: planetMovementNodeId, weight: 1 },
+      { fromNodeId: sector1MovementNodeId, toNodeId: sector2MovementNodeId, weight: 1 },
+      { fromNodeId: sector2MovementNodeId, toNodeId: sector1MovementNodeId, weight: 1 },
+      { fromNodeId: sector2MovementNodeId, toNodeId: asteroidMovementNodeId, weight: 1 },
+      { fromNodeId: asteroidMovementNodeId, toNodeId: sector2MovementNodeId, weight: 1 },
     ],
   }
 }

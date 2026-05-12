@@ -2,7 +2,6 @@ import { PostgresRepository } from "./PostgresRepository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "./schema.ts"
 import { and, asc, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { randomUUID } from "node:crypto"
 import { couldNot } from "#lib/errors.ts"
 import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
 import type { BodyType } from "#lib/star-systems/BodyType.ts"
@@ -12,6 +11,9 @@ export type StarSystemWriteModel = {
   gameId: number
   generationSettings: StarSystemGenerationSettingsWriteModel
   orbits: OrbitWriteModel[]
+  sectors: SectorWriteModel[]
+  bodies: BodyWriteModel[]
+  movementNodes: MovementNodeWriteModel[]
   movementEdges: MovementEdgeWriteModel[]
 }
 
@@ -25,27 +27,34 @@ export type StarSystemGenerationSettingsWriteModel = {
 }
 
 export type OrbitWriteModel = {
-  number: number
-  sectors: SectorWriteModel[]
+  id: string
+  orbitNumber: number
 }
 
 export type SectorWriteModel = {
-  number: number
-  movementNodeKey: string
-  bodies: BodyWriteModel[]
+  id: string
+  orbitId: string
+  sectorNumber: number
+  movementNodeId: string
 }
 
 export type BodyWriteModel = {
-  number: number
-  type: BodyType
+  id: string
+  sectorId: string
+  bodyNumber: number
+  bodyType: BodyType
   name: string
-  movementNodeKey: string
+  movementNodeId: string
+}
+
+export type MovementNodeWriteModel = {
+  id: string
 }
 
 export type MovementEdgeWriteModel = {
-  from: string
-  to: string
-  weight?: number | undefined
+  fromNodeId: string
+  toNodeId: string
+  weight: number
 }
 
 export type StarSystemReadModel = {
@@ -102,6 +111,12 @@ type StarSystemAggregatedRows = {
   movementEdges: MovementEdgeRow[]
 }
 
+function createWithGameId(
+  gameId: StarSystemWriteModel["gameId"],
+): <T extends Record<string, unknown>>(data: T) => T & Pick<StarSystemWriteModel, "gameId"> {
+  return (data) => ({ ...data, gameId })
+}
+
 export class StarSystemsRepository extends PostgresRepository {
   private readonly logger: Logger
 
@@ -111,98 +126,47 @@ export class StarSystemsRepository extends PostgresRepository {
   }
 
   public async create(system: StarSystemWriteModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
-    const createSystemResult = await Result.tryCatch(async (): Promise<true> => {
+    const createResult = await Result.tryCatch(async (): Promise<true> => {
       await db.transaction(async (tx) => {
-        await tx.insert(starSystemsTable).values({
-          gameId: system.gameId,
-          generationSettings: system.generationSettings,
-        })
+        const withGameId = createWithGameId(system.gameId)
 
-        const movementNodeIdByKey = createMovementNodeIdByKey(system)
-        const movementNodes = [...movementNodeIdByKey.values()].map((id) => ({ id, gameId: system.gameId }))
+        await tx.insert(starSystemsTable).values(withGameId({ generationSettings: system.generationSettings }))
+
+        const movementNodes = system.movementNodes.map(withGameId)
         if (movementNodes.length > 0) {
           await tx.insert(movementNodesTable).values(movementNodes)
         }
 
-        const orbitIdByNumber = new Map<number, string>()
-        const createOrbits = system.orbits.map((orbit) => {
-          const id = randomUUID()
-          orbitIdByNumber.set(orbit.number, id)
-
-          return { id, gameId: system.gameId, orbitNumber: orbit.number }
-        })
-        if (createOrbits.length > 0) {
-          await tx.insert(orbitsTable).values(createOrbits)
+        const movementEdges = system.movementEdges.map(withGameId)
+        if (movementEdges.length > 0) {
+          await tx.insert(movementEdgesTable).values(movementEdges)
         }
 
-        const sectorIdByOrbitIdAndNumber = new Map<string, string>()
-        const createSectors = system.orbits.flatMap((orbit) => {
-          const orbitId = orbitIdByNumber.get(orbit.number)
-          Assert.isDefined(orbitId)
-
-          return orbit.sectors.map((sector) => {
-            const id = randomUUID()
-            sectorIdByOrbitIdAndNumber.set(getSectorRowKey({ orbitId, sectorNumber: sector.number }), id)
-
-            return {
-              id,
-              gameId: system.gameId,
-              orbitId,
-              sectorNumber: sector.number,
-              movementNodeId: getRequiredMovementNodeId(movementNodeIdByKey, sector.movementNodeKey),
-            }
-          })
-        })
-
-        if (createSectors.length > 0) {
-          await tx.insert(sectorsTable).values(createSectors)
+        const orbits = system.orbits.map(withGameId)
+        if (orbits.length > 0) {
+          await tx.insert(orbitsTable).values(orbits)
         }
 
-        const createBodies = system.orbits.flatMap((orbit) => {
-          const orbitId = orbitIdByNumber.get(orbit.number)
-          Assert.isDefined(orbitId)
-
-          return orbit.sectors.flatMap((sector) => {
-            const sectorId = sectorIdByOrbitIdAndNumber.get(getSectorRowKey({ orbitId, sectorNumber: sector.number }))
-            Assert.isDefined(sectorId)
-
-            return sector.bodies.map((body) => ({
-              id: randomUUID(),
-              gameId: system.gameId,
-              sectorId,
-              bodyNumber: body.number,
-              bodyType: body.type,
-              name: body.name,
-              movementNodeId: getRequiredMovementNodeId(movementNodeIdByKey, body.movementNodeKey),
-            }))
-          })
-        })
-
-        if (createBodies.length > 0) {
-          await tx.insert(bodiesTable).values(createBodies)
+        const sectors = system.sectors.map(withGameId)
+        if (sectors.length > 0) {
+          await tx.insert(sectorsTable).values(sectors)
         }
 
-        const createMovementEdges = system.movementEdges.map((movementEdge) => ({
-          gameId: system.gameId,
-          fromNodeId: getRequiredMovementNodeId(movementNodeIdByKey, movementEdge.from),
-          toNodeId: getRequiredMovementNodeId(movementNodeIdByKey, movementEdge.to),
-          weight: movementEdge.weight ?? 1,
-        }))
-
-        if (createMovementEdges.length > 0) {
-          await tx.insert(movementEdgesTable).values(createMovementEdges)
+        const bodies = system.bodies.map(withGameId)
+        if (bodies.length > 0) {
+          await tx.insert(bodiesTable).values(bodies)
         }
       })
 
       return true
     })
 
-    if (Result.isFailure(createSystemResult)) {
-      this.logger.error("Could not create Star System", { system, error: createSystemResult.error })
+    if (Result.isFailure(createResult)) {
+      this.logger.error("Could not create Star System", { system, error: createResult.error })
       return Result.Failure(couldNot("create Star System"))
     }
 
-    return createSystemResult
+    return createResult
   }
 
   public async getByGameId(
@@ -306,32 +270,6 @@ export class StarSystemsRepository extends PostgresRepository {
 
     return Result.Success(rowsResult.value)
   }
-}
-
-function createMovementNodeIdByKey(system: StarSystemWriteModel): Map<string, string> {
-  return new Map(getMovementNodeKeys(system).map((movementNodeKey) => [movementNodeKey, randomUUID()]))
-}
-
-function getMovementNodeKeys(system: StarSystemWriteModel): string[] {
-  const movementNodeKeys = system.orbits.flatMap((orbit) =>
-    orbit.sectors.flatMap((sector) => [sector.movementNodeKey, ...sector.bodies.map((body) => body.movementNodeKey)]),
-  )
-  const uniqueMovementNodeKeys = [...new Set(movementNodeKeys)]
-
-  Assert.isTrue(uniqueMovementNodeKeys.length === movementNodeKeys.length)
-
-  return uniqueMovementNodeKeys
-}
-
-function getRequiredMovementNodeId(movementNodeIdByKey: Map<string, string>, movementNodeKey: string): string {
-  const movementNodeId = movementNodeIdByKey.get(movementNodeKey)
-  Assert.isDefined(movementNodeId)
-
-  return movementNodeId
-}
-
-function getSectorRowKey({ orbitId, sectorNumber }: { orbitId: string; sectorNumber: number }): string {
-  return `${orbitId}:${sectorNumber}`
 }
 
 function toStarSystem(starSystemRows: StarSystemAggregatedRows): StarSystemReadModel {

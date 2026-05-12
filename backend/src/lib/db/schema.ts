@@ -283,7 +283,7 @@ export const movementEdgesTable = pgTable(
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
     fromNodeId: uuid("from_node_id").notNull(),
     toNodeId: uuid("to_node_id").notNull(),
-    weight: integer("weight").notNull().default(1),
+    weight: integer("weight").notNull(),
   },
   (table) => [
     primaryKey({
