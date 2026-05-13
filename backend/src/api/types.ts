@@ -23,5 +23,5 @@ export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
 type GetSystemOutput = TrpcRouterOutput["starSystems"]["getByGameId"]
 export type StarSystem = GetSystemOutput["starSystem"]
 export type Orbit = StarSystem["orbits"][number]
-export type MovementGraph = StarSystem["movementGraph"]
-export type MovementEdge = MovementGraph["edges"][string][number]
+export type MovementEdges = StarSystem["movementEdges"]
+export type MovementEdge = MovementEdges[string][number]

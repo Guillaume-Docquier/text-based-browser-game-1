@@ -13,7 +13,7 @@ import {
   sectorsTable,
   starSystemsTable,
 } from "#lib/db/schema.ts"
-import { type StarSystemWriteModel, StarSystemsRepository } from "#lib/db/starSystems.repository.ts"
+import { type NewStarSystem, StarSystemsRepository } from "#lib/db/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 
@@ -54,7 +54,7 @@ describe("StarSystemsRepository", () => {
   })
 })
 
-function createIncoherentStarSystem({ gameId }: { gameId: number }): StarSystemWriteModel {
+function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem {
   const orbitId = randomUUID()
   const sectorId = randomUUID()
   const missingSectorId = randomUUID()

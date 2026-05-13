@@ -3,7 +3,7 @@ import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/playerRowInsert.stub.ts"
-import { type StarSystemWriteModel, StarSystemsRepository } from "#lib/db/starSystems.repository.ts"
+import { type NewStarSystem, StarSystemsRepository } from "#lib/db/starSystems.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 import { Logger, Result } from "@guillaume-docquier/tools-ts"
@@ -97,13 +97,12 @@ describe("starSystems.router", () => {
         throw new Error("Expected Star System fixture to contain sector and body data.")
       }
 
-      expect(getSystemResult.starSystem.movementGraph.edges[sector1.movementNodeId]).toEqual(
-        expect.arrayContaining([
-          { from: sector1.movementNodeId, to: planet.movementNodeId, weight: 1 },
-          { from: sector1.movementNodeId, to: moon.movementNodeId, weight: 1 },
-          { from: sector1.movementNodeId, to: sector2.movementNodeId, weight: 1 },
-        ]),
-      )
+      const edges = getSystemResult.starSystem.movementEdges[sector1.movementNodeId]
+      expect(edges).toEqual<typeof edges>([
+        { fromNodeId: sector1.movementNodeId, toNodeId: planet.movementNodeId, weight: 1 },
+        { fromNodeId: sector1.movementNodeId, toNodeId: moon.movementNodeId, weight: 1 },
+        { fromNodeId: sector1.movementNodeId, toNodeId: sector2.movementNodeId, weight: 1 },
+      ])
     })
 
     it("should reject anonymous reads", async () => {
@@ -186,7 +185,7 @@ async function createStoredStarSystem({
   }
 }
 
-function createStarSystemFixture({ gameId }: { gameId: number }): StarSystemWriteModel {
+function createStarSystemFixture({ gameId }: { gameId: number }): NewStarSystem {
   const orbitId = randomUUID()
   const sector1Id = randomUUID()
   const sector2Id = randomUUID()
@@ -267,7 +266,7 @@ function createStarSystemFixture({ gameId }: { gameId: number }): StarSystemWrit
   }
 }
 
-function createStarSystemGenerationSettings(): StarSystemWriteModel["generationSettings"] {
+function createStarSystemGenerationSettings(): NewStarSystem["generationSettings"] {
   return {
     planetDensity: { min: 0.5, max: 0.5 },
     nbPlanets: { min: 1, max: 1 },

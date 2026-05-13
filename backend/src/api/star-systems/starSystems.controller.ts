@@ -1,20 +1,20 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamesRepository } from "#lib/db/games.repository.ts"
 import type {
-  StarSystemGenerationSettingsWriteModel as StarSystemGenerationSettingsWriteModelType,
+  StarSystemGenerationSettings as StarSystemGenerationSettingsWriteModelType,
   BodyReadModel,
-  BodyWriteModel,
+  Body,
   MovementEdgeReadModel,
-  MovementEdgeWriteModel,
-  MovementGraphReadModel,
-  MovementNodeWriteModel,
+  MovementEdge,
+  MovementNode,
   OrbitReadModel,
-  OrbitWriteModel,
+  Orbit,
   StarSystemsRepository,
   SectorReadModel,
-  SectorWriteModel,
+  Sector,
   StarSystemReadModel as StarSystemReadModelType,
-  StarSystemWriteModel as StarSystemWriteModelType,
+  NewStarSystem as StarSystemWriteModelType,
+  StarSystemReadModel,
 } from "#lib/db/starSystems.repository.ts"
 import z from "zod"
 import type { IntegerRange, IntegerRange as StarSystemGenerationRangeWriteModelType } from "#lib/Range.ts"
@@ -48,14 +48,14 @@ const BodyTypeReadModel = z.enum(BodyType)
 const Uuid = z.string().uuid()
 
 export const StarSystemMovementEdgeReadModel = z.object({
-  from: Uuid,
-  to: Uuid,
+  fromNodeId: Uuid,
+  toNodeId: Uuid,
   weight: z.number(),
 }) satisfies z.ZodType<MovementEdgeReadModel>
 
-export const StarSystemMovementGraphReadModel = z.object({
-  edges: z.record(z.string(), z.array(StarSystemMovementEdgeReadModel)),
-}) satisfies z.ZodType<MovementGraphReadModel>
+export const StarSystemMovementGraphReadModel = z.record(z.string(), z.array(StarSystemMovementEdgeReadModel)) satisfies z.ZodType<
+  StarSystemReadModel["movementEdges"]
+>
 
 export const StarSystemBodyReadModel = z.object({
   id: Uuid,
@@ -81,21 +81,21 @@ export const StarSystemOrbitReadModel = z.object({
   sectors: z.array(StarSystemSectorReadModel),
 }) satisfies z.ZodType<OrbitReadModel>
 
-export const StarSystemReadModel = z.object({
+export const StarSystemReadModelSchema = z.object({
   gameId: z.number(),
   orbits: z.array(StarSystemOrbitReadModel),
-  movementGraph: StarSystemMovementGraphReadModel,
-}) satisfies z.ZodType<StarSystemReadModelType>
+  movementEdges: StarSystemMovementGraphReadModel,
+}) satisfies z.ZodType<StarSystemReadModel>
 
 export const StarSystemMovementEdgeWriteModel = z.object({
   fromNodeId: Uuid,
   toNodeId: Uuid,
   weight: z.number(),
-}) satisfies z.ZodType<MovementEdgeWriteModel>
+}) satisfies z.ZodType<MovementEdge>
 
 export const StarSystemMovementNodeWriteModel = z.object({
   id: Uuid,
-}) satisfies z.ZodType<MovementNodeWriteModel>
+}) satisfies z.ZodType<MovementNode>
 
 export const StarSystemBodyWriteModel = z.object({
   id: Uuid,
@@ -104,19 +104,19 @@ export const StarSystemBodyWriteModel = z.object({
   bodyType: BodyTypeReadModel,
   name: z.string(),
   movementNodeId: Uuid,
-}) satisfies z.ZodType<BodyWriteModel>
+}) satisfies z.ZodType<Body>
 
 export const StarSystemSectorWriteModel = z.object({
   id: Uuid,
   orbitId: Uuid,
   sectorNumber: z.number(),
   movementNodeId: Uuid,
-}) satisfies z.ZodType<SectorWriteModel>
+}) satisfies z.ZodType<Sector>
 
 export const StarSystemOrbitWriteModel = z.object({
   id: Uuid,
   orbitNumber: z.number(),
-}) satisfies z.ZodType<OrbitWriteModel>
+}) satisfies z.ZodType<Orbit>
 
 export const StarSystemWriteModel = z.object({
   gameId: z.number(),

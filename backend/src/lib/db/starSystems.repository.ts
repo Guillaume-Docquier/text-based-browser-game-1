@@ -1,23 +1,23 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "./schema.ts"
-import { and, asc, eq } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
 import type { BodyType } from "#lib/star-systems/BodyType.ts"
 import { toCoordinates } from "#lib/star-systems/Coordinates.ts"
 
-export type StarSystemWriteModel = {
+export type NewStarSystem = {
   gameId: number
-  generationSettings: StarSystemGenerationSettingsWriteModel
-  orbits: OrbitWriteModel[]
-  sectors: SectorWriteModel[]
-  bodies: BodyWriteModel[]
-  movementNodes: MovementNodeWriteModel[]
-  movementEdges: MovementEdgeWriteModel[]
+  generationSettings: StarSystemGenerationSettings
+  orbits: Orbit[]
+  sectors: Sector[]
+  bodies: Body[]
+  movementNodes: MovementNode[]
+  movementEdges: MovementEdge[]
 }
 
-export type StarSystemGenerationSettingsWriteModel = {
+export type StarSystemGenerationSettings = {
   planetDensity: PercentageRange
   nbPlanets: IntegerRange
   nbMoonsPerPlanet: IntegerRange
@@ -26,19 +26,19 @@ export type StarSystemGenerationSettingsWriteModel = {
   seed: number
 }
 
-export type OrbitWriteModel = {
+export type Orbit = {
   id: string
   orbitNumber: number
 }
 
-export type SectorWriteModel = {
+export type Sector = {
   id: string
   orbitId: string
   sectorNumber: number
   movementNodeId: string
 }
 
-export type BodyWriteModel = {
+export type Body = {
   id: string
   sectorId: string
   bodyNumber: number
@@ -47,11 +47,11 @@ export type BodyWriteModel = {
   movementNodeId: string
 }
 
-export type MovementNodeWriteModel = {
+export type MovementNode = {
   id: string
 }
 
-export type MovementEdgeWriteModel = {
+export type MovementEdge = {
   fromNodeId: string
   toNodeId: string
   weight: number
@@ -59,8 +59,14 @@ export type MovementEdgeWriteModel = {
 
 export type StarSystemReadModel = {
   gameId: number
+  /**
+   * Star system as a tree
+   */
   orbits: OrbitReadModel[]
-  movementGraph: MovementGraphReadModel
+  /**
+   * Movement edges by movement node id
+   */
+  movementEdges: Record<string, MovementEdgeReadModel[]>
 }
 
 export type OrbitReadModel = {
@@ -87,13 +93,9 @@ export type BodyReadModel = {
   movementNodeId: string
 }
 
-export type MovementGraphReadModel = {
-  edges: Record<string, MovementEdgeReadModel[]>
-}
-
 export type MovementEdgeReadModel = {
-  from: string
-  to: string
+  fromNodeId: string
+  toNodeId: string
   weight: number
 }
 
@@ -112,8 +114,8 @@ type StarSystemAggregatedRows = {
 }
 
 function createWithGameId(
-  gameId: StarSystemWriteModel["gameId"],
-): <T extends Record<string, unknown>>(data: T) => T & Pick<StarSystemWriteModel, "gameId"> {
+  gameId: NewStarSystem["gameId"],
+): <T extends Record<string, unknown>>(data: T) => T & Pick<NewStarSystem, "gameId"> {
   return (data) => ({ ...data, gameId })
 }
 
@@ -125,34 +127,38 @@ export class StarSystemsRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "star-systems-repository" })
   }
 
-  public async create(system: StarSystemWriteModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
+  /**
+   * Create a new star system.
+   * It is your responsibility to provide coherent data. Failing to do so will result in a Failure.
+   */
+  public async create(newStarSystem: NewStarSystem, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
     const createResult = await Result.tryCatch(async (): Promise<true> => {
       await db.transaction(async (tx) => {
-        const withGameId = createWithGameId(system.gameId)
+        const withGameId = createWithGameId(newStarSystem.gameId)
 
-        await tx.insert(starSystemsTable).values(withGameId({ generationSettings: system.generationSettings }))
+        await tx.insert(starSystemsTable).values(withGameId({ generationSettings: newStarSystem.generationSettings }))
 
-        const movementNodes = system.movementNodes.map(withGameId)
+        const movementNodes = newStarSystem.movementNodes.map(withGameId)
         if (movementNodes.length > 0) {
           await tx.insert(movementNodesTable).values(movementNodes)
         }
 
-        const movementEdges = system.movementEdges.map(withGameId)
+        const movementEdges = newStarSystem.movementEdges.map(withGameId)
         if (movementEdges.length > 0) {
           await tx.insert(movementEdgesTable).values(movementEdges)
         }
 
-        const orbits = system.orbits.map(withGameId)
+        const orbits = newStarSystem.orbits.map(withGameId)
         if (orbits.length > 0) {
           await tx.insert(orbitsTable).values(orbits)
         }
 
-        const sectors = system.sectors.map(withGameId)
+        const sectors = newStarSystem.sectors.map(withGameId)
         if (sectors.length > 0) {
           await tx.insert(sectorsTable).values(sectors)
         }
 
-        const bodies = system.bodies.map(withGameId)
+        const bodies = newStarSystem.bodies.map(withGameId)
         if (bodies.length > 0) {
           await tx.insert(bodiesTable).values(bodies)
         }
@@ -162,74 +168,22 @@ export class StarSystemsRepository extends PostgresRepository {
     })
 
     if (Result.isFailure(createResult)) {
-      this.logger.error("Could not create Star System", { system, error: createResult.error })
+      this.logger.error("Could not create Star System", { system: newStarSystem, error: createResult.error })
       return Result.Failure(couldNot("create Star System"))
     }
 
     return createResult
   }
 
+  /**
+   * Gets a star system by gameId.
+   * Returns undefined if no star system exists for the game, probably meaning that the game has not started yet, but could also mean the game doesn't exist.
+   */
   public async getByGameId(
     { gameId }: { gameId: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<StarSystemReadModel | undefined, string>> {
-    const getRowsResult = await this.getStarSystemAggregatedRows({ gameId }, db)
-    if (Result.isFailure(getRowsResult)) {
-      return getRowsResult
-    }
-
-    if (getRowsResult.value === undefined) {
-      return Result.Success(undefined)
-    }
-
-    return Result.Success(toStarSystem(getRowsResult.value))
-  }
-
-  public async areNeighbors(
-    {
-      gameId,
-      fromMovementNodeId,
-      toMovementNodeId,
-    }: {
-      gameId: number
-      fromMovementNodeId: string
-      toMovementNodeId: string
-    },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<boolean, string>> {
-    const getResult = await Result.tryCatch(
-      async () =>
-        await db
-          .select({ fromNodeId: movementEdgesTable.fromNodeId })
-          .from(movementEdgesTable)
-          .where(
-            and(
-              eq(movementEdgesTable.gameId, gameId),
-              eq(movementEdgesTable.fromNodeId, fromMovementNodeId),
-              eq(movementEdgesTable.toNodeId, toMovementNodeId),
-            ),
-          ),
-    )
-
-    if (Result.isFailure(getResult)) {
-      this.logger.error("Could not check Star System movement neighbors", {
-        gameId,
-        fromMovementNodeId,
-        toMovementNodeId,
-        error: getResult.error,
-      })
-      return Result.Failure(couldNot("check Star System movement neighbors"))
-    }
-
-    Assert.isTrue(getResult.value.length <= 1)
-    return Result.Success(getResult.value[0] !== undefined)
-  }
-
-  private async getStarSystemAggregatedRows(
-    { gameId }: { gameId: number },
-    db: PostgresRepository["db"],
-  ): Promise<Result<StarSystemAggregatedRows | undefined, string>> {
-    const rowsResult = await Result.tryCatch(async () => {
+    const getRowsResult = await Result.tryCatch(async () => {
       const starSystems = await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, gameId))
       Assert.isTrue(starSystems.length <= 1)
 
@@ -238,51 +192,38 @@ export class StarSystemsRepository extends PostgresRepository {
         return undefined
       }
 
-      const systemOrbits = await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, gameId)).orderBy(asc(orbitsTable.orbitNumber))
-
-      const systemSectors = await db
-        .select()
-        .from(sectorsTable)
-        .where(eq(sectorsTable.gameId, gameId))
-        .orderBy(asc(sectorsTable.sectorNumber))
-
-      const systemBodies = await db.select().from(bodiesTable).where(eq(bodiesTable.gameId, gameId)).orderBy(asc(bodiesTable.bodyNumber))
-
-      const systemMovementEdges = await db
-        .select()
-        .from(movementEdgesTable)
-        .where(eq(movementEdgesTable.gameId, gameId))
-        .orderBy(asc(movementEdgesTable.fromNodeId), asc(movementEdgesTable.toNodeId))
+      const orbits = await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, gameId))
+      const sectors = await db.select().from(sectorsTable).where(eq(sectorsTable.gameId, gameId))
+      const bodies = await db.select().from(bodiesTable).where(eq(bodiesTable.gameId, gameId))
+      const movementEdges = await db.select().from(movementEdgesTable).where(eq(movementEdgesTable.gameId, gameId))
 
       return {
         starSystem,
-        orbits: systemOrbits,
-        sectors: systemSectors,
-        bodies: systemBodies,
-        movementEdges: systemMovementEdges,
+        orbits,
+        sectors,
+        bodies,
+        movementEdges,
       }
     })
 
-    if (Result.isFailure(rowsResult)) {
-      this.logger.error("Could not get Star System rows", { gameId, error: rowsResult.error })
+    if (Result.isFailure(getRowsResult)) {
+      this.logger.error("Could not get Star System rows", { gameId, error: getRowsResult.error })
       return Result.Failure(couldNot("get Star System rows"))
     }
 
-    return Result.Success(rowsResult.value)
+    if (getRowsResult.value === undefined) {
+      return Result.Success(undefined)
+    }
+
+    return Result.Success(toStarSystemReadModel(getRowsResult.value))
   }
 }
 
-function toStarSystem(starSystemRows: StarSystemAggregatedRows): StarSystemReadModel {
-  const bodiesBySectorId = new Map<string, BodyRow[]>()
-  for (const body of starSystemRows.bodies) {
-    bodiesBySectorId.set(body.sectorId, [...(bodiesBySectorId.get(body.sectorId) ?? []), body])
-  }
+function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSystemReadModel {
+  const bodiesBySectorId = Map.groupBy(starSystemRows.bodies, ({ sectorId }) => sectorId)
+  const sectorsByOrbitId = Map.groupBy(starSystemRows.sectors, ({ orbitId }) => orbitId)
 
-  const sectorsByOrbitId = new Map<string, SectorRow[]>()
-  for (const sector of starSystemRows.sectors) {
-    sectorsByOrbitId.set(sector.orbitId, [...(sectorsByOrbitId.get(sector.orbitId) ?? []), sector])
-  }
-
+  // It's a bit monstrous, but it's localized and does exactly what it need to
   return {
     gameId: starSystemRows.starSystem.gameId,
     orbits: starSystemRows.orbits.map((orbit) => ({
@@ -304,22 +245,13 @@ function toStarSystem(starSystemRows: StarSystemAggregatedRows): StarSystemReadM
         })),
       })),
     })),
-    movementGraph: toMovementGraph(starSystemRows.movementEdges),
+    movementEdges: toMovementEdgesByFromNodeId(starSystemRows.movementEdges),
   }
 }
 
-function toMovementGraph(edges: MovementEdgeRow[]): MovementGraphReadModel {
-  const movementGraph: MovementGraphReadModel = { edges: {} }
-
-  for (const edge of edges) {
-    const nodeEdges = movementGraph.edges[edge.fromNodeId] ?? []
-    nodeEdges.push({
-      from: edge.fromNodeId,
-      to: edge.toNodeId,
-      weight: edge.weight,
-    })
-    movementGraph.edges[edge.fromNodeId] = nodeEdges
-  }
-
-  return movementGraph
+function toMovementEdgesByFromNodeId(edges: MovementEdgeRow[]): StarSystemReadModel["movementEdges"] {
+  // We cast because Object.groupBy returns a Partial<Record<string, T>>, which makes Typescript think
+  // That T could be undefined because of Partial
+  // Kinda strange
+  return Object.groupBy(edges, ({ fromNodeId }) => fromNodeId) as StarSystemReadModel["movementEdges"]
 }
