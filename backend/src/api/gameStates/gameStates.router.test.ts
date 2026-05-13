@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { createPlayerRowInsertStub } from "#lib/db/playerRowInsert.stub.ts"
+import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 

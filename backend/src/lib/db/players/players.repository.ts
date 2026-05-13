@@ -1,5 +1,5 @@
-import { PostgresRepository } from "./PostgresRepository.ts"
-import { playersTable } from "./schema.ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { playersTable } from "#lib/db/schema.ts"
 import { eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"

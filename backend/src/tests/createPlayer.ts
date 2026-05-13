@@ -1,5 +1,5 @@
 import type { NodePgDatabase } from "drizzle-orm/node-postgres"
-import type { PlayerRow, PlayerRowInsert } from "#lib/db/players.repository.ts"
+import type { PlayerRow, PlayerRowInsert } from "#lib/db/players/players.repository.ts"
 import { playersTable } from "#lib/db/schema.ts"
 import { Assert } from "@guillaume-docquier/tools-ts"
 

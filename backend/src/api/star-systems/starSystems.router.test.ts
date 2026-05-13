@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest"
 import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { createPlayerRowInsertStub } from "#lib/db/playerRowInsert.stub.ts"
+import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
 import { type NewStarSystem, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 import { Logger, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { randomUUID } from "node:crypto"
+import { createGameRowInsertStub } from "#lib/db/games/GameRowInsert.stub.ts"
+import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 
 describe("starSystems.router", () => {
   describe("getSystem", () => {
@@ -21,88 +23,88 @@ describe("starSystems.router", () => {
       const api = await createApiStub({ db, authService, logger })
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "mapped game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-        },
-      })
-      await createStoredStarSystem({ db, logger, gameId: createGameResult.newGame.id })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
+      const starSystem = await createStoredStarSystem({ db, logger, gameId: createGameResult.newGame.id })
 
       // Act
-      const getSystemResult = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
+      const getStarSystemResponse = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
 
       // Assert
-      expect(getSystemResult.starSystem.gameId).toBe(createGameResult.newGame.id)
-      expect(getSystemResult.starSystem.orbits).toEqual([
-        {
-          id: expect.any(String),
-          number: 1,
-          coordinates: "01",
-          sectors: [
-            {
-              id: expect.any(String),
-              number: 1,
-              coordinates: "01:01",
-              movementNodeId: expect.any(String),
-              bodies: [
-                {
-                  id: expect.any(String),
-                  number: 1,
-                  coordinates: "01:01:01",
-                  name: "World",
-                  type: BodyType.PLANET,
-                  movementNodeId: expect.any(String),
-                },
-                {
-                  id: expect.any(String),
-                  number: 2,
-                  coordinates: "01:01:02",
-                  name: "Moon",
-                  type: BodyType.MOON,
-                  movementNodeId: expect.any(String),
-                },
-              ],
-            },
-            {
-              id: expect.any(String),
-              number: 2,
-              coordinates: "01:02",
-              movementNodeId: expect.any(String),
-              bodies: [
-                {
-                  id: expect.any(String),
-                  number: 1,
-                  coordinates: "01:02:01",
-                  name: "Rock",
-                  type: BodyType.ASTEROID,
-                  movementNodeId: expect.any(String),
-                },
-              ],
-            },
+      expect(getStarSystemResponse.starSystem).toEqual<typeof getStarSystemResponse.starSystem>({
+        gameId: createGameResult.newGame.id,
+        orbits: [
+          {
+            id: expect.any(String),
+            number: 1,
+            coordinates: "01",
+            sectors: [
+              {
+                id: expect.any(String),
+                number: 1,
+                coordinates: "01:01",
+                movementNodeId: expect.any(String),
+                bodies: [
+                  {
+                    id: expect.any(String),
+                    number: 1,
+                    coordinates: "01:01:01",
+                    name: "World",
+                    type: BodyType.PLANET,
+                    movementNodeId: expect.any(String),
+                  },
+                  {
+                    id: expect.any(String),
+                    number: 2,
+                    coordinates: "01:01:02",
+                    name: "Moon",
+                    type: BodyType.MOON,
+                    movementNodeId: expect.any(String),
+                  },
+                ],
+              },
+              {
+                id: expect.any(String),
+                number: 2,
+                coordinates: "01:02",
+                movementNodeId: expect.any(String),
+                bodies: [
+                  {
+                    id: expect.any(String),
+                    number: 1,
+                    coordinates: "01:02:01",
+                    name: "Rock",
+                    type: BodyType.ASTEROID,
+                    movementNodeId: expect.any(String),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        movementEdges: {
+          // Quite bad, if we have to do more we'll need to improve on this
+          [starSystem.sectors[0].movementNodeId]: [
+            { fromNodeId: starSystem.sectors[0].movementNodeId, toNodeId: starSystem.bodies[0].movementNodeId, weight: 1 },
+            { fromNodeId: starSystem.sectors[0].movementNodeId, toNodeId: starSystem.bodies[1].movementNodeId, weight: 1 },
+            { fromNodeId: starSystem.sectors[0].movementNodeId, toNodeId: starSystem.sectors[1].movementNodeId, weight: 1 },
+          ],
+          [starSystem.sectors[1].movementNodeId]: [
+            { fromNodeId: starSystem.sectors[1].movementNodeId, toNodeId: starSystem.sectors[0].movementNodeId, weight: 1 },
+            { fromNodeId: starSystem.sectors[1].movementNodeId, toNodeId: starSystem.bodies[2].movementNodeId, weight: 1 },
+          ],
+          [starSystem.bodies[0].movementNodeId]: [
+            { fromNodeId: starSystem.bodies[0].movementNodeId, toNodeId: starSystem.sectors[0].movementNodeId, weight: 1 },
+            { fromNodeId: starSystem.bodies[0].movementNodeId, toNodeId: starSystem.bodies[1].movementNodeId, weight: 1 },
+          ],
+          [starSystem.bodies[1].movementNodeId]: [
+            { fromNodeId: starSystem.bodies[1].movementNodeId, toNodeId: starSystem.sectors[0].movementNodeId, weight: 1 },
+            { fromNodeId: starSystem.bodies[1].movementNodeId, toNodeId: starSystem.bodies[0].movementNodeId, weight: 1 },
+          ],
+          [starSystem.bodies[2].movementNodeId]: [
+            { fromNodeId: starSystem.bodies[2].movementNodeId, toNodeId: starSystem.sectors[1].movementNodeId, weight: 1 },
           ],
         },
-      ])
-
-      const sector1 = getSystemResult.starSystem.orbits[0]?.sectors[0]
-      const sector2 = getSystemResult.starSystem.orbits[0]?.sectors[1]
-      const planet = sector1?.bodies[0]
-      const moon = sector1?.bodies[1]
-      expect(sector1).toBeDefined()
-      expect(sector2).toBeDefined()
-      expect(planet).toBeDefined()
-      expect(moon).toBeDefined()
-      if (sector1 === undefined || sector2 === undefined || planet === undefined || moon === undefined) {
-        throw new Error("Expected Star System fixture to contain sector and body data.")
-      }
-
-      const edges = getSystemResult.starSystem.movementEdges[sector1.movementNodeId]
-      expect(edges).toEqual<typeof edges>([
-        { fromNodeId: sector1.movementNodeId, toNodeId: planet.movementNodeId, weight: 1 },
-        { fromNodeId: sector1.movementNodeId, toNodeId: moon.movementNodeId, weight: 1 },
-        { fromNodeId: sector1.movementNodeId, toNodeId: sector2.movementNodeId, weight: 1 },
-      ])
+      })
     })
 
     it("should reject anonymous reads", async () => {
@@ -121,21 +123,12 @@ describe("starSystems.router", () => {
       const db = await createDbMock()
       const logger = Logger.get()
       const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const outsider = await createPlayer(
-        db,
-        createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Outsider" }),
-      )
+      const outsider = await createPlayer(db, createPlayerRowInsertStub({ alias: "Outsider" }))
       const authService = new AuthServiceMock({ player: creator })
       const api = await createApiStub({ db, authService, logger })
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "private mapped game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-        },
-      })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
       await createStoredStarSystem({ db, logger, gameId: createGameResult.newGame.id })
       authService.player = outsider
 
@@ -153,13 +146,7 @@ describe("starSystems.router", () => {
       const api = await createApiStub({ db, authService })
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "unmapped game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-        },
-      })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
 
       // Act & Assert
       await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
@@ -169,6 +156,9 @@ describe("starSystems.router", () => {
   })
 })
 
+/**
+ * @deprecated Should be handled by the game creation route when world generation is implemented
+ */
 async function createStoredStarSystem({
   db,
   logger,
@@ -177,15 +167,19 @@ async function createStoredStarSystem({
   db: ConstructorParameters<typeof StarSystemsRepository>[0]["db"]
   logger: Logger
   gameId: number
-}): Promise<void> {
+}): Promise<ReturnType<typeof createStarSystemFixture>> {
   const starSystemsRepository = new StarSystemsRepository({ db, logger })
-  const createSystemResult = await starSystemsRepository.create(createStarSystemFixture({ gameId }))
+  const starSystem = createStarSystemFixture({ gameId })
+  const createSystemResult = await starSystemsRepository.create(starSystem)
   if (Result.isFailure(createSystemResult)) {
     throw new Error(createSystemResult.error)
   }
+
+  return starSystem
 }
 
-function createStarSystemFixture({ gameId }: { gameId: number }): NewStarSystem {
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- As const will help the tests verbosity
+function createStarSystemFixture({ gameId }: { gameId: number }) {
   const orbitId = randomUUID()
   const sector1Id = randomUUID()
   const sector2Id = randomUUID()
@@ -197,7 +191,7 @@ function createStarSystemFixture({ gameId }: { gameId: number }): NewStarSystem 
 
   return {
     gameId,
-    generationSettings: createStarSystemGenerationSettings(),
+    generationSettings: createStarSystemGenerationSettingsStub(),
     movementNodes: [
       { id: sector1MovementNodeId },
       { id: sector2MovementNodeId },
@@ -263,16 +257,5 @@ function createStarSystemFixture({ gameId }: { gameId: number }): NewStarSystem 
       { fromNodeId: sector2MovementNodeId, toNodeId: asteroidMovementNodeId, weight: 1 },
       { fromNodeId: asteroidMovementNodeId, toNodeId: sector2MovementNodeId, weight: 1 },
     ],
-  }
-}
-
-function createStarSystemGenerationSettings(): NewStarSystem["generationSettings"] {
-  return {
-    planetDensity: { min: 0.5, max: 0.5 },
-    nbPlanets: { min: 1, max: 1 },
-    nbMoonsPerPlanet: { min: 1, max: 1 },
-    nbAsteroidBelts: { min: 0, max: 0 },
-    nbAsteroidsPerSector: { min: 1, max: 1 },
-    seed: 1234,
-  }
+  } as const satisfies NewStarSystem
 }

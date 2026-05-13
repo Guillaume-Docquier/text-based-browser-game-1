@@ -1,5 +1,5 @@
 import { type Result } from "@guillaume-docquier/tools-ts"
-import { type PlayerRow, type PlayerRowInsert, type PlayersRepository } from "#lib/db/players.repository.ts"
+import { type PlayerRow, type PlayerRowInsert, type PlayersRepository } from "#lib/db/players/players.repository.ts"
 import z from "zod"
 
 export class PlayersController {

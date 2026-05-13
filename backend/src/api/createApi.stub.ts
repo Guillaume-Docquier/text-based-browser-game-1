@@ -8,7 +8,7 @@ import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { PlayersRepository } from "#lib/db/players.repository.ts"
+import { PlayersRepository } from "#lib/db/players/players.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 
