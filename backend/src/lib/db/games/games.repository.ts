@@ -187,22 +187,22 @@ export class GamesRepository extends PostgresRepository {
     { gameId, playerId }: { gameId: number; playerId: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<boolean, string>> {
-    const joinedGameResult = await Result.tryCatch(
-      async () =>
-        await db
-          .select({ gameId: gamesTable.id, joinedPlayerId: gamePlayersTable.playerId })
-          .from(gamesTable)
-          .leftJoin(gamePlayersTable, and(eq(gamePlayersTable.gameId, gamesTable.id), eq(gamePlayersTable.playerId, playerId)))
-          .where(eq(gamesTable.id, gameId)),
-    )
+    const joinedGameResult = await Result.tryCatch(async () => {
+      const rows = await db
+        .select({ playerId: gamePlayersTable.playerId })
+        .from(gamePlayersTable)
+        .where(and(eq(gamePlayersTable.gameId, gameId), eq(gamePlayersTable.playerId, playerId)))
+      Assert.isTrue(rows.length <= 1)
+
+      return rows.length === 1
+    })
 
     if (Result.isFailure(joinedGameResult)) {
       this.logger.error("Could not check if player joined game", { gameId, playerId, error: joinedGameResult.error })
       return Result.Failure(couldNot("check if player joined game"))
     }
 
-    Assert.isTrue(joinedGameResult.value.length <= 1)
-    return Result.Success(joinedGameResult.value[0]?.joinedPlayerId === playerId)
+    return joinedGameResult
   }
 
   public async endWithWinner(
