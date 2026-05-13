@@ -1,5 +1,5 @@
-import { PostgresRepository } from "./PostgresRepository.ts"
-import { gamePlayerResourcesTable, gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "./schema.ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { gamePlayerResourcesTable, gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "#lib/db/schema.ts"
 import { and, eq, getTableColumns } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"

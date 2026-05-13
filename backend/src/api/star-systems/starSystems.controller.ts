@@ -1,5 +1,5 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GamesRepository } from "#lib/db/games.repository.ts"
+import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import type {
   StarSystemGenerationSettings as StarSystemGenerationSettingsWriteModelType,
   BodyReadModel,

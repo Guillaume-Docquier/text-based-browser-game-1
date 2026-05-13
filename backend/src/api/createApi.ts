@@ -1,7 +1,7 @@
 import express, { type Express } from "express"
 import { createGamesRouter } from "./games/games.router.ts"
 import { GamesController } from "./games/games.controller.ts"
-import type { GamesRepository } from "#lib/db/games.repository.ts"
+import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import type { IAuthService } from "./auth/auth.service.ts"
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"

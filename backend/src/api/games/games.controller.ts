@@ -1,5 +1,5 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games.repository.ts"
+import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games/games.repository.ts"
 import z from "zod"
 
 export class GamesController {

@@ -1,47 +1,35 @@
 import { describe, expect, it } from "vitest"
 import { eq } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
-import { Result, Logger, Assert } from "@guillaume-docquier/tools-ts"
+import { Result, Logger, type Success } from "@guillaume-docquier/tools-ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/playerRowInsert.stub.ts"
-import {
-  bodiesTable,
-  gamesTable,
-  movementEdgesTable,
-  movementNodesTable,
-  orbitsTable,
-  sectorsTable,
-  starSystemsTable,
-} from "#lib/db/schema.ts"
+import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { type NewStarSystem, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
+import { type GameRow, GamesRepository } from "#lib/db/games/games.repository.ts"
+import { createGameRowInsertStub } from "#lib/db/games/GameRowInsert.stub.ts"
 
 describe("starSystems.repository", () => {
   describe("create", () => {
     it("should create a Star System with bodies and movement edges", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-      const game = (
-        await db
-          .insert(gamesTable)
-          .values({
-            name: "coherent star system game",
-            createdByPlayerId: player.id,
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-          })
-          .returning()
-      )[0]
-      Assert.isDefined(game)
+      const logger = Logger.get()
 
-      const repository = new StarSystemsRepository({ db, logger: Logger.get() })
+      const gamesRepository = new GamesRepository({ db, logger })
+      const starSystemsRepository = new StarSystemsRepository({ db, logger })
+
+      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const createGameResult = (await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id }))) as Success<GameRow>
+      const game = createGameResult.value
+
       const system = createCoherentStarSystem({ gameId: game.id })
 
       // Act
-      const createStarSystemResult = await repository.create(system)
+      const createStarSystemResult = await starSystemsRepository.create(system)
 
       // Assert
       expect(createStarSystemResult).toEqual(Result.Success(true))
@@ -68,26 +56,20 @@ describe("starSystems.repository", () => {
     it("should fail one request when creating two star systems concurrently for the same game", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-      const game = (
-        await db
-          .insert(gamesTable)
-          .values({
-            name: "game1",
-            createdByPlayerId: player.id,
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-          })
-          .returning()
-      )[0]
-      Assert.isDefined(game)
+      const logger = Logger.get()
 
-      const repository = new StarSystemsRepository({ db, logger: Logger.get() })
+      const gamesRepository = new GamesRepository({ db, logger })
+      const starSystemsRepository = new StarSystemsRepository({ db, logger })
+
+      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const createGameResult = (await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id }))) as Success<GameRow>
+      const game = createGameResult.value
+
       const system1 = createCoherentStarSystem({ gameId: game.id })
       const system2 = createCoherentStarSystem({ gameId: game.id })
 
       // Act
-      const createStarSystemResults = await Promise.all([repository.create(system1), repository.create(system2)])
+      const createStarSystemResults = await Promise.all([starSystemsRepository.create(system1), starSystemsRepository.create(system2)])
 
       // Assert
       expect(createStarSystemResults).toEqual(expect.arrayContaining([Result.Success(true), Result.Failure(expect.any(String))]))
@@ -96,25 +78,19 @@ describe("starSystems.repository", () => {
     it("should rollback the full Star System when one child row is incoherent", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-      const game = (
-        await db
-          .insert(gamesTable)
-          .values({
-            name: "incoherent star system game",
-            createdByPlayerId: player.id,
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-          })
-          .returning()
-      )[0]
-      Assert.isDefined(game)
+      const logger = Logger.get()
 
-      const repository = new StarSystemsRepository({ db, logger: Logger.get() })
+      const gamesRepository = new GamesRepository({ db, logger })
+      const starSystemsRepository = new StarSystemsRepository({ db, logger })
+
+      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const createGameResult = (await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id }))) as Success<GameRow>
+      const game = createGameResult.value
+
       const system = createIncoherentStarSystem({ gameId: game.id })
 
       // Act
-      const createStarSystemResult = await repository.create(system)
+      const createStarSystemResult = await starSystemsRepository.create(system)
 
       // Assert
       expect(createStarSystemResult).toEqual(Result.Failure(expect.any(String)))
