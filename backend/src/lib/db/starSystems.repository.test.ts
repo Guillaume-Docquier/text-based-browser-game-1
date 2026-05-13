@@ -64,6 +64,34 @@ describe("starSystems.repository", () => {
         .toEqual([{ ...system.movementEdges[0], gameId: game.id }])
     })
 
+    it("should fail one request when creating two star systems concurrently for the same game", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const game = (
+        await db
+          .insert(gamesTable)
+          .values({
+            name: "game1",
+            createdByPlayerId: player.id,
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          })
+          .returning()
+      )[0]
+      Assert.isDefined(game)
+
+      const repository = new StarSystemsRepository({ db, logger: Logger.get() })
+      const system1 = createCoherentStarSystem({ gameId: game.id })
+      const system2 = createCoherentStarSystem({ gameId: game.id })
+
+      // Act
+      const createStarSystemResults = await Promise.all([repository.create(system1), repository.create(system2)])
+
+      // Assert
+      expect(createStarSystemResults).toEqual(expect.arrayContaining([Result.Success(true), Result.Failure(expect.any(String))]))
+    })
+
     it("should rollback the full Star System when one child row is incoherent", async () => {
       // Arrange
       const db = await createDbMock()
