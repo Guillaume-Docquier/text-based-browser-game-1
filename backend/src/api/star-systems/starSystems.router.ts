@@ -1,10 +1,9 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import z from "zod"
-import { type StarSystemsController, StarSystemReadModelSchema } from "#api/star-systems/starSystems.controller.ts"
+import { type StarSystemsController, StarSystemDto } from "#api/star-systems/starSystems.controller.ts"
 import type { Trpc } from "#api/trpc.ts"
-
-const GameId = z.coerce.number().int().positive()
+import { GameIdSchema } from "#api/games/GameIdSchema.ts"
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
 export function createStarSystemsRouter({
@@ -20,8 +19,8 @@ export function createStarSystemsRouter({
 
   return trpc.router({
     getByGameId: trpc.privateProcedure
-      .input(z.object({ gameId: GameId }))
-      .output(z.object({ starSystem: StarSystemReadModelSchema }))
+      .input(z.object({ gameId: GameIdSchema }))
+      .output(z.object({ starSystem: StarSystemDto }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
         const getStarSystemResult = await starSystemsController.getByGameId({ gameId, playerId: player.id })
         if (Result.isFailure(getStarSystemResult)) {
