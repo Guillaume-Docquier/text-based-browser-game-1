@@ -17,7 +17,7 @@ import { type NewStarSystem, StarSystemsRepository } from "#lib/db/starSystems.r
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
 
-describe("StarSystemsRepository", () => {
+describe("starSystems.repository", () => {
   describe("create", () => {
     it("should rollback the full Star System when one child row is incoherent", async () => {
       // Arrange
@@ -40,16 +40,16 @@ describe("StarSystemsRepository", () => {
       const system = createIncoherentStarSystem({ gameId: game.id })
 
       // Act
-      const createResult = await repository.create(system)
+      const createStarSystemResult = await repository.create(system)
 
       // Assert
-      expect(Result.isFailure(createResult)).toBe(true)
-      expect(await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, game.id))).toEqual([])
-      expect(await db.select().from(movementNodesTable).where(eq(movementNodesTable.gameId, game.id))).toEqual([])
-      expect(await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, game.id))).toEqual([])
-      expect(await db.select().from(sectorsTable).where(eq(sectorsTable.gameId, game.id))).toEqual([])
-      expect(await db.select().from(bodiesTable).where(eq(bodiesTable.gameId, game.id))).toEqual([])
-      expect(await db.select().from(movementEdgesTable).where(eq(movementEdgesTable.gameId, game.id))).toEqual([])
+      expect(createStarSystemResult).toBe(Result.Failure(expect.any(String)))
+      expect.soft(await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, game.id))).toEqual([])
+      expect.soft(await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, game.id))).toEqual([])
+      expect.soft(await db.select().from(sectorsTable).where(eq(sectorsTable.gameId, game.id))).toEqual([])
+      expect.soft(await db.select().from(bodiesTable).where(eq(bodiesTable.gameId, game.id))).toEqual([])
+      expect.soft(await db.select().from(movementNodesTable).where(eq(movementNodesTable.gameId, game.id))).toEqual([])
+      expect.soft(await db.select().from(movementEdgesTable).where(eq(movementEdgesTable.gameId, game.id))).toEqual([])
     })
   })
 })
