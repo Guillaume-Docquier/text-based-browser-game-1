@@ -1,7 +1,7 @@
 import express, { type Express } from "express"
 import { createGamesRouter } from "./games/games.router.ts"
 import { GamesController } from "./games/games.controller.ts"
-import type { GamesRepository } from "#lib/db/games.repository.ts"
+import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import type { IAuthService } from "./auth/auth.service.ts"
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
@@ -12,11 +12,14 @@ import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 import type { TRPCError } from "@trpc/server"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { PlayersController } from "#api/players/players.controller.ts"
-import type { PlayersRepository } from "#lib/db/players.repository.ts"
+import type { PlayersRepository } from "#lib/db/players/players.repository.ts"
 import type { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
+import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
+import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 
 /**
  * Import side effect free express app creator.
@@ -34,12 +37,14 @@ export async function createApi({
   gameStatesRepository: GameStatesRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
+  starSystemsRepository: StarSystemsRepository
 }): Promise<Express> {
   const controllers = {
     gamesController: new GamesController(services),
     gameStatesController: new GameStatesController(services),
     playersController: new PlayersController(services),
     gamePlayerActionsController: new GamePlayerActionsController(services),
+    starSystemsController: new StarSystemsController(services),
   }
 
   const app = express()
@@ -64,6 +69,7 @@ function createTrpcRouter(services: {
   gamesController: GamesController
   gameStatesController: GameStatesController
   gamePlayerActionsController: GamePlayerActionsController
+  starSystemsController: StarSystemsController
   logger: Logger
 }) {
   const trpc = createTrpc()
@@ -73,6 +79,7 @@ function createTrpcRouter(services: {
     games: createGamesRouter(routerServices),
     gameStates: createGameStatesRouter(routerServices),
     gamePlayerActions: createGamePlayerActionsRouter(routerServices),
+    starSystems: createStarSystemsRouter(routerServices),
   })
 }
 

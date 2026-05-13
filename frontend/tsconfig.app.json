@@ -6,9 +6,9 @@
       "@api-types": ["../backend/src/api/types"]
     },
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "ES2023",
+    "target": "ESNext",
     "useDefineForClassFields": true,
-    "lib": ["ES2023", "DOM", "DOM.Iterable", "esnext.temporal"],
+    "lib": ["ESNext", "DOM"],
     "module": "ESNext",
     "types": ["vite/client"],
     "skipLibCheck": true,

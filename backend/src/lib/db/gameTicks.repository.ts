@@ -3,7 +3,7 @@ import { gamesTable, gameStatesTable, gameTicksTable } from "./schema.ts"
 import { and, eq, lte, isNull } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GameStateRow } from "#lib/db/gameStates.repository.ts"
-import type { GameRow } from "#lib/db/games.repository.ts"
+import type { GameRow } from "#lib/db/games/games.repository.ts"
 import { couldNot } from "#lib/errors.ts"
 
 export type GameTickRow = typeof gameTicksTable.$inferSelect

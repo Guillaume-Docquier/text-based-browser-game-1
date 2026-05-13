@@ -1,5 +1,5 @@
-import { PostgresRepository } from "./PostgresRepository.ts"
-import { gamePlayerResourcesTable, gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "./schema.ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { gamePlayerResourcesTable, gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "#lib/db/schema.ts"
 import { and, eq, getTableColumns } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
@@ -181,6 +181,28 @@ export class GamesRepository extends PostgresRepository {
     }
 
     return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
+  }
+
+  public async hasPlayerJoinedGame(
+    { gameId, playerId }: { gameId: number; playerId: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<boolean, string>> {
+    const joinedGameResult = await Result.tryCatch(async () => {
+      const rows = await db
+        .select({ playerId: gamePlayersTable.playerId })
+        .from(gamePlayersTable)
+        .where(and(eq(gamePlayersTable.gameId, gameId), eq(gamePlayersTable.playerId, playerId)))
+      Assert.isTrue(rows.length <= 1)
+
+      return rows.length === 1
+    })
+
+    if (Result.isFailure(joinedGameResult)) {
+      this.logger.error("Could not check if player joined game", { gameId, playerId, error: joinedGameResult.error })
+      return Result.Failure(couldNot("check if player joined game"))
+    }
+
+    return joinedGameResult
   }
 
   public async endWithWinner(

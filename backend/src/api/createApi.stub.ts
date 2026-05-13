@@ -4,12 +4,13 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 import type { IAuthService } from "#api/auth/auth.service.ts"
 import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { Logger } from "@guillaume-docquier/tools-ts"
-import { GamesRepository } from "#lib/db/games.repository.ts"
+import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { PlayersRepository } from "#lib/db/players.repository.ts"
+import { PlayersRepository } from "#lib/db/players/players.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
+import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 
 /**
  * Creates a real api with test dependencies.
@@ -35,5 +36,6 @@ export async function createApiStub({
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     playersRepository: new PlayersRepository({ db, logger }),
+    starSystemsRepository: new StarSystemsRepository({ db, logger }),
   })
 }

@@ -1,4 +1,28 @@
-import { integer, pgTable, uniqueIndex, varchar, timestamp, primaryKey, index, foreignKey } from "drizzle-orm/pg-core"
+import {
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core"
+import { BodyType } from "#lib/star-systems/BodyType.ts"
+
+/**
+ * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
+ * This is just type gymnastics
+ */
+function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>): [TEnumLike, ...TEnumLike[]] {
+  return Object.values(enumLike) as [TEnumLike, ...TEnumLike[]]
+}
+
+export const starSystemBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
 
 /**
  * All registered players.
@@ -135,5 +159,146 @@ export const gameTicksTable = pgTable(
       columns: [table.gameId, table.tick],
     }),
     index().on(table.scheduledFor),
+  ],
+)
+
+/**
+ * Static Star System data for a game.
+ */
+export const starSystemsTable = pgTable("star_systems", {
+  gameId: integer("game_id")
+    .primaryKey()
+    .references(() => gamesTable.id, { onDelete: "cascade" }),
+  generationSettings: jsonb("generation_settings").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+/**
+ * Star System orbits. Orbit numbers are the first coordinate segment.
+ */
+export const orbitsTable = pgTable(
+  "orbits",
+  {
+    id: uuid("id").primaryKey(),
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+    orbitNumber: integer("orbit_number").notNull(),
+  },
+  (table) => [
+    unique("orbits_game_id_id_unique").on(table.gameId, table.id),
+    unique("orbits_game_id_orbit_number_unique").on(table.gameId, table.orbitNumber),
+    index("orbits_game_id_idx").on(table.gameId),
+  ],
+)
+
+/**
+ * Sectors inside orbits. Sectors are movement targets.
+ */
+export const sectorsTable = pgTable(
+  "sectors",
+  {
+    id: uuid("id").primaryKey(),
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+    orbitId: uuid("orbit_id").notNull(),
+    sectorNumber: integer("sector_number").notNull(),
+    movementNodeId: uuid("movement_node_id").notNull(),
+  },
+  (table) => [
+    unique("sectors_game_id_id_unique").on(table.gameId, table.id),
+    unique("sectors_orbit_id_sector_number_unique").on(table.orbitId, table.sectorNumber),
+    unique("sectors_movement_node_id_unique").on(table.movementNodeId),
+    foreignKey({
+      columns: [table.gameId, table.orbitId],
+      foreignColumns: [orbitsTable.gameId, orbitsTable.id],
+      name: "sectors_game_id_orbit_id_orbits_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.movementNodeId],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id],
+      name: "sectors_game_id_movement_node_id_movement_nodes_fk",
+    }).onDelete("no action"),
+    index("sectors_game_id_orbit_id_idx").on(table.gameId, table.orbitId),
+  ],
+)
+
+/**
+ * Bodies inside sectors. Bodies are movement targets.
+ */
+export const bodiesTable = pgTable(
+  "bodies",
+  {
+    id: uuid("id").primaryKey(),
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+    sectorId: uuid("sector_id").notNull(),
+    bodyNumber: integer("body_number").notNull(),
+    bodyType: starSystemBodyTypeEnum("body_type").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    movementNodeId: uuid("movement_node_id").notNull(),
+  },
+  (table) => [
+    unique("bodies_game_id_id_unique").on(table.gameId, table.id),
+    unique("bodies_sector_id_body_number_unique").on(table.sectorId, table.bodyNumber),
+    unique("bodies_movement_node_id_unique").on(table.movementNodeId),
+    foreignKey({
+      columns: [table.gameId, table.sectorId],
+      foreignColumns: [sectorsTable.gameId, sectorsTable.id],
+      name: "bodies_game_id_sector_id_sectors_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.movementNodeId],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id],
+      name: "bodies_game_id_movement_node_id_movement_nodes_fk",
+    }).onDelete("no action"),
+    index("bodies_game_id_sector_id_idx").on(table.gameId, table.sectorId),
+  ],
+)
+
+/**
+ * Movement graph nodes for all concrete movement targets in a Star System.
+ */
+export const movementNodesTable = pgTable(
+  "movement_nodes",
+  {
+    id: uuid("id").primaryKey(),
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+  },
+  (table) => [unique("movement_nodes_game_id_id_unique").on(table.gameId, table.id), index("movement_nodes_game_id_idx").on(table.gameId)],
+)
+
+/**
+ * Directed movement graph edges. Undirected movement is stored as two directed rows.
+ */
+export const movementEdgesTable = pgTable(
+  "movement_edges",
+  {
+    gameId: integer("game_id")
+      .notNull()
+      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+    fromNodeId: uuid("from_node_id").notNull(),
+    toNodeId: uuid("to_node_id").notNull(),
+    weight: integer("weight").notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.gameId, table.fromNodeId, table.toNodeId],
+    }),
+    foreignKey({
+      columns: [table.gameId, table.fromNodeId],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id],
+      name: "movement_edges_game_id_from_node_id_movement_nodes_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.toNodeId],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id],
+      name: "movement_edges_game_id_to_node_id_movement_nodes_fk",
+    }).onDelete("cascade"),
+    index("movement_edges_game_id_from_node_id_idx").on(table.gameId, table.fromNodeId),
   ],
 )

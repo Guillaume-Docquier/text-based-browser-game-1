@@ -2,8 +2,8 @@ import { envSchema, parseEnv } from "#lib/parseEnv.ts"
 import { type NodePgDatabase } from "drizzle-orm/node-postgres"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { createApi } from "./createApi.ts"
-import { GamesRepository } from "#lib/db/games.repository.ts"
-import { PlayersRepository } from "#lib/db/players.repository.ts"
+import { GamesRepository } from "#lib/db/games/games.repository.ts"
+import { PlayersRepository } from "#lib/db/players/players.repository.ts"
 import { AuthService } from "./auth/auth.service.ts"
 import pRetry from "p-retry"
 import { Logger } from "@guillaume-docquier/tools-ts"
@@ -13,6 +13,7 @@ import { createDb } from "#lib/db/createDb.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
+import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -42,6 +43,7 @@ async function main(): Promise<void> {
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
+    starSystemsRepository: new StarSystemsRepository({ db, logger }),
   }
 
   const authService = new AuthService({ logger })

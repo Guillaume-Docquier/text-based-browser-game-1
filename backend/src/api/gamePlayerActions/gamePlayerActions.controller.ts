@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamePlayerActionsRepository, GamePlayerActionRow } from "#lib/db/gamePlayerActions.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import type { GamesRepository } from "#lib/db/games.repository.ts"
+import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { GAME_PLAYER_ACTION_RULES, type GamePlayerActionType, type GamePlayerAction } from "#lib/gamePlayerActions.ts"
 
 export class GamePlayerActionsController {
