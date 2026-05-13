@@ -113,12 +113,6 @@ type StarSystemAggregatedRows = {
   movementEdges: MovementEdgeRow[]
 }
 
-function createWithGameId(
-  gameId: NewStarSystem["gameId"],
-): <T extends Record<string, unknown>>(data: T) => T & Pick<NewStarSystem, "gameId"> {
-  return (data) => ({ ...data, gameId })
-}
-
 export class StarSystemsRepository extends PostgresRepository {
   private readonly logger: Logger
 
@@ -247,6 +241,12 @@ function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSy
     })),
     movementEdges: toMovementEdgesByFromNodeId(starSystemRows.movementEdges),
   }
+}
+
+function createWithGameId(
+  gameId: NewStarSystem["gameId"],
+): <T extends Record<string, unknown>>(data: T) => T & Pick<NewStarSystem, "gameId"> {
+  return (data) => ({ ...data, gameId })
 }
 
 function toMovementEdgesByFromNodeId(edges: MovementEdgeRow[]): StarSystemReadModel["movementEdges"] {
