@@ -1,5 +1,5 @@
-import { PostgresRepository } from "./PostgresRepository.ts"
-import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "./schema.ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"

@@ -17,7 +17,7 @@ import type { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.
 import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
-import type { StarSystemsRepository } from "#lib/db/starSystems.repository.ts"
+import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 

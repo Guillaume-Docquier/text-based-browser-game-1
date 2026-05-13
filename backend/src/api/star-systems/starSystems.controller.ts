@@ -15,7 +15,7 @@ import type {
   StarSystemReadModel as StarSystemReadModelType,
   NewStarSystem as StarSystemWriteModelType,
   StarSystemReadModel,
-} from "#lib/db/starSystems.repository.ts"
+} from "#lib/db/star-systems/starSystems.repository.ts"
 import z from "zod"
 import type { IntegerRange, IntegerRange as StarSystemGenerationRangeWriteModelType } from "#lib/Range.ts"
 import { notAuthorized } from "#lib/errors.ts"

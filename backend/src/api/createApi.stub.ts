@@ -10,7 +10,7 @@ import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repos
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { PlayersRepository } from "#lib/db/players.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { StarSystemsRepository } from "#lib/db/starSystems.repository.ts"
+import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 
 /**
  * Creates a real api with test dependencies.

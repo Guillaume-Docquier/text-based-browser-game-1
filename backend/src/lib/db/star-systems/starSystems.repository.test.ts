@@ -13,9 +13,10 @@ import {
   sectorsTable,
   starSystemsTable,
 } from "#lib/db/schema.ts"
-import { type NewStarSystem, StarSystemsRepository } from "#lib/db/starSystems.repository.ts"
+import { type NewStarSystem, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createPlayer } from "#tests/createPlayer.ts"
+import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 
 describe("starSystems.repository", () => {
   describe("create", () => {
@@ -46,7 +47,7 @@ describe("starSystems.repository", () => {
       expect(createStarSystemResult).toEqual(Result.Success(true))
       expect
         .soft(await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, game.id)))
-        .toEqual([{ gameId: game.id, generationSettings: system.generationSettings }])
+        .toEqual([{ createdAt: expect.any(Date), gameId: game.id, generationSettings: system.generationSettings }])
       expect
         .soft(await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, game.id)))
         .toEqual([{ ...system.orbits[0], gameId: game.id }])
@@ -136,7 +137,7 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
 
   return {
     gameId,
-    generationSettings: createStarSystemGenerationSettings(),
+    generationSettings: createStarSystemGenerationSettingsStub(),
     movementNodes: [{ id: sectorMovementNodeId }, { id: planetMovementNodeId }, { id: moonMovementNodeId }],
     orbits: [{ id: orbitId, orbitNumber: 1 }],
     sectors: [
@@ -178,7 +179,7 @@ function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSyst
 
   return {
     gameId,
-    generationSettings: createStarSystemGenerationSettings(),
+    generationSettings: createStarSystemGenerationSettingsStub(),
     movementNodes: [{ id: sectorMovementNodeId }, { id: bodyMovementNodeId }],
     orbits: [{ id: orbitId, orbitNumber: 1 }],
     sectors: [
@@ -200,16 +201,5 @@ function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSyst
       },
     ],
     movementEdges: [],
-  }
-}
-
-function createStarSystemGenerationSettings(): NewStarSystem["generationSettings"] {
-  return {
-    planetDensity: { min: 0.5, max: 0.5 },
-    nbPlanets: { min: 1, max: 1 },
-    nbMoonsPerPlanet: { min: 0, max: 0 },
-    nbAsteroidBelts: { min: 0, max: 0 },
-    nbAsteroidsPerSector: { min: 0, max: 0 },
-    seed: 1234,
   }
 }
