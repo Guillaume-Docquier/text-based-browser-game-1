@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { SignIn } from "@clerk/react"
 import { z } from "zod"
-import { AuthPageShell } from "../components/AuthPageShell.tsx"
+import { AuthPageShell } from "../components/app/AuthPageShell.tsx"
 
 const RedirectSchema = z.object({
   redirect: z.string().default("/games"),
 })
 
-export const Route = createFileRoute("/sign-in")({
+export const Route = createFileRoute("/_app/sign-in")({
   component: SignInComponent,
   validateSearch: RedirectSchema,
 })

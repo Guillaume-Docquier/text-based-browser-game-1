@@ -1,7 +1,7 @@
 import type { ReactElement } from "react"
 import type { GameSummaryStatus } from "@api-types"
-import { Badge } from "./ui/badge.tsx"
-import { formatGameSummaryStatus } from "../lib/formatGameSummaryStatus.ts"
+import { Badge } from "../ui/badge.tsx"
+import { formatGameSummaryStatus } from "../../lib/formatGameSummaryStatus.ts"
 
 export function GameStatusBadge({ status }: { status: GameSummaryStatus }): ReactElement {
   if (status === "READY_TO_START") {

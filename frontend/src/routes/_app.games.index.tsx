@@ -3,17 +3,17 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { Search } from "lucide-react"
 import type * as ApiTypes from "@api-types"
-import { GameStatusBadge } from "../components/GameStatusBadge.tsx"
-import { PageHeader } from "../components/PageHeader.tsx"
+import { GameStatusBadge } from "../components/play/GameStatusBadge.tsx"
+import { PageHeader } from "../components/app/PageHeader.tsx"
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert.tsx"
 import { Button } from "../components/ui/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.tsx"
 import { Input } from "../components/ui/input.tsx"
 import { Skeleton } from "../components/ui/skeleton.tsx"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
-import { timeAgo } from "../timeAgo.ts"
+import { timeAgo } from "../lib/timeAgo.ts"
 
-export const Route = createFileRoute("/games/")({
+export const Route = createFileRoute("/_app/games/")({
   component: Games,
 })
 

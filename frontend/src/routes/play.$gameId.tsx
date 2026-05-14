@@ -1,80 +1,40 @@
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { createFileRoute, Navigate, redirect } from "@tanstack/react-router"
-import { AlertTriangle, CheckCircle2, Clock3, Coins, Crown, TimerReset } from "lucide-react"
-import { type ReactElement, useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { createFileRoute, Navigate, Outlet, redirect } from "@tanstack/react-router"
+import type { ReactElement } from "react"
 import { z } from "zod"
-import type * as ApiTypes from "@api-types"
-import { GameStatusBadge } from "../components/GameStatusBadge.tsx"
-import { PageHeader } from "../components/PageHeader.tsx"
-import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert.tsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.tsx"
-import { Skeleton } from "../components/ui/skeleton.tsx"
+import { GameLayout, GameLayoutSkeleton } from "../components/play/GameLayout.tsx"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useLogger } from "../contexts/LoggerContext.tsx"
+import { PlayGameContextProvider, type PlayGameContextValue } from "../contexts/PlayGameContext.tsx"
 import { privateRoute } from "../privateRoute.ts"
-import { cn } from "../lib/cn.ts"
-import { Assert } from "@guillaume-docquier/tools-ts"
-
-type PlayGameState = {
-  tick: number
-  nextTickAt: string | Date
-  resources: {
-    money: number
-  }
-}
-
-const PLAYER_ACTIONS = [
-  {
-    actionType: "MAKE_MORE_MONEY",
-    label: "Make More Money",
-    description: "Turn 2 money into 5 extra money after the normal tick income.",
-    costMoney: 2,
-    rewardMoney: 5,
-  },
-  {
-    actionType: "WIN_THE_GAME",
-    label: "Win The Game",
-    description: "Spend 10 money and immediately end the game in your favor.",
-    costMoney: 10,
-    rewardMoney: 0,
-  },
-] as const satisfies Array<{
-  actionType: ApiTypes.GamePlayerAction["actionType"]
-  label: string
-  description: string
-  costMoney: number
-  rewardMoney: number
-}>
 
 const paramsSchema = z.object({
   gameId: z.coerce.number(),
 })
 
 export const Route = createFileRoute("/play/$gameId")({
-  component: GameClient,
+  component: PlayGameLayout,
   beforeLoad: privateRoute,
   params: {
     parse: (params) => paramsSchema.parse(params),
   },
   onError: (error) => {
     if (error?.routerCode === "PARSE_PARAMS") {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- This how tanstack works
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- That's how tanstack works
       throw redirect({ to: "/" })
     }
   },
 })
 
-function GameClient(): ReactElement {
+function PlayGameLayout(): ReactElement {
   const logger = useLogger()
   const { gameId } = Route.useParams()
   const backendApiClient = useBackendApiClient()
   const gameQuery = useQuery(backendApiClient.games.getSummaryById.queryOptions({ gameId }))
   const gameStateQuery = useQuery(backendApiClient.gameStates.getById.queryOptions({ gameId }))
-  const currentActionQuery = useQuery(backendApiClient.gamePlayerActions.getCurrentAction.queryOptions({ gameId }))
-  const setCurrentAction = useMutation(backendApiClient.gamePlayerActions.setCurrentAction.mutationOptions())
 
-  if (gameQuery.isPending || gameStateQuery.isPending || currentActionQuery.isPending) {
-    return <GameClientSkeleton />
+  if (gameQuery.isPending || gameStateQuery.isPending) {
+    return <GameLayoutSkeleton />
   }
 
   if (gameQuery.isError) {
@@ -87,216 +47,16 @@ function GameClient(): ReactElement {
     return <Navigate to="/games" />
   }
 
-  if (currentActionQuery.isError) {
-    logger.error("Could not fetch current action", { gameId, error: currentActionQuery.error.message })
-    return <Navigate to="/games" />
-  }
-
-  const game = gameQuery.data.game
-  const gameState = (gameStateQuery.data as { gameState: PlayGameState }).gameState
-  const currentAction = currentActionQuery.data.action
-
-  return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-      <PageHeader
-        title={game.name}
-        description={`Game #${gameId}. Track the current tick, watch the countdown, and lock in your action for tick ${gameState.tick}.`}
-        actions={<GameStatusBadge status={game.status} />}
-      />
-
-      {game.winnerPlayerId !== null ? (
-        <Alert className="border-emerald-400/30 bg-emerald-500/10 text-emerald-50">
-          <Crown className="size-4" />
-          <AlertTitle>{getWinnerLabel(game)} has won the game!</AlertTitle>
-        </Alert>
-      ) : null}
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <MetricCard title="Current tick" value={gameState.tick.toString()} icon={<TimerReset className="size-5 text-primary" />} />
-        <MetricCard title="Money" value={gameState.resources.money.toString()} icon={<Coins className="size-5 text-primary" />} />
-        <CountdownCard targetTimestamp={gameState.nextTickAt} />
-      </section>
-
-      <Card className="border border-border/70 bg-card/95">
-        <CardHeader>
-          <CardTitle>Choose your action</CardTitle>
-          <CardDescription>Your selection applies to tick {gameState.tick} only. Click again to clear the current choice.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            {PLAYER_ACTIONS.map((action) => {
-              const isSelected = currentAction?.actionType === action.actionType
-              const disabledReason = gameState.resources.money < action.costMoney ? `Requires ${action.costMoney} money.` : undefined
-              const canSubmitAction = disabledReason === undefined && !setCurrentAction.isPending
-
-              return (
-                <Card
-                  key={action.actionType}
-                  className={cn("border transition-colors", {
-                    "border-primary/50 bg-primary/5": isSelected,
-                    "border-border/60": !isSelected,
-                    "hover:bg-muted/30 cursor-pointer": canSubmitAction,
-                    "opacity-80 cursor-not-allowed": !canSubmitAction,
-                  })}
-                  onClick={() => {
-                    setCurrentAction.mutate({
-                      gameId,
-                      tick: gameState.tick,
-                      actionType: isSelected ? null : action.actionType,
-                    })
-                  }}
-                >
-                  <CardHeader className="gap-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1">
-                        <CardTitle className="text-lg">{action.label}</CardTitle>
-                        <CardDescription>{action.description}</CardDescription>
-                      </div>
-                      {isSelected ? <CheckCircle2 className="size-5 text-primary" /> : null}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    <div className="text-sm text-muted-foreground">
-                      Cost: {action.costMoney} money
-                      {action.rewardMoney > 0
-                        ? ` | Effect: +${action.rewardMoney} money after paying the cost`
-                        : " | Effect: End the game immediately"}
-                    </div>
-                    {disabledReason !== undefined ? (
-                      <Alert variant="destructive">
-                        <AlertTriangle className="size-4" />
-                        <AlertTitle>Unavailable</AlertTitle>
-                        <AlertDescription>{disabledReason}</AlertDescription>
-                      </Alert>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-
-          {setCurrentAction.isError ? (
-            <Alert variant="destructive">
-              <AlertTriangle className="size-4" />
-              <AlertTitle>Could not update action</AlertTitle>
-              <AlertDescription>{setCurrentAction.error.message}</AlertDescription>
-            </Alert>
-          ) : null}
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function CountdownCard({ targetTimestamp }: { targetTimestamp: string | Date }): ReactElement {
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft({ past: new Date(), future: new Date(targetTimestamp) }))
-
-  useEffect(() => {
-    const future = new Date(targetTimestamp)
-    const interval = setInterval(() => {
-      setTimeLeft(calculateTimeLeft({ past: new Date(), future }))
-    }, 1000)
-
-    return (): void => {
-      clearInterval(interval)
-    }
-  }, [targetTimestamp])
-
-  if (timeLeft.noTimeLeft) {
-    return (
-      <Card className="border border-amber-400/30 bg-amber-500/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock3 className="size-5 text-amber-200" />
-            This tick is over
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert className="border-amber-400/30 bg-transparent text-amber-50">
-            <AlertTriangle className="size-4" />
-            <AlertTitle>Tick is over, refresh the page!</AlertTitle>
-          </Alert>
-        </CardContent>
-      </Card>
-    )
+  const context: PlayGameContextValue = {
+    game: gameQuery.data.game,
+    gameState: gameStateQuery.data.gameState,
   }
 
   return (
-    <MetricCard
-      title="Next tick in"
-      value={`${timeLeft.duration.days}d ${timeLeft.duration.hours}h ${timeLeft.duration.minutes}m ${timeLeft.duration.seconds}s`}
-      icon={<Clock3 className="size-5 text-primary" />}
-    />
+    <PlayGameContextProvider value={context}>
+      <GameLayout game={context.game} gameState={context.gameState}>
+        <Outlet />
+      </GameLayout>
+    </PlayGameContextProvider>
   )
-}
-
-function MetricCard({
-  title,
-  description,
-  value,
-  icon,
-}: {
-  title: string
-  description?: string
-  value: string
-  icon: ReactElement
-}): ReactElement {
-  return (
-    <Card className="border border-border/70 bg-card/95">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <CardTitle>{title}</CardTitle>
-            {description !== undefined && <CardDescription>{description}</CardDescription>}
-          </div>
-          <div className="rounded-full border border-border/70 bg-muted/70 p-2">{icon}</div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="font-heading text-3xl font-semibold tracking-tight text-foreground">{value}</p>
-      </CardContent>
-    </Card>
-  )
-}
-
-function GameClientSkeleton(): ReactElement {
-  return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-      <div className="space-y-3">
-        <Skeleton className="h-10 w-56" />
-        <Skeleton className="h-5 w-full max-w-2xl" />
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Skeleton className="h-44 rounded-4xl" />
-        <Skeleton className="h-44 rounded-4xl" />
-        <Skeleton className="h-44 rounded-4xl" />
-      </div>
-      <Skeleton className="h-72 rounded-4xl" />
-      <Skeleton className="h-32 rounded-4xl" />
-    </div>
-  )
-}
-
-function getWinnerLabel(game: ApiTypes.GameSummary): string {
-  const winner = game.players.find((player) => player.id === game.winnerPlayerId)
-  Assert.isDefined(winner)
-
-  return winner.alias ?? `Player ${winner.id}`
-}
-
-type TimeLeft = {
-  noTimeLeft: boolean
-  duration: Temporal.Duration
-}
-
-function calculateTimeLeft(config: { past: Date; future: Date }): TimeLeft {
-  const past = Temporal.Instant.fromEpochMilliseconds(config.past.getTime())
-  const future = Temporal.Instant.fromEpochMilliseconds(config.future.getTime())
-
-  const duration = past.until(future).round({ largestUnit: "days" })
-
-  return {
-    noTimeLeft: duration.total("seconds") <= 0,
-    duration,
-  }
 }
