@@ -1,10 +1,11 @@
+import { Logger, type Success } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
+import { PlayersRepository, type PlayerRow } from "#lib/db/players/players.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
-import { createPlayer } from "#tests/createPlayer.ts"
 import { GameSummaryStatus } from "#api/games/games.controller.ts"
 
 describe("games.router", () => {
@@ -12,7 +13,8 @@ describe("games.router", () => {
     it("should create a game for the authenticated player", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
@@ -61,7 +63,8 @@ describe("games.router", () => {
     it("should get summaries anonymously", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
@@ -114,11 +117,11 @@ describe("games.router", () => {
     it("should get summaries for an authenticated player who can join", async () => {
       // Arrange
       const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const creator = ((await playersRepository.insert(createPlayerRowInsertStub({ alias: "Creator" })) as Success<PlayerRow>).value)
+      const player = ((await playersRepository.insert(
         createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
+      )) as Success<PlayerRow>).value
 
       const authService = new AuthServiceMock({ player: creator })
       const api = await createApiStub({ db, authService })
@@ -173,11 +176,11 @@ describe("games.router", () => {
     it("should get a summary by id when authenticated", async () => {
       // Arrange
       const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const creator = ((await playersRepository.insert(createPlayerRowInsertStub({ alias: "Creator" })) as Success<PlayerRow>).value)
+      const player = ((await playersRepository.insert(
         createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
+      )) as Success<PlayerRow>).value
 
       const authService = new AuthServiceMock({ player: creator })
       const api = await createApiStub({ db, authService })
@@ -228,7 +231,8 @@ describe("games.router", () => {
     it("should get a summary by id anonymously", async () => {
       // Arrange
       const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const creator = ((await playersRepository.insert(createPlayerRowInsertStub({ alias: "Creator" })) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player: creator })
       const api = await createApiStub({ db, authService })
@@ -292,11 +296,11 @@ describe("games.router", () => {
     it("should join a game", async () => {
       // Arrange
       const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const creator = ((await playersRepository.insert(createPlayerRowInsertStub({ alias: "Creator" })) as Success<PlayerRow>).value)
+      const player = ((await playersRepository.insert(
         createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
+      )) as Success<PlayerRow>).value
 
       const authService = new AuthServiceMock({ player: creator })
       const api = await createApiStub({ db, authService })
@@ -351,7 +355,8 @@ describe("games.router", () => {
     it("should reject joining a game the player is already in", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
@@ -387,11 +392,11 @@ describe("games.router", () => {
     it("should leave a game", async () => {
       // Arrange
       const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const creator = ((await playersRepository.insert(createPlayerRowInsertStub({ alias: "Creator" })) as Success<PlayerRow>).value)
+      const player = ((await playersRepository.insert(
         createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
+      )) as Success<PlayerRow>).value
 
       const authService = new AuthServiceMock({ player: creator })
       const api = await createApiStub({ db, authService })
@@ -443,7 +448,8 @@ describe("games.router", () => {
     it("should reject leaving a game as its creator", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
@@ -479,7 +485,8 @@ describe("games.router", () => {
     it("should start a game", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
@@ -528,11 +535,11 @@ describe("games.router", () => {
     it("should reject starting a game as a non-creator", async () => {
       // Arrange
       const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const creator = ((await playersRepository.insert(createPlayerRowInsertStub({ alias: "Creator" })) as Success<PlayerRow>).value)
+      const player = ((await playersRepository.insert(
         createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
+      )) as Success<PlayerRow>).value
 
       const authService = new AuthServiceMock({ player: creator })
       const api = await createApiStub({ db, authService })

@@ -1,17 +1,19 @@
+import { Logger, type Success } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
+import { PlayersRepository, type PlayerRow } from "#lib/db/players/players.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
-import { createPlayer } from "#tests/createPlayer.ts"
 
 describe("gameStates.router", () => {
   describe("getById", () => {
     it("should get the authenticated player's state for a started game", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
@@ -47,7 +49,8 @@ describe("gameStates.router", () => {
     it("should reject invalid game ids", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })

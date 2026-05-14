@@ -4,10 +4,10 @@ import { randomUUID } from "node:crypto"
 import { Result, Logger, type Success } from "@guillaume-docquier/tools-ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
+import { PlayersRepository, type PlayerRow } from "#lib/db/players/players.repository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { type NewStarSystem, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
-import { createPlayer } from "#tests/createPlayer.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { type GameRow, GamesRepository } from "#lib/db/games/games.repository.ts"
 import { createGameRowInsertStub } from "#lib/db/games/GameRowInsert.stub.ts"
@@ -17,12 +17,13 @@ describe("starSystems.repository", () => {
     it("should create a Star System with bodies and movement edges", async () => {
       // Arrange
       const db = await createDbMock()
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
       const logger = Logger.get()
 
       const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
 
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
       const createGameResult = (await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id }))) as Success<GameRow>
       const game = createGameResult.value
 
@@ -56,12 +57,13 @@ describe("starSystems.repository", () => {
     it("should fail one request when creating two star systems concurrently for the same game", async () => {
       // Arrange
       const db = await createDbMock()
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
       const logger = Logger.get()
 
       const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
 
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
       const createGameResult = (await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id }))) as Success<GameRow>
       const game = createGameResult.value
 
@@ -78,12 +80,13 @@ describe("starSystems.repository", () => {
     it("should rollback the full Star System when one child row is incoherent", async () => {
       // Arrange
       const db = await createDbMock()
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
       const logger = Logger.get()
 
       const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
 
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
       const createGameResult = (await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id }))) as Success<GameRow>
       const game = createGameResult.value
 

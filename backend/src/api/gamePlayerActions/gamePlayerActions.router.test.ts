@@ -1,20 +1,22 @@
 import { describe, expect, it } from "vitest"
-import { eq } from "drizzle-orm"
+import { Logger, Result, type Success } from "@guillaume-docquier/tools-ts"
 import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
-import { gamePlayerResourcesTable } from "#lib/db/schema.ts"
+import { PlayersRepository, type PlayerRow } from "#lib/db/players/players.repository.ts"
+import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
 import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
+import { createGamePlayerResourceUpdateStub } from "#lib/db/gamePlayerResourceUpdate.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
-import { createPlayer } from "#tests/createPlayer.ts"
 
 describe("gamePlayerActions.router", () => {
   describe("setCurrentAction", () => {
     it("should set the current action for the authenticated player", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
@@ -28,7 +30,11 @@ describe("gamePlayerActions.router", () => {
         },
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
-      await db.update(gamePlayerResourcesTable).set({ amount: 2 }).where(eq(gamePlayerResourcesTable.playerId, player.id))
+      const gamePlayerResourcesRepository = new GamePlayerResourcesRepository({ db, logger: Logger.get() })
+      const addResourceResult = await gamePlayerResourcesRepository.updateResource(
+        createGamePlayerResourceUpdateStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),
+      )
+      expect(Result.isSuccess(addResourceResult)).toBe(true)
 
       // Act
       const setCurrentActionResult = await trpcClient.client.gamePlayerActions.setCurrentAction.mutate({
@@ -56,7 +62,8 @@ describe("gamePlayerActions.router", () => {
     it("should reject setting an action for a stale tick", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
@@ -88,7 +95,8 @@ describe("gamePlayerActions.router", () => {
     it("should get the current action for the authenticated player", async () => {
       // Arrange
       const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
+      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
+      const player = ((await playersRepository.insert(createPlayerRowInsertStub()) as Success<PlayerRow>).value)
 
       const authService = new AuthServiceMock({ player })
       const api = await createApiStub({ db, authService })
@@ -102,7 +110,11 @@ describe("gamePlayerActions.router", () => {
         },
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
-      await db.update(gamePlayerResourcesTable).set({ amount: 2 }).where(eq(gamePlayerResourcesTable.playerId, player.id))
+      const gamePlayerResourcesRepository = new GamePlayerResourcesRepository({ db, logger: Logger.get() })
+      const addResourceResult = await gamePlayerResourcesRepository.updateResource(
+        createGamePlayerResourceUpdateStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),
+      )
+      expect(Result.isSuccess(addResourceResult)).toBe(true)
 
       // Act
       const getCurrentActionResult = await trpcClient.client.gamePlayerActions.getCurrentAction.query({
