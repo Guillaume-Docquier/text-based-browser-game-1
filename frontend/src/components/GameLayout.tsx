@@ -28,15 +28,21 @@ export function GameLayout({
 export function GameLayoutSkeleton(): ReactElement {
   return (
     <div className="flex min-h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
-      <aside className="border-b border-border/70 p-4 lg:w-56 lg:border-r lg:border-b-0">
-        <Skeleton className="mb-5 h-5 w-28" />
-        <div className="flex gap-2 lg:flex-col">
+      <aside className="border-b border-border/70 bg-card/40 lg:w-56 lg:border-r lg:border-b-0">
+        <div className="flex min-h-24 items-center gap-3 border-b border-border/70 px-3 py-4 lg:px-4">
+          <Skeleton className="h-10 w-10 rounded-2xl" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-32 max-w-full" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </div>
+        <div className="flex gap-2 p-3 lg:flex-col lg:p-4">
           <Skeleton className="h-10 w-32 lg:w-full" />
           <Skeleton className="h-10 w-32 lg:w-full" />
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="border-b border-border/70 px-4 py-4 sm:px-6">
+        <div className="flex min-h-24 flex-col justify-center border-b border-border/70 px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="space-y-2">
               <Skeleton className="h-4 w-20" />
