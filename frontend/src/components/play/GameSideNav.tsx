@@ -1,7 +1,19 @@
 import { Link } from "@tanstack/react-router"
-import { ListChecks, Map } from "lucide-react"
+import { ListChecks, Map, type LucideIcon } from "lucide-react"
 import type { ReactElement } from "react"
+import type { FileRouteTypes } from "../../routeTree.gen"
 import logo from "../../assets/logo.png"
+
+type GameSideNavLink = {
+  to: Extract<FileRouteTypes["to"], `/play/$gameId${string}`>
+  Icon: LucideIcon
+  label: string
+}
+
+const gameSideNavLinks: readonly GameSideNavLink[] = [
+  { to: "/play/$gameId/star-system", Icon: Map, label: "Star System" },
+  { to: "/play/$gameId/actions", Icon: ListChecks, label: "Actions" },
+]
 
 export function GameSideNav({ gameId }: { gameId: number }): ReactElement {
   const linkClassName =
@@ -23,14 +35,12 @@ export function GameSideNav({ gameId }: { gameId: number }): ReactElement {
       </Link>
       <nav className="flex gap-2 overflow-x-auto p-3 lg:flex-col lg:overflow-visible lg:p-4" aria-label="Game navigation">
         <div className="mb-1 hidden text-xs font-medium text-muted-foreground uppercase lg:block">Play</div>
-        <Link to="/play/$gameId/star-system" params={{ gameId }} className={linkClassName} activeProps={{ className: activeClassName }}>
-          <Map className="size-4" />
-          Star System
-        </Link>
-        <Link to="/play/$gameId/actions" params={{ gameId }} className={linkClassName} activeProps={{ className: activeClassName }}>
-          <ListChecks className="size-4" />
-          Actions
-        </Link>
+        {gameSideNavLinks.map(({ to, Icon, label }) => (
+          <Link key={to} to={to} params={{ gameId }} className={linkClassName} activeProps={{ className: activeClassName }}>
+            <Icon className="size-4" />
+            {label}
+          </Link>
+        ))}
       </nav>
     </aside>
   )
