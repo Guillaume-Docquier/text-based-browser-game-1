@@ -1,9 +1,9 @@
 import type { ReactElement, ReactNode } from "react"
 import type * as ApiTypes from "@api-types"
-import type { PlayGameState } from "../contexts/PlayGameContext.tsx"
+import type { PlayGameState } from "../../contexts/PlayGameContext.tsx"
 import { GameSideNav } from "./GameSideNav.tsx"
 import { GameTopBar } from "./GameTopBar.tsx"
-import { Skeleton } from "./ui/skeleton.tsx"
+import { Skeleton } from "../ui/skeleton.tsx"
 
 export function GameLayout({
   game,

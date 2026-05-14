@@ -3,8 +3,8 @@ import { createFileRoute, Navigate, redirect, useNavigate } from "@tanstack/reac
 import type { ReactElement } from "react"
 import { z } from "zod"
 import type * as ApiTypes from "@api-types"
-import { GameStatusBadge } from "../components/GameStatusBadge.tsx"
-import { PageHeader } from "../components/PageHeader.tsx"
+import { GameStatusBadge } from "../components/play/GameStatusBadge.tsx"
+import { PageHeader } from "../components/app/PageHeader.tsx"
 import { Button } from "../components/ui/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.tsx"
 import { Separator } from "../components/ui/separator.tsx"
@@ -12,7 +12,7 @@ import { Skeleton } from "../components/ui/skeleton.tsx"
 import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
 import { useLogger } from "../contexts/LoggerContext.tsx"
 import { formatGameSummaryStatus } from "../lib/formatGameSummaryStatus.ts"
-import { timeAgo } from "../timeAgo.ts"
+import { timeAgo } from "../lib/timeAgo.ts"
 
 const paramsSchema = z.object({
   gameId: z.coerce.number(),

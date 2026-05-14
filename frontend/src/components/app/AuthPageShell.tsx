@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card.tsx"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card.tsx"
 
 interface AuthPageShellProps {
   title: string

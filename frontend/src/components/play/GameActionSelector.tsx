@@ -2,12 +2,12 @@ import { useMutation } from "@tanstack/react-query"
 import { AlertTriangle, CheckCircle2, Coins } from "lucide-react"
 import type { KeyboardEvent, ReactElement } from "react"
 import type * as ApiTypes from "@api-types"
-import type { PlayGameState } from "../contexts/PlayGameContext.tsx"
-import { useBackendApiClient } from "../contexts/BackendApiClientContext.tsx"
-import { cn } from "../lib/cn.ts"
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert.tsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card.tsx"
-import { Skeleton } from "./ui/skeleton.tsx"
+import type { PlayGameState } from "../../contexts/PlayGameContext.tsx"
+import { useBackendApiClient } from "../../contexts/BackendApiClientContext.tsx"
+import { cn } from "../../lib/cn.ts"
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert.tsx"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card.tsx"
+import { Skeleton } from "../ui/skeleton.tsx"
 
 const PLAYER_ACTIONS = [
   {

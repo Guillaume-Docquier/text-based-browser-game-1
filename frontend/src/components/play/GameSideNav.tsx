@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { ListChecks, Map } from "lucide-react"
 import type { ReactElement } from "react"
-import logo from "../assets/logo.png"
+import logo from "../../assets/logo.png"
 
 export function GameSideNav({ gameId }: { gameId: number }): ReactElement {
   const linkClassName =
