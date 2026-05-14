@@ -1,11 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router"
-import type { ReactElement } from "react"
-import { GameStarMap } from "../components/GameStarMap.tsx"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/play/$gameId/")({
-  component: PlayGameIndex,
+  beforeLoad: ({ params }) => {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error -- That's how tanstack works
+    throw redirect({ to: "/play/$gameId/star-system", params, replace: true })
+  },
 })
-
-function PlayGameIndex(): ReactElement {
-  return <GameStarMap />
-}
