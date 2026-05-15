@@ -17,7 +17,7 @@ describe("starSystems.router", () => {
       const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
+      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
       const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
@@ -119,8 +119,8 @@ describe("starSystems.router", () => {
       const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub({ alias: "Creator" })))
-      const outsider = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub({ alias: "Outsider" })))
+      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
+      const outsider = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Outsider" })))
       authService.player = creator
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
@@ -138,7 +138,7 @@ describe("starSystems.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
+      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
 

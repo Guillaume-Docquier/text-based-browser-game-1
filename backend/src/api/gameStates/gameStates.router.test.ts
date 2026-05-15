@@ -11,7 +11,7 @@ describe("gameStates.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
       authService.player = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -47,7 +47,7 @@ describe("gameStates.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
+      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
       // Act & Assert
       await expect(trpcClient.client.gameStates.getById.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({

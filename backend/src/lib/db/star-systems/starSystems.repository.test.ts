@@ -24,7 +24,7 @@ describe("starSystems.repository", () => {
       const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
 
-      const player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
       const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id })))
 
       const system = createCoherentStarSystem({ gameId: game.id })
@@ -63,7 +63,7 @@ describe("starSystems.repository", () => {
       const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
 
-      const player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
       const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id })))
 
       const system1 = createCoherentStarSystem({ gameId: game.id })
@@ -85,7 +85,7 @@ describe("starSystems.repository", () => {
       const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
 
-      const player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
       const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id })))
 
       const system = createIncoherentStarSystem({ gameId: game.id })
