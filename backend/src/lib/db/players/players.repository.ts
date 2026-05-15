@@ -16,11 +16,11 @@ export class PlayersRepository extends PostgresRepository {
   }
 
   /**
-   * Inserts a new player and returns the created player with its generated id.
-   * If the insert fails, a Failure is return with a description.
+   * Creates a new player and returns the created player with its generated id.
+   * If the creation fails, a Failure is returned with a reason.
    */
-  public async insert(newPlayer: PlayerRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerRow, string>> {
-    const insertResult = await Result.tryCatch(async () => {
+  public async create(newPlayer: PlayerRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerRow, string>> {
+    const createPlayerResult = await Result.tryCatch(async () => {
       const players = await db
         .insert(playersTable)
         .values({
@@ -34,12 +34,12 @@ export class PlayersRepository extends PostgresRepository {
       return players[0]
     })
 
-    if (Result.isFailure(insertResult)) {
-      this.logger.error("Could not insert player", { newPlayer, error: insertResult.error })
-      return Result.Failure(couldNot("insert player"))
+    if (Result.isFailure(createPlayerResult)) {
+      this.logger.error("Could not create player", { newPlayer, error: createPlayerResult.error })
+      return Result.Failure(couldNot("create player"))
     }
 
-    return insertResult
+    return createPlayerResult
   }
 
   /**

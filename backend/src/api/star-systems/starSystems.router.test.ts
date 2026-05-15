@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
-import { type NewStarSystem, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { type NewStarSystem, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
-import { createPlayer } from "#tests/createPlayer.ts"
-import { Logger, Result } from "@guillaume-docquier/tools-ts"
+import { extractSuccess } from "#tests/extractSuccess.ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { randomUUID } from "node:crypto"
 import { createGameRowInsertStub } from "#lib/db/games/GameRowInsert.stub.ts"
@@ -16,15 +14,13 @@ describe("starSystems.router", () => {
   describe("getSystem", () => {
     it("should get the full stored system for an authenticated player in the game", async () => {
       // Arrange
-      const db = await createDbMock()
-      const logger = Logger.get()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService, logger })
+      const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
+      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
-      const starSystem = await createStoredStarSystem({ db, logger, gameId: createGameResult.newGame.id })
+      const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
 
       // Act
       const getStarSystemResponse = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
@@ -109,7 +105,7 @@ describe("starSystems.router", () => {
 
     it("should reject anonymous reads", async () => {
       // Arrange
-      const api = await createApiStub()
+      const { api } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
@@ -120,16 +116,15 @@ describe("starSystems.router", () => {
 
     it("should reject a player who is authenticated but not in the game", async () => {
       // Arrange
-      const db = await createDbMock()
-      const logger = Logger.get()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const outsider = await createPlayer(db, createPlayerRowInsertStub({ alias: "Outsider" }))
-      const authService = new AuthServiceMock({ player: creator })
-      const api = await createApiStub({ db, authService, logger })
+      const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
+      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
+      const outsider = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Outsider" })))
+      authService.player = creator
+
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
-      await createStoredStarSystem({ db, logger, gameId: createGameResult.newGame.id })
+      await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
       authService.player = outsider
 
       // Act & Assert
@@ -140,11 +135,10 @@ describe("starSystems.router", () => {
 
     it("should return not found for an existing game with no Star System", async () => {
       // Arrange
-      const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
+
+      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
 
@@ -160,15 +154,12 @@ describe("starSystems.router", () => {
  * @deprecated Should be handled by the game creation route when world generation is implemented
  */
 async function createStoredStarSystem({
-  db,
-  logger,
+  starSystemsRepository,
   gameId,
 }: {
-  db: ConstructorParameters<typeof StarSystemsRepository>[0]["db"]
-  logger: Logger
+  starSystemsRepository: StarSystemsRepository
   gameId: number
 }): Promise<ReturnType<typeof createStarSystemFixture>> {
-  const starSystemsRepository = new StarSystemsRepository({ db, logger })
   const starSystem = createStarSystemFixture({ gameId })
   const createSystemResult = await starSystemsRepository.create(starSystem)
   if (Result.isFailure(createSystemResult)) {

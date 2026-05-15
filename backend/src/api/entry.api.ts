@@ -11,7 +11,7 @@ import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
+import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 

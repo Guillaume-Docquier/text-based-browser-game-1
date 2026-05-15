@@ -1,22 +1,19 @@
 import { describe, expect, it } from "vitest"
-import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
-import { createPlayer } from "#tests/createPlayer.ts"
+import { extractSuccess } from "#tests/extractSuccess.ts"
 import { GameSummaryStatus } from "#api/games/games.controller.ts"
 
 describe("games.router", () => {
   describe("create", () => {
     it("should create a game for the authenticated player", async () => {
       // Arrange
-      const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
+
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = player
 
       // Act
       const createGameResult = await trpcClient.client.games.create.mutate({
@@ -45,7 +42,7 @@ describe("games.router", () => {
 
     it("should reject anonymous game creation", async () => {
       // Arrange
-      const api = await createApiStub()
+      const { api } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
@@ -60,14 +57,13 @@ describe("games.router", () => {
   describe("getSummaries", () => {
     it("should get summaries anonymously", async () => {
       // Arrange
-      const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = player
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "public game",
           nbSeats: 2,
@@ -84,7 +80,7 @@ describe("games.router", () => {
       expect(getSummariesResult).toEqual<typeof getSummariesResult>({
         games: [
           {
-            id: createGameResult.newGame.id,
+            id: newGame.id,
             createdAt: expect.any(String),
             endedAt: null,
             winnerPlayerId: null,
@@ -113,18 +109,14 @@ describe("games.router", () => {
 
     it("should get summaries for an authenticated player who can join", async () => {
       // Arrange
-      const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
-        createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
-
-      const authService = new AuthServiceMock({ player: creator })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      authService.player = creator
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "joinable game",
           nbSeats: 2,
@@ -141,7 +133,7 @@ describe("games.router", () => {
       expect(getSummariesResult).toEqual<typeof getSummariesResult>({
         games: [
           {
-            id: createGameResult.newGame.id,
+            id: newGame.id,
             createdAt: expect.any(String),
             endedAt: null,
             winnerPlayerId: null,
@@ -172,18 +164,14 @@ describe("games.router", () => {
   describe("getSummaryById", () => {
     it("should get a summary by id when authenticated", async () => {
       // Arrange
-      const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
-        createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
-
-      const authService = new AuthServiceMock({ player: creator })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      authService.player = creator
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "specific game",
           nbSeats: 2,
@@ -194,12 +182,12 @@ describe("games.router", () => {
       authService.player = player
 
       // Act
-      const getSummaryByIdResult = await trpcClient.client.games.getSummaryById.query({ gameId: createGameResult.newGame.id })
+      const getSummaryByIdResult = await trpcClient.client.games.getSummaryById.query({ gameId: newGame.id })
 
       // Assert
       expect(getSummaryByIdResult).toEqual<typeof getSummaryByIdResult>({
         game: {
-          id: createGameResult.newGame.id,
+          id: newGame.id,
           createdAt: expect.any(String),
           endedAt: null,
           winnerPlayerId: null,
@@ -227,14 +215,14 @@ describe("games.router", () => {
 
     it("should get a summary by id anonymously", async () => {
       // Arrange
-      const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
 
-      const authService = new AuthServiceMock({ player: creator })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
+      authService.player = creator
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "specific game",
           nbSeats: 2,
@@ -245,12 +233,12 @@ describe("games.router", () => {
       authService.player = undefined
 
       // Act
-      const getSummaryByIdResult = await trpcClient.client.games.getSummaryById.query({ gameId: createGameResult.newGame.id })
+      const getSummaryByIdResult = await trpcClient.client.games.getSummaryById.query({ gameId: newGame.id })
 
       // Assert
       expect(getSummaryByIdResult).toEqual<typeof getSummaryByIdResult>({
         game: {
-          id: createGameResult.newGame.id,
+          id: newGame.id,
           createdAt: expect.any(String),
           endedAt: null,
           winnerPlayerId: null,
@@ -278,7 +266,7 @@ describe("games.router", () => {
 
     it("should return not found when getting a missing summary by id", async () => {
       // Arrange
-      const api = await createApiStub()
+      const { api } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
@@ -291,18 +279,14 @@ describe("games.router", () => {
   describe("join", () => {
     it("should join a game", async () => {
       // Arrange
-      const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
-        createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
-
-      const authService = new AuthServiceMock({ player: creator })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      authService.player = creator
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "join game",
           nbSeats: 2,
@@ -313,12 +297,12 @@ describe("games.router", () => {
       authService.player = player
 
       // Act
-      const joinGameResult = await trpcClient.client.games.join.mutate({ gameId: createGameResult.newGame.id })
+      const joinGameResult = await trpcClient.client.games.join.mutate({ gameId: newGame.id })
 
       // Assert
       expect(joinGameResult).toEqual<typeof joinGameResult>({
         joinedGame: {
-          id: createGameResult.newGame.id,
+          id: newGame.id,
           createdAt: expect.any(String),
           endedAt: null,
           winnerPlayerId: null,
@@ -350,14 +334,12 @@ describe("games.router", () => {
 
     it("should reject joining a game the player is already in", async () => {
       // Arrange
-      const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "already joined game",
           nbSeats: 2,
@@ -366,14 +348,14 @@ describe("games.router", () => {
       })
 
       // Act & Assert
-      await expect(trpcClient.client.games.join.mutate({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.games.join.mutate({ gameId: newGame.id })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
 
     it("should reject anonymous game join", async () => {
       // Arrange
-      const api = await createApiStub()
+      const { api } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
@@ -386,18 +368,14 @@ describe("games.router", () => {
   describe("leave", () => {
     it("should leave a game", async () => {
       // Arrange
-      const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
-        createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
-
-      const authService = new AuthServiceMock({ player: creator })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      authService.player = creator
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "leave game",
           nbSeats: 3,
@@ -406,15 +384,15 @@ describe("games.router", () => {
       })
 
       authService.player = player
-      await trpcClient.client.games.join.mutate({ gameId: createGameResult.newGame.id })
+      await trpcClient.client.games.join.mutate({ gameId: newGame.id })
 
       // Act
-      const leaveGameResult = await trpcClient.client.games.leave.mutate({ gameId: createGameResult.newGame.id })
+      const leaveGameResult = await trpcClient.client.games.leave.mutate({ gameId: newGame.id })
 
       // Assert
       expect(leaveGameResult).toEqual<typeof leaveGameResult>({
         leftGame: {
-          id: createGameResult.newGame.id,
+          id: newGame.id,
           createdAt: expect.any(String),
           endedAt: null,
           winnerPlayerId: null,
@@ -442,14 +420,12 @@ describe("games.router", () => {
 
     it("should reject leaving a game as its creator", async () => {
       // Arrange
-      const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "creator cannot leave game",
           nbSeats: 2,
@@ -458,14 +434,14 @@ describe("games.router", () => {
       })
 
       // Act & Assert
-      await expect(trpcClient.client.games.leave.mutate({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.games.leave.mutate({ gameId: newGame.id })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
 
     it("should reject anonymous game leave", async () => {
       // Arrange
-      const api = await createApiStub()
+      const { api } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
@@ -478,14 +454,13 @@ describe("games.router", () => {
   describe("start", () => {
     it("should start a game", async () => {
       // Arrange
-      const db = await createDbMock()
-      const player = await createPlayer(db, createPlayerRowInsertStub())
-
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = player
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "start game",
           nbSeats: 2,
@@ -494,12 +469,12 @@ describe("games.router", () => {
       })
 
       // Act
-      const startGameResult = await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
+      const startGameResult = await trpcClient.client.games.start.mutate({ gameId: newGame.id })
 
       // Assert
       expect(startGameResult).toEqual<typeof startGameResult>({
         startedGame: {
-          id: createGameResult.newGame.id,
+          id: newGame.id,
           createdAt: expect.any(String),
           endedAt: null,
           winnerPlayerId: null,
@@ -527,18 +502,14 @@ describe("games.router", () => {
 
     it("should reject starting a game as a non-creator", async () => {
       // Arrange
-      const db = await createDbMock()
-      const creator = await createPlayer(db, createPlayerRowInsertStub({ alias: "Creator" }))
-      const player = await createPlayer(
-        db,
-        createPlayerRowInsertStub({ clerk_id: "clerk_player-2", email: "player-2@example.com", alias: "Player 2" }),
-      )
-
-      const authService = new AuthServiceMock({ player: creator })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      authService.player = creator
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "non creator cannot start game",
           nbSeats: 2,
@@ -549,14 +520,14 @@ describe("games.router", () => {
       authService.player = player
 
       // Act & Assert
-      await expect(trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.games.start.mutate({ gameId: newGame.id })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
 
     it("should reject anonymous game start", async () => {
       // Arrange
-      const api = await createApiStub()
+      const { api } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert

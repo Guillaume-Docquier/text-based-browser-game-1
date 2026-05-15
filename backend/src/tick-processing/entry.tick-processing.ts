@@ -6,7 +6,7 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { GamePlayerResourcesRepository } from "#lib/db/gamePlayerResources.repository.ts"
+import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 

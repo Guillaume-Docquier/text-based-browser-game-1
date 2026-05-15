@@ -14,7 +14,7 @@ export class PlayersController {
    * If the creation fails, a Failure is return with a description.
    */
   public async create(newPlayer: PlayerInsert): Promise<Result<Player, string>> {
-    return await this.playersRepository.insert(newPlayer)
+    return await this.playersRepository.create(newPlayer)
   }
 
   /**
