@@ -1,10 +1,6 @@
-import { Logger } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
-import { PlayersRepository } from "#lib/db/players/players.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
@@ -12,15 +8,13 @@ describe("gameStates.router", () => {
   describe("getById", () => {
     it("should get the authenticated player's state for a started game", async () => {
       // Arrange
-      const db = await createDbMock()
-      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
-      const player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
-
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
+      const player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
+      authService.player = player
+
+      const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           name: "running game",
           nbSeats: 2,
@@ -28,15 +22,15 @@ describe("gameStates.router", () => {
         },
       })
 
-      await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
+      await trpcClient.client.games.start.mutate({ gameId: newGame.id })
 
       // Act
-      const getByIdResult = await trpcClient.client.gameStates.getById.query({ gameId: createGameResult.newGame.id })
+      const getByIdResult = await trpcClient.client.gameStates.getById.query({ gameId: newGame.id })
 
       // Assert
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameState: {
-          gameId: createGameResult.newGame.id,
+          gameId: newGame.id,
           playerId: player.id,
           tick: 0,
           nextTickAt: expect.any(String),
@@ -49,13 +43,11 @@ describe("gameStates.router", () => {
 
     it("should reject invalid game ids", async () => {
       // Arrange
-      const db = await createDbMock()
-      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
-      const player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
 
-      const authService = new AuthServiceMock({ player })
-      const api = await createApiStub({ db, authService })
+      const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
+
+      authService.player = extractSuccess(await playersRepository.insert(createPlayerRowInsertStub()))
 
       // Act & Assert
       await expect(trpcClient.client.gameStates.getById.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
@@ -65,7 +57,7 @@ describe("gameStates.router", () => {
 
     it("should reject anonymous game state reads", async () => {
       // Arrange
-      const api = await createApiStub()
+      const { api } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
