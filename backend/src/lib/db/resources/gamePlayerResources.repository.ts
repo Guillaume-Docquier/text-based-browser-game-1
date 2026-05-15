@@ -1,9 +1,16 @@
-import { PostgresRepository } from "./PostgresRepository.ts"
-import { gamePlayerResourcesTable } from "./schema.ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { gamePlayerResourcesTable } from "#lib/db/schema.ts"
 import { and, eq, sql } from "drizzle-orm"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import { type ResourceType } from "#lib/gameResources.ts"
+
+export type ResourceUpdate = {
+  gameId: number
+  playerId: number
+  resourceType: ResourceType
+  amountDelta: number
+}
 
 export class GamePlayerResourcesRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -13,24 +20,16 @@ export class GamePlayerResourcesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "game-player-resources-repository" })
   }
 
-  public async updateResource(
-    params: {
-      gameId: number
-      playerId: number
-      resourceType: ResourceType
-      amountDelta: number
-    },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
+  public async updateResource(resourceUpdate: ResourceUpdate, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
     const updateResourceResult = await Result.tryCatch(async (): Promise<true> => {
       await db
         .update(gamePlayerResourcesTable)
-        .set({ amount: sql`${gamePlayerResourcesTable.amount} + ${params.amountDelta}` })
+        .set({ amount: sql`${gamePlayerResourcesTable.amount} + ${resourceUpdate.amountDelta}` })
         .where(
           and(
-            eq(gamePlayerResourcesTable.gameId, params.gameId),
-            eq(gamePlayerResourcesTable.playerId, params.playerId),
-            eq(gamePlayerResourcesTable.resourceType, params.resourceType),
+            eq(gamePlayerResourcesTable.gameId, resourceUpdate.gameId),
+            eq(gamePlayerResourcesTable.playerId, resourceUpdate.playerId),
+            eq(gamePlayerResourcesTable.resourceType, resourceUpdate.resourceType),
           ),
         )
 
@@ -38,7 +37,7 @@ export class GamePlayerResourcesRepository extends PostgresRepository {
     })
 
     if (Result.isFailure(updateResourceResult)) {
-      this.logger.error("Could not update resource for game and player", { ...params, error: updateResourceResult.error })
+      this.logger.error("Could not update resource for game and player", { ...resourceUpdate, error: updateResourceResult.error })
       return Result.Failure(couldNot("update resource for game and player"))
     }
 

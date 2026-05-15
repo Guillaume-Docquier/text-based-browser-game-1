@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
 import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
-import { createGamePlayerResourceUpdateStub } from "#lib/db/gamePlayerResourceUpdate.stub.ts"
+import { createResourceUpdateStub } from "#lib/db/resources/ResourceUpdate.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
@@ -25,7 +25,7 @@ describe("gamePlayerActions.router", () => {
       })
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
       await gamePlayerResourcesRepository.updateResource(
-        createGamePlayerResourceUpdateStub({ gameId: newGame.id, playerId: player.id, amountDelta: 2 }),
+        createResourceUpdateStub({ gameId: newGame.id, playerId: player.id, amountDelta: 2 }),
       )
 
       // Act
@@ -98,7 +98,7 @@ describe("gamePlayerActions.router", () => {
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
       await gamePlayerResourcesRepository.updateResource(
-        createGamePlayerResourceUpdateStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),
+        createResourceUpdateStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),
       )
 
       // Act
