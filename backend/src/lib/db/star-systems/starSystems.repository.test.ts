@@ -18,9 +18,9 @@ describe("starSystems.repository", () => {
     it("should create a Star System with bodies and movement edges", async () => {
       // Arrange
       const db = await createDbMock()
-      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
       const logger = Logger.get()
 
+      const playersRepository = new PlayersRepository({ db, logger })
       const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
 
@@ -57,9 +57,9 @@ describe("starSystems.repository", () => {
     it("should fail one request when creating two star systems concurrently for the same game", async () => {
       // Arrange
       const db = await createDbMock()
-      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
       const logger = Logger.get()
 
+      const playersRepository = new PlayersRepository({ db, logger })
       const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
 
@@ -79,9 +79,9 @@ describe("starSystems.repository", () => {
     it("should rollback the full Star System when one child row is incoherent", async () => {
       // Arrange
       const db = await createDbMock()
-      const playersRepository = new PlayersRepository({ db, logger: Logger.get() })
       const logger = Logger.get()
 
+      const playersRepository = new PlayersRepository({ db, logger })
       const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
 
