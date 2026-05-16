@@ -1,27 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router"
-import type { ReactElement } from "react"
-import { SignUp } from "@clerk/react"
 import { z } from "zod"
-import { AuthPageShell } from "../components/app/AuthPageShell.tsx"
+import { SignUpPage } from "../features/auth/pages/SignUpPage.tsx"
 
 const RedirectSchema = z.object({
   redirect: z.string().default("/games"),
 })
 
 export const Route = createFileRoute("/_app/sign-up")({
-  component: SignUpComponent,
+  component: SignUpRoute,
   validateSearch: RedirectSchema,
 })
 
-function SignUpComponent(): ReactElement {
+function SignUpRoute() {
   const { redirect } = Route.useSearch()
-
-  return (
-    <AuthPageShell
-      title="Start your empire"
-      description="Create your account to join a lobby, claim a faction, and start competing for long-term control of the galaxy."
-    >
-      <SignUp signInUrl={`/sign-in?redirect=${redirect}`} fallbackRedirectUrl={redirect} />
-    </AuthPageShell>
-  )
+  return <SignUpPage redirect={redirect} />
 }
