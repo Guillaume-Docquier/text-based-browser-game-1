@@ -6,22 +6,18 @@ Accepted
 
 ## Context
 
-We deploy to Railway via code, and they do our Docker images.
-
-We have all the tooling installed for development of our code, so why containerize it for development?
-
-It's useful to spin up infra, like databases, but not for spinning up our application.
+Railway already builds deployment images. Local development already has required tooling, so containerizing app services adds overhead without clear benefit. Docker remains useful for third-party dependencies (for example, databases).
 
 ## Decision
 
-We will not use Docker as a development tool for services that we develop.
+Do not use Docker to run services we actively develop.
 
-We will use it for 3rd party services, like databases.
+Use Docker for third-party infrastructure only.
 
-We will use Webstorm run configs to start the project.
+Use WebStorm run configs for local app execution.
 
 ## Consequences
 
-Someone who wants to run the project without developing it will have a harder time.
+Non-developer runtime setup may be less convenient.
 
-Since we don't invest into Docker images, maybe Railway's images are not optimal. However, we can always create optimized images for deployment. We just won't use them for development.
+We do not optimize custom app images for dev; deployment image optimization can be added later if needed.

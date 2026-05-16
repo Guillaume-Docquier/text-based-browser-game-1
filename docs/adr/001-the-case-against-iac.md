@@ -6,24 +6,14 @@ Accepted
 
 ## Context
 
-Railway offer [Config as Code](https://docs.railway.com/config-as-code), but it only covers individual services, and only build & deploy options.
-
-It doesn't cover environment variables or networking, for example.
-
-You can also not define your whole project.
-
-There is a [community Terraform provider](https://registry.terraform.io/providers/terraform-community-providers/railway/latest/docs) available, and the Railway team seemed [open to help](https://station.railway.com/feedback/terraform-provider-954567d7) the community, but otherwise there isn't real IaC support in Railway for a project.
-
-The Railway team seems really against IaC.
-
-> [Not using IaC in big orgs] fares very well. The only people who want Config as Code (CaC) are the people who like CaC to begin with, haha.
+Railway's Config as Code covers only part of service config (mainly build/deploy). It does not model full project infrastructure such as environment variables and networking. Terraform support exists via community provider, but official, complete IaC support is still limited.
 
 ## Decision
 
-Since the project is still small, we'll go with pure Railway for now. As it grows, we can consider giving Terraform a try, but for now we'll embrace the Railway way.
+Use Railway UI/manual configuration for now. Revisit Terraform or fuller IaC if project complexity increases.
 
 ## Consequences
 
-The infra is manual in the web UI. If we mess it up, it'll be hard to go back to a previous working state.
+Infrastructure state lives in the UI, so recovery/history is weaker than declarative IaC.
 
-It's also hard to get a good view of the setting we care about. The UI presents all the options, not just those you changed.
+Operational settings are harder to audit because configured values are mixed with all available options.

@@ -6,16 +6,12 @@ Accepted
 
 ## Context
 
-We've deployed the DB to Railway. We have a script to run db migrations. We have a script to do the initial db seed.
-
-But we don't know how to automatically run migrations in Railway. Should we do it as a pre-deploy command of the backend? Maybe.
+Migration and seed scripts exist, but automated Railway production migration flow is not yet defined.
 
 ## Decision
 
-For now we'll manage the migrations manually. We can use the same scripts we use locally, but with an env var.
-
-We'll learn how to properly do this as we go.
+Run production migrations manually using existing scripts with production env configuration.
 
 ## Consequences
 
-I'll probably hit the production DB when I meant to affect the local db.
+Higher risk of operator mistakes (for example, running commands against the wrong database).

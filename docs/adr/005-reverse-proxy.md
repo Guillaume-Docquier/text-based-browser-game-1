@@ -6,15 +6,14 @@ Accepted
 
 ## Context
 
-The frontend and backend are separate services. The backend does not serve the frontend files.
-This allows us to deploy both independently, but it means they live on different origins, causing cors issues and making auth (clerk) harder too.
+Frontend and backend are deployed separately and run on different origins. This creates CORS and authentication complexity.
 
 ## Decision
 
-We'll deploy a reverse proxy to put both services on the same origin.
+Deploy a reverse proxy so frontend and backend share one origin.
 
-In dev, we'll leverage [Vite's proxy feature](https://vite.dev/config/server-options#server-proxy) to mimic this, requiring 0 additional infra.
+In development, use Vite proxy to mirror production routing without extra infrastructure.
 
 ## Consequences
 
-It's a bit more infra, but simpler configurations.
+Adds one infrastructure component, but simplifies cross-origin and auth configuration.

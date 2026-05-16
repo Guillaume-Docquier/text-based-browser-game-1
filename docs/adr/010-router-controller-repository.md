@@ -10,35 +10,34 @@ Accepted
 
 ## Context
 
-Backend needs structure. We have many technologies in play (api, persistence and business logic) and if we're not careful, we'll be coupling everything.
-
-We're not even sure of our choices, because we don't have a lot of experience with most of these techs.
+Backend needs strict layering to avoid coupling API, business logic, and persistence concerns.
 
 ## Decision
 
-We'll make sure to decouple each layer, with:
+Use three layers:
 
-- Routers: api layer, the only place that knows about express/trpc.
-- Repositories: persistence layer, the only place that knows about drizzle/postgres.
-- Controllers: business logic that bridge routers and repositories.
+- Routers: API boundary; only layer aware of Express/tRPC.
+- Repositories: persistence boundary; only layer aware of Drizzle/Postgres.
+- Controllers: business logic between routers and repositories.
 
-Repositories represent data access patterns (aka queries) and are not restricted to accessing single tables (think, joins).
+Repositories model query/use-case access patterns and may span multiple tables.
 
 ### Schema ownership and naming
 
-- Repositories never own Zod schemas. Repositories do not validate user input and should focus on persistence concerns.
-- At the architecture boundary, routers could own request validation schemas. In practice for this codebase, controllers own Zod schemas because it is more practical while keeping responsibilities clear.
-- Controller-owned Zod schemas and related types should be named with the `Dto` suffix (for example: `StarSystemDto`).
+- Repositories never own Zod schemas.
+- Routers may own input schemas at architecture boundaries.
+- In this codebase, controllers own Zod schemas for practicality while preserving responsibilities.
+- Controller schemas/types use `Dto` suffix (for example: `StarSystemDto`).
 
-Repository and database types should follow these naming conventions:
+Repository/database naming:
 
-- Repository creation input types use the `New` prefix (for example: `NewStarSystem`).
-- Repository query result types use the `ReadModel` suffix (for example: `StarSystemReadModel`).
-- Internal database query row shapes use the `Row` suffix (for example: `StarSystemRow`).
-- `Row` types are internal repository implementation details and must never be exported. This keeps database architecture decoupled from the rest of the application.
+- Creation input types: `New*` (for example: `NewStarSystem`).
+- Repository result types: `*ReadModel` (for example: `StarSystemReadModel`).
+- Internal database row shapes: `*Row` (for example: `StarSystemRow`).
+- `Row` types are internal repository details and must not be exported.
 
 ## Consequences
 
-When the business logic is low, controllers might look like unnecessary boilerplate.
+May add boilerplate when business logic is simple.
 
-If we ever need to changes tech, like replace express or drizzle, the blast radius should be limited to their layers and not affect the others.
+Limits blast radius when replacing framework or persistence technology.

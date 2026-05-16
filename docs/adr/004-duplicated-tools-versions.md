@@ -6,16 +6,14 @@ Superseded by [014-pnpm-workspaces-and-shared-railway-monorepo](./014-pnpm-works
 
 ## Context
 
-Corepack and nvm are recursive, meaning they look up for their version file. This means that we only need 1 .nvmrc file and we only need the root package.json to hold the pnpm version.
-
-However, Railway doesn't detect this and gets the versions wrong.
+Corepack and nvm resolve versions recursively, so one root config should be enough. Railway detection did not honor this consistently for deployed packages.
 
 ## Decision
 
-We've duplicated the .nvmrc files in frontend and backend with a symlink, so that's not too bad.
+Duplicate `.nvmrc` in frontend/backend via symlink.
 
-But we can't symlink a property in package.json, so we had to duplicate the packageManager field in all package.json that are being deployed by Railway.
+Duplicate `packageManager` in each deployed `package.json` (cannot be symlinked).
 
 ## Consequences
 
-More management for tools versions, but they shouldn't change that frequently.
+Slight maintenance overhead for version metadata.

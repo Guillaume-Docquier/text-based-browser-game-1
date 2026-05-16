@@ -6,16 +6,16 @@ Accepted
 
 ## Context
 
-Some backend tests directly read, insert, or update rows with Drizzle table access. This couples tests to schema details and bypasses repository APIs that encode domain behavior and error handling.
-
-Repository tests are the exception: they can assert directly on database state because the database is their direct dependency.
+Direct Drizzle table access in non-repository tests couples tests to schema internals and bypasses repository behavior.
 
 ## Decision
 
-Backend tests should prefer using repositories over the database. Only repository tests should use the database.
+In backend tests, prefer repositories over direct database access.
+
+Only repository tests should access the database directly.
 
 ## Consequences
 
-Tests are less coupled to the database schema and easier to refactor.
+Lower schema coupling and easier refactors.
 
-We'll get better test coverage of repositories.
+Better coverage of repository behavior.

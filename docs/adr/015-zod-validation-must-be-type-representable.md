@@ -6,39 +6,35 @@ Accepted
 
 ## Context
 
-We use Zod schemas in routers to validate and parse user input.
+When Zod constraints are not representable in inferred TypeScript types, guarantees disappear after parsing and force duplicate validation across layers.
 
-If a Zod rule cannot be represented by the inferred TypeScript type, then that rule's guarantees are lost as soon as parsed data is typed and passed to the next layer.
-
-This leads to "shotgun validation": repeated validation of the same data at multiple layers because code cannot trust that prior validation was enough.
-
-Examples of non-representable constraints include `z.number().int()` and `z.string().email()`. Both return broad runtime types (`number`, `string`) that do not encode the narrower guarantees (integer, email format).
+Examples: `z.number().int()` still infers `number`; `z.string().email()` still infers `string`.
 
 ## Decision
 
-Use Zod in routers only for base shape/format parsing that remains representable in TypeScript types.
+Use router Zod schemas for type-representable parsing constraints only.
 
-Allowed Zod constraints are those that narrow data in a way captured by the resulting type, for example:
+Allowed examples:
 
 - object/array/tuple structure
 - required vs optional fields
-- discriminated unions and literal values
+- discriminated unions and literals
 - enums / finite string unions
-- nullable / non-nullable values
-- type conversions that are explicit in the output type
+- nullable vs non-nullable
+- explicit output-type conversions
 
-Disallowed Zod constraints are rules that express business or integrity constraints that cannot be represented in the inferred type, for example:
+Disallowed examples:
 
 - `z.number().int()`
 - `z.string().email()`
-- most `.refine()` / `.superRefine()` checks for domain invariants
+- domain/integrity checks in most `.refine()` / `.superRefine()`
 
-Business logic and data integrity validation must happen in controllers/services, where it is explicit and close to domain behavior.
+Place business/integrity validation in controllers/services.
 
 ## Consequences
 
-Router schemas stay focused on parsing and type-safe transport boundaries.
+Routers stay focused on transport parsing.
 
-Controllers/services become the single place for domain validation, reducing duplicate checks and making validation ownership clearer.
+Controllers/services become the clear owner of domain validation.
 
-The architecture becomes easier to reason about because type-level guarantees and runtime guarantees align more consistently at layer boundaries.
+Validation guarantees align better with static types at boundaries.
