@@ -10,16 +10,11 @@ Import side effects and globally shared state are not tolerated.
 
 We use DI for inversion of control to make code easier to test and decoupled from implementation details.
 
-## Architecture Decision Records (ADRs)
-
-Architecture Decision Records are simple snapshots of decisions that were made, with their status and context.  
-They are all version controlled in the [docs/adr/](../docs/adr/) directory.
-
 ## Database
 
 ### Playing with the db
 
-Update the db tables based on `src/db/schema.ts`
+You can update the db tables based on `src/lib/db/schema.ts` without generating migrations. This is good for experimentation before generating migrations once the schemas are decided.
 
 ```bash
 pnpm drizzle-kit push

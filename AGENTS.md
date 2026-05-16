@@ -2,10 +2,10 @@
 
 ## Project Structure
 
-This repo is a lightweight monorepo with separate deployable projects:
+This repo is a lightweight Typescript monorepo with separate deployable projects:
 
 - `frontend/`: React 19 + Vite UI. File-based routes live in `src/routes/`, reusable Shadcn components and shared UI in `src/components/`, static assets in `public/` and `src/assets/`.
-- `backend/`: Express + tRPC API plus tick-processing code. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
+- `backend/`: Express + tRPC API plus tick-processing worker. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
 - `shared/eslint/`: shared lint config only. Do not share runtime code between backend and frontend.
 - `infra/`: deployment and reverse-proxy config.
 - `docs/`: all project documentation. It includes past, present, and future tech/game designs, adrs, etc.
@@ -15,10 +15,8 @@ This repo is a lightweight monorepo with separate deployable projects:
 
 - `pnpm i`: install node_modules for all packages.
 - `pnpm checks`: runs all quality checks (lint, format, typecheck, test) on all packages.
-- `pnpm lint:fix`: run ESLint.
-- `pnpm format:fix`: run Prettier.
 - `pnpm --filter frontend build`: build the frontend.
-- `pnpm --filter frontend checks`: run all backend quality checks (typecheck).
+- `pnpm --filter frontend checks`: run all frontend quality checks (typecheck).
 - `pnpm --filter backend checks`: run all backend quality checks (typecheck, test).
 - `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
 - `pnpm --filter backend db:migrate`: apply migrations.
@@ -30,7 +28,7 @@ These come from the ADRs and should be treated as default constraints, not sugge
 
 - Never throw for expected errors. Return `Result` values instead. Wrap third-party calls that may throw with `Result.tryCatch`. Only fatal crash-the-process errors may throw.
 - Use explicit `Assert` calls for invariants.
-- No import side effects outside app entrypoints. Do not create stateful objects in module global scope; pass dependencies through arguments.
+- No import side effects outside app entry points. Do not create stateful objects in the module global scope; pass dependencies through arguments.
 - Keep backend layering strict:
   - Routers are the only layer that knows about Express/tRPC.
   - Repositories are the only layer that knows about Drizzle/Postgres.
@@ -48,7 +46,7 @@ These come from the ADRs and should be treated as default constraints, not sugge
 
 - Do not add new cross-project runtime sharing inside this monorepo unless there is already a clear established pattern for it.
 - Shared utilities are intentionally published through `@guillaume-docquier/tools-ts` rather than imported from another local app/package.
-- Shared TypeScript types between backend and frontend are acceptable when they are type-only and fit the existing tRPC setup.
+- Shared backend TypeScript tRPC types from the backend to the frontend are the only accepted shared code.
 
 ## Coding Conventions
 
@@ -68,12 +66,12 @@ Minimum verification for meaningful changes:
 - `pnpm checks` (when touching all projects)
 - `pnpm --filter backend checks` (when touching only backend)
 - `pnpm --filter frontend checks` (when touching only frontend)
-- relevant manual verification for the area changed
+- Call out relevant extra manual verification that the user should perform for the area changed
 
 ## Commits And PRs
 
 - Husky enforces scoped commit prefixes: `project:`, `frontend:`, `backend:`, `ci:`, `adr:`, `infra:`, `docs:`.
-- Pre-commit runs `pnpm lint-staged`, so keep changes focused.
+- Pre-commit runs `pnpm lint-staged`, for linting and formatting
 - If a change affects schema, env usage, or deployment behavior, call that out explicitly in the PR.
 
 ## Env Vars
