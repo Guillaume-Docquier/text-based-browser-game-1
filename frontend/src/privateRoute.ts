@@ -12,14 +12,14 @@ import { noop } from "@guillaume-docquier/tools-ts"
  * import { createFileRoute } from "@tanstack/react-router"
  * import { privateRoute } from "@/privateRoute.ts"
  *
- * export const _gameGamesGameIdPlay = createFileRoute("/my-route")({
+ * export const Route = createFileRoute("/my-route")({
  *   component: MyRoute,
  *   beforeLoad: privateRoute,
  * })
  *
  * // or
  *
- * export const _gameGamesGameIdPlay = createFileRoute("/my-route")({
+ * export const Route = createFileRoute("/my-route")({
  *   component: MyRoute,
  *   beforeLoad: ({ context, location }) => {
  *     // Will throw if not authenticated

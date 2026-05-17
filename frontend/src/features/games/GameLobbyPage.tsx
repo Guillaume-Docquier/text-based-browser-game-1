@@ -18,7 +18,10 @@ export function GameLobbyPage({ gameId }: { gameId: number }): ReactElement {
   const backendApiClient = useBackendApiClient()
   const gameQuery = useQuery(backendApiClient.games.getSummaryById.queryOptions({ gameId }))
 
-  if (gameQuery.isPending) return <GameLobbyLoadingState />
+  if (gameQuery.isPending) {
+    return <GameLobbyLoadingState />
+  }
+
   if (gameQuery.isError) {
     logger.error("Could not fetch game", { gameId, error: gameQuery.error.message })
     return <Navigate to="/games" />
@@ -130,6 +133,7 @@ function DetailBlock({ label, value }: { label: string; value: string }): ReactE
     </div>
   )
 }
+
 function Player({ player }: { player: ApiTypes.GameSummaryPlayer }): ReactElement {
   return (
     <div className="rounded-3xl border border-border/60 bg-muted/20 px-4 py-3">
@@ -137,6 +141,7 @@ function Player({ player }: { player: ApiTypes.GameSummaryPlayer }): ReactElemen
     </div>
   )
 }
+
 function GameLobbyLoadingState(): ReactElement {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -164,10 +169,12 @@ function GameLobbyLoadingState(): ReactElement {
     </div>
   )
 }
+
 function getWinnerLabel(game: ApiTypes.GameSummary): string {
   const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerPlayerId)
   if (winner === undefined) {
     return `Player ${game.winnerPlayerId}`
   }
+
   return winner.alias ?? `Player ${winner.id}`
 }

@@ -55,7 +55,7 @@ These come from the ADRs and should be treated as default constraints, not sugge
 - Follow existing naming conventions:
   - React components: PascalCase files like `TextInput.tsx`
   - Utilities: camelCase files like `timeAgo.ts`
-  - \_gameGamesGameIdPlay files: TanStack Router naming like `games.$gameId.tsx`
+  - Route files: TanStack Router naming like `games.$gameId.tsx`
 - Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Use `as const` objects plus derived union types, following `backend/src/lib/gameResources.ts`.
 - Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
 
