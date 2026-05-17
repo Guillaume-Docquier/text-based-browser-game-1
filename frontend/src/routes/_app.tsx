@@ -3,8 +3,8 @@ import { Show, UserButton } from "@clerk/react"
 import { Rocket, UserSearch } from "lucide-react"
 import type { ReactElement } from "react"
 import logo from "../assets/logo.png"
-import { Button } from "../components/ui/button.tsx"
-import { Separator } from "../components/ui/separator.tsx"
+import { Button } from "../components/button.tsx"
+import { Separator } from "../components/separator.tsx"
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,

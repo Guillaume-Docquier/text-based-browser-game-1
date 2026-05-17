@@ -18,7 +18,7 @@ import { Route as PlayGameIdIndexRouteImport } from './routes/play.$gameId.index
 import { Route as AppGamesIndexRouteImport } from './routes/_app.games.index'
 import { Route as PlayGameIdStarSystemRouteImport } from './routes/play.$gameId.star-system'
 import { Route as PlayGameIdActionsRouteImport } from './routes/play.$gameId.actions'
-import { Route as AppGamesNewRouteImport } from './routes/_app.games.new'
+import { Route as AppGamesCreateRouteImport } from './routes/_app.games.create'
 import { Route as AppGamesGameIdRouteImport } from './routes/_app.games.$gameId'
 
 const AppRoute = AppRouteImport.update({
@@ -65,9 +65,9 @@ const PlayGameIdActionsRoute = PlayGameIdActionsRouteImport.update({
   path: '/actions',
   getParentRoute: () => PlayGameIdRoute,
 } as any)
-const AppGamesNewRoute = AppGamesNewRouteImport.update({
-  id: '/games/new',
-  path: '/games/new',
+const AppGamesCreateRoute = AppGamesCreateRouteImport.update({
+  id: '/games/create',
+  path: '/games/create',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGamesGameIdRoute = AppGamesGameIdRouteImport.update({
@@ -82,7 +82,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof AppSignUpRoute
   '/play/$gameId': typeof PlayGameIdRouteWithChildren
   '/games/$gameId': typeof AppGamesGameIdRoute
-  '/games/new': typeof AppGamesNewRoute
+  '/games/create': typeof AppGamesCreateRoute
   '/play/$gameId/actions': typeof PlayGameIdActionsRoute
   '/play/$gameId/star-system': typeof PlayGameIdStarSystemRoute
   '/games/': typeof AppGamesIndexRoute
@@ -93,7 +93,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof AppSignUpRoute
   '/': typeof AppIndexRoute
   '/games/$gameId': typeof AppGamesGameIdRoute
-  '/games/new': typeof AppGamesNewRoute
+  '/games/create': typeof AppGamesCreateRoute
   '/play/$gameId/actions': typeof PlayGameIdActionsRoute
   '/play/$gameId/star-system': typeof PlayGameIdStarSystemRoute
   '/games': typeof AppGamesIndexRoute
@@ -107,7 +107,7 @@ export interface FileRoutesById {
   '/play/$gameId': typeof PlayGameIdRouteWithChildren
   '/_app/': typeof AppIndexRoute
   '/_app/games/$gameId': typeof AppGamesGameIdRoute
-  '/_app/games/new': typeof AppGamesNewRoute
+  '/_app/games/create': typeof AppGamesCreateRoute
   '/play/$gameId/actions': typeof PlayGameIdActionsRoute
   '/play/$gameId/star-system': typeof PlayGameIdStarSystemRoute
   '/_app/games/': typeof AppGamesIndexRoute
@@ -121,7 +121,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/play/$gameId'
     | '/games/$gameId'
-    | '/games/new'
+    | '/games/create'
     | '/play/$gameId/actions'
     | '/play/$gameId/star-system'
     | '/games/'
@@ -132,7 +132,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/'
     | '/games/$gameId'
-    | '/games/new'
+    | '/games/create'
     | '/play/$gameId/actions'
     | '/play/$gameId/star-system'
     | '/games'
@@ -145,7 +145,7 @@ export interface FileRouteTypes {
     | '/play/$gameId'
     | '/_app/'
     | '/_app/games/$gameId'
-    | '/_app/games/new'
+    | '/_app/games/create'
     | '/play/$gameId/actions'
     | '/play/$gameId/star-system'
     | '/_app/games/'
@@ -222,11 +222,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayGameIdActionsRouteImport
       parentRoute: typeof PlayGameIdRoute
     }
-    '/_app/games/new': {
-      id: '/_app/games/new'
-      path: '/games/new'
-      fullPath: '/games/new'
-      preLoaderRoute: typeof AppGamesNewRouteImport
+    '/_app/games/create': {
+      id: '/_app/games/create'
+      path: '/games/create'
+      fullPath: '/games/create'
+      preLoaderRoute: typeof AppGamesCreateRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/games/$gameId': {
@@ -244,7 +244,7 @@ interface AppRouteChildren {
   AppSignUpRoute: typeof AppSignUpRoute
   AppIndexRoute: typeof AppIndexRoute
   AppGamesGameIdRoute: typeof AppGamesGameIdRoute
-  AppGamesNewRoute: typeof AppGamesNewRoute
+  AppGamesCreateRoute: typeof AppGamesCreateRoute
   AppGamesIndexRoute: typeof AppGamesIndexRoute
 }
 
@@ -253,7 +253,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSignUpRoute: AppSignUpRoute,
   AppIndexRoute: AppIndexRoute,
   AppGamesGameIdRoute: AppGamesGameIdRoute,
-  AppGamesNewRoute: AppGamesNewRoute,
+  AppGamesCreateRoute: AppGamesCreateRoute,
   AppGamesIndexRoute: AppGamesIndexRoute,
 }
 

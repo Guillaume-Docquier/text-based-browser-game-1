@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { PlayGameActionsPage } from "../features/play/pages/PlayGameActionsPage.tsx"
+import { PlayerActionsPage } from "../features/play/PlayerActionsPage.tsx"
+import type { ReactElement } from "react"
 
 export const Route = createFileRoute("/play/$gameId/actions")({
   component: PlayGameActionsRoute,
 })
 
-function PlayGameActionsRoute() {
+function PlayGameActionsRoute(): ReactElement {
   const { gameId } = Route.useParams()
-  return <PlayGameActionsPage gameId={gameId} />
+  return <PlayerActionsPage gameId={gameId} />
 }

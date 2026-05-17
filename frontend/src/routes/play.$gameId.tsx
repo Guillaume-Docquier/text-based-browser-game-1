@@ -1,7 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { z } from "zod"
-import { PlayGameLayoutPage } from "../features/play/pages/PlayGameLayoutPage.tsx"
+import { PlayLayoutPage } from "../features/play/PlayLayoutPage.tsx"
 import { privateRoute } from "../privateRoute.ts"
+import type { ReactElement } from "react"
 
 const paramsSchema = z.object({
   gameId: z.coerce.number(),
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/play/$gameId")({
   },
 })
 
-function PlayGameLayoutRoute() {
+function PlayGameLayoutRoute(): ReactElement {
   const { gameId } = Route.useParams()
-  return <PlayGameLayoutPage gameId={gameId} />
+  return <PlayLayoutPage gameId={gameId} />
 }
