@@ -1,16 +1,14 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
+import type { ReactElement } from "react"
 import { z } from "zod"
 import { PlayGameLayout } from "../features/play/PlayGameLayout.tsx"
-import { privateRoute } from "../privateRoute.ts"
-import type { ReactElement } from "react"
 
 const paramsSchema = z.object({
   gameId: z.coerce.number(),
 })
 
-export const Route = createFileRoute("/play/$gameId")({
+export const Route = createFileRoute("/_game/games/$gameId/play")({
   component: PlayGameRoute,
-  beforeLoad: privateRoute,
   params: {
     parse: (params) => paramsSchema.parse(params),
   },

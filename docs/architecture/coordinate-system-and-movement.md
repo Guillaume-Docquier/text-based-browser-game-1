@@ -448,10 +448,10 @@ Goal: reshape the play surface into a game layout with a left navigation bar, to
 
 Files to create or update:
 
-- `frontend/src/routes/play.$gameId.tsx`
-- `frontend/src/routes/play.$gameId.index.tsx`
-- `frontend/src/routes/play.$gameId.star-system.tsx`
-- `frontend/src/routes/play.$gameId.actions.tsx`
+- `frontend/src/routes/_game.tsx`
+- `frontend/src/routes/_game.games.$gameId.play._game.games.$gameId.play.index.tsx`
+- `frontend/src/routes/_game.games.$gameId.play._game.games.$gameId.play.star-system.tsx`
+- `frontend/src/routes/_game.games.$gameId.play._game.games.$gameId.play.actions.tsx`
 - `frontend/src/components/GameLayout.tsx`
 - `frontend/src/components/GameTopBar.tsx`
 - `frontend/src/components/GameSideNav.tsx`
@@ -460,15 +460,15 @@ Files to create or update:
 
 Implementation steps:
 
-1. Convert `frontend/src/routes/play.$gameId.tsx` from the current single-page implementation into the authenticated layout route for `/play/$gameId`.
+1. Convert `frontend/src/routes/_game.tsx` from the current single-page implementation into the authenticated layout route for `/play/$gameId`.
 2. Keep the existing route param parsing and private-route protection on the layout route.
 3. Fetch `games.getSummaryById` and `gameStates.getById` in the layout route so the top bar has the game name, status, winner state, current Tick, and next Tick time.
 4. Add `GameLayout` with a left navigation bar, top game info bar, and central content region. Use full-width layout bands and avoid nested cards.
 5. Add `GameSideNav` with two links: Star System at `/play/$gameId/star-system` and Actions at `/play/$gameId/actions`.
 6. Add `GameTopBar` with compact game identity, status, Tick, countdown, and winner display. Reuse `GameStatusBadge` and existing Shadcn UI components.
-7. Add `play.$gameId.index.tsx` so `/play/$gameId` lands on the Star System experience. During Phase 2 it may render the same temporary map placeholder as `/play/$gameId/star-system`; Phase 4 replaces that placeholder with the real map.
-8. Add `play.$gameId.star-system.tsx` as a route-level placeholder that fits the new layout and states that the map view area exists without implementing SVG map rendering yet.
-9. Move the current action selection logic from `play.$gameId.tsx` into `play.$gameId.actions.tsx`.
+7. Add `_game.games.$gameId.play._game.games.$gameId.play.index.tsx` so `/play/$gameId` lands on the Star System experience. During Phase 2 it may render the same temporary map placeholder as `/play/$gameId/star-system`; Phase 4 replaces that placeholder with the real map.
+8. Add `_game.games.$gameId.play._game.games.$gameId.play.star-system.tsx` as a route-level placeholder that fits the new layout and states that the map view area exists without implementing SVG map rendering yet.
+9. Move the current action selection logic from `_game.tsx` into `_game.games.$gameId.play._game.games.$gameId.play.actions.tsx`.
 10. Extract the action cards, affordability messaging, deselection behavior, and mutation handling into `GameActionSelector`.
 11. Guard disabled or unaffordable actions before mutation so disabled-looking cards cannot still submit on click.
 12. Keep all current data calls and mutation behavior for actions: `gamePlayerActions.getCurrentAction`, `gamePlayerActions.setCurrentAction`, resource display and full-query invalidation through `BackendApiClient`.
@@ -573,8 +573,8 @@ Files to create or update:
 
 - `frontend/package.json`
 - `frontend/pnpm-lock.yaml`
-- `frontend/src/routes/play.$gameId.index.tsx`
-- `frontend/src/routes/play.$gameId.star-system.tsx`
+- `frontend/src/routes/_game.games.$gameId.play._game.games.$gameId.play.index.tsx`
+- `frontend/src/routes/_game.games.$gameId.play._game.games.$gameId.play.star-system.tsx`
 - `frontend/src/components/StarSystemView.tsx`
 - `frontend/src/components/StarSystemSvg.tsx`
 - `frontend/src/components/StarSystemControls.tsx`
@@ -588,8 +588,8 @@ Files to create or update:
 Implementation steps:
 
 1. Add the frontend dependencies required by this document: `d3-zoom` and `d3-selection`. Add TypeScript types if the packages do not ship the needed declarations.
-2. Query `backendApiClient.starSystems.getByGameId` from `play.$gameId.star-system.tsx`.
-3. Make `play.$gameId.index.tsx` render the same Map view as `/play/$gameId/star-system` so both documented routes show the map.
+2. Query `backendApiClient.starSystems.getByGameId` from `_game.games.$gameId.play._game.games.$gameId.play.star-system.tsx`.
+3. Make `_game.games.$gameId.play._game.games.$gameId.play.index.tsx` render the same Map view as `/play/$gameId/star-system` so both documented routes show the map.
 4. Add runtime visual assets for one Planet, one Moon, one Asteroid, one star, and a few starry background variants under `frontend/src/assets/star-system/`. Do not load files from `.github/images` at runtime.
 5. Implement `StarSystemView` as the page-level composition: loading state, error state, coordinate controls, central map, and selection panel.
 6. Implement `StarSystemSvg` as the main SVG renderer. Render the star at the center, Orbits as concentric bands and Sectors as annular sector paths.

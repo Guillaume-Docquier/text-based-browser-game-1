@@ -5,14 +5,14 @@ import type { FileRouteTypes } from "../../../routeTree.gen.ts"
 import logo from "../../../assets/logo.png"
 
 type GameSideNavLink = {
-  to: Extract<FileRouteTypes["to"], `/play/$gameId${string}`>
+  to: Extract<FileRouteTypes["to"], `/games/$gameId/play${string}`>
   Icon: LucideIcon
   label: string
 }
 
 const gameSideNavLinks: readonly GameSideNavLink[] = [
-  { to: "/play/$gameId/star-system", Icon: Map, label: "Star System" },
-  { to: "/play/$gameId/actions", Icon: ListChecks, label: "Actions" },
+  { to: "/games/$gameId/play/star-system", Icon: Map, label: "Star System" },
+  { to: "/games/$gameId/play/actions", Icon: ListChecks, label: "Actions" },
 ]
 
 export function GameSideNav({ gameId }: { gameId: number }): ReactElement {

@@ -111,7 +111,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
             variant="secondary"
             disabled={startGame.isPending}
             onClick={() => {
-              void navigate({ to: "/play/$gameId", params: { gameId: game.id } })
+              void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
             }}
           >
             Open game
