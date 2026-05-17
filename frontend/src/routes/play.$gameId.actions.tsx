@@ -3,10 +3,10 @@ import { PlayerActionsPage } from "../features/play/PlayerActionsPage.tsx"
 import type { ReactElement } from "react"
 
 export const Route = createFileRoute("/play/$gameId/actions")({
-  component: PlayGameActionsRoute,
+  component: PlayerActionsRoute,
 })
 
-function PlayGameActionsRoute(): ReactElement {
+function PlayerActionsRoute(): ReactElement {
   const { gameId } = Route.useParams()
   return <PlayerActionsPage gameId={gameId} />
 }

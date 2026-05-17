@@ -9,7 +9,9 @@ const paramsSchema = z.object({
 
 export const Route = createFileRoute("/_app/games/$gameId")({
   component: GameLobbyRoute,
-  params: { parse: (params) => paramsSchema.parse(params) },
+  params: {
+    parse: (params) => paramsSchema.parse(params),
+  },
   onError: (error) => {
     if (error?.routerCode === "PARSE_PARAMS") {
       // eslint-disable-next-line @typescript-eslint/only-throw-error -- That's how tanstack works

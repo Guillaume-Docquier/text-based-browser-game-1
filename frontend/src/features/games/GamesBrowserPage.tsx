@@ -13,7 +13,7 @@ import { Skeleton } from "../../components/skeleton.tsx"
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { timeAgo } from "../../lib/timeAgo.ts"
 
-export function GamesPage(): ReactElement {
+export function GamesBrowserPage(): ReactElement {
   const [gameNameFilter, setGameNameFilter] = useState("")
   const backendApiClient = useBackendApiClient()
   const gamesQuery = useQuery(backendApiClient.games.getSummaries.queryOptions())
