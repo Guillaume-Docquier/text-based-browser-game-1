@@ -9,109 +9,118 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteImport } from './routes/_app'
-import { Route as AppIndexRouteImport } from './routes/_app.index'
-import { Route as PlayGameIdRouteImport } from './routes/play.$gameId'
-import { Route as AppSignUpRouteImport } from './routes/_app.sign-up'
-import { Route as AppSignInRouteImport } from './routes/_app.sign-in'
-import { Route as PlayGameIdIndexRouteImport } from './routes/play.$gameId.index'
-import { Route as AppGamesIndexRouteImport } from './routes/_app.games.index'
-import { Route as PlayGameIdStarSystemRouteImport } from './routes/play.$gameId.star-system'
-import { Route as PlayGameIdActionsRouteImport } from './routes/play.$gameId.actions'
-import { Route as AppGamesNewRouteImport } from './routes/_app.games.new'
-import { Route as AppGamesGameIdRouteImport } from './routes/_app.games.$gameId'
+import { Route as SiteRouteImport } from './routes/_site'
+import { Route as GameRouteImport } from './routes/_game'
+import { Route as SiteIndexRouteImport } from './routes/_site.index'
+import { Route as SiteSignUpRouteImport } from './routes/_site.sign-up'
+import { Route as SiteSignInRouteImport } from './routes/_site.sign-in'
+import { Route as SiteGamesIndexRouteImport } from './routes/_site.games.index'
+import { Route as SiteGamesCreateRouteImport } from './routes/_site.games.create'
+import { Route as SiteGamesGameIdRouteImport } from './routes/_site.games.$gameId'
+import { Route as GameGamesGameIdPlayRouteImport } from './routes/_game.games.$gameId.play'
+import { Route as GameGamesGameIdPlayIndexRouteImport } from './routes/_game.games.$gameId.play.index'
+import { Route as GameGamesGameIdPlayStarSystemRouteImport } from './routes/_game.games.$gameId.play.star-system'
+import { Route as GameGamesGameIdPlayActionsRouteImport } from './routes/_game.games.$gameId.play.actions'
 
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
+const SiteRoute = SiteRouteImport.update({
+  id: '/_site',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
+const GameRoute = GameRouteImport.update({
+  id: '/_game',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SiteIndexRoute = SiteIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => SiteRoute,
 } as any)
-const PlayGameIdRoute = PlayGameIdRouteImport.update({
-  id: '/play/$gameId',
-  path: '/play/$gameId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppSignUpRoute = AppSignUpRouteImport.update({
+const SiteSignUpRoute = SiteSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => SiteRoute,
 } as any)
-const AppSignInRoute = AppSignInRouteImport.update({
+const SiteSignInRoute = SiteSignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => SiteRoute,
 } as any)
-const PlayGameIdIndexRoute = PlayGameIdIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PlayGameIdRoute,
-} as any)
-const AppGamesIndexRoute = AppGamesIndexRouteImport.update({
+const SiteGamesIndexRoute = SiteGamesIndexRouteImport.update({
   id: '/games/',
   path: '/games/',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => SiteRoute,
 } as any)
-const PlayGameIdStarSystemRoute = PlayGameIdStarSystemRouteImport.update({
-  id: '/star-system',
-  path: '/star-system',
-  getParentRoute: () => PlayGameIdRoute,
+const SiteGamesCreateRoute = SiteGamesCreateRouteImport.update({
+  id: '/games/create',
+  path: '/games/create',
+  getParentRoute: () => SiteRoute,
 } as any)
-const PlayGameIdActionsRoute = PlayGameIdActionsRouteImport.update({
-  id: '/actions',
-  path: '/actions',
-  getParentRoute: () => PlayGameIdRoute,
-} as any)
-const AppGamesNewRoute = AppGamesNewRouteImport.update({
-  id: '/games/new',
-  path: '/games/new',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppGamesGameIdRoute = AppGamesGameIdRouteImport.update({
+const SiteGamesGameIdRoute = SiteGamesGameIdRouteImport.update({
   id: '/games/$gameId',
   path: '/games/$gameId',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => SiteRoute,
 } as any)
+const GameGamesGameIdPlayRoute = GameGamesGameIdPlayRouteImport.update({
+  id: '/games/$gameId/play',
+  path: '/games/$gameId/play',
+  getParentRoute: () => GameRoute,
+} as any)
+const GameGamesGameIdPlayIndexRoute =
+  GameGamesGameIdPlayIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => GameGamesGameIdPlayRoute,
+  } as any)
+const GameGamesGameIdPlayStarSystemRoute =
+  GameGamesGameIdPlayStarSystemRouteImport.update({
+    id: '/star-system',
+    path: '/star-system',
+    getParentRoute: () => GameGamesGameIdPlayRoute,
+  } as any)
+const GameGamesGameIdPlayActionsRoute =
+  GameGamesGameIdPlayActionsRouteImport.update({
+    id: '/actions',
+    path: '/actions',
+    getParentRoute: () => GameGamesGameIdPlayRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppIndexRoute
-  '/sign-in': typeof AppSignInRoute
-  '/sign-up': typeof AppSignUpRoute
-  '/play/$gameId': typeof PlayGameIdRouteWithChildren
-  '/games/$gameId': typeof AppGamesGameIdRoute
-  '/games/new': typeof AppGamesNewRoute
-  '/play/$gameId/actions': typeof PlayGameIdActionsRoute
-  '/play/$gameId/star-system': typeof PlayGameIdStarSystemRoute
-  '/games/': typeof AppGamesIndexRoute
-  '/play/$gameId/': typeof PlayGameIdIndexRoute
+  '/': typeof SiteIndexRoute
+  '/sign-in': typeof SiteSignInRoute
+  '/sign-up': typeof SiteSignUpRoute
+  '/games/$gameId': typeof SiteGamesGameIdRoute
+  '/games/create': typeof SiteGamesCreateRoute
+  '/games/': typeof SiteGamesIndexRoute
+  '/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
+  '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
+  '/games/$gameId/play/star-system': typeof GameGamesGameIdPlayStarSystemRoute
+  '/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
 }
 export interface FileRoutesByTo {
-  '/sign-in': typeof AppSignInRoute
-  '/sign-up': typeof AppSignUpRoute
-  '/': typeof AppIndexRoute
-  '/games/$gameId': typeof AppGamesGameIdRoute
-  '/games/new': typeof AppGamesNewRoute
-  '/play/$gameId/actions': typeof PlayGameIdActionsRoute
-  '/play/$gameId/star-system': typeof PlayGameIdStarSystemRoute
-  '/games': typeof AppGamesIndexRoute
-  '/play/$gameId': typeof PlayGameIdIndexRoute
+  '/': typeof SiteIndexRoute
+  '/sign-in': typeof SiteSignInRoute
+  '/sign-up': typeof SiteSignUpRoute
+  '/games/$gameId': typeof SiteGamesGameIdRoute
+  '/games/create': typeof SiteGamesCreateRoute
+  '/games': typeof SiteGamesIndexRoute
+  '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
+  '/games/$gameId/play/star-system': typeof GameGamesGameIdPlayStarSystemRoute
+  '/games/$gameId/play': typeof GameGamesGameIdPlayIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_app': typeof AppRouteWithChildren
-  '/_app/sign-in': typeof AppSignInRoute
-  '/_app/sign-up': typeof AppSignUpRoute
-  '/play/$gameId': typeof PlayGameIdRouteWithChildren
-  '/_app/': typeof AppIndexRoute
-  '/_app/games/$gameId': typeof AppGamesGameIdRoute
-  '/_app/games/new': typeof AppGamesNewRoute
-  '/play/$gameId/actions': typeof PlayGameIdActionsRoute
-  '/play/$gameId/star-system': typeof PlayGameIdStarSystemRoute
-  '/_app/games/': typeof AppGamesIndexRoute
-  '/play/$gameId/': typeof PlayGameIdIndexRoute
+  '/_game': typeof GameRouteWithChildren
+  '/_site': typeof SiteRouteWithChildren
+  '/_site/sign-in': typeof SiteSignInRoute
+  '/_site/sign-up': typeof SiteSignUpRoute
+  '/_site/': typeof SiteIndexRoute
+  '/_site/games/$gameId': typeof SiteGamesGameIdRoute
+  '/_site/games/create': typeof SiteGamesCreateRoute
+  '/_site/games/': typeof SiteGamesIndexRoute
+  '/_game/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
+  '/_game/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
+  '/_game/games/$gameId/play/star-system': typeof GameGamesGameIdPlayStarSystemRoute
+  '/_game/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,165 +128,182 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/sign-up'
-    | '/play/$gameId'
     | '/games/$gameId'
-    | '/games/new'
-    | '/play/$gameId/actions'
-    | '/play/$gameId/star-system'
+    | '/games/create'
     | '/games/'
-    | '/play/$gameId/'
+    | '/games/$gameId/play'
+    | '/games/$gameId/play/actions'
+    | '/games/$gameId/play/star-system'
+    | '/games/$gameId/play/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/sign-in'
     | '/sign-up'
-    | '/'
     | '/games/$gameId'
-    | '/games/new'
-    | '/play/$gameId/actions'
-    | '/play/$gameId/star-system'
+    | '/games/create'
     | '/games'
-    | '/play/$gameId'
+    | '/games/$gameId/play/actions'
+    | '/games/$gameId/play/star-system'
+    | '/games/$gameId/play'
   id:
     | '__root__'
-    | '/_app'
-    | '/_app/sign-in'
-    | '/_app/sign-up'
-    | '/play/$gameId'
-    | '/_app/'
-    | '/_app/games/$gameId'
-    | '/_app/games/new'
-    | '/play/$gameId/actions'
-    | '/play/$gameId/star-system'
-    | '/_app/games/'
-    | '/play/$gameId/'
+    | '/_game'
+    | '/_site'
+    | '/_site/sign-in'
+    | '/_site/sign-up'
+    | '/_site/'
+    | '/_site/games/$gameId'
+    | '/_site/games/create'
+    | '/_site/games/'
+    | '/_game/games/$gameId/play'
+    | '/_game/games/$gameId/play/actions'
+    | '/_game/games/$gameId/play/star-system'
+    | '/_game/games/$gameId/play/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AppRoute: typeof AppRouteWithChildren
-  PlayGameIdRoute: typeof PlayGameIdRouteWithChildren
+  GameRoute: typeof GameRouteWithChildren
+  SiteRoute: typeof SiteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_app': {
-      id: '/_app'
+    '/_site': {
+      id: '/_site'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
+      preLoaderRoute: typeof SiteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/': {
-      id: '/_app/'
+    '/_game': {
+      id: '/_game'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof GameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_site/': {
+      id: '/_site/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof SiteIndexRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/play/$gameId': {
-      id: '/play/$gameId'
-      path: '/play/$gameId'
-      fullPath: '/play/$gameId'
-      preLoaderRoute: typeof PlayGameIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/sign-up': {
-      id: '/_app/sign-up'
+    '/_site/sign-up': {
+      id: '/_site/sign-up'
       path: '/sign-up'
       fullPath: '/sign-up'
-      preLoaderRoute: typeof AppSignUpRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof SiteSignUpRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/_app/sign-in': {
-      id: '/_app/sign-in'
+    '/_site/sign-in': {
+      id: '/_site/sign-in'
       path: '/sign-in'
       fullPath: '/sign-in'
-      preLoaderRoute: typeof AppSignInRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof SiteSignInRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/play/$gameId/': {
-      id: '/play/$gameId/'
-      path: '/'
-      fullPath: '/play/$gameId/'
-      preLoaderRoute: typeof PlayGameIdIndexRouteImport
-      parentRoute: typeof PlayGameIdRoute
-    }
-    '/_app/games/': {
-      id: '/_app/games/'
+    '/_site/games/': {
+      id: '/_site/games/'
       path: '/games'
       fullPath: '/games/'
-      preLoaderRoute: typeof AppGamesIndexRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof SiteGamesIndexRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/play/$gameId/star-system': {
-      id: '/play/$gameId/star-system'
-      path: '/star-system'
-      fullPath: '/play/$gameId/star-system'
-      preLoaderRoute: typeof PlayGameIdStarSystemRouteImport
-      parentRoute: typeof PlayGameIdRoute
+    '/_site/games/create': {
+      id: '/_site/games/create'
+      path: '/games/create'
+      fullPath: '/games/create'
+      preLoaderRoute: typeof SiteGamesCreateRouteImport
+      parentRoute: typeof SiteRoute
     }
-    '/play/$gameId/actions': {
-      id: '/play/$gameId/actions'
-      path: '/actions'
-      fullPath: '/play/$gameId/actions'
-      preLoaderRoute: typeof PlayGameIdActionsRouteImport
-      parentRoute: typeof PlayGameIdRoute
-    }
-    '/_app/games/new': {
-      id: '/_app/games/new'
-      path: '/games/new'
-      fullPath: '/games/new'
-      preLoaderRoute: typeof AppGamesNewRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/games/$gameId': {
-      id: '/_app/games/$gameId'
+    '/_site/games/$gameId': {
+      id: '/_site/games/$gameId'
       path: '/games/$gameId'
       fullPath: '/games/$gameId'
-      preLoaderRoute: typeof AppGamesGameIdRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof SiteGamesGameIdRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_game/games/$gameId/play': {
+      id: '/_game/games/$gameId/play'
+      path: '/games/$gameId/play'
+      fullPath: '/games/$gameId/play'
+      preLoaderRoute: typeof GameGamesGameIdPlayRouteImport
+      parentRoute: typeof GameRoute
+    }
+    '/_game/games/$gameId/play/': {
+      id: '/_game/games/$gameId/play/'
+      path: '/'
+      fullPath: '/games/$gameId/play/'
+      preLoaderRoute: typeof GameGamesGameIdPlayIndexRouteImport
+      parentRoute: typeof GameGamesGameIdPlayRoute
+    }
+    '/_game/games/$gameId/play/star-system': {
+      id: '/_game/games/$gameId/play/star-system'
+      path: '/star-system'
+      fullPath: '/games/$gameId/play/star-system'
+      preLoaderRoute: typeof GameGamesGameIdPlayStarSystemRouteImport
+      parentRoute: typeof GameGamesGameIdPlayRoute
+    }
+    '/_game/games/$gameId/play/actions': {
+      id: '/_game/games/$gameId/play/actions'
+      path: '/actions'
+      fullPath: '/games/$gameId/play/actions'
+      preLoaderRoute: typeof GameGamesGameIdPlayActionsRouteImport
+      parentRoute: typeof GameGamesGameIdPlayRoute
     }
   }
 }
 
-interface AppRouteChildren {
-  AppSignInRoute: typeof AppSignInRoute
-  AppSignUpRoute: typeof AppSignUpRoute
-  AppIndexRoute: typeof AppIndexRoute
-  AppGamesGameIdRoute: typeof AppGamesGameIdRoute
-  AppGamesNewRoute: typeof AppGamesNewRoute
-  AppGamesIndexRoute: typeof AppGamesIndexRoute
+interface GameGamesGameIdPlayRouteChildren {
+  GameGamesGameIdPlayActionsRoute: typeof GameGamesGameIdPlayActionsRoute
+  GameGamesGameIdPlayStarSystemRoute: typeof GameGamesGameIdPlayStarSystemRoute
+  GameGamesGameIdPlayIndexRoute: typeof GameGamesGameIdPlayIndexRoute
 }
 
-const AppRouteChildren: AppRouteChildren = {
-  AppSignInRoute: AppSignInRoute,
-  AppSignUpRoute: AppSignUpRoute,
-  AppIndexRoute: AppIndexRoute,
-  AppGamesGameIdRoute: AppGamesGameIdRoute,
-  AppGamesNewRoute: AppGamesNewRoute,
-  AppGamesIndexRoute: AppGamesIndexRoute,
+const GameGamesGameIdPlayRouteChildren: GameGamesGameIdPlayRouteChildren = {
+  GameGamesGameIdPlayActionsRoute: GameGamesGameIdPlayActionsRoute,
+  GameGamesGameIdPlayStarSystemRoute: GameGamesGameIdPlayStarSystemRoute,
+  GameGamesGameIdPlayIndexRoute: GameGamesGameIdPlayIndexRoute,
 }
 
-const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+const GameGamesGameIdPlayRouteWithChildren =
+  GameGamesGameIdPlayRoute._addFileChildren(GameGamesGameIdPlayRouteChildren)
 
-interface PlayGameIdRouteChildren {
-  PlayGameIdActionsRoute: typeof PlayGameIdActionsRoute
-  PlayGameIdStarSystemRoute: typeof PlayGameIdStarSystemRoute
-  PlayGameIdIndexRoute: typeof PlayGameIdIndexRoute
+interface GameRouteChildren {
+  GameGamesGameIdPlayRoute: typeof GameGamesGameIdPlayRouteWithChildren
 }
 
-const PlayGameIdRouteChildren: PlayGameIdRouteChildren = {
-  PlayGameIdActionsRoute: PlayGameIdActionsRoute,
-  PlayGameIdStarSystemRoute: PlayGameIdStarSystemRoute,
-  PlayGameIdIndexRoute: PlayGameIdIndexRoute,
+const GameRouteChildren: GameRouteChildren = {
+  GameGamesGameIdPlayRoute: GameGamesGameIdPlayRouteWithChildren,
 }
 
-const PlayGameIdRouteWithChildren = PlayGameIdRoute._addFileChildren(
-  PlayGameIdRouteChildren,
-)
+const GameRouteWithChildren = GameRoute._addFileChildren(GameRouteChildren)
+
+interface SiteRouteChildren {
+  SiteSignInRoute: typeof SiteSignInRoute
+  SiteSignUpRoute: typeof SiteSignUpRoute
+  SiteIndexRoute: typeof SiteIndexRoute
+  SiteGamesGameIdRoute: typeof SiteGamesGameIdRoute
+  SiteGamesCreateRoute: typeof SiteGamesCreateRoute
+  SiteGamesIndexRoute: typeof SiteGamesIndexRoute
+}
+
+const SiteRouteChildren: SiteRouteChildren = {
+  SiteSignInRoute: SiteSignInRoute,
+  SiteSignUpRoute: SiteSignUpRoute,
+  SiteIndexRoute: SiteIndexRoute,
+  SiteGamesGameIdRoute: SiteGamesGameIdRoute,
+  SiteGamesCreateRoute: SiteGamesCreateRoute,
+  SiteGamesIndexRoute: SiteGamesIndexRoute,
+}
+
+const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  AppRoute: AppRouteWithChildren,
-  PlayGameIdRoute: PlayGameIdRouteWithChildren,
+  GameRoute: GameRouteWithChildren,
+  SiteRoute: SiteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

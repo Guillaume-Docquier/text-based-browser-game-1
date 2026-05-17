@@ -8,13 +8,13 @@ export interface RouterContext {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  component: RootComponent,
+  component: RootRoute,
   notFoundComponent: () => {
     return <Navigate to="/" replace />
   },
 })
 
-function RootComponent(): ReactElement {
+function RootRoute(): ReactElement {
   return (
     <>
       <Outlet />

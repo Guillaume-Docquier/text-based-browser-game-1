@@ -448,33 +448,38 @@ Goal: reshape the play surface into a game layout with a left navigation bar, to
 
 Files to create or update:
 
-- `frontend/src/routes/play.$gameId.tsx`
-- `frontend/src/routes/play.$gameId.index.tsx`
-- `frontend/src/routes/play.$gameId.star-system.tsx`
-- `frontend/src/routes/play.$gameId.actions.tsx`
-- `frontend/src/components/GameLayout.tsx`
-- `frontend/src/components/GameTopBar.tsx`
-- `frontend/src/components/GameSideNav.tsx`
-- `frontend/src/components/GameActionSelector.tsx`
+- `frontend/src/routes/_game.games.$gameId.play.tsx`
+- `frontend/src/routes/_game.games.$gameId.play.index.tsx`
+- `frontend/src/routes/_game.games.$gameId.play.star-system.tsx`
+- `frontend/src/routes/_game.games.$gameId.play.actions.tsx`
+- `frontend/src/features/play/PlayGameLayout.tsx`
+- `frontend/src/features/play/StarSystemPage.tsx`
+- `frontend/src/features/play/PlayerActionsPage.tsx`
+- `frontend/src/features/play/PlayContext.tsx`
+- `frontend/src/features/play/components/GameLayout.tsx`
+- `frontend/src/features/play/components/GameTopBar.tsx`
+- `frontend/src/features/play/components/GameSideNav.tsx`
+- `frontend/src/features/play/components/GameActionSelector.tsx`
 - `frontend/src/routeTree.gen.ts`
 
 Implementation steps:
 
-1. Convert `frontend/src/routes/play.$gameId.tsx` from the current single-page implementation into the authenticated layout route for `/play/$gameId`.
+1. Convert `frontend/src/routes/_game.games.$gameId.play.tsx` from the current single-page implementation into the authenticated layout route for `/games/$gameId/play`.
 2. Keep the existing route param parsing and private-route protection on the layout route.
 3. Fetch `games.getSummaryById` and `gameStates.getById` in the layout route so the top bar has the game name, status, winner state, current Tick, and next Tick time.
-4. Add `GameLayout` with a left navigation bar, top game info bar, and central content region. Use full-width layout bands and avoid nested cards.
-5. Add `GameSideNav` with two links: Star System at `/play/$gameId/star-system` and Actions at `/play/$gameId/actions`.
-6. Add `GameTopBar` with compact game identity, status, Tick, countdown, and winner display. Reuse `GameStatusBadge` and existing Shadcn UI components.
-7. Add `play.$gameId.index.tsx` so `/play/$gameId` lands on the Star System experience. During Phase 2 it may render the same temporary map placeholder as `/play/$gameId/star-system`; Phase 4 replaces that placeholder with the real map.
-8. Add `play.$gameId.star-system.tsx` as a route-level placeholder that fits the new layout and states that the map view area exists without implementing SVG map rendering yet.
-9. Move the current action selection logic from `play.$gameId.tsx` into `play.$gameId.actions.tsx`.
-10. Extract the action cards, affordability messaging, deselection behavior, and mutation handling into `GameActionSelector`.
-11. Guard disabled or unaffordable actions before mutation so disabled-looking cards cannot still submit on click.
-12. Keep all current data calls and mutation behavior for actions: `gamePlayerActions.getCurrentAction`, `gamePlayerActions.setCurrentAction`, resource display and full-query invalidation through `BackendApiClient`.
-13. Make loading and error states route-local: layout loading handles game/game-state data, Actions loading handles current action data.
-14. Regenerate TanStack Router output by running the frontend build or the route generator through the existing Vite workflow. Do not hand-edit `frontend/src/routeTree.gen.ts`.
-15. Do not add `d3`, `d3-zoom` or map-rendering dependencies in this phase.
+4. Add `PlayGameLayout` as the feature-level layout component that fetches play-shell data and provides shared play context.
+5. Add `GameLayout` with a left navigation bar, top game info bar, and central content region. Use full-width layout bands and avoid nested cards.
+6. Add `GameSideNav` with two links: Star System at `/games/$gameId/play/star-system` and Actions at `/games/$gameId/play/actions`.
+7. Add `GameTopBar` with compact game identity, status, Tick, countdown, and winner display. Reuse `GameStatusBadge` and existing Shadcn UI components.
+8. Add `_game.games.$gameId.play.index.tsx` so `/games/$gameId/play` lands on the Star System experience. During Phase 2 it may redirect to or render the same temporary map placeholder as `/games/$gameId/play/star-system`; Phase 4 replaces that placeholder with the real map.
+9. Add `_game.games.$gameId.play.star-system.tsx` as a thin route file that renders `StarSystemPage`, which fits the new layout and states that the map view area exists without implementing SVG map rendering yet.
+10. Move the current action selection logic from the play route into `PlayerActionsPage`, rendered by `_game.games.$gameId.play.actions.tsx`.
+11. Extract the action cards, affordability messaging, deselection behavior, and mutation handling into `GameActionSelector`.
+12. Guard disabled or unaffordable actions before mutation so disabled-looking cards cannot still submit on click.
+13. Keep all current data calls and mutation behavior for actions: `gamePlayerActions.getCurrentAction`, `gamePlayerActions.setCurrentAction`, resource display and full-query invalidation through `BackendApiClient`.
+14. Make loading and error states feature-local: layout loading handles game/game-state data, Actions loading handles current action data.
+15. Regenerate TanStack Router output by running the frontend build or the route generator through the existing Vite workflow. Do not hand-edit `frontend/src/routeTree.gen.ts`.
+16. Do not add `d3`, `d3-zoom` or map-rendering dependencies in this phase.
 
 Backend tests:
 
@@ -483,9 +488,9 @@ Backend tests:
 
 Manual verification:
 
-- `/play/$gameId` opens the Star System page inside the new game layout.
-- `/play/$gameId/star-system` opens the same Star System area.
-- `/play/$gameId/actions` shows the current action selector and preserves click-again-to-clear behavior.
+- `/games/$gameId/play` opens the Star System page inside the new game layout.
+- `/games/$gameId/play/star-system` opens the same Star System area.
+- `/games/$gameId/play/actions` shows the current action selector and preserves click-again-to-clear behavior.
 - The side navigation highlights the active route.
 - Winner, Tick and countdown information remain visible outside the Actions page.
 - Mobile width keeps navigation and top bar readable without overlapping content.
@@ -514,7 +519,8 @@ Files to create or update:
 - `backend/src/api/createApi.ts`
 - `backend/src/api/createApi.stub.ts`
 - `backend/src/api/entry.api.ts`
-- `frontend/src/routes/games.new.tsx`
+- `frontend/src/routes/_site.games.create.tsx`
+- `frontend/src/features/games/CreateGamePage.tsx`
 
 Implementation steps:
 
@@ -550,7 +556,7 @@ Implementation steps:
 
 Frontend steps:
 
-1. Add a "Star System generation" section to `frontend/src/routes/games.new.tsx`.
+1. Add a "Star System generation" section to `frontend/src/features/games/CreateGamePage.tsx`.
 2. Add inputs for the six settings: Planet density of the System, Number of Planets, Number of Moons per Planet, Number of Asteroid belts, Number of Asteroids per Sector, and Seed.
 3. Use paired numeric inputs for ranges and one numeric input for Seed.
 4. Keep Seed optional in the UI. If the player leaves it blank, send no seed and let the backend normalize the setting.
@@ -573,23 +579,24 @@ Files to create or update:
 
 - `frontend/package.json`
 - `frontend/pnpm-lock.yaml`
-- `frontend/src/routes/play.$gameId.index.tsx`
-- `frontend/src/routes/play.$gameId.star-system.tsx`
-- `frontend/src/components/StarSystemView.tsx`
-- `frontend/src/components/StarSystemSvg.tsx`
-- `frontend/src/components/StarSystemControls.tsx`
-- `frontend/src/components/StarSystemSelectionPanel.tsx`
-- `frontend/src/components/StarSystemCoordinateInput.tsx`
-- `frontend/src/lib/starSystemGeometry.ts`
-- `frontend/src/lib/starSystemCoordinates.ts`
-- `frontend/src/lib/useStarSystemZoom.ts`
+- `frontend/src/routes/_game.games.$gameId.play.index.tsx`
+- `frontend/src/routes/_game.games.$gameId.play.star-system.tsx`
+- `frontend/src/features/play/StarSystemPage.tsx`
+- `frontend/src/features/play/components/StarSystemView.tsx`
+- `frontend/src/features/play/components/StarSystemSvg.tsx`
+- `frontend/src/features/play/components/StarSystemControls.tsx`
+- `frontend/src/features/play/components/StarSystemSelectionPanel.tsx`
+- `frontend/src/features/play/components/StarSystemCoordinateInput.tsx`
+- `frontend/src/features/play/starSystemGeometry.ts`
+- `frontend/src/features/play/starSystemCoordinates.ts`
+- `frontend/src/features/play/useStarSystemZoom.ts`
 - `frontend/src/assets/star-system/*`
 
 Implementation steps:
 
 1. Add the frontend dependencies required by this document: `d3-zoom` and `d3-selection`. Add TypeScript types if the packages do not ship the needed declarations.
-2. Query `backendApiClient.starSystems.getByGameId` from `play.$gameId.star-system.tsx`.
-3. Make `play.$gameId.index.tsx` render the same Map view as `/play/$gameId/star-system` so both documented routes show the map.
+2. Query `backendApiClient.starSystems.getByGameId` from `StarSystemPage`, rendered by `_game.games.$gameId.play.star-system.tsx`.
+3. Make `_game.games.$gameId.play.index.tsx` redirect to or render the same Map view as `/games/$gameId/play/star-system` so both documented routes show the map experience.
 4. Add runtime visual assets for one Planet, one Moon, one Asteroid, one star, and a few starry background variants under `frontend/src/assets/star-system/`. Do not load files from `.github/images` at runtime.
 5. Implement `StarSystemView` as the page-level composition: loading state, error state, coordinate controls, central map, and selection panel.
 6. Implement `StarSystemSvg` as the main SVG renderer. Render the star at the center, Orbits as concentric bands and Sectors as annular sector paths.
@@ -598,7 +605,7 @@ Implementation steps:
 9. Show Sector coordinates on the map. Do not show Body coordinates directly on the map because that would clutter the UI.
 10. Use `d3-zoom` for pan and zoom on one inner SVG content group. Let d3 mutate only the transform on that group; React continues to own the rendered Sectors and Bodies.
 11. Implement `StarSystemCoordinateInput` accepting `Orbit`, `Orbit:Sector` and `Orbit:Sector:Body` formats. Submitting an Orbit zooms to the Orbit, submitting a Sector zooms to the Sector, and submitting a Body zooms to the Body.
-12. Implement coordinate parsing in `frontend/src/lib/starSystemCoordinates.ts`; keep it frontend-specific and aligned with backend output formatting.
+12. Implement coordinate parsing in `frontend/src/features/play/starSystemCoordinates.ts`; keep it frontend-specific and aligned with backend output formatting.
 13. Allow selecting Sectors and Bodies. Selection updates `StarSystemSelectionPanel` with coordinates, name, type, and movement-neighbor summary.
 14. Use the MovementGraph from `getByGameId` to highlight immediate movement neighbors for the selected Sector or Body.
 15. Add empty states for games with no Star System and error states for failed Star System queries.
@@ -613,7 +620,7 @@ Backend tests:
 
 Manual verification:
 
-- `/play/$gameId` and `/play/$gameId/star-system` render a non-empty Star System for a game created after Phase 3.
+- `/games/$gameId/play` and `/games/$gameId/play/star-system` render a non-empty Star System for a game created after Phase 3.
 - Pan and zoom work with mouse, trackpad, and touch-like browser emulation.
 - The coordinate input zooms to `02`, `02:11` and `02:11:05` when those coordinates exist.
 - Selecting a Sector shows its coordinate and Bodies in the bottom section.
