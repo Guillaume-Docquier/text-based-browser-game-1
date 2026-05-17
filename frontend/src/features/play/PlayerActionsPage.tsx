@@ -3,7 +3,7 @@ import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
 import { GameActionSelector, GameActionSelectorSkeleton } from "./components/GameActionSelector.tsx"
 import { Alert, AlertDescription, AlertTitle } from "../../components/alert.tsx"
-import { useBackendApiClient } from "../../api/BackendApiClientContext.tsx"
+import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { useLogger } from "../../lib/LoggerContext.tsx"
 import { usePlayGameContext } from "./PlayContext.tsx"
 

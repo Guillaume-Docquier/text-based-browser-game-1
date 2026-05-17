@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Navigate, Outlet } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { GameLayout, GameLayoutSkeleton } from "./components/GameLayout.tsx"
-import { useBackendApiClient } from "../../api/BackendApiClientContext.tsx"
+import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { useLogger } from "../../lib/LoggerContext.tsx"
 import { PlayGameContextProvider, type PlayGameContextValue } from "./PlayContext.tsx"
 

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Input } from "../../components/input.tsx"
 import { Label } from "../../components/label.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/select.tsx"
-import { useBackendApiClient } from "../../api/BackendApiClientContext.tsx"
+import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 
 type TickIntervalUnit = Enumify<typeof TickIntervalUnit>
 type CreateGameInput = {

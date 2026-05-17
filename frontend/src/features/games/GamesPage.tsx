@@ -10,7 +10,7 @@ import { Button } from "../../components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/card.tsx"
 import { Input } from "../../components/input.tsx"
 import { Skeleton } from "../../components/skeleton.tsx"
-import { useBackendApiClient } from "../../api/BackendApiClientContext.tsx"
+import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { timeAgo } from "../../lib/timeAgo.ts"
 
 export function GamesPage(): ReactElement {
@@ -30,7 +30,7 @@ export function GamesPage(): ReactElement {
           description="Browse active lobbies, filter by name, and jump back into an ongoing match."
           actions={
             <Button asChild>
-              <Link to="/games/new">New game</Link>
+              <Link to="/games/create">Create game</Link>
             </Button>
           }
         />
@@ -51,7 +51,7 @@ export function GamesPage(): ReactElement {
         description="Browse active lobbies, filter by name, and create a new game when you are ready to host."
         actions={
           <Button asChild>
-            <Link to="/games/new">New game</Link>
+            <Link to="/games/create">Create game</Link>
           </Button>
         }
       />
