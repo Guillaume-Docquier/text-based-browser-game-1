@@ -10,6 +10,7 @@ import { createTrpc, createTrpcContext } from "./trpc.ts"
 import { createGameStatesRouter } from "#api/gameStates/gameStates.router.ts"
 import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 import type { TRPCError } from "@trpc/server"
+import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { PlayersController } from "#api/players/players.controller.ts"
 import type { PlayersRepository } from "#lib/db/players/players.repository.ts"
@@ -40,6 +41,7 @@ export async function createApi({
   createTransaction: NodePgDatabase["transaction"]
   authService: IAuthService
   logger: Logger
+  db: NodePgDatabase
   playersRepository: PlayersRepository
   gamesRepository: GamesRepository
   gameStatesRepository: GameStatesRepository

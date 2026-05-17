@@ -49,12 +49,7 @@ async function main(): Promise<void> {
   const authService = new AuthService({ logger })
 
   logger.info("Creating the API")
-  const app = await createApi({
-    logger,
-    createTransaction: db.transaction.bind(db),
-    authService,
-    ...repositories,
-  })
+  const app = await createApi({ logger, db, authService, ...repositories })
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
   app.listen(env.PORT, "::", () => {

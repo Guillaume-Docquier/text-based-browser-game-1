@@ -23,6 +23,7 @@ export async function createApiStub(): Promise<AllServices & { api: Express }> {
 
   const services = {
     logger,
+    db,
     authService: new AuthServiceMock(),
     createTransaction: db.transaction.bind(db),
     gamesRepository: new GamesRepository({ db, logger }),

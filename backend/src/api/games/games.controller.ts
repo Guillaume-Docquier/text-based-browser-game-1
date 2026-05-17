@@ -1,18 +1,78 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games/games.repository.ts"
+import type { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import {
+  type StarSystemGenerationSettings,
+  StarSystemGenerationSettingsInput,
+  type StarSystemGenerationSettingsInput as StarSystemGenerationSettingsInputType,
+  type StarSystemsRepository,
+} from "#lib/db/star-systems/starSystems.repository.ts"
+import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
+import { randomInt } from "node:crypto"
 import z from "zod"
 
 export class GamesController {
   private readonly gamesRepository: GamesRepository
+  private readonly starSystemsRepository: StarSystemsRepository
+  private readonly db: PostgresRepository["db"]
   private readonly logger: Logger
 
-  public constructor({ gamesRepository, logger }: { gamesRepository: GamesRepository; logger: Logger }) {
+  public constructor({
+    gamesRepository,
+    starSystemsRepository,
+    db,
+    logger,
+  }: {
+    gamesRepository: GamesRepository
+    starSystemsRepository: StarSystemsRepository
+    db: PostgresRepository["db"]
+    logger: Logger
+  }) {
     this.gamesRepository = gamesRepository
+    this.starSystemsRepository = starSystemsRepository
+    this.db = db
     this.logger = logger.child({ scope: "games-controller" })
   }
 
-  public async create(newGame: GameInsert): Promise<Result<CreatedGame, string>> {
-    return await this.gamesRepository.create(newGame)
+  public async create(newGame: CreateGameCommand): Promise<Result<CreatedGame, string>> {
+    const generationSettings = normalizeGenerationSettings(newGame.starSystemGenerationSettings)
+    const createResult = await Result.tryCatch(
+      async () =>
+        await this.db.transaction(async (tx): Promise<CreatedGame> => {
+          const gameCreateResult = await this.gamesRepository.create(
+            {
+              name: newGame.name,
+              createdByPlayerId: newGame.createdByPlayerId,
+              nbSeats: newGame.nbSeats,
+              tickIntervalSeconds: newGame.tickIntervalSeconds,
+            },
+            tx,
+          )
+
+          if (Result.isFailure(gameCreateResult)) {
+            throw new Error(gameCreateResult.error)
+          }
+
+          const starSystemResult = generateStarSystem({ gameId: gameCreateResult.value.id, generationSettings })
+          if (Result.isFailure(starSystemResult)) {
+            throw new Error(starSystemResult.error)
+          }
+
+          const createStarSystemResult = await this.starSystemsRepository.create(starSystemResult.value, tx)
+          if (Result.isFailure(createStarSystemResult)) {
+            throw new Error(createStarSystemResult.error)
+          }
+
+          return gameCreateResult.value
+        }),
+    )
+
+    if (Result.isFailure(createResult)) {
+      this.logger.error("Could not create game and Star System", { newGame, error: createResult.error })
+      return Result.Failure(String(createResult.error))
+    }
+
+    return createResult
   }
 
   public async getSummaries({ playerId }: { playerId: number | undefined }): Promise<GameSummary[]> {
@@ -134,6 +194,11 @@ export const GameInsert = z.object({
   tickIntervalSeconds: z.number(),
 }) satisfies z.ZodType<GameRowInsert>
 
+export type CreateGameCommand = z.infer<typeof CreateGameCommand>
+export const CreateGameCommand = GameInsert.extend({
+  starSystemGenerationSettings: StarSystemGenerationSettingsInput,
+})
+
 export type CreatedGame = z.infer<typeof CreatedGame>
 export const CreatedGame = z.object({
   name: z.string(),
@@ -186,3 +251,14 @@ export const GameSummary = z.object({
    */
   canStart: z.boolean(),
 }) satisfies z.ZodType<GameSummaryRow>
+
+function normalizeGenerationSettings(settings: StarSystemGenerationSettingsInputType): StarSystemGenerationSettings {
+  return {
+    ...settings,
+    seed: settings.seed ?? randomUnsigned32BitInteger(),
+  }
+}
+
+function randomUnsigned32BitInteger(): number {
+  return randomInt(0, 4_294_967_296)
+}

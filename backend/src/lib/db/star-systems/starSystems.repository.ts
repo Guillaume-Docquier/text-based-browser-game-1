@@ -3,9 +3,12 @@ import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, secto
 import { eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
-import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
+import { PercentageRange, IntegerRange } from "#lib/Range.ts"
 import type { BodyType } from "#lib/star-systems/BodyType.ts"
 import { toCoordinates } from "#lib/star-systems/Coordinates.ts"
+import z from "zod"
+
+const UNSIGNED_32_BIT_MAX = 4_294_967_295
 
 export type NewStarSystem = {
   gameId: number
@@ -17,14 +20,20 @@ export type NewStarSystem = {
   movementEdges: MovementEdge[]
 }
 
-export type StarSystemGenerationSettings = {
-  planetDensity: PercentageRange
-  nbPlanets: IntegerRange
-  nbMoonsPerPlanet: IntegerRange
-  nbAsteroidBelts: IntegerRange
-  nbAsteroidsPerSector: IntegerRange
-  seed: number
-}
+export type StarSystemGenerationSettings = z.infer<typeof StarSystemGenerationSettings>
+export const StarSystemGenerationSettings = z.object({
+  planetDensity: PercentageRange,
+  nbPlanets: IntegerRange,
+  nbMoonsPerPlanet: IntegerRange,
+  nbAsteroidBelts: IntegerRange,
+  nbAsteroidsPerSector: IntegerRange,
+  seed: z.number().int().min(0).max(UNSIGNED_32_BIT_MAX),
+})
+
+export type StarSystemGenerationSettingsInput = z.infer<typeof StarSystemGenerationSettingsInput>
+export const StarSystemGenerationSettingsInput = StarSystemGenerationSettings.extend({
+  seed: z.number().int().min(0).max(UNSIGNED_32_BIT_MAX).optional(),
+})
 
 export type Orbit = {
   id: string
@@ -220,25 +229,35 @@ function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSy
   // It's a bit monstrous, but it's localized and does exactly what it need to
   return {
     gameId: starSystemRows.starSystem.gameId,
-    orbits: starSystemRows.orbits.map((orbit) => ({
-      id: orbit.id,
-      number: orbit.orbitNumber,
-      coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber }),
-      sectors: (sectorsByOrbitId.get(orbit.id) ?? []).map((sector) => ({
-        id: sector.id,
-        number: sector.sectorNumber,
-        coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }),
-        movementNodeId: sector.movementNodeId,
-        bodies: (bodiesBySectorId.get(sector.id) ?? []).map((body) => ({
-          id: body.id,
-          number: body.bodyNumber,
-          coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber, bodyNumber: body.bodyNumber }),
-          name: body.name,
-          type: body.bodyType,
-          movementNodeId: body.movementNodeId,
-        })),
+    orbits: starSystemRows.orbits
+      .toSorted((left, right) => left.orbitNumber - right.orbitNumber)
+      .map((orbit) => ({
+        id: orbit.id,
+        number: orbit.orbitNumber,
+        coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber }),
+        sectors: (sectorsByOrbitId.get(orbit.id) ?? [])
+          .toSorted((left, right) => left.sectorNumber - right.sectorNumber)
+          .map((sector) => ({
+            id: sector.id,
+            number: sector.sectorNumber,
+            coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }),
+            movementNodeId: sector.movementNodeId,
+            bodies: (bodiesBySectorId.get(sector.id) ?? [])
+              .toSorted((left, right) => left.bodyNumber - right.bodyNumber)
+              .map((body) => ({
+                id: body.id,
+                number: body.bodyNumber,
+                coordinates: toCoordinates({
+                  orbitNumber: orbit.orbitNumber,
+                  sectorNumber: sector.sectorNumber,
+                  bodyNumber: body.bodyNumber,
+                }),
+                name: body.name,
+                type: body.bodyType,
+                movementNodeId: body.movementNodeId,
+              })),
+          })),
       })),
-    })),
     movementEdges: toMovementEdgesByFromNodeId(starSystemRows.movementEdges),
   }
 }

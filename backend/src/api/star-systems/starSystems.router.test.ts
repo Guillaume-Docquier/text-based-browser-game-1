@@ -14,20 +14,21 @@ describe("starSystems.router", () => {
   describe("getSystem", () => {
     it("should get the full stored system for an authenticated player in the game", async () => {
       // Arrange
-      const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
+      const { api, authService, gamesRepository, playersRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = player
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
-      const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
+      const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id })))
+      const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: game.id })
 
       // Act
-      const getStarSystemResponse = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
+      const getStarSystemResponse = await trpcClient.client.starSystems.getByGameId.query({ gameId: game.id })
 
       // Assert
       expect(getStarSystemResponse.starSystem).toEqual<typeof getStarSystemResponse.starSystem>({
-        gameId: createGameResult.newGame.id,
+        gameId: game.id,
         orbits: [
           {
             id: expect.any(String),
@@ -116,34 +117,35 @@ describe("starSystems.router", () => {
 
     it("should reject a player who is authenticated but not in the game", async () => {
       // Arrange
-      const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
+      const { api, authService, gamesRepository, playersRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
       const outsider = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Outsider" })))
       authService.player = creator
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
-      await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
+      const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: creator.id })))
+      await createStoredStarSystem({ starSystemsRepository, gameId: game.id })
       authService.player = outsider
 
       // Act & Assert
-      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: game.id })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
 
     it("should return not found for an existing game with no Star System", async () => {
       // Arrange
-      const { api, authService, playersRepository } = await createApiStub()
+      const { api, authService, gamesRepository, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = player
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
+      const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id })))
 
       // Act & Assert
-      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: game.id })).rejects.toMatchObject({
         data: { code: "NOT_FOUND" },
       })
     })
