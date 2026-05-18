@@ -16,7 +16,7 @@ Examples of non-representable constraints include `z.number().int()` and `z.stri
 
 ## Decision
 
-Use Zod in routers only for base shape/format parsing that remains representable in TypeScript types.
+Use Zod in routers only for base shape/format parsing that remains representable in TypeScript types. We use it to parse inputs, not to validate it.
 
 Allowed Zod constraints are those that narrow data in a way captured by the resulting type, for example:
 
