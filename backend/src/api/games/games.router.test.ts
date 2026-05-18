@@ -4,8 +4,9 @@ import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { GameSummaryStatus } from "#api/games/games.controller.ts"
-import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
+import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
+import { createStarSystemGenerationSettingsDtoStub } from "#api/games/StarSystemGenerationSettingsDto.stub.ts"
 
 describe("games.router", () => {
   describe("create", () => {
@@ -19,12 +20,11 @@ describe("games.router", () => {
 
       // Act
       const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
+        newGame: createNewGameDtoStub({
           name: "my new game",
           nbSeats: 43,
           tickIntervalSeconds: 420,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
+        }),
       })
 
       // Assert
@@ -53,18 +53,15 @@ describe("games.router", () => {
 
       // Act
       const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "generated system game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
+        newGame: createNewGameDtoStub({
+          starSystemGenerationSettings: createStarSystemGenerationSettingsDtoStub({
             planetDensity: { min: 1, max: 1 },
             nbPlanets: { min: 1, max: 1 },
             nbMoonsPerPlanet: { min: 1, max: 1 },
             nbAsteroidBelts: { min: 0, max: 0 },
             nbAsteroidsPerSector: { min: 0, max: 0 },
           }),
-        },
+        }),
       })
       const starSystemResult = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
 
@@ -86,14 +83,11 @@ describe("games.router", () => {
       // Act & Assert
       await expect(
         trpcClient.client.games.create.mutate({
-          newGame: {
-            name: "invalid system game",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-            starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
+          newGame: createNewGameDtoStub({
+            starSystemGenerationSettings: createStarSystemGenerationSettingsDtoStub({
               nbPlanets: { min: 10, max: 1 },
             }),
-          },
+          }),
         }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
@@ -106,16 +100,12 @@ describe("games.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
-      const { seed: _seed, ...settingsWithoutSeed } = createStarSystemGenerationSettingsStub()
 
       // Act
       const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "random seed game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: settingsWithoutSeed,
-        },
+        newGame: createNewGameDtoStub({
+          starSystemGenerationSettings: createStarSystemGenerationSettingsDtoStub({ seed: undefined }),
+        }),
       })
       const starSystemResult = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
 
@@ -131,16 +121,7 @@ describe("games.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
-      await expect(
-        trpcClient.client.games.create.mutate({
-          newGame: {
-            name: "my new game",
-            nbSeats: 43,
-            tickIntervalSeconds: 420,
-            starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-          },
-        }),
-      ).rejects.toMatchObject({
+      await expect(trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
@@ -156,12 +137,11 @@ describe("games.router", () => {
       authService.player = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
+        newGame: createNewGameDtoStub({
           name: "public game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
+        }),
       })
 
       authService.player = undefined
@@ -210,12 +190,11 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
+        newGame: createNewGameDtoStub({
           name: "joinable game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
+        }),
       })
 
       authService.player = player
@@ -266,12 +245,11 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
+        newGame: createNewGameDtoStub({
           name: "specific game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
+        }),
       })
 
       authService.player = player
@@ -318,12 +296,11 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
+        newGame: createNewGameDtoStub({
           name: "specific game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
+        }),
       })
 
       authService.player = undefined
@@ -383,12 +360,11 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
+        newGame: createNewGameDtoStub({
           name: "join game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
+        }),
       })
 
       authService.player = player
@@ -436,14 +412,7 @@ describe("games.router", () => {
 
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "already joined game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
-      })
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
 
       // Act & Assert
       await expect(trpcClient.client.games.join.mutate({ gameId: newGame.id })).rejects.toMatchObject({
@@ -474,12 +443,11 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
+        newGame: createNewGameDtoStub({
           name: "leave game",
           nbSeats: 3,
           tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
+        }),
       })
 
       authService.player = player
@@ -524,14 +492,7 @@ describe("games.router", () => {
 
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "creator cannot leave game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
-      })
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
 
       // Act & Assert
       await expect(trpcClient.client.games.leave.mutate({ gameId: newGame.id })).rejects.toMatchObject({
@@ -561,12 +522,11 @@ describe("games.router", () => {
       authService.player = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
+        newGame: createNewGameDtoStub({
           name: "start game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
+        }),
       })
 
       // Act
@@ -610,14 +570,7 @@ describe("games.router", () => {
       const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
       authService.player = creator
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "non creator cannot start game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
-      })
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
 
       authService.player = player
 

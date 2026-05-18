@@ -3,7 +3,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
+import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
 
 describe("gameStates.router", () => {
   describe("getById", () => {
@@ -15,14 +15,7 @@ describe("gameStates.router", () => {
       const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
       authService.player = player
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "running game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
-      })
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
 
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
 

@@ -5,7 +5,7 @@ import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 import { createResourceUpdateStub } from "#lib/db/resources/ResourceUpdate.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
+import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
 
 describe("gamePlayerActions.router", () => {
   describe("setCurrentAction", () => {
@@ -17,14 +17,7 @@ describe("gamePlayerActions.router", () => {
       const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
       authService.player = player
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "action game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
-      })
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
       await gamePlayerResourcesRepository.updateResource(
         createResourceUpdateStub({ gameId: newGame.id, playerId: player.id, amountDelta: 2 }),
@@ -60,14 +53,7 @@ describe("gamePlayerActions.router", () => {
 
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "stale tick game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
-      })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
 
       // Act & Assert
@@ -92,14 +78,7 @@ describe("gamePlayerActions.router", () => {
       const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
       authService.player = player
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          name: "action game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
-      })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
       await gamePlayerResourcesRepository.updateResource(
         createResourceUpdateStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),

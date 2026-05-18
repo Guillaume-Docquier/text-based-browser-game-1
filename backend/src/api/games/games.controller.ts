@@ -183,6 +183,7 @@ const RangeDto = z.object({
   max: z.number(),
 })
 
+export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
 const StarSystemGenerationSettingsDto = z.object({
   planetDensity: RangeDto,
   nbPlanets: RangeDto,
