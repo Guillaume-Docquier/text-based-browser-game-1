@@ -1,4 +1,4 @@
-import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { PostgresRepository, type PostgresQueryExecutor } from "#lib/db/PostgresRepository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
@@ -125,7 +125,7 @@ export class StarSystemsRepository extends PostgresRepository {
    * Create a new star system.
    * It is your responsibility to provide coherent data. Failing to do so will result in a Failure.
    */
-  public async create(newStarSystem: NewStarSystem, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
+  public async create(newStarSystem: NewStarSystem, db: PostgresQueryExecutor = this.db): Promise<Result<true, string>> {
     const createResult = await Result.tryCatch(async (): Promise<true> => {
       await db.transaction(async (tx) => {
         const withGameId = createWithGameId(newStarSystem.gameId)
@@ -175,7 +175,7 @@ export class StarSystemsRepository extends PostgresRepository {
    */
   public async getByGameId(
     { gameId }: { gameId: number },
-    db: PostgresRepository["db"] = this.db,
+    db: PostgresQueryExecutor = this.db,
   ): Promise<Result<StarSystemReadModel | undefined, string>> {
     const getRowsResult = await Result.tryCatch(async () => {
       const starSystems = await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, gameId))
@@ -220,25 +220,35 @@ function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSy
   // It's a bit monstrous, but it's localized and does exactly what it need to
   return {
     gameId: starSystemRows.starSystem.gameId,
-    orbits: starSystemRows.orbits.map((orbit) => ({
-      id: orbit.id,
-      number: orbit.orbitNumber,
-      coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber }),
-      sectors: (sectorsByOrbitId.get(orbit.id) ?? []).map((sector) => ({
-        id: sector.id,
-        number: sector.sectorNumber,
-        coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }),
-        movementNodeId: sector.movementNodeId,
-        bodies: (bodiesBySectorId.get(sector.id) ?? []).map((body) => ({
-          id: body.id,
-          number: body.bodyNumber,
-          coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber, bodyNumber: body.bodyNumber }),
-          name: body.name,
-          type: body.bodyType,
-          movementNodeId: body.movementNodeId,
-        })),
+    orbits: starSystemRows.orbits
+      .toSorted((first, second) => first.orbitNumber - second.orbitNumber)
+      .map((orbit) => ({
+        id: orbit.id,
+        number: orbit.orbitNumber,
+        coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber }),
+        sectors: (sectorsByOrbitId.get(orbit.id) ?? [])
+          .toSorted((first, second) => first.sectorNumber - second.sectorNumber)
+          .map((sector) => ({
+            id: sector.id,
+            number: sector.sectorNumber,
+            coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }),
+            movementNodeId: sector.movementNodeId,
+            bodies: (bodiesBySectorId.get(sector.id) ?? [])
+              .toSorted((first, second) => first.bodyNumber - second.bodyNumber)
+              .map((body) => ({
+                id: body.id,
+                number: body.bodyNumber,
+                coordinates: toCoordinates({
+                  orbitNumber: orbit.orbitNumber,
+                  sectorNumber: sector.sectorNumber,
+                  bodyNumber: body.bodyNumber,
+                }),
+                name: body.name,
+                type: body.bodyType,
+                movementNodeId: body.movementNodeId,
+              })),
+          })),
       })),
-    })),
     movementEdges: toMovementEdgesByFromNodeId(starSystemRows.movementEdges),
   }
 }

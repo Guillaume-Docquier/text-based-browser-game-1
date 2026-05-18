@@ -1,4 +1,4 @@
-import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { PostgresRepository, type PostgresQueryExecutor } from "#lib/db/PostgresRepository.ts"
 import { gamePlayerResourcesTable, gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "#lib/db/schema.ts"
 import { and, eq, getTableColumns } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
@@ -28,7 +28,7 @@ export class GamesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "games-repository" })
   }
 
-  public async create(newGame: GameRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<GameRow, string>> {
+  public async create(newGame: GameRowInsert, db: PostgresQueryExecutor = this.db): Promise<Result<GameRow, string>> {
     const createResult = await Result.tryCatch(
       async () =>
         await db.transaction(async (tx) => {
@@ -56,7 +56,7 @@ export class GamesRepository extends PostgresRepository {
     return createResult
   }
 
-  public async getSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryRow[], string>> {
+  public async getSummaries(db: PostgresQueryExecutor = this.db): Promise<Result<GameSummaryRow[], string>> {
     const gameSummariesResult = await Result.tryCatch(
       async () =>
         await db
@@ -118,7 +118,7 @@ export class GamesRepository extends PostgresRepository {
 
   public async getSummaryById(
     { gameId }: { gameId: number },
-    db: PostgresRepository["db"] = this.db,
+    db: PostgresQueryExecutor = this.db,
   ): Promise<Result<GameSummaryRow | undefined, string>> {
     const gameSummariesResult = await Result.tryCatch(
       async () =>
@@ -169,7 +169,7 @@ export class GamesRepository extends PostgresRepository {
     })
   }
 
-  public async getPlayerIds({ gameId }: { gameId: number }, db: PostgresRepository["db"] = this.db): Promise<Result<number[], string>> {
+  public async getPlayerIds({ gameId }: { gameId: number }, db: PostgresQueryExecutor = this.db): Promise<Result<number[], string>> {
     const gamePlayersResult = await Result.tryCatch(
       async () =>
         await db.select({ playerId: gamePlayersTable.playerId }).from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId)),
@@ -185,7 +185,7 @@ export class GamesRepository extends PostgresRepository {
 
   public async hasPlayerJoinedGame(
     { gameId, playerId }: { gameId: number; playerId: number },
-    db: PostgresRepository["db"] = this.db,
+    db: PostgresQueryExecutor = this.db,
   ): Promise<Result<boolean, string>> {
     const joinedGameResult = await Result.tryCatch(async () => {
       const rows = await db
@@ -207,7 +207,7 @@ export class GamesRepository extends PostgresRepository {
 
   public async endWithWinner(
     { gameId, winnerPlayerId }: { gameId: number; winnerPlayerId: number },
-    db: PostgresRepository["db"] = this.db,
+    db: PostgresQueryExecutor = this.db,
   ): Promise<Result<true, string>> {
     const endResult = await Result.tryCatch(async (): Promise<true> => {
       await db.update(gamesTable).set({ endedAt: new Date(), winnerPlayerId }).where(eq(gamesTable.id, gameId))
@@ -232,7 +232,7 @@ export class GamesRepository extends PostgresRepository {
       playerId: number
       canJoin: (gameSummaryRow: GameSummaryRow) => boolean
     },
-    db: PostgresRepository["db"] = this.db,
+    db: PostgresQueryExecutor = this.db,
   ): Promise<Result<true, string>> {
     const { gameId, playerId, canJoin } = options
     const joinResult = await Result.tryCatch(
@@ -281,7 +281,7 @@ export class GamesRepository extends PostgresRepository {
       playerId: number
       canLeave: (gameSummaryRow: GameSummaryRow) => boolean
     },
-    db: PostgresRepository["db"] = this.db,
+    db: PostgresQueryExecutor = this.db,
   ): Promise<Result<true, string>> {
     const leaveResult = await Result.tryCatch(
       async () =>

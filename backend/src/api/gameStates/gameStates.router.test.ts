@@ -3,6 +3,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
+import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 
 describe("gameStates.router", () => {
   describe("getById", () => {
@@ -19,6 +20,7 @@ describe("gameStates.router", () => {
           name: "running game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 

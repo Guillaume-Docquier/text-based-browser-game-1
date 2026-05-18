@@ -28,7 +28,6 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres"
  * It also decouples the application from those 3rd parties, if done well.
  */
 export async function createApi({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- createTransaction will be used soon enough
   createTransaction,
   authService,
   ...services
@@ -48,7 +47,7 @@ export async function createApi({
   starSystemsRepository: StarSystemsRepository
 }): Promise<Express> {
   const controllers = {
-    gamesController: new GamesController(services),
+    gamesController: new GamesController({ ...services, createTransaction }),
     gameStatesController: new GameStatesController(services),
     playersController: new PlayersController(services),
     gamePlayerActionsController: new GamePlayerActionsController(services),

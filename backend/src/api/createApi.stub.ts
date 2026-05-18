@@ -17,7 +17,7 @@ type AllServices = Omit<Parameters<typeof createApi>[0], "authService"> & { auth
  * The db will be mocked with an empty in-memory db.
  * The auth service will use a mocked service with no authenticated user.
  */
-export async function createApiStub(): Promise<AllServices & { api: Express }> {
+export async function createApiStub(): Promise<AllServices & { api: Express; db: Awaited<ReturnType<typeof createDbMock>> }> {
   const logger = Logger.get()
   const db = await createDbMock()
 
@@ -38,5 +38,6 @@ export async function createApiStub(): Promise<AllServices & { api: Express }> {
   return {
     ...services,
     api,
+    db,
   }
 }

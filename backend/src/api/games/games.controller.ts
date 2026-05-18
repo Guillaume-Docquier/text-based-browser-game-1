@@ -1,18 +1,81 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games/games.repository.ts"
+import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow } from "#lib/db/games/games.repository.ts"
 import z from "zod"
+import type { StarSystemsRepository, StarSystemGenerationSettings } from "#lib/db/star-systems/starSystems.repository.ts"
+import { generateStarSystem, MAX_ORBITS } from "#lib/star-systems/generateStarSystem.ts"
+import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
 export class GamesController {
   private readonly gamesRepository: GamesRepository
+  private readonly starSystemsRepository: StarSystemsRepository
+  private readonly createTransaction: NodePgDatabase["transaction"]
   private readonly logger: Logger
 
-  public constructor({ gamesRepository, logger }: { gamesRepository: GamesRepository; logger: Logger }) {
+  public constructor({
+    gamesRepository,
+    starSystemsRepository,
+    createTransaction,
+    logger,
+  }: {
+    gamesRepository: GamesRepository
+    starSystemsRepository: StarSystemsRepository
+    createTransaction: NodePgDatabase["transaction"]
+    logger: Logger
+  }) {
     this.gamesRepository = gamesRepository
+    this.starSystemsRepository = starSystemsRepository
+    this.createTransaction = createTransaction
     this.logger = logger.child({ scope: "games-controller" })
   }
 
-  public async create(newGame: GameInsert): Promise<Result<CreatedGame, string>> {
-    return await this.gamesRepository.create(newGame)
+  public async create(newGame: NewGameDto): Promise<Result<CreatedGame, string>> {
+    const generationSettingsResult = normalizeStarSystemGenerationSettings(newGame.starSystemGenerationSettings)
+    if (Result.isFailure(generationSettingsResult)) {
+      this.logger.error("Invalid Star System generation settings", { newGame, error: generationSettingsResult.error })
+      return Result.Failure(generationSettingsResult.error)
+    }
+
+    const generationSettings = generationSettingsResult.value
+    const { starSystemGenerationSettings: _starSystemGenerationSettings, ...gameInsert } = newGame
+
+    const createResult = await Result.tryCatch(
+      async () =>
+        await this.createTransaction(async (tx) => {
+          const createGameResult = await this.gamesRepository.create(gameInsert, tx)
+          if (Result.isFailure(createGameResult)) {
+            this.logger.error("Could not create game during game creation transaction", { newGame, error: createGameResult.error })
+            tx.rollback()
+            throw new Error(createGameResult.error)
+          }
+
+          const game = createGameResult.value
+          const starSystemResult = generateStarSystem({ gameId: game.id, generationSettings })
+          if (Result.isFailure(starSystemResult)) {
+            this.logger.error("Could not generate Star System during game creation transaction", { newGame, error: starSystemResult.error })
+            tx.rollback()
+            throw new Error(starSystemResult.error)
+          }
+
+          const createStarSystemResult = await this.starSystemsRepository.create(starSystemResult.value, tx)
+          if (Result.isFailure(createStarSystemResult)) {
+            this.logger.error("Could not create Star System during game creation transaction", {
+              newGame,
+              error: createStarSystemResult.error,
+            })
+            tx.rollback()
+            throw new Error(createStarSystemResult.error)
+          }
+
+          return game
+        }),
+    )
+
+    if (Result.isFailure(createResult)) {
+      this.logger.error("Could not create game with Star System", { newGame, error: createResult.error })
+      return Result.Failure("Game could not be created")
+    }
+
+    return createResult
   }
 
   public async getSummaries({ playerId }: { playerId: number | undefined }): Promise<GameSummary[]> {
@@ -126,13 +189,29 @@ function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSumma
   }
 }
 
-export type GameInsert = z.infer<typeof GameInsert>
-export const GameInsert = z.object({
+const RangeDto = z.object({
+  min: z.number(),
+  max: z.number(),
+})
+
+export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
+export const StarSystemGenerationSettingsDto = z.object({
+  planetDensity: RangeDto,
+  nbPlanets: RangeDto,
+  nbMoonsPerPlanet: RangeDto,
+  nbAsteroidBelts: RangeDto,
+  nbAsteroidsPerSector: RangeDto,
+  seed: z.number().optional(),
+})
+
+export type NewGameDto = z.infer<typeof NewGameDto>
+export const NewGameDto = z.object({
   name: z.string(),
   createdByPlayerId: z.number(),
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
-}) satisfies z.ZodType<GameRowInsert>
+  starSystemGenerationSettings: StarSystemGenerationSettingsDto,
+})
 
 export type CreatedGame = z.infer<typeof CreatedGame>
 export const CreatedGame = z.object({
@@ -186,3 +265,55 @@ export const GameSummary = z.object({
    */
   canStart: z.boolean(),
 }) satisfies z.ZodType<GameSummaryRow>
+
+function normalizeStarSystemGenerationSettings(
+  generationSettings: StarSystemGenerationSettingsDto,
+): Result<StarSystemGenerationSettings, string> {
+  const seed = generationSettings.seed ?? Math.floor(Math.random() * 4_294_967_296)
+
+  const normalizedSettings = {
+    ...generationSettings,
+    seed,
+  } satisfies StarSystemGenerationSettings
+
+  const ranges = [
+    normalizedSettings.planetDensity,
+    normalizedSettings.nbPlanets,
+    normalizedSettings.nbMoonsPerPlanet,
+    normalizedSettings.nbAsteroidBelts,
+    normalizedSettings.nbAsteroidsPerSector,
+  ]
+
+  if (!ranges.every(({ min, max }) => Number.isFinite(min) && Number.isFinite(max))) {
+    return Result.Failure("Star System generation ranges must be finite numbers")
+  }
+
+  if (!ranges.every(({ min, max }) => min <= max)) {
+    return Result.Failure("Star System generation range minimums must be less than or equal to maximums")
+  }
+
+  if (normalizedSettings.planetDensity.min < 0 || normalizedSettings.planetDensity.max > 1) {
+    return Result.Failure("Planet density must stay between 0 and 1")
+  }
+
+  const integerRanges = [
+    normalizedSettings.nbPlanets,
+    normalizedSettings.nbMoonsPerPlanet,
+    normalizedSettings.nbAsteroidBelts,
+    normalizedSettings.nbAsteroidsPerSector,
+  ]
+
+  if (!integerRanges.every(({ min, max }) => Number.isInteger(min) && Number.isInteger(max) && min >= 0 && max >= 0)) {
+    return Result.Failure("Star System integer generation ranges must contain non-negative integers")
+  }
+
+  if (normalizedSettings.nbAsteroidBelts.max > MAX_ORBITS) {
+    return Result.Failure(`Star System generation supports at most ${MAX_ORBITS} Asteroid belts`)
+  }
+
+  if (!Number.isInteger(seed) || seed < 0 || seed > 4_294_967_295) {
+    return Result.Failure("Star System generation seed must be an unsigned 32-bit integer")
+  }
+
+  return Result.Success(normalizedSettings)
+}
