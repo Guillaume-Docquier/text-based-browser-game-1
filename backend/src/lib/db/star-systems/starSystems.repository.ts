@@ -1,4 +1,4 @@
-import { inTransaction, PostgresRepository, type PostgresExecutor } from "#lib/db/PostgresRepository.ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { eq, inArray } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
@@ -129,9 +129,9 @@ export class StarSystemsRepository extends PostgresRepository {
    * Create a new star system.
    * It is your responsibility to provide coherent data. Failing to do so will result in a Failure.
    */
-  public async create(newStarSystem: NewStarSystem, db: PostgresExecutor = this.db): Promise<Result<true, string>> {
+  public async create(newStarSystem: NewStarSystem, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
     const createResult = await Result.tryCatch(async (): Promise<true> => {
-      await inTransaction(db, async (tx) => {
+      await db.transaction(async (tx) => {
         const withGameId = createWithGameId(newStarSystem.gameId)
 
         await tx.insert(starSystemsTable).values(withGameId({ generationSettings: newStarSystem.starSystemGenerationSettings }))
@@ -179,7 +179,7 @@ export class StarSystemsRepository extends PostgresRepository {
    */
   public async getByGameId(
     { gameId }: { gameId: number },
-    db: PostgresExecutor = this.db,
+    db: PostgresRepository["db"] = this.db,
   ): Promise<Result<StarSystemReadModel | undefined, string>> {
     const getRowsResult = await Result.tryCatch(async () => {
       const starSystems = await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, gameId))
@@ -218,7 +218,7 @@ export class StarSystemsRepository extends PostgresRepository {
 
   public async getGenerationSettingsByGameId(
     { gameId }: { gameId: number },
-    db: PostgresExecutor = this.db,
+    db: PostgresRepository["db"] = this.db,
   ): Promise<Result<StarSystemGenerationSettingsReadModel | undefined, string>> {
     const getSettingsResult = await this.getGenerationSettingsByGameIds({ gameIds: [gameId] }, db)
     if (Result.isFailure(getSettingsResult)) {
@@ -234,7 +234,7 @@ export class StarSystemsRepository extends PostgresRepository {
 
   public async getGenerationSettingsByGameIds(
     { gameIds }: { gameIds: number[] },
-    db: PostgresExecutor = this.db,
+    db: PostgresRepository["db"] = this.db,
   ): Promise<Result<StarSystemGenerationSettingsReadModel[], string>> {
     const getSettingsResult = await Result.tryCatch(async () => {
       return await db
