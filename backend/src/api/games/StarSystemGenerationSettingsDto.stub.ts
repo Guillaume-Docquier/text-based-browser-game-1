@@ -4,11 +4,11 @@ export function createStarSystemGenerationSettingsDtoStub(
   overrides?: Partial<StarSystemGenerationSettingsDto>,
 ): StarSystemGenerationSettingsDto {
   return {
-    planetDensity: { min: 0.5, max: 0.5 },
-    nbPlanets: { min: 1, max: 1 },
-    nbMoonsPerPlanet: { min: 0, max: 0 },
-    nbAsteroidBelts: { min: 0, max: 0 },
-    nbAsteroidsPerSector: { min: 0, max: 0 },
+    planetDensity: { min: 0.4, max: 0.6 },
+    nbPlanets: { min: 9, max: 11 },
+    nbMoonsPerPlanet: { min: 1, max: 3 },
+    nbAsteroidBelts: { min: 1, max: 1 },
+    nbAsteroidsPerSector: { min: 1, max: 3 },
     ...overrides,
   }
 }
