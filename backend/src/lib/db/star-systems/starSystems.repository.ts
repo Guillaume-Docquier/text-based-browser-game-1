@@ -265,35 +265,29 @@ function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSy
   // It's a bit monstrous, but it's localized and does exactly what it need to
   return {
     gameId: starSystemRows.starSystem.gameId,
-    orbits: starSystemRows.orbits
-      .toSorted((orbitA, orbitB) => orbitA.orbitNumber - orbitB.orbitNumber)
-      .map((orbit) => ({
-        id: orbit.id,
-        number: orbit.orbitNumber,
-        coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber }),
-        sectors: (sectorsByOrbitId.get(orbit.id) ?? [])
-          .toSorted((sectorA, sectorB) => sectorA.sectorNumber - sectorB.sectorNumber)
-          .map((sector) => ({
-            id: sector.id,
-            number: sector.sectorNumber,
-            coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }),
-            movementNodeId: sector.movementNodeId,
-            bodies: (bodiesBySectorId.get(sector.id) ?? [])
-              .toSorted((bodyA, bodyB) => bodyA.bodyNumber - bodyB.bodyNumber)
-              .map((body) => ({
-                id: body.id,
-                number: body.bodyNumber,
-                coordinates: toCoordinates({
-                  orbitNumber: orbit.orbitNumber,
-                  sectorNumber: sector.sectorNumber,
-                  bodyNumber: body.bodyNumber,
-                }),
-                name: body.name,
-                type: body.bodyType,
-                movementNodeId: body.movementNodeId,
-              })),
-          })),
+    orbits: starSystemRows.orbits.map((orbit) => ({
+      id: orbit.id,
+      number: orbit.orbitNumber,
+      coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber }),
+      sectors: (sectorsByOrbitId.get(orbit.id) ?? []).map((sector) => ({
+        id: sector.id,
+        number: sector.sectorNumber,
+        coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }),
+        movementNodeId: sector.movementNodeId,
+        bodies: (bodiesBySectorId.get(sector.id) ?? []).map((body) => ({
+          id: body.id,
+          number: body.bodyNumber,
+          coordinates: toCoordinates({
+            orbitNumber: orbit.orbitNumber,
+            sectorNumber: sector.sectorNumber,
+            bodyNumber: body.bodyNumber,
+          }),
+          name: body.name,
+          type: body.bodyType,
+          movementNodeId: body.movementNodeId,
+        })),
       })),
+    })),
     movementEdges: toMovementEdgesByFromNodeId(starSystemRows.movementEdges),
   }
 }
