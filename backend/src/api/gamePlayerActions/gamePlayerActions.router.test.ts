@@ -5,6 +5,7 @@ import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 import { createResourceUpdateStub } from "#lib/db/resources/ResourceUpdate.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
+import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 
 describe("gamePlayerActions.router", () => {
   describe("setCurrentAction", () => {
@@ -21,6 +22,7 @@ describe("gamePlayerActions.router", () => {
           name: "action game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
@@ -63,6 +65,7 @@ describe("gamePlayerActions.router", () => {
           name: "stale tick game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
@@ -94,6 +97,7 @@ describe("gamePlayerActions.router", () => {
           name: "action game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })

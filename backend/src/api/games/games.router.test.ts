@@ -4,6 +4,8 @@ import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { GameSummaryStatus } from "#api/games/games.controller.ts"
+import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
+import { BodyType } from "#lib/star-systems/BodyType.ts"
 
 describe("games.router", () => {
   describe("create", () => {
@@ -21,6 +23,7 @@ describe("games.router", () => {
           name: "my new game",
           nbSeats: 43,
           tickIntervalSeconds: 420,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -40,6 +43,88 @@ describe("games.router", () => {
       })
     })
 
+    it("should persist a readable Star System when creating a game", async () => {
+      // Arrange
+      const { api, authService, playersRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = player
+
+      // Act
+      const createGameResult = await trpcClient.client.games.create.mutate({
+        newGame: {
+          name: "generated system game",
+          nbSeats: 2,
+          tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
+            planetDensity: { min: 1, max: 1 },
+            nbPlanets: { min: 1, max: 1 },
+            nbMoonsPerPlanet: { min: 1, max: 1 },
+            nbAsteroidBelts: { min: 0, max: 0 },
+            nbAsteroidsPerSector: { min: 0, max: 0 },
+          }),
+        },
+      })
+      const starSystemResult = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
+
+      // Assert
+      const bodies = starSystemResult.starSystem.orbits.flatMap((orbit) => orbit.sectors.flatMap((sector) => sector.bodies))
+      expect(starSystemResult.starSystem.gameId).toBe(createGameResult.newGame.id)
+      expect(starSystemResult.starSystem.orbits).not.toHaveLength(0)
+      expect(bodies.map((body) => body.type).toSorted()).toEqual([BodyType.MOON, BodyType.PLANET])
+      expect(Object.values(starSystemResult.starSystem.movementEdges).flat()).not.toHaveLength(0)
+    })
+
+    it("should reject invalid Star System generation ranges", async () => {
+      // Arrange
+      const { api, authService, playersRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+
+      // Act & Assert
+      await expect(
+        trpcClient.client.games.create.mutate({
+          newGame: {
+            name: "invalid system game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+            starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
+              nbPlanets: { min: 10, max: 1 },
+            }),
+          },
+        }),
+      ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
+    })
+
+    it("should persist an omitted seed as an unsigned 32-bit numeric seed", async () => {
+      // Arrange
+      const { api, authService, playersRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const { seed: _seed, ...settingsWithoutSeed } = createStarSystemGenerationSettingsStub()
+
+      // Act
+      const createGameResult = await trpcClient.client.games.create.mutate({
+        newGame: {
+          name: "random seed game",
+          nbSeats: 2,
+          tickIntervalSeconds: 60,
+          starSystemGenerationSettings: settingsWithoutSeed,
+        },
+      })
+      const starSystemResult = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
+
+      // Assert
+      expect(Number.isInteger(starSystemResult.starSystem.generationSettings.seed)).toBe(true)
+      expect(starSystemResult.starSystem.generationSettings.seed).toBeGreaterThanOrEqual(0)
+      expect(starSystemResult.starSystem.generationSettings.seed).toBeLessThanOrEqual(2 ** 32 - 1)
+    })
+
     it("should reject anonymous game creation", async () => {
       // Arrange
       const { api } = await createApiStub()
@@ -47,7 +132,14 @@ describe("games.router", () => {
 
       // Act & Assert
       await expect(
-        trpcClient.client.games.create.mutate({ newGame: { name: "my new game", nbSeats: 43, tickIntervalSeconds: 420 } }),
+        trpcClient.client.games.create.mutate({
+          newGame: {
+            name: "my new game",
+            nbSeats: 43,
+            tickIntervalSeconds: 420,
+            starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
+          },
+        }),
       ).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
@@ -68,6 +160,7 @@ describe("games.router", () => {
           name: "public game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -121,6 +214,7 @@ describe("games.router", () => {
           name: "joinable game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -176,6 +270,7 @@ describe("games.router", () => {
           name: "specific game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -227,6 +322,7 @@ describe("games.router", () => {
           name: "specific game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -291,6 +387,7 @@ describe("games.router", () => {
           name: "join game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -344,6 +441,7 @@ describe("games.router", () => {
           name: "already joined game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -380,6 +478,7 @@ describe("games.router", () => {
           name: "leave game",
           nbSeats: 3,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -430,6 +529,7 @@ describe("games.router", () => {
           name: "creator cannot leave game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -465,6 +565,7 @@ describe("games.router", () => {
           name: "start game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 
@@ -514,6 +615,7 @@ describe("games.router", () => {
           name: "non creator cannot start game",
           nbSeats: 2,
           tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
         },
       })
 

@@ -1,4 +1,4 @@
-import { CreatedGame, GameInsert, type GamesController, GameSummary } from "./games.controller.ts"
+import { CreatedGame, type GamesController, GameSummary, NewGameDto } from "./games.controller.ts"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
@@ -18,7 +18,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      * Creates a new game.
      */
     create: trpc.privateProcedure
-      .input(z.object({ newGame: GameInsert.omit({ createdByPlayerId: true }) }))
+      .input(z.object({ newGame: NewGameDto }))
       .output(z.object({ newGame: CreatedGame }))
       .mutation(async ({ input: { newGame }, ctx: { player } }) => {
         const createResult = await gamesController.create({ ...newGame, createdByPlayerId: player.id })
