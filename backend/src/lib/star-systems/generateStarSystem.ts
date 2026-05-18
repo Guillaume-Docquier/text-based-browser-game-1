@@ -1,6 +1,6 @@
 import type { IntegerRange, PercentageRange } from "#lib/Range.ts"
 import type { NewStarSystem, StarSystemGenerationSettings } from "#lib/db/star-systems/starSystems.repository.ts"
-import { mulberry32prng, type Prng } from "#lib/mulberry32prng.ts"
+import { createMulberry32Prng, type Prng } from "#lib/mulberry32prng.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 
 export const MAX_ORBITS = 6
@@ -19,7 +19,7 @@ type GeneratedSector = NewStarSystem["sectors"][number] & {
 }
 
 export function generateStarSystem(settings: StarSystemGenerationSettings): Omit<NewStarSystem, "gameId"> {
-  const prng = mulberry32prng(settings.seed)
+  const prng = createMulberry32Prng(settings.seed)
   const planetDensity = rollPercentageRange(settings.planetDensity, prng)
   const nbPlanets = rollIntegerRange(settings.nbPlanets, prng)
   const nbAsteroidBelts = rollIntegerRange(settings.nbAsteroidBelts, prng)
@@ -60,7 +60,8 @@ function generateOrbits({
     const remainingOrbitSlots = MAX_ORBITS - orbitNumber + 1
     const sectorCount = getSectorCountForOrbit(orbitNumber)
     const mustPlaceAsteroidBelt = remainingAsteroidBelts === remainingOrbitSlots
-    const isAsteroidBelt = remainingAsteroidBelts > 0 && (mustPlaceAsteroidBelt || prng() < remainingAsteroidBelts / remainingOrbitSlots)
+    const isAsteroidBelt =
+      remainingAsteroidBelts > 0 && (mustPlaceAsteroidBelt || prng.nextFloat() < remainingAsteroidBelts / remainingOrbitSlots)
 
     if (isAsteroidBelt) {
       remainingAsteroidBelts--
@@ -261,11 +262,11 @@ function addDirectedEdge(edges: Map<string, NewStarSystem["movementEdges"][numbe
 }
 
 function rollPercentageRange(range: PercentageRange, prng: Prng): number {
-  return range.min + prng() * (range.max - range.min)
+  return range.min + prng.nextFloat() * (range.max - range.min)
 }
 
 function rollIntegerRange(range: IntegerRange, prng: Prng): number {
-  return Math.floor(range.min + prng() * (range.max - range.min + 1))
+  return Math.floor(range.min + prng.nextFloat() * (range.max - range.min + 1))
 }
 
 function getSectorCountForOrbit(orbitNumber: number): number {
@@ -275,7 +276,7 @@ function getSectorCountForOrbit(orbitNumber: number): number {
 function shuffle<T>(items: T[], prng: Prng): T[] {
   const shuffled = [...items]
   for (let index = shuffled.length - 1; index > 0; index--) {
-    const swapIndex = Math.floor(prng() * (index + 1))
+    const swapIndex = Math.floor(prng.nextFloat() * (index + 1))
     const item = shuffled[index]
     const swapItem = shuffled[swapIndex]
     if (item === undefined || swapItem === undefined) {
@@ -289,7 +290,7 @@ function shuffle<T>(items: T[], prng: Prng): T[] {
 }
 
 function randomUuid(prng: Prng): string {
-  const bytes = Array.from({ length: 16 }, () => Math.floor(prng() * 256))
+  const bytes = Array.from({ length: 16 }, () => Math.floor(prng.nextFloat() * 256))
   const versionByte = bytes[6]
   const variantByte = bytes[8]
   if (versionByte === undefined || variantByte === undefined) {
