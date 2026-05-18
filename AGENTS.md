@@ -1,17 +1,21 @@
-# Repository Guidelines
+# Repository Guidelines For AI Agents
 
-## Project Structure
+## Project Structure And Tech Stack
 
-This repo is a lightweight Typescript monorepo with separate deployable projects:
+This repo is a TypeScript monorepo using pnpm workspaces (ADR-014) with separate deployable projects:
 
 - `frontend/`: React 19 + TailwindCSS 4 + Shadcn + Vite 8 UI. File-based TanStack route definitions live in `src/routes/`, page/layout implementations live in `src/features/`, reusable Shadcn components and shared UI live in `src/components/`, and static assets live in `public/` and `src/assets/`.
-- `backend/`: Express 5 + tRPC 11 API + tick-processing worker in Typescript with no transpilation. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
+- `backend/`: Express 5 + tRPC 11 API + tick-processing worker in TypeScript with no transpilation. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
 - `shared/eslint/`: shared lint config only. Do not share runtime code between backend and frontend.
 - `infra/`: deployment and reverse-proxy config.
 - `docs/`: all project documentation. It includes past, present, and future tech/game designs, adrs, etc.
 - `docs/adr/`: architecture decision records. Read the relevant ADRs before changing established patterns.
 
+We use the `@guillaume-docquier/tools-ts` npm package, a small TypeScript library of utilities made by us.
+
 ## Commands
+
+Always use pnpm, never use npm.
 
 - `pnpm i`: install node_modules for all packages.
 - `pnpm checks`: runs all quality checks (lint, format, typecheck, test) on all packages.
@@ -24,29 +28,30 @@ This repo is a lightweight Typescript monorepo with separate deployable projects
 
 ## Architecture Rules
 
-These come from the ADRs and should be treated as default constraints, not suggestions:
+The below rules are derived from `docs/adr/`. When applying the concepts, you should read the related ADR for more context.
 
-- Never throw for expected errors. Return `Result` values instead. Wrap third-party calls that may throw with `Result.tryCatch`. Only fatal crash-the-process errors may throw.
-- Use explicit `Assert` calls for invariants.
-- No import side effects outside app entry points. Do not create stateful objects in the module global scope; pass dependencies through arguments.
-- Keep backend layering strict:
-  - Routers are the only layer that knows about Express/tRPC.
-  - Repositories are the only layer that knows about Drizzle/Postgres.
-  - Controllers contain business logic between routers and repositories.
-- Only dedicated service/repository boundaries may talk to third parties directly:
+- ADR-006: Only dedicated service/repository boundaries may talk to third parties directly:
   - Clerk only in auth services.
   - Drizzle only in repositories.
-- For tRPC routers, preserve the local factory pattern used for DI and type inference:
-  - export `type TrpcRouter = ReturnType<typeof createTrpcRouter>`
-  - create the router in a function, not in global scope
-- Tick processing should stay decoupled from the web server so it can be extracted later. The web server may depend on worker code; worker code should not depend on the web server.
-- Worker threads are intended to be long-lived. Do not introduce designs that repeatedly crash/spawn workers unless explicitly required.
-
-## Shared Code
-
-- Do not add new cross-project runtime sharing inside this monorepo unless there is already a clear established pattern for it.
-- Shared utilities are intentionally published through `@guillaume-docquier/tools-ts` rather than imported from another local app/package.
-- Shared backend TypeScript tRPC types from the backend to the frontend are the only accepted shared code.
+- ADR-007: The only allowed shared code between backend and frontend are the tRPC router types from `backend/src/api/types`.
+- ADR-008: No import side effects outside app entry points. Do not create stateful objects in the module global scope; pass dependencies through arguments.
+  - For tRPC routers, preserve the local factory pattern used for DI and type inference:
+    - export `type TrpcRouter = ReturnType<typeof createTrpcRouter>`
+    - create the router in a function, not in global scope
+- ADR-009: Always write return types, except for tRPC and Tanstack Router, since they are built to leverage inference.
+- ADR-010: Keep backend layering strict:
+  - Routers are the only layer that knows about Express/tRPC.
+  - Repositories are the only layer that knows about Drizzle/Postgres. They never contain zod schemas. They export WriteModel and ReadModel types.
+  - Controllers contain business logic between routers and repositories. They export DTO zod schemas and types.
+  - Controllers can have access to a `tx` object through `createTransaction` but should only pass it to repositories, never use it to query/write to db. This abstraction leakage is because Drizzle transactions have the same API as db objects.
+- ADR-011: Tick processing should stay decoupled from the web server so it can be extracted later. The web server may depend on worker code; worker code should not depend on the web server.
+- ADR-013: Never throw for expected errors. Return `Result` values instead. Wrap third-party calls that may throw with `Result.tryCatch`. Only fatal crash-the-process errors may be thrown.
+- ADR-015: Use Zod for parsing, not validation. Do not use zod functions that cannot translate to TypeScript types. `.int()`, `.email()`, most `.refine()`, etc are forbidden.
+- ADR-016: Use repositories in tests, not the db. The db can only be used in repository tests since it is a direct dependency.
+- ADR-017: Use stubs when creating any data in tests. Create the stub if it doesn't exist. Use mocks for third parties that are hard to control.
+- ADR-018: Assert the whole Result object in tests, not its individual properties. `expect(result).toEqual(Result.Success(expectedValue))`
+- ADR-019: Do not leave expected invariants implicit, use explicit `Assert` calls.
+- ADR-020: Frontend Tanstack routes should only do the routing. The UI is implemented in `frontend/src/features/` in vertical slices.
 
 ## Coding Conventions
 
@@ -56,11 +61,16 @@ These come from the ADRs and should be treated as default constraints, not sugge
   - React components and feature pages: PascalCase files like `TextInput.tsx`
   - Utilities: camelCase files like `timeAgo.ts`
   - Route files: TanStack Router flat-file naming like `_site.games.$gameId.tsx` or `_game.games.$gameId.play.tsx`
-- Frontend `routes/` is doing just the routing, no actual UI. The UI implementation is in `features/`.
 - Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Use `as const` objects plus derived union types, following `backend/src/lib/gameResources.ts`.
 - Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
 
-## Testing And Verification
+## Testing
+
+We test the production code. We do not use `vitest.mock()`.
+
+We prefer end-to-end or integration tests. We use unit tests sparingly for complicated code (algorithms, high-performance code, etc.)
+
+## Verification
 
 Minimum verification for meaningful changes:
 

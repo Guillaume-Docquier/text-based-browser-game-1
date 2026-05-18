@@ -34,7 +34,7 @@ However, since we know a single backend won't scale, we'll make sure the tick si
 All the tech choices are balanced to make sure we don't take on too many new things.  
 For example, we chose:
 
-- Typescript (proficient)
+- TypeScript (proficient)
 - React (proficient)
 - Express (proficient)
 - pnpm workspaces (familiar)
@@ -46,7 +46,7 @@ For example, we chose:
 - Railway (new)
 - Postgres (new)
 
-While Express and Typescript everywhere might not be the most suitable options, they'll give us a safe playground to learn the other necessary tools (auth, db and hosting, for the most part).
+While Express and TypeScript everywhere might not be the most suitable options, they'll give us a safe playground to learn the other necessary tools (auth, db and hosting, for the most part).
 
 ## Architecture Decision Records (ADRs)
 

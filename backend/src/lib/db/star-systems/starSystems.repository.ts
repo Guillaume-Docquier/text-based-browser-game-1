@@ -250,7 +250,7 @@ function createWithGameId(
 }
 
 function toMovementEdgesByFromNodeId(edges: MovementEdgeRow[]): StarSystemReadModel["movementEdges"] {
-  // We cast because Object.groupBy returns a Partial<Record<string, T>>, which makes Typescript think
+  // We cast because Object.groupBy returns a Partial<Record<string, T>>, which makes TypeScript think
   // That T could be undefined because of Partial
   // Kinda strange
   return Object.groupBy(edges, ({ fromNodeId }) => fromNodeId) as StarSystemReadModel["movementEdges"]
