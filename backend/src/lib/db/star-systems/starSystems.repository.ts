@@ -1,6 +1,6 @@
 import { inTransaction, PostgresRepository, type PostgresExecutor } from "#lib/db/PostgresRepository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
-import { eq } from "drizzle-orm"
+import { eq, inArray } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
@@ -9,7 +9,7 @@ import { toCoordinates } from "#lib/star-systems/Coordinates.ts"
 
 export type NewStarSystem = {
   gameId: number
-  generationSettings: StarSystemGenerationSettings
+  starSystemGenerationSettings: StarSystemGenerationSettings
   orbits: Orbit[]
   sectors: Sector[]
   bodies: Body[]
@@ -99,6 +99,10 @@ export type MovementEdgeReadModel = {
   weight: number
 }
 
+export type StarSystemGenerationSettingsReadModel = StarSystemGenerationSettings & {
+  gameId: number
+}
+
 type StarSystemRow = typeof starSystemsTable.$inferSelect
 type OrbitRow = typeof orbitsTable.$inferSelect
 type SectorRow = typeof sectorsTable.$inferSelect
@@ -130,7 +134,7 @@ export class StarSystemsRepository extends PostgresRepository {
       await inTransaction(db, async (tx) => {
         const withGameId = createWithGameId(newStarSystem.gameId)
 
-        await tx.insert(starSystemsTable).values(withGameId({ generationSettings: newStarSystem.generationSettings }))
+        await tx.insert(starSystemsTable).values(withGameId({ generationSettings: newStarSystem.starSystemGenerationSettings }))
 
         const movementNodes = newStarSystem.movementNodes.map(withGameId)
         if (movementNodes.length > 0) {
@@ -210,6 +214,47 @@ export class StarSystemsRepository extends PostgresRepository {
     }
 
     return Result.Success(toStarSystemReadModel(getRowsResult.value))
+  }
+
+  public async getGenerationSettingsByGameId(
+    { gameId }: { gameId: number },
+    db: PostgresExecutor = this.db,
+  ): Promise<Result<StarSystemGenerationSettingsReadModel | undefined, string>> {
+    const getSettingsResult = await this.getGenerationSettingsByGameIds({ gameIds: [gameId] }, db)
+    if (Result.isFailure(getSettingsResult)) {
+      return getSettingsResult
+    }
+
+    if (getSettingsResult.value[0] === undefined) {
+      return Result.Success(undefined)
+    }
+
+    return Result.Success(getSettingsResult.value[0])
+  }
+
+  public async getGenerationSettingsByGameIds(
+    { gameIds }: { gameIds: number[] },
+    db: PostgresExecutor = this.db,
+  ): Promise<Result<StarSystemGenerationSettingsReadModel[], string>> {
+    const getSettingsResult = await Result.tryCatch(async () => {
+      return await db
+        .select({ gameId: starSystemsTable.gameId, generationSettings: starSystemsTable.generationSettings })
+        .from(starSystemsTable)
+        .where(inArray(starSystemsTable.gameId, gameIds))
+    })
+
+    if (Result.isFailure(getSettingsResult)) {
+      this.logger.error("Could not get star system generation settings", { gameIds, error: getSettingsResult.error })
+      return Result.Failure(couldNot("get star system generation settings"))
+    }
+
+    return Result.Success(
+      getSettingsResult.value.map((result) => ({
+        // postgres json is not typed
+        ...(result.generationSettings as StarSystemGenerationSettings),
+        gameId: result.gameId,
+      })),
+    )
   }
 }
 

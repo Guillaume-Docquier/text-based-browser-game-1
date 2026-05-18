@@ -33,7 +33,7 @@ export function generateStarSystem(settings: StarSystemGenerationSettings): Omit
   const movementEdges = generateMovementEdges({ orbits, sectors, bodies })
 
   return {
-    generationSettings: settings,
+    starSystemGenerationSettings: settings,
     orbits: orbits.map(({ isAsteroidBelt: _isAsteroidBelt, sectorCount: _sectorCount, ...orbit }) => orbit),
     sectors: sectors.map(({ orbitNumber: _orbitNumber, isAsteroidBelt: _isAsteroidBelt, ...sector }) => sector),
     bodies,

@@ -64,7 +64,10 @@ export class GamesController {
       return Result.Failure(couldNot("create game with Star System"))
     }
 
-    return createResult
+    return Result.Success({
+      ...createResult.value,
+      starSystemGenerationSettings: normalizedSettingsResult.value,
+    })
   }
 
   public async getSummaries({ playerId }: { playerId: number | undefined }): Promise<GameSummary[]> {
@@ -74,7 +77,20 @@ export class GamesController {
       return []
     }
 
-    return getSummariesResult.value.map((gameSummaryRow) => toGameSummary({ gameSummaryRow, playerId }))
+    const getGenerationSettingsResult = await this.starSystemsRepository.getGenerationSettingsByGameIds({
+      gameIds: getSummariesResult.value.map((summary) => summary.id),
+    })
+    const generationSettingsByGameId = Result.isFailure(getGenerationSettingsResult)
+      ? new Map<number, StarSystemGenerationSettings>()
+      : new Map(getGenerationSettingsResult.value.map((generationSettings) => [generationSettings.gameId, generationSettings]))
+
+    return getSummariesResult.value.map((gameSummaryRow) =>
+      toGameSummary({
+        gameSummaryRow,
+        starSystemGenerationSettings: generationSettingsByGameId.get(gameSummaryRow.id),
+        playerId,
+      }),
+    )
   }
 
   public async getSummaryById({ gameId, playerId }: { gameId: number; playerId: number | undefined }): Promise<GameSummary | undefined> {
@@ -89,7 +105,10 @@ export class GamesController {
       return undefined
     }
 
-    return toGameSummary({ gameSummaryRow, playerId })
+    const getGenerationSettingsResult = await this.starSystemsRepository.getGenerationSettingsByGameId({ gameId: gameSummaryRow.id })
+    const generationSettings = Result.isFailure(getGenerationSettingsResult) ? undefined : getGenerationSettingsResult.value
+
+    return toGameSummary({ gameSummaryRow, starSystemGenerationSettings: generationSettings, playerId })
   }
 
   public async join({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummary, string>> {
@@ -144,7 +163,15 @@ export class GamesController {
   }
 }
 
-function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSummaryRow; playerId: number | undefined }): GameSummary {
+function toGameSummary({
+  gameSummaryRow,
+  starSystemGenerationSettings,
+  playerId,
+}: {
+  gameSummaryRow: GameSummaryRow
+  starSystemGenerationSettings?: StarSystemGenerationSettings | undefined
+  playerId: number | undefined
+}): GameSummary {
   // prettier-ignore
   const status =
     gameSummaryRow.endedAt !== null ? GameSummaryStatus.ENDED
@@ -175,6 +202,7 @@ function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSumma
     canJoin,
     canLeave,
     canStart,
+    starSystemGenerationSettings,
   }
 }
 
@@ -214,6 +242,7 @@ export const CreatedGame = z.object({
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
+  starSystemGenerationSettings: StarSystemGenerationSettingsDto,
 }) satisfies z.ZodType<GameRow>
 
 function toGameRowInsert(newGame: GameInsert): GameRowInsert {
@@ -338,4 +367,5 @@ export const GameSummary = z.object({
    * Whether the current player can start the game.
    */
   canStart: z.boolean(),
+  starSystemGenerationSettings: StarSystemGenerationSettingsDto.optional(),
 }) satisfies z.ZodType<GameSummaryRow>

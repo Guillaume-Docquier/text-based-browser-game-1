@@ -36,7 +36,7 @@ describe("starSystems.repository", () => {
       expect(createStarSystemResult).toEqual(Result.Success(true))
       expect
         .soft(await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, game.id)))
-        .toEqual([{ createdAt: expect.any(Date), gameId: game.id, generationSettings: system.generationSettings }])
+        .toEqual([{ createdAt: expect.any(Date), gameId: game.id, generationSettings: system.starSystemGenerationSettings }])
       expect
         .soft(await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, game.id)))
         .toEqual([{ ...system.orbits[0], gameId: game.id }])
@@ -114,7 +114,7 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
 
   return {
     gameId,
-    generationSettings: createStarSystemGenerationSettingsStub(),
+    starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
     movementNodes: [{ id: sectorMovementNodeId }, { id: planetMovementNodeId }, { id: moonMovementNodeId }],
     orbits: [{ id: orbitId, orbitNumber: 1 }],
     sectors: [
@@ -156,7 +156,7 @@ function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSyst
 
   return {
     gameId,
-    generationSettings: createStarSystemGenerationSettingsStub(),
+    starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
     movementNodes: [{ id: sectorMovementNodeId }, { id: bodyMovementNodeId }],
     orbits: [{ id: orbitId, orbitNumber: 1 }],
     sectors: [
