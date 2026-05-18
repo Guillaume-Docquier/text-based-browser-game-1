@@ -9,7 +9,7 @@ Accepted
 We needed to share utils, like Result, Assert, Logger, etc. This has proven to be quite hard with current constraints:
 
 - We deploy to Railway, and they build the image based on only the project folder's source code
-- We run the backend as native Typescript without transpilation or bundler
+- We run the backend as native TypeScript without transpilation or bundler
 
 We really like the above points. Low tooling, low configuration... it's simple.
 However, this means that we effectively cannot share code in the monorepo.

@@ -1,4 +1,4 @@
-# Never Throw
+# Use Result And Never Throw
 
 ## Status
 
@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Throwing errors in Typescript is pretty weak because you don't have any type information about the errors you catch.
+Throwing errors in TypeScript is pretty weak because you don't have any type information about the errors you catch.
 
 Moreover, you don't have type information about the error that could be thrown, so you don't know if you should be try/catching.
 

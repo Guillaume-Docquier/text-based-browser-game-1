@@ -20,16 +20,24 @@ import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayer
 import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
+import type { NodePgDatabase } from "drizzle-orm/node-postgres"
 
 /**
  * Import side effect free express app creator.
- * It receives all dependencies that talk to the outside world (auth, db) so we can easily mock them during tests.
+ * It receives all dependencies that talk to the outside world (createTransaction, authService) so we can easily mock them during tests.
  * It also decouples the application from those 3rd parties, if done well.
  */
 export async function createApi({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- createTransaction will be used soon enough
+  createTransaction,
   authService,
   ...services
 }: {
+  /**
+   * Creates a database transaction.
+   * Only controllers should use `createTransaction`.
+   */
+  createTransaction: NodePgDatabase["transaction"]
   authService: IAuthService
   logger: Logger
   playersRepository: PlayersRepository

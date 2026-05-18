@@ -21,25 +21,65 @@ We need a clear distinction between stubs and mocks, with naming and usage rules
 
 We standardize these two patterns:
 
-1. **Stubs** are test data builders.
-   - Use the shape `create<Something>Stub(overrides?: Partial<Something>): <Something>`.
-   - Place them in `<Something>.stub.ts` files.
-   - Default values should produce valid, realistic objects.
-   - Tests pass only relevant differences via `overrides`.
+### Stubs
 
-2. **Mocks** are alternate implementations of production classes/services.
-   - Place them in `<Something>.mock.ts` files.
-   - Use them only when a test must control or observe dependency behavior that cannot be exercised reliably with the real implementation.
-   - Prefer testing with real implementations by default; mocks are expected to be rarer than stubs.
+Stubs are factory functions to create data objects. They produce objects with fake data, but correct shape. Using stubs allows tests to only declare the data that they care about while creating structurally valid objects.
+
+```ts
+// MyData.stub.ts
+export function createMyDataStub(overrides?: Partial<MyData>): MyData {
+  return {
+    // default values for MyData
+    default: "value",
+    other: 43,
+    ...overrides,
+  }
+}
+
+// myData.controller.test
+it("should do something when other is equal to 1", () => {
+  // Arrange
+  const data = createMyDataStub({ other: 1 }) // no need to define `default` when the tests doesn't care about it
+
+  // ...
+})
+```
+
+### Mocks
+
+Mock are alternate implementations of production dependencies. This is rarely used because we prefer testing production code. Use them only when a test must control or observe dependency behavior that cannot be exercised reliably with the real implementation.
+
+```ts
+// auth.service.mock.ts
+export class AuthServiceMock implements IAuthService {
+  /**
+   * public Player so tests can easily control it
+   */
+  public player: Player | undefined
+
+  public constructor({ player }: { player?: Player } = {}) {
+    this.player = player
+  }
+
+  public authenticationMiddlewares(): RequestHandler[] {
+    return [
+      (req, _res, next): void => {
+        req.player = this.player
+        next()
+      },
+    ]
+  }
+}
+```
 
 ## Consequences
 
-Tests become easier to read because intent is explicit:
+Tests become easier to read because the intent is explicit:
 
 - object setup uses stubs;
 - behavior replacement uses mocks.
 
-Tests become less fragile to unrelated model changes, because stubs centralize default object creation.
+Tests become less fragile to unrelated model changes because stubs centralize default object creation.
 
 The codebase gains consistent file naming and discoverability for test doubles.
 

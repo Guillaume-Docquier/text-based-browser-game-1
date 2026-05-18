@@ -24,13 +24,14 @@ export async function createApiStub(): Promise<AllServices & { api: Express }> {
   const services = {
     logger,
     authService: new AuthServiceMock(),
+    createTransaction: db.transaction.bind(db),
     gamesRepository: new GamesRepository({ db, logger }),
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     playersRepository: new PlayersRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
-  }
+  } as const satisfies Parameters<typeof createApi>[0]
 
   const api = await createApi(services)
 

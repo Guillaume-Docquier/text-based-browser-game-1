@@ -522,7 +522,7 @@ Implementation steps:
 3. Create a `NewGameDto` in `backend/src/api/games/games.controller.ts`, then expand it to include the star system generation settings.
 4. Update the `games.create` router input to require `StarSystemGenerationSettings` alongside `name`, `nbSeats` and `tickIntervalSeconds`.
 5. Normalize a missing seed in `GamesController.create` to a random unsigned 32-bit integer before generation and persistence. The value persisted in `star_systems.generation_settings.seed` must always be numeric.
-6. Inject `StarSystemsRepository` and `db` into `GamesController`. The db should only be used to start transactions and be passed to the repository methods. No db read/writes should happen in the controller.
+6. Inject `StarSystemsRepository` and `createTransaction` into `GamesController`.
 7. Implement `generateStarSystem` as a pure function that accepts normalized `StarSystemGenerationSettings` and returns the full payload expected by `StarSystemsRepository.create`.
 8. Implement a deterministic local PRNG using the Mulberry32 algorithm in `backend/src/lib/mulberry32prng.ts`
 9. Add explicit generation limits, including a `MAX_ORBITS` guard of 6, so invalid or extreme settings cannot create infinite loops or huge accidental inserts.
@@ -537,14 +537,13 @@ Implementation steps:
 18. Build directed MovementEdges for every undirected relation: Body-to-Body inside the same Sector, Body-to-Sector inside the same Sector, same-Orbit neighboring Sectors, and radial Sector adjacency between doubled Orbits.
 19. Compute Sector adjacency from the generated Orbits and Sector numbering rules. Lock the exact adjacency rule in tests because the document specifies the desired graph behavior but not every arithmetic detail.
 20. Reuse the existing coordinate formatting helpers in `Coordinates.ts` for `02`, `02:11` and `02:11:05`; update them only if repository DTOs or tests need additional coverage.
-21. Save game creation and Star System creation atomically from `GamesController.create`. Use the injected `db` to open one transaction, then call `GamesRepository.create(..., tx)` and `StarSystemsRepository.create(..., tx)` before the transaction commits.
+21. Save game creation and Star System creation atomically from `GamesController.create`. Use the injected `createTransaction` to open one transaction, then call `GamesRepository.create(..., tx)` and `StarSystemsRepository.create(..., tx)` before the transaction commits.
 22. Keep `GamesController.create` as the orchestrator that validates input, normalizes seed/settings, calls `generateStarSystem`, and requests persistence.
-23. Wire the `db` through `createApi.ts`.
-24. Update `games.router.test.ts` fixtures so every game creation passes deterministic Star System generation settings.
-25. Add a router test proving `games.create` persists a Star System that is readable through `starSystems.getByGameId`.
-26. Add a router test proving invalid generation ranges fail with `BAD_REQUEST`.
-27. Add a router test proving the omitted seed is persisted as a generated unsigned 32-bit numeric seed.
-28. Add unit tests for the generator: same settings plus the same seed returns identical output, different seeds return different Body placement, exact counts with min=max ranges, minimal Orbit count, Asteroid belts contain only Asteroids, MovementEdges are reciprocal, and MovementNodes target only Sectors or Bodies.
+23. Update `games.router.test.ts` fixtures so every game creation passes deterministic Star System generation settings.
+24. Add a router test proving `games.create` persists a Star System that is readable through `starSystems.getByGameId`.
+25. Add a router test proving invalid generation ranges fail with `BAD_REQUEST`.
+26. Add a router test proving the omitted seed is persisted as a generated unsigned 32-bit numeric seed.
+27. Add unit tests for the generator: same settings plus the same seed returns identical output, different seeds return different Body placement, exact counts with min=max ranges, minimal Orbit count, Asteroid belts contain only Asteroids, MovementEdges are reciprocal, and MovementNodes target only Sectors or Bodies.
 
 Frontend steps:
 
