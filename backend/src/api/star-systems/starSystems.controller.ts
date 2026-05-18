@@ -7,7 +7,6 @@ import type {
   SectorReadModel,
   BodyReadModel,
   MovementEdge,
-  StarSystemGenerationSettings,
 } from "#lib/db/star-systems/starSystems.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
@@ -43,23 +42,8 @@ const MovementEdgeDto = z.object({
   weight: z.number(),
 }) satisfies z.ZodType<MovementEdge>
 
-const RangeDto = z.object({
-  min: z.number(),
-  max: z.number(),
-})
-
-const StarSystemGenerationSettingsDto = z.object({
-  planetDensity: RangeDto,
-  nbPlanets: RangeDto,
-  nbMoonsPerPlanet: RangeDto,
-  nbAsteroidBelts: RangeDto,
-  nbAsteroidsPerSector: RangeDto,
-  seed: z.number(),
-}) satisfies z.ZodType<StarSystemGenerationSettings>
-
 export const StarSystemDto = z.object({
   gameId: z.number(),
-  generationSettings: StarSystemGenerationSettingsDto,
   orbits: z.array(StarSystemOrbitDto),
   movementEdges: z.record(z.string(), z.array(MovementEdgeDto)),
 }) satisfies z.ZodType<StarSystemReadModel>

@@ -59,7 +59,6 @@ export type MovementEdge = {
 
 export type StarSystemReadModel = {
   gameId: number
-  generationSettings: StarSystemGenerationSettings
   /**
    * Star system as a tree
    */
@@ -221,7 +220,6 @@ function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSy
   // It's a bit monstrous, but it's localized and does exactly what it need to
   return {
     gameId: starSystemRows.starSystem.gameId,
-    generationSettings: starSystemRows.starSystem.generationSettings as StarSystemGenerationSettings,
     orbits: starSystemRows.orbits
       .toSorted((orbitA, orbitB) => orbitA.orbitNumber - orbitB.orbitNumber)
       .map((orbit) => ({
