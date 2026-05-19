@@ -1,7 +1,7 @@
-import type { IntegerRange, PercentageRange } from "#lib/Range.ts"
 import type { NewStarSystem, StarSystemGenerationSettings } from "#lib/db/star-systems/starSystems.repository.ts"
-import { createMulberry32Prng, type Prng } from "#lib/mulberry32prng.ts"
+import { mulberry32Prng } from "../rng/mulberry32prng.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
+import { createRng, type Rng } from "#lib/rng/rng.ts"
 
 export const MAX_ORBITS = 6
 
@@ -19,13 +19,13 @@ type GeneratedSector = NewStarSystem["sectors"][number] & {
 }
 
 export function generateStarSystem(settings: StarSystemGenerationSettings): Omit<NewStarSystem, "gameId"> {
-  const prng = createMulberry32Prng(settings.seed)
-  const planetDensity = rollPercentageRange(settings.planetDensity, prng)
-  const nbPlanets = rollIntegerRange(settings.nbPlanets, prng)
-  const nbAsteroidBelts = rollIntegerRange(settings.nbAsteroidBelts, prng)
-  const orbits = generateOrbits({ nbPlanets, nbAsteroidBelts, planetDensity, prng })
-  const sectors = generateSectors({ orbits, prng })
-  const bodies = generateBodies({ sectors, nbPlanets, settings, prng })
+  const rng = createRng(mulberry32Prng(settings.seed))
+  const planetDensity = rng.float(settings.planetDensity)
+  const nbPlanets = rng.int(settings.nbPlanets)
+  const nbAsteroidBelts = rng.int(settings.nbAsteroidBelts)
+  const orbits = generateOrbits({ nbPlanets, nbAsteroidBelts, planetDensity, rng })
+  const sectors = generateSectors({ orbits, rng })
+  const bodies = generateBodies({ sectors, nbPlanets, settings, rng })
   const movementNodes = [
     ...sectors.map((sector) => ({ id: sector.movementNodeId })),
     ...bodies.map((body) => ({ id: body.movementNodeId })),
@@ -46,12 +46,12 @@ function generateOrbits({
   nbPlanets,
   nbAsteroidBelts,
   planetDensity,
-  prng,
+  rng,
 }: {
   nbPlanets: number
   nbAsteroidBelts: number
   planetDensity: number
-  prng: Prng
+  rng: Rng
 }): GeneratedOrbit[] {
   const orbits: GeneratedOrbit[] = []
   let remainingAsteroidBelts = nbAsteroidBelts
@@ -61,14 +61,14 @@ function generateOrbits({
     const sectorCount = getSectorCountForOrbit(orbitNumber)
     const mustPlaceAsteroidBelt = remainingAsteroidBelts === remainingOrbitSlots
     const isAsteroidBelt =
-      remainingAsteroidBelts > 0 && (mustPlaceAsteroidBelt || prng.nextFloat() < remainingAsteroidBelts / remainingOrbitSlots)
+      remainingAsteroidBelts > 0 && (mustPlaceAsteroidBelt || rng.float() < remainingAsteroidBelts / remainingOrbitSlots)
 
     if (isAsteroidBelt) {
       remainingAsteroidBelts--
     }
 
     orbits.push({
-      id: randomUuid(prng),
+      id: randomUuid(rng),
       orbitNumber,
       sectorCount,
       isAsteroidBelt,
@@ -87,15 +87,15 @@ function generateOrbits({
   throw new Error(`Could not generate Star System within ${MAX_ORBITS} orbits`)
 }
 
-function generateSectors({ orbits, prng }: { orbits: GeneratedOrbit[]; prng: Prng }): GeneratedSector[] {
+function generateSectors({ orbits, rng }: { orbits: GeneratedOrbit[]; rng: Rng }): GeneratedSector[] {
   return orbits.flatMap((orbit) =>
     Array.from({ length: orbit.sectorCount }, (_, index) => ({
-      id: randomUuid(prng),
+      id: randomUuid(rng),
       orbitId: orbit.id,
       orbitNumber: orbit.orbitNumber,
       isAsteroidBelt: orbit.isAsteroidBelt,
       sectorNumber: index + 1,
-      movementNodeId: randomUuid(prng),
+      movementNodeId: randomUuid(rng),
     })),
   )
 }
@@ -104,36 +104,33 @@ function generateBodies({
   sectors,
   nbPlanets,
   settings,
-  prng,
+  rng,
 }: {
   sectors: GeneratedSector[]
   nbPlanets: number
   settings: StarSystemGenerationSettings
-  prng: Prng
+  rng: Rng
 }): NewStarSystem["bodies"] {
   const bodies: NewStarSystem["bodies"] = []
   const sectorsById = new Map(sectors.map((sector) => [sector.id, sector]))
   const asteroidBeltSectors = sectors.filter((sector) => sector.isAsteroidBelt)
 
   for (const sector of asteroidBeltSectors) {
-    const nbAsteroids = rollIntegerRange(settings.nbAsteroidsPerSector, prng)
+    const nbAsteroids = rng.int(settings.nbAsteroidsPerSector)
     for (let asteroidIndex = 0; asteroidIndex < nbAsteroids; asteroidIndex++) {
-      bodies.push(createBody({ sectorId: sector.id, bodyNumber: asteroidIndex + 1, bodyType: BodyType.ASTEROID, prng }))
+      bodies.push(createBody({ sectorId: sector.id, bodyNumber: asteroidIndex + 1, bodyType: BodyType.ASTEROID, rng }))
     }
   }
 
   const asteroidBeltSectorIds = new Set(asteroidBeltSectors.map((sector) => sector.id))
-  const planetSectors = shuffle(
-    sectors.filter((sector) => !asteroidBeltSectorIds.has(sector.id)),
-    prng,
-  ).slice(0, nbPlanets)
+  const planetSectors = rng.shuffle(sectors.filter((sector) => !asteroidBeltSectorIds.has(sector.id))).slice(0, nbPlanets)
 
   for (const sector of planetSectors) {
-    bodies.push(createBody({ sectorId: sector.id, bodyNumber: 1, bodyType: BodyType.PLANET, prng }))
+    bodies.push(createBody({ sectorId: sector.id, bodyNumber: 1, bodyType: BodyType.PLANET, rng }))
 
-    const nbMoons = rollIntegerRange(settings.nbMoonsPerPlanet, prng)
+    const nbMoons = rng.int(settings.nbMoonsPerPlanet)
     for (let moonIndex = 0; moonIndex < nbMoons; moonIndex++) {
-      bodies.push(createBody({ sectorId: sector.id, bodyNumber: moonIndex + 2, bodyType: BodyType.MOON, prng }))
+      bodies.push(createBody({ sectorId: sector.id, bodyNumber: moonIndex + 2, bodyType: BodyType.MOON, rng }))
     }
   }
 
@@ -162,20 +159,20 @@ function createBody({
   sectorId,
   bodyNumber,
   bodyType,
-  prng,
+  rng,
 }: {
   sectorId: string
   bodyNumber: number
   bodyType: NewStarSystem["bodies"][number]["bodyType"]
-  prng: Prng
+  rng: Rng
 }): NewStarSystem["bodies"][number] {
   return {
-    id: randomUuid(prng),
+    id: randomUuid(rng),
     sectorId,
     bodyNumber,
     bodyType,
     name: `${toTitleCase(bodyType)} ${bodyNumber.toString().padStart(2, "0")}`,
-    movementNodeId: randomUuid(prng),
+    movementNodeId: randomUuid(rng),
   }
 }
 
@@ -261,36 +258,12 @@ function addDirectedEdge(edges: Map<string, NewStarSystem["movementEdges"][numbe
   edges.set(`${fromNodeId}->${toNodeId}`, { fromNodeId, toNodeId, weight: MOVEMENT_EDGE_WEIGHT })
 }
 
-function rollPercentageRange(range: PercentageRange, prng: Prng): number {
-  return range.min + prng.nextFloat() * (range.max - range.min)
-}
-
-function rollIntegerRange(range: IntegerRange, prng: Prng): number {
-  return Math.floor(range.min + prng.nextFloat() * (range.max - range.min + 1))
-}
-
 function getSectorCountForOrbit(orbitNumber: number): number {
   return FIRST_ORBIT_SECTOR_COUNT * 2 ** (orbitNumber - 1)
 }
 
-function shuffle<T>(items: T[], prng: Prng): T[] {
-  const shuffled = [...items]
-  for (let index = shuffled.length - 1; index > 0; index--) {
-    const swapIndex = Math.floor(prng.nextFloat() * (index + 1))
-    const item = shuffled[index]
-    const swapItem = shuffled[swapIndex]
-    if (item === undefined || swapItem === undefined) {
-      throw new Error("Could not shuffle Star System values")
-    }
-    shuffled[index] = swapItem
-    shuffled[swapIndex] = item
-  }
-
-  return shuffled
-}
-
-function randomUuid(prng: Prng): string {
-  const bytes = Array.from({ length: 16 }, () => Math.floor(prng.nextFloat() * 256))
+function randomUuid(rng: Rng): string {
+  const bytes = Array.from({ length: 16 }, () => Math.floor(rng.float() * 256))
   const versionByte = bytes[6]
   const variantByte = bytes[8]
   if (versionByte === undefined || variantByte === undefined) {
