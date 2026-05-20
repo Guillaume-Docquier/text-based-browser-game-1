@@ -1,7 +1,6 @@
-import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
+import { createDb, type Database } from "#lib/db/createDb.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
 import { gamePlayersTable, gamesTable, playersTable } from "#lib/db/schema.ts"
-import { Pool } from "pg"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
@@ -68,8 +67,7 @@ async function main({ connectionString, user }: { connectionString: string; user
 
   console.log(`Seeding the '${host}' database with default values`)
 
-  const pool = new Pool({ connectionString })
-  const db = drizzle({ client: pool })
+  const db = createDb({ databaseUrl: connectionString })
 
   const seedFuncs = [seedPlayers, seedGames]
   for (const seedFunc of seedFuncs) {
@@ -79,7 +77,7 @@ async function main({ connectionString, user }: { connectionString: string; user
   console.log("")
 
   console.log("Seeding completed")
-  await pool.end()
+  await db.$client.end()
 }
 
 function getDbHost(connectionString: string): string {
@@ -112,11 +110,11 @@ function isLocal(host: string): boolean {
   return host === "localhost"
 }
 
-async function resetTable(db: NodePgDatabase, table: Table): Promise<void> {
+async function resetTable(db: Database, table: Table): Promise<void> {
   await db.execute(sql`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`)
 }
 
-async function seedPlayers(db: NodePgDatabase, user: User | undefined): Promise<void> {
+async function seedPlayers(db: Database, user: User | undefined): Promise<void> {
   console.log("Users")
   console.log("├ Cleaning up the users")
   await resetTable(db, playersTable)
@@ -133,7 +131,7 @@ async function seedPlayers(db: NodePgDatabase, user: User | undefined): Promise<
   console.log("└ Done")
 }
 
-async function seedGames(db: NodePgDatabase): Promise<void> {
+async function seedGames(db: Database): Promise<void> {
   const players = await db.select().from(playersTable)
   Assert.isDefined(players[0])
   Assert.isDefined(players[1])

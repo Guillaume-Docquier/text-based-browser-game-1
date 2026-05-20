@@ -20,7 +20,7 @@ import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayer
 import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
-import type { NodePgDatabase } from "drizzle-orm/node-postgres"
+import type { CreateTransaction } from "#lib/db/createDb.ts"
 
 /**
  * Import side effect free express app creator.
@@ -36,7 +36,7 @@ export async function createApi({
    * Creates a database transaction.
    * Only controllers should use `createTransaction`.
    */
-  createTransaction: NodePgDatabase["transaction"]
+  createTransaction: CreateTransaction
   authService: IAuthService
   logger: Logger
   playersRepository: PlayersRepository

@@ -2,7 +2,7 @@ import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games/games.repository.ts"
 import z from "zod"
 import { randomInt } from "node:crypto"
-import type { NodePgDatabase } from "drizzle-orm/node-postgres"
+import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { StarSystemGenerationSettings, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import type { IntegerRange, PercentageRange } from "#lib/Range.ts"
 import { generateStarSystem, MAX_ORBITS } from "#lib/star-systems/generateStarSystem.ts"
@@ -11,7 +11,7 @@ import { couldNot } from "#lib/errors.ts"
 export class GamesController {
   private readonly gamesRepository: GamesRepository
   private readonly starSystemsRepository: StarSystemsRepository
-  private readonly createTransaction: NodePgDatabase["transaction"]
+  private readonly createTransaction: CreateTransaction
   private readonly logger: Logger
 
   public constructor({
@@ -22,7 +22,7 @@ export class GamesController {
   }: {
     gamesRepository: GamesRepository
     starSystemsRepository: StarSystemsRepository
-    createTransaction: NodePgDatabase["transaction"]
+    createTransaction: CreateTransaction
     logger: Logger
   }) {
     this.gamesRepository = gamesRepository
