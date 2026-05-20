@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@shared/eslint": "workspace:*",
-    "eslint": "9.39.4",
+    "eslint": "10.4.0",
     "globals": "17.6.0",
     "husky": "9.1.7",
     "lint-staged": "17.0.4",
