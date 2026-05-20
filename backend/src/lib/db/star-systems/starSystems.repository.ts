@@ -225,10 +225,6 @@ export class StarSystemsRepository extends PostgresRepository {
       return getSettingsResult
     }
 
-    if (getSettingsResult.value[0] === undefined) {
-      return Result.Success(undefined)
-    }
-
     return Result.Success(getSettingsResult.value[0])
   }
 
@@ -277,11 +273,7 @@ function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSy
         bodies: (bodiesBySectorId.get(sector.id) ?? []).map((body) => ({
           id: body.id,
           number: body.bodyNumber,
-          coordinates: toCoordinates({
-            orbitNumber: orbit.orbitNumber,
-            sectorNumber: sector.sectorNumber,
-            bodyNumber: body.bodyNumber,
-          }),
+          coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber, bodyNumber: body.bodyNumber }),
           name: body.name,
           type: body.bodyType,
           movementNodeId: body.movementNodeId,
