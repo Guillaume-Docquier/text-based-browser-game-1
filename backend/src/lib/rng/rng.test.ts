@@ -17,14 +17,21 @@ describe("rng", () => {
     })
 
     it.each([
-      { value: 0, expected: 10 },
-      { value: 0.35, expected: 13.5 },
-      { value: 0.5, expected: 15 },
-      { value: 0.65, expected: 16.5 },
-      { value: 1 - Number.EPSILON, expected: 20 * (1 - Number.EPSILON) },
-    ])("should return values in the range when min and max are different", ({ value, expected }) => {
+      // Floats bigger than 1
+      { value: 0, expected: 10, min: 10, max: 20 },
+      { value: 0.35, expected: 13.5, min: 10, max: 20 },
+      { value: 0.5, expected: 15, min: 10, max: 20 },
+      { value: 0.65, expected: 16.5, min: 10, max: 20 },
+      { value: 1 - Number.EPSILON, expected: 20, min: 10, max: 20 }, // An example where float range is inclusive because of floating point errors
+      // Floats smaller than 1
+      { value: 0, expected: 0.3, min: 0.3, max: 0.7 },
+      { value: 0.35, expected: 0.43999999999999995, min: 0.3, max: 0.7 },
+      { value: 0.5, expected: 0.5, min: 0.3, max: 0.7 },
+      { value: 0.65, expected: 0.56, min: 0.3, max: 0.7 },
+      { value: 1 - Number.EPSILON, expected: 0.6999999999999998, min: 0.3, max: 0.7 },
+    ])("should return values in the range when min and max are different", ({ value, expected, min, max }) => {
       // Arrange
-      const range = { min: 10, max: 20 }
+      const range = { min, max }
       const rng = createRng(() => value)
 
       // Act

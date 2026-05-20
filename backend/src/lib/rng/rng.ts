@@ -7,7 +7,10 @@ export type Generator = () => number
 
 export type Rng = {
   /**
-   * Range is exclusive, the default range is [0, 1)
+   * When no range is provided, returns a float in the range [0, 1).
+   * If Range is provided, it is inclusive if min is bigger than 1 because of floating point errors.
+   * min > 1: [min, max]
+   * min <= 1: [min, max)
    */
   float: (range?: FloatRange) => number
 
@@ -36,8 +39,10 @@ export function createRng(generate: () => number): Rng {
   }
 
   function int(range: IntegerRange): number {
-    // We +1 the max because float is exclusive of the max, but for int we want it to be inclusive
-    return Math.floor(float({ ...range, max: range.max + 1 }))
+    // We +1 the max because float is exclusive of the max, but for int we want the range to be inclusive.
+    // We floor before the addition, because the addition can lose precision and generate numbers that are out of bounds when float ~= 1.
+    // We don't use Math.floor(float(rangeWithMaxPlus1)) for the same reason
+    return range.min + Math.floor(float() * (range.max + 1 - range.min))
   }
 
   /**
