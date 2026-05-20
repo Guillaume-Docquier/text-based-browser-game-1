@@ -37,6 +37,7 @@ describe("mulberry32Prng", () => {
     const values = Array.from({ length: 100_000 }, () => prng())
 
     // Assert
+    expect.soft(new Set(values).size).toBeGreaterThanOrEqual(99_995)
     expect.soft(Math.min(...values)).toBeGreaterThanOrEqual(0)
     expect.soft(Math.max(...values)).toBeLessThan(1)
   })
