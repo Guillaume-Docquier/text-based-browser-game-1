@@ -18,7 +18,7 @@ type GeneratedSector = NewStarSystem["sectors"][number] & {
   isAsteroidBelt: boolean
 }
 
-export function generateStarSystem(settings: StarSystemGenerationSettings): Omit<NewStarSystem, "gameId"> {
+export function generateStarSystem(settings: Readonly<StarSystemGenerationSettings>): Omit<NewStarSystem, "gameId"> {
   const rng = createRng(mulberry32Prng(settings.seed))
   const planetDensity = rng.float(settings.planetDensity)
   const nbPlanets = rng.int(settings.nbPlanets)

@@ -12,42 +12,6 @@ import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 
-const StarSystemBodyDto = z.object({
-  id: z.string(),
-  number: z.number(),
-  coordinates: z.string(),
-  name: z.string(),
-  type: z.enum(BodyType),
-  movementNodeId: z.string(),
-}) satisfies z.ZodType<BodyReadModel>
-
-const StarSystemSectorDto = z.object({
-  id: z.string(),
-  number: z.number(),
-  coordinates: z.string(),
-  bodies: z.array(StarSystemBodyDto),
-  movementNodeId: z.string(),
-}) satisfies z.ZodType<SectorReadModel>
-
-const StarSystemOrbitDto = z.object({
-  id: z.string(),
-  number: z.number(),
-  coordinates: z.string(),
-  sectors: z.array(StarSystemSectorDto),
-}) satisfies z.ZodType<OrbitReadModel>
-
-const MovementEdgeDto = z.object({
-  fromNodeId: z.string(),
-  toNodeId: z.string(),
-  weight: z.number(),
-}) satisfies z.ZodType<MovementEdge>
-
-export const StarSystemDto = z.object({
-  gameId: z.number(),
-  orbits: z.array(StarSystemOrbitDto),
-  movementEdges: z.record(z.string(), z.array(MovementEdgeDto)),
-}) satisfies z.ZodType<StarSystemReadModel>
-
 export class StarSystemsController {
   private readonly gamesRepository: GamesRepository
   private readonly starSystemsRepository: StarSystemsRepository
@@ -96,3 +60,39 @@ export class StarSystemsController {
     return Result.Failure(error)
   }
 }
+
+const StarSystemBodyDto = z.object({
+  id: z.string(),
+  number: z.number(),
+  coordinates: z.string(),
+  name: z.string(),
+  type: z.enum(BodyType),
+  movementNodeId: z.string(),
+}) satisfies z.ZodType<BodyReadModel>
+
+const StarSystemSectorDto = z.object({
+  id: z.string(),
+  number: z.number(),
+  coordinates: z.string(),
+  bodies: z.array(StarSystemBodyDto),
+  movementNodeId: z.string(),
+}) satisfies z.ZodType<SectorReadModel>
+
+const StarSystemOrbitDto = z.object({
+  id: z.string(),
+  number: z.number(),
+  coordinates: z.string(),
+  sectors: z.array(StarSystemSectorDto),
+}) satisfies z.ZodType<OrbitReadModel>
+
+const MovementEdgeDto = z.object({
+  fromNodeId: z.string(),
+  toNodeId: z.string(),
+  weight: z.number(),
+}) satisfies z.ZodType<MovementEdge>
+
+export const StarSystemDto = z.object({
+  gameId: z.number(),
+  orbits: z.array(StarSystemOrbitDto),
+  movementEdges: z.record(z.string(), z.array(MovementEdgeDto)),
+}) satisfies z.ZodType<StarSystemReadModel>

@@ -32,42 +32,41 @@ export class GamesController {
   }
 
   public async create(newGame: GameInsert): Promise<Result<CreatedGame, string>> {
-    const normalizedSettingsResult = normalizeStarSystemGenerationSettings(newGame.starSystemGenerationSettings)
-    if (Result.isFailure(normalizedSettingsResult)) {
+    const generationSettingsResult = starSystemGenerationSettingsFromDto(newGame.starSystemGenerationSettings)
+    if (Result.isFailure(generationSettingsResult)) {
       this.logger.error("Invalid Star System generation settings", {
         settings: newGame.starSystemGenerationSettings,
-        error: normalizedSettingsResult.error,
+        error: generationSettingsResult.error,
       })
-      return Result.Failure(normalizedSettingsResult.error)
+      return Result.Failure(generationSettingsResult.error)
     }
 
-    const createResult = await Result.tryCatch(async () => {
-      const normalizedSettings = normalizedSettingsResult.value
-      return await this.createTransaction(async (tx) => {
+    const createResult = await Result.tryCatch(
+      this.createTransaction(async (tx) => {
         const gameResult = await this.gamesRepository.create(toGameRowInsert(newGame), tx)
         if (Result.isFailure(gameResult)) {
-          throw new Error(gameResult.error)
+          throw new Error(gameResult.error) // I would use tx.rollback(), but TS doesn't know that it throws and breaks the Result control flow semantics
         }
 
-        const starSystem = generateStarSystem(normalizedSettings)
+        const starSystem = generateStarSystem(generationSettingsResult.value)
         const createStarSystemResult = await this.starSystemsRepository.create({ gameId: gameResult.value.id, ...starSystem }, tx)
         if (Result.isFailure(createStarSystemResult)) {
-          throw new Error(createStarSystemResult.error)
+          throw new Error(createStarSystemResult.error) // I would use tx.rollback(), but TS doesn't know that it throws and breaks the Result control flow semantics
         }
 
-        return gameResult.value
-      })
-    })
+        return {
+          ...gameResult.value,
+          starSystemGenerationSettings: starSystem.starSystemGenerationSettings,
+        }
+      }),
+    )
 
     if (Result.isFailure(createResult)) {
-      this.logger.error("Could not create game with Star System", { newGame, error: createResult.error })
-      return Result.Failure(couldNot("create game with Star System"))
+      this.logger.error("Could not create game", { newGame, error: createResult.error })
+      return Result.Failure(couldNot("create game"))
     }
 
-    return Result.Success({
-      ...createResult.value,
-      starSystemGenerationSettings: normalizedSettingsResult.value,
-    })
+    return createResult
   }
 
   public async getSummaries({ playerId }: { playerId: number | undefined }): Promise<GameSummary[]> {
@@ -115,7 +114,7 @@ export class GamesController {
     const gameJoinResult = await this.gamesRepository.join({
       gameId,
       playerId,
-      canJoin: (gameSummaryRow) => toGameSummary({ gameSummaryRow, playerId }).canJoin,
+      canJoin: (gameSummaryRow) => computeGameStatus({ gameSummaryRow, playerId }).canJoin,
     })
 
     if (Result.isFailure(gameJoinResult)) {
@@ -132,7 +131,7 @@ export class GamesController {
     const gameLeaveResult = await this.gamesRepository.leave({
       gameId,
       playerId,
-      canLeave: (gameSummaryRow) => toGameSummary({ gameSummaryRow, playerId }).canLeave,
+      canLeave: (gameSummaryRow) => computeGameStatus({ gameSummaryRow, playerId }).canLeave,
     })
 
     if (Result.isFailure(gameLeaveResult)) {
@@ -148,7 +147,7 @@ export class GamesController {
   public async start({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummary, string>> {
     const gameStartResult = await this.gamesRepository.start({
       gameId,
-      canStart: (gameSummaryRow) => toGameSummary({ gameSummaryRow, playerId }).canStart,
+      canStart: (gameSummaryRow) => computeGameStatus({ gameSummaryRow, playerId }).canStart,
     })
 
     if (Result.isFailure(gameStartResult)) {
@@ -163,21 +162,19 @@ export class GamesController {
   }
 }
 
-function toGameSummary({
+function computeGameStatus({
   gameSummaryRow,
-  starSystemGenerationSettings,
   playerId,
 }: {
   gameSummaryRow: GameSummaryRow
-  starSystemGenerationSettings?: StarSystemGenerationSettings | undefined
   playerId: number | undefined
-}): GameSummary {
+}): Pick<GameSummary, "status" | "canJoin" | "canLeave" | "canStart"> {
   // prettier-ignore
   const status =
     gameSummaryRow.endedAt !== null ? GameSummaryStatus.ENDED
-    : gameSummaryRow.startedAt !== null ? GameSummaryStatus.STARTED
-    : gameSummaryRow.players.length >= gameSummaryRow.nbSeats ? GameSummaryStatus.READY_TO_START
-    : GameSummaryStatus.WAITING_FOR_PLAYERS
+      : gameSummaryRow.startedAt !== null ? GameSummaryStatus.STARTED
+        : gameSummaryRow.players.length >= gameSummaryRow.nbSeats ? GameSummaryStatus.READY_TO_START
+          : GameSummaryStatus.WAITING_FOR_PLAYERS
 
   const canJoin =
     playerId !== undefined &&
@@ -196,12 +193,27 @@ function toGameSummary({
     (status === GameSummaryStatus.WAITING_FOR_PLAYERS || status === GameSummaryStatus.READY_TO_START) &&
     gameSummaryRow.creator.id === playerId
 
+  return { status, canJoin, canLeave, canStart }
+}
+
+function toGameSummary({
+  gameSummaryRow,
+  starSystemGenerationSettings,
+  playerId,
+}: {
+  gameSummaryRow: GameSummaryRow
+  /**
+   *  Can be undefined for convenience because the DB query doesn't enforce this that a game always has a star system, but in reality there should always be.
+   *  ...now that I think about this, maybe this data should live in the games table, not the star systems table.
+   */
+  starSystemGenerationSettings: StarSystemGenerationSettings | undefined
+  playerId: number | undefined
+}): GameSummary {
+  Assert.isDefined(starSystemGenerationSettings)
+
   return {
     ...gameSummaryRow,
-    status,
-    canJoin,
-    canLeave,
-    canStart,
+    ...computeGameStatus({ gameSummaryRow, playerId }),
     starSystemGenerationSettings,
   }
 }
@@ -254,7 +266,7 @@ function toGameRowInsert(newGame: GameInsert): GameRowInsert {
   }
 }
 
-function normalizeStarSystemGenerationSettings(
+function starSystemGenerationSettingsFromDto(
   settings: NewGameDto["starSystemGenerationSettings"],
 ): Result<StarSystemGenerationSettings, string> {
   const rangesResult = validateStarSystemGenerationSettings(settings)
@@ -367,5 +379,5 @@ export const GameSummary = z.object({
    * Whether the current player can start the game.
    */
   canStart: z.boolean(),
-  starSystemGenerationSettings: StarSystemGenerationSettingsDto.optional(),
+  starSystemGenerationSettings: StarSystemGenerationSettingsDto,
 }) satisfies z.ZodType<GameSummaryRow>
