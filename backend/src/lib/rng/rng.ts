@@ -36,7 +36,7 @@ export function createRng(generate: () => number): Rng {
   }
 
   function int(range: IntegerRange): number {
-    //
+    // We +1 the max because float is exclusive of the max, but for int we want it to be inclusive
     return Math.floor(float({ ...range, max: range.max + 1 }))
   }
 

@@ -17,14 +17,14 @@ describe("rng", () => {
     })
 
     it.each([
-      { value: 0, expected: 0 },
-      { value: 0.35, expected: 3.5 },
-      { value: 0.5, expected: 5 },
-      { value: 0.65, expected: 6.5 },
-      { value: 1 - Number.EPSILON, expected: 10 * (1 - Number.EPSILON) },
+      { value: 0, expected: 10 },
+      { value: 0.35, expected: 13.5 },
+      { value: 0.5, expected: 15 },
+      { value: 0.65, expected: 16.5 },
+      { value: 1 - Number.EPSILON, expected: 20 * (1 - Number.EPSILON) },
     ])("should return values in the range when min and max are different", ({ value, expected }) => {
       // Arrange
-      const range = { min: 0, max: 10 }
+      const range = { min: 10, max: 20 }
       const rng = createRng(() => value)
 
       // Act
@@ -34,33 +34,32 @@ describe("rng", () => {
       expect(random).toEqual(expected)
     })
 
-    it.each([
-      { value: 0, expected: 4 },
-      { value: 0.5, expected: 4 },
-      { value: 1 - Number.EPSILON, expected: 4 },
-    ])("should return exactly the min when a range is provided and min is equal to max", ({ value, expected }) => {
-      // Arrange
-      const range = { min: 4, max: 4 }
-      const rng = createRng(() => value)
+    it.each([0, 0.25, 0.5, 0.75, 1 - Number.EPSILON])(
+      "should return exactly the min when a range is provided and min is equal to max",
+      (value) => {
+        // Arrange
+        const range = { min: 10, max: 10 }
+        const rng = createRng(() => value)
 
-      // Act
-      const random = rng.float(range)
+        // Act
+        const random = rng.float(range)
 
-      // Assert
-      expect(random).toEqual(expected)
-    })
+        // Assert
+        expect(random).toEqual(range.min)
+      },
+    )
   })
 
   describe("int", () => {
     it.each([
-      { value: 0, expected: 0 },
-      { value: 0.35, expected: 3 },
-      { value: 0.5, expected: 5 },
-      { value: 0.65, expected: 7 },
-      { value: 1 - Number.EPSILON, expected: 10 },
+      { value: 0, expected: 10 },
+      { value: 0.35, expected: 13 },
+      { value: 0.5, expected: 15 },
+      { value: 0.65, expected: 17 },
+      { value: 1 - Number.EPSILON, expected: 20 },
     ])("should return values in the range when min and max are different", ({ value, expected }) => {
       // Arrange
-      const range = { min: 0, max: 10 }
+      const range = { min: 10, max: 20 }
       const rng = createRng(() => value)
 
       // Act
@@ -70,21 +69,20 @@ describe("rng", () => {
       expect(random).toEqual(expected)
     })
 
-    it.each([
-      { value: 0, expected: 10 },
-      { value: 0.5, expected: 10 },
-      { value: 1 - Number.EPSILON, expected: 10 },
-    ])("should return exactly the min when a range is provided and min is equal to max", ({ value, expected }) => {
-      // Arrange
-      const range = { min: 10, max: 10 }
-      const rng = createRng(() => value)
+    it.each([0, 0.25, 0.5, 0.75, 1 - Number.EPSILON])(
+      "should return exactly the min when a range is provided and min is equal to max",
+      (value) => {
+        // Arrange
+        const range = { min: 10, max: 10 }
+        const rng = createRng(() => value)
 
-      // Act
-      const random = rng.int(range)
+        // Act
+        const random = rng.int(range)
 
-      // Assert
-      expect(random).toEqual(expected)
-    })
+        // Assert
+        expect(random).toEqual(range.min)
+      },
+    )
   })
 
   describe("shuffle", () => {
