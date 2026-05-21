@@ -10,6 +10,11 @@ import { mulberry32Prng } from "../rng/mulberry32prng.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createRng, type Rng } from "#lib/rng/rng.ts"
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
+import { v5 } from "uuid"
+
+function uuid(name: string): string {
+  return v5(name, "7ce543cd-f7de-4efd-9cab-2c9c8a5711b5")
+}
 
 export const MAX_ORBITS = 6
 const FIRST_ORBIT_SECTOR_COUNT = 2
@@ -48,7 +53,7 @@ export function generateStarSystem(settings: Readonly<StarSystemGenerationSettin
   }
 
   const orbits = orbitsResult.value
-  const sectors = generateSectors({ orbits, rng })
+  const sectors = generateSectors({ orbits })
   const bodies = generateBodies({ sectors, nbPlanets, settings, rng })
 
   // Compute the movement graph
@@ -94,7 +99,7 @@ function generateOrbits({
     }
 
     orbits.push({
-      id: randomUuid(rng),
+      id: uuid(`orbit-${orbitNumber}`),
       orbitNumber,
       sectorCount,
       isAsteroidBelt,
@@ -113,16 +118,21 @@ function generateOrbits({
   return Result.Failure(`Could not generate Star System within ${MAX_ORBITS} orbits`)
 }
 
-function generateSectors({ orbits, rng }: { orbits: GeneratedOrbit[]; rng: Rng }): GeneratedSector[] {
+function generateSectors({ orbits }: { orbits: GeneratedOrbit[] }): GeneratedSector[] {
   return orbits.flatMap((orbit) =>
-    Array.from({ length: orbit.sectorCount }, (_, index) => ({
-      id: randomUuid(rng),
-      orbitId: orbit.id,
-      orbitNumber: orbit.orbitNumber,
-      isAsteroidBelt: orbit.isAsteroidBelt,
-      sectorNumber: index + 1,
-      movementNodeId: randomUuid(rng),
-    })),
+    Array.from({ length: orbit.sectorCount }, (_, index) => {
+      const sectorNumber = index + 1
+      const sectorLabel = `${orbit.orbitNumber}-${sectorNumber}`
+
+      return {
+        id: uuid(`sector-${sectorLabel}`),
+        orbitId: orbit.id,
+        orbitNumber: orbit.orbitNumber,
+        isAsteroidBelt: orbit.isAsteroidBelt,
+        sectorNumber,
+        movementNodeId: uuid(`movementNodeId-${sectorLabel}`),
+      }
+    }),
   )
 }
 
@@ -144,7 +154,7 @@ function generateBodies({
   for (const sector of asteroidBeltSectors) {
     const nbAsteroids = rng.int(settings.nbAsteroidsPerSector)
     for (let asteroidIndex = 0; asteroidIndex < nbAsteroids; asteroidIndex++) {
-      bodies.push(createBody({ sectorId: sector.id, bodyNumber: asteroidIndex + 1, bodyType: BodyType.ASTEROID, rng }))
+      bodies.push(createBody({ sectorId: sector.id, bodyNumber: asteroidIndex + 1, bodyType: BodyType.ASTEROID }))
     }
   }
 
@@ -152,11 +162,11 @@ function generateBodies({
   const planetSectors = rng.shuffle(sectors.filter((sector) => !asteroidBeltSectorIds.has(sector.id))).slice(0, nbPlanets)
 
   for (const sector of planetSectors) {
-    bodies.push(createBody({ sectorId: sector.id, bodyNumber: 1, bodyType: BodyType.PLANET, rng }))
+    bodies.push(createBody({ sectorId: sector.id, bodyNumber: 1, bodyType: BodyType.PLANET }))
 
     const nbMoons = rng.int(settings.nbMoonsPerPlanet)
     for (let moonIndex = 0; moonIndex < nbMoons; moonIndex++) {
-      bodies.push(createBody({ sectorId: sector.id, bodyNumber: moonIndex + 2, bodyType: BodyType.MOON, rng }))
+      bodies.push(createBody({ sectorId: sector.id, bodyNumber: moonIndex + 2, bodyType: BodyType.MOON }))
     }
   }
 
@@ -180,14 +190,16 @@ function generateBodies({
   })
 }
 
-function createBody({ sectorId, bodyNumber, bodyType, rng }: { sectorId: string; bodyNumber: number; bodyType: BodyType; rng: Rng }): Body {
+function createBody({ sectorId, bodyNumber, bodyType }: { sectorId: string; bodyNumber: number; bodyType: BodyType }): Body {
+  const bodyLabel = `${sectorId}-${bodyNumber}`
+
   return {
-    id: randomUuid(rng),
+    id: uuid(`body-${bodyLabel}`),
     sectorId,
     bodyNumber,
     bodyType,
     name: `${toTitleCase(bodyType)} ${bodyNumber.toString().padStart(2, "0")}`,
-    movementNodeId: randomUuid(rng),
+    movementNodeId: uuid(`movementNodeId-${bodyLabel}`),
   }
 }
 
@@ -275,27 +287,6 @@ function addDirectedEdge(edges: Map<string, MovementEdge>, fromNodeId: string, t
 
 function getSectorCountForOrbit(orbitNumber: number): number {
   return FIRST_ORBIT_SECTOR_COUNT * 2 ** (orbitNumber - 1)
-}
-
-function randomUuid(rng: Rng): string {
-  const bytes = Array.from({ length: 16 }, () => Math.floor(rng.float() * 256))
-  const versionByte = bytes[6]
-  const variantByte = bytes[8]
-  if (versionByte === undefined || variantByte === undefined) {
-    throw new Error("Could not generate deterministic UUID")
-  }
-  bytes[6] = (versionByte & 0x0f) | 0x40
-  bytes[8] = (variantByte & 0x3f) | 0x80
-
-  const hexBytes = bytes.map((byte) => byte.toString(16).padStart(2, "0"))
-
-  return [
-    hexBytes.slice(0, 4).join(""),
-    hexBytes.slice(4, 6).join(""),
-    hexBytes.slice(6, 8).join(""),
-    hexBytes.slice(8, 10).join(""),
-    hexBytes.slice(10, 16).join(""),
-  ].join("-")
 }
 
 function toTitleCase(value: string): string {
