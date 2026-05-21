@@ -1,20 +1,17 @@
 import type {
-  Orbit,
   Body,
+  MovementEdge,
   NewStarSystem,
+  Orbit,
   Sector,
   StarSystemGenerationSettings,
-  MovementEdge,
 } from "#lib/db/star-systems/starSystems.repository.ts"
 import { mulberry32Prng } from "../rng/mulberry32prng.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createRng, type Rng } from "#lib/rng/rng.ts"
-import { Result } from "@guillaume-docquier/tools-ts"
-import type { StarSystemGenerationSettingsDto } from "#api/games/games.controller.ts"
-import type { IntegerRange, PercentageRange } from "#lib/Range.ts"
+import { Assert, Result } from "@guillaume-docquier/tools-ts"
 
-const MAX_ORBITS = 6
-
+export const MAX_ORBITS = 6
 const FIRST_ORBIT_SECTOR_COUNT = 2
 const MOVEMENT_EDGE_WEIGHT = 1
 
@@ -28,28 +25,47 @@ type GeneratedSector = Sector & {
   isAsteroidBelt: boolean
 }
 
-export function generateStarSystem(settings: Readonly<StarSystemGenerationSettings>): Omit<NewStarSystem, "gameId"> {
+/**
+ * Deterministically generate a star system based on the StarSystemGenerationSettings.
+ * A pseudorandom number generator will be used with the settings' seed to roll for all random numbers.
+ *
+ * The generation will try to respect the settings, but it's possible that the planetDensity cannot be respected because adding an orbit might imbalance it.
+ * The other settings will be respected.
+ */
+export function generateStarSystem(settings: Readonly<StarSystemGenerationSettings>): Result<Omit<NewStarSystem, "gameId">, string> {
+  // Create the PRNG
   const rng = createRng(mulberry32Prng(settings.seed))
+
+  // Roll global values
   const planetDensity = rng.float(settings.planetDensity)
   const nbPlanets = rng.int(settings.nbPlanets)
   const nbAsteroidBelts = rng.int(settings.nbAsteroidBelts)
-  const orbits = generateOrbits({ nbPlanets, nbAsteroidBelts, planetDensity, rng })
+
+  // Generate orbits -> sectors -> bodies
+  const orbitsResult = generateOrbits({ nbPlanets, nbAsteroidBelts, planetDensity, rng })
+  if (Result.isFailure(orbitsResult)) {
+    return orbitsResult
+  }
+
+  const orbits = orbitsResult.value
   const sectors = generateSectors({ orbits, rng })
   const bodies = generateBodies({ sectors, nbPlanets, settings, rng })
+
+  // Compute the movement graph
   const movementNodes = [
     ...sectors.map((sector) => ({ id: sector.movementNodeId })),
     ...bodies.map((body) => ({ id: body.movementNodeId })),
   ]
   const movementEdges = generateMovementEdges({ orbits, sectors, bodies })
 
-  return {
+  return Result.Success({
     starSystemGenerationSettings: settings,
     orbits: orbits.map(({ isAsteroidBelt: _isAsteroidBelt, sectorCount: _sectorCount, ...orbit }) => orbit),
     sectors: sectors.map(({ orbitNumber: _orbitNumber, isAsteroidBelt: _isAsteroidBelt, ...sector }) => sector),
     bodies,
     movementNodes,
     movementEdges,
-  }
+  })
 }
 
 function generateOrbits({
@@ -62,7 +78,7 @@ function generateOrbits({
   nbAsteroidBelts: number
   planetDensity: number
   rng: Rng
-}): GeneratedOrbit[] {
+}): Result<GeneratedOrbit[], string> {
   const orbits: GeneratedOrbit[] = []
   let remainingAsteroidBelts = nbAsteroidBelts
 
@@ -90,11 +106,11 @@ function generateOrbits({
     const planetCapacity = Math.floor(nonBeltSectorCount * planetDensity)
 
     if (remainingAsteroidBelts === 0 && planetCapacity >= nbPlanets) {
-      return orbits
+      return Result.Success(orbits)
     }
   }
 
-  throw new Error(`Could not generate Star System within ${MAX_ORBITS} orbits`)
+  return Result.Failure(`Could not generate Star System within ${MAX_ORBITS} orbits`)
 }
 
 function generateSectors({ orbits, rng }: { orbits: GeneratedOrbit[]; rng: Rng }): GeneratedSector[] {
@@ -147,9 +163,8 @@ function generateBodies({
   return bodies.sort((bodyA, bodyB) => {
     const sectorA = sectorsById.get(bodyA.sectorId)
     const sectorB = sectorsById.get(bodyB.sectorId)
-    if (sectorA === undefined || sectorB === undefined) {
-      throw new Error("Body references an unknown Sector")
-    }
+    Assert.isDefined(sectorA)
+    Assert.isDefined(sectorB)
 
     const orbitSort = sectorA.orbitNumber - sectorB.orbitNumber
     if (orbitSort !== 0) {
@@ -285,65 +300,4 @@ function randomUuid(rng: Rng): string {
 
 function toTitleCase(value: string): string {
   return value.charAt(0) + value.slice(1).toLowerCase()
-}
-
-export function validateStarSystemGenerationSettings(settings: Readonly<StarSystemGenerationSettingsDto>): Result<true, string> {
-  const rangeChecks: Array<[string, PercentageRange | IntegerRange]> = [
-    ["planetDensity", settings.planetDensity],
-    ["nbPlanets", settings.nbPlanets],
-    ["nbMoonsPerPlanet", settings.nbMoonsPerPlanet],
-    ["nbAsteroidBelts", settings.nbAsteroidBelts],
-    ["nbAsteroidsPerSector", settings.nbAsteroidsPerSector],
-  ]
-
-  for (const [rangeName, range] of rangeChecks) {
-    if (!Number.isFinite(range.min) || !Number.isFinite(range.max)) {
-      return Result.Failure(`${rangeName} must have finite bounds`)
-    }
-
-    if (range.min > range.max) {
-      return Result.Failure(`${rangeName} min must be less than or equal to max`)
-    }
-  }
-
-  if (settings.planetDensity.min < 0 || settings.planetDensity.max > 1) {
-    return Result.Failure("planetDensity must stay between 0 and 1")
-  }
-
-  const integerRanges: Array<[string, IntegerRange]> = [
-    ["nbPlanets", settings.nbPlanets],
-    ["nbMoonsPerPlanet", settings.nbMoonsPerPlanet],
-    ["nbAsteroidBelts", settings.nbAsteroidBelts],
-    ["nbAsteroidsPerSector", settings.nbAsteroidsPerSector],
-  ]
-
-  for (const [rangeName, range] of integerRanges) {
-    if (!Number.isInteger(range.min) || !Number.isInteger(range.max)) {
-      return Result.Failure(`${rangeName} must use integer bounds`)
-    }
-
-    if (range.min < 0) {
-      return Result.Failure(`${rangeName} must be greater than or equal to 0`)
-    }
-  }
-
-  if (settings.seed !== undefined && (!Number.isInteger(settings.seed) || settings.seed < 0 || settings.seed > 2 ** 32 - 1)) {
-    return Result.Failure("seed must be an unsigned 32-bit integer")
-  }
-
-  if (settings.nbAsteroidBelts.max > MAX_ORBITS) {
-    return Result.Failure(`nbAsteroidBelts cannot be greater than ${MAX_ORBITS}`)
-  }
-
-  const maxNonBeltSectorCount = Array.from({ length: MAX_ORBITS }, (_, index) => 2 ** (index + 1))
-    .toSorted((sectorCountA, sectorCountB) => sectorCountB - sectorCountA)
-    .slice(0, MAX_ORBITS - settings.nbAsteroidBelts.max)
-    .reduce((total, sectorCount) => total + sectorCount, 0)
-  const maxPlanetCapacity = Math.floor(maxNonBeltSectorCount * settings.planetDensity.min)
-
-  if (maxPlanetCapacity < settings.nbPlanets.max) {
-    return Result.Failure(`settings cannot generate the requested Planets within ${MAX_ORBITS} orbits`)
-  }
-
-  return Result.Success(true)
 }

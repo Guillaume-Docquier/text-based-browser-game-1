@@ -4,8 +4,9 @@ import z from "zod"
 import { randomInt } from "node:crypto"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { StarSystemGenerationSettings, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
-import { generateStarSystem, validateStarSystemGenerationSettings } from "#lib/star-systems/generateStarSystem.ts"
+import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
 import { couldNot } from "#lib/errors.ts"
+import { validateStarSystemGenerationSettings } from "#lib/star-systems/validateStarSystemGenerationSettings.ts"
 
 export class GamesController {
   private readonly gamesRepository: GamesRepository
