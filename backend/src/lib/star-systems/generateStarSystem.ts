@@ -9,8 +9,9 @@ import type {
 import { mulberry32Prng } from "../rng/mulberry32prng.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createRng, type Rng } from "#lib/rng/rng.ts"
-import { Assert, Result } from "@guillaume-docquier/tools-ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import { v5 } from "uuid"
+import { sum } from "#lib/sum.ts"
 
 function uuid(name: string): string {
   return v5(name, "7ce543cd-f7de-4efd-9cab-2c9c8a5711b5")
@@ -19,16 +20,6 @@ function uuid(name: string): string {
 export const MAX_ORBITS = 6
 const FIRST_ORBIT_SECTOR_COUNT = 2
 const MOVEMENT_EDGE_WEIGHT = 1
-
-type GeneratedOrbit = Orbit & {
-  isAsteroidBelt: boolean
-  sectorCount: number
-}
-
-type GeneratedSector = Sector & {
-  orbitNumber: number
-  isAsteroidBelt: boolean
-}
 
 /**
  * Deterministically generate a star system based on the StarSystemGenerationSettings.
@@ -52,9 +43,12 @@ export function generateStarSystem(settings: Readonly<StarSystemGenerationSettin
     return orbitsResult
   }
 
-  const orbits = orbitsResult.value
-  const sectors = generateSectors({ orbits })
-  const bodies = generateBodies({ sectors, nbPlanets, settings, rng })
+  const { normalOrbits, asteroidBelts } = orbitsResult.value
+  const { normalSectors, asteroidBeltSectors } = generateSectors({ normalOrbits, asteroidBelts })
+
+  const orbits = [...normalOrbits, ...asteroidBelts]
+  const sectors = [...normalSectors, ...asteroidBeltSectors]
+  const bodies = generateBodies({ normalSectors, asteroidBeltSectors, nbPlanets, settings, rng })
 
   // Compute the movement graph
   const movementNodes = [
@@ -65,12 +59,27 @@ export function generateStarSystem(settings: Readonly<StarSystemGenerationSettin
 
   return Result.Success({
     starSystemGenerationSettings: settings,
-    orbits: orbits.map(({ isAsteroidBelt: _isAsteroidBelt, sectorCount: _sectorCount, ...orbit }) => orbit),
-    sectors: sectors.map(({ orbitNumber: _orbitNumber, isAsteroidBelt: _isAsteroidBelt, ...sector }) => sector),
+    orbits,
+    sectors,
     bodies,
     movementNodes,
     movementEdges,
   })
+}
+
+/**
+ * Each new Orbit doubles the number of Sectors.
+ */
+function computeSectorCountForOrbit(orbit: Orbit): number {
+  return FIRST_ORBIT_SECTOR_COUNT ** orbit.orbitNumber
+}
+
+/**
+ * There are enough orbits if we can satisfy nbPlanets given planetDensity.
+ * This assumes at most 1 planet per sector.
+ */
+function canFulfillNbPlanets({ orbits, planetDensity, nbPlanets }: { orbits: Orbit[]; planetDensity: number; nbPlanets: number }): boolean {
+  return orbits.map(computeSectorCountForOrbit).reduce(sum, 0) * planetDensity >= nbPlanets
 }
 
 function generateOrbits({
@@ -83,74 +92,71 @@ function generateOrbits({
   nbAsteroidBelts: number
   planetDensity: number
   rng: Rng
-}): Result<GeneratedOrbit[], string> {
-  const orbits: GeneratedOrbit[] = []
-  let remainingAsteroidBelts = nbAsteroidBelts
+}): Result<{ normalOrbits: Orbit[]; asteroidBelts: Orbit[] }, string> {
+  let normalOrbits: Orbit[] = []
+  let asteroidBelts: Orbit[] = []
 
-  for (let orbitNumber = 1; orbitNumber <= MAX_ORBITS; orbitNumber++) {
-    const remainingOrbitSlots = MAX_ORBITS - orbitNumber + 1
-    const sectorCount = getSectorCountForOrbit(orbitNumber)
-    const mustPlaceAsteroidBelt = remainingAsteroidBelts === remainingOrbitSlots
-    const isAsteroidBelt =
-      remainingAsteroidBelts > 0 && (mustPlaceAsteroidBelt || rng.float() < remainingAsteroidBelts / remainingOrbitSlots)
+  while (asteroidBelts.length < nbAsteroidBelts || !canFulfillNbPlanets({ orbits: normalOrbits, planetDensity, nbPlanets })) {
+    ;({ drawn: normalOrbits, remaining: asteroidBelts } = rng.draw(
+      [...normalOrbits, ...asteroidBelts, createOrbit({ orbitNumber: normalOrbits.length + 1 })],
+      nbAsteroidBelts,
+    ))
 
-    if (isAsteroidBelt) {
-      remainingAsteroidBelts--
-    }
-
-    orbits.push({
-      id: uuid(`orbit-${orbitNumber}`),
-      orbitNumber,
-      sectorCount,
-      isAsteroidBelt,
-    })
-
-    const nonBeltSectorCount = orbits
-      .filter((orbit) => !orbit.isAsteroidBelt)
-      .reduce((totalSectorCount, orbit) => totalSectorCount + orbit.sectorCount, 0)
-    const planetCapacity = Math.floor(nonBeltSectorCount * planetDensity)
-
-    if (remainingAsteroidBelts === 0 && planetCapacity >= nbPlanets) {
-      return Result.Success(orbits)
+    if (asteroidBelts.length + normalOrbits.length > MAX_ORBITS) {
+      return Result.Failure(`Could not generate Star System within a reasonable amount of Orbits`)
     }
   }
 
-  return Result.Failure(`Could not generate Star System within ${MAX_ORBITS} orbits`)
+  return Result.Success({ normalOrbits, asteroidBelts })
 }
 
-function generateSectors({ orbits }: { orbits: GeneratedOrbit[] }): GeneratedSector[] {
-  return orbits.flatMap((orbit) =>
-    Array.from({ length: orbit.sectorCount }, (_, index) => {
-      const sectorNumber = index + 1
-      const sectorLabel = `${orbit.orbitNumber}-${sectorNumber}`
+function createOrbit({ orbitNumber }: { orbitNumber: number }): Orbit {
+  return {
+    id: uuid(`orbit-${orbitNumber}`),
+    orbitNumber,
+  }
+}
 
-      return {
-        id: uuid(`sector-${sectorLabel}`),
-        orbitId: orbit.id,
-        orbitNumber: orbit.orbitNumber,
-        isAsteroidBelt: orbit.isAsteroidBelt,
-        sectorNumber,
-        movementNodeId: uuid(`movementNodeId-${sectorLabel}`),
-      }
-    }),
-  )
+function generateSectors({ normalOrbits, asteroidBelts }: { normalOrbits: Orbit[]; asteroidBelts: Orbit[] }): {
+  normalSectors: Sector[]
+  asteroidBeltSectors: Sector[]
+} {
+  return {
+    normalSectors: normalOrbits.flatMap(createSectorsForOrbit),
+    asteroidBeltSectors: asteroidBelts.flatMap(createSectorsForOrbit),
+  }
+}
+
+function createSectorsForOrbit(orbit: Orbit): Sector[] {
+  return Array.from({ length: computeSectorCountForOrbit(orbit) }, (_, index) => {
+    const sectorNumber = index + 1
+    const sectorLabel = `${orbit.orbitNumber}-${sectorNumber}`
+
+    return {
+      id: uuid(`sector-${sectorLabel}`),
+      orbitId: orbit.id,
+      sectorNumber,
+      movementNodeId: uuid(`movementNodeId-${sectorLabel}`),
+    }
+  })
 }
 
 function generateBodies({
-  sectors,
+  normalSectors,
+  asteroidBeltSectors,
   nbPlanets,
   settings,
   rng,
 }: {
-  sectors: GeneratedSector[]
+  normalSectors: Sector[]
+  asteroidBeltSectors: Sector[]
   nbPlanets: number
-  settings: StarSystemGenerationSettings
+  settings: Pick<StarSystemGenerationSettings, "nbAsteroidsPerSector" | "nbMoonsPerPlanet">
   rng: Rng
 }): Body[] {
   const bodies: Body[] = []
-  const sectorsById = new Map(sectors.map((sector) => [sector.id, sector]))
-  const asteroidBeltSectors = sectors.filter((sector) => sector.isAsteroidBelt)
 
+  // Create asteroids: random number in the range, per sector
   for (const sector of asteroidBeltSectors) {
     const nbAsteroids = rng.int(settings.nbAsteroidsPerSector)
     for (let asteroidIndex = 0; asteroidIndex < nbAsteroids; asteroidIndex++) {
@@ -158,36 +164,18 @@ function generateBodies({
     }
   }
 
-  const asteroidBeltSectorIds = new Set(asteroidBeltSectors.map((sector) => sector.id))
-  const planetSectors = rng.shuffle(sectors.filter((sector) => !asteroidBeltSectorIds.has(sector.id))).slice(0, nbPlanets)
-
+  // Create planets: draw nbPlanets sectors, create the planet and add random number of moons in the range
+  const { drawn: planetSectors } = rng.draw(normalSectors, nbPlanets)
   for (const sector of planetSectors) {
     bodies.push(createBody({ sectorId: sector.id, bodyNumber: 1, bodyType: BodyType.PLANET }))
 
     const nbMoons = rng.int(settings.nbMoonsPerPlanet)
-    for (let moonIndex = 0; moonIndex < nbMoons; moonIndex++) {
-      bodies.push(createBody({ sectorId: sector.id, bodyNumber: moonIndex + 2, bodyType: BodyType.MOON }))
+    for (let moonIndex = 1; moonIndex <= nbMoons; moonIndex++) {
+      bodies.push(createBody({ sectorId: sector.id, bodyNumber: moonIndex + 1, bodyType: BodyType.MOON }))
     }
   }
 
-  return bodies.sort((bodyA, bodyB) => {
-    const sectorA = sectorsById.get(bodyA.sectorId)
-    const sectorB = sectorsById.get(bodyB.sectorId)
-    Assert.isDefined(sectorA)
-    Assert.isDefined(sectorB)
-
-    const orbitSort = sectorA.orbitNumber - sectorB.orbitNumber
-    if (orbitSort !== 0) {
-      return orbitSort
-    }
-
-    const sectorSort = sectorA.sectorNumber - sectorB.sectorNumber
-    if (sectorSort !== 0) {
-      return sectorSort
-    }
-
-    return bodyA.bodyNumber - bodyB.bodyNumber
-  })
+  return bodies
 }
 
 function createBody({ sectorId, bodyNumber, bodyType }: { sectorId: string; bodyNumber: number; bodyType: BodyType }): Body {
@@ -203,15 +191,7 @@ function createBody({ sectorId, bodyNumber, bodyType }: { sectorId: string; body
   }
 }
 
-function generateMovementEdges({
-  orbits,
-  sectors,
-  bodies,
-}: {
-  orbits: GeneratedOrbit[]
-  sectors: GeneratedSector[]
-  bodies: Body[]
-}): MovementEdge[] {
+function generateMovementEdges({ orbits, sectors, bodies }: { orbits: Orbit[]; sectors: Sector[]; bodies: Body[] }): MovementEdge[] {
   const edges = new Map<string, MovementEdge>()
   const sectorsByOrbitId = Map.groupBy(sectors, ({ orbitId }) => orbitId)
   const bodiesBySectorId = Map.groupBy(bodies, ({ sectorId }) => sectorId)
@@ -283,10 +263,6 @@ function addUndirectedEdge(edges: Map<string, MovementEdge>, fromNodeId: string,
 
 function addDirectedEdge(edges: Map<string, MovementEdge>, fromNodeId: string, toNodeId: string): void {
   edges.set(`${fromNodeId}->${toNodeId}`, { fromNodeId, toNodeId, weight: MOVEMENT_EDGE_WEIGHT })
-}
-
-function getSectorCountForOrbit(orbitNumber: number): number {
-  return FIRST_ORBIT_SECTOR_COUNT * 2 ** (orbitNumber - 1)
 }
 
 function toTitleCase(value: string): string {

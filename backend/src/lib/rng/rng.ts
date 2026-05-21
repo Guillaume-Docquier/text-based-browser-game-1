@@ -22,7 +22,12 @@ export type Rng = {
   /**
    * Shuffles an array in place.
    */
-  shuffle: <T>(values: T[]) => T[]
+  shuffle: <T>(values: Array<Readonly<T>>) => T[]
+
+  /**
+   * Draws a number of elements without modifying the original array.
+   */
+  draw: <T>(values: ReadonlyArray<Readonly<T>>, count: number) => { drawn: T[]; remaining: T[] }
 }
 
 /**
@@ -48,7 +53,7 @@ export function createRng(generate: () => number): Rng {
   /**
    * Fisher-Yates shuffle in place.
    */
-  function shuffle<T>(values: T[]): T[] {
+  function shuffle<T>(values: Array<Readonly<T>>): T[] {
     for (let i = values.length - 1; i > 0; i--) {
       const j = Math.floor(generate() * (i + 1))
       ;[values[i], values[j]] = [values[j] as T, values[i] as T]
@@ -57,9 +62,19 @@ export function createRng(generate: () => number): Rng {
     return values
   }
 
+  function draw<T>(values: ReadonlyArray<Readonly<T>>, count: number): { drawn: T[]; remaining: T[] } {
+    const shuffled = shuffle(values.slice())
+
+    return {
+      drawn: shuffled.splice(count),
+      remaining: shuffled,
+    }
+  }
+
   return {
     float,
     int,
     shuffle,
+    draw,
   }
 }

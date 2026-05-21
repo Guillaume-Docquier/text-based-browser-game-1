@@ -83,6 +83,24 @@ describe("generateStarSystem", () => {
     expect(system.orbits.map((orbit) => orbit.orbitNumber)).toEqual([1, 2])
   })
 
+  it("should add an Orbit when the rolled Asteroid belt leaves too little Planet capacity", () => {
+    // Arrange
+    const settings = createStarSystemGenerationSettingsStub({
+      planetDensity: { min: 1, max: 1 },
+      nbPlanets: { min: 3, max: 3 },
+      nbMoonsPerPlanet: { min: 0, max: 0 },
+      nbAsteroidBelts: { min: 1, max: 1 },
+      nbAsteroidsPerSector: { min: 1, max: 1 },
+      seed: 3,
+    })
+
+    // Act
+    const system = extractSuccess(generateStarSystem(settings))
+
+    // Assert
+    expect(system.orbits.map((orbit) => orbit.orbitNumber)).toEqual([1, 2, 3])
+  })
+
   it("should fill Asteroid belts with only Asteroids", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
