@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
+import { extractSuccess } from "#tests/extractSuccess.ts"
+import type { NewStarSystem } from "#lib/db/star-systems/starSystems.repository.ts"
 
 describe("generateStarSystem", () => {
   it("should return identical output for the same settings and seed", () => {
@@ -34,8 +36,8 @@ describe("generateStarSystem", () => {
     })
 
     // Act
-    const firstSystem = generateStarSystem({ ...settings, seed: 1 })
-    const secondSystem = generateStarSystem({ ...settings, seed: 2 })
+    const firstSystem = extractSuccess(generateStarSystem({ ...settings, seed: 1 }))
+    const secondSystem = extractSuccess(generateStarSystem({ ...settings, seed: 2 }))
 
     // Assert
     expect(toBodySectorNumbers(firstSystem)).not.toEqual(toBodySectorNumbers(secondSystem))
@@ -53,7 +55,7 @@ describe("generateStarSystem", () => {
     })
 
     // Act
-    const system = generateStarSystem(settings)
+    const system = extractSuccess(generateStarSystem(settings))
 
     // Assert
     expect(countBodiesByType(system)).toEqual({
@@ -75,7 +77,7 @@ describe("generateStarSystem", () => {
     })
 
     // Act
-    const system = generateStarSystem(settings)
+    const system = extractSuccess(generateStarSystem(settings))
 
     // Assert
     expect(system.orbits.map((orbit) => orbit.orbitNumber)).toEqual([1, 2])
@@ -93,7 +95,7 @@ describe("generateStarSystem", () => {
     })
 
     // Act
-    const system = generateStarSystem(settings)
+    const system = extractSuccess(generateStarSystem(settings))
 
     // Assert
     expect(system.bodies).not.toHaveLength(0)
@@ -112,7 +114,7 @@ describe("generateStarSystem", () => {
     })
 
     // Act
-    const system = generateStarSystem(settings)
+    const system = extractSuccess(generateStarSystem(settings))
     const edgeKeys = new Set(system.movementEdges.map(({ fromNodeId, toNodeId }) => `${fromNodeId}->${toNodeId}`))
 
     // Assert
@@ -131,7 +133,7 @@ describe("generateStarSystem", () => {
     })
 
     // Act
-    const system = generateStarSystem(settings)
+    const system = extractSuccess(generateStarSystem(settings))
     const targetMovementNodeIds = [
       ...system.sectors.map((sector) => sector.movementNodeId),
       ...system.bodies.map((body) => body.movementNodeId),
@@ -154,7 +156,7 @@ describe("generateStarSystem", () => {
     })
 
     // Act
-    const system = generateStarSystem(settings)
+    const system = extractSuccess(generateStarSystem(settings))
     const sectorNodeIdsByCoordinate = new Map(
       system.sectors.map((sector) => {
         const orbit = system.orbits.find((candidate) => candidate.id === sector.orbitId)
@@ -175,9 +177,7 @@ describe("generateStarSystem", () => {
   })
 })
 
-type GeneratedStarSystem = ReturnType<typeof generateStarSystem>
-
-function toBodySectorNumbers(system: GeneratedStarSystem): number[] {
+function toBodySectorNumbers(system: Omit<NewStarSystem, "gameId">): number[] {
   const sectorNumbersById = new Map(system.sectors.map((sector) => [sector.id, sector.sectorNumber]))
 
   return system.bodies.map((body) => {
@@ -190,7 +190,7 @@ function toBodySectorNumbers(system: GeneratedStarSystem): number[] {
   })
 }
 
-function countBodiesByType(system: GeneratedStarSystem): Record<BodyType, number> {
+function countBodiesByType(system: Omit<NewStarSystem, "gameId">): Record<BodyType, number> {
   return {
     [BodyType.PLANET]: system.bodies.filter((body) => body.bodyType === BodyType.PLANET).length,
     [BodyType.MOON]: system.bodies.filter((body) => body.bodyType === BodyType.MOON).length,

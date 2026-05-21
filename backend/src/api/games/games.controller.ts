@@ -5,7 +5,7 @@ import { randomInt } from "node:crypto"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { StarSystemGenerationSettings, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
-import { couldNot } from "#lib/errors.ts"
+import { couldNot, TransactionRollback } from "#lib/errors.ts"
 import { validateStarSystemGenerationSettings } from "#lib/star-systems/validateStarSystemGenerationSettings.ts"
 
 export class GamesController {
@@ -45,18 +45,25 @@ export class GamesController {
       this.createTransaction(async (tx) => {
         const gameResult = await this.gamesRepository.create(toGameRowInsert(newGame), tx)
         if (Result.isFailure(gameResult)) {
-          throw new Error(gameResult.error) // I would use tx.rollback(), but TS doesn't know that it throws and breaks the Result control flow semantics
+          throw new TransactionRollback(gameResult.error)
         }
 
-        const starSystem = generateStarSystem(generationSettingsResult.value)
-        const createStarSystemResult = await this.starSystemsRepository.create({ gameId: gameResult.value.id, ...starSystem }, tx)
+        const starSystemResult = generateStarSystem(generationSettingsResult.value)
+        if (Result.isFailure(starSystemResult)) {
+          throw new TransactionRollback(starSystemResult.error)
+        }
+
+        const createStarSystemResult = await this.starSystemsRepository.create(
+          { gameId: gameResult.value.id, ...starSystemResult.value },
+          tx,
+        )
         if (Result.isFailure(createStarSystemResult)) {
-          throw new Error(createStarSystemResult.error) // I would use tx.rollback(), but TS doesn't know that it throws and breaks the Result control flow semantics
+          throw new TransactionRollback(createStarSystemResult.error)
         }
 
         return {
           ...gameResult.value,
-          starSystemGenerationSettings: starSystem.starSystemGenerationSettings,
+          starSystemGenerationSettings: starSystemResult.value.starSystemGenerationSettings,
         }
       }),
     )
