@@ -1,4 +1,11 @@
-import type { NewStarSystem, StarSystemGenerationSettings } from "#lib/db/star-systems/starSystems.repository.ts"
+import type {
+  Orbit,
+  Body,
+  NewStarSystem,
+  Sector,
+  StarSystemGenerationSettings,
+  MovementEdge,
+} from "#lib/db/star-systems/starSystems.repository.ts"
 import { mulberry32Prng } from "../rng/mulberry32prng.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createRng, type Rng } from "#lib/rng/rng.ts"
@@ -11,12 +18,12 @@ const MAX_ORBITS = 6
 const FIRST_ORBIT_SECTOR_COUNT = 2
 const MOVEMENT_EDGE_WEIGHT = 1
 
-type GeneratedOrbit = NewStarSystem["orbits"][number] & {
+type GeneratedOrbit = Orbit & {
   isAsteroidBelt: boolean
   sectorCount: number
 }
 
-type GeneratedSector = NewStarSystem["sectors"][number] & {
+type GeneratedSector = Sector & {
   orbitNumber: number
   isAsteroidBelt: boolean
 }
@@ -113,8 +120,8 @@ function generateBodies({
   nbPlanets: number
   settings: StarSystemGenerationSettings
   rng: Rng
-}): NewStarSystem["bodies"] {
-  const bodies: NewStarSystem["bodies"] = []
+}): Body[] {
+  const bodies: Body[] = []
   const sectorsById = new Map(sectors.map((sector) => [sector.id, sector]))
   const asteroidBeltSectors = sectors.filter((sector) => sector.isAsteroidBelt)
 
@@ -158,17 +165,7 @@ function generateBodies({
   })
 }
 
-function createBody({
-  sectorId,
-  bodyNumber,
-  bodyType,
-  rng,
-}: {
-  sectorId: string
-  bodyNumber: number
-  bodyType: NewStarSystem["bodies"][number]["bodyType"]
-  rng: Rng
-}): NewStarSystem["bodies"][number] {
+function createBody({ sectorId, bodyNumber, bodyType, rng }: { sectorId: string; bodyNumber: number; bodyType: BodyType; rng: Rng }): Body {
   return {
     id: randomUuid(rng),
     sectorId,
@@ -186,9 +183,9 @@ function generateMovementEdges({
 }: {
   orbits: GeneratedOrbit[]
   sectors: GeneratedSector[]
-  bodies: NewStarSystem["bodies"]
-}): NewStarSystem["movementEdges"] {
-  const edges = new Map<string, NewStarSystem["movementEdges"][number]>()
+  bodies: Body[]
+}): MovementEdge[] {
+  const edges = new Map<string, MovementEdge>()
   const sectorsByOrbitId = Map.groupBy(sectors, ({ orbitId }) => orbitId)
   const bodiesBySectorId = Map.groupBy(bodies, ({ sectorId }) => sectorId)
 
@@ -252,12 +249,12 @@ function generateMovementEdges({
   return [...edges.values()]
 }
 
-function addUndirectedEdge(edges: Map<string, NewStarSystem["movementEdges"][number]>, fromNodeId: string, toNodeId: string): void {
+function addUndirectedEdge(edges: Map<string, MovementEdge>, fromNodeId: string, toNodeId: string): void {
   addDirectedEdge(edges, fromNodeId, toNodeId)
   addDirectedEdge(edges, toNodeId, fromNodeId)
 }
 
-function addDirectedEdge(edges: Map<string, NewStarSystem["movementEdges"][number]>, fromNodeId: string, toNodeId: string): void {
+function addDirectedEdge(edges: Map<string, MovementEdge>, fromNodeId: string, toNodeId: string): void {
   edges.set(`${fromNodeId}->${toNodeId}`, { fromNodeId, toNodeId, weight: MOVEMENT_EDGE_WEIGHT })
 }
 
