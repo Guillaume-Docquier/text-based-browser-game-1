@@ -22,12 +22,12 @@ export type Rng = {
   /**
    * Shuffles an array in place.
    */
-  shuffle: <T>(values: Array<Readonly<T>>) => T[]
+  shuffle: <T>(values: T[]) => T[]
 
   /**
    * Draws a number of elements without modifying the original array.
    */
-  draw: <T>(values: ReadonlyArray<Readonly<T>>, count: number) => { drawn: T[]; remaining: T[] }
+  draw: <T>(values: T[], count: number) => { drawn: T[]; remaining: T[] }
 }
 
 /**
@@ -66,7 +66,7 @@ export function createRng(generate: () => number): Rng {
     const shuffled = shuffle(values.slice())
 
     return {
-      drawn: shuffled.splice(count),
+      drawn: shuffled.splice(count - 1),
       remaining: shuffled,
     }
   }

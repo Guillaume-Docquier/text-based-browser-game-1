@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { mulberry32Prng } from "./mulberry32prng.ts"
 import { createRng } from "#lib/rng/rng.ts"
+import { byAscending } from "#lib/byAscending.ts"
 
 describe("rng", () => {
   describe("float", () => {
@@ -96,16 +97,61 @@ describe("rng", () => {
     it("should shuffle arrays in place", () => {
       // Arrange
       const initialValues = [1, 2, 3, 4, 5]
-      const firstValues = [...initialValues]
-      const firstPrng = createRng(mulberry32Prng(1234))
+      const arrayToShuffle = initialValues.slice()
+      const rng = createRng(mulberry32Prng(1234))
 
       // Act
-      const firstResult = firstPrng.shuffle(firstValues)
+      const shuffled = rng.shuffle(arrayToShuffle)
 
       // Assert
-      expect(firstValues).not.toEqual(initialValues)
-      expect(firstResult).toBe(firstValues)
-      expect(firstValues.toSorted((a, b) => a - b)).toEqual(initialValues)
+      expect(arrayToShuffle).not.toEqual(initialValues)
+      expect(shuffled).toBe(arrayToShuffle)
+      expect(arrayToShuffle.toSorted(byAscending)).toEqual(initialValues)
+    })
+  })
+
+  describe("draw", () => {
+    it("should not modify the original array", () => {
+      // Arrange
+      const values = [1, 2, 3, 4, 5]
+      const valuesCopy = values.slice()
+      const rng = createRng(mulberry32Prng(1234))
+
+      // Act
+      const { drawn, remaining } = rng.draw(values, 3)
+
+      // Assert
+      expect.soft(values).toEqual(valuesCopy)
+      expect.soft(drawn).not.toBe(values)
+      expect.soft(remaining).not.toBe(values)
+    })
+
+    it("should randomly draw the requested amount", () => {
+      // Arrange
+      const values = [1, 2, 3, 4, 5]
+      const rng = createRng(mulberry32Prng(1234))
+
+      // Act
+      const { drawn, remaining } = rng.draw(values, 3)
+
+      // Assert
+      expect.soft(drawn).toEqual([4, 3, 1])
+      expect.soft(remaining).toEqual([5, 2])
+    })
+
+    it("should be deterministic given the same seed", () => {
+      // Arrange
+      const values = [1, 2, 3, 4, 5]
+      const drawCount = 3
+      const rng1 = createRng(mulberry32Prng(1234))
+      const rng2 = createRng(mulberry32Prng(1234))
+
+      // Act
+      const draw1 = rng1.draw(values, drawCount)
+      const draw2 = rng2.draw(values, drawCount)
+
+      // Assert
+      expect(draw1).toEqual(draw2)
     })
   })
 })
