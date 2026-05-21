@@ -97,7 +97,7 @@ function generateOrbits({
   let asteroidBelts: Orbit[] = []
 
   while (asteroidBelts.length < nbAsteroidBelts || !canFulfillNbPlanets({ orbits: normalOrbits, planetDensity, nbPlanets })) {
-    ;({ drawn: normalOrbits, remaining: asteroidBelts } = rng.draw(
+    ;({ drawn: asteroidBelts, remaining: normalOrbits } = rng.draw(
       [...normalOrbits, ...asteroidBelts, createOrbit({ orbitNumber: normalOrbits.length + 1 })],
       nbAsteroidBelts,
     ))

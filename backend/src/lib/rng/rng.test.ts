@@ -126,17 +126,17 @@ describe("rng", () => {
       expect.soft(remaining).not.toBe(values)
     })
 
-    it("should randomly draw the requested amount", () => {
+    it.each([1, 2, 3, 4, 5])("should randomly draw the requested amount", (count) => {
       // Arrange
       const values = [1, 2, 3, 4, 5]
       const rng = createRng(mulberry32Prng(1234))
 
       // Act
-      const { drawn, remaining } = rng.draw(values, 3)
+      const { drawn, remaining } = rng.draw(values, count)
 
       // Assert
-      expect.soft(drawn).toEqual([4, 3, 1])
-      expect.soft(remaining).toEqual([5, 2])
+      expect.soft(drawn.length).toEqual(count)
+      expect.soft(remaining.length).toEqual(values.length - count)
     })
 
     it("should be deterministic given the same seed", () => {

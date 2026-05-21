@@ -1,4 +1,4 @@
-import { Assert, Result, type Result as TResult } from "@guillaume-docquier/tools-ts"
+import { Result, type Result as TResult } from "@guillaume-docquier/tools-ts"
 
 /**
  * Extracts the success from a Result.
@@ -6,7 +6,9 @@ import { Assert, Result, type Result as TResult } from "@guillaume-docquier/tool
  * If the result was a Failure, this will throw.
  */
 export function extractSuccess<TSuccess>(result: TResult<TSuccess, unknown>): TSuccess {
-  Assert.isTrue(Result.isSuccess(result))
+  if (Result.isFailure(result)) {
+    throw new Error(String(result.error))
+  }
 
   return result.value
 }

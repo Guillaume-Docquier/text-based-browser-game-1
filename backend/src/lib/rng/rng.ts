@@ -66,8 +66,8 @@ export function createRng(generate: () => number): Rng {
     const shuffled = shuffle(values.slice())
 
     return {
-      drawn: shuffled.splice(count - 1),
-      remaining: shuffled,
+      drawn: shuffled,
+      remaining: shuffled.splice(count),
     }
   }
 
