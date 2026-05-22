@@ -36,8 +36,8 @@ importers:
         specifier: ^2.1.19
         version: 2.1.19(express@5.2.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@guillaume-docquier/tools-ts':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.1.0
+        version: 2.1.0
       '@trpc/server':
         specifier: ^11.17.0
         version: 11.17.0(typescript@6.0.3)
@@ -103,8 +103,8 @@ importers:
         specifier: ^5.2.8
         version: 5.2.8
       '@guillaume-docquier/tools-ts':
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.1.0
+        version: 2.1.0
       '@tanstack/react-query':
         specifier: ^5.100.11
         version: 5.100.11(react@19.2.6)
@@ -991,8 +991,8 @@ packages:
   '@formkit/auto-animate@0.8.4':
     resolution: {integrity: sha512-DHHC01EJ1p70Q0z/ZFRBIY8NDnmfKccQoyoM84Tgb6omLMat6jivCdf272Y8k3nf4Lzdin/Y4R9q8uFtU0GbnA==}
 
-  '@guillaume-docquier/tools-ts@2.0.0':
-    resolution: {integrity: sha512-k1Lc63pXtTVbI2VNUAs6Na+4jOSIUWLuxg3C+4NZaQ8e5dUOjpkajOgxCeuetFR1GAR2yTWmuGcP7nIvWonq8w==}
+  '@guillaume-docquier/tools-ts@2.1.0':
+    resolution: {integrity: sha512-Y0aAr/InsS3ofxek6I2lhgtCB0AvLW9V0L0DyzXuqaIvLovCdc4eDXHF3kEpV2ctkdTqZtBLRDoboAwfnY/3YA==}
 
   '@hono/node-server@1.19.14':
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
@@ -6681,7 +6681,7 @@ snapshots:
 
   '@formkit/auto-animate@0.8.4': {}
 
-  '@guillaume-docquier/tools-ts@2.0.0':
+  '@guillaume-docquier/tools-ts@2.1.0':
     dependencies:
       '@logtape/logtape': 2.0.7
       '@logtape/redaction': 2.0.7(@logtape/logtape@2.0.7)
