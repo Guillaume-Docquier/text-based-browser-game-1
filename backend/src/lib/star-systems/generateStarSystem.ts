@@ -1,17 +1,11 @@
-import type {
-  Body,
-  MovementEdge,
-  NewStarSystem,
-  Orbit,
-  Sector,
-  StarSystemGenerationSettings,
-} from "#lib/db/star-systems/starSystems.repository.ts"
+import type { Body, NewStarSystem, Orbit, Sector, StarSystemGenerationSettings } from "#lib/db/star-systems/starSystems.repository.ts"
 import { mulberry32Prng } from "../rng/mulberry32prng.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createRng, type Rng } from "#lib/rng/rng.ts"
 import { Result } from "@guillaume-docquier/tools-ts"
 import { v5 } from "uuid"
 import { sum } from "#lib/sum.ts"
+import { generateMovementEdges } from "#lib/star-systems/generateMovementEdges.ts"
 
 function uuid(name: string): string {
   return v5(name, "7ce543cd-f7de-4efd-9cab-2c9c8a5711b5")
@@ -19,7 +13,6 @@ function uuid(name: string): string {
 
 export const MAX_ORBITS = 6
 const FIRST_ORBIT_SECTOR_COUNT = 2
-const MOVEMENT_EDGE_WEIGHT = 1
 
 /**
  * Deterministically generate a star system based on the StarSystemGenerationSettings.
@@ -189,80 +182,6 @@ function createBody({ sectorId, bodyNumber, bodyType }: { sectorId: string; body
     name: `${toTitleCase(bodyType)} ${bodyNumber.toString().padStart(2, "0")}`,
     movementNodeId: uuid(`movementNodeId-${bodyLabel}`),
   }
-}
-
-function generateMovementEdges({ orbits, sectors, bodies }: { orbits: Orbit[]; sectors: Sector[]; bodies: Body[] }): MovementEdge[] {
-  const edges = new Map<string, MovementEdge>()
-  const sectorsByOrbitId = Map.groupBy(sectors, ({ orbitId }) => orbitId)
-  const bodiesBySectorId = Map.groupBy(bodies, ({ sectorId }) => sectorId)
-
-  for (const sector of sectors) {
-    const sectorBodies = bodiesBySectorId.get(sector.id) ?? []
-
-    for (const body of sectorBodies) {
-      addUndirectedEdge(edges, sector.movementNodeId, body.movementNodeId)
-    }
-
-    for (let fromIndex = 0; fromIndex < sectorBodies.length; fromIndex++) {
-      for (let toIndex = fromIndex + 1; toIndex < sectorBodies.length; toIndex++) {
-        const fromBody = sectorBodies[fromIndex]
-        const toBody = sectorBodies[toIndex]
-        if (fromBody === undefined || toBody === undefined) {
-          throw new Error("Could not build same-sector Body edge")
-        }
-        addUndirectedEdge(edges, fromBody.movementNodeId, toBody.movementNodeId)
-      }
-    }
-  }
-
-  for (const orbit of orbits) {
-    const orbitSectors = (sectorsByOrbitId.get(orbit.id) ?? []).toSorted((sectorA, sectorB) => sectorA.sectorNumber - sectorB.sectorNumber)
-    for (let index = 0; index < orbitSectors.length; index++) {
-      const fromSector = orbitSectors[index]
-      const toSector = orbitSectors[(index + 1) % orbitSectors.length]
-      if (fromSector === undefined || toSector === undefined || fromSector.id === toSector.id) {
-        continue
-      }
-      addUndirectedEdge(edges, fromSector.movementNodeId, toSector.movementNodeId)
-    }
-  }
-
-  for (let orbitIndex = 0; orbitIndex < orbits.length - 1; orbitIndex++) {
-    const innerOrbit = orbits[orbitIndex]
-    const outerOrbit = orbits[orbitIndex + 1]
-    if (innerOrbit === undefined || outerOrbit === undefined) {
-      throw new Error("Could not build radial Sector edge")
-    }
-
-    const innerSectors = (sectorsByOrbitId.get(innerOrbit.id) ?? []).toSorted(
-      (sectorA, sectorB) => sectorA.sectorNumber - sectorB.sectorNumber,
-    )
-    const outerSectors = (sectorsByOrbitId.get(outerOrbit.id) ?? []).toSorted(
-      (sectorA, sectorB) => sectorA.sectorNumber - sectorB.sectorNumber,
-    )
-
-    for (const innerSector of innerSectors) {
-      const firstOuterSector = outerSectors[(innerSector.sectorNumber - 1) * 2]
-      const secondOuterSector = outerSectors[(innerSector.sectorNumber - 1) * 2 + 1]
-      if (firstOuterSector === undefined || secondOuterSector === undefined) {
-        throw new Error("Outer Orbit does not have double the inner Orbit Sector count")
-      }
-
-      addUndirectedEdge(edges, innerSector.movementNodeId, firstOuterSector.movementNodeId)
-      addUndirectedEdge(edges, innerSector.movementNodeId, secondOuterSector.movementNodeId)
-    }
-  }
-
-  return [...edges.values()]
-}
-
-function addUndirectedEdge(edges: Map<string, MovementEdge>, fromNodeId: string, toNodeId: string): void {
-  addDirectedEdge(edges, fromNodeId, toNodeId)
-  addDirectedEdge(edges, toNodeId, fromNodeId)
-}
-
-function addDirectedEdge(edges: Map<string, MovementEdge>, fromNodeId: string, toNodeId: string): void {
-  edges.set(`${fromNodeId}->${toNodeId}`, { fromNodeId, toNodeId, weight: MOVEMENT_EDGE_WEIGHT })
 }
 
 function toTitleCase(value: string): string {
