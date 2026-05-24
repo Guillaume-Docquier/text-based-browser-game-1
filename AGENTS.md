@@ -13,6 +13,20 @@ This repo is a TypeScript monorepo using pnpm workspaces (ADR-014) with separate
 
 We use the `@guillaume-docquier/tools-ts` npm package, a small TypeScript library of utilities made by us.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues using the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default Matt Pocock skills triage labels without renaming. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This repo uses a single-context domain-doc layout: root `CONTEXT.md` when present, plus `docs/adr/`. See `docs/agents/domain.md`.
+
 ## Commands
 
 Always use pnpm, never use npm.
