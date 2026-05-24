@@ -36,8 +36,8 @@ importers:
         specifier: ^2.1.19
         version: 2.1.19(express@5.2.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@guillaume-docquier/tools-ts':
-        specifier: ^2.1.0
-        version: 2.1.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@trpc/server':
         specifier: ^11.17.0
         version: 11.17.0(typescript@6.0.3)
@@ -103,8 +103,8 @@ importers:
         specifier: ^5.2.8
         version: 5.2.8
       '@guillaume-docquier/tools-ts':
-        specifier: ^2.1.0
-        version: 2.1.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@tanstack/react-query':
         specifier: ^5.100.11
         version: 5.100.11(react@19.2.6)
@@ -991,8 +991,8 @@ packages:
   '@formkit/auto-animate@0.8.4':
     resolution: {integrity: sha512-DHHC01EJ1p70Q0z/ZFRBIY8NDnmfKccQoyoM84Tgb6omLMat6jivCdf272Y8k3nf4Lzdin/Y4R9q8uFtU0GbnA==}
 
-  '@guillaume-docquier/tools-ts@2.1.0':
-    resolution: {integrity: sha512-Y0aAr/InsS3ofxek6I2lhgtCB0AvLW9V0L0DyzXuqaIvLovCdc4eDXHF3kEpV2ctkdTqZtBLRDoboAwfnY/3YA==}
+  '@guillaume-docquier/tools-ts@2.2.0':
+    resolution: {integrity: sha512-xPrrspCfL5tardKlset5tblWK/T46lfKm+gFP4oQPYCwyN3gSchM22R+GXKoDVolomVoq8zchg8hbH7Q5tt/rw==}
 
   '@hono/node-server@1.19.14':
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
@@ -1181,13 +1181,13 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@logtape/logtape@2.0.7':
-    resolution: {integrity: sha512-SUkjkEIfQ3zCadlLi8rfGfe4l/JRKNbp248bfLeowyUFs9KZME/k8y+5sugWYZet/gMYnmwCc9xa3J+kjDjSSQ==}
+  '@logtape/logtape@2.1.1':
+    resolution: {integrity: sha512-aULbCqUQGerfOsZ3CMvcKtueKzmdchluXYUd3bIHKmOIS93fx1ko0+hyRQ4flloGZ8EiyRPydZXiy8n1J/eAQA==}
 
-  '@logtape/redaction@2.0.7':
-    resolution: {integrity: sha512-HTRjpCgVkYblgWFvFIFv7YYlDirzsnJhLoL2R3uchNXRR8jzXtCHeOo8faU03BMh3/caqehF5iWOOV9byMJPIA==}
+  '@logtape/redaction@2.1.1':
+    resolution: {integrity: sha512-t+uqqJaIcBjbhjHvADIwwZXtSEapf/DkHeXzAU+F/RgUKpN7OCQmiQg20IBptd5GZYjChM/ZW0wrJrK5LHDQ0w==}
     peerDependencies:
-      '@logtape/logtape': ^2.0.7
+      '@logtape/logtape': ^2.1.1
 
   '@modelcontextprotocol/sdk@1.29.0':
     resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
@@ -6681,10 +6681,10 @@ snapshots:
 
   '@formkit/auto-animate@0.8.4': {}
 
-  '@guillaume-docquier/tools-ts@2.1.0':
+  '@guillaume-docquier/tools-ts@2.2.0':
     dependencies:
-      '@logtape/logtape': 2.0.7
-      '@logtape/redaction': 2.0.7(@logtape/logtape@2.0.7)
+      '@logtape/logtape': 2.1.1
+      '@logtape/redaction': 2.1.1(@logtape/logtape@2.1.1)
 
   '@hono/node-server@1.19.14(hono@4.12.18)':
     dependencies:
@@ -6859,11 +6859,11 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@logtape/logtape@2.0.7': {}
+  '@logtape/logtape@2.1.1': {}
 
-  '@logtape/redaction@2.0.7(@logtape/logtape@2.0.7)':
+  '@logtape/redaction@2.1.1(@logtape/logtape@2.1.1)':
     dependencies:
-      '@logtape/logtape': 2.0.7
+      '@logtape/logtape': 2.1.1
 
   '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
     dependencies:

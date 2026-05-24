@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@clerk/express": "^2.1.19",
-    "@guillaume-docquier/tools-ts": "^2.1.0",
+    "@guillaume-docquier/tools-ts": "^2.2.0",
     "@trpc/server": "^11.17.0",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
