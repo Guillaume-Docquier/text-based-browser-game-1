@@ -1,13 +1,43 @@
 import type { Body, MovementEdge, Orbit, Sector } from "#lib/db/star-systems/starSystems.repository.ts"
+import { Assert } from "@guillaume-docquier/tools-ts"
 
 const MOVEMENT_EDGE_WEIGHT = 1
 
-export function generateMovementEdges({ orbits, sectors, bodies }: { orbits: Orbit[]; sectors: Sector[]; bodies: Body[] }): MovementEdge[] {
+export function generateMovementEdges({
+  orbits,
+  sectors,
+  bodies,
+}: {
+  orbits: readonly Orbit[]
+  sectors: readonly Sector[]
+  bodies: readonly Body[]
+}): MovementEdge[] {
   const edges = new Map<string, MovementEdge>()
-  const sectorsByOrbitId = Map.groupBy(sectors, ({ orbitId }) => orbitId)
-  const bodiesBySectorId = Map.groupBy(bodies, ({ sectorId }) => sectorId)
+  const sortedOrbits = orbits.toSorted((orbitA, orbitB) => orbitA.orbitNumber - orbitB.orbitNumber)
+  const orbitNumbersById = new Map(sortedOrbits.map((orbit) => [orbit.id, orbit.orbitNumber]))
+  const sortedSectors = sectors.toSorted((sectorA, sectorB) => {
+    const orbitNumberA = orbitNumbersById.get(sectorA.orbitId) ?? Number.MAX_SAFE_INTEGER
+    const orbitNumberB = orbitNumbersById.get(sectorB.orbitId) ?? Number.MAX_SAFE_INTEGER
+    if (orbitNumberA !== orbitNumberB) {
+      return orbitNumberA - orbitNumberB
+    }
 
-  for (const sector of sectors) {
+    return sectorA.sectorNumber - sectorB.sectorNumber
+  })
+  const sectorSortKeysById = new Map(sortedSectors.map((sector, index) => [sector.id, index]))
+  const sortedBodies = bodies.toSorted((bodyA, bodyB) => {
+    const sectorIndexA = sectorSortKeysById.get(bodyA.sectorId) ?? Number.MAX_SAFE_INTEGER
+    const sectorIndexB = sectorSortKeysById.get(bodyB.sectorId) ?? Number.MAX_SAFE_INTEGER
+    if (sectorIndexA !== sectorIndexB) {
+      return sectorIndexA - sectorIndexB
+    }
+
+    return bodyA.bodyNumber - bodyB.bodyNumber
+  })
+  const sectorsByOrbitId = Map.groupBy(sortedSectors, ({ orbitId }) => orbitId)
+  const bodiesBySectorId = Map.groupBy(sortedBodies, ({ sectorId }) => sectorId)
+
+  for (const sector of sortedSectors) {
     const sectorBodies = bodiesBySectorId.get(sector.id) ?? []
 
     for (const body of sectorBodies) {
@@ -18,16 +48,16 @@ export function generateMovementEdges({ orbits, sectors, bodies }: { orbits: Orb
       for (let toIndex = fromIndex + 1; toIndex < sectorBodies.length; toIndex++) {
         const fromBody = sectorBodies[fromIndex]
         const toBody = sectorBodies[toIndex]
-        if (fromBody === undefined || toBody === undefined) {
-          throw new Error("Could not build same-sector Body edge")
-        }
+        Assert.isDefined(fromBody)
+        Assert.isDefined(toBody)
+
         addUndirectedEdge(edges, fromBody.movementNodeId, toBody.movementNodeId)
       }
     }
   }
 
-  for (const orbit of orbits) {
-    const orbitSectors = (sectorsByOrbitId.get(orbit.id) ?? []).toSorted((sectorA, sectorB) => sectorA.sectorNumber - sectorB.sectorNumber)
+  for (const orbit of sortedOrbits) {
+    const orbitSectors = sectorsByOrbitId.get(orbit.id) ?? []
     for (let index = 0; index < orbitSectors.length; index++) {
       const fromSector = orbitSectors[index]
       const toSector = orbitSectors[(index + 1) % orbitSectors.length]
@@ -38,26 +68,20 @@ export function generateMovementEdges({ orbits, sectors, bodies }: { orbits: Orb
     }
   }
 
-  for (let orbitIndex = 0; orbitIndex < orbits.length - 1; orbitIndex++) {
-    const innerOrbit = orbits[orbitIndex]
-    const outerOrbit = orbits[orbitIndex + 1]
-    if (innerOrbit === undefined || outerOrbit === undefined) {
-      throw new Error("Could not build radial Sector edge")
-    }
+  for (let orbitIndex = 0; orbitIndex < sortedOrbits.length - 1; orbitIndex++) {
+    const innerOrbit = sortedOrbits[orbitIndex]
+    const outerOrbit = sortedOrbits[orbitIndex + 1]
+    Assert.isDefined(innerOrbit)
+    Assert.isDefined(outerOrbit)
 
-    const innerSectors = (sectorsByOrbitId.get(innerOrbit.id) ?? []).toSorted(
-      (sectorA, sectorB) => sectorA.sectorNumber - sectorB.sectorNumber,
-    )
-    const outerSectors = (sectorsByOrbitId.get(outerOrbit.id) ?? []).toSorted(
-      (sectorA, sectorB) => sectorA.sectorNumber - sectorB.sectorNumber,
-    )
+    const innerSectors = sectorsByOrbitId.get(innerOrbit.id) ?? []
+    const outerSectors = sectorsByOrbitId.get(outerOrbit.id) ?? []
 
     for (const innerSector of innerSectors) {
       const firstOuterSector = outerSectors[(innerSector.sectorNumber - 1) * 2]
       const secondOuterSector = outerSectors[(innerSector.sectorNumber - 1) * 2 + 1]
-      if (firstOuterSector === undefined || secondOuterSector === undefined) {
-        throw new Error("Outer Orbit does not have double the inner Orbit Sector count")
-      }
+      Assert.isDefined(firstOuterSector)
+      Assert.isDefined(secondOuterSector)
 
       addUndirectedEdge(edges, innerSector.movementNodeId, firstOuterSector.movementNodeId)
       addUndirectedEdge(edges, innerSector.movementNodeId, secondOuterSector.movementNodeId)

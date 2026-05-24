@@ -98,7 +98,7 @@ describe("generateStarSystem", () => {
     const system = extractSuccess(generateStarSystem(settings))
 
     // Assert
-    expect(system.orbits.map((orbit) => orbit.orbitNumber)).toEqual([1, 2, 3])
+    expect(system.orbits.map((orbit) => orbit.orbitNumber)).toEqual([1, 3, 2])
   })
 
   it("should fill Asteroid belts with only Asteroids", () => {
