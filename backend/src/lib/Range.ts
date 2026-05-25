@@ -1,39 +1,43 @@
-/**
- * A FloatRange for percentage values between [0, 1]
- * The Range bounds are both inclusive
- *
- * We might want to use Branded types for this in the future
- */
-export type PercentageRange = FloatRange
+import { z } from "zod"
+import { Range } from "@guillaume-docquier/tools-ts"
 
 /**
- * A Range for float values between [-inf, +inf]
- * The Range bounds are both inclusive
- *
- * We might want to use Branded types for this in the future
+ * A base Range to represent what percentages are.
+ * It can be used with {@link Range.from} to derive more Percentage Ranges.
  */
-export type FloatRange = Range
+export const PercentageRange = Range.createMaxInclusive({
+  numericType: "float",
+  min: 0,
+  maxInclusive: 1,
+  limits: Range.createMaxInclusive({
+    min: 0,
+    maxInclusive: 1,
+    numericType: "float",
+  }),
+})
 
-/**
- * A Range for integer values between [-inf, +inf]
- * The Range bounds are both inclusive
- *
- * We might want to use Branded types for this in the future
- */
-export type IntegerRange = Range
-
-/**
- * A Range of values
- * The Range bounds are both inclusive
- */
-type Range = {
-  /**
-   * Inclusive
-   */
-  min: number
-
-  /**
-   * Inclusive
-   */
-  max: number
-}
+export const RangeDto: z.ZodType<Range> = z.lazy(() =>
+  z
+    .discriminatedUnion("type", [
+      z.object({
+        type: z.literal("MaxInclusive"),
+        numericType: z.enum(["float", "integer"]),
+        min: z.number(),
+        maxInclusive: z.number(),
+        limits: RangeDto.optional(),
+      }),
+      z.object({
+        type: z.literal("MaxExclusive"),
+        numericType: z.enum(["float", "integer"]),
+        min: z.number(),
+        maxExclusive: z.number(),
+        limits: RangeDto.optional(),
+      }),
+    ])
+    .superRefine((range, context) => {
+      const invalidReason = Range.validate(range)
+      if (invalidReason !== undefined) {
+        context.addIssue({ code: "custom", message: invalidReason })
+      }
+    }),
+)

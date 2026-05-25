@@ -3,6 +3,9 @@ packages:
   - frontend
   - shared/*
 
+minimumReleaseAgeExclude:
+  - "@guillaume-docquier/tools-ts"
+
 allowBuilds:
   "@clerk/shared": true
   bufferutil: true

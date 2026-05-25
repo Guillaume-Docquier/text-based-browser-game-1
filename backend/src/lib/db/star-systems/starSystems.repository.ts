@@ -1,9 +1,8 @@
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { eq, inArray } from "drizzle-orm"
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Result, type InclusiveRange } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
-import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
 import type { BodyType } from "#lib/star-systems/BodyType.ts"
 import { toCoordinates } from "#lib/star-systems/Coordinates.ts"
 
@@ -18,11 +17,11 @@ export type NewStarSystem = {
 }
 
 export type StarSystemGenerationSettings = {
-  planetDensity: PercentageRange
-  nbPlanets: IntegerRange
-  nbMoonsPerPlanet: IntegerRange
-  nbAsteroidBelts: IntegerRange
-  nbAsteroidsPerSector: IntegerRange
+  planetDensity: InclusiveRange<"float">
+  nbPlanets: InclusiveRange<"integer">
+  nbMoonsPerPlanet: InclusiveRange<"integer">
+  nbAsteroidBelts: InclusiveRange<"integer">
+  nbAsteroidsPerSector: InclusiveRange<"integer">
   seed: number
 }
 

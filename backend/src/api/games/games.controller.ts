@@ -1,4 +1,4 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, type Range, Result } from "@guillaume-docquier/tools-ts"
 import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games/games.repository.ts"
 import z from "zod"
 import { randomInt } from "node:crypto"
@@ -251,7 +251,7 @@ function starSystemGenerationSettingsFromDto(
 const RangeDto = z.object({
   min: z.number(),
   max: z.number(),
-})
+}) satisfies z.ZodType<Range>
 
 export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
 const StarSystemGenerationSettingsDto = z.object({
