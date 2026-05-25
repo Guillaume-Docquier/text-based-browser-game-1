@@ -15,7 +15,7 @@ describe("Range", () => {
         numericType: "integer",
         min: 0,
         maxInclusive: 1,
-        limits: Range.createMaxExclusive({ numericType: "float", min: 0, maxExclusive: 2 }),
+        limits: Range.createMaxExclusive({ numericType: "integer", min: 0, maxExclusive: 2 }),
       }),
       Range.createMaxExclusive({
         numericType: "integer",
@@ -26,7 +26,7 @@ describe("Range", () => {
         numericType: "float",
         min: 0,
         maxExclusive: 1,
-        limits: Range.createMaxInclusive({ numericType: "integer", min: 0, maxInclusive: 2 }),
+        limits: Range.createMaxInclusive({ numericType: "float", min: 0, maxInclusive: 2 }),
       }),
     ])("should accept a valid range", (range) => {
       // Act
@@ -52,7 +52,7 @@ describe("Range", () => {
           type: "MaxInclusive",
           numericType: "integer",
           min: 0,
-          maxInclusive: 1.1,
+          maxInclusive: 2,
         },
       },
     ])("should refuse an invalid range", (invalidRange) => {

@@ -1,4 +1,4 @@
-import { Assert, type Logger, type Range, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games/games.repository.ts"
 import z from "zod"
 import { randomInt } from "node:crypto"
@@ -7,6 +7,7 @@ import type { StarSystemGenerationSettings, StarSystemsRepository } from "#lib/d
 import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 import { validateStarSystemGenerationSettings } from "#lib/star-systems/validateStarSystemGenerationSettings.ts"
+import { InclusiveFloatRangeDto, InclusiveIntegerRangeDto } from "#lib/Range.ts"
 
 export class GamesController {
   private readonly gamesRepository: GamesRepository
@@ -248,18 +249,13 @@ function starSystemGenerationSettingsFromDto(
   })
 }
 
-const RangeDto = z.object({
-  min: z.number(),
-  max: z.number(),
-}) satisfies z.ZodType<Range>
-
 export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
 const StarSystemGenerationSettingsDto = z.object({
-  planetDensity: RangeDto,
-  nbPlanets: RangeDto,
-  nbMoonsPerPlanet: RangeDto,
-  nbAsteroidBelts: RangeDto,
-  nbAsteroidsPerSector: RangeDto,
+  planetDensity: InclusiveFloatRangeDto,
+  nbPlanets: InclusiveIntegerRangeDto,
+  nbMoonsPerPlanet: InclusiveIntegerRangeDto,
+  nbAsteroidBelts: InclusiveIntegerRangeDto,
+  nbAsteroidsPerSector: InclusiveIntegerRangeDto,
   seed: z.number().optional(),
 })
 
