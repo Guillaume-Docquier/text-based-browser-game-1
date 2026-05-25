@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { Range, type InclusiveRange } from "@guillaume-docquier/tools-ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
@@ -9,11 +10,11 @@ describe("generateStarSystem", () => {
   it("should return identical output for the same settings and seed", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: { min: 1, max: 1 },
-      nbPlanets: { min: 3, max: 3 },
-      nbMoonsPerPlanet: { min: 1, max: 1 },
-      nbAsteroidBelts: { min: 1, max: 1 },
-      nbAsteroidsPerSector: { min: 1, max: 1 },
+      planetDensity: exactFloatRange(1),
+      nbPlanets: exactIntegerRange(3),
+      nbMoonsPerPlanet: exactIntegerRange(1),
+      nbAsteroidBelts: exactIntegerRange(1),
+      nbAsteroidsPerSector: exactIntegerRange(1),
       seed: 1234,
     })
 
@@ -28,11 +29,11 @@ describe("generateStarSystem", () => {
   it("should place Bodies differently for different seeds", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: { min: 1, max: 1 },
-      nbPlanets: { min: 3, max: 3 },
-      nbMoonsPerPlanet: { min: 0, max: 0 },
-      nbAsteroidBelts: { min: 0, max: 0 },
-      nbAsteroidsPerSector: { min: 0, max: 0 },
+      planetDensity: exactFloatRange(1),
+      nbPlanets: exactIntegerRange(3),
+      nbMoonsPerPlanet: exactIntegerRange(0),
+      nbAsteroidBelts: exactIntegerRange(0),
+      nbAsteroidsPerSector: exactIntegerRange(0),
     })
 
     // Act
@@ -46,11 +47,11 @@ describe("generateStarSystem", () => {
   it("should respect exact Body counts with min=max ranges", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: { min: 1, max: 1 },
-      nbPlanets: { min: 2, max: 2 },
-      nbMoonsPerPlanet: { min: 2, max: 2 },
-      nbAsteroidBelts: { min: 0, max: 0 },
-      nbAsteroidsPerSector: { min: 0, max: 0 },
+      planetDensity: exactFloatRange(1),
+      nbPlanets: exactIntegerRange(2),
+      nbMoonsPerPlanet: exactIntegerRange(2),
+      nbAsteroidBelts: exactIntegerRange(0),
+      nbAsteroidsPerSector: exactIntegerRange(0),
       seed: 1234,
     })
 
@@ -68,11 +69,11 @@ describe("generateStarSystem", () => {
   it("should use the minimal number of Orbits needed for Planet capacity", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: { min: 1, max: 1 },
-      nbPlanets: { min: 3, max: 3 },
-      nbMoonsPerPlanet: { min: 0, max: 0 },
-      nbAsteroidBelts: { min: 0, max: 0 },
-      nbAsteroidsPerSector: { min: 0, max: 0 },
+      planetDensity: exactFloatRange(1),
+      nbPlanets: exactIntegerRange(3),
+      nbMoonsPerPlanet: exactIntegerRange(0),
+      nbAsteroidBelts: exactIntegerRange(0),
+      nbAsteroidsPerSector: exactIntegerRange(0),
       seed: 1234,
     })
 
@@ -86,11 +87,11 @@ describe("generateStarSystem", () => {
   it("should add an Orbit when the rolled Asteroid belt leaves too little Planet capacity", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: { min: 1, max: 1 },
-      nbPlanets: { min: 3, max: 3 },
-      nbMoonsPerPlanet: { min: 0, max: 0 },
-      nbAsteroidBelts: { min: 1, max: 1 },
-      nbAsteroidsPerSector: { min: 1, max: 1 },
+      planetDensity: exactFloatRange(1),
+      nbPlanets: exactIntegerRange(3),
+      nbMoonsPerPlanet: exactIntegerRange(0),
+      nbAsteroidBelts: exactIntegerRange(1),
+      nbAsteroidsPerSector: exactIntegerRange(1),
       seed: 3,
     })
 
@@ -104,11 +105,11 @@ describe("generateStarSystem", () => {
   it("should fill Asteroid belts with only Asteroids", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: { min: 0, max: 0 },
-      nbPlanets: { min: 0, max: 0 },
-      nbMoonsPerPlanet: { min: 0, max: 0 },
-      nbAsteroidBelts: { min: 1, max: 1 },
-      nbAsteroidsPerSector: { min: 2, max: 2 },
+      planetDensity: exactFloatRange(0),
+      nbPlanets: exactIntegerRange(0),
+      nbMoonsPerPlanet: exactIntegerRange(0),
+      nbAsteroidBelts: exactIntegerRange(1),
+      nbAsteroidsPerSector: exactIntegerRange(2),
       seed: 1234,
     })
 
@@ -123,11 +124,11 @@ describe("generateStarSystem", () => {
   it("should create reciprocal MovementEdges", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: { min: 1, max: 1 },
-      nbPlanets: { min: 3, max: 3 },
-      nbMoonsPerPlanet: { min: 1, max: 1 },
-      nbAsteroidBelts: { min: 0, max: 0 },
-      nbAsteroidsPerSector: { min: 0, max: 0 },
+      planetDensity: exactFloatRange(1),
+      nbPlanets: exactIntegerRange(3),
+      nbMoonsPerPlanet: exactIntegerRange(1),
+      nbAsteroidBelts: exactIntegerRange(0),
+      nbAsteroidsPerSector: exactIntegerRange(0),
       seed: 1234,
     })
 
@@ -142,11 +143,11 @@ describe("generateStarSystem", () => {
   it("should create MovementNodes only for Sectors and Bodies", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: { min: 1, max: 1 },
-      nbPlanets: { min: 2, max: 2 },
-      nbMoonsPerPlanet: { min: 1, max: 1 },
-      nbAsteroidBelts: { min: 0, max: 0 },
-      nbAsteroidsPerSector: { min: 0, max: 0 },
+      planetDensity: exactFloatRange(1),
+      nbPlanets: exactIntegerRange(2),
+      nbMoonsPerPlanet: exactIntegerRange(1),
+      nbAsteroidBelts: exactIntegerRange(0),
+      nbAsteroidsPerSector: exactIntegerRange(0),
       seed: 1234,
     })
 
@@ -165,11 +166,11 @@ describe("generateStarSystem", () => {
   it("should connect radial Sector adjacency to the two matching Sectors in the doubled outer Orbit", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: { min: 1, max: 1 },
-      nbPlanets: { min: 3, max: 3 },
-      nbMoonsPerPlanet: { min: 0, max: 0 },
-      nbAsteroidBelts: { min: 0, max: 0 },
-      nbAsteroidsPerSector: { min: 0, max: 0 },
+      planetDensity: exactFloatRange(1),
+      nbPlanets: exactIntegerRange(3),
+      nbMoonsPerPlanet: exactIntegerRange(0),
+      nbAsteroidBelts: exactIntegerRange(0),
+      nbAsteroidsPerSector: exactIntegerRange(0),
       seed: 1234,
     })
 
@@ -194,6 +195,14 @@ describe("generateStarSystem", () => {
     expect(edgeKeys).toContain(`${sectorNodeIdsByCoordinate.get("1:2")}->${sectorNodeIdsByCoordinate.get("2:4")}`)
   })
 })
+
+function exactFloatRange(value: number): InclusiveRange<"float"> {
+  return Range.createMaxInclusive({ numericType: "float", min: value, maxInclusive: value })
+}
+
+function exactIntegerRange(value: number): InclusiveRange<"integer"> {
+  return Range.createMaxInclusive({ numericType: "integer", min: value, maxInclusive: value })
+}
 
 function toBodySectorNumbers(system: Omit<NewStarSystem, "gameId">): number[] {
   const sectorNumbersById = new Map(system.sectors.map((sector) => [sector.id, sector.sectorNumber]))
