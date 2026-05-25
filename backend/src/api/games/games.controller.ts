@@ -180,9 +180,9 @@ function computeGameStatus({
   // prettier-ignore
   const status =
     gameSummaryRow.endedAt !== null ? GameSummaryStatus.ENDED
-      : gameSummaryRow.startedAt !== null ? GameSummaryStatus.STARTED
-        : gameSummaryRow.players.length >= gameSummaryRow.nbSeats ? GameSummaryStatus.READY_TO_START
-          : GameSummaryStatus.WAITING_FOR_PLAYERS
+    : gameSummaryRow.startedAt !== null ? GameSummaryStatus.STARTED
+    : gameSummaryRow.players.length >= gameSummaryRow.nbSeats ? GameSummaryStatus.READY_TO_START
+    : GameSummaryStatus.WAITING_FOR_PLAYERS
 
   const canJoin =
     playerId !== undefined &&
