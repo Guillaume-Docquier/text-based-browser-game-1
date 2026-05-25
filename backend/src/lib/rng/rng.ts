@@ -1,4 +1,4 @@
-import type { FloatRange, IntegerRange } from "#lib/Range.ts"
+import type { InclusiveRange } from "@guillaume-docquier/tools-ts"
 
 /**
  * A generator that returns numbers in the range [0, 1)
@@ -8,16 +8,16 @@ export type Generator = () => number
 export type Rng = {
   /**
    * When no range is provided, returns a float in the range [0, 1).
-   * If Range is provided, it is inclusive if min is bigger than 1 because of floating point errors.
+   * If Range is provided, it is inclusive if min is bigger than 1 because of floating point errors. Otherwise, it is exclusive because of how rng works.
    * min > 1: [min, max]
    * min <= 1: [min, max)
    */
-  float: (range?: FloatRange) => number
+  float: (range?: InclusiveRange<"float">) => number
 
   /**
    * Range is inclusive.
    */
-  int: (range: IntegerRange) => number
+  int: (range: InclusiveRange<"integer">) => number
 
   /**
    * Shuffles an array in place.
@@ -35,19 +35,19 @@ export type Rng = {
  * @param generate The generator that returns numbers in the range [0, 1)
  */
 export function createRng(generate: () => number): Rng {
-  function float(range?: FloatRange): number {
+  function float(range?: InclusiveRange<"float">): number {
     if (range === undefined) {
       return generate()
     }
 
-    return range.min + generate() * (range.max - range.min)
+    return range.min + generate() * (range.maxInclusive - range.min)
   }
 
-  function int(range: IntegerRange): number {
+  function int(range: InclusiveRange<"integer">): number {
     // We +1 the max because float is exclusive of the max, but for int we want the range to be inclusive.
     // We floor before the addition, because the addition can lose precision and generate numbers that are out of bounds when float ~= 1.
     // We don't use Math.floor(float(rangeWithMaxPlus1)) for the same reason
-    return range.min + Math.floor(float() * (range.max + 1 - range.min))
+    return range.min + Math.floor(float() * (range.maxInclusive + 1 - range.min))
   }
 
   /**
