@@ -8,6 +8,7 @@ import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
 import { createStarSystemGenerationSettingsDtoStub } from "#api/games/StarSystemGenerationSettingsDto.stub.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
+import { Range } from "@guillaume-docquier/tools-ts"
 
 describe("games.router", () => {
   describe("create", () => {
@@ -62,11 +63,11 @@ describe("games.router", () => {
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: createNewGameDtoStub({
           starSystemGenerationSettings: createStarSystemGenerationSettingsDtoStub({
-            planetDensity: { min: 1, max: 1 },
-            nbPlanets: { min: 1, max: 1 },
-            nbMoonsPerPlanet: { min: 1, max: 1 },
-            nbAsteroidBelts: { min: 0, max: 0 },
-            nbAsteroidsPerSector: { min: 0, max: 0 },
+            planetDensity: Range.createMaxInclusive({ numericType: "float", min: 1, maxInclusive: 1 }),
+            nbPlanets: Range.createMaxInclusive({ numericType: "integer", min: 1, maxInclusive: 1 }),
+            nbMoonsPerPlanet: Range.createMaxInclusive({ numericType: "integer", min: 1, maxInclusive: 1 }),
+            nbAsteroidBelts: Range.createMaxInclusive({ numericType: "integer", min: 0, maxInclusive: 0 }),
+            nbAsteroidsPerSector: Range.createMaxInclusive({ numericType: "integer", min: 0, maxInclusive: 0 }),
           }),
         }),
       })
@@ -92,7 +93,7 @@ describe("games.router", () => {
         trpcClient.client.games.create.mutate({
           newGame: createNewGameDtoStub({
             starSystemGenerationSettings: createStarSystemGenerationSettingsDtoStub({
-              nbPlanets: { min: 10, max: 1 },
+              nbPlanets: { type: "MaxInclusive", numericType: "integer", min: 10, maxInclusive: 1 },
             }),
           }),
         }),
