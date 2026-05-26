@@ -36,7 +36,7 @@ importers:
         specifier: ^2.1.19
         version: 2.1.19(express@5.2.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@guillaume-docquier/tools-ts':
-        specifier: ^3.0.1
+        specifier: ^3.0.0
         version: 3.0.1
       '@trpc/server':
         specifier: ^11.17.0
@@ -103,7 +103,7 @@ importers:
         specifier: ^5.2.8
         version: 5.2.8
       '@guillaume-docquier/tools-ts':
-        specifier: ^3.0.1
+        specifier: ^3.0.0
         version: 3.0.1
       '@tanstack/react-query':
         specifier: ^5.100.11
