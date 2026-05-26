@@ -22,7 +22,9 @@ export const InclusiveFloatRangeDto: z.ZodType<InclusiveRange<"float">> = z
     numericType: z.literal("float"),
     min: z.number(),
     maxInclusive: z.number(),
-    limits: z.lazy(() => FloatRangeDto).exactOptional(),
+    get limits() {
+      return FloatRangeDto.exactOptional()
+    },
   })
   .superRefine((range, context) => {
     const invalidReason = Range.validate(range)
@@ -37,7 +39,9 @@ export const InclusiveIntegerRangeDto: z.ZodType<InclusiveRange<"integer">> = z
     numericType: z.literal("integer"),
     min: z.number(),
     maxInclusive: z.number(),
-    limits: z.lazy(() => IntegerRangeDto).exactOptional(),
+    get limits() {
+      return IntegerRangeDto.exactOptional()
+    },
   })
   .superRefine((range, context) => {
     const invalidReason = Range.validate(range)
@@ -52,7 +56,9 @@ export const ExclusiveFloatRangeDto: z.ZodType<ExclusiveRange<"float">> = z
     numericType: z.literal("float"),
     min: z.number(),
     maxExclusive: z.number(),
-    limits: z.lazy(() => FloatRangeDto).exactOptional(),
+    get limits() {
+      return FloatRangeDto.exactOptional()
+    },
   })
   .superRefine((range, context) => {
     const invalidReason = Range.validate(range)
@@ -67,7 +73,9 @@ export const ExclusiveIntegerRangeDto: z.ZodType<ExclusiveRange<"integer">> = z
     numericType: z.literal("integer"),
     min: z.number(),
     maxExclusive: z.number(),
-    limits: z.lazy(() => IntegerRangeDto).exactOptional(),
+    get limits() {
+      return IntegerRangeDto.exactOptional()
+    },
   })
   .superRefine((range, context) => {
     const invalidReason = Range.validate(range)
@@ -76,8 +84,7 @@ export const ExclusiveIntegerRangeDto: z.ZodType<ExclusiveRange<"integer">> = z
     }
   })
 
-const FloatRangeDto: z.ZodType<Range<"float">> = z.union([InclusiveFloatRangeDto, ExclusiveFloatRangeDto])
-
-const IntegerRangeDto: z.ZodType<Range<"integer">> = z.union([InclusiveIntegerRangeDto, ExclusiveIntegerRangeDto])
+const FloatRangeDto = z.union([InclusiveFloatRangeDto, ExclusiveFloatRangeDto])
+const IntegerRangeDto = z.union([InclusiveIntegerRangeDto, ExclusiveIntegerRangeDto])
 
 export const RangeDto: z.ZodType<Range> = z.union([FloatRangeDto, IntegerRangeDto])
