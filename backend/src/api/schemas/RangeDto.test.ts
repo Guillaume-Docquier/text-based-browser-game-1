@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { Range } from "@guillaume-docquier/tools-ts"
-import { RangeDto } from "#lib/Range.ts"
+import { RangeDto } from "./RangeDto.ts"
 import { ZodError } from "zod"
 
 describe("Range", () => {

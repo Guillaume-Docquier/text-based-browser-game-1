@@ -7,7 +7,7 @@ import type { StarSystemGenerationSettings, StarSystemsRepository } from "#lib/d
 import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 import { validateStarSystemGenerationSettings } from "#lib/star-systems/validateStarSystemGenerationSettings.ts"
-import { InclusiveFloatRangeDto, InclusiveIntegerRangeDto } from "#lib/Range.ts"
+import { InclusiveFloatRangeDto, InclusiveIntegerRangeDto } from "#api/schemas/RangeDto.ts"
 
 export class GamesController {
   private readonly gamesRepository: GamesRepository

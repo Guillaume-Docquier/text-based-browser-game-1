@@ -498,7 +498,7 @@ Goal: collect Star System generation settings during game creation, deterministi
 
 Files to create or update:
 
-- `backend/src/lib/Range.ts`
+- `backend/src/api/schemas/RangeDto.ts`
 - `backend/src/lib/mulberry32prng.ts`
 - `backend/src/lib/star-systems/generateStarSystem.ts`
 - `backend/src/lib/star-systems/generateStarSystem.test.ts`
@@ -517,7 +517,7 @@ Files to create or update:
 
 Implementation steps:
 
-1. Reuse `Range` from `backend/src/lib/Range.ts`.
+1. Reuse `Range` from `backend/src/api/schemas/RangeDto.ts`.
 2. Keep `StarSystemGenerationSettings` in `backend/src/lib/db/star-systems/starSystems.repository.ts`, matching the shape in this document exactly.
 3. Create a `NewGameDto` in `backend/src/api/games/games.controller.ts`, then expand it to include the star system generation settings.
 4. Update the `games.create` router input to require `StarSystemGenerationSettings` alongside `name`, `nbSeats` and `tickIntervalSeconds`.
