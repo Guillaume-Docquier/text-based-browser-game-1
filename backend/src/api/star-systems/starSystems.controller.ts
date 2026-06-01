@@ -11,6 +11,7 @@ import type {
 import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
+import { RangeDto } from "#api/RangeDto.ts"
 
 const StarSystemBodyDto = z.object({
   id: z.string(),
@@ -25,6 +26,7 @@ const StarSystemSectorDto = z.object({
   id: z.string(),
   number: z.number(),
   coordinates: z.string(),
+  angleRange: RangeDto,
   bodies: z.array(StarSystemBodyDto),
   movementNodeId: z.string(),
 }) satisfies z.ZodType<SectorReadModel>

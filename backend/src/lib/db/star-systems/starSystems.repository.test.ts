@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
 import { eq } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
-import { Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
 import { PlayersRepository } from "#lib/db/players/players.repository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
-import { type NewStarSystem, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { type NewStarSystem, type Sector, type SectorRow, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
@@ -28,6 +28,8 @@ describe("starSystems.repository", () => {
       const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id })))
 
       const system = createCoherentStarSystem({ gameId: game.id })
+      const firstSector = system.sectors[0]
+      Assert.isDefined(firstSector)
 
       // Act
       const createStarSystemResult = await starSystemsRepository.create(system)
@@ -42,7 +44,7 @@ describe("starSystems.repository", () => {
         .toEqual([{ ...system.orbits[0], gameId: game.id }])
       expect
         .soft(await db.select().from(sectorsTable).where(eq(sectorsTable.gameId, game.id)))
-        .toEqual([{ ...system.sectors[0], gameId: game.id }])
+        .toEqual([toStoredSector({ sector: firstSector, gameId: game.id })])
       expect
         .soft(await db.select().from(bodiesTable).where(eq(bodiesTable.gameId, game.id)))
         .toEqual(system.bodies.map((body) => ({ ...body, gameId: game.id })))
@@ -122,6 +124,12 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
         id: sectorId,
         orbitId,
         sectorNumber: 1,
+        angleRange: Range.create({
+          numericType: "float",
+          maxBoundType: "exclusive",
+          min: 0,
+          max: 360,
+        }),
         movementNodeId: sectorMovementNodeId,
       },
     ],
@@ -164,6 +172,12 @@ function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSyst
         id: sectorId,
         orbitId,
         sectorNumber: 1,
+        angleRange: Range.create({
+          numericType: "float",
+          maxBoundType: "exclusive",
+          min: 0,
+          max: 360,
+        }),
         movementNodeId: sectorMovementNodeId,
       },
     ],
@@ -178,5 +192,19 @@ function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSyst
       },
     ],
     movementEdges: [],
+  }
+}
+
+function toStoredSector({ sector, gameId }: { sector: Sector; gameId: number }): SectorRow {
+  return {
+    id: sector.id,
+    gameId,
+    orbitId: sector.orbitId,
+    sectorNumber: sector.sectorNumber,
+    angleNumericType: sector.angleRange.numericType,
+    angleMaxBoundType: sector.angleRange.maxBoundType,
+    startAngleDegrees: sector.angleRange.min,
+    endAngleDegrees: sector.angleRange.max,
+    movementNodeId: sector.movementNodeId,
   }
 }

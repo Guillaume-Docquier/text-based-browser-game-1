@@ -4,7 +4,7 @@ import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.
 import { type NewStarSystem, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { Result } from "@guillaume-docquier/tools-ts"
+import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { randomUUID } from "node:crypto"
 import { createGameRowInsertStub } from "#lib/db/games/GameRowInsert.stub.ts"
@@ -38,6 +38,12 @@ describe("starSystems.router", () => {
                 id: expect.any(String),
                 number: 1,
                 coordinates: "01:01",
+                angleRange: Range.create({
+                  numericType: "float",
+                  maxBoundType: "exclusive",
+                  min: 0,
+                  max: 180,
+                }),
                 movementNodeId: expect.any(String),
                 bodies: [
                   {
@@ -62,6 +68,12 @@ describe("starSystems.router", () => {
                 id: expect.any(String),
                 number: 2,
                 coordinates: "01:02",
+                angleRange: Range.create({
+                  numericType: "float",
+                  maxBoundType: "exclusive",
+                  min: 180,
+                  max: 360,
+                }),
                 movementNodeId: expect.any(String),
                 bodies: [
                   {
@@ -201,12 +213,24 @@ function createStarSystemFixture({ gameId }: { gameId: number }) {
         id: sector1Id,
         orbitId,
         sectorNumber: 1,
+        angleRange: Range.create({
+          numericType: "float",
+          maxBoundType: "exclusive",
+          min: 0,
+          max: 180,
+        }),
         movementNodeId: sector1MovementNodeId,
       },
       {
         id: sector2Id,
         orbitId,
         sectorNumber: 2,
+        angleRange: Range.create({
+          numericType: "float",
+          maxBoundType: "exclusive",
+          min: 180,
+          max: 360,
+        }),
         movementNodeId: sector2MovementNodeId,
       },
     ],
