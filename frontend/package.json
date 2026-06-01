@@ -13,7 +13,7 @@
     "@clerk/react": "^6.7.1",
     "@clerk/ui": "^1.13.1",
     "@fontsource-variable/oxanium": "^5.2.8",
-    "@guillaume-docquier/tools-ts": "^1.4.1",
+    "@guillaume-docquier/tools-ts": "catalog:",
     "@tanstack/react-query": "^5.100.14",
     "@tanstack/react-router": "^1.170.8",
     "@tanstack/react-router-devtools": "^1.167.0",
