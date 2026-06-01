@@ -1,4 +1,6 @@
 import {
+  check,
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -12,6 +14,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core"
+import { sql } from "drizzle-orm"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 
 /**
@@ -204,6 +207,10 @@ export const sectorsTable = pgTable(
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
     orbitId: uuid("orbit_id").notNull(),
     sectorNumber: integer("sector_number").notNull(),
+    angleNumericType: varchar("angle_numeric_type", { length: 16 }).notNull(),
+    angleMaxBoundType: varchar("angle_max_bound_type", { length: 16 }).notNull(),
+    startAngleDegrees: doublePrecision("start_angle_degrees").notNull(),
+    endAngleDegrees: doublePrecision("end_angle_degrees").notNull(),
     movementNodeId: uuid("movement_node_id").notNull(),
   },
   (table) => [
@@ -220,6 +227,11 @@ export const sectorsTable = pgTable(
       foreignColumns: [movementNodesTable.gameId, movementNodesTable.id],
       name: "sectors_game_id_movement_node_id_movement_nodes_fk",
     }).onDelete("no action"),
+    check("sectors_angle_numeric_type_check", sql`${table.angleNumericType} in ('float', 'integer')`),
+    check("sectors_angle_max_bound_type_check", sql`${table.angleMaxBoundType} in ('inclusive', 'exclusive')`),
+    check("sectors_start_angle_degrees_check", sql`${table.startAngleDegrees} >= 0`),
+    check("sectors_end_angle_degrees_check", sql`${table.endAngleDegrees} <= 360`),
+    check("sectors_angle_degrees_order_check", sql`${table.startAngleDegrees} < ${table.endAngleDegrees}`),
     index("sectors_game_id_orbit_id_idx").on(table.gameId, table.orbitId),
   ],
 )

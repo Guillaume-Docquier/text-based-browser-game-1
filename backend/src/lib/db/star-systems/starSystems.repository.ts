@@ -1,11 +1,14 @@
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { eq } from "drizzle-orm"
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
 import type { BodyType } from "#lib/star-systems/BodyType.ts"
 import { toCoordinates } from "#lib/star-systems/Coordinates.ts"
+
+const RANGE_NUMERIC_TYPES = ["float", "integer"] as const
+const RANGE_MAX_BOUND_TYPES = ["inclusive", "exclusive"] as const
 
 export type NewStarSystem = {
   gameId: number
@@ -35,6 +38,7 @@ export type Sector = {
   id: string
   orbitId: string
   sectorNumber: number
+  angleRange: Range
   movementNodeId: string
 }
 
@@ -80,6 +84,7 @@ export type SectorReadModel = {
   id: string
   number: number
   coordinates: string
+  angleRange: Range
   bodies: BodyReadModel[]
   movementNodeId: string
 }
@@ -101,7 +106,8 @@ export type MovementEdgeReadModel = {
 
 type StarSystemRow = typeof starSystemsTable.$inferSelect
 type OrbitRow = typeof orbitsTable.$inferSelect
-type SectorRow = typeof sectorsTable.$inferSelect
+export type SectorRow = typeof sectorsTable.$inferSelect
+type SectorInsert = Omit<typeof sectorsTable.$inferInsert, "gameId">
 type BodyRow = typeof bodiesTable.$inferSelect
 type MovementEdgeRow = typeof movementEdgesTable.$inferSelect
 
@@ -147,7 +153,7 @@ export class StarSystemsRepository extends PostgresRepository {
           await tx.insert(orbitsTable).values(orbits)
         }
 
-        const sectors = newStarSystem.sectors.map(withGameId)
+        const sectors = newStarSystem.sectors.map(toSectorInsert).map(withGameId)
         if (sectors.length > 0) {
           await tx.insert(sectorsTable).values(sectors)
         }
@@ -228,6 +234,7 @@ function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSy
         id: sector.id,
         number: sector.sectorNumber,
         coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }),
+        angleRange: toSectorAngleRange(sector),
         movementNodeId: sector.movementNodeId,
         bodies: (bodiesBySectorId.get(sector.id) ?? []).map((body) => ({
           id: body.id,
@@ -241,6 +248,31 @@ function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSy
     })),
     movementEdges: toMovementEdgesByFromNodeId(starSystemRows.movementEdges),
   }
+}
+
+function toSectorInsert(sector: Sector): SectorInsert {
+  return {
+    id: sector.id,
+    orbitId: sector.orbitId,
+    sectorNumber: sector.sectorNumber,
+    angleNumericType: sector.angleRange.numericType,
+    angleMaxBoundType: sector.angleRange.maxBoundType,
+    startAngleDegrees: sector.angleRange.min,
+    endAngleDegrees: sector.angleRange.max,
+    movementNodeId: sector.movementNodeId,
+  }
+}
+
+function toSectorAngleRange(sector: SectorRow): Range {
+  Assert.isOneOf(RANGE_NUMERIC_TYPES, sector.angleNumericType, "sector.angleNumericType")
+  Assert.isOneOf(RANGE_MAX_BOUND_TYPES, sector.angleMaxBoundType, "sector.angleMaxBoundType")
+
+  return Range.create({
+    numericType: sector.angleNumericType,
+    maxBoundType: sector.angleMaxBoundType,
+    min: sector.startAngleDegrees,
+    max: sector.endAngleDegrees,
+  })
 }
 
 function createWithGameId(
