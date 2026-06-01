@@ -3,6 +3,9 @@ packages:
   - frontend
   - shared/*
 
+catalog:
+  "@guillaume-docquier/tools-ts": ^4.0.0
+
 allowBuilds:
   "@clerk/shared": true
   bufferutil: true
