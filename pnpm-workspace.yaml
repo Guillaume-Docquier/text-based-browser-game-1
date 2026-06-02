@@ -4,7 +4,7 @@ packages:
   - shared/*
 
 catalog:
-  "@guillaume-docquier/tools-ts": ^4.0.0
+  "@guillaume-docquier/tools-ts": ^4.0.1
 
 minimumReleaseAgeExclude:
   - "@guillaume-docquier/tools-ts"
