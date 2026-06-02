@@ -1,12 +1,10 @@
-import { drizzle } from "drizzle-orm/node-postgres"
-import type { Database } from "#lib/db/createDb.ts"
+import { createDb, type Database } from "#lib/db/createDb.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
 import { gamesTable, playersTable } from "#lib/db/schema.ts"
-import { Pool } from "pg"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
-import { Assert, type Logger, Result, type Result as TResult } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, type Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { PlayersRepository, type PlayerRow, type PlayerRowInsert } from "#lib/db/players/players.repository.ts"
 import { GamesController } from "#api/games/games.controller.ts"
@@ -65,41 +63,30 @@ type User = {
  * The db to seed is determined by the DATABASE_URL env var.
  */
 async function main({ connectionString, user }: { connectionString: string; user: User | undefined }): Promise<void> {
+  const logger = await configureLogger({ scope: "db-seed", nonBlocking: false })
   const host = getDbHost(connectionString)
   if (!(await confirmSeeding(host))) {
-    console.log("Saved your ass, lol.")
+    logger.info("Saved your ass, lol.")
     return
   }
 
-  console.log(`Seeding the '${host}' database with default values`)
-
-  const pool = new Pool({ connectionString })
-  const db = drizzle({ client: pool })
-  const logger = await configureLogger({ scope: "db-seed", nonBlocking: false })
-  const services = createSeedServices({ db, logger })
-
-  try {
-    console.log("")
-    const players = await seedPlayers({ db, user, playersRepository: services.playersRepository })
-    console.log("")
-    await seedGames({ db, players, gamesController: services.gamesController })
-    console.log("")
-
-    console.log("Seeding completed")
-  } finally {
-    await pool.end()
-  }
-}
-
-function createSeedServices({ db, logger }: { db: Database; logger: Logger }): {
-  playersRepository: PlayersRepository
-  gamesController: GamesController
-} {
+  logger.info(`Creating services`)
+  const db = createDb({ databaseUrl: connectionString })
   const gamesRepository = new GamesRepository({ db, logger })
+  const playersRepository = new PlayersRepository({ db, logger })
+  const gamesController = new GamesController({ gamesRepository, logger })
 
-  return {
-    playersRepository: new PlayersRepository({ db, logger }),
-    gamesController: new GamesController({ gamesRepository, logger }),
+  logger.info(`Seeding the '${host}' database with default values`)
+  try {
+    logger.info("")
+    const players = await seedPlayers({ db, user, logger, playersRepository })
+    logger.info("")
+    await seedGames({ db, players, logger, gamesController })
+    logger.info("")
+
+    logger.info("Seeding completed")
+  } finally {
+    await db.$client.end()
   }
 }
 
@@ -141,74 +128,70 @@ async function seedPlayers({
   db,
   user,
   playersRepository,
+  logger,
 }: {
   db: Database
   user: User | undefined
   playersRepository: PlayersRepository
+  logger: Logger
 }): Promise<PlayerRow[]> {
-  console.log("Users")
-  console.log("├ Cleaning up the users")
+  logger.info("Users")
+  logger.info("├ Cleaning up the users")
   await resetTable(db, playersTable)
-  console.log("├ Adding sample users")
-  const players: PlayerRow[] = []
+  logger.info("├ Adding sample users")
   const newPlayers: PlayerRowInsert[] = [
-    ...(user !== undefined ? [createPlayerInsertFromUser({ user })] : []),
+    ...(user !== undefined ? [{ clerk_id: user.clerkId, email: user.email, alias: user.alias }] : []),
     { clerk_id: "fake1", email: "fake1@email.com", alias: "fake1 name" },
     { clerk_id: "fake2", email: "fake2@email.com" },
     { clerk_id: "fake3" },
   ]
 
+  const players: PlayerRow[] = []
   for (const newPlayer of newPlayers) {
-    players.push(extractSuccess(await playersRepository.create(newPlayer)))
+    players.push(assertSuccess(await playersRepository.create(newPlayer)))
   }
 
-  console.log("└ Done")
+  logger.info("└ Done")
 
   return players
-}
-
-function createPlayerInsertFromUser({ user }: { user: User }): PlayerRowInsert {
-  return {
-    clerk_id: user.clerkId,
-    ...(user.email !== undefined ? { email: user.email } : {}),
-    ...(user.alias !== undefined ? { alias: user.alias } : {}),
-  }
 }
 
 async function seedGames({
   db,
   players,
   gamesController,
+  logger,
 }: {
   db: Database
   players: PlayerRow[]
   gamesController: GamesController
+  logger: Logger
 }): Promise<void> {
   const [firstPlayer, secondPlayer, thirdPlayer] = players
   Assert.isDefined(firstPlayer)
   Assert.isDefined(secondPlayer)
   Assert.isDefined(thirdPlayer)
 
-  console.log("Games")
-  console.log("├ Cleaning up the games")
+  logger.info("Games")
+  logger.info("├ Cleaning up the games")
   await resetTable(db, gamesTable)
-  console.log("├ Adding default games")
-  const insanelyFastGame = extractSuccess(
+  logger.info("├ Adding default games")
+  const insanelyFastGame = assertSuccess(
     await gamesController.create({ name: "insanely fast game", createdByPlayerId: firstPlayer.id, nbSeats: 5, tickIntervalSeconds: 60 }),
   )
-  extractSuccess(
+  assertSuccess(
     await gamesController.create({ name: "fast game", createdByPlayerId: secondPlayer.id, nbSeats: 10, tickIntervalSeconds: 7200 }),
   )
-  console.log("├ Adding players to games")
-  extractSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: secondPlayer.id }))
-  extractSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: thirdPlayer.id }))
-  console.log("└ Done")
+  logger.info("├ Adding players to games")
+  assertSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: secondPlayer.id }))
+  assertSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: thirdPlayer.id }))
+  logger.info("└ Done")
 }
 
-function extractSuccess<TSuccess>(result: TResult<TSuccess, string>): TSuccess {
-  if (Result.isFailure(result)) {
-    throw new Error(result.error)
-  }
-
+/**
+ * Nothing throws for the application, but here if something goes wrong, we just want to abort loudly
+ */
+function assertSuccess<TSuccess>(result: Result<TSuccess, string>): TSuccess {
+  Assert.isSuccess(result)
   return result.value
 }
