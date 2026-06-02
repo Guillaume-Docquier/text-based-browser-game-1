@@ -1,4 +1,5 @@
-import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
+import { drizzle } from "drizzle-orm/node-postgres"
+import type { Database } from "#lib/db/createDb.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
 import { gamePlayersTable, gamesTable, playersTable } from "#lib/db/schema.ts"
 import { Pool } from "pg"
@@ -112,11 +113,11 @@ function isLocal(host: string): boolean {
   return host === "localhost"
 }
 
-async function resetTable(db: NodePgDatabase, table: Table): Promise<void> {
+async function resetTable(db: Database, table: Table): Promise<void> {
   await db.execute(sql`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`)
 }
 
-async function seedPlayers(db: NodePgDatabase, user: User | undefined): Promise<void> {
+async function seedPlayers(db: Database, user: User | undefined): Promise<void> {
   console.log("Users")
   console.log("├ Cleaning up the users")
   await resetTable(db, playersTable)
@@ -133,7 +134,7 @@ async function seedPlayers(db: NodePgDatabase, user: User | undefined): Promise<
   console.log("└ Done")
 }
 
-async function seedGames(db: NodePgDatabase): Promise<void> {
+async function seedGames(db: Database): Promise<void> {
   const players = await db.select().from(playersTable)
   Assert.isDefined(players[0])
   Assert.isDefined(players[1])

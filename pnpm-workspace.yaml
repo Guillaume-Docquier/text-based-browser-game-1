@@ -6,6 +6,9 @@ packages:
 catalog:
   "@guillaume-docquier/tools-ts": ^4.0.0
 
+minimumReleaseAgeExclude:
+  - "@guillaume-docquier/tools-ts"
+
 allowBuilds:
   "@clerk/shared": true
   bufferutil: true
