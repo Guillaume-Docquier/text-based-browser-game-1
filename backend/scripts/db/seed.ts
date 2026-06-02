@@ -80,10 +80,11 @@ async function main({ connectionString, user }: { connectionString: string; user
   try {
     logger.info("")
     const players = await seedPlayers({ db, user, logger, playersRepository })
+
     logger.info("")
     await seedGames({ db, players, logger, gamesController })
-    logger.info("")
 
+    logger.info("")
     logger.info("Seeding completed")
   } finally {
     await db.$client.end()
