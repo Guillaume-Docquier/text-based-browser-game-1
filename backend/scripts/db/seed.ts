@@ -1,13 +1,15 @@
-import { drizzle } from "drizzle-orm/node-postgres"
-import type { Database } from "#lib/db/createDb.ts"
+import { createDb, type Database } from "#lib/db/createDb.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
-import { gamePlayersTable, gamesTable, playersTable } from "#lib/db/schema.ts"
-import { Pool } from "pg"
+import { gamesTable, playersTable } from "#lib/db/schema.ts"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, type Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
+import { PlayersRepository, type PlayerRow, type PlayerRowInsert } from "#lib/db/players/players.repository.ts"
+import { GamesController } from "#api/games/games.controller.ts"
+import { GamesRepository } from "#lib/db/games/games.repository.ts"
+import { configureLogger } from "#lib/configureLogger.ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -61,26 +63,32 @@ type User = {
  * The db to seed is determined by the DATABASE_URL env var.
  */
 async function main({ connectionString, user }: { connectionString: string; user: User | undefined }): Promise<void> {
+  const logger = await configureLogger({ scope: "db-seed", nonBlocking: false })
   const host = getDbHost(connectionString)
   if (!(await confirmSeeding(host))) {
-    console.log("Saved your ass, lol.")
+    logger.info("Saved your ass, lol.")
     return
   }
 
-  console.log(`Seeding the '${host}' database with default values`)
+  logger.info(`Creating services`)
+  const db = createDb({ databaseUrl: connectionString })
+  const gamesRepository = new GamesRepository({ db, logger })
+  const playersRepository = new PlayersRepository({ db, logger })
+  const gamesController = new GamesController({ gamesRepository, logger })
 
-  const pool = new Pool({ connectionString })
-  const db = drizzle({ client: pool })
+  logger.info(`Seeding the '${host}' database with default values`)
+  try {
+    logger.info("")
+    const players = await seedPlayers({ db, user, logger, playersRepository })
 
-  const seedFuncs = [seedPlayers, seedGames]
-  for (const seedFunc of seedFuncs) {
-    console.log("")
-    await seedFunc(db, user)
+    logger.info("")
+    await seedGames({ db, players, logger, gamesController })
+
+    logger.info("")
+    logger.info("Seeding completed")
+  } finally {
+    await db.$client.end()
   }
-  console.log("")
-
-  console.log("Seeding completed")
-  await pool.end()
 }
 
 function getDbHost(connectionString: string): string {
@@ -117,49 +125,74 @@ async function resetTable(db: Database, table: Table): Promise<void> {
   await db.execute(sql`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`)
 }
 
-async function seedPlayers(db: Database, user: User | undefined): Promise<void> {
-  console.log("Users")
-  console.log("├ Cleaning up the users")
+async function seedPlayers({
+  db,
+  user,
+  playersRepository,
+  logger,
+}: {
+  db: Database
+  user: User | undefined
+  playersRepository: PlayersRepository
+  logger: Logger
+}): Promise<PlayerRow[]> {
+  logger.info("Users")
+  logger.info("├ Cleaning up the users")
   await resetTable(db, playersTable)
-  await db.delete(playersTable)
-  console.log("├ Adding sample users")
-  await db
-    .insert(playersTable)
-    .values([
-      ...(user !== undefined ? [{ clerk_id: user.clerkId, email: user.email, alias: user.alias }] : []),
-      { clerk_id: "fake1", email: "fake1@email.com", alias: "fake1 name" },
-      { clerk_id: "fake2", email: "fake2@email.com" },
-      { clerk_id: "fake3" },
-    ])
-  console.log("└ Done")
+  logger.info("├ Adding sample users")
+  const newPlayers: PlayerRowInsert[] = [
+    ...(user !== undefined ? [{ clerk_id: user.clerkId, email: user.email, alias: user.alias }] : []),
+    { clerk_id: "fake1", email: "fake1@email.com", alias: "fake1 name" },
+    { clerk_id: "fake2", email: "fake2@email.com" },
+    { clerk_id: "fake3" },
+  ]
+
+  const players: PlayerRow[] = []
+  for (const newPlayer of newPlayers) {
+    players.push(assertSuccess(await playersRepository.create(newPlayer)))
+  }
+
+  logger.info("└ Done")
+
+  return players
 }
 
-async function seedGames(db: Database): Promise<void> {
-  const players = await db.select().from(playersTable)
-  Assert.isDefined(players[0])
-  Assert.isDefined(players[1])
-  Assert.isDefined(players[2])
+async function seedGames({
+  db,
+  players,
+  gamesController,
+  logger,
+}: {
+  db: Database
+  players: PlayerRow[]
+  gamesController: GamesController
+  logger: Logger
+}): Promise<void> {
+  const [firstPlayer, secondPlayer, thirdPlayer] = players
+  Assert.isDefined(firstPlayer)
+  Assert.isDefined(secondPlayer)
+  Assert.isDefined(thirdPlayer)
 
-  console.log("Games")
-  console.log("├ Cleaning up the games")
+  logger.info("Games")
+  logger.info("├ Cleaning up the games")
   await resetTable(db, gamesTable)
-  console.log("├ Adding default games")
-  const games = await db
-    .insert(gamesTable)
-    .values([
-      { name: "insanely fast game", createdByPlayerId: players[0].id, nbSeats: 5, tickIntervalSeconds: 60 },
-      { name: "fast game", createdByPlayerId: players[1].id, nbSeats: 10, tickIntervalSeconds: 7200 },
-    ])
-    .returning()
-  console.log("├ Adding players to games")
-  Assert.isDefined(games[0])
+  logger.info("├ Adding default games")
+  const insanelyFastGame = assertSuccess(
+    await gamesController.create({ name: "insanely fast game", createdByPlayerId: firstPlayer.id, nbSeats: 5, tickIntervalSeconds: 60 }),
+  )
+  assertSuccess(
+    await gamesController.create({ name: "fast game", createdByPlayerId: secondPlayer.id, nbSeats: 10, tickIntervalSeconds: 7200 }),
+  )
+  logger.info("├ Adding players to games")
+  assertSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: secondPlayer.id }))
+  assertSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: thirdPlayer.id }))
+  logger.info("└ Done")
+}
 
-  await db.insert(gamePlayersTable).values([
-    // Add creators to their games
-    ...games.map((game) => ({ gameId: game.id, playerId: game.createdByPlayerId })),
-    // Extra players for game 0
-    { gameId: games[0].id, playerId: players[1].id },
-    { gameId: games[0].id, playerId: players[2].id },
-  ])
-  console.log("└ Done")
+/**
+ * Nothing throws for the application, but here if something goes wrong, we just want to abort loudly
+ */
+function assertSuccess<TSuccess>(result: Result<TSuccess, string>): TSuccess {
+  Assert.isSuccess(result)
+  return result.value
 }
