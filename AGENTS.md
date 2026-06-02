@@ -1,4 +1,14 @@
-# Repository Guidelines For AI Agents
+# Cosmic Supremacy
+
+This project is a multiplayer browser strategy game played at a pace of 1 turn a day for a few months.
+
+The goal is to build a game that's as fun as persistent browser games, but that doesn't reward being the most active player.
+
+## Current status
+
+The project is only getting started, and we are building strong foundations. We've built the infrastructure, deployed on Railway, established the tech that we will use, and developed testing strategies for the backend.
+
+We have 0 users. Code quality and architecture design choices matter more than speed of execution.
 
 ## Project Structure And Tech Stack
 
@@ -11,34 +21,7 @@ This repo is a TypeScript monorepo using pnpm workspaces (ADR-014) with separate
 - `docs/`: all project documentation. It includes past, present, and future tech/game designs, adrs, etc.
 - `docs/adr/`: architecture decision records. Read the relevant ADRs before changing established patterns.
 
-We use the `@guillaume-docquier/tools-ts` npm package, a small TypeScript library of utilities made by us.
-
-## Agent skills
-
-### Issue tracker
-
-Issues and PRDs are tracked in GitHub Issues using the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Use the default Matt Pocock skills triage labels without renaming. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-This repo uses a single-context domain-doc layout: root `CONTEXT.md` when present, plus `docs/adr/`. See `docs/agents/domain.md`.
-
-## Commands
-
-Always use pnpm, never use npm.
-
-- `pnpm i`: install node_modules for all packages.
-- `pnpm checks`: runs all quality checks (lint, format, typecheck, test) on all packages.
-- `pnpm --filter frontend build`: build the frontend.
-- `pnpm --filter frontend checks`: run all frontend quality checks (typecheck).
-- `pnpm --filter backend checks`: run all backend quality checks (typecheck, test).
-- `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
-- `pnpm --filter backend db:migrate`: apply migrations.
-- `pnpm --filter backend db:seed`: seed the database.
+Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. This is a TypeScript library of utilities made by us. Their README.md contains a high-level view of the available utilities.
 
 ## Architecture Rules
 
@@ -78,11 +61,22 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Use `as const` objects plus derived union types, following `backend/src/lib/gameResources.ts`.
 - Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
 
+## Commands
+
+Always use pnpm, never use npm.
+
+- `pnpm i`: install node_modules for all packages.
+- `pnpm checks`: runs all quality checks (lint, format, typecheck, test) on all packages.
+- `pnpm --filter frontend build`: build the frontend.
+- `pnpm --filter frontend checks`: run all frontend quality checks (typecheck).
+- `pnpm --filter backend checks`: run all backend quality checks (typecheck, test).
+- `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
+
 ## Testing
 
 We test the production code. We do not use `vitest.mock()`.
 
-We prefer end-to-end or integration tests. We use unit tests sparingly for complicated code (algorithms, high-performance code, etc.)
+We prefer end-to-end or integration tests. We use unit tests sparingly for complex code (algorithms, high-performance code, etc.)
 
 ## Verification
 
