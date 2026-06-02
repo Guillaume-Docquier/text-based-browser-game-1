@@ -1,5 +1,5 @@
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
-import { type NodePgDatabase } from "drizzle-orm/node-postgres"
+import type { Database } from "#lib/db/createDb.ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { createApi } from "./createApi.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
@@ -70,10 +70,7 @@ async function main(): Promise<void> {
  * Retrying should quickly work that out.
  * Long term the DB won't be "serverless", so this issue should go away.
  */
-async function migrateDatabase(
-  db: NodePgDatabase,
-  { migrationsFolder, logger }: { migrationsFolder: string; logger: Logger },
-): Promise<void> {
+async function migrateDatabase(db: Database, { migrationsFolder, logger }: { migrationsFolder: string; logger: Logger }): Promise<void> {
   await pRetry(
     async () => {
       await migrate(db, { migrationsFolder })
