@@ -1,60 +1,35 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games/games.repository.ts"
-import type { StarSystemGenerationSettingsRepository } from "#lib/db/star-systems/starSystemGenerationSettings.repository.ts"
-import type { CreateTransaction } from "#lib/db/createDb.ts"
+import type {
+  GameReadModel,
+  GameSettingsReadModel,
+  GameSummaryPlayerRow,
+  GameSummaryRow,
+  GamesRepository,
+  GameWriteModel,
+} from "#lib/db/games/games.repository.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/defaultStarSystemGenerationSettings.ts"
-import { couldNot, TransactionRollback } from "#lib/errors.ts"
+import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
+import { couldNot } from "#lib/errors.ts"
+import { RangeDto } from "#api/RangeDto.ts"
 import z from "zod"
 
 export class GamesController {
   private readonly gamesRepository: GamesRepository
-  private readonly starSystemGenerationSettingsRepository: StarSystemGenerationSettingsRepository
-  private readonly createTransaction: CreateTransaction
   private readonly logger: Logger
 
-  public constructor({
-    gamesRepository,
-    starSystemGenerationSettingsRepository,
-    createTransaction,
-    logger,
-  }: {
-    gamesRepository: GamesRepository
-    starSystemGenerationSettingsRepository: StarSystemGenerationSettingsRepository
-    createTransaction: CreateTransaction
-    logger: Logger
-  }) {
+  public constructor({ gamesRepository, logger }: { gamesRepository: GamesRepository; logger: Logger }) {
     this.gamesRepository = gamesRepository
-    this.starSystemGenerationSettingsRepository = starSystemGenerationSettingsRepository
-    this.createTransaction = createTransaction
     this.logger = logger.child({ scope: "games-controller" })
   }
 
   public async create(newGame: GameInsert): Promise<Result<CreatedGame, string>> {
-    const createGameResult = await Result.tryCatch(
-      this.createTransaction(async (tx): Promise<CreatedGame> => {
-        const generationSettingsResult = await this.starSystemGenerationSettingsRepository.create(
-          createDefaultStarSystemGenerationSettings(),
-          tx,
-        )
-        if (Result.isFailure(generationSettingsResult)) {
-          throw new TransactionRollback(generationSettingsResult.error)
-        }
-
-        const gameResult = await this.gamesRepository.create(
-          {
-            ...newGame,
-            starSystemGenerationSettingsId: generationSettingsResult.value.id,
-          },
-          tx,
-        )
-        if (Result.isFailure(gameResult)) {
-          throw new TransactionRollback(gameResult.error)
-        }
-
-        return gameResult.value
-      }),
-    )
-
+    const createGameResult = await this.gamesRepository.create({
+      createdByPlayerId: newGame.createdByPlayerId,
+      settings: {
+        ...newGame.settings,
+        starSystemGenerationSettings: createDefaultStarSystemGenerationSettings(),
+      },
+    })
     if (Result.isFailure(createGameResult)) {
       this.logger.error("Could not create game", { newGame, error: createGameResult.error })
       return Result.Failure(couldNot("create game"))
@@ -145,7 +120,7 @@ function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSumma
   const status =
     gameSummaryRow.endedAt !== null ? GameSummaryStatus.ENDED
     : gameSummaryRow.startedAt !== null ? GameSummaryStatus.STARTED
-    : gameSummaryRow.players.length >= gameSummaryRow.nbSeats ? GameSummaryStatus.READY_TO_START
+    : gameSummaryRow.players.length >= gameSummaryRow.settings.nbSeats ? GameSummaryStatus.READY_TO_START
     : GameSummaryStatus.WAITING_FOR_PLAYERS
 
   const canJoin =
@@ -176,25 +151,44 @@ function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSumma
 
 export type GameInsert = z.infer<typeof GameInsert>
 export const GameInsert = z.object({
-  name: z.string(),
   createdByPlayerId: z.number(),
+  settings: z.object({
+    name: z.string(),
+    nbSeats: z.number(),
+    tickIntervalSeconds: z.number(),
+  }),
+}) satisfies z.ZodType<
+  Pick<GameWriteModel, "createdByPlayerId"> & { settings: Omit<GameSettingsReadModel, "starSystemGenerationSettings"> }
+>
+
+export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
+export const StarSystemGenerationSettingsDto = z.object({
+  planetDensity: RangeDto,
+  nbPlanets: RangeDto,
+  nbMoonsPerPlanet: RangeDto,
+  nbAsteroidBelts: RangeDto,
+  nbAsteroidsPerSector: RangeDto,
+  seed: z.number(),
+}) satisfies z.ZodType<StarSystemGenerationSettings>
+
+export type GameSettings = z.infer<typeof GameSettings>
+export const GameSettings = z.object({
+  name: z.string(),
+  starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
-}) satisfies z.ZodType<Omit<GameRowInsert, "starSystemGenerationSettingsId">>
+}) satisfies z.ZodType<GameSettingsReadModel>
 
 export type CreatedGame = z.infer<typeof CreatedGame>
 export const CreatedGame = z.object({
-  name: z.string(),
   id: z.number(),
   createdByPlayerId: z.number(),
-  starSystemGenerationSettingsId: z.string(),
   winnerPlayerId: z.number().nullable(),
-  nbSeats: z.number(),
-  tickIntervalSeconds: z.number(),
+  settings: GameSettings,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
-}) satisfies z.ZodType<GameRow>
+}) satisfies z.ZodType<GameReadModel>
 
 export const GameSummaryStatus = {
   WAITING_FOR_PLAYERS: "WAITING_FOR_PLAYERS",
@@ -211,12 +205,9 @@ export const GameSummaryPlayer = z.object({
 
 export type GameSummary = z.infer<typeof GameSummary>
 export const GameSummary = z.object({
-  name: z.string(),
   id: z.number(),
   winnerPlayerId: z.number().nullable(),
-  starSystemGenerationSettingsId: z.string(),
-  nbSeats: z.number(),
-  tickIntervalSeconds: z.number(),
+  settings: GameSettings,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),

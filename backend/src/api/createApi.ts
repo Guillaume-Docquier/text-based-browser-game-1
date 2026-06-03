@@ -18,7 +18,6 @@ import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repo
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
 import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
-import type { StarSystemGenerationSettingsRepository } from "#lib/db/star-systems/starSystemGenerationSettings.repository.ts"
 import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -46,7 +45,6 @@ export async function createApi({
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
   starSystemsRepository: StarSystemsRepository
-  starSystemGenerationSettingsRepository: StarSystemGenerationSettingsRepository
 }): Promise<Express> {
   const controllerServices = { ...services, createTransaction }
   const controllers = {

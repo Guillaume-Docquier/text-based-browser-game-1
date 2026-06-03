@@ -22,7 +22,6 @@ describe("starSystems.router", () => {
       const starSystem = await createStoredStarSystem({
         starSystemsRepository,
         gameId: createGameResult.newGame.id,
-        generationSettingsId: createGameResult.newGame.starSystemGenerationSettingsId,
       })
 
       // Act
@@ -142,7 +141,6 @@ describe("starSystems.router", () => {
       await createStoredStarSystem({
         starSystemsRepository,
         gameId: createGameResult.newGame.id,
-        generationSettingsId: createGameResult.newGame.starSystemGenerationSettingsId,
       })
       authService.player = outsider
 
@@ -175,13 +173,11 @@ describe("starSystems.router", () => {
 async function createStoredStarSystem({
   starSystemsRepository,
   gameId,
-  generationSettingsId,
 }: {
   starSystemsRepository: StarSystemsRepository
   gameId: number
-  generationSettingsId: string
 }): Promise<ReturnType<typeof createStarSystemFixture>> {
-  const starSystem = createStarSystemFixture({ gameId, generationSettingsId })
+  const starSystem = createStarSystemFixture({ gameId })
   const createSystemResult = await starSystemsRepository.create(starSystem)
   if (Result.isFailure(createSystemResult)) {
     throw new Error(createSystemResult.error)
@@ -191,7 +187,7 @@ async function createStoredStarSystem({
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- As const will help the tests verbosity
-function createStarSystemFixture({ gameId, generationSettingsId }: { gameId: number; generationSettingsId: string }) {
+function createStarSystemFixture({ gameId }: { gameId: number }) {
   const orbitId = randomUUID()
   const sector1Id = randomUUID()
   const sector2Id = randomUUID()
@@ -203,7 +199,6 @@ function createStarSystemFixture({ gameId, generationSettingsId }: { gameId: num
 
   return {
     gameId,
-    generationSettingsId,
     movementNodes: [
       { id: sector1MovementNodeId },
       { id: sector2MovementNodeId },

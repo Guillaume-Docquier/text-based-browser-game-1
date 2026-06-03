@@ -1,5 +1,5 @@
 {
-  "id": "43defb84-4744-4e94-a42b-7de23d1c190e",
+  "id": "a913f7d7-17f6-4e86-829f-097a2483411a",
   "prevId": "94e46d94-4465-4e3c-a8d7-1c2346a4f358",
   "version": "7",
   "dialect": "postgresql",
@@ -80,12 +80,8 @@
           "name": "bodies_game_id_star_systems_game_id_fk",
           "tableFrom": "bodies",
           "tableTo": "star_systems",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "game_id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["game_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -93,14 +89,8 @@
           "name": "bodies_game_id_sector_id_sectors_fk",
           "tableFrom": "bodies",
           "tableTo": "sectors",
-          "columnsFrom": [
-            "game_id",
-            "sector_id"
-          ],
-          "columnsTo": [
-            "game_id",
-            "id"
-          ],
+          "columnsFrom": ["game_id", "sector_id"],
+          "columnsTo": ["game_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -108,14 +98,8 @@
           "name": "bodies_game_id_movement_node_id_movement_nodes_fk",
           "tableFrom": "bodies",
           "tableTo": "movement_nodes",
-          "columnsFrom": [
-            "game_id",
-            "movement_node_id"
-          ],
-          "columnsTo": [
-            "game_id",
-            "id"
-          ],
+          "columnsFrom": ["game_id", "movement_node_id"],
+          "columnsTo": ["game_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -125,25 +109,17 @@
         "bodies_game_id_id_unique": {
           "name": "bodies_game_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "game_id",
-            "id"
-          ]
+          "columns": ["game_id", "id"]
         },
         "bodies_sector_id_body_number_unique": {
           "name": "bodies_sector_id_body_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "sector_id",
-            "body_number"
-          ]
+          "columns": ["sector_id", "body_number"]
         },
         "bodies_movement_node_id_unique": {
           "name": "bodies_movement_node_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "movement_node_id"
-          ]
+          "columns": ["movement_node_id"]
         }
       },
       "policies": {},
@@ -199,14 +175,8 @@
           "name": "game_player_actions_gameId_playerId_game_players_fk",
           "tableFrom": "game_player_actions",
           "tableTo": "game_players",
-          "columnsFrom": [
-            "gameId",
-            "playerId"
-          ],
-          "columnsTo": [
-            "gameId",
-            "playerId"
-          ],
+          "columnsFrom": ["gameId", "playerId"],
+          "columnsTo": ["gameId", "playerId"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -214,11 +184,7 @@
       "compositePrimaryKeys": {
         "game_player_actions_gameId_playerId_tick_pk": {
           "name": "game_player_actions_gameId_playerId_tick_pk",
-          "columns": [
-            "gameId",
-            "playerId",
-            "tick"
-          ]
+          "columns": ["gameId", "playerId", "tick"]
         }
       },
       "uniqueConstraints": {},
@@ -262,14 +228,8 @@
           "name": "game_player_resources_gameId_playerId_game_players_fk",
           "tableFrom": "game_player_resources",
           "tableTo": "game_players",
-          "columnsFrom": [
-            "gameId",
-            "playerId"
-          ],
-          "columnsTo": [
-            "gameId",
-            "playerId"
-          ],
+          "columnsFrom": ["gameId", "playerId"],
+          "columnsTo": ["gameId", "playerId"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -277,11 +237,7 @@
       "compositePrimaryKeys": {
         "game_player_resources_gameId_playerId_resourceType_pk": {
           "name": "game_player_resources_gameId_playerId_resourceType_pk",
-          "columns": [
-            "gameId",
-            "playerId",
-            "resourceType"
-          ]
+          "columns": ["gameId", "playerId", "resourceType"]
         }
       },
       "uniqueConstraints": {},
@@ -319,12 +275,8 @@
           "name": "game_players_gameId_games_id_fk",
           "tableFrom": "game_players",
           "tableTo": "games",
-          "columnsFrom": [
-            "gameId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -332,12 +284,8 @@
           "name": "game_players_playerId_players_id_fk",
           "tableFrom": "game_players",
           "tableTo": "players",
-          "columnsFrom": [
-            "playerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["playerId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -345,12 +293,62 @@
       "compositePrimaryKeys": {
         "game_players_gameId_playerId_pk": {
           "name": "game_players_gameId_playerId_pk",
-          "columns": [
-            "gameId",
-            "playerId"
-          ]
+          "columns": ["gameId", "playerId"]
         }
       },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.game_settings": {
+      "name": "game_settings",
+      "schema": "",
+      "columns": {
+        "game_id": {
+          "name": "game_id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "star_system_generation_settings": {
+          "name": "star_system_generation_settings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nbSeats": {
+          "name": "nbSeats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tickIntervalSeconds": {
+          "name": "tickIntervalSeconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "game_settings_game_id_games_id_fk": {
+          "name": "game_settings_game_id_games_id_fk",
+          "tableFrom": "game_settings",
+          "tableTo": "games",
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -386,12 +384,8 @@
           "name": "game_states_gameId_games_id_fk",
           "tableFrom": "game_states",
           "tableTo": "games",
-          "columnsFrom": [
-            "gameId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -459,12 +453,8 @@
           "name": "game_ticks_gameId_games_id_fk",
           "tableFrom": "game_ticks",
           "tableTo": "games",
-          "columnsFrom": [
-            "gameId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["gameId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -472,10 +462,7 @@
       "compositePrimaryKeys": {
         "game_ticks_gameId_tick_pk": {
           "name": "game_ticks_gameId_tick_pk",
-          "columns": [
-            "gameId",
-            "tick"
-          ]
+          "columns": ["gameId", "tick"]
         }
       },
       "uniqueConstraints": {},
@@ -504,21 +491,9 @@
             "cycle": false
           }
         },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
         "createdByPlayerId": {
           "name": "createdByPlayerId",
           "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "star_system_generation_settings_id": {
-          "name": "star_system_generation_settings_id",
-          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -527,18 +502,6 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
-        },
-        "nbSeats": {
-          "name": "nbSeats",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tickIntervalSeconds": {
-          "name": "tickIntervalSeconds",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
         },
         "createdAt": {
           "name": "createdAt",
@@ -566,38 +529,17 @@
           "name": "games_createdByPlayerId_players_id_fk",
           "tableFrom": "games",
           "tableTo": "players",
-          "columnsFrom": [
-            "createdByPlayerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["createdByPlayerId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "games_star_system_generation_settings_id_star_system_generation_settings_id_fk": {
-          "name": "games_star_system_generation_settings_id_star_system_generation_settings_id_fk",
-          "tableFrom": "games",
-          "tableTo": "star_system_generation_settings",
-          "columnsFrom": [
-            "star_system_generation_settings_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "games_winnerPlayerId_players_id_fk": {
           "name": "games_winnerPlayerId_players_id_fk",
           "tableFrom": "games",
           "tableTo": "players",
-          "columnsFrom": [
-            "winnerPlayerId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["winnerPlayerId"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -665,12 +607,8 @@
           "name": "movement_edges_game_id_star_systems_game_id_fk",
           "tableFrom": "movement_edges",
           "tableTo": "star_systems",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "game_id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["game_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -678,14 +616,8 @@
           "name": "movement_edges_game_id_from_node_id_movement_nodes_fk",
           "tableFrom": "movement_edges",
           "tableTo": "movement_nodes",
-          "columnsFrom": [
-            "game_id",
-            "from_node_id"
-          ],
-          "columnsTo": [
-            "game_id",
-            "id"
-          ],
+          "columnsFrom": ["game_id", "from_node_id"],
+          "columnsTo": ["game_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -693,14 +625,8 @@
           "name": "movement_edges_game_id_to_node_id_movement_nodes_fk",
           "tableFrom": "movement_edges",
           "tableTo": "movement_nodes",
-          "columnsFrom": [
-            "game_id",
-            "to_node_id"
-          ],
-          "columnsTo": [
-            "game_id",
-            "id"
-          ],
+          "columnsFrom": ["game_id", "to_node_id"],
+          "columnsTo": ["game_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -708,11 +634,7 @@
       "compositePrimaryKeys": {
         "movement_edges_game_id_from_node_id_to_node_id_pk": {
           "name": "movement_edges_game_id_from_node_id_to_node_id_pk",
-          "columns": [
-            "game_id",
-            "from_node_id",
-            "to_node_id"
-          ]
+          "columns": ["game_id", "from_node_id", "to_node_id"]
         }
       },
       "uniqueConstraints": {},
@@ -759,12 +681,8 @@
           "name": "movement_nodes_game_id_star_systems_game_id_fk",
           "tableFrom": "movement_nodes",
           "tableTo": "star_systems",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "game_id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["game_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -774,10 +692,7 @@
         "movement_nodes_game_id_id_unique": {
           "name": "movement_nodes_game_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "game_id",
-            "id"
-          ]
+          "columns": ["game_id", "id"]
         }
       },
       "policies": {},
@@ -829,12 +744,8 @@
           "name": "orbits_game_id_star_systems_game_id_fk",
           "tableFrom": "orbits",
           "tableTo": "star_systems",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "game_id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["game_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -844,18 +755,12 @@
         "orbits_game_id_id_unique": {
           "name": "orbits_game_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "game_id",
-            "id"
-          ]
+          "columns": ["game_id", "id"]
         },
         "orbits_game_id_orbit_number_unique": {
           "name": "orbits_game_id_orbit_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "game_id",
-            "orbit_number"
-          ]
+          "columns": ["game_id", "orbit_number"]
         }
       },
       "policies": {},
@@ -1013,12 +918,8 @@
           "name": "sectors_game_id_star_systems_game_id_fk",
           "tableFrom": "sectors",
           "tableTo": "star_systems",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "game_id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["game_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1026,14 +927,8 @@
           "name": "sectors_game_id_orbit_id_orbits_fk",
           "tableFrom": "sectors",
           "tableTo": "orbits",
-          "columnsFrom": [
-            "game_id",
-            "orbit_id"
-          ],
-          "columnsTo": [
-            "game_id",
-            "id"
-          ],
+          "columnsFrom": ["game_id", "orbit_id"],
+          "columnsTo": ["game_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1041,14 +936,8 @@
           "name": "sectors_game_id_movement_node_id_movement_nodes_fk",
           "tableFrom": "sectors",
           "tableTo": "movement_nodes",
-          "columnsFrom": [
-            "game_id",
-            "movement_node_id"
-          ],
-          "columnsTo": [
-            "game_id",
-            "id"
-          ],
+          "columnsFrom": ["game_id", "movement_node_id"],
+          "columnsTo": ["game_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1058,25 +947,17 @@
         "sectors_game_id_id_unique": {
           "name": "sectors_game_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "game_id",
-            "id"
-          ]
+          "columns": ["game_id", "id"]
         },
         "sectors_orbit_id_sector_number_unique": {
           "name": "sectors_orbit_id_sector_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "orbit_id",
-            "sector_number"
-          ]
+          "columns": ["orbit_id", "sector_number"]
         },
         "sectors_movement_node_id_unique": {
           "name": "sectors_movement_node_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "movement_node_id"
-          ]
+          "columns": ["movement_node_id"]
         }
       },
       "policies": {},
@@ -1104,219 +985,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.star_system_generation_settings": {
-      "name": "star_system_generation_settings",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "planet_density_numeric_type": {
-          "name": "planet_density_numeric_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "planet_density_max_bound_type": {
-          "name": "planet_density_max_bound_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "planet_density_min": {
-          "name": "planet_density_min",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "planet_density_max": {
-          "name": "planet_density_max",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_planets_numeric_type": {
-          "name": "nb_planets_numeric_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_planets_max_bound_type": {
-          "name": "nb_planets_max_bound_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_planets_min": {
-          "name": "nb_planets_min",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_planets_max": {
-          "name": "nb_planets_max",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_moons_per_planet_numeric_type": {
-          "name": "nb_moons_per_planet_numeric_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_moons_per_planet_max_bound_type": {
-          "name": "nb_moons_per_planet_max_bound_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_moons_per_planet_min": {
-          "name": "nb_moons_per_planet_min",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_moons_per_planet_max": {
-          "name": "nb_moons_per_planet_max",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_asteroid_belts_numeric_type": {
-          "name": "nb_asteroid_belts_numeric_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_asteroid_belts_max_bound_type": {
-          "name": "nb_asteroid_belts_max_bound_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_asteroid_belts_min": {
-          "name": "nb_asteroid_belts_min",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_asteroid_belts_max": {
-          "name": "nb_asteroid_belts_max",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_asteroids_per_sector_numeric_type": {
-          "name": "nb_asteroids_per_sector_numeric_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_asteroids_per_sector_max_bound_type": {
-          "name": "nb_asteroids_per_sector_max_bound_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_asteroids_per_sector_min": {
-          "name": "nb_asteroids_per_sector_min",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_asteroids_per_sector_max": {
-          "name": "nb_asteroids_per_sector_max",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "star_system_generation_settings_planet_density_numeric_type_check": {
-          "name": "star_system_generation_settings_planet_density_numeric_type_check",
-          "value": "\"star_system_generation_settings\".\"planet_density_numeric_type\" in ('float', 'integer')"
-        },
-        "star_system_generation_settings_planet_density_max_bound_type_check": {
-          "name": "star_system_generation_settings_planet_density_max_bound_type_check",
-          "value": "\"star_system_generation_settings\".\"planet_density_max_bound_type\" in ('inclusive', 'exclusive')"
-        },
-        "star_system_generation_settings_planet_density_range_order_check": {
-          "name": "star_system_generation_settings_planet_density_range_order_check",
-          "value": "(\"star_system_generation_settings\".\"planet_density_max_bound_type\" = 'inclusive' and \"star_system_generation_settings\".\"planet_density_min\" <= \"star_system_generation_settings\".\"planet_density_max\") or (\"star_system_generation_settings\".\"planet_density_max_bound_type\" = 'exclusive' and \"star_system_generation_settings\".\"planet_density_min\" < \"star_system_generation_settings\".\"planet_density_max\")"
-        },
-        "star_system_generation_settings_nb_planets_numeric_type_check": {
-          "name": "star_system_generation_settings_nb_planets_numeric_type_check",
-          "value": "\"star_system_generation_settings\".\"nb_planets_numeric_type\" in ('float', 'integer')"
-        },
-        "star_system_generation_settings_nb_planets_max_bound_type_check": {
-          "name": "star_system_generation_settings_nb_planets_max_bound_type_check",
-          "value": "\"star_system_generation_settings\".\"nb_planets_max_bound_type\" in ('inclusive', 'exclusive')"
-        },
-        "star_system_generation_settings_nb_planets_range_order_check": {
-          "name": "star_system_generation_settings_nb_planets_range_order_check",
-          "value": "(\"star_system_generation_settings\".\"nb_planets_max_bound_type\" = 'inclusive' and \"star_system_generation_settings\".\"nb_planets_min\" <= \"star_system_generation_settings\".\"nb_planets_max\") or (\"star_system_generation_settings\".\"nb_planets_max_bound_type\" = 'exclusive' and \"star_system_generation_settings\".\"nb_planets_min\" < \"star_system_generation_settings\".\"nb_planets_max\")"
-        },
-        "star_system_generation_settings_nb_moons_per_planet_numeric_type_check": {
-          "name": "star_system_generation_settings_nb_moons_per_planet_numeric_type_check",
-          "value": "\"star_system_generation_settings\".\"nb_moons_per_planet_numeric_type\" in ('float', 'integer')"
-        },
-        "star_system_generation_settings_nb_moons_per_planet_max_bound_type_check": {
-          "name": "star_system_generation_settings_nb_moons_per_planet_max_bound_type_check",
-          "value": "\"star_system_generation_settings\".\"nb_moons_per_planet_max_bound_type\" in ('inclusive', 'exclusive')"
-        },
-        "star_system_generation_settings_nb_moons_per_planet_range_order_check": {
-          "name": "star_system_generation_settings_nb_moons_per_planet_range_order_check",
-          "value": "(\"star_system_generation_settings\".\"nb_moons_per_planet_max_bound_type\" = 'inclusive' and \"star_system_generation_settings\".\"nb_moons_per_planet_min\" <= \"star_system_generation_settings\".\"nb_moons_per_planet_max\") or (\"star_system_generation_settings\".\"nb_moons_per_planet_max_bound_type\" = 'exclusive' and \"star_system_generation_settings\".\"nb_moons_per_planet_min\" < \"star_system_generation_settings\".\"nb_moons_per_planet_max\")"
-        },
-        "star_system_generation_settings_nb_asteroid_belts_numeric_type_check": {
-          "name": "star_system_generation_settings_nb_asteroid_belts_numeric_type_check",
-          "value": "\"star_system_generation_settings\".\"nb_asteroid_belts_numeric_type\" in ('float', 'integer')"
-        },
-        "star_system_generation_settings_nb_asteroid_belts_max_bound_type_check": {
-          "name": "star_system_generation_settings_nb_asteroid_belts_max_bound_type_check",
-          "value": "\"star_system_generation_settings\".\"nb_asteroid_belts_max_bound_type\" in ('inclusive', 'exclusive')"
-        },
-        "star_system_generation_settings_nb_asteroid_belts_range_order_check": {
-          "name": "star_system_generation_settings_nb_asteroid_belts_range_order_check",
-          "value": "(\"star_system_generation_settings\".\"nb_asteroid_belts_max_bound_type\" = 'inclusive' and \"star_system_generation_settings\".\"nb_asteroid_belts_min\" <= \"star_system_generation_settings\".\"nb_asteroid_belts_max\") or (\"star_system_generation_settings\".\"nb_asteroid_belts_max_bound_type\" = 'exclusive' and \"star_system_generation_settings\".\"nb_asteroid_belts_min\" < \"star_system_generation_settings\".\"nb_asteroid_belts_max\")"
-        },
-        "star_system_generation_settings_nb_asteroids_per_sector_numeric_type_check": {
-          "name": "star_system_generation_settings_nb_asteroids_per_sector_numeric_type_check",
-          "value": "\"star_system_generation_settings\".\"nb_asteroids_per_sector_numeric_type\" in ('float', 'integer')"
-        },
-        "star_system_generation_settings_nb_asteroids_per_sector_max_bound_type_check": {
-          "name": "star_system_generation_settings_nb_asteroids_per_sector_max_bound_type_check",
-          "value": "\"star_system_generation_settings\".\"nb_asteroids_per_sector_max_bound_type\" in ('inclusive', 'exclusive')"
-        },
-        "star_system_generation_settings_nb_asteroids_per_sector_range_order_check": {
-          "name": "star_system_generation_settings_nb_asteroids_per_sector_range_order_check",
-          "value": "(\"star_system_generation_settings\".\"nb_asteroids_per_sector_max_bound_type\" = 'inclusive' and \"star_system_generation_settings\".\"nb_asteroids_per_sector_min\" <= \"star_system_generation_settings\".\"nb_asteroids_per_sector_max\") or (\"star_system_generation_settings\".\"nb_asteroids_per_sector_max_bound_type\" = 'exclusive' and \"star_system_generation_settings\".\"nb_asteroids_per_sector_min\" < \"star_system_generation_settings\".\"nb_asteroids_per_sector_max\")"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.star_systems": {
       "name": "star_systems",
       "schema": "",
@@ -1325,12 +993,6 @@
           "name": "game_id",
           "type": "integer",
           "primaryKey": true,
-          "notNull": true
-        },
-        "generation_settings_id": {
-          "name": "generation_settings_id",
-          "type": "uuid",
-          "primaryKey": false,
           "notNull": true
         },
         "created_at": {
@@ -1347,26 +1009,9 @@
           "name": "star_systems_game_id_games_id_fk",
           "tableFrom": "star_systems",
           "tableTo": "games",
-          "columnsFrom": [
-            "game_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "star_systems_generation_settings_id_star_system_generation_settings_id_fk": {
-          "name": "star_systems_generation_settings_id_star_system_generation_settings_id_fk",
-          "tableFrom": "star_systems",
-          "tableTo": "star_system_generation_settings",
-          "columnsFrom": [
-            "generation_settings_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -1381,11 +1026,7 @@
     "public.body_type": {
       "name": "body_type",
       "schema": "public",
-      "values": [
-        "PLANET",
-        "MOON",
-        "ASTEROID"
-      ]
+      "values": ["PLANET", "MOON", "ASTEROID"]
     }
   },
   "schemas": {},

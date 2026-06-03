@@ -1,16 +1,16 @@
 import { PostgresRepository } from "./PostgresRepository.ts"
-import { gamesTable, gameStatesTable, gameTicksTable } from "./schema.ts"
+import { gamesTable, gameSettingsTable, gameStatesTable, gameTicksTable } from "./schema.ts"
 import { and, eq, lte, isNull } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GameStateRow } from "#lib/db/gameStates.repository.ts"
-import type { GameRow } from "#lib/db/games/games.repository.ts"
+import type { GameReadModel } from "#lib/db/games/games.repository.ts"
 import { couldNot } from "#lib/errors.ts"
 
 export type GameTickRow = typeof gameTicksTable.$inferSelect
 export type GameTickRowInsert = typeof gameTicksTable.$inferInsert
 
 export type TickToProcess = {
-  game: GameRow
+  game: GameReadModel
   gameTick: GameTickRow
   gameState: GameStateRow
 }
@@ -48,6 +48,7 @@ export class GameTicksRepository extends PostgresRepository {
           .from(gameTicksTable)
           .innerJoin(gameStatesTable, eq(gameStatesTable.gameId, gameTicksTable.gameId))
           .innerJoin(gamesTable, eq(gamesTable.id, gameTicksTable.gameId))
+          .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
           .where(and(isNull(gameTicksTable.processingStartedAt), lte(gameTicksTable.scheduledFor, new Date()))),
     )
 
@@ -58,7 +59,15 @@ export class GameTicksRepository extends PostgresRepository {
 
     return Result.Success(
       ticksToProcessResult.value.map((tickToProcess) => ({
-        game: tickToProcess.games,
+        game: {
+          ...tickToProcess.games,
+          settings: {
+            name: tickToProcess.game_settings.name,
+            starSystemGenerationSettings: tickToProcess.game_settings.starSystemGenerationSettings,
+            nbSeats: tickToProcess.game_settings.nbSeats,
+            tickIntervalSeconds: tickToProcess.game_settings.tickIntervalSeconds,
+          },
+        },
         gameTick: tickToProcess.game_ticks,
         gameState: tickToProcess.game_states,
       })),

@@ -10,7 +10,7 @@ export function StarSystemPage(): ReactElement {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Star System</div>
-          <h2 className="font-heading text-2xl font-semibold text-foreground">{game.name} system</h2>
+          <h2 className="font-heading text-2xl font-semibold text-foreground">{game.settings.name} system</h2>
         </div>
         <div className="flex h-10 w-fit items-center gap-2 rounded-md border border-border/70 bg-card/45 px-3 text-sm font-medium text-foreground">
           <Map className="size-4 text-primary" />

@@ -13,9 +13,11 @@ import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 type TickIntervalUnit = Enumify<typeof TickIntervalUnit>
 type CreateGameInput = {
   newGame: {
-    name: string
-    nbSeats: number
-    tickIntervalSeconds: number
+    settings: {
+      name: string
+      nbSeats: number
+      tickIntervalSeconds: number
+    }
   }
 }
 type CreateGameResult = {
@@ -111,9 +113,11 @@ export function CreateGamePage(): ReactElement {
                 createGame.mutate(
                   {
                     newGame: {
-                      name,
-                      nbSeats,
-                      tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
+                      settings: {
+                        name,
+                        nbSeats,
+                        tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
+                      },
                     },
                   },
                   {

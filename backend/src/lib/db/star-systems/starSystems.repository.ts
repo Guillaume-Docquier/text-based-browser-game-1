@@ -11,7 +11,6 @@ const RANGE_MAX_BOUND_TYPES = ["inclusive", "exclusive"] as const
 
 export type NewStarSystem = {
   gameId: number
-  generationSettingsId: string
   orbits: Orbit[]
   sectors: Sector[]
   bodies: Body[]
@@ -126,7 +125,7 @@ export class StarSystemsRepository extends PostgresRepository {
       await db.transaction(async (tx) => {
         const withGameId = createWithGameId(newStarSystem.gameId)
 
-        await tx.insert(starSystemsTable).values(withGameId({ generationSettingsId: newStarSystem.generationSettingsId }))
+        await tx.insert(starSystemsTable).values({ gameId: newStarSystem.gameId })
 
         const movementNodes = newStarSystem.movementNodes.map(withGameId)
         if (movementNodes.length > 0) {

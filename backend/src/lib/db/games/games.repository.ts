@@ -1,18 +1,34 @@
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamePlayerResourcesTable, gamePlayersTable, gamesTable, gameStatesTable, gameTicksTable, playersTable } from "#lib/db/schema.ts"
-import { and, eq, getTableColumns } from "drizzle-orm"
+import {
+  gamePlayerResourcesTable,
+  gamePlayersTable,
+  gamesTable,
+  gameSettingsTable,
+  gameStatesTable,
+  gameTicksTable,
+  playersTable,
+} from "#lib/db/schema.ts"
+import { and, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
 import { couldNot } from "#lib/errors.ts"
 import { computeNextTickDate } from "#tick-processing/processTick.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/gameResources.ts"
 
-export type GameRow = typeof gamesTable.$inferSelect
-export type GameRowInsert = typeof gamesTable.$inferInsert
+type GameRow = typeof gamesTable.$inferSelect
+type GameSettingsRow = typeof gameSettingsTable.$inferSelect
+export type GameSettingsReadModel = Omit<GameSettingsRow, "gameId">
+export type GameReadModel = GameRow & {
+  settings: GameSettingsReadModel
+}
+export type GameWriteModel = Pick<GameRow, "createdByPlayerId"> & {
+  settings: GameSettingsReadModel
+}
+export type GameRowInsert = GameWriteModel
 
 export type GameSummaryPlayerRow = Pick<typeof playersTable.$inferSelect, "id" | "alias">
 
-export type GameSummaryRow = Omit<GameRow, "createdByPlayerId"> & {
+export type GameSummaryRow = Omit<GameReadModel, "createdByPlayerId"> & {
   creator: GameSummaryPlayerRow
   players: GameSummaryPlayerRow[]
 }
@@ -28,15 +44,21 @@ export class GamesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "games-repository" })
   }
 
-  public async create(newGame: GameRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<GameRow, string>> {
+  public async create(newGame: GameWriteModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameReadModel, string>> {
     const createResult = await Result.tryCatch(
       async () =>
         await db.transaction(async (tx) => {
-          const games = await tx.insert(gamesTable).values(newGame).returning()
+          const games = await tx.insert(gamesTable).values({ createdByPlayerId: newGame.createdByPlayerId }).returning()
           Assert.isTrue(games.length === 1)
           Assert.isDefined(games[0])
 
           const game = games[0]
+          const gameSettings = await tx
+            .insert(gameSettingsTable)
+            .values({ ...newGame.settings, gameId: game.id })
+            .returning()
+          Assert.isTrue(gameSettings.length === 1)
+          Assert.isDefined(gameSettings[0])
 
           const joinGameResult = await this.join({ gameId: game.id, playerId: game.createdByPlayerId, canJoin: () => true }, tx)
           if (Result.isFailure(joinGameResult)) {
@@ -44,7 +66,7 @@ export class GamesRepository extends PostgresRepository {
             tx.rollback() // Kinda sucks that we can't give any more info: https://github.com/drizzle-team/drizzle-orm/issues/1957
           }
 
-          return game
+          return toGameReadModel({ game, settings: gameSettings[0] })
         }),
     )
 
@@ -62,7 +84,18 @@ export class GamesRepository extends PostgresRepository {
         await db
           .select({
             // game info
-            ...getTableColumns(gamesTable),
+            id: gamesTable.id,
+            createdByPlayerId: gamesTable.createdByPlayerId,
+            winnerPlayerId: gamesTable.winnerPlayerId,
+            createdAt: gamesTable.createdAt,
+            startedAt: gamesTable.startedAt,
+            endedAt: gamesTable.endedAt,
+
+            // settings
+            name: gameSettingsTable.name,
+            starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
+            nbSeats: gameSettingsTable.nbSeats,
+            tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
 
             // player info
             creatorId: pgCreatorAlias.id,
@@ -72,6 +105,7 @@ export class GamesRepository extends PostgresRepository {
             playerAlias: pgPlayerAlias.alias,
           })
           .from(gamesTable)
+          .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
           .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
           .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
           .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId)),
@@ -96,10 +130,27 @@ export class GamesRepository extends PostgresRepository {
 
     return Result.Success(
       dedupedGameSummaries.map((gameSummary) => {
-        const { creatorId, creatorAlias, playerId: _playerId, playerAlias: _playerAlias, ...gameInfo } = gameSummary
+        const {
+          creatorId,
+          creatorAlias,
+          playerId: _playerId,
+          playerAlias: _playerAlias,
+          createdByPlayerId: _createdByPlayerId,
+          name,
+          starSystemGenerationSettings,
+          nbSeats,
+          tickIntervalSeconds,
+          ...gameInfo
+        } = gameSummary
 
         return {
           ...gameInfo,
+          settings: {
+            name,
+            starSystemGenerationSettings,
+            nbSeats,
+            tickIntervalSeconds,
+          },
           creator: {
             id: creatorId,
             alias: creatorAlias,
@@ -125,7 +176,18 @@ export class GamesRepository extends PostgresRepository {
         await db
           .select({
             // game info
-            ...getTableColumns(gamesTable),
+            id: gamesTable.id,
+            createdByPlayerId: gamesTable.createdByPlayerId,
+            winnerPlayerId: gamesTable.winnerPlayerId,
+            createdAt: gamesTable.createdAt,
+            startedAt: gamesTable.startedAt,
+            endedAt: gamesTable.endedAt,
+
+            // settings
+            name: gameSettingsTable.name,
+            starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
+            nbSeats: gameSettingsTable.nbSeats,
+            tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
 
             // player info
             creatorId: pgCreatorAlias.id,
@@ -135,6 +197,7 @@ export class GamesRepository extends PostgresRepository {
             playerAlias: pgPlayerAlias.alias,
           })
           .from(gamesTable)
+          .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
           .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
           .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
           .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId))
@@ -151,10 +214,27 @@ export class GamesRepository extends PostgresRepository {
       return Result.Success(undefined)
     }
 
-    const { creatorId, creatorAlias, playerId: _playerId, playerAlias: _playerAlias, ...gameInfo } = gameSummary
+    const {
+      creatorId,
+      creatorAlias,
+      playerId: _playerId,
+      playerAlias: _playerAlias,
+      createdByPlayerId: _createdByPlayerId,
+      name,
+      starSystemGenerationSettings,
+      nbSeats,
+      tickIntervalSeconds,
+      ...gameInfo
+    } = gameSummary
 
     return Result.Success({
       ...gameInfo,
+      settings: {
+        name,
+        starSystemGenerationSettings,
+        nbSeats,
+        tickIntervalSeconds,
+      },
       creator: {
         id: creatorId,
         alias: creatorAlias,
@@ -356,7 +436,7 @@ export class GamesRepository extends PostgresRepository {
             .where(and(eq(gamesTable.id, gameId)))
 
           // Create the game state
-          const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: gameSummaryRow.tickIntervalSeconds })
+          const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: gameSummaryRow.settings.tickIntervalSeconds })
 
           const gameStates = await tx.insert(gameStatesTable).values({ gameId, nextTickAt }).returning()
           Assert.isTrue(gameStates.length === 1)
@@ -391,5 +471,14 @@ export class GamesRepository extends PostgresRepository {
     }
 
     return startResult
+  }
+}
+
+function toGameReadModel({ game, settings }: { game: GameRow; settings: GameSettingsRow }): GameReadModel {
+  const { gameId: _gameId, ...settingsReadModel } = settings
+
+  return {
+    ...game,
+    settings: settingsReadModel,
   }
 }

@@ -11,7 +11,7 @@ export function GameTopBar({ game, gameState }: { game: ApiTypes.GameSummary; ga
         <div className="min-w-0 space-y-1">
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Game #{game.id}</div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">{game.name}</h1>
+            <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">{game.settings.name}</h1>
             <GameStatusBadge status={game.status} />
           </div>
         </div>

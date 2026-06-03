@@ -4,6 +4,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -15,6 +16,7 @@ import {
 } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
+import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
 
 /**
  * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
@@ -25,100 +27,6 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 }
 
 export const starSystemBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
-
-/**
- * Star System generation settings.
- *
- * These settings can be referenced by games and generated Star Systems. They are not owned by games so they can later
- * support presets.
- */
-export const starSystemGenerationSettingsTable = pgTable(
-  "star_system_generation_settings",
-  {
-    id: uuid("id").primaryKey(),
-    planetDensityNumericType: varchar("planet_density_numeric_type", { length: 16 }).notNull(),
-    planetDensityMaxBoundType: varchar("planet_density_max_bound_type", { length: 16 }).notNull(),
-    planetDensityMin: doublePrecision("planet_density_min").notNull(),
-    planetDensityMax: doublePrecision("planet_density_max").notNull(),
-    nbPlanetsNumericType: varchar("nb_planets_numeric_type", { length: 16 }).notNull(),
-    nbPlanetsMaxBoundType: varchar("nb_planets_max_bound_type", { length: 16 }).notNull(),
-    nbPlanetsMin: doublePrecision("nb_planets_min").notNull(),
-    nbPlanetsMax: doublePrecision("nb_planets_max").notNull(),
-    nbMoonsPerPlanetNumericType: varchar("nb_moons_per_planet_numeric_type", { length: 16 }).notNull(),
-    nbMoonsPerPlanetMaxBoundType: varchar("nb_moons_per_planet_max_bound_type", { length: 16 }).notNull(),
-    nbMoonsPerPlanetMin: doublePrecision("nb_moons_per_planet_min").notNull(),
-    nbMoonsPerPlanetMax: doublePrecision("nb_moons_per_planet_max").notNull(),
-    nbAsteroidBeltsNumericType: varchar("nb_asteroid_belts_numeric_type", { length: 16 }).notNull(),
-    nbAsteroidBeltsMaxBoundType: varchar("nb_asteroid_belts_max_bound_type", { length: 16 }).notNull(),
-    nbAsteroidBeltsMin: doublePrecision("nb_asteroid_belts_min").notNull(),
-    nbAsteroidBeltsMax: doublePrecision("nb_asteroid_belts_max").notNull(),
-    nbAsteroidsPerSectorNumericType: varchar("nb_asteroids_per_sector_numeric_type", { length: 16 }).notNull(),
-    nbAsteroidsPerSectorMaxBoundType: varchar("nb_asteroids_per_sector_max_bound_type", { length: 16 }).notNull(),
-    nbAsteroidsPerSectorMin: doublePrecision("nb_asteroids_per_sector_min").notNull(),
-    nbAsteroidsPerSectorMax: doublePrecision("nb_asteroids_per_sector_max").notNull(),
-    seed: integer("seed").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [
-    check(
-      "star_system_generation_settings_planet_density_numeric_type_check",
-      sql`${table.planetDensityNumericType} in ('float', 'integer')`,
-    ),
-    check(
-      "star_system_generation_settings_planet_density_max_bound_type_check",
-      sql`${table.planetDensityMaxBoundType} in ('inclusive', 'exclusive')`,
-    ),
-    check(
-      "star_system_generation_settings_planet_density_range_order_check",
-      sql`(${table.planetDensityMaxBoundType} = 'inclusive' and ${table.planetDensityMin} <= ${table.planetDensityMax}) or (${table.planetDensityMaxBoundType} = 'exclusive' and ${table.planetDensityMin} < ${table.planetDensityMax})`,
-    ),
-    check("star_system_generation_settings_nb_planets_numeric_type_check", sql`${table.nbPlanetsNumericType} in ('float', 'integer')`),
-    check(
-      "star_system_generation_settings_nb_planets_max_bound_type_check",
-      sql`${table.nbPlanetsMaxBoundType} in ('inclusive', 'exclusive')`,
-    ),
-    check(
-      "star_system_generation_settings_nb_planets_range_order_check",
-      sql`(${table.nbPlanetsMaxBoundType} = 'inclusive' and ${table.nbPlanetsMin} <= ${table.nbPlanetsMax}) or (${table.nbPlanetsMaxBoundType} = 'exclusive' and ${table.nbPlanetsMin} < ${table.nbPlanetsMax})`,
-    ),
-    check(
-      "star_system_generation_settings_nb_moons_per_planet_numeric_type_check",
-      sql`${table.nbMoonsPerPlanetNumericType} in ('float', 'integer')`,
-    ),
-    check(
-      "star_system_generation_settings_nb_moons_per_planet_max_bound_type_check",
-      sql`${table.nbMoonsPerPlanetMaxBoundType} in ('inclusive', 'exclusive')`,
-    ),
-    check(
-      "star_system_generation_settings_nb_moons_per_planet_range_order_check",
-      sql`(${table.nbMoonsPerPlanetMaxBoundType} = 'inclusive' and ${table.nbMoonsPerPlanetMin} <= ${table.nbMoonsPerPlanetMax}) or (${table.nbMoonsPerPlanetMaxBoundType} = 'exclusive' and ${table.nbMoonsPerPlanetMin} < ${table.nbMoonsPerPlanetMax})`,
-    ),
-    check(
-      "star_system_generation_settings_nb_asteroid_belts_numeric_type_check",
-      sql`${table.nbAsteroidBeltsNumericType} in ('float', 'integer')`,
-    ),
-    check(
-      "star_system_generation_settings_nb_asteroid_belts_max_bound_type_check",
-      sql`${table.nbAsteroidBeltsMaxBoundType} in ('inclusive', 'exclusive')`,
-    ),
-    check(
-      "star_system_generation_settings_nb_asteroid_belts_range_order_check",
-      sql`(${table.nbAsteroidBeltsMaxBoundType} = 'inclusive' and ${table.nbAsteroidBeltsMin} <= ${table.nbAsteroidBeltsMax}) or (${table.nbAsteroidBeltsMaxBoundType} = 'exclusive' and ${table.nbAsteroidBeltsMin} < ${table.nbAsteroidBeltsMax})`,
-    ),
-    check(
-      "star_system_generation_settings_nb_asteroids_per_sector_numeric_type_check",
-      sql`${table.nbAsteroidsPerSectorNumericType} in ('float', 'integer')`,
-    ),
-    check(
-      "star_system_generation_settings_nb_asteroids_per_sector_max_bound_type_check",
-      sql`${table.nbAsteroidsPerSectorMaxBoundType} in ('inclusive', 'exclusive')`,
-    ),
-    check(
-      "star_system_generation_settings_nb_asteroids_per_sector_range_order_check",
-      sql`(${table.nbAsteroidsPerSectorMaxBoundType} = 'inclusive' and ${table.nbAsteroidsPerSectorMin} <= ${table.nbAsteroidsPerSectorMax}) or (${table.nbAsteroidsPerSectorMaxBoundType} = 'exclusive' and ${table.nbAsteroidsPerSectorMin} < ${table.nbAsteroidsPerSectorMax})`,
-    ),
-  ],
-)
 
 /**
  * All registered players.
@@ -141,19 +49,27 @@ export const playersTable = pgTable(
  */
 export const gamesTable = pgTable("games", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
   createdByPlayerId: integer()
     .notNull()
     .references(() => playersTable.id, { onDelete: "cascade" }),
-  starSystemGenerationSettingsId: uuid("star_system_generation_settings_id")
-    .notNull()
-    .references(() => starSystemGenerationSettingsTable.id),
   winnerPlayerId: integer().references(() => playersTable.id, { onDelete: "set null" }),
-  nbSeats: integer().notNull(),
-  tickIntervalSeconds: integer().notNull(),
   createdAt: timestamp().defaultNow().notNull(),
   startedAt: timestamp(),
   endedAt: timestamp(),
+})
+
+/**
+ * Immutable settings chosen when a game is created.
+ * These are owned by the game and stored separately from the game lifecycle state.
+ */
+export const gameSettingsTable = pgTable("game_settings", {
+  gameId: integer("game_id")
+    .primaryKey()
+    .references(() => gamesTable.id, { onDelete: "cascade" }),
+  name: varchar({ length: 255 }).notNull(),
+  starSystemGenerationSettings: jsonb("star_system_generation_settings").$type<StarSystemGenerationSettings>().notNull(),
+  nbSeats: integer().notNull(),
+  tickIntervalSeconds: integer().notNull(),
 })
 
 /**
@@ -268,9 +184,6 @@ export const starSystemsTable = pgTable("star_systems", {
   gameId: integer("game_id")
     .primaryKey()
     .references(() => gamesTable.id, { onDelete: "cascade" }),
-  generationSettingsId: uuid("generation_settings_id")
-    .notNull()
-    .references(() => starSystemGenerationSettingsTable.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 

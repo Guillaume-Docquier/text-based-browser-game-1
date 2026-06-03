@@ -10,7 +10,6 @@ import { PlayersRepository, type PlayerRow, type PlayerRowInsert } from "#lib/db
 import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
-import { StarSystemGenerationSettingsRepository } from "#lib/db/star-systems/starSystemGenerationSettings.repository.ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -75,13 +74,7 @@ async function main({ connectionString, user }: { connectionString: string; user
   const db = createDb({ databaseUrl: connectionString })
   const gamesRepository = new GamesRepository({ db, logger })
   const playersRepository = new PlayersRepository({ db, logger })
-  const starSystemGenerationSettingsRepository = new StarSystemGenerationSettingsRepository({ db, logger })
-  const gamesController = new GamesController({
-    gamesRepository,
-    starSystemGenerationSettingsRepository,
-    createTransaction: db.transaction.bind(db),
-    logger,
-  })
+  const gamesController = new GamesController({ logger, gamesRepository })
 
   logger.info(`Seeding the '${host}' database with default values`)
   try {
@@ -185,10 +178,16 @@ async function seedGames({
   await resetTable(db, gamesTable)
   logger.info("├ Adding default games")
   const insanelyFastGame = assertSuccess(
-    await gamesController.create({ name: "insanely fast game", createdByPlayerId: firstPlayer.id, nbSeats: 5, tickIntervalSeconds: 60 }),
+    await gamesController.create({
+      createdByPlayerId: firstPlayer.id,
+      settings: { name: "insanely fast game", nbSeats: 5, tickIntervalSeconds: 60 },
+    }),
   )
   assertSuccess(
-    await gamesController.create({ name: "fast game", createdByPlayerId: secondPlayer.id, nbSeats: 10, tickIntervalSeconds: 7200 }),
+    await gamesController.create({
+      createdByPlayerId: secondPlayer.id,
+      settings: { name: "fast game", nbSeats: 10, tickIntervalSeconds: 7200 },
+    }),
   )
   logger.info("├ Adding players to games")
   assertSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: secondPlayer.id }))

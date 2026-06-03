@@ -9,7 +9,6 @@ import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { PlayersRepository } from "#lib/db/players/players.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
-import { StarSystemGenerationSettingsRepository } from "#lib/db/star-systems/starSystemGenerationSettings.repository.ts"
 
 type AllServices = Omit<Parameters<typeof createApi>[0], "authService"> & { authService: AuthServiceMock }
 
@@ -32,7 +31,6 @@ export async function createApiStub(): Promise<AllServices & { api: Express }> {
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     playersRepository: new PlayersRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
-    starSystemGenerationSettingsRepository: new StarSystemGenerationSettingsRepository({ db, logger }),
   } as const satisfies Parameters<typeof createApi>[0]
 
   const api = await createApi(services)

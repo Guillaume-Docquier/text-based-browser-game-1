@@ -49,7 +49,7 @@ export async function processTick({
       continue
     }
 
-    const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds: game.tickIntervalSeconds })
+    const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds: game.settings.tickIntervalSeconds })
     const nextTick = gameTick.tick + 1
 
     const playerIdsResult = await gamesRepository.getPlayerIds({ gameId: game.id })
