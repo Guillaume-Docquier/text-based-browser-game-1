@@ -19,10 +19,7 @@ describe("starSystems.router", () => {
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
-      const starSystem = await createStoredStarSystem({
-        starSystemsRepository,
-        gameId: createGameResult.newGame.id,
-      })
+      const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
 
       // Act
       const getStarSystemResponse = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
@@ -138,10 +135,7 @@ describe("starSystems.router", () => {
       authService.player = creator
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
-      await createStoredStarSystem({
-        starSystemsRepository,
-        gameId: createGameResult.newGame.id,
-      })
+      await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
       authService.player = outsider
 
       // Act & Assert
