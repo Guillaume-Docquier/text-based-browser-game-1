@@ -1,18 +1,66 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GameSummaryPlayerRow, GameSummaryRow, GamesRepository, GameRow, GameRowInsert } from "#lib/db/games/games.repository.ts"
+import type { StarSystemGenerationSettingsRepository } from "#lib/db/star-systems/starSystemGenerationSettings.repository.ts"
+import type { CreateTransaction } from "#lib/db/createDb.ts"
+import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/defaultStarSystemGenerationSettings.ts"
+import { couldNot, TransactionRollback } from "#lib/errors.ts"
 import z from "zod"
 
 export class GamesController {
   private readonly gamesRepository: GamesRepository
+  private readonly starSystemGenerationSettingsRepository: StarSystemGenerationSettingsRepository
+  private readonly createTransaction: CreateTransaction
   private readonly logger: Logger
 
-  public constructor({ gamesRepository, logger }: { gamesRepository: GamesRepository; logger: Logger }) {
+  public constructor({
+    gamesRepository,
+    starSystemGenerationSettingsRepository,
+    createTransaction,
+    logger,
+  }: {
+    gamesRepository: GamesRepository
+    starSystemGenerationSettingsRepository: StarSystemGenerationSettingsRepository
+    createTransaction: CreateTransaction
+    logger: Logger
+  }) {
     this.gamesRepository = gamesRepository
+    this.starSystemGenerationSettingsRepository = starSystemGenerationSettingsRepository
+    this.createTransaction = createTransaction
     this.logger = logger.child({ scope: "games-controller" })
   }
 
   public async create(newGame: GameInsert): Promise<Result<CreatedGame, string>> {
-    return await this.gamesRepository.create(newGame)
+    const createGameResult = await Result.tryCatch(
+      this.createTransaction(async (tx): Promise<CreatedGame> => {
+        const generationSettingsResult = await this.starSystemGenerationSettingsRepository.create(
+          createDefaultStarSystemGenerationSettings(),
+          tx,
+        )
+        if (Result.isFailure(generationSettingsResult)) {
+          throw new TransactionRollback(generationSettingsResult.error)
+        }
+
+        const gameResult = await this.gamesRepository.create(
+          {
+            ...newGame,
+            starSystemGenerationSettingsId: generationSettingsResult.value.id,
+          },
+          tx,
+        )
+        if (Result.isFailure(gameResult)) {
+          throw new TransactionRollback(gameResult.error)
+        }
+
+        return gameResult.value
+      }),
+    )
+
+    if (Result.isFailure(createGameResult)) {
+      this.logger.error("Could not create game", { newGame, error: createGameResult.error })
+      return Result.Failure(couldNot("create game"))
+    }
+
+    return createGameResult
   }
 
   public async getSummaries({ playerId }: { playerId: number | undefined }): Promise<GameSummary[]> {
@@ -132,13 +180,14 @@ export const GameInsert = z.object({
   createdByPlayerId: z.number(),
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
-}) satisfies z.ZodType<GameRowInsert>
+}) satisfies z.ZodType<Omit<GameRowInsert, "starSystemGenerationSettingsId">>
 
 export type CreatedGame = z.infer<typeof CreatedGame>
 export const CreatedGame = z.object({
   name: z.string(),
   id: z.number(),
   createdByPlayerId: z.number(),
+  starSystemGenerationSettingsId: z.string(),
   winnerPlayerId: z.number().nullable(),
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
@@ -165,6 +214,7 @@ export const GameSummary = z.object({
   name: z.string(),
   id: z.number(),
   winnerPlayerId: z.number().nullable(),
+  starSystemGenerationSettingsId: z.string(),
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
   createdAt: z.date(),

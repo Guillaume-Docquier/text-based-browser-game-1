@@ -18,6 +18,7 @@ import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repo
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
 import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import type { StarSystemGenerationSettingsRepository } from "#lib/db/star-systems/starSystemGenerationSettings.repository.ts"
 import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -28,7 +29,6 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
  * It also decouples the application from those 3rd parties, if done well.
  */
 export async function createApi({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- createTransaction will be used soon enough
   createTransaction,
   authService,
   ...services
@@ -46,13 +46,15 @@ export async function createApi({
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
   starSystemsRepository: StarSystemsRepository
+  starSystemGenerationSettingsRepository: StarSystemGenerationSettingsRepository
 }): Promise<Express> {
+  const controllerServices = { ...services, createTransaction }
   const controllers = {
-    gamesController: new GamesController(services),
-    gameStatesController: new GameStatesController(services),
-    playersController: new PlayersController(services),
-    gamePlayerActionsController: new GamePlayerActionsController(services),
-    starSystemsController: new StarSystemsController(services),
+    gamesController: new GamesController(controllerServices),
+    gameStatesController: new GameStatesController(controllerServices),
+    playersController: new PlayersController(controllerServices),
+    gamePlayerActionsController: new GamePlayerActionsController(controllerServices),
+    starSystemsController: new StarSystemsController(controllerServices),
   }
 
   const app = express()

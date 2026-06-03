@@ -8,10 +8,12 @@ import { PlayersRepository } from "#lib/db/players/players.repository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { type NewStarSystem, type Sector, type SectorRow, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
-import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
+import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { createGameRowInsertStub } from "#lib/db/games/GameRowInsert.stub.ts"
+import { StarSystemGenerationSettingsRepository } from "#lib/db/star-systems/starSystemGenerationSettings.repository.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
+import type { Database } from "#lib/db/createDb.ts"
+import { createGameInsertStub } from "#api/games/GameInsert.stub.ts"
 
 describe("starSystems.repository", () => {
   describe("create", () => {
@@ -21,13 +23,13 @@ describe("starSystems.repository", () => {
       const logger = Logger.get()
 
       const playersRepository = new PlayersRepository({ db, logger })
-      const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
+      const gamesController = createGamesController({ db, logger })
 
       const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
-      const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id })))
+      const game = extractSuccess(await gamesController.create(createGameInsertStub({ createdByPlayerId: player.id })))
 
-      const system = createCoherentStarSystem({ gameId: game.id })
+      const system = createCoherentStarSystem({ gameId: game.id, generationSettingsId: game.starSystemGenerationSettingsId })
       const firstSector = system.sectors[0]
       Assert.isDefined(firstSector)
 
@@ -38,7 +40,7 @@ describe("starSystems.repository", () => {
       expect(createStarSystemResult).toEqual(Result.Success(true))
       expect
         .soft(await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, game.id)))
-        .toEqual([{ createdAt: expect.any(Date), gameId: game.id, generationSettings: system.generationSettings }])
+        .toEqual([{ createdAt: expect.any(Date), gameId: game.id, generationSettingsId: system.generationSettingsId }])
       expect
         .soft(await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, game.id)))
         .toEqual([{ ...system.orbits[0], gameId: game.id }])
@@ -62,14 +64,14 @@ describe("starSystems.repository", () => {
       const logger = Logger.get()
 
       const playersRepository = new PlayersRepository({ db, logger })
-      const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
+      const gamesController = createGamesController({ db, logger })
 
       const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
-      const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id })))
+      const game = extractSuccess(await gamesController.create(createGameInsertStub({ createdByPlayerId: player.id })))
 
-      const system1 = createCoherentStarSystem({ gameId: game.id })
-      const system2 = createCoherentStarSystem({ gameId: game.id })
+      const system1 = createCoherentStarSystem({ gameId: game.id, generationSettingsId: game.starSystemGenerationSettingsId })
+      const system2 = createCoherentStarSystem({ gameId: game.id, generationSettingsId: game.starSystemGenerationSettingsId })
 
       // Act
       const createStarSystemResults = await Promise.all([starSystemsRepository.create(system1), starSystemsRepository.create(system2)])
@@ -84,13 +86,13 @@ describe("starSystems.repository", () => {
       const logger = Logger.get()
 
       const playersRepository = new PlayersRepository({ db, logger })
-      const gamesRepository = new GamesRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
+      const gamesController = createGamesController({ db, logger })
 
       const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
-      const game = extractSuccess(await gamesRepository.create(createGameRowInsertStub({ createdByPlayerId: player.id })))
+      const game = extractSuccess(await gamesController.create(createGameInsertStub({ createdByPlayerId: player.id })))
 
-      const system = createIncoherentStarSystem({ gameId: game.id })
+      const system = createIncoherentStarSystem({ gameId: game.id, generationSettingsId: game.starSystemGenerationSettingsId })
 
       // Act
       const createStarSystemResult = await starSystemsRepository.create(system)
@@ -107,7 +109,16 @@ describe("starSystems.repository", () => {
   })
 })
 
-function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem {
+function createGamesController({ db, logger }: { db: Database; logger: Logger }): GamesController {
+  return new GamesController({
+    createTransaction: db.transaction.bind(db),
+    gamesRepository: new GamesRepository({ db, logger }),
+    starSystemGenerationSettingsRepository: new StarSystemGenerationSettingsRepository({ db, logger }),
+    logger,
+  })
+}
+
+function createCoherentStarSystem({ gameId, generationSettingsId }: { gameId: number; generationSettingsId: string }): NewStarSystem {
   const orbitId = randomUUID()
   const sectorId = randomUUID()
   const sectorMovementNodeId = randomUUID()
@@ -116,7 +127,7 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
 
   return {
     gameId,
-    generationSettings: createStarSystemGenerationSettingsStub(),
+    generationSettingsId,
     movementNodes: [{ id: sectorMovementNodeId }, { id: planetMovementNodeId }, { id: moonMovementNodeId }],
     orbits: [{ id: orbitId, orbitNumber: 1 }],
     sectors: [
@@ -155,7 +166,7 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
   }
 }
 
-function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem {
+function createIncoherentStarSystem({ gameId, generationSettingsId }: { gameId: number; generationSettingsId: string }): NewStarSystem {
   const orbitId = randomUUID()
   const sectorId = randomUUID()
   const missingSectorId = randomUUID()
@@ -164,7 +175,7 @@ function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSyst
 
   return {
     gameId,
-    generationSettings: createStarSystemGenerationSettingsStub(),
+    generationSettingsId,
     movementNodes: [{ id: sectorMovementNodeId }, { id: bodyMovementNodeId }],
     orbits: [{ id: orbitId, orbitNumber: 1 }],
     sectors: [

@@ -8,7 +8,6 @@ import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { randomUUID } from "node:crypto"
 import { createGameRowInsertStub } from "#lib/db/games/GameRowInsert.stub.ts"
-import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 
 describe("starSystems.router", () => {
   describe("getSystem", () => {
@@ -20,7 +19,11 @@ describe("starSystems.router", () => {
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
-      const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
+      const starSystem = await createStoredStarSystem({
+        starSystemsRepository,
+        gameId: createGameResult.newGame.id,
+        generationSettingsId: createGameResult.newGame.starSystemGenerationSettingsId,
+      })
 
       // Act
       const getStarSystemResponse = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
@@ -136,7 +139,11 @@ describe("starSystems.router", () => {
       authService.player = creator
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
-      await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
+      await createStoredStarSystem({
+        starSystemsRepository,
+        gameId: createGameResult.newGame.id,
+        generationSettingsId: createGameResult.newGame.starSystemGenerationSettingsId,
+      })
       authService.player = outsider
 
       // Act & Assert
@@ -168,11 +175,13 @@ describe("starSystems.router", () => {
 async function createStoredStarSystem({
   starSystemsRepository,
   gameId,
+  generationSettingsId,
 }: {
   starSystemsRepository: StarSystemsRepository
   gameId: number
+  generationSettingsId: string
 }): Promise<ReturnType<typeof createStarSystemFixture>> {
-  const starSystem = createStarSystemFixture({ gameId })
+  const starSystem = createStarSystemFixture({ gameId, generationSettingsId })
   const createSystemResult = await starSystemsRepository.create(starSystem)
   if (Result.isFailure(createSystemResult)) {
     throw new Error(createSystemResult.error)
@@ -182,7 +191,7 @@ async function createStoredStarSystem({
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- As const will help the tests verbosity
-function createStarSystemFixture({ gameId }: { gameId: number }) {
+function createStarSystemFixture({ gameId, generationSettingsId }: { gameId: number; generationSettingsId: string }) {
   const orbitId = randomUUID()
   const sector1Id = randomUUID()
   const sector2Id = randomUUID()
@@ -194,7 +203,7 @@ function createStarSystemFixture({ gameId }: { gameId: number }) {
 
   return {
     gameId,
-    generationSettings: createStarSystemGenerationSettingsStub(),
+    generationSettingsId,
     movementNodes: [
       { id: sector1MovementNodeId },
       { id: sector2MovementNodeId },

@@ -36,6 +36,13 @@
       "when": 1780280890557,
       "tag": "0004_add-sector-angle-ranges",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780373447439,
+      "tag": "0005_star-system-generation-settings",
+      "breakpoints": true
     }
   ]
 }

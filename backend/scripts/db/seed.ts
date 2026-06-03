@@ -10,6 +10,7 @@ import { PlayersRepository, type PlayerRow, type PlayerRowInsert } from "#lib/db
 import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
+import { StarSystemGenerationSettingsRepository } from "#lib/db/star-systems/starSystemGenerationSettings.repository.ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -74,7 +75,13 @@ async function main({ connectionString, user }: { connectionString: string; user
   const db = createDb({ databaseUrl: connectionString })
   const gamesRepository = new GamesRepository({ db, logger })
   const playersRepository = new PlayersRepository({ db, logger })
-  const gamesController = new GamesController({ gamesRepository, logger })
+  const starSystemGenerationSettingsRepository = new StarSystemGenerationSettingsRepository({ db, logger })
+  const gamesController = new GamesController({
+    gamesRepository,
+    starSystemGenerationSettingsRepository,
+    createTransaction: db.transaction.bind(db),
+    logger,
+  })
 
   logger.info(`Seeding the '${host}' database with default values`)
   try {

@@ -14,6 +14,7 @@ import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { StarSystemGenerationSettingsRepository } from "#lib/db/star-systems/starSystemGenerationSettings.repository.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
+    starSystemGenerationSettingsRepository: new StarSystemGenerationSettingsRepository({ db, logger }),
   }
 
   const authService = new AuthService({ logger })
