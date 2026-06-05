@@ -4,6 +4,7 @@ import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { GameSummaryStatus } from "#api/games/games.controller.ts"
+import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/defaultStarSystemGenerationSettings.ts"
 
 describe("games.router", () => {
   describe("create", () => {
@@ -17,7 +18,13 @@ describe("games.router", () => {
 
       // Act
       const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "my new game", nbSeats: 43, tickIntervalSeconds: 420 }),
+        newGame: {
+          settings: {
+            name: "my new game",
+            nbSeats: 43,
+            tickIntervalSeconds: 420,
+          },
+        },
       })
 
       // Assert
@@ -26,7 +33,16 @@ describe("games.router", () => {
           id: expect.any(Number),
           createdAt: expect.any(String),
           createdByPlayerId: player.id,
-          settings: expectGameSettings({ name: "my new game", nbSeats: 43, tickIntervalSeconds: 420 }),
+          settings: {
+            name: "my new game",
+            nbSeats: 43,
+            tickIntervalSeconds: 420,
+            locked: false,
+            starSystemGenerationSettings: {
+              ...createDefaultStarSystemGenerationSettings(),
+              seed: expect.any(Number),
+            },
+          },
           endedAt: null,
           startedAt: null,
           winnerPlayerId: null,
@@ -41,7 +57,15 @@ describe("games.router", () => {
 
       // Act & Assert
       await expect(
-        trpcClient.client.games.create.mutate({ newGame: createGameInput({ name: "my new game", nbSeats: 43, tickIntervalSeconds: 420 }) }),
+        trpcClient.client.games.create.mutate({
+          newGame: {
+            settings: {
+              name: "my new game",
+              nbSeats: 43,
+              tickIntervalSeconds: 420,
+            },
+          },
+        }),
       ).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
@@ -58,7 +82,13 @@ describe("games.router", () => {
       authService.player = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "public game", nbSeats: 2, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "public game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       authService.player = undefined
@@ -105,7 +135,13 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "joinable game", nbSeats: 2, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "joinable game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       authService.player = player
@@ -154,7 +190,13 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "specific game", nbSeats: 2, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "specific game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       authService.player = player
@@ -199,7 +241,13 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "specific game", nbSeats: 2, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "specific game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       authService.player = undefined
@@ -257,7 +305,13 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "join game", nbSeats: 2, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "join game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       authService.player = player
@@ -304,7 +358,13 @@ describe("games.router", () => {
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "already joined game", nbSeats: 2, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "already joined game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       // Act & Assert
@@ -336,7 +396,13 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "leave game", nbSeats: 3, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "leave game",
+            nbSeats: 3,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       authService.player = player
@@ -380,7 +446,13 @@ describe("games.router", () => {
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "creator cannot leave game", nbSeats: 2, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "creator cannot leave game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       // Act & Assert
@@ -411,7 +483,13 @@ describe("games.router", () => {
       authService.player = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "start game", nbSeats: 2, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "start game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       // Act
@@ -457,7 +535,13 @@ describe("games.router", () => {
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: createGameInput({ name: "non creator cannot start game", nbSeats: 2, tickIntervalSeconds: 60 }),
+        newGame: {
+          settings: {
+            name: "non creator cannot start game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+          },
+        },
       })
 
       authService.player = player
@@ -480,25 +564,3 @@ describe("games.router", () => {
     })
   })
 })
-
-function createGameInput(settings: { name: string; nbSeats: number; tickIntervalSeconds: number }): {
-  settings: { name: string; nbSeats: number; tickIntervalSeconds: number }
-} {
-  return { settings }
-}
-
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Vitest matcher objects do not map cleanly to the API type.
-function expectGameSettings(settings: { name: string; nbSeats: number; tickIntervalSeconds: number }) {
-  return {
-    ...settings,
-    locked: false,
-    starSystemGenerationSettings: {
-      planetDensity: expect.any(Object),
-      nbPlanets: expect.any(Object),
-      nbMoonsPerPlanet: expect.any(Object),
-      nbAsteroidBelts: expect.any(Object),
-      nbAsteroidsPerSector: expect.any(Object),
-      seed: expect.any(Number),
-    },
-  }
-}
