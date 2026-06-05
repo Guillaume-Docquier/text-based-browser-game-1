@@ -45,7 +45,7 @@ export class AuthService implements IAuthService {
    * This returns richer data than {@link getAuth}.
    */
   private async getUser({ authId }: { authId: string }): Promise<Result<User, string>> {
-    const getUserResult = await Result.tryCatch(async () => await clerkClient.users.getUser(authId))
+    const getUserResult = await Result.tryCatch(clerkClient.users.getUser(authId))
     if (Result.isFailure(getUserResult)) {
       this.logger.error("Could not get user data from clerk", { authId, error: getUserResult.error })
       return Result.Failure(couldNot("get user data from clerk"))

@@ -43,19 +43,18 @@ export class GameTicksRepository extends PostgresRepository {
 
   public async getTicksToProcess(db: PostgresRepository["db"] = this.db): Promise<Result<TickToProcess[], string>> {
     const ticksToProcessResult = await Result.tryCatch(
-      async () =>
-        await db
-          .select({
-            game: gamesTable,
-            gameTick: gameTicksTable,
-            gameState: gameStatesTable,
-            tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
-          })
-          .from(gameTicksTable)
-          .innerJoin(gameStatesTable, eq(gameStatesTable.gameId, gameTicksTable.gameId))
-          .innerJoin(gamesTable, eq(gamesTable.id, gameTicksTable.gameId))
-          .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
-          .where(and(isNull(gameTicksTable.processingStartedAt), lte(gameTicksTable.scheduledFor, new Date()))),
+      db
+        .select({
+          game: gamesTable,
+          gameTick: gameTicksTable,
+          gameState: gameStatesTable,
+          tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
+        })
+        .from(gameTicksTable)
+        .innerJoin(gameStatesTable, eq(gameStatesTable.gameId, gameTicksTable.gameId))
+        .innerJoin(gamesTable, eq(gamesTable.id, gameTicksTable.gameId))
+        .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
+        .where(and(isNull(gameTicksTable.processingStartedAt), lte(gameTicksTable.scheduledFor, new Date()))),
     )
 
     if (Result.isFailure(ticksToProcessResult)) {
@@ -77,41 +76,37 @@ export class GameTicksRepository extends PostgresRepository {
     { gameId, tick }: { gameId: number; tick: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
-    const startProcessingTickResult = await Result.tryCatch(async (): Promise<true> => {
-      await db
+    const startProcessingTickResult = await Result.tryCatch(
+      db
         .update(gameTicksTable)
         .set({ processingStartedAt: new Date() })
-        .where(and(eq(gameTicksTable.gameId, gameId), eq(gameTicksTable.tick, tick)))
-
-      return true
-    })
+        .where(and(eq(gameTicksTable.gameId, gameId), eq(gameTicksTable.tick, tick))),
+    )
 
     if (Result.isFailure(startProcessingTickResult)) {
       this.logger.error("Could not start processing game tick", { gameId, tick, error: startProcessingTickResult.error })
       return Result.Failure(couldNot("start processing game tick"))
     }
 
-    return startProcessingTickResult
+    return Result.Success(true)
   }
 
   public async finishProcessingTick(
     { gameId, tick }: { gameId: number; tick: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
-    const finishProcessingTickResult = await Result.tryCatch(async (): Promise<true> => {
-      await db
+    const finishProcessingTickResult = await Result.tryCatch(
+      db
         .update(gameTicksTable)
         .set({ processingEndedAt: new Date() })
-        .where(and(eq(gameTicksTable.gameId, gameId), eq(gameTicksTable.tick, tick)))
-
-      return true
-    })
+        .where(and(eq(gameTicksTable.gameId, gameId), eq(gameTicksTable.tick, tick))),
+    )
 
     if (Result.isFailure(finishProcessingTickResult)) {
       this.logger.error("Could not finish processing game tick", { gameId, tick, error: finishProcessingTickResult.error })
       return Result.Failure(couldNot("finish processing game tick"))
     }
 
-    return finishProcessingTickResult
+    return Result.Success(true)
   }
 }

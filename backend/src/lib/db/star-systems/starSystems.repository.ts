@@ -121,8 +121,8 @@ export class StarSystemsRepository extends PostgresRepository {
    * It is your responsibility to provide coherent data. Failing to do so will result in a Failure.
    */
   public async create(newStarSystem: NewStarSystem, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
-    const createResult = await Result.tryCatch(async (): Promise<true> => {
-      await db.transaction(async (tx) => {
+    const createResult = await Result.tryCatch(
+      db.transaction(async (tx) => {
         const withGameId = createWithGameId(newStarSystem.gameId)
 
         await tx.insert(starSystemsTable).values(withGameId({}))
@@ -151,17 +151,15 @@ export class StarSystemsRepository extends PostgresRepository {
         if (bodies.length > 0) {
           await tx.insert(bodiesTable).values(bodies)
         }
-      })
-
-      return true
-    })
+      }),
+    )
 
     if (Result.isFailure(createResult)) {
       this.logger.error("Could not create Star System", { system: newStarSystem, error: createResult.error })
       return Result.Failure(couldNot("create Star System"))
     }
 
-    return createResult
+    return Result.Success(true)
   }
 
   /**

@@ -62,9 +62,7 @@ export class GameStatesRepository extends PostgresRepository {
     { gameId }: { gameId: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GameStateRow | undefined, string>> {
-    const gameStatesResult = await Result.tryCatch(
-      async () => await db.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId)),
-    )
+    const gameStatesResult = await Result.tryCatch(db.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId)))
 
     if (Result.isFailure(gameStatesResult)) {
       this.logger.error("Could not get game state by id", { gameId, error: gameStatesResult.error })
@@ -87,32 +85,31 @@ export class GameStatesRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<PlayerGameStateRow | undefined, string>> {
     const playerGameStateResult = await Result.tryCatch(
-      async () =>
-        await db.transaction(async (tx) => {
-          const gameStates = await tx.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId))
-          Assert.isTrue(gameStates.length === 1)
+      db.transaction(async (tx) => {
+        const gameStates = await tx.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId))
+        Assert.isTrue(gameStates.length === 1)
 
-          const gameState = gameStates[0]
-          if (gameState === undefined) {
-            return undefined
-          }
+        const gameState = gameStates[0]
+        if (gameState === undefined) {
+          return undefined
+        }
 
-          const playerResources = await tx
-            .select()
-            .from(gamePlayerResourcesTable)
-            .where(and(eq(gamePlayerResourcesTable.gameId, gameId), eq(gamePlayerResourcesTable.playerId, playerId)))
-          const money = playerResources.find((resource) => resource.resourceType === ResourceType.MONEY)
-          Assert.isDefined(money)
+        const playerResources = await tx
+          .select()
+          .from(gamePlayerResourcesTable)
+          .where(and(eq(gamePlayerResourcesTable.gameId, gameId), eq(gamePlayerResourcesTable.playerId, playerId)))
+        const money = playerResources.find((resource) => resource.resourceType === ResourceType.MONEY)
+        Assert.isDefined(money)
 
-          return {
-            ...gameState,
-            playerId,
-            resources: {
-              // Long term this should be generic
-              money: money.amount,
-            },
-          }
-        }),
+        return {
+          ...gameState,
+          playerId,
+          resources: {
+            // Long term this should be generic
+            money: money.amount,
+          },
+        }
+      }),
     )
 
     if (Result.isFailure(playerGameStateResult)) {
