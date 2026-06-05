@@ -1,12 +1,12 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type {
-  GameReadModel,
-  GameSettingsReadModel,
-  GameSettingsWriteModel,
-  GameSummaryPlayerRow,
-  GameSummaryRow,
+  GameModel,
+  GameSettingsModel,
+  NewGameSettingsModel,
+  GameSummaryPlayerModel,
+  GameSummaryModel,
   GamesRepository,
-  GameWriteModel,
+  NewGameModel,
 } from "#lib/db/games/games.repository.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/defaultStarSystemGenerationSettings.ts"
 import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
@@ -116,7 +116,7 @@ export class GamesController {
   }
 }
 
-function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSummaryRow; playerId: number | undefined }): GameSummary {
+function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSummaryModel; playerId: number | undefined }): GameSummary {
   // prettier-ignore
   const status =
     gameSummaryRow.endedAt !== null ? GameSummaryStatus.ENDED
@@ -158,9 +158,7 @@ export const GameInsert = z.object({
     nbSeats: z.number(),
     tickIntervalSeconds: z.number(),
   }),
-}) satisfies z.ZodType<
-  Pick<GameWriteModel, "createdByPlayerId"> & { settings: Omit<GameSettingsWriteModel, "starSystemGenerationSettings"> }
->
+}) satisfies z.ZodType<Pick<NewGameModel, "createdByPlayerId"> & { settings: Omit<NewGameSettingsModel, "starSystemGenerationSettings"> }>
 
 export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
 export const StarSystemGenerationSettingsDto = z.object({
@@ -179,7 +177,7 @@ export const GameSettings = z.object({
   starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
-}) satisfies z.ZodType<GameSettingsReadModel>
+}) satisfies z.ZodType<GameSettingsModel>
 
 export type CreatedGame = z.infer<typeof CreatedGame>
 export const CreatedGame = z.object({
@@ -190,7 +188,7 @@ export const CreatedGame = z.object({
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
-}) satisfies z.ZodType<GameReadModel>
+}) satisfies z.ZodType<GameModel>
 
 export const GameSummaryStatus = {
   WAITING_FOR_PLAYERS: "WAITING_FOR_PLAYERS",
@@ -203,7 +201,7 @@ export type GameSummaryPlayer = z.infer<typeof GameSummaryPlayer>
 export const GameSummaryPlayer = z.object({
   id: z.number(),
   alias: z.string().nullable(),
-}) satisfies z.ZodType<GameSummaryPlayerRow>
+}) satisfies z.ZodType<GameSummaryPlayerModel>
 
 export type GameSummary = z.infer<typeof GameSummary>
 export const GameSummary = z.object({
@@ -228,4 +226,4 @@ export const GameSummary = z.object({
    * Whether the current player can start the game.
    */
   canStart: z.boolean(),
-}) satisfies z.ZodType<GameSummaryRow>
+}) satisfies z.ZodType<GameSummaryModel>

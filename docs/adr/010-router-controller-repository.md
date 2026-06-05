@@ -7,6 +7,7 @@ Accepted
 ### Amendment history
 
 - 2026-05-14: Clarified ownership for Zod schemas and naming conventions for DTOs and repository/database types.
+- 2026-06-04: Updated naming conventions for repository/database types.
 
 ## Context
 
@@ -32,9 +33,8 @@ Repositories represent data access patterns (aka queries) and are not restricted
 
 Repository and database types should follow these naming conventions:
 
-- Repository creation input types use the `New` prefix (for example: `NewStarSystem`).
-- Repository query result types use the `ReadModel` suffix (for example: `StarSystemReadModel`).
-- Internal database query row shapes use the `Row` suffix (for example: `StarSystemRow`).
+- Repository exposes `Model` suffixed types. (for example: `NewGameModel`, `GameModel`).
+- Internal database query row shapes use the `Row` suffix (for example: `GameRow`).
 - `Row` types are internal repository implementation details and must never be exported. This keeps database architecture decoupled from the rest of the application.
 
 ## Consequences

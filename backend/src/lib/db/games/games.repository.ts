@@ -17,22 +17,22 @@ import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/gameResources.ts"
 
 type GameRow = typeof gamesTable.$inferSelect
 type GameSettingsRow = typeof gameSettingsTable.$inferSelect
-export type GameSettingsReadModel = Omit<GameSettingsRow, "gameId">
-export type GameSettingsWriteModel = Omit<GameSettingsReadModel, "locked">
-export type GameReadModel = GameRow & {
-  settings: GameSettingsReadModel
-}
-export type GameWriteModel = Pick<GameRow, "createdByPlayerId"> & {
-  settings: GameSettingsWriteModel
-}
-export type GameRowInsert = GameWriteModel
 
-export type GameSummaryPlayerRow = Pick<typeof playersTable.$inferSelect, "id" | "alias">
-
-export type GameSummaryRow = Omit<GameReadModel, "createdByPlayerId"> & {
-  creator: GameSummaryPlayerRow
-  players: GameSummaryPlayerRow[]
+export type NewGameModel = Pick<GameRow, "createdByPlayerId"> & {
+  settings: NewGameSettingsModel
 }
+export type NewGameSettingsModel = Omit<GameSettingsModel, "locked">
+
+export type GameModel = GameRow & {
+  settings: GameSettingsModel
+}
+export type GameSettingsModel = Omit<GameSettingsRow, "gameId">
+
+export type GameSummaryModel = Omit<GameModel, "createdByPlayerId"> & {
+  creator: GameSummaryPlayerModel
+  players: GameSummaryPlayerModel[]
+}
+export type GameSummaryPlayerModel = Pick<typeof playersTable.$inferSelect, "id" | "alias">
 
 const pgCreatorAlias = alias(playersTable, "creator")
 const pgPlayerAlias = alias(playersTable, "player")
@@ -45,7 +45,7 @@ export class GamesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "games-repository" })
   }
 
-  public async create(newGame: GameWriteModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameReadModel, string>> {
+  public async create(newGame: NewGameModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameModel, string>> {
     const createResult = await Result.tryCatch(
       async () =>
         await db.transaction(async (tx) => {
@@ -79,7 +79,7 @@ export class GamesRepository extends PostgresRepository {
     return createResult
   }
 
-  public async getSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryRow[], string>> {
+  public async getSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryModel[], string>> {
     const gameSummariesResult = await Result.tryCatch(
       async () =>
         await db
@@ -174,7 +174,7 @@ export class GamesRepository extends PostgresRepository {
   public async getSummaryById(
     { gameId }: { gameId: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameSummaryRow | undefined, string>> {
+  ): Promise<Result<GameSummaryModel | undefined, string>> {
     const gameSummariesResult = await Result.tryCatch(
       async () =>
         await db
@@ -317,7 +317,7 @@ export class GamesRepository extends PostgresRepository {
     options: {
       gameId: number
       playerId: number
-      canJoin: (gameSummaryRow: GameSummaryRow) => boolean
+      canJoin: (gameSummaryRow: GameSummaryModel) => boolean
     },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
@@ -366,7 +366,7 @@ export class GamesRepository extends PostgresRepository {
     }: {
       gameId: number
       playerId: number
-      canLeave: (gameSummaryRow: GameSummaryRow) => boolean
+      canLeave: (gameSummaryRow: GameSummaryModel) => boolean
     },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
@@ -415,7 +415,7 @@ export class GamesRepository extends PostgresRepository {
       canStart,
     }: {
       gameId: number
-      canStart: (gameSummaryRow: GameSummaryRow) => boolean
+      canStart: (gameSummaryRow: GameSummaryModel) => boolean
     },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
@@ -484,7 +484,7 @@ export class GamesRepository extends PostgresRepository {
   }
 }
 
-function toGameReadModel({ game, settings }: { game: GameRow; settings: GameSettingsRow }): GameReadModel {
+function toGameReadModel({ game, settings }: { game: GameRow; settings: GameSettingsRow }): GameModel {
   return {
     ...game,
     settings: omit(settings, "gameId"),
