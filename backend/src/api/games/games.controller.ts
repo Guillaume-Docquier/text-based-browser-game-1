@@ -8,7 +8,7 @@ import type {
   GamesRepository,
   NewGameModel,
 } from "#lib/db/games/games.repository.ts"
-import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/defaultStarSystemGenerationSettings.ts"
+import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
 import { couldNot } from "#lib/errors.ts"
 import { RangeDto } from "#api/RangeDto.ts"

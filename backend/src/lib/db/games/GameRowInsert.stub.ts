@@ -1,12 +1,12 @@
 import type { NewGameModel } from "#lib/db/games/games.repository.ts"
-import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/defaultStarSystemGenerationSettings.ts"
+import { createStarSystemGenerationSettingsStub } from "#lib/star-systems/StarSystemGenerationSettings.stub.ts"
 
 export function createNewGameModelStub(overrides?: Partial<NewGameModel>): NewGameModel {
   return {
     createdByPlayerId: 43,
     settings: {
       name: "game name",
-      starSystemGenerationSettings: createDefaultStarSystemGenerationSettings(),
+      starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
       nbSeats: 2,
       tickIntervalSeconds: 60,
     },
