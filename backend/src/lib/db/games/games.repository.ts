@@ -9,7 +9,7 @@ import {
   playersTable,
 } from "#lib/db/schema.ts"
 import { and, eq } from "drizzle-orm"
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Result, omit } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
 import { couldNot } from "#lib/errors.ts"
 import { computeNextTickDate } from "#tick-processing/processTick.ts"
@@ -485,10 +485,8 @@ export class GamesRepository extends PostgresRepository {
 }
 
 function toGameReadModel({ game, settings }: { game: GameRow; settings: GameSettingsRow }): GameReadModel {
-  const { gameId: _gameId, ...settingsReadModel } = settings
-
   return {
     ...game,
-    settings: settingsReadModel,
+    settings: omit(settings, "gameId"),
   }
 }
