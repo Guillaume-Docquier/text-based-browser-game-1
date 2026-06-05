@@ -7,6 +7,11 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pwd
       POSTGRES_DB: cosmic-empires
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username=user --dbname=cosmic-empires"]
+      interval: 1s
+      timeout: 5s
+      retries: 30
     ports:
       - "5432:5432"
     volumes:
