@@ -125,7 +125,7 @@ export class StarSystemsRepository extends PostgresRepository {
       await db.transaction(async (tx) => {
         const withGameId = createWithGameId(newStarSystem.gameId)
 
-        await tx.insert(starSystemsTable).values({ gameId: newStarSystem.gameId })
+        await tx.insert(starSystemsTable).values(withGameId({}))
 
         const movementNodes = newStarSystem.movementNodes.map(withGameId)
         if (movementNodes.length > 0) {
