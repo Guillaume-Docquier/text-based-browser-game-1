@@ -424,7 +424,10 @@ describe("games.router", () => {
           createdAt: expect.any(String),
           endedAt: null,
           winnerPlayerId: null,
-          settings: newGame.settings,
+          settings: {
+            ...newGame.settings,
+            locked: true,
+          },
           startedAt: expect.any(String),
           creator: {
             id: player.id,
@@ -488,6 +491,7 @@ function createGameInput(settings: { name: string; nbSeats: number; tickInterval
 function expectGameSettings(settings: { name: string; nbSeats: number; tickIntervalSeconds: number }) {
   return {
     ...settings,
+    locked: false,
     starSystemGenerationSettings: {
       planetDensity: expect.any(Object),
       nbPlanets: expect.any(Object),

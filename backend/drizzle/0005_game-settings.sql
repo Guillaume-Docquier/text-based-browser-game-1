@@ -1,5 +1,6 @@
 CREATE TABLE "game_settings" (
 	"game_id" integer PRIMARY KEY NOT NULL,
+	"locked" boolean DEFAULT false NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"star_system_generation_settings" jsonb NOT NULL,
 	"nbSeats" integer NOT NULL,

@@ -1,5 +1,6 @@
 import {
   check,
+  boolean,
   doublePrecision,
   foreignKey,
   index,
@@ -59,13 +60,14 @@ export const gamesTable = pgTable("games", {
 })
 
 /**
- * Immutable settings chosen when a game is created.
- * These are owned by the game and stored separately from the game lifecycle state.
+ * Settings chosen when a game is created.
+ * These are owned by the game and may change until they are locked when the game starts.
  */
 export const gameSettingsTable = pgTable("game_settings", {
   gameId: integer("game_id")
     .primaryKey()
     .references(() => gamesTable.id, { onDelete: "cascade" }),
+  locked: boolean().default(false).notNull(),
   name: varchar({ length: 255 }).notNull(),
   starSystemGenerationSettings: jsonb("star_system_generation_settings").$type<StarSystemGenerationSettings>().notNull(),
   nbSeats: integer().notNull(),

@@ -1,5 +1,5 @@
 {
-  "id": "a913f7d7-17f6-4e86-829f-097a2483411a",
+  "id": "8b8d4b09-0ab7-4311-adfb-0c1d2e0bb0a0",
   "prevId": "94e46d94-4465-4e3c-a8d7-1c2346a4f358",
   "version": "7",
   "dialect": "postgresql",
@@ -310,6 +310,13 @@
           "type": "integer",
           "primaryKey": true,
           "notNull": true
+        },
+        "locked": {
+          "name": "locked",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "name": {
           "name": "name",

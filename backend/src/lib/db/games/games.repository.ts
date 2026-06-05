@@ -18,11 +18,12 @@ import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/gameResources.ts"
 type GameRow = typeof gamesTable.$inferSelect
 type GameSettingsRow = typeof gameSettingsTable.$inferSelect
 export type GameSettingsReadModel = Omit<GameSettingsRow, "gameId">
+export type GameSettingsWriteModel = Omit<GameSettingsReadModel, "locked">
 export type GameReadModel = GameRow & {
   settings: GameSettingsReadModel
 }
 export type GameWriteModel = Pick<GameRow, "createdByPlayerId"> & {
-  settings: GameSettingsReadModel
+  settings: GameSettingsWriteModel
 }
 export type GameRowInsert = GameWriteModel
 
@@ -93,6 +94,7 @@ export class GamesRepository extends PostgresRepository {
 
             // settings
             name: gameSettingsTable.name,
+            locked: gameSettingsTable.locked,
             starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
             nbSeats: gameSettingsTable.nbSeats,
             tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
@@ -137,6 +139,7 @@ export class GamesRepository extends PostgresRepository {
           playerAlias: _playerAlias,
           createdByPlayerId: _createdByPlayerId,
           name,
+          locked,
           starSystemGenerationSettings,
           nbSeats,
           tickIntervalSeconds,
@@ -147,6 +150,7 @@ export class GamesRepository extends PostgresRepository {
           ...gameInfo,
           settings: {
             name,
+            locked,
             starSystemGenerationSettings,
             nbSeats,
             tickIntervalSeconds,
@@ -185,6 +189,7 @@ export class GamesRepository extends PostgresRepository {
 
             // settings
             name: gameSettingsTable.name,
+            locked: gameSettingsTable.locked,
             starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
             nbSeats: gameSettingsTable.nbSeats,
             tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
@@ -221,6 +226,7 @@ export class GamesRepository extends PostgresRepository {
       playerAlias: _playerAlias,
       createdByPlayerId: _createdByPlayerId,
       name,
+      locked,
       starSystemGenerationSettings,
       nbSeats,
       tickIntervalSeconds,
@@ -231,6 +237,7 @@ export class GamesRepository extends PostgresRepository {
       ...gameInfo,
       settings: {
         name,
+        locked,
         starSystemGenerationSettings,
         nbSeats,
         tickIntervalSeconds,
@@ -398,6 +405,7 @@ export class GamesRepository extends PostgresRepository {
    * Starts a game if `canStart` allows it.
    * To start a game, we need to:
    * - Update the game start time
+   * - Lock the game settings
    * - Create a game state
    * - Schedule the tick
    */
@@ -434,6 +442,8 @@ export class GamesRepository extends PostgresRepository {
             .update(gamesTable)
             .set({ startedAt })
             .where(and(eq(gamesTable.id, gameId)))
+
+          await tx.update(gameSettingsTable).set({ locked: true }).where(eq(gameSettingsTable.gameId, gameId))
 
           // Create the game state
           const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: gameSummaryRow.settings.tickIntervalSeconds })

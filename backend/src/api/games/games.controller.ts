@@ -2,6 +2,7 @@ import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type {
   GameReadModel,
   GameSettingsReadModel,
+  GameSettingsWriteModel,
   GameSummaryPlayerRow,
   GameSummaryRow,
   GamesRepository,
@@ -158,7 +159,7 @@ export const GameInsert = z.object({
     tickIntervalSeconds: z.number(),
   }),
 }) satisfies z.ZodType<
-  Pick<GameWriteModel, "createdByPlayerId"> & { settings: Omit<GameSettingsReadModel, "starSystemGenerationSettings"> }
+  Pick<GameWriteModel, "createdByPlayerId"> & { settings: Omit<GameSettingsWriteModel, "starSystemGenerationSettings"> }
 >
 
 export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
@@ -174,6 +175,7 @@ export const StarSystemGenerationSettingsDto = z.object({
 export type GameSettings = z.infer<typeof GameSettings>
 export const GameSettings = z.object({
   name: z.string(),
+  locked: z.boolean(),
   starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
