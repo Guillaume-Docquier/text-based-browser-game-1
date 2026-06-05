@@ -2,17 +2,20 @@ import { PostgresRepository } from "./PostgresRepository.ts"
 import { gamesTable, gameSettingsTable, gameStatesTable, gameTicksTable } from "./schema.ts"
 import { and, eq, lte, isNull } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GameStateRow } from "#lib/db/gameStates.repository.ts"
+import type { GameStateModel } from "#lib/db/gameStates.repository.ts"
 import { couldNot } from "#lib/errors.ts"
 
-export type GameTickRow = typeof gameTicksTable.$inferSelect
-export type GameTickRowInsert = typeof gameTicksTable.$inferInsert
+type NewGameTickRow = typeof gameTicksTable.$inferInsert
+type GameTickRow = typeof gameTicksTable.$inferSelect
 type GameRow = typeof gamesTable.$inferSelect
 
-export type TickToProcess = {
+export type NewGameTickModel = NewGameTickRow
+export type GameTickModel = GameTickRow
+
+export type TickToProcessModel = {
   game: GameRow
-  gameTick: GameTickRow
-  gameState: GameStateRow
+  gameTick: GameTickModel
+  gameState: GameStateModel
   tickIntervalSeconds: number
 }
 
@@ -24,7 +27,7 @@ export class GameTicksRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "ticks-repository" })
   }
 
-  public async create(newGameTick: GameTickRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<GameTickRow, string>> {
+  public async create(newGameTick: NewGameTickModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameTickModel, string>> {
     const createResult = await Result.tryCatch(async () => {
       const gameTicks = await db.insert(gameTicksTable).values(newGameTick).returning()
       Assert.isTrue(gameTicks.length === 1)
@@ -41,7 +44,7 @@ export class GameTicksRepository extends PostgresRepository {
     return createResult
   }
 
-  public async getTicksToProcess(db: PostgresRepository["db"] = this.db): Promise<Result<TickToProcess[], string>> {
+  public async getTicksToProcess(db: PostgresRepository["db"] = this.db): Promise<Result<TickToProcessModel[], string>> {
     const ticksToProcessResult = await Result.tryCatch(
       db
         .select({

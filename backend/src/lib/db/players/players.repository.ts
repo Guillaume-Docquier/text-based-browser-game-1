@@ -4,8 +4,11 @@ import { eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 
-export type PlayerRow = typeof playersTable.$inferSelect
-export type PlayerRowInsert = typeof playersTable.$inferInsert
+type NewPlayerRow = typeof playersTable.$inferInsert
+type PlayerRow = typeof playersTable.$inferSelect
+
+export type NewPlayerModel = NewPlayerRow
+export type PlayerModel = PlayerRow
 
 export class PlayersRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -19,7 +22,7 @@ export class PlayersRepository extends PostgresRepository {
    * Creates a new player and returns the created player with its generated id.
    * If the creation fails, a Failure is returned with a reason.
    */
-  public async create(newPlayer: PlayerRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerRow, string>> {
+  public async create(newPlayer: NewPlayerModel, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerModel, string>> {
     const createPlayerResult = await Result.tryCatch(async () => {
       const players = await db
         .insert(playersTable)
@@ -50,7 +53,7 @@ export class PlayersRepository extends PostgresRepository {
   public async getByAuthId(
     { authId }: { authId: string },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerRow | undefined, string>> {
+  ): Promise<Result<PlayerModel | undefined, string>> {
     const findByAuthIdResult = await Result.tryCatch(async () => {
       const players = await db.select().from(playersTable).where(eq(playersTable.clerk_id, authId))
       Assert.isTrue(players.length <= 1)

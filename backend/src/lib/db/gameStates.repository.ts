@@ -5,9 +5,12 @@ import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import { ResourceType } from "#lib/gameResources.ts"
 
-export type GameStateRow = typeof gameStatesTable.$inferSelect
-export type GameStateRowInsert = typeof gameStatesTable.$inferInsert
-export type PlayerGameStateRow = GameStateRow & {
+type NewGameStateRow = typeof gameStatesTable.$inferInsert
+type GameStateRow = typeof gameStatesTable.$inferSelect
+
+export type NewGameStateModel = NewGameStateRow
+export type GameStateModel = GameStateRow
+export type PlayerGameStateModel = GameStateModel & {
   playerId: number
   resources: {
     money: number
@@ -22,7 +25,7 @@ export class GameStatesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "game-states-repository" })
   }
 
-  public async create(newGameState: GameStateRowInsert, db: PostgresRepository["db"] = this.db): Promise<Result<GameStateRow, string>> {
+  public async create(newGameState: NewGameStateModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameStateModel, string>> {
     const createResult = await Result.tryCatch(async () => {
       const gameTicks = await db.insert(gameStatesTable).values(newGameState).returning()
       Assert.isTrue(gameTicks.length === 1)
@@ -41,7 +44,7 @@ export class GameStatesRepository extends PostgresRepository {
 
   public async update(
     { gameId }: { gameId: number },
-    gameState: Partial<GameStateRowInsert>,
+    gameState: Partial<NewGameStateModel>,
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const updateResult = await Result.tryCatch(async (): Promise<true> => {
@@ -61,7 +64,7 @@ export class GameStatesRepository extends PostgresRepository {
   public async getById(
     { gameId }: { gameId: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameStateRow | undefined, string>> {
+  ): Promise<Result<GameStateModel | undefined, string>> {
     const gameStatesResult = await Result.tryCatch(db.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId)))
 
     if (Result.isFailure(gameStatesResult)) {
@@ -83,7 +86,7 @@ export class GameStatesRepository extends PostgresRepository {
       playerId: number
     },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerGameStateRow | undefined, string>> {
+  ): Promise<Result<PlayerGameStateModel | undefined, string>> {
     const playerGameStateResult = await Result.tryCatch(
       db.transaction(async (tx) => {
         const gameStates = await tx.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId))

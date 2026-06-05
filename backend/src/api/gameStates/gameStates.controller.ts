@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
-import { type GameStatesRepository, type PlayerGameStateRow } from "#lib/db/gameStates.repository.ts"
+import { type GameStatesRepository, type PlayerGameStateModel } from "#lib/db/gameStates.repository.ts"
 
 export class GameStatesController {
   private readonly gameStatesRepository: GameStatesRepository
@@ -23,13 +23,13 @@ export class GameStatesController {
   }
 }
 
-function toGameState(gameStateRow: PlayerGameStateRow): GameState {
+function toGameState(playerGameStateModel: PlayerGameStateModel): GameState {
   return {
-    gameId: gameStateRow.gameId,
-    playerId: gameStateRow.playerId,
-    tick: gameStateRow.tick,
-    nextTickAt: gameStateRow.nextTickAt,
-    resources: gameStateRow.resources,
+    gameId: playerGameStateModel.gameId,
+    playerId: playerGameStateModel.playerId,
+    tick: playerGameStateModel.tick,
+    nextTickAt: playerGameStateModel.nextTickAt,
+    resources: playerGameStateModel.resources,
   }
 }
 

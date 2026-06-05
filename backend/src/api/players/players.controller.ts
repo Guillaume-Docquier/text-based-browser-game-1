@@ -1,5 +1,5 @@
 import { type Result } from "@guillaume-docquier/tools-ts"
-import { type PlayerRow, type PlayerRowInsert, type PlayersRepository } from "#lib/db/players/players.repository.ts"
+import { type NewPlayerModel, type PlayerModel, type PlayersRepository } from "#lib/db/players/players.repository.ts"
 import z from "zod"
 
 export class PlayersController {
@@ -33,11 +33,11 @@ export const Player = z.object({
   clerk_id: z.string(),
   email: z.string().nullable(),
   alias: z.string().nullable(),
-}) satisfies z.ZodType<PlayerRow>
+}) satisfies z.ZodType<PlayerModel>
 
 export type PlayerInsert = z.infer<typeof PlayerInsert>
 export const PlayerInsert = z.object({
   clerk_id: z.string(),
   email: z.string().nullable().optional(),
   alias: z.string().nullable().optional(),
-}) satisfies z.ZodType<PlayerRowInsert>
+}) satisfies z.ZodType<NewPlayerModel>

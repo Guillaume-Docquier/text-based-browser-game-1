@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
-import { type NewStarSystem, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
+import { type NewStarSystemModel, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { v4 } from "uuid"
-import { createNewGameModelStub } from "#lib/db/games/GameRowInsert.stub.ts"
+import { createNewGameModelStub } from "#lib/db/games/NewGameModel.stub.ts"
 
 describe("starSystems.router", () => {
   describe("getSystem", () => {
@@ -16,7 +16,7 @@ describe("starSystems.router", () => {
       const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameModelStub() })
       const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
@@ -130,8 +130,8 @@ describe("starSystems.router", () => {
       const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
-      const outsider = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Outsider" })))
+      const creator = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Creator" })))
+      const outsider = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Outsider" })))
       authService.player = creator
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameModelStub() })
@@ -149,7 +149,7 @@ describe("starSystems.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameModelStub() })
 
@@ -270,5 +270,5 @@ function createStarSystemFixture({ gameId }: { gameId: number }) {
       { fromNodeId: sector2MovementNodeId, toNodeId: asteroidMovementNodeId, weight: 1 },
       { fromNodeId: asteroidMovementNodeId, toNodeId: sector2MovementNodeId, weight: 1 },
     ],
-  } as const satisfies NewStarSystem
+  } as const satisfies NewStarSystemModel
 }

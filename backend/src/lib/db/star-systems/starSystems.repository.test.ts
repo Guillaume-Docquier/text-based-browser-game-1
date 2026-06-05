@@ -3,10 +3,10 @@ import { eq } from "drizzle-orm"
 import { v4 } from "uuid"
 import { Assert, Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
+import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
 import { PlayersRepository } from "#lib/db/players/players.repository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
-import { type NewStarSystem, type Sector, type SectorRow, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { type NewSectorModel, type NewStarSystemModel, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
@@ -27,7 +27,7 @@ describe("starSystems.repository", () => {
         logger,
       })
 
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       const game = extractSuccess(await gamesController.create(createGameInsertStub({ createdByPlayerId: player.id })))
 
       const system = createCoherentStarSystem({ gameId: game.id })
@@ -71,7 +71,7 @@ describe("starSystems.repository", () => {
         logger,
       })
 
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       const game = extractSuccess(await gamesController.create(createGameInsertStub({ createdByPlayerId: player.id })))
 
       const system1 = createCoherentStarSystem({ gameId: game.id })
@@ -96,7 +96,7 @@ describe("starSystems.repository", () => {
         logger,
       })
 
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       const game = extractSuccess(await gamesController.create(createGameInsertStub({ createdByPlayerId: player.id })))
 
       const system = createIncoherentStarSystem({ gameId: game.id })
@@ -116,7 +116,7 @@ describe("starSystems.repository", () => {
   })
 })
 
-function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem {
+function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystemModel {
   const orbitId = v4()
   const sectorId = v4()
   const sectorMovementNodeId = v4()
@@ -163,7 +163,7 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
   }
 }
 
-function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem {
+function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSystemModel {
   const orbitId = v4()
   const sectorId = v4()
   const missingSectorId = v4()
@@ -202,7 +202,7 @@ function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSyst
   }
 }
 
-function toStoredSector({ sector, gameId }: { sector: Sector; gameId: number }): SectorRow {
+function toStoredSector({ sector, gameId }: { sector: NewSectorModel; gameId: number }): typeof sectorsTable.$inferSelect {
   return {
     id: sector.id,
     gameId,

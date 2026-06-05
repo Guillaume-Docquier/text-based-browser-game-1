@@ -2,11 +2,11 @@ import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import type {
   StarSystemsRepository,
-  StarSystemReadModel,
-  OrbitReadModel,
-  SectorReadModel,
-  BodyReadModel,
-  MovementEdge,
+  StarSystemModel,
+  OrbitModel,
+  SectorModel,
+  BodyModel,
+  MovementEdgeModel,
 } from "#lib/db/star-systems/starSystems.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
@@ -20,7 +20,7 @@ const StarSystemBodyDto = z.object({
   name: z.string(),
   type: z.enum(BodyType),
   movementNodeId: z.string(),
-}) satisfies z.ZodType<BodyReadModel>
+}) satisfies z.ZodType<BodyModel>
 
 const StarSystemSectorDto = z.object({
   id: z.string(),
@@ -29,26 +29,26 @@ const StarSystemSectorDto = z.object({
   angleRange: RangeDto,
   bodies: z.array(StarSystemBodyDto),
   movementNodeId: z.string(),
-}) satisfies z.ZodType<SectorReadModel>
+}) satisfies z.ZodType<SectorModel>
 
 const StarSystemOrbitDto = z.object({
   id: z.string(),
   number: z.number(),
   coordinates: z.string(),
   sectors: z.array(StarSystemSectorDto),
-}) satisfies z.ZodType<OrbitReadModel>
+}) satisfies z.ZodType<OrbitModel>
 
 const MovementEdgeDto = z.object({
   fromNodeId: z.string(),
   toNodeId: z.string(),
   weight: z.number(),
-}) satisfies z.ZodType<MovementEdge>
+}) satisfies z.ZodType<MovementEdgeModel>
 
 export const StarSystemDto = z.object({
   gameId: z.number(),
   orbits: z.array(StarSystemOrbitDto),
   movementEdges: z.record(z.string(), z.array(MovementEdgeDto)),
-}) satisfies z.ZodType<StarSystemReadModel>
+}) satisfies z.ZodType<StarSystemModel>
 
 export class StarSystemsController {
   private readonly gamesRepository: GamesRepository
@@ -75,7 +75,7 @@ export class StarSystemsController {
   }: {
     gameId: number
     playerId: number
-  }): Promise<Result<StarSystemReadModel | undefined, string>> {
+  }): Promise<Result<StarSystemModel | undefined, string>> {
     const canReadGameResult = await this.canReadGame({ gameId, playerId })
     if (Result.isFailure(canReadGameResult)) {
       return canReadGameResult
