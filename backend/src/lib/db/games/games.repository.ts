@@ -15,13 +15,16 @@ import { couldNot } from "#lib/errors.ts"
 import { computeNextTickDate } from "#tick-processing/processTick.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/gameResources.ts"
 
+type NewGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
+type NewGameSettingsRow = typeof gameSettingsTable.$inferInsert
 type GameSettingsRow = typeof gameSettingsTable.$inferSelect
+type PlayerRow = typeof playersTable.$inferSelect
 
-export type NewGameModel = Pick<GameRow, "createdByPlayerId"> & {
+export type NewGameModel = NewGameRow & {
   settings: NewGameSettingsModel
 }
-export type NewGameSettingsModel = Omit<GameSettingsModel, "locked">
+export type NewGameSettingsModel = Omit<NewGameSettingsRow, "gameId">
 
 export type GameModel = GameRow & {
   settings: GameSettingsModel
@@ -32,7 +35,7 @@ export type GameSummaryModel = Omit<GameModel, "createdByPlayerId"> & {
   creator: GameSummaryPlayerModel
   players: GameSummaryPlayerModel[]
 }
-export type GameSummaryPlayerModel = Pick<typeof playersTable.$inferSelect, "id" | "alias">
+export type GameSummaryPlayerModel = Pick<PlayerRow, "id" | "alias">
 
 const pgCreatorAlias = alias(playersTable, "creator")
 const pgPlayerAlias = alias(playersTable, "player")
