@@ -1,5 +1,6 @@
 import {
   check,
+  boolean,
   doublePrecision,
   foreignKey,
   index,
@@ -16,6 +17,7 @@ import {
 } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
+import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
 
 /**
  * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
@@ -48,16 +50,28 @@ export const playersTable = pgTable(
  */
 export const gamesTable = pgTable("games", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
   createdByPlayerId: integer()
     .notNull()
     .references(() => playersTable.id, { onDelete: "cascade" }),
   winnerPlayerId: integer().references(() => playersTable.id, { onDelete: "set null" }),
-  nbSeats: integer().notNull(),
-  tickIntervalSeconds: integer().notNull(),
   createdAt: timestamp().defaultNow().notNull(),
   startedAt: timestamp(),
   endedAt: timestamp(),
+})
+
+/**
+ * Settings chosen when a game is created.
+ * These are owned by the game and may change until they are locked when the game starts.
+ */
+export const gameSettingsTable = pgTable("game_settings", {
+  gameId: integer("game_id")
+    .primaryKey()
+    .references(() => gamesTable.id, { onDelete: "cascade" }),
+  locked: boolean().default(false).notNull(),
+  name: varchar({ length: 255 }).notNull(),
+  starSystemGenerationSettings: jsonb("star_system_generation_settings").$type<StarSystemGenerationSettings>().notNull(),
+  nbSeats: integer().notNull(),
+  tickIntervalSeconds: integer().notNull(),
 })
 
 /**
@@ -172,7 +186,6 @@ export const starSystemsTable = pgTable("star_systems", {
   gameId: integer("game_id")
     .primaryKey()
     .references(() => gamesTable.id, { onDelete: "cascade" }),
-  generationSettings: jsonb("generation_settings").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 

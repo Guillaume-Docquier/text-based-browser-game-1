@@ -7,8 +7,7 @@ import { extractSuccess } from "#tests/extractSuccess.ts"
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { randomUUID } from "node:crypto"
-import { createGameRowInsertStub } from "#lib/db/games/GameRowInsert.stub.ts"
-import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
+import { createNewGameModelStub } from "#lib/db/games/GameRowInsert.stub.ts"
 
 describe("starSystems.router", () => {
   describe("getSystem", () => {
@@ -19,7 +18,7 @@ describe("starSystems.router", () => {
 
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameModelStub() })
       const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
 
       // Act
@@ -135,7 +134,7 @@ describe("starSystems.router", () => {
       const outsider = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Outsider" })))
       authService.player = creator
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameModelStub() })
       await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
       authService.player = outsider
 
@@ -152,7 +151,7 @@ describe("starSystems.router", () => {
 
       authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createGameRowInsertStub() })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameModelStub() })
 
       // Act & Assert
       await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
@@ -194,7 +193,6 @@ function createStarSystemFixture({ gameId }: { gameId: number }) {
 
   return {
     gameId,
-    generationSettings: createStarSystemGenerationSettingsStub(),
     movementNodes: [
       { id: sector1MovementNodeId },
       { id: sector2MovementNodeId },

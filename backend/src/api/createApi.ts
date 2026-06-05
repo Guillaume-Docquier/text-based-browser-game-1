@@ -28,7 +28,6 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
  * It also decouples the application from those 3rd parties, if done well.
  */
 export async function createApi({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- createTransaction will be used soon enough
   createTransaction,
   authService,
   ...services
@@ -47,12 +46,13 @@ export async function createApi({
   gamePlayerActionsRepository: GamePlayerActionsRepository
   starSystemsRepository: StarSystemsRepository
 }): Promise<Express> {
+  const controllerServices = { ...services, createTransaction }
   const controllers = {
-    gamesController: new GamesController(services),
-    gameStatesController: new GameStatesController(services),
-    playersController: new PlayersController(services),
-    gamePlayerActionsController: new GamePlayerActionsController(services),
-    starSystemsController: new StarSystemsController(services),
+    gamesController: new GamesController(controllerServices),
+    gameStatesController: new GameStatesController(controllerServices),
+    playersController: new PlayersController(controllerServices),
+    gamePlayerActionsController: new GamePlayerActionsController(controllerServices),
+    starSystemsController: new StarSystemsController(controllerServices),
   }
 
   const app = express()

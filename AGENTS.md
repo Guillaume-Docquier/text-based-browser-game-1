@@ -8,7 +8,9 @@ The goal is to build a game that's as fun as persistent browser games, but that 
 
 The project is only getting started, and we are building strong foundations. We've built the infrastructure, deployed on Railway, established the tech that we will use, and developed testing strategies for the backend.
 
-We have 0 users. Code quality and architecture design choices matter more than speed of execution.
+Code quality and architecture design choices matter more than speed of execution.
+
+We have 0 users. When dealing with database schema changes, we never need to backfill. We can always reset the db.
 
 ## Project Structure And Tech Stack
 
@@ -45,7 +47,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - ADR-013: Never throw for expected errors. Return `Result` values instead. Wrap third-party calls that may throw with `Result.tryCatch`. Only fatal crash-the-process errors may be thrown.
 - ADR-015: Use Zod for parsing, not validation. Do not use zod functions that cannot translate to TypeScript types. `.int()`, `.email()`, most `.refine()`, etc are forbidden.
 - ADR-016: Use repositories in tests, not the db. The db can only be used in repository tests since it is a direct dependency.
-- ADR-017: Use stubs when creating any data in tests. Create the stub if it doesn't exist. Use mocks for third parties that are hard to control.
+- ADR-017: Use stubs when creating any data in tests. Create the stub if it doesn't exist in a file next to the type for discovery and reusability. Use mocks for third parties that are hard to control.
 - ADR-018: Assert the whole Result object in tests, not its individual properties. `expect(result).toEqual(Result.Success(expectedValue))`
 - ADR-019: Do not leave expected invariants implicit, use explicit `Assert` calls.
 - ADR-020: Frontend Tanstack routes should only do the routing. The UI is implemented in `frontend/src/features/` in vertical slices.
@@ -60,6 +62,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
   - Route files: TanStack Router flat-file naming like `_site.games.$gameId.tsx` or `_game.games.$gameId.play.tsx`
 - Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Use `as const` objects plus derived union types, following `backend/src/lib/gameResources.ts`.
 - Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
+- When importing a value and a type of the same name from the same package (e.g `Range` or `Result`), just import the value. Do not import the type to rename it.
 
 ## Commands
 
@@ -76,7 +79,9 @@ Always use pnpm, never use npm.
 
 We test the production code. We do not use `vitest.mock()`.
 
-We prefer end-to-end or integration tests. We use unit tests sparingly for complex code (algorithms, high-performance code, etc.)
+We prefer end-to-end or integration tests. We use unit tests sparingly for complex scenarios (algorithm verification, validating race conditions, regression tests, etc.)
+
+For example, backend tests should test through the API. Some repository tests can be useful when we want to validate that transactions behave the way we want. We shouldn't be testing basic table mutation or query, that's done via the API.
 
 ## Verification
 

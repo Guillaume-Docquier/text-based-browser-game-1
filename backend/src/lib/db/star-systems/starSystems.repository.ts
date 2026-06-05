@@ -3,7 +3,6 @@ import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, secto
 import { eq } from "drizzle-orm"
 import { Assert, type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
-import type { PercentageRange, IntegerRange } from "#lib/Range.ts"
 import type { BodyType } from "#lib/star-systems/BodyType.ts"
 import { toCoordinates } from "#lib/star-systems/Coordinates.ts"
 
@@ -12,21 +11,11 @@ const RANGE_MAX_BOUND_TYPES = ["inclusive", "exclusive"] as const
 
 export type NewStarSystem = {
   gameId: number
-  generationSettings: StarSystemGenerationSettings
   orbits: Orbit[]
   sectors: Sector[]
   bodies: Body[]
   movementNodes: MovementNode[]
   movementEdges: MovementEdge[]
-}
-
-export type StarSystemGenerationSettings = {
-  planetDensity: PercentageRange
-  nbPlanets: IntegerRange
-  nbMoonsPerPlanet: IntegerRange
-  nbAsteroidBelts: IntegerRange
-  nbAsteroidsPerSector: IntegerRange
-  seed: number
 }
 
 export type Orbit = {
@@ -136,7 +125,7 @@ export class StarSystemsRepository extends PostgresRepository {
       await db.transaction(async (tx) => {
         const withGameId = createWithGameId(newStarSystem.gameId)
 
-        await tx.insert(starSystemsTable).values(withGameId({ generationSettings: newStarSystem.generationSettings }))
+        await tx.insert(starSystemsTable).values(withGameId({}))
 
         const movementNodes = newStarSystem.movementNodes.map(withGameId)
         if (movementNodes.length > 0) {

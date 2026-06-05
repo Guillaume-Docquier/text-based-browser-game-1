@@ -19,7 +19,7 @@ We need a clear distinction between stubs and mocks, with naming and usage rules
 
 ## Decision
 
-We standardize these two patterns:
+We standardize two patterns: stubs and mocks.
 
 ### Stubs
 
@@ -71,6 +71,8 @@ export class AuthServiceMock implements IAuthService {
   }
 }
 ```
+
+Stubs and mocks always go in `.stub.ts` or `.mock.ts` files, next to where the type is defined. They are never inlined in a test file, as this is not reusable.
 
 ## Consequences
 

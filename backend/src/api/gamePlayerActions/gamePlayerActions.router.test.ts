@@ -18,9 +18,7 @@ describe("gamePlayerActions.router", () => {
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
-          name: "action game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
+          settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
@@ -60,9 +58,7 @@ describe("gamePlayerActions.router", () => {
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {
-          name: "stale tick game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
+          settings: { name: "stale tick game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
@@ -91,9 +87,7 @@ describe("gamePlayerActions.router", () => {
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {
-          name: "action game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
+          settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })

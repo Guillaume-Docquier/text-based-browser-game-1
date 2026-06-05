@@ -42,7 +42,7 @@ export function GamesBrowserPage(): ReactElement {
     )
   }
 
-  const games = gamesQuery.data.games.filter((game) => game.name.includes(gameNameFilter))
+  const games = gamesQuery.data.games.filter((game) => game.settings.name.includes(gameNameFilter))
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -95,11 +95,11 @@ function GameSummary({ game }: { game: ApiTypes.GameSummary }): ReactElement {
               <span className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">#{game.id}</span>
               <GameStatusBadge status={game.status} />
             </div>
-            <div className="font-heading text-lg font-medium text-foreground">{game.name}</div>
+            <div className="font-heading text-lg font-medium text-foreground">{game.settings.name}</div>
           </div>
           <div className="flex flex-col gap-1 text-sm text-muted-foreground md:items-end">
             <div>
-              {game.players.length}/{game.nbSeats} players
+              {game.players.length}/{game.settings.nbSeats} players
             </div>
             <div>Created {timeAgo(game.createdAt)}</div>
           </div>

@@ -44,7 +44,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={game.name}
+        title={game.settings.name}
         description={`Game #${game.id} created ${timeAgo(game.createdAt)}.`}
         actions={<GameStatusBadge status={game.status} />}
       />
@@ -56,7 +56,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
         <CardContent className="flex flex-col gap-6">
           <div className="grid gap-4 md:grid-cols-2">
             <DetailBlock label="Status" value={formatGameSummaryStatus(game.status)} />
-            <DetailBlock label="Seats" value={`${game.players.length}/${game.nbSeats} players`} />
+            <DetailBlock label="Seats" value={`${game.players.length}/${game.settings.nbSeats} players`} />
             <div className="space-y-1">
               <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Creator</div>
               <Player player={game.creator} />
@@ -67,7 +67,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
           <Separator />
           <div className="space-y-3">
             <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-              Players ({game.players.length}/{game.nbSeats})
+              Players ({game.players.length}/{game.settings.nbSeats})
             </div>
             <div className="grid gap-2">
               {game.players.map((player) => (

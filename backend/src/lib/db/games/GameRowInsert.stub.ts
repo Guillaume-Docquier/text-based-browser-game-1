@@ -1,11 +1,15 @@
-import type { GameRowInsert } from "#lib/db/games/games.repository.ts"
+import type { NewGameModel } from "#lib/db/games/games.repository.ts"
+import { createStarSystemGenerationSettingsStub } from "#lib/star-systems/StarSystemGenerationSettings.stub.ts"
 
-export function createGameRowInsertStub(overrides?: Partial<GameRowInsert>): GameRowInsert {
+export function createNewGameModelStub(overrides?: Partial<NewGameModel>): NewGameModel {
   return {
-    name: "game name",
     createdByPlayerId: 43,
-    nbSeats: 2,
-    tickIntervalSeconds: 60,
+    settings: {
+      name: "game name",
+      starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
+      nbSeats: 2,
+      tickIntervalSeconds: 60,
+    },
     ...overrides,
   }
 }

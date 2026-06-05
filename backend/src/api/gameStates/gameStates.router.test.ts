@@ -16,9 +16,7 @@ describe("gameStates.router", () => {
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
-          name: "running game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
+          settings: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
 
