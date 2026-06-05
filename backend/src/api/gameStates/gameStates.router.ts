@@ -2,7 +2,7 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
 import type { Trpc } from "#api/trpc.ts"
-import { GameState, type GameStatesController } from "#api/gameStates/gameStates.controller.ts"
+import { GameStateDto, type GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
 export function createGameStatesRouter({ trpc, gameStatesController }: { trpc: Trpc; gameStatesController: GameStatesController }) {
@@ -12,7 +12,7 @@ export function createGameStatesRouter({ trpc, gameStatesController }: { trpc: T
      */
     getById: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ gameState: GameState }))
+      .output(z.object({ gameState: GameStateDto }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
         const getByIdResult = await gameStatesController.getById({ gameId, playerId: player.id })
         if (Result.isFailure(getByIdResult)) {

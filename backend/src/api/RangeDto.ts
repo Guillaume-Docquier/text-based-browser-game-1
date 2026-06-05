@@ -1,4 +1,4 @@
-import { Range, Result, type Range as RangeType } from "@guillaume-docquier/tools-ts"
+import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 
 export const RangeDto = z
@@ -16,4 +16,4 @@ export const RangeDto = z
         message: rangeResult.error,
       })
     }
-  }) satisfies z.ZodType<RangeType>
+  }) satisfies z.ZodType<Range>

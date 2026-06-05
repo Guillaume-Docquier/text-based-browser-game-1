@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express"
 import { clerkClient, clerkMiddleware, getAuth, type User } from "@clerk/express"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { Player, PlayersController } from "#api/players/players.controller.ts"
+import type { PlayerDto, PlayersController } from "#api/players/players.controller.ts"
 import { couldNot } from "#lib/errors.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
@@ -10,7 +10,7 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace -- This is the way with Express
   namespace Express {
     interface Request {
-      player?: Player | undefined
+      player?: PlayerDto | undefined
     }
   }
 }

@@ -9,7 +9,7 @@ export class GameStatesController {
     this.gameStatesRepository = gameStatesRepository
   }
 
-  public async getById({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameState | undefined, string>> {
+  public async getById({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameStateDto | undefined, string>> {
     const gameStateResult = await this.gameStatesRepository.getByGameIdAndPlayerId({ gameId, playerId })
     if (Result.isFailure(gameStateResult)) {
       return gameStateResult
@@ -19,11 +19,11 @@ export class GameStatesController {
       return Result.Success(undefined)
     }
 
-    return Result.Success(toGameState(gameStateResult.value))
+    return Result.Success(toGameStateDto(gameStateResult.value))
   }
 }
 
-function toGameState(playerGameStateModel: PlayerGameStateModel): GameState {
+function toGameStateDto(playerGameStateModel: PlayerGameStateModel): GameStateDto {
   return {
     gameId: playerGameStateModel.gameId,
     playerId: playerGameStateModel.playerId,
@@ -33,8 +33,8 @@ function toGameState(playerGameStateModel: PlayerGameStateModel): GameState {
   }
 }
 
-export type GameState = z.infer<typeof GameState>
-export const GameState = z.object({
+export type GameStateDto = z.infer<typeof GameStateDto>
+export const GameStateDto = z.object({
   gameId: z.number(),
   playerId: z.number(),
   tick: z.number(),

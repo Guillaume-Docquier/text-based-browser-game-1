@@ -1,15 +1,6 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type {
-  GameModel,
-  GameSettingsModel,
-  NewGameSettingsModel,
-  GameSummaryPlayerModel,
-  GameSummaryModel,
-  GamesRepository,
-  NewGameModel,
-} from "#lib/db/games/games.repository.ts"
+import type { GameSummaryModel, GamesRepository } from "#lib/db/games/games.repository.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
-import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
 import { couldNot } from "#lib/errors.ts"
 import { RangeDto } from "#api/RangeDto.ts"
 import z from "zod"
@@ -23,7 +14,7 @@ export class GamesController {
     this.logger = logger.child({ scope: "games-controller" })
   }
 
-  public async create(newGame: GameInsert): Promise<Result<CreatedGame, string>> {
+  public async create(newGame: NewGameDto): Promise<Result<CreatedGameDto, string>> {
     const createGameResult = await this.gamesRepository.create({
       createdByPlayerId: newGame.createdByPlayerId,
       settings: {
@@ -39,36 +30,36 @@ export class GamesController {
     return createGameResult
   }
 
-  public async getSummaries({ playerId }: { playerId: number | undefined }): Promise<GameSummary[]> {
+  public async getSummaries({ playerId }: { playerId: number | undefined }): Promise<GameSummaryDto[]> {
     const getSummariesResult = await this.gamesRepository.getSummaries()
     if (Result.isFailure(getSummariesResult)) {
       this.logger.error("Could not get game summaries, returning empty array", { playerId, error: getSummariesResult.error })
       return []
     }
 
-    return getSummariesResult.value.map((gameSummaryRow) => toGameSummary({ gameSummaryRow, playerId }))
+    return getSummariesResult.value.map((gameSummaryModel) => toGameSummaryDto({ gameSummaryModel, playerId }))
   }
 
-  public async getSummaryById({ gameId, playerId }: { gameId: number; playerId: number | undefined }): Promise<GameSummary | undefined> {
+  public async getSummaryById({ gameId, playerId }: { gameId: number; playerId: number | undefined }): Promise<GameSummaryDto | undefined> {
     const getSummaryResult = await this.gamesRepository.getSummaryById({ gameId })
     if (Result.isFailure(getSummaryResult)) {
       this.logger.error("Could not get game summary, returning undefined", { gameId, playerId, error: getSummaryResult.error })
       return undefined
     }
 
-    const gameSummaryRow = getSummaryResult.value
-    if (gameSummaryRow === undefined) {
+    const gameSummaryModel = getSummaryResult.value
+    if (gameSummaryModel === undefined) {
       return undefined
     }
 
-    return toGameSummary({ gameSummaryRow, playerId })
+    return toGameSummaryDto({ gameSummaryModel, playerId })
   }
 
-  public async join({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummary, string>> {
+  public async join({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummaryDto, string>> {
     const gameJoinResult = await this.gamesRepository.join({
       gameId,
       playerId,
-      canJoin: (gameSummaryRow) => toGameSummary({ gameSummaryRow, playerId }).canJoin,
+      canJoin: (gameSummaryModel) => toGameSummaryDto({ gameSummaryModel, playerId }).canJoin,
     })
 
     if (Result.isFailure(gameJoinResult)) {
@@ -81,11 +72,11 @@ export class GamesController {
     return Result.Success(gameSummary)
   }
 
-  public async leave({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummary, string>> {
+  public async leave({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummaryDto, string>> {
     const gameLeaveResult = await this.gamesRepository.leave({
       gameId,
       playerId,
-      canLeave: (gameSummaryRow) => toGameSummary({ gameSummaryRow, playerId }).canLeave,
+      canLeave: (gameSummaryModel) => toGameSummaryDto({ gameSummaryModel, playerId }).canLeave,
     })
 
     if (Result.isFailure(gameLeaveResult)) {
@@ -98,10 +89,10 @@ export class GamesController {
     return Result.Success(gameSummary)
   }
 
-  public async start({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummary, string>> {
+  public async start({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummaryDto, string>> {
     const gameStartResult = await this.gamesRepository.start({
       gameId,
-      canStart: (gameSummaryRow) => toGameSummary({ gameSummaryRow, playerId }).canStart,
+      canStart: (gameSummaryModel) => toGameSummaryDto({ gameSummaryModel, playerId }).canStart,
     })
 
     if (Result.isFailure(gameStartResult)) {
@@ -116,33 +107,39 @@ export class GamesController {
   }
 }
 
-function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSummaryModel; playerId: number | undefined }): GameSummary {
+function toGameSummaryDto({
+  gameSummaryModel,
+  playerId,
+}: {
+  gameSummaryModel: GameSummaryModel
+  playerId: number | undefined
+}): GameSummaryDto {
   // prettier-ignore
   const status =
-    gameSummaryRow.endedAt !== null ? GameSummaryStatus.ENDED
-    : gameSummaryRow.startedAt !== null ? GameSummaryStatus.STARTED
-    : gameSummaryRow.players.length >= gameSummaryRow.settings.nbSeats ? GameSummaryStatus.READY_TO_START
+    gameSummaryModel.endedAt !== null ? GameSummaryStatus.ENDED
+    : gameSummaryModel.startedAt !== null ? GameSummaryStatus.STARTED
+    : gameSummaryModel.players.length >= gameSummaryModel.settings.nbSeats ? GameSummaryStatus.READY_TO_START
     : GameSummaryStatus.WAITING_FOR_PLAYERS
 
   const canJoin =
     playerId !== undefined &&
     status === GameSummaryStatus.WAITING_FOR_PLAYERS &&
-    gameSummaryRow.players.every((player) => player.id !== playerId)
+    gameSummaryModel.players.every((player) => player.id !== playerId)
 
   const canLeave =
     playerId !== undefined &&
     // status < GameSummaryStatus.STARTED would be more future proof
     (status === GameSummaryStatus.WAITING_FOR_PLAYERS || status === GameSummaryStatus.READY_TO_START) &&
-    gameSummaryRow.creator.id !== playerId &&
-    gameSummaryRow.players.some((player) => player.id === playerId)
+    gameSummaryModel.creator.id !== playerId &&
+    gameSummaryModel.players.some((player) => player.id === playerId)
 
   const canStart =
     playerId !== undefined &&
     (status === GameSummaryStatus.WAITING_FOR_PLAYERS || status === GameSummaryStatus.READY_TO_START) &&
-    gameSummaryRow.creator.id === playerId
+    gameSummaryModel.creator.id === playerId
 
   return {
-    ...gameSummaryRow,
+    ...gameSummaryModel,
     status,
     canJoin,
     canLeave,
@@ -150,15 +147,15 @@ function toGameSummary({ gameSummaryRow, playerId }: { gameSummaryRow: GameSumma
   }
 }
 
-export type GameInsert = z.infer<typeof GameInsert>
-export const GameInsert = z.object({
+export type NewGameDto = z.infer<typeof NewGameDto>
+export const NewGameDto = z.object({
   createdByPlayerId: z.number(),
   settings: z.object({
     name: z.string(),
     nbSeats: z.number(),
     tickIntervalSeconds: z.number(),
   }),
-}) satisfies z.ZodType<Pick<NewGameModel, "createdByPlayerId"> & { settings: Omit<NewGameSettingsModel, "starSystemGenerationSettings"> }>
+})
 
 export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
 export const StarSystemGenerationSettingsDto = z.object({
@@ -168,27 +165,27 @@ export const StarSystemGenerationSettingsDto = z.object({
   nbAsteroidBelts: RangeDto,
   nbAsteroidsPerSector: RangeDto,
   seed: z.number(),
-}) satisfies z.ZodType<StarSystemGenerationSettings>
+})
 
-export type GameSettings = z.infer<typeof GameSettings>
-export const GameSettings = z.object({
+export type GameSettingsDto = z.infer<typeof GameSettingsDto>
+export const GameSettingsDto = z.object({
   name: z.string(),
   locked: z.boolean(),
   starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
-}) satisfies z.ZodType<GameSettingsModel>
+})
 
-export type CreatedGame = z.infer<typeof CreatedGame>
-export const CreatedGame = z.object({
+export type CreatedGameDto = z.infer<typeof CreatedGameDto>
+export const CreatedGameDto = z.object({
   id: z.number(),
   createdByPlayerId: z.number(),
   winnerPlayerId: z.number().nullable(),
-  settings: GameSettings,
+  settings: GameSettingsDto,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
-}) satisfies z.ZodType<GameModel>
+})
 
 export const GameSummaryStatus = {
   WAITING_FOR_PLAYERS: "WAITING_FOR_PLAYERS",
@@ -197,22 +194,22 @@ export const GameSummaryStatus = {
   ENDED: "ENDED",
 } as const
 
-export type GameSummaryPlayer = z.infer<typeof GameSummaryPlayer>
-export const GameSummaryPlayer = z.object({
+export type GameSummaryPlayerDto = z.infer<typeof GameSummaryPlayerDto>
+export const GameSummaryPlayerDto = z.object({
   id: z.number(),
   alias: z.string().nullable(),
-}) satisfies z.ZodType<GameSummaryPlayerModel>
+})
 
-export type GameSummary = z.infer<typeof GameSummary>
-export const GameSummary = z.object({
+export type GameSummaryDto = z.infer<typeof GameSummaryDto>
+export const GameSummaryDto = z.object({
   id: z.number(),
   winnerPlayerId: z.number().nullable(),
-  settings: GameSettings,
+  settings: GameSettingsDto,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
-  creator: GameSummaryPlayer,
-  players: z.array(GameSummaryPlayer),
+  creator: GameSummaryPlayerDto,
+  players: z.array(GameSummaryPlayerDto),
   status: z.enum(GameSummaryStatus),
   /**
    * Whether the current player can join the game.
@@ -226,4 +223,4 @@ export const GameSummary = z.object({
    * Whether the current player can start the game.
    */
   canStart: z.boolean(),
-}) satisfies z.ZodType<GameSummaryModel>
+})

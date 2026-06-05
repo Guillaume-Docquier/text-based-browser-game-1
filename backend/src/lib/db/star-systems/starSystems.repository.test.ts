@@ -11,7 +11,7 @@ import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { createGameInsertStub } from "#api/games/GameInsert.stub.ts"
+import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
 
 describe("starSystems.repository", () => {
   describe("create", () => {
@@ -28,7 +28,7 @@ describe("starSystems.repository", () => {
       })
 
       const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      const game = extractSuccess(await gamesController.create(createGameInsertStub({ createdByPlayerId: player.id })))
+      const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByPlayerId: player.id })))
 
       const system = createCoherentStarSystem({ gameId: game.id })
       const firstSector = system.sectors[0]
@@ -72,7 +72,7 @@ describe("starSystems.repository", () => {
       })
 
       const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      const game = extractSuccess(await gamesController.create(createGameInsertStub({ createdByPlayerId: player.id })))
+      const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByPlayerId: player.id })))
 
       const system1 = createCoherentStarSystem({ gameId: game.id })
       const system2 = createCoherentStarSystem({ gameId: game.id })
@@ -97,7 +97,7 @@ describe("starSystems.repository", () => {
       })
 
       const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      const game = extractSuccess(await gamesController.create(createGameInsertStub({ createdByPlayerId: player.id })))
+      const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByPlayerId: player.id })))
 
       const system = createIncoherentStarSystem({ gameId: game.id })
 
