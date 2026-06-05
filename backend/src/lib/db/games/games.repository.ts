@@ -50,28 +50,27 @@ export class GamesRepository extends PostgresRepository {
 
   public async create(newGame: NewGameModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameModel, string>> {
     const createResult = await Result.tryCatch(
-      async () =>
-        await db.transaction(async (tx) => {
-          const games = await tx.insert(gamesTable).values({ createdByPlayerId: newGame.createdByPlayerId }).returning()
-          Assert.isTrue(games.length === 1)
-          Assert.isDefined(games[0])
+      db.transaction(async (tx) => {
+        const games = await tx.insert(gamesTable).values({ createdByPlayerId: newGame.createdByPlayerId }).returning()
+        Assert.isTrue(games.length === 1)
+        Assert.isDefined(games[0])
 
-          const game = games[0]
-          const gameSettings = await tx
-            .insert(gameSettingsTable)
-            .values({ ...newGame.settings, gameId: game.id })
-            .returning()
-          Assert.isTrue(gameSettings.length === 1)
-          Assert.isDefined(gameSettings[0])
+        const game = games[0]
+        const gameSettings = await tx
+          .insert(gameSettingsTable)
+          .values({ ...newGame.settings, gameId: game.id })
+          .returning()
+        Assert.isTrue(gameSettings.length === 1)
+        Assert.isDefined(gameSettings[0])
 
-          const joinGameResult = await this.join({ gameId: game.id, playerId: game.createdByPlayerId, canJoin: () => true }, tx)
-          if (Result.isFailure(joinGameResult)) {
-            this.logger.error("Could not join game after creating it, rolling back", { newGame, error: joinGameResult.error })
-            tx.rollback() // Kinda sucks that we can't give any more info: https://github.com/drizzle-team/drizzle-orm/issues/1957
-          }
+        const joinGameResult = await this.join({ gameId: game.id, playerId: game.createdByPlayerId, canJoin: () => true }, tx)
+        if (Result.isFailure(joinGameResult)) {
+          this.logger.error("Could not join game after creating it, rolling back", { newGame, error: joinGameResult.error })
+          tx.rollback() // Kinda sucks that we can't give any more info: https://github.com/drizzle-team/drizzle-orm/issues/1957
+        }
 
-          return toGameReadModel({ game, settings: gameSettings[0] })
-        }),
+        return toGameReadModel({ game, settings: gameSettings[0] })
+      }),
     )
 
     if (Result.isFailure(createResult)) {
@@ -84,36 +83,35 @@ export class GamesRepository extends PostgresRepository {
 
   public async getSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryModel[], string>> {
     const gameSummariesResult = await Result.tryCatch(
-      async () =>
-        await db
-          .select({
-            // game info
-            id: gamesTable.id,
-            createdByPlayerId: gamesTable.createdByPlayerId,
-            winnerPlayerId: gamesTable.winnerPlayerId,
-            createdAt: gamesTable.createdAt,
-            startedAt: gamesTable.startedAt,
-            endedAt: gamesTable.endedAt,
+      db
+        .select({
+          // game info
+          id: gamesTable.id,
+          createdByPlayerId: gamesTable.createdByPlayerId,
+          winnerPlayerId: gamesTable.winnerPlayerId,
+          createdAt: gamesTable.createdAt,
+          startedAt: gamesTable.startedAt,
+          endedAt: gamesTable.endedAt,
 
-            // settings
-            name: gameSettingsTable.name,
-            locked: gameSettingsTable.locked,
-            starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
-            nbSeats: gameSettingsTable.nbSeats,
-            tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
+          // settings
+          name: gameSettingsTable.name,
+          locked: gameSettingsTable.locked,
+          starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
+          nbSeats: gameSettingsTable.nbSeats,
+          tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
 
-            // player info
-            creatorId: pgCreatorAlias.id,
-            creatorAlias: pgCreatorAlias.alias,
+          // player info
+          creatorId: pgCreatorAlias.id,
+          creatorAlias: pgCreatorAlias.alias,
 
-            playerId: pgPlayerAlias.id,
-            playerAlias: pgPlayerAlias.alias,
-          })
-          .from(gamesTable)
-          .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
-          .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
-          .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
-          .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId)),
+          playerId: pgPlayerAlias.id,
+          playerAlias: pgPlayerAlias.alias,
+        })
+        .from(gamesTable)
+        .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
+        .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
+        .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
+        .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId)),
     )
 
     if (Result.isFailure(gameSummariesResult)) {
@@ -179,37 +177,36 @@ export class GamesRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GameSummaryModel | undefined, string>> {
     const gameSummariesResult = await Result.tryCatch(
-      async () =>
-        await db
-          .select({
-            // game info
-            id: gamesTable.id,
-            createdByPlayerId: gamesTable.createdByPlayerId,
-            winnerPlayerId: gamesTable.winnerPlayerId,
-            createdAt: gamesTable.createdAt,
-            startedAt: gamesTable.startedAt,
-            endedAt: gamesTable.endedAt,
+      db
+        .select({
+          // game info
+          id: gamesTable.id,
+          createdByPlayerId: gamesTable.createdByPlayerId,
+          winnerPlayerId: gamesTable.winnerPlayerId,
+          createdAt: gamesTable.createdAt,
+          startedAt: gamesTable.startedAt,
+          endedAt: gamesTable.endedAt,
 
-            // settings
-            name: gameSettingsTable.name,
-            locked: gameSettingsTable.locked,
-            starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
-            nbSeats: gameSettingsTable.nbSeats,
-            tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
+          // settings
+          name: gameSettingsTable.name,
+          locked: gameSettingsTable.locked,
+          starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
+          nbSeats: gameSettingsTable.nbSeats,
+          tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
 
-            // player info
-            creatorId: pgCreatorAlias.id,
-            creatorAlias: pgCreatorAlias.alias,
+          // player info
+          creatorId: pgCreatorAlias.id,
+          creatorAlias: pgCreatorAlias.alias,
 
-            playerId: pgPlayerAlias.id,
-            playerAlias: pgPlayerAlias.alias,
-          })
-          .from(gamesTable)
-          .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
-          .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
-          .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
-          .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId))
-          .where(eq(gamesTable.id, gameId)),
+          playerId: pgPlayerAlias.id,
+          playerAlias: pgPlayerAlias.alias,
+        })
+        .from(gamesTable)
+        .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
+        .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
+        .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
+        .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId))
+        .where(eq(gamesTable.id, gameId)),
     )
 
     if (Result.isFailure(gameSummariesResult)) {
@@ -261,8 +258,7 @@ export class GamesRepository extends PostgresRepository {
 
   public async getPlayerIds({ gameId }: { gameId: number }, db: PostgresRepository["db"] = this.db): Promise<Result<number[], string>> {
     const gamePlayersResult = await Result.tryCatch(
-      async () =>
-        await db.select({ playerId: gamePlayersTable.playerId }).from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId)),
+      db.select({ playerId: gamePlayersTable.playerId }).from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId)),
     )
 
     if (Result.isFailure(gamePlayersResult)) {
@@ -326,27 +322,26 @@ export class GamesRepository extends PostgresRepository {
   ): Promise<Result<true, string>> {
     const { gameId, playerId, canJoin } = options
     const joinResult = await Result.tryCatch(
-      async () =>
-        await db.transaction(async (tx): Promise<true> => {
-          const gameSummaryRowResult = await this.getSummaryById({ gameId }, tx)
-          if (Result.isFailure(gameSummaryRowResult)) {
-            throw new Error(gameSummaryRowResult.error)
-          }
+      db.transaction(async (tx): Promise<true> => {
+        const gameSummaryRowResult = await this.getSummaryById({ gameId }, tx)
+        if (Result.isFailure(gameSummaryRowResult)) {
+          throw new Error(gameSummaryRowResult.error)
+        }
 
-          const gameSummaryRow = gameSummaryRowResult.value
+        const gameSummaryRow = gameSummaryRowResult.value
 
-          if (gameSummaryRow === undefined) {
-            throw new Error(`Game does not exist, cannot join`)
-          }
+        if (gameSummaryRow === undefined) {
+          throw new Error(`Game does not exist, cannot join`)
+        }
 
-          if (!canJoin(gameSummaryRow)) {
-            throw new Error(`canJoin returned false, the game will not be joined`)
-          }
+        if (!canJoin(gameSummaryRow)) {
+          throw new Error(`canJoin returned false, the game will not be joined`)
+        }
 
-          await tx.insert(gamePlayersTable).values({ gameId, playerId })
+        await tx.insert(gamePlayersTable).values({ gameId, playerId })
 
-          return true
-        }),
+        return true
+      }),
     )
 
     if (Result.isFailure(joinResult)) {
@@ -374,26 +369,25 @@ export class GamesRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const leaveResult = await Result.tryCatch(
-      async () =>
-        await db.transaction(async (tx): Promise<true> => {
-          const gameSummaryRowResult = await this.getSummaryById({ gameId }, tx)
-          if (Result.isFailure(gameSummaryRowResult)) {
-            throw new Error(gameSummaryRowResult.error)
-          }
+      db.transaction(async (tx): Promise<true> => {
+        const gameSummaryRowResult = await this.getSummaryById({ gameId }, tx)
+        if (Result.isFailure(gameSummaryRowResult)) {
+          throw new Error(gameSummaryRowResult.error)
+        }
 
-          const gameSummaryRow = gameSummaryRowResult.value
-          if (gameSummaryRow === undefined) {
-            throw new Error(`Game does not exist, cannot leave`)
-          }
+        const gameSummaryRow = gameSummaryRowResult.value
+        if (gameSummaryRow === undefined) {
+          throw new Error(`Game does not exist, cannot leave`)
+        }
 
-          if (!canLeave(gameSummaryRow)) {
-            throw new Error(`canLeave returned false, the game will not be left`)
-          }
+        if (!canLeave(gameSummaryRow)) {
+          throw new Error(`canLeave returned false, the game will not be left`)
+        }
 
-          await tx.delete(gamePlayersTable).where(and(eq(gamePlayersTable.gameId, gameId), eq(gamePlayersTable.playerId, playerId)))
+        await tx.delete(gamePlayersTable).where(and(eq(gamePlayersTable.gameId, gameId), eq(gamePlayersTable.playerId, playerId)))
 
-          return true
-        }),
+        return true
+      }),
     )
 
     if (Result.isFailure(leaveResult)) {
@@ -423,59 +417,58 @@ export class GamesRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const startResult = await Result.tryCatch(
-      async () =>
-        await db.transaction(async (tx): Promise<true> => {
-          const gameSummaryRowResult = await this.getSummaryById({ gameId }, tx)
-          if (Result.isFailure(gameSummaryRowResult)) {
-            throw new Error(gameSummaryRowResult.error)
-          }
+      db.transaction(async (tx): Promise<true> => {
+        const gameSummaryRowResult = await this.getSummaryById({ gameId }, tx)
+        if (Result.isFailure(gameSummaryRowResult)) {
+          throw new Error(gameSummaryRowResult.error)
+        }
 
-          const gameSummaryRow = gameSummaryRowResult.value
-          if (gameSummaryRow === undefined) {
-            throw new Error(`Game does not exist, cannot start`)
-          }
+        const gameSummaryRow = gameSummaryRowResult.value
+        if (gameSummaryRow === undefined) {
+          throw new Error(`Game does not exist, cannot start`)
+        }
 
-          if (!canStart(gameSummaryRow)) {
-            throw new Error(`canStart returned false, the game will not be started`)
-          }
+        if (!canStart(gameSummaryRow)) {
+          throw new Error(`canStart returned false, the game will not be started`)
+        }
 
-          // Update the game start time
-          const startedAt = new Date()
-          await tx
-            .update(gamesTable)
-            .set({ startedAt })
-            .where(and(eq(gamesTable.id, gameId)))
+        // Update the game start time
+        const startedAt = new Date()
+        await tx
+          .update(gamesTable)
+          .set({ startedAt })
+          .where(and(eq(gamesTable.id, gameId)))
 
-          await tx.update(gameSettingsTable).set({ locked: true }).where(eq(gameSettingsTable.gameId, gameId))
+        await tx.update(gameSettingsTable).set({ locked: true }).where(eq(gameSettingsTable.gameId, gameId))
 
-          // Create the game state
-          const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: gameSummaryRow.settings.tickIntervalSeconds })
+        // Create the game state
+        const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: gameSummaryRow.settings.tickIntervalSeconds })
 
-          const gameStates = await tx.insert(gameStatesTable).values({ gameId, nextTickAt }).returning()
-          Assert.isTrue(gameStates.length === 1)
-          Assert.isDefined(gameStates[0])
-          const gameState = gameStates[0]
+        const gameStates = await tx.insert(gameStatesTable).values({ gameId, nextTickAt }).returning()
+        Assert.isTrue(gameStates.length === 1)
+        Assert.isDefined(gameStates[0])
+        const gameState = gameStates[0]
 
-          // Initialize starting resources for each player in the game.
-          const gamePlayers = await tx.select().from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId))
+        // Initialize starting resources for each player in the game.
+        const gamePlayers = await tx.select().from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId))
 
-          await tx.insert(gamePlayerResourcesTable).values(
-            gamePlayers.flatMap(({ gameId, playerId }) =>
-              // Long term this should be data-driven, not hardcoded
-              Object.values(ResourceType).map((resourceType) => ({
-                gameId,
-                playerId,
-                resourceType,
-                amount: STARTING_RESOURCE_AMOUNTS[resourceType],
-              })),
-            ),
-          )
+        await tx.insert(gamePlayerResourcesTable).values(
+          gamePlayers.flatMap(({ gameId, playerId }) =>
+            // Long term this should be data-driven, not hardcoded
+            Object.values(ResourceType).map((resourceType) => ({
+              gameId,
+              playerId,
+              resourceType,
+              amount: STARTING_RESOURCE_AMOUNTS[resourceType],
+            })),
+          ),
+        )
 
-          // Schedule the next tick
-          await tx.insert(gameTicksTable).values({ gameId, tick: gameState.tick, scheduledFor: gameState.nextTickAt })
+        // Schedule the next tick
+        await tx.insert(gameTicksTable).values({ gameId, tick: gameState.tick, scheduledFor: gameState.nextTickAt })
 
-          return true
-        }),
+        return true
+      }),
     )
 
     if (Result.isFailure(startResult)) {

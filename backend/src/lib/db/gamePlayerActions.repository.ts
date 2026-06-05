@@ -61,17 +61,16 @@ export class GamePlayerActionsRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GamePlayerActionRow | null, string>> {
     const getResult = await Result.tryCatch(
-      async () =>
-        await db
-          .select()
-          .from(gamePlayerActionsTable)
-          .where(
-            and(
-              eq(gamePlayerActionsTable.gameId, params.gameId),
-              eq(gamePlayerActionsTable.playerId, params.playerId),
-              eq(gamePlayerActionsTable.tick, params.tick),
-            ),
+      db
+        .select()
+        .from(gamePlayerActionsTable)
+        .where(
+          and(
+            eq(gamePlayerActionsTable.gameId, params.gameId),
+            eq(gamePlayerActionsTable.playerId, params.playerId),
+            eq(gamePlayerActionsTable.tick, params.tick),
           ),
+        ),
     )
 
     if (Result.isFailure(getResult)) {
@@ -88,11 +87,10 @@ export class GamePlayerActionsRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GamePlayerActionRow[], string>> {
     const getResult = await Result.tryCatch(
-      async () =>
-        await db
-          .select()
-          .from(gamePlayerActionsTable)
-          .where(and(eq(gamePlayerActionsTable.gameId, params.gameId), eq(gamePlayerActionsTable.tick, params.tick))),
+      db
+        .select()
+        .from(gamePlayerActionsTable)
+        .where(and(eq(gamePlayerActionsTable.gameId, params.gameId), eq(gamePlayerActionsTable.tick, params.tick))),
     )
 
     if (Result.isFailure(getResult)) {
