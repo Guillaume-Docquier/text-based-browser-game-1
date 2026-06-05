@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { eq } from "drizzle-orm"
-import { randomUUID } from "node:crypto"
+import { v4 } from "uuid"
 import { Assert, Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
@@ -117,11 +117,11 @@ describe("starSystems.repository", () => {
 })
 
 function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem {
-  const orbitId = randomUUID()
-  const sectorId = randomUUID()
-  const sectorMovementNodeId = randomUUID()
-  const planetMovementNodeId = randomUUID()
-  const moonMovementNodeId = randomUUID()
+  const orbitId = v4()
+  const sectorId = v4()
+  const sectorMovementNodeId = v4()
+  const planetMovementNodeId = v4()
+  const moonMovementNodeId = v4()
 
   return {
     gameId,
@@ -143,7 +143,7 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
     ],
     bodies: [
       {
-        id: randomUUID(),
+        id: v4(),
         sectorId,
         bodyNumber: 1,
         bodyType: BodyType.PLANET,
@@ -151,7 +151,7 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
         movementNodeId: planetMovementNodeId,
       },
       {
-        id: randomUUID(),
+        id: v4(),
         sectorId,
         bodyNumber: 2,
         bodyType: BodyType.MOON,
@@ -164,11 +164,11 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
 }
 
 function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem {
-  const orbitId = randomUUID()
-  const sectorId = randomUUID()
-  const missingSectorId = randomUUID()
-  const sectorMovementNodeId = randomUUID()
-  const bodyMovementNodeId = randomUUID()
+  const orbitId = v4()
+  const sectorId = v4()
+  const missingSectorId = v4()
+  const sectorMovementNodeId = v4()
+  const bodyMovementNodeId = v4()
 
   return {
     gameId,
@@ -190,7 +190,7 @@ function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSyst
     ],
     bodies: [
       {
-        id: randomUUID(),
+        id: v4(),
         sectorId: missingSectorId,
         bodyNumber: 1,
         bodyType: BodyType.PLANET,

@@ -1,9 +1,9 @@
 import type { PlayerRowInsert } from "./players.repository.ts"
-import { randomUUID } from "node:crypto"
+import { v4 } from "uuid"
 
 export function createPlayerRowInsertStub(overrides?: Partial<PlayerRowInsert>): PlayerRowInsert {
   return {
-    clerk_id: randomUUID(),
+    clerk_id: v4(),
     email: "player@example.com",
     alias: "Player 1",
     ...overrides,

@@ -6,7 +6,7 @@ import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
-import { randomUUID } from "node:crypto"
+import { v4 } from "uuid"
 import { createNewGameModelStub } from "#lib/db/games/GameRowInsert.stub.ts"
 
 describe("starSystems.router", () => {
@@ -182,14 +182,14 @@ async function createStoredStarSystem({
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- As const will help the tests verbosity
 function createStarSystemFixture({ gameId }: { gameId: number }) {
-  const orbitId = randomUUID()
-  const sector1Id = randomUUID()
-  const sector2Id = randomUUID()
-  const sector1MovementNodeId = randomUUID()
-  const sector2MovementNodeId = randomUUID()
-  const planetMovementNodeId = randomUUID()
-  const moonMovementNodeId = randomUUID()
-  const asteroidMovementNodeId = randomUUID()
+  const orbitId = v4()
+  const sector1Id = v4()
+  const sector2Id = v4()
+  const sector1MovementNodeId = v4()
+  const sector2MovementNodeId = v4()
+  const planetMovementNodeId = v4()
+  const moonMovementNodeId = v4()
+  const asteroidMovementNodeId = v4()
 
   return {
     gameId,
@@ -234,7 +234,7 @@ function createStarSystemFixture({ gameId }: { gameId: number }) {
     ],
     bodies: [
       {
-        id: randomUUID(),
+        id: v4(),
         sectorId: sector1Id,
         bodyNumber: 1,
         bodyType: BodyType.PLANET,
@@ -242,7 +242,7 @@ function createStarSystemFixture({ gameId }: { gameId: number }) {
         movementNodeId: planetMovementNodeId,
       },
       {
-        id: randomUUID(),
+        id: v4(),
         sectorId: sector1Id,
         bodyNumber: 2,
         bodyType: BodyType.MOON,
@@ -250,7 +250,7 @@ function createStarSystemFixture({ gameId }: { gameId: number }) {
         movementNodeId: moonMovementNodeId,
       },
       {
-        id: randomUUID(),
+        id: v4(),
         sectorId: sector2Id,
         bodyNumber: 1,
         bodyType: BodyType.ASTEROID,
