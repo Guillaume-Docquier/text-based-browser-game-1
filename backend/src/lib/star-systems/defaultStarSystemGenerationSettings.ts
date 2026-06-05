@@ -1,7 +1,7 @@
 import { Range } from "@guillaume-docquier/tools-ts"
 import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
 
-function randomInt32(): number {
+function randomUInt32(): number {
   return Math.floor(Math.random() * 0x100000000)
 }
 
@@ -12,6 +12,6 @@ export function createDefaultStarSystemGenerationSettings(): StarSystemGeneratio
     nbMoonsPerPlanet: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 3 }),
     nbAsteroidBelts: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
     nbAsteroidsPerSector: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 3 }),
-    seed: randomInt32(),
+    seed: randomUInt32(),
   }
 }
