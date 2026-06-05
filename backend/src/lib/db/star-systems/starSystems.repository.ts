@@ -9,21 +9,28 @@ import { toCoordinates } from "#lib/star-systems/Coordinates.ts"
 const RANGE_NUMERIC_TYPES = ["float", "integer"] as const
 const RANGE_MAX_BOUND_TYPES = ["inclusive", "exclusive"] as const
 
-export type NewStarSystem = {
+type StarSystemRow = typeof starSystemsTable.$inferSelect
+type OrbitRow = typeof orbitsTable.$inferSelect
+type SectorRow = typeof sectorsTable.$inferSelect
+type NewSectorRow = Omit<typeof sectorsTable.$inferInsert, "gameId">
+type BodyRow = typeof bodiesTable.$inferSelect
+type MovementEdgeRow = typeof movementEdgesTable.$inferSelect
+
+export type NewStarSystemModel = {
   gameId: number
-  orbits: Orbit[]
-  sectors: Sector[]
-  bodies: Body[]
-  movementNodes: MovementNode[]
-  movementEdges: MovementEdge[]
+  orbits: NewOrbitModel[]
+  sectors: NewSectorModel[]
+  bodies: NewBodyModel[]
+  movementNodes: NewMovementNodeModel[]
+  movementEdges: NewMovementEdgeModel[]
 }
 
-export type Orbit = {
+export type NewOrbitModel = {
   id: string
   orbitNumber: number
 }
 
-export type Sector = {
+export type NewSectorModel = {
   id: string
   orbitId: string
   sectorNumber: number
@@ -31,7 +38,7 @@ export type Sector = {
   movementNodeId: string
 }
 
-export type Body = {
+export type NewBodyModel = {
   id: string
   sectorId: string
   bodyNumber: number
@@ -40,45 +47,45 @@ export type Body = {
   movementNodeId: string
 }
 
-export type MovementNode = {
+export type NewMovementNodeModel = {
   id: string
 }
 
-export type MovementEdge = {
+export type NewMovementEdgeModel = {
   fromNodeId: string
   toNodeId: string
   weight: number
 }
 
-export type StarSystemReadModel = {
+export type StarSystemModel = {
   gameId: number
   /**
    * Star system as a tree
    */
-  orbits: OrbitReadModel[]
+  orbits: OrbitModel[]
   /**
    * Movement edges by movement node id
    */
-  movementEdges: Record<string, MovementEdgeReadModel[]>
+  movementEdges: Record<string, MovementEdgeModel[]>
 }
 
-export type OrbitReadModel = {
+export type OrbitModel = {
   id: string
   number: number
   coordinates: string
-  sectors: SectorReadModel[]
+  sectors: SectorModel[]
 }
 
-export type SectorReadModel = {
+export type SectorModel = {
   id: string
   number: number
   coordinates: string
   angleRange: Range
-  bodies: BodyReadModel[]
+  bodies: BodyModel[]
   movementNodeId: string
 }
 
-export type BodyReadModel = {
+export type BodyModel = {
   id: string
   number: number
   coordinates: string
@@ -87,18 +94,11 @@ export type BodyReadModel = {
   movementNodeId: string
 }
 
-export type MovementEdgeReadModel = {
+export type MovementEdgeModel = {
   fromNodeId: string
   toNodeId: string
   weight: number
 }
-
-type StarSystemRow = typeof starSystemsTable.$inferSelect
-type OrbitRow = typeof orbitsTable.$inferSelect
-export type SectorRow = typeof sectorsTable.$inferSelect
-type SectorInsert = Omit<typeof sectorsTable.$inferInsert, "gameId">
-type BodyRow = typeof bodiesTable.$inferSelect
-type MovementEdgeRow = typeof movementEdgesTable.$inferSelect
 
 type StarSystemAggregatedRows = {
   starSystem: StarSystemRow
@@ -120,7 +120,7 @@ export class StarSystemsRepository extends PostgresRepository {
    * Create a new star system.
    * It is your responsibility to provide coherent data. Failing to do so will result in a Failure.
    */
-  public async create(newStarSystem: NewStarSystem, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
+  public async create(newStarSystem: NewStarSystemModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
     const createResult = await Result.tryCatch(
       db.transaction(async (tx) => {
         const withGameId = createWithGameId(newStarSystem.gameId)
@@ -142,7 +142,7 @@ export class StarSystemsRepository extends PostgresRepository {
           await tx.insert(orbitsTable).values(orbits)
         }
 
-        const sectors = newStarSystem.sectors.map(toSectorInsert).map(withGameId)
+        const sectors = newStarSystem.sectors.map(toNewSectorRow).map(withGameId)
         if (sectors.length > 0) {
           await tx.insert(sectorsTable).values(sectors)
         }
@@ -169,7 +169,7 @@ export class StarSystemsRepository extends PostgresRepository {
   public async getByGameId(
     { gameId }: { gameId: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<StarSystemReadModel | undefined, string>> {
+  ): Promise<Result<StarSystemModel | undefined, string>> {
     const getRowsResult = await Result.tryCatch(async () => {
       const starSystems = await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, gameId))
       Assert.isTrue(starSystems.length <= 1)
@@ -202,11 +202,11 @@ export class StarSystemsRepository extends PostgresRepository {
       return Result.Success(undefined)
     }
 
-    return Result.Success(toStarSystemReadModel(getRowsResult.value))
+    return Result.Success(toStarSystemModel(getRowsResult.value))
   }
 }
 
-function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSystemReadModel {
+function toStarSystemModel(starSystemRows: StarSystemAggregatedRows): StarSystemModel {
   const bodiesBySectorId = Map.groupBy(starSystemRows.bodies, ({ sectorId }) => sectorId)
   const sectorsByOrbitId = Map.groupBy(starSystemRows.sectors, ({ orbitId }) => orbitId)
 
@@ -237,16 +237,16 @@ function toStarSystemReadModel(starSystemRows: StarSystemAggregatedRows): StarSy
   }
 }
 
-function toSectorInsert(sector: Sector): SectorInsert {
+function toNewSectorRow(newSector: NewSectorModel): NewSectorRow {
   return {
-    id: sector.id,
-    orbitId: sector.orbitId,
-    sectorNumber: sector.sectorNumber,
-    angleNumericType: sector.angleRange.numericType,
-    angleMaxBoundType: sector.angleRange.maxBoundType,
-    startAngleDegrees: sector.angleRange.min,
-    endAngleDegrees: sector.angleRange.max,
-    movementNodeId: sector.movementNodeId,
+    id: newSector.id,
+    orbitId: newSector.orbitId,
+    sectorNumber: newSector.sectorNumber,
+    angleNumericType: newSector.angleRange.numericType,
+    angleMaxBoundType: newSector.angleRange.maxBoundType,
+    startAngleDegrees: newSector.angleRange.min,
+    endAngleDegrees: newSector.angleRange.max,
+    movementNodeId: newSector.movementNodeId,
   }
 }
 
@@ -263,14 +263,14 @@ function toSectorAngleRange(sector: SectorRow): Range {
 }
 
 function createWithGameId(
-  gameId: NewStarSystem["gameId"],
-): <T extends Record<string, unknown>>(data: T) => T & Pick<NewStarSystem, "gameId"> {
+  gameId: NewStarSystemModel["gameId"],
+): <T extends Record<string, unknown>>(data: T) => T & Pick<NewStarSystemModel, "gameId"> {
   return (data) => ({ ...data, gameId })
 }
 
-function toMovementEdgesByFromNodeId(edges: MovementEdgeRow[]): StarSystemReadModel["movementEdges"] {
+function toMovementEdgesByFromNodeId(edges: MovementEdgeRow[]): StarSystemModel["movementEdges"] {
   // We cast because Object.groupBy returns a Partial<Record<string, T>>, which makes TypeScript think
   // That T could be undefined because of Partial
   // Kinda strange
-  return Object.groupBy(edges, ({ fromNodeId }) => fromNodeId) as StarSystemReadModel["movementEdges"]
+  return Object.groupBy(edges, ({ fromNodeId }) => fromNodeId) as StarSystemModel["movementEdges"]
 }

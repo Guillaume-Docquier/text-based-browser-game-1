@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
+import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { GameSummaryStatus } from "#api/games/games.controller.ts"
@@ -13,7 +13,7 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       authService.player = player
 
       // Act
@@ -78,7 +78,7 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       authService.player = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -130,8 +130,8 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      const creator = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Player 2" })))
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -185,8 +185,8 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      const creator = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Player 2" })))
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -237,7 +237,7 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
+      const creator = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Creator" })))
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -300,8 +300,8 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      const creator = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Player 2" })))
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -355,7 +355,7 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -391,8 +391,8 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      const creator = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Player 2" })))
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -443,7 +443,7 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -479,7 +479,7 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       authService.player = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -530,8 +530,8 @@ describe("games.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Creator" })))
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub({ alias: "Player 2" })))
+      const creator = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Creator" })))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Player 2" })))
       authService.player = creator
 
       const { newGame } = await trpcClient.client.games.create.mutate({

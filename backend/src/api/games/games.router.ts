@@ -1,4 +1,4 @@
-import { CreatedGame, GameInsert, type GamesController, GameSummary } from "./games.controller.ts"
+import { CreatedGameDto, NewGameDto, type GamesController, GameSummaryDto } from "./games.controller.ts"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
@@ -18,8 +18,8 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      * Creates a new game.
      */
     create: trpc.privateProcedure
-      .input(z.object({ newGame: GameInsert.omit({ createdByPlayerId: true }) }))
-      .output(z.object({ newGame: CreatedGame }))
+      .input(z.object({ newGame: NewGameDto.omit({ createdByPlayerId: true }) }))
+      .output(z.object({ newGame: CreatedGameDto }))
       .mutation(async ({ input: { newGame }, ctx: { player } }) => {
         const createResult = await gamesController.create({ ...newGame, createdByPlayerId: player.id })
         if (Result.isFailure(createResult)) {
@@ -36,7 +36,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
     /**
      * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getSummaries: trpc.publicProcedure.output(z.object({ games: z.array(GameSummary) })).query(async ({ ctx: { player } }) => {
+    getSummaries: trpc.publicProcedure.output(z.object({ games: z.array(GameSummaryDto) })).query(async ({ ctx: { player } }) => {
       const games = await gamesController.getSummaries({ playerId: player?.id })
 
       gamesRouterLogger.info("GET games", { count: games.length })
@@ -48,7 +48,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      */
     getSummaryById: trpc.publicProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ game: GameSummary }))
+      .output(z.object({ game: GameSummaryDto }))
       .query(async ({ input: { gameId }, ctx: { player } }) => {
         const game = await gamesController.getSummaryById({ gameId, playerId: player?.id })
         gamesRouterLogger.info(`GET game ${gameId}`, { game })
@@ -68,7 +68,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      */
     join: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ joinedGame: GameSummary }))
+      .output(z.object({ joinedGame: GameSummaryDto }))
       .mutation(async ({ input: { gameId }, ctx: { player } }) => {
         const joinGameResult = await gamesController.join({ gameId, playerId: player.id })
         if (Result.isFailure(joinGameResult)) {
@@ -86,7 +86,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      */
     leave: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ leftGame: GameSummary }))
+      .output(z.object({ leftGame: GameSummaryDto }))
       .mutation(async ({ input: { gameId }, ctx: { player } }) => {
         const leaveGameResult = await gamesController.leave({ gameId, playerId: player.id })
         if (Result.isFailure(leaveGameResult)) {
@@ -104,7 +104,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      */
     start: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ startedGame: GameSummary }))
+      .output(z.object({ startedGame: GameSummaryDto }))
       .mutation(async ({ input: { gameId }, ctx: { player } }) => {
         const startGameResult = await gamesController.start({ gameId, playerId: player.id })
         if (Result.isFailure(startGameResult)) {

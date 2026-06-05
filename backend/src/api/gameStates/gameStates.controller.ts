@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
-import { type GameStatesRepository, type PlayerGameStateRow } from "#lib/db/gameStates.repository.ts"
+import { type GameStatesRepository, type PlayerGameStateModel } from "#lib/db/gameStates.repository.ts"
 
 export class GameStatesController {
   private readonly gameStatesRepository: GameStatesRepository
@@ -9,7 +9,7 @@ export class GameStatesController {
     this.gameStatesRepository = gameStatesRepository
   }
 
-  public async getById({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameState | undefined, string>> {
+  public async getById({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameStateDto | undefined, string>> {
     const gameStateResult = await this.gameStatesRepository.getByGameIdAndPlayerId({ gameId, playerId })
     if (Result.isFailure(gameStateResult)) {
       return gameStateResult
@@ -19,22 +19,22 @@ export class GameStatesController {
       return Result.Success(undefined)
     }
 
-    return Result.Success(toGameState(gameStateResult.value))
+    return Result.Success(toGameStateDto(gameStateResult.value))
   }
 }
 
-function toGameState(gameStateRow: PlayerGameStateRow): GameState {
+function toGameStateDto(playerGameStateModel: PlayerGameStateModel): GameStateDto {
   return {
-    gameId: gameStateRow.gameId,
-    playerId: gameStateRow.playerId,
-    tick: gameStateRow.tick,
-    nextTickAt: gameStateRow.nextTickAt,
-    resources: gameStateRow.resources,
+    gameId: playerGameStateModel.gameId,
+    playerId: playerGameStateModel.playerId,
+    tick: playerGameStateModel.tick,
+    nextTickAt: playerGameStateModel.nextTickAt,
+    resources: playerGameStateModel.resources,
   }
 }
 
-export type GameState = z.infer<typeof GameState>
-export const GameState = z.object({
+export type GameStateDto = z.infer<typeof GameStateDto>
+export const GameStateDto = z.object({
   gameId: z.number(),
   playerId: z.number(),
   tick: z.number(),

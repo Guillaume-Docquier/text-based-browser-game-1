@@ -1,13 +1,6 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
-import type {
-  StarSystemsRepository,
-  StarSystemReadModel,
-  OrbitReadModel,
-  SectorReadModel,
-  BodyReadModel,
-  MovementEdge,
-} from "#lib/db/star-systems/starSystems.repository.ts"
+import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
@@ -20,7 +13,7 @@ const StarSystemBodyDto = z.object({
   name: z.string(),
   type: z.enum(BodyType),
   movementNodeId: z.string(),
-}) satisfies z.ZodType<BodyReadModel>
+})
 
 const StarSystemSectorDto = z.object({
   id: z.string(),
@@ -29,26 +22,27 @@ const StarSystemSectorDto = z.object({
   angleRange: RangeDto,
   bodies: z.array(StarSystemBodyDto),
   movementNodeId: z.string(),
-}) satisfies z.ZodType<SectorReadModel>
+})
 
 const StarSystemOrbitDto = z.object({
   id: z.string(),
   number: z.number(),
   coordinates: z.string(),
   sectors: z.array(StarSystemSectorDto),
-}) satisfies z.ZodType<OrbitReadModel>
+})
 
 const MovementEdgeDto = z.object({
   fromNodeId: z.string(),
   toNodeId: z.string(),
   weight: z.number(),
-}) satisfies z.ZodType<MovementEdge>
+})
 
+export type StarSystemDto = z.infer<typeof StarSystemDto>
 export const StarSystemDto = z.object({
   gameId: z.number(),
   orbits: z.array(StarSystemOrbitDto),
   movementEdges: z.record(z.string(), z.array(MovementEdgeDto)),
-}) satisfies z.ZodType<StarSystemReadModel>
+})
 
 export class StarSystemsController {
   private readonly gamesRepository: GamesRepository
@@ -69,13 +63,7 @@ export class StarSystemsController {
     this.logger = logger.child({ scope: "star-systems-controller" })
   }
 
-  public async getByGameId({
-    gameId,
-    playerId,
-  }: {
-    gameId: number
-    playerId: number
-  }): Promise<Result<StarSystemReadModel | undefined, string>> {
+  public async getByGameId({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<StarSystemDto | undefined, string>> {
     const canReadGameResult = await this.canReadGame({ gameId, playerId })
     if (Result.isFailure(canReadGameResult)) {
       return canReadGameResult

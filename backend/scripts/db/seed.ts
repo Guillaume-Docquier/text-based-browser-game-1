@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
 import { Assert, type Logger, type Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import { PlayersRepository, type PlayerRow, type PlayerRowInsert } from "#lib/db/players/players.repository.ts"
+import { PlayersRepository, type NewPlayerModel, type PlayerModel } from "#lib/db/players/players.repository.ts"
 import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
@@ -135,19 +135,19 @@ async function seedPlayers({
   user: User | undefined
   playersRepository: PlayersRepository
   logger: Logger
-}): Promise<PlayerRow[]> {
+}): Promise<PlayerModel[]> {
   logger.info("Users")
   logger.info("├ Cleaning up the users")
   await resetTable(db, playersTable)
   logger.info("├ Adding sample users")
-  const newPlayers: PlayerRowInsert[] = [
+  const newPlayers: NewPlayerModel[] = [
     ...(user !== undefined ? [{ clerk_id: user.clerkId, email: user.email, alias: user.alias }] : []),
     { clerk_id: "fake1", email: "fake1@email.com", alias: "fake1 name" },
     { clerk_id: "fake2", email: "fake2@email.com" },
     { clerk_id: "fake3" },
   ]
 
-  const players: PlayerRow[] = []
+  const players: PlayerModel[] = []
   for (const newPlayer of newPlayers) {
     players.push(assertSuccess(await playersRepository.create(newPlayer)))
   }
@@ -164,7 +164,7 @@ async function seedGames({
   logger,
 }: {
   db: Database
-  players: PlayerRow[]
+  players: PlayerModel[]
   gamesController: GamesController
   logger: Logger
 }): Promise<void> {

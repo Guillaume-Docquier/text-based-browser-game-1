@@ -5,7 +5,7 @@ import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import { type ResourceType } from "#lib/gameResources.ts"
 
-export type ResourceUpdate = {
+export type ResourceUpdateModel = {
   gameId: number
   playerId: number
   resourceType: ResourceType
@@ -20,7 +20,7 @@ export class GamePlayerResourcesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "game-player-resources-repository" })
   }
 
-  public async updateResource(resourceUpdate: ResourceUpdate, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
+  public async updateResource(resourceUpdate: ResourceUpdateModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
     const updateResourceResult = await Result.tryCatch(async (): Promise<true> => {
       await db
         .update(gamePlayerResourcesTable)

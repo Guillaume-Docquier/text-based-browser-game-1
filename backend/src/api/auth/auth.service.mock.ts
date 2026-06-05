@@ -1,11 +1,11 @@
 import type { RequestHandler } from "express"
-import type { Player } from "#api/players/players.controller.ts"
+import type { PlayerDto } from "#api/players/players.controller.ts"
 import { type IAuthService } from "./auth.service.ts"
 
 export class AuthServiceMock implements IAuthService {
-  public player: Player | undefined
+  public player: PlayerDto | undefined
 
-  public constructor({ player }: { player?: Player } = {}) {
+  public constructor({ player }: { player?: PlayerDto } = {}) {
     this.player = player
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
+import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
@@ -11,7 +11,7 @@ describe("gameStates.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       authService.player = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -45,7 +45,7 @@ describe("gameStates.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
 
       // Act & Assert
       await expect(trpcClient.client.gameStates.getById.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({

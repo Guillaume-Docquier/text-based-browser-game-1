@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createPlayerRowInsertStub } from "#lib/db/players/PlayerRowInsert.stub.ts"
+import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
 import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
-import { createResourceUpdateStub } from "#lib/db/resources/ResourceUpdate.stub.ts"
+import { createResourceUpdateModelStub } from "#lib/db/resources/ResourceUpdateModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
@@ -13,7 +13,7 @@ describe("gamePlayerActions.router", () => {
       const { api, authService, gamePlayerResourcesRepository, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       authService.player = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
@@ -23,7 +23,7 @@ describe("gamePlayerActions.router", () => {
       })
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateStub({ gameId: newGame.id, playerId: player.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: newGame.id, playerId: player.id, amountDelta: 2 }),
       )
 
       // Act
@@ -54,7 +54,7 @@ describe("gamePlayerActions.router", () => {
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -82,7 +82,7 @@ describe("gamePlayerActions.router", () => {
       const { api, authService, playersRepository, gamePlayerResourcesRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createPlayerRowInsertStub()))
+      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       authService.player = player
 
       const createGameResult = await trpcClient.client.games.create.mutate({
@@ -92,7 +92,7 @@ describe("gamePlayerActions.router", () => {
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),
       )
 
       // Act

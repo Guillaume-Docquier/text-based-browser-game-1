@@ -5,7 +5,9 @@ import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import { type GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 
-export type GamePlayerActionRow = typeof gamePlayerActionsTable.$inferSelect
+type GamePlayerActionRow = typeof gamePlayerActionsTable.$inferSelect
+
+export type GamePlayerActionModel = GamePlayerActionRow
 
 export class GamePlayerActionsRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -23,7 +25,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
       actionType: GamePlayerActionType
     },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GamePlayerActionRow, string>> {
+  ): Promise<Result<GamePlayerActionModel, string>> {
     const upsertResult = await Result.tryCatch(async () => {
       const updatedAt = new Date()
       const gamePlayerActions = await db
@@ -59,7 +61,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
       tick: number
     },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GamePlayerActionRow | null, string>> {
+  ): Promise<Result<GamePlayerActionModel | null, string>> {
     const getResult = await Result.tryCatch(
       db
         .select()
@@ -85,7 +87,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
   public async getByGameIdAndTick(
     params: { gameId: number; tick: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GamePlayerActionRow[], string>> {
+  ): Promise<Result<GamePlayerActionModel[], string>> {
     const getResult = await Result.tryCatch(
       db
         .select()
