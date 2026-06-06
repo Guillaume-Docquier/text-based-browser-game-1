@@ -10,6 +10,11 @@ import { PlayersRepository, type NewPlayerModel, type PlayerModel } from "#lib/d
 import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
+import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
+import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
+import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
+import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -74,7 +79,16 @@ async function main({ connectionString, user }: { connectionString: string; user
   const db = createDb({ databaseUrl: connectionString })
   const gamesRepository = new GamesRepository({ db, logger })
   const playersRepository = new PlayersRepository({ db, logger })
-  const gamesController = new GamesController({ logger, gamesRepository })
+  const gamesController = new GamesController({
+    logger,
+    gamesRepository,
+    createTransaction: db.transaction.bind(db),
+    gameSettingsRepository: new GameSettingsRepository({ db, logger }),
+    gamePlayersRepository: new GamePlayersRepository({ db, logger }),
+    gameStatesRepository: new GameStatesRepository({ db, logger }),
+    gameTicksRepository: new GameTicksRepository({ db, logger }),
+    gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
+  })
 
   logger.info(`Seeding the '${host}' database with default values`)
   try {

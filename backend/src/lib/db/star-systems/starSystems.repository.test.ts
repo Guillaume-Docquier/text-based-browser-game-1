@@ -12,6 +12,12 @@ import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
+import type { Database } from "#lib/db/createDb.ts"
+import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
+import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
+import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
+import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 
 describe("starSystems.repository", () => {
   describe("create", () => {
@@ -22,10 +28,7 @@ describe("starSystems.repository", () => {
 
       const playersRepository = new PlayersRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
-      const gamesController = new GamesController({
-        gamesRepository: new GamesRepository({ db, logger }),
-        logger,
-      })
+      const gamesController = createGamesController({ db, logger })
 
       const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByPlayerId: player.id })))
@@ -66,10 +69,7 @@ describe("starSystems.repository", () => {
 
       const playersRepository = new PlayersRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
-      const gamesController = new GamesController({
-        gamesRepository: new GamesRepository({ db, logger }),
-        logger,
-      })
+      const gamesController = createGamesController({ db, logger })
 
       const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByPlayerId: player.id })))
@@ -91,10 +91,7 @@ describe("starSystems.repository", () => {
 
       const playersRepository = new PlayersRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
-      const gamesController = new GamesController({
-        gamesRepository: new GamesRepository({ db, logger }),
-        logger,
-      })
+      const gamesController = createGamesController({ db, logger })
 
       const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
       const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByPlayerId: player.id })))
@@ -115,6 +112,19 @@ describe("starSystems.repository", () => {
     })
   })
 })
+
+function createGamesController({ db, logger }: { db: Database; logger: Logger }): GamesController {
+  return new GamesController({
+    createTransaction: db.transaction.bind(db),
+    gamesRepository: new GamesRepository({ db, logger }),
+    gameSettingsRepository: new GameSettingsRepository({ db, logger }),
+    gamePlayersRepository: new GamePlayersRepository({ db, logger }),
+    gameStatesRepository: new GameStatesRepository({ db, logger }),
+    gameTicksRepository: new GameTicksRepository({ db, logger }),
+    gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
+    logger,
+  })
+}
 
 function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystemModel {
   const orbitId = v4()

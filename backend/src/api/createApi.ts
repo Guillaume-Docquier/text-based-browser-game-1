@@ -21,6 +21,9 @@ import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.rep
 import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
+import type { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
+import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import type { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 
 /**
  * Import side effect free express app creator.
@@ -41,7 +44,10 @@ export async function createApi({
   logger: Logger
   playersRepository: PlayersRepository
   gamesRepository: GamesRepository
+  gameSettingsRepository: GameSettingsRepository
+  gamePlayersRepository: GamePlayersRepository
   gameStatesRepository: GameStatesRepository
+  gameTicksRepository: GameTicksRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
   starSystemsRepository: StarSystemsRepository

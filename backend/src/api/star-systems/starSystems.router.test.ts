@@ -7,7 +7,7 @@ import { extractSuccess } from "#tests/extractSuccess.ts"
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { v4 } from "uuid"
-import { createNewGameModelStub } from "#lib/db/games/NewGameModel.stub.ts"
+import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
 
 describe("starSystems.router", () => {
   describe("getSystem", () => {
@@ -18,7 +18,7 @@ describe("starSystems.router", () => {
 
       authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameModelStub() })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
       const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
 
       // Act
@@ -134,7 +134,7 @@ describe("starSystems.router", () => {
       const outsider = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Outsider" })))
       authService.player = creator
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameModelStub() })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
       await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
       authService.player = outsider
 
@@ -151,7 +151,7 @@ describe("starSystems.router", () => {
 
       authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameModelStub() })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
 
       // Act & Assert
       await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
