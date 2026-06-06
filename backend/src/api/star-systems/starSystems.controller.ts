@@ -1,5 +1,5 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GamesRepository } from "#lib/db/games/games.repository.ts"
+import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
@@ -45,22 +45,22 @@ export const StarSystemDto = z.object({
 })
 
 export class StarSystemsController {
-  private readonly gamesRepository: GamesRepository
-  private readonly starSystemsRepository: StarSystemsRepository
   private readonly logger: Logger
+  private readonly gamePlayersRepository: GamePlayersRepository
+  private readonly starSystemsRepository: StarSystemsRepository
 
   public constructor({
-    gamesRepository,
-    starSystemsRepository,
     logger,
+    gamePlayersRepository,
+    starSystemsRepository,
   }: {
-    gamesRepository: GamesRepository
-    starSystemsRepository: StarSystemsRepository
     logger: Logger
+    gamePlayersRepository: GamePlayersRepository
+    starSystemsRepository: StarSystemsRepository
   }) {
-    this.gamesRepository = gamesRepository
-    this.starSystemsRepository = starSystemsRepository
     this.logger = logger.child({ scope: "star-systems-controller" })
+    this.gamePlayersRepository = gamePlayersRepository
+    this.starSystemsRepository = starSystemsRepository
   }
 
   public async getByGameId({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<StarSystemDto | undefined, string>> {
@@ -77,7 +77,7 @@ export class StarSystemsController {
   }
 
   private async canReadGame({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<boolean, string>> {
-    return await this.gamesRepository.hasPlayerJoinedGame({ gameId, playerId })
+    return await this.gamePlayersRepository.hasPlayerJoinedGame({ gameId, playerId })
   }
 
   private notAuthorizedFailure({ playerId, gameId }: { playerId: number; gameId: number }): Failure<string> {

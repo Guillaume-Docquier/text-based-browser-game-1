@@ -64,6 +64,11 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
 - When importing a value and a type of the same name from the same package (e.g `Range` or `Result`), just import the value. Do not import the type to rename it.
 
+## Drizzle Gotchas
+
+- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw `new TransactionRollback(...)` from `backend/src/lib/errors.ts` instead.
+- Do not return results from transactions. Throw `TransactionRollback` to abort the transaction, or return the value directly.
+
 ## Commands
 
 Always use pnpm, never use npm.
