@@ -51,6 +51,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - ADR-018: Assert the whole Result object in tests, not its individual properties. `expect(result).toEqual(Result.Success(expectedValue))`
 - ADR-019: Do not leave expected invariants implicit, use explicit `Assert` calls.
 - ADR-020: Frontend Tanstack routes should only do the routing. The UI is implemented in `frontend/src/features/` in vertical slices.
+- ADR-021: All Typescript schema column names should be `camelCased` but renamed to `snake_cased` for postgres via the `name` argument of column builders.
 
 ## Coding Conventions
 
