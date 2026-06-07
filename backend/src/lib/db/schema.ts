@@ -47,7 +47,7 @@ export const accountsTable = pgTable(
     email: varchar("email", { length: 255 }),
     alias: varchar("alias", { length: 255 }),
   },
-  (table) => [uniqueIndex("clerk_id_idx").on(table.authId)],
+  (table) => [uniqueIndex("auth_id_idx").on(table.authId)],
 )
 
 /**

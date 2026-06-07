@@ -146,7 +146,7 @@ ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_star_systems_game_id_fk" F
 ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_orbit_id_orbits_fk" FOREIGN KEY ("game_id","orbit_id") REFERENCES "public"."orbits"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_movement_node_id_movement_nodes_fk" FOREIGN KEY ("game_id","movement_node_id") REFERENCES "public"."movement_nodes"("game_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "star_systems" ADD CONSTRAINT "star_systems_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "clerk_id_idx" ON "accounts" USING btree ("auth_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "auth_id_idx" ON "accounts" USING btree ("auth_id");--> statement-breakpoint
 CREATE INDEX "bodies_game_id_sector_id_idx" ON "bodies" USING btree ("game_id","sector_id");--> statement-breakpoint
 CREATE INDEX "game_ticks_scheduled_for_index" ON "game_ticks" USING btree ("scheduled_for");--> statement-breakpoint
 CREATE INDEX "movement_edges_game_id_from_node_id_idx" ON "movement_edges" USING btree ("game_id","from_node_id");--> statement-breakpoint

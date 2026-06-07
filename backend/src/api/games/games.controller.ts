@@ -315,7 +315,7 @@ function toGameSummaryDto({
 
 export type NewGameDto = z.infer<typeof NewGameDto>
 export const NewGameDto = z.object({
-  createdByAccountId: PlayerId,
+  createdByAccountId: AccountId,
   settings: z.object({
     name: z.string(),
     nbSeats: z.number(),

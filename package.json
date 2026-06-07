@@ -6,7 +6,7 @@
   "scripts": {
     "checks": "pnpm lint:fix && pnpm format:fix && pnpm -r checks",
     "db:clean": "docker compose -f infra/docker-compose.yaml down --volumes && docker compose -f infra/docker-compose.yaml up --wait db && pnpm --filter backend db:migrate && pnpm --filter backend db:seed",
-    "db:nuke": "rm -rf backend/drizzle && pnpm --filter backend db:generate --name init && pnpm db:reset",
+    "db:nuke": "rm -rf backend/drizzle && pnpm --filter backend db:generate --name init && pnpm db:clean",
     "format": "prettier --check . && pnpm format:package-json --check",
     "format:fix": "prettier --write --list-different . && pnpm format:package-json",
     "format:package-json": "sort-package-json package.json shared/eslint/package.json frontend/package.json backend/package.json",

@@ -1,4 +1,4 @@
-# Snake Case Table Names
+# Snake Case Column Names
 
 ## Status
 
@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The standard naming convention with postgres is `snake_case` and there are known quirks when using `camelCase` because postgres is case-insensitive.
+The standard naming convention for columns with postgres is `snake_case` and there are known quirks when using `camelCase` because postgres is case-insensitive.
 
 Drizzle handles column renaming as part of their schema definitions.
 

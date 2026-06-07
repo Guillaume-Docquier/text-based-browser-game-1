@@ -1,5 +1,5 @@
 {
-  "id": "0d8b6237-978b-4ba5-9f14-b2975394810c",
+  "id": "da9c63a6-a1d9-42f8-af98-dcf24db2b18d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -35,8 +35,8 @@
         }
       },
       "indexes": {
-        "clerk_id_idx": {
-          "name": "clerk_id_idx",
+        "auth_id_idx": {
+          "name": "auth_id_idx",
           "columns": [
             {
               "expression": "auth_id",
