@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import type { PlayerId } from "#api/games/PlayerId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 type NewGamePlayerRow = typeof gamePlayersTable.$inferInsert
 type GamePlayerRow = typeof gamePlayersTable.$inferSelect
@@ -40,7 +41,7 @@ export class GamePlayersRepository extends PostgresRepository {
   }
 
   public async delete(
-    { gameId, playerId }: { gameId: number; playerId: PlayerId },
+    { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(async (): Promise<true> => {
@@ -57,7 +58,7 @@ export class GamePlayersRepository extends PostgresRepository {
     return deleteResult
   }
 
-  public async getPlayerIds({ gameId }: { gameId: number }, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerId[], string>> {
+  public async getPlayerIds({ gameId }: { gameId: GameId }, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerId[], string>> {
     const gamePlayersResult = await Result.tryCatch(
       db.select({ playerId: gamePlayersTable.playerId }).from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId)),
     )
@@ -71,7 +72,7 @@ export class GamePlayersRepository extends PostgresRepository {
   }
 
   public async hasPlayerJoinedGame(
-    { gameId, playerId }: { gameId: number; playerId: PlayerId },
+    { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<boolean, string>> {
     const joinedGameResult = await Result.tryCatch(async () => {

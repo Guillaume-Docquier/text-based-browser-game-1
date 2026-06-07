@@ -4,6 +4,7 @@ import { and, eq, lte, isNull } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GameStateModel } from "#lib/db/gameStates.repository.ts"
 import { couldNot } from "#lib/errors.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 type NewGameTickRow = typeof gameTicksTable.$inferInsert
 type GameTickRow = typeof gameTicksTable.$inferSelect
@@ -76,7 +77,7 @@ export class GameTicksRepository extends PostgresRepository {
   }
 
   public async startProcessingTick(
-    { gameId, tick }: { gameId: number; tick: number },
+    { gameId, tick }: { gameId: GameId; tick: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const startProcessingTickResult = await Result.tryCatch(
@@ -95,7 +96,7 @@ export class GameTicksRepository extends PostgresRepository {
   }
 
   public async finishProcessingTick(
-    { gameId, tick }: { gameId: number; tick: number },
+    { gameId, tick }: { gameId: GameId; tick: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const finishProcessingTickResult = await Result.tryCatch(

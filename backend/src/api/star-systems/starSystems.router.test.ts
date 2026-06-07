@@ -8,6 +8,7 @@ import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { v4 } from "uuid"
 import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 describe("starSystems.router", () => {
   describe("getSystem", () => {
@@ -169,7 +170,7 @@ async function createStoredStarSystem({
   gameId,
 }: {
   starSystemsRepository: StarSystemsRepository
-  gameId: number
+  gameId: GameId
 }): Promise<ReturnType<typeof createStarSystemFixture>> {
   const starSystem = createStarSystemFixture({ gameId })
   const createSystemResult = await starSystemsRepository.create(starSystem)
@@ -181,7 +182,7 @@ async function createStoredStarSystem({
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- As const will help the tests verbosity
-function createStarSystemFixture({ gameId }: { gameId: number }) {
+function createStarSystemFixture({ gameId }: { gameId: GameId }) {
   const orbitId = v4()
   const sector1Id = v4()
   const sector2Id = v4()

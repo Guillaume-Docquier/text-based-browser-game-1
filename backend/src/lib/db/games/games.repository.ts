@@ -6,6 +6,7 @@ import { alias } from "drizzle-orm/pg-core"
 import { couldNot } from "#lib/errors.ts"
 import type { GameSettingsModel } from "#lib/db/games/gameSettings.repository.ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 type NewGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
@@ -50,7 +51,7 @@ export class GamesRepository extends PostgresRepository {
   }
 
   public async update(
-    { gameId }: { gameId: number },
+    { gameId }: { gameId: GameId },
     game: Partial<NewGameModel>,
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
@@ -156,7 +157,7 @@ export class GamesRepository extends PostgresRepository {
   }
 
   public async getSummaryById(
-    { gameId }: { gameId: number },
+    { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GameSummaryModel | undefined, string>> {
     const gameSummariesResult = await Result.tryCatch(
@@ -240,7 +241,7 @@ export class GamesRepository extends PostgresRepository {
   }
 
   public async endWithWinner(
-    { gameId, winnerAccountId }: { gameId: number; winnerAccountId: AccountId },
+    { gameId, winnerAccountId }: { gameId: GameId; winnerAccountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const endResult = await Result.tryCatch(async (): Promise<true> => {

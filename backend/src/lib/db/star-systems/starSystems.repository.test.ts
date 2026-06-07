@@ -18,6 +18,7 @@ import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 describe("starSystems.repository", () => {
   describe("create", () => {
@@ -126,7 +127,7 @@ function createGamesController({ db, logger }: { db: Database; logger: Logger })
   })
 }
 
-function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystemModel {
+function createCoherentStarSystem({ gameId }: { gameId: GameId }): NewStarSystemModel {
   const orbitId = v4()
   const sectorId = v4()
   const sectorMovementNodeId = v4()
@@ -173,7 +174,7 @@ function createCoherentStarSystem({ gameId }: { gameId: number }): NewStarSystem
   }
 }
 
-function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSystemModel {
+function createIncoherentStarSystem({ gameId }: { gameId: GameId }): NewStarSystemModel {
   const orbitId = v4()
   const sectorId = v4()
   const missingSectorId = v4()
@@ -212,7 +213,7 @@ function createIncoherentStarSystem({ gameId }: { gameId: number }): NewStarSyst
   }
 }
 
-function toStoredSector({ sector, gameId }: { sector: NewSectorModel; gameId: number }): typeof sectorsTable.$inferSelect {
+function toStoredSector({ sector, gameId }: { sector: NewSectorModel; gameId: GameId }): typeof sectorsTable.$inferSelect {
   return {
     id: sector.id,
     gameId,

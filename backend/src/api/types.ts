@@ -9,6 +9,10 @@ type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 
 export type { TrpcRouter }
 
+export type { GameId } from "#api/games/GameId.ts"
+export type { PlayerId } from "#api/games/PlayerId.ts"
+export type { AccountId } from "#api/accounts/AccountId.ts"
+
 // Games router
 type GamesOutput = TrpcRouterOutput["games"]["getSummaries"]
 export type GameSummary = GamesOutput["games"][number]

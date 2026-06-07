@@ -11,7 +11,7 @@ export class GameStatesController {
     this.gameStatesRepository = gameStatesRepository
   }
 
-  public async getById({ gameId, playerId }: { gameId: number; playerId: PlayerId }): Promise<Result<GameStateDto | undefined, string>> {
+  public async getById({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameStateDto | undefined, string>> {
     const gameStateResult = await this.gameStatesRepository.getByGameIdAndPlayerId({ gameId, playerId })
     if (Result.isFailure(gameStateResult)) {
       return gameStateResult

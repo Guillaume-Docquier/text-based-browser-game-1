@@ -37,7 +37,7 @@ export function GameActionSelector({
   gameState,
   currentAction,
 }: {
-  gameId: number
+  gameId: ApiTypes.GameId
   gameState: PlayGameState
   currentAction: ApiTypes.GamePlayerAction | null
 }): ReactElement {

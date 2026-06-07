@@ -6,6 +6,7 @@ import { z } from "zod"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { RangeDto } from "#api/RangeDto.ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 const StarSystemBodyDto = z.object({
   id: z.string(),
@@ -68,7 +69,7 @@ export class StarSystemsController {
     gameId,
     accountId,
   }: {
-    gameId: number
+    gameId: GameId
     accountId: AccountId
   }): Promise<Result<StarSystemDto | undefined, string>> {
     const canReadGameResult = await this.canReadGame({ gameId, accountId })
@@ -83,11 +84,11 @@ export class StarSystemsController {
     return await this.starSystemsRepository.getByGameId({ gameId })
   }
 
-  private async canReadGame({ gameId, accountId }: { gameId: number; accountId: AccountId }): Promise<Result<boolean, string>> {
+  private async canReadGame({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<boolean, string>> {
     return await this.gamePlayersRepository.hasPlayerJoinedGame({ gameId, playerId: accountId })
   }
 
-  private notAuthorizedFailure({ accountId, gameId }: { accountId: AccountId; gameId: number }): Failure<string> {
+  private notAuthorizedFailure({ accountId, gameId }: { accountId: AccountId; gameId: GameId }): Failure<string> {
     const error = notAuthorized({ accountId, operationName: `read game with id ${gameId}` })
     this.logger.error(error)
     return Result.Failure(error)

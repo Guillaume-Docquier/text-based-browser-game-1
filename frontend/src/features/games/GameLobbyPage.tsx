@@ -13,7 +13,7 @@ import { useLogger } from "../../lib/LoggerContext.tsx"
 import { formatGameSummaryStatus } from "../../lib/formatGameSummaryStatus.ts"
 import { timeAgo } from "../../lib/timeAgo.ts"
 
-export function GameLobbyPage({ gameId }: { gameId: number }): ReactElement {
+export function GameLobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
   const backendApiClient = useBackendApiClient()
   const gameQuery = useQuery(backendApiClient.games.getSummaryById.queryOptions({ gameId }))
@@ -37,9 +37,15 @@ export function GameLobbyPage({ gameId }: { gameId: number }): ReactElement {
 function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const joinGame = useMutation(backendApiClient.games.join.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
-  const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
-  const startGame = useMutation(backendApiClient.games.start.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
+  const joinGame = useMutation(
+    backendApiClient.games.join.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: ApiTypes.GameId }>,
+  )
+  const leaveGame = useMutation(
+    backendApiClient.games.leave.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: ApiTypes.GameId }>,
+  )
+  const startGame = useMutation(
+    backendApiClient.games.start.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: ApiTypes.GameId }>,
+  )
 
   return (
     <div className="flex flex-col gap-6">

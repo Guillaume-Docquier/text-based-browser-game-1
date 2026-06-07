@@ -14,6 +14,7 @@ import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/gameResources.ts"
 import z from "zod"
 import { PlayerId } from "#api/games/PlayerId.ts"
 import { AccountId } from "#api/accounts/AccountId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 export class GamesController {
   private readonly logger: Logger
@@ -109,7 +110,7 @@ export class GamesController {
     gameId,
     playerId,
   }: {
-    gameId: number
+    gameId: GameId
     playerId: PlayerId | undefined
   }): Promise<GameSummaryDto | undefined> {
     const getSummaryResult = await this.gamesRepository.getSummaryById({ gameId })
@@ -126,7 +127,7 @@ export class GamesController {
     return toGameSummaryDto({ gameSummaryModel, playerId })
   }
 
-  public async join({ gameId, playerId }: { gameId: number; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
+  public async join({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
     const gameJoinResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
         const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId }, tx)
@@ -161,7 +162,7 @@ export class GamesController {
     return Result.Success(gameSummary)
   }
 
-  public async leave({ gameId, playerId }: { gameId: number; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
+  public async leave({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
     const gameLeaveResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
         const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId }, tx)
@@ -196,7 +197,7 @@ export class GamesController {
     return Result.Success(gameSummary)
   }
 
-  public async start({ gameId, playerId }: { gameId: number; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
+  public async start({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
     const gameStartResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
         const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId }, tx)

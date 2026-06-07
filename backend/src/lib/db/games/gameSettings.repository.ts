@@ -3,6 +3,7 @@ import { gameSettingsTable } from "#lib/db/schema.ts"
 import { eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 type NewGameSettingsRow = typeof gameSettingsTable.$inferInsert
 type GameSettingsRow = typeof gameSettingsTable.$inferSelect
@@ -39,7 +40,7 @@ export class GameSettingsRepository extends PostgresRepository {
   }
 
   public async update(
-    { gameId }: { gameId: number },
+    { gameId }: { gameId: GameId },
     gameSettings: Partial<GameSettingsModel>,
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {

@@ -4,6 +4,7 @@ import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { GAME_PLAYER_ACTION_RULES, type GamePlayerActionType, type GamePlayerAction } from "#lib/gamePlayerActions.ts"
 import type { PlayerId } from "#api/games/PlayerId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 export class GamePlayerActionsController {
   private readonly gamePlayerActionsRepository: GamePlayerActionsRepository
@@ -32,7 +33,7 @@ export class GamePlayerActionsController {
     gameId,
     playerId,
   }: {
-    gameId: number
+    gameId: GameId
     playerId: PlayerId
   }): Promise<Result<GamePlayerAction | null, string>> {
     const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
@@ -63,7 +64,7 @@ export class GamePlayerActionsController {
     playerId,
     actionType,
   }: {
-    gameId: number
+    gameId: GameId
     playerId: PlayerId
     tick: number
     actionType: GamePlayerActionType | null
@@ -119,7 +120,7 @@ export class GamePlayerActionsController {
     gameId,
     playerId,
   }: {
-    gameId: number
+    gameId: GameId
     playerId: PlayerId
   }): Promise<Result<{ tick: number; money: number }, string>> {
     const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId })
