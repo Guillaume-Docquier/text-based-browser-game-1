@@ -1,5 +1,7 @@
 import z from "zod"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
+import { PlayerId } from "#api/games/PlayerId.ts"
+import { GameId } from "#api/games/GameId.ts"
 
 export type GamePlayerActionType = Enumify<typeof GamePlayerActionType>
 export const GamePlayerActionType = {
@@ -29,8 +31,8 @@ export const GamePlayerActionTypeSchema = z.enum(GamePlayerActionType)
 
 export type GamePlayerAction = z.infer<typeof GamePlayerActionSchema>
 export const GamePlayerActionSchema = z.object({
-  gameId: z.number(),
-  playerId: z.number(),
+  gameId: GameId,
+  playerId: PlayerId,
   tick: z.number(),
   actionType: GamePlayerActionTypeSchema,
   updatedAt: z.date(),

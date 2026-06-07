@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import { ResourceType } from "#lib/gameResources.ts"
+import type { PlayerId } from "#api/games/PlayerId.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type GameStateRow = typeof gameStatesTable.$inferSelect
@@ -11,7 +12,7 @@ type GameStateRow = typeof gameStatesTable.$inferSelect
 export type NewGameStateModel = NewGameStateRow
 export type GameStateModel = GameStateRow
 export type PlayerGameStateModel = GameStateModel & {
-  playerId: number
+  playerId: PlayerId
   resources: {
     money: number
   }
@@ -83,7 +84,7 @@ export class GameStatesRepository extends PostgresRepository {
       playerId,
     }: {
       gameId: number
-      playerId: number
+      playerId: PlayerId
     },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<PlayerGameStateModel | undefined, string>> {

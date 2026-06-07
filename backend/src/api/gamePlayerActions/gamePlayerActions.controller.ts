@@ -3,6 +3,7 @@ import type { GamePlayerActionsRepository, GamePlayerActionModel } from "#lib/db
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { GAME_PLAYER_ACTION_RULES, type GamePlayerActionType, type GamePlayerAction } from "#lib/gamePlayerActions.ts"
+import type { PlayerId } from "#api/games/PlayerId.ts"
 
 export class GamePlayerActionsController {
   private readonly gamePlayerActionsRepository: GamePlayerActionsRepository
@@ -32,7 +33,7 @@ export class GamePlayerActionsController {
     playerId,
   }: {
     gameId: number
-    playerId: number
+    playerId: PlayerId
   }): Promise<Result<GamePlayerAction | null, string>> {
     const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
     if (Result.isFailure(activeGameResult)) {
@@ -63,7 +64,7 @@ export class GamePlayerActionsController {
     actionType,
   }: {
     gameId: number
-    playerId: number
+    playerId: PlayerId
     tick: number
     actionType: GamePlayerActionType | null
   }): Promise<Result<GamePlayerAction | null, string>> {
@@ -119,7 +120,7 @@ export class GamePlayerActionsController {
     playerId,
   }: {
     gameId: number
-    playerId: number
+    playerId: PlayerId
   }): Promise<Result<{ tick: number; money: number }, string>> {
     const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId })
     if (Result.isFailure(gameSummaryResult)) {
@@ -165,7 +166,7 @@ function toGamePlayerAction(gamePlayerActionModel: GamePlayerActionModel): GameP
     gameId: gamePlayerActionModel.gameId,
     playerId: gamePlayerActionModel.playerId,
     tick: gamePlayerActionModel.tick,
-    actionType: gamePlayerActionModel.actionType as GamePlayerActionType, // probably would want to validate this, or store in db as enum
+    actionType: gamePlayerActionModel.actionType,
     updatedAt: gamePlayerActionModel.updatedAt,
   }
 }

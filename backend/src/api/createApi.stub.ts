@@ -6,7 +6,7 @@ import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { PlayersRepository } from "#lib/db/players/players.repository.ts"
+import { AccountsRepository } from "../lib/db/accounts/accounts.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
@@ -35,7 +35,7 @@ export async function createApiStub(): Promise<AllServices & { api: Express }> {
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
-    playersRepository: new PlayersRepository({ db, logger }),
+    accountsRepository: new AccountsRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
   } as const satisfies Parameters<typeof createApi>[0]
 

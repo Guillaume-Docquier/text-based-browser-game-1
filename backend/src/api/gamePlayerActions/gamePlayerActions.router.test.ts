@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
+import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
 import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 import { createResourceUpdateModelStub } from "#lib/db/resources/ResourceUpdateModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
@@ -10,11 +10,11 @@ describe("gamePlayerActions.router", () => {
   describe("setCurrentAction", () => {
     it("should set the current action for the authenticated player", async () => {
       // Arrange
-      const { api, authService, gamePlayerResourcesRepository, playersRepository } = await createApiStub()
+      const { api, authService, gamePlayerResourcesRepository, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      authService.player = player
+      const player = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = player
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -51,10 +51,10 @@ describe("gamePlayerActions.router", () => {
 
     it("should reject setting an action for a stale tick", async () => {
       // Arrange
-      const { api, authService, playersRepository } = await createApiStub()
+      const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -79,11 +79,11 @@ describe("gamePlayerActions.router", () => {
   describe("getCurrentAction", () => {
     it("should get the current action for the authenticated player", async () => {
       // Arrange
-      const { api, authService, playersRepository, gamePlayerResourcesRepository } = await createApiStub()
+      const { api, authService, accountsRepository, gamePlayerResourcesRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      authService.player = player
+      const player = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = player
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {

@@ -7,6 +7,7 @@ import { ResourceType } from "#lib/gameResources.ts"
 import { GAME_PLAYER_ACTION_RULES, GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 import { type GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import type { AccountId } from "#api/accounts/AccountId.ts"
 
 /**
  * Processes all ticks that should advance at this point in time.
@@ -57,7 +58,7 @@ export async function processTick({
 
     const playerIdsResult = await gamePlayersRepository.getPlayerIds({ gameId: game.id })
     if (Result.isFailure(playerIdsResult)) {
-      logger.error("Could not get game players while processing tick", { gameTick, error: playerIdsResult.error })
+      logger.error("Could not get game accounts while processing tick", { gameTick, error: playerIdsResult.error })
       continue
     }
 
@@ -72,7 +73,7 @@ export async function processTick({
     )
 
     let couldNotProcessPlayers = false
-    let winnerPlayerId: number | undefined
+    let winnerAccountId: AccountId | undefined
     for (const playerId of playerIdsResult.value) {
       const incrementMoneyResult = await gamePlayerResourcesRepository.updateResource({
         gameId: game.id,
@@ -91,7 +92,7 @@ export async function processTick({
         continue
       }
 
-      const actionRule = GAME_PLAYER_ACTION_RULES[selectedAction.actionType as GamePlayerActionType] // probably would want to validate this, or store in db as enum
+      const actionRule = GAME_PLAYER_ACTION_RULES[selectedAction.actionType]
       if (actionRule === undefined) {
         logger.error("Encountered unsupported action type while processing tick", {
           gameTick,
@@ -141,12 +142,12 @@ export async function processTick({
       }
 
       if (selectedAction.actionType === GamePlayerActionType.WIN_THE_GAME) {
-        const endGameResult = await gamesRepository.endWithWinner({ gameId: game.id, winnerPlayerId: playerId })
+        const endGameResult = await gamesRepository.endWithWinner({ gameId: game.id, winnerAccountId: playerId })
         if (Result.isFailure(endGameResult)) {
           logger.error("Could not end game with winner", { playerId, gameTick, error: endGameResult.error })
           couldNotProcessPlayers = true
         } else {
-          winnerPlayerId = playerId
+          winnerAccountId = playerId
         }
 
         break
@@ -156,7 +157,7 @@ export async function processTick({
       continue
     }
 
-    if (winnerPlayerId === undefined) {
+    if (winnerAccountId === undefined) {
       const createGameTickResult = await gameTicksRepository.create({
         gameId: gameTick.gameId,
         tick: nextTick,

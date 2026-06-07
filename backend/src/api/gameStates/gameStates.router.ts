@@ -13,8 +13,8 @@ export function createGameStatesRouter({ trpc, gameStatesController }: { trpc: T
     getById: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ gameState: GameStateDto }))
-      .query(async ({ input: { gameId }, ctx: { player } }) => {
-        const getByIdResult = await gameStatesController.getById({ gameId, playerId: player.id })
+      .query(async ({ input: { gameId }, ctx: { account } }) => {
+        const getByIdResult = await gameStatesController.getById({ gameId, playerId: account.id })
         if (Result.isFailure(getByIdResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
