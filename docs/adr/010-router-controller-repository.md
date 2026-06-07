@@ -29,7 +29,7 @@ Repositories represent data access patterns (aka queries) and are not restricted
 
 - Repositories never own Zod schemas. Repositories do not validate user input and should focus on persistence concerns.
 - At the architecture boundary, routers could own request validation schemas. In practice for this codebase, controllers own Zod schemas because it is more practical while keeping responsibilities clear.
-- Controller-owned Zod schemas and related types should be named with the `Dto` suffix (for example: `StarSystemDto`).
+- Controller-owned Zod schemas and related types should be named with the `Dto` suffix (for example: `MapDto`).
 
 Repository and database types should follow these naming conventions:
 

@@ -1,12 +1,12 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
-import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import type { MapsRepository } from "#lib/db/maps/maps.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
-import { BodyType } from "#lib/star-systems/BodyType.ts"
+import { BodyType } from "#lib/maps/BodyType.ts"
 import { RangeDto } from "#api/RangeDto.ts"
 
-const StarSystemBodyDto = z.object({
+const MapBodyDto = z.object({
   id: z.string(),
   number: z.number(),
   coordinates: z.string(),
@@ -15,20 +15,20 @@ const StarSystemBodyDto = z.object({
   movementNodeId: z.string(),
 })
 
-const StarSystemSectorDto = z.object({
+const MapSectorDto = z.object({
   id: z.string(),
   number: z.number(),
   coordinates: z.string(),
   angleRange: RangeDto,
-  bodies: z.array(StarSystemBodyDto),
+  bodies: z.array(MapBodyDto),
   movementNodeId: z.string(),
 })
 
-const StarSystemOrbitDto = z.object({
+const MapOrbitDto = z.object({
   id: z.string(),
   number: z.number(),
   coordinates: z.string(),
-  sectors: z.array(StarSystemSectorDto),
+  sectors: z.array(MapSectorDto),
 })
 
 const MovementEdgeDto = z.object({
@@ -37,33 +37,33 @@ const MovementEdgeDto = z.object({
   weight: z.number(),
 })
 
-export type StarSystemDto = z.infer<typeof StarSystemDto>
-export const StarSystemDto = z.object({
+export type MapDto = z.infer<typeof MapDto>
+export const MapDto = z.object({
   gameId: z.number(),
-  orbits: z.array(StarSystemOrbitDto),
+  orbits: z.array(MapOrbitDto),
   movementEdges: z.record(z.string(), z.array(MovementEdgeDto)),
 })
 
-export class StarSystemsController {
+export class MapsController {
   private readonly logger: Logger
   private readonly gamePlayersRepository: GamePlayersRepository
-  private readonly starSystemsRepository: StarSystemsRepository
+  private readonly mapsRepository: MapsRepository
 
   public constructor({
     logger,
     gamePlayersRepository,
-    starSystemsRepository,
+    mapsRepository,
   }: {
     logger: Logger
     gamePlayersRepository: GamePlayersRepository
-    starSystemsRepository: StarSystemsRepository
+    mapsRepository: MapsRepository
   }) {
-    this.logger = logger.child({ scope: "star-systems-controller" })
+    this.logger = logger.child({ scope: "maps-controller" })
     this.gamePlayersRepository = gamePlayersRepository
-    this.starSystemsRepository = starSystemsRepository
+    this.mapsRepository = mapsRepository
   }
 
-  public async getByGameId({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<StarSystemDto | undefined, string>> {
+  public async getByGameId({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<MapDto | undefined, string>> {
     const canReadGameResult = await this.canReadGame({ gameId, playerId })
     if (Result.isFailure(canReadGameResult)) {
       return canReadGameResult
@@ -73,7 +73,7 @@ export class StarSystemsController {
       return this.notAuthorizedFailure({ playerId, gameId })
     }
 
-    return await this.starSystemsRepository.getByGameId({ gameId })
+    return await this.mapsRepository.getByGameId({ gameId })
   }
 
   private async canReadGame({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<boolean, string>> {

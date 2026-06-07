@@ -1,31 +1,31 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
-import { type NewStarSystemModel, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { type NewMapModel, type MapsRepository } from "#lib/db/maps/maps.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { Range, Result } from "@guillaume-docquier/tools-ts"
-import { BodyType } from "#lib/star-systems/BodyType.ts"
+import { BodyType } from "#lib/maps/BodyType.ts"
 import { v4 } from "uuid"
 import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
 
-describe("starSystems.router", () => {
-  describe("getSystem", () => {
-    it("should get the full stored system for an authenticated player in the game", async () => {
+describe("maps.router", () => {
+  describe("getByGameId", () => {
+    it("should get the full stored map for an authenticated player in the game", async () => {
       // Arrange
-      const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
+      const { api, authService, playersRepository, mapsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
-      const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
+      const map = await createStoredMap({ mapsRepository, gameId: createGameResult.newGame.id })
 
       // Act
-      const getStarSystemResponse = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
+      const getMapResponse = await trpcClient.client.maps.getByGameId.query({ gameId: createGameResult.newGame.id })
 
       // Assert
-      expect(getStarSystemResponse.starSystem).toEqual<typeof getStarSystemResponse.starSystem>({
+      expect(getMapResponse.map).toEqual<typeof getMapResponse.map>({
         gameId: createGameResult.newGame.id,
         orbits: [
           {
@@ -90,25 +90,25 @@ describe("starSystems.router", () => {
         ],
         movementEdges: {
           // Quite bad, if we have to do more we'll need to improve on this
-          [starSystem.sectors[0].movementNodeId]: [
-            { fromNodeId: starSystem.sectors[0].movementNodeId, toNodeId: starSystem.bodies[0].movementNodeId, weight: 1 },
-            { fromNodeId: starSystem.sectors[0].movementNodeId, toNodeId: starSystem.bodies[1].movementNodeId, weight: 1 },
-            { fromNodeId: starSystem.sectors[0].movementNodeId, toNodeId: starSystem.sectors[1].movementNodeId, weight: 1 },
+          [map.sectors[0].movementNodeId]: [
+            { fromNodeId: map.sectors[0].movementNodeId, toNodeId: map.bodies[0].movementNodeId, weight: 1 },
+            { fromNodeId: map.sectors[0].movementNodeId, toNodeId: map.bodies[1].movementNodeId, weight: 1 },
+            { fromNodeId: map.sectors[0].movementNodeId, toNodeId: map.sectors[1].movementNodeId, weight: 1 },
           ],
-          [starSystem.sectors[1].movementNodeId]: [
-            { fromNodeId: starSystem.sectors[1].movementNodeId, toNodeId: starSystem.sectors[0].movementNodeId, weight: 1 },
-            { fromNodeId: starSystem.sectors[1].movementNodeId, toNodeId: starSystem.bodies[2].movementNodeId, weight: 1 },
+          [map.sectors[1].movementNodeId]: [
+            { fromNodeId: map.sectors[1].movementNodeId, toNodeId: map.sectors[0].movementNodeId, weight: 1 },
+            { fromNodeId: map.sectors[1].movementNodeId, toNodeId: map.bodies[2].movementNodeId, weight: 1 },
           ],
-          [starSystem.bodies[0].movementNodeId]: [
-            { fromNodeId: starSystem.bodies[0].movementNodeId, toNodeId: starSystem.sectors[0].movementNodeId, weight: 1 },
-            { fromNodeId: starSystem.bodies[0].movementNodeId, toNodeId: starSystem.bodies[1].movementNodeId, weight: 1 },
+          [map.bodies[0].movementNodeId]: [
+            { fromNodeId: map.bodies[0].movementNodeId, toNodeId: map.sectors[0].movementNodeId, weight: 1 },
+            { fromNodeId: map.bodies[0].movementNodeId, toNodeId: map.bodies[1].movementNodeId, weight: 1 },
           ],
-          [starSystem.bodies[1].movementNodeId]: [
-            { fromNodeId: starSystem.bodies[1].movementNodeId, toNodeId: starSystem.sectors[0].movementNodeId, weight: 1 },
-            { fromNodeId: starSystem.bodies[1].movementNodeId, toNodeId: starSystem.bodies[0].movementNodeId, weight: 1 },
+          [map.bodies[1].movementNodeId]: [
+            { fromNodeId: map.bodies[1].movementNodeId, toNodeId: map.sectors[0].movementNodeId, weight: 1 },
+            { fromNodeId: map.bodies[1].movementNodeId, toNodeId: map.bodies[0].movementNodeId, weight: 1 },
           ],
-          [starSystem.bodies[2].movementNodeId]: [
-            { fromNodeId: starSystem.bodies[2].movementNodeId, toNodeId: starSystem.sectors[1].movementNodeId, weight: 1 },
+          [map.bodies[2].movementNodeId]: [
+            { fromNodeId: map.bodies[2].movementNodeId, toNodeId: map.sectors[1].movementNodeId, weight: 1 },
           ],
         },
       })
@@ -120,14 +120,14 @@ describe("starSystems.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcClient.client.maps.getByGameId.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
 
     it("should reject a player who is authenticated but not in the game", async () => {
       // Arrange
-      const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
+      const { api, authService, playersRepository, mapsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       const creator = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Creator" })))
@@ -135,16 +135,16 @@ describe("starSystems.router", () => {
       authService.player = creator
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
-      await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
+      await createStoredMap({ mapsRepository, gameId: createGameResult.newGame.id })
       authService.player = outsider
 
       // Act & Assert
-      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.maps.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
 
-    it("should return not found for an existing game with no Star System", async () => {
+    it("should return not found for an existing game with no Map", async () => {
       // Arrange
       const { api, authService, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
@@ -154,7 +154,7 @@ describe("starSystems.router", () => {
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
 
       // Act & Assert
-      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.maps.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
         data: { code: "NOT_FOUND" },
       })
     })
@@ -164,24 +164,24 @@ describe("starSystems.router", () => {
 /**
  * @deprecated Should be handled by the game creation route when world generation is implemented
  */
-async function createStoredStarSystem({
-  starSystemsRepository,
+async function createStoredMap({
+  mapsRepository,
   gameId,
 }: {
-  starSystemsRepository: StarSystemsRepository
+  mapsRepository: MapsRepository
   gameId: number
-}): Promise<ReturnType<typeof createStarSystemFixture>> {
-  const starSystem = createStarSystemFixture({ gameId })
-  const createSystemResult = await starSystemsRepository.create(starSystem)
-  if (Result.isFailure(createSystemResult)) {
-    throw new Error(createSystemResult.error)
+}): Promise<ReturnType<typeof createMapFixture>> {
+  const map = createMapFixture({ gameId })
+  const createMapResult = await mapsRepository.create(map)
+  if (Result.isFailure(createMapResult)) {
+    throw new Error(createMapResult.error)
   }
 
-  return starSystem
+  return map
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- As const will help the tests verbosity
-function createStarSystemFixture({ gameId }: { gameId: number }) {
+function createMapFixture({ gameId }: { gameId: number }) {
   const orbitId = v4()
   const sector1Id = v4()
   const sector2Id = v4()
@@ -270,5 +270,5 @@ function createStarSystemFixture({ gameId }: { gameId: number }) {
       { fromNodeId: sector2MovementNodeId, toNodeId: asteroidMovementNodeId, weight: 1 },
       { fromNodeId: asteroidMovementNodeId, toNodeId: sector2MovementNodeId, weight: 1 },
     ],
-  } as const satisfies NewStarSystemModel
+  } as const satisfies NewMapModel
 }

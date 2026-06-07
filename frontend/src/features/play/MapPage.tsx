@@ -2,15 +2,15 @@ import { CircleDot, Map } from "lucide-react"
 import type { ReactElement } from "react"
 import { usePlayGameContext } from "./PlayContext.tsx"
 
-export function StarSystemPage(): ReactElement {
+export function MapPage(): ReactElement {
   const { game } = usePlayGameContext()
 
   return (
     <section className="flex min-h-[34rem] flex-col gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
-          <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Star System</div>
-          <h2 className="font-heading text-2xl font-semibold text-foreground">{game.settings.name} system</h2>
+          <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Map</div>
+          <h2 className="font-heading text-2xl font-semibold text-foreground">{game.settings.name} map</h2>
         </div>
         <div className="flex h-10 w-fit items-center gap-2 rounded-md border border-border/70 bg-card/45 px-3 text-sm font-medium text-foreground">
           <Map className="size-4 text-primary" />
@@ -31,7 +31,7 @@ export function StarSystemPage(): ReactElement {
           </div>
         </div>
         <div className="absolute right-4 bottom-4 rounded-md border border-border/70 bg-background/80 px-3 py-2 text-sm text-muted-foreground">
-          Star System canvas
+          Map canvas
         </div>
       </div>
     </section>

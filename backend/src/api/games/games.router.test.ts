@@ -4,7 +4,7 @@ import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { GameSummaryStatus } from "#api/games/games.controller.ts"
-import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
+import { createDefaultMapGenerationSettings } from "#lib/maps/createDefaultMapGenerationSettings.ts"
 
 describe("games.router", () => {
   describe("create", () => {
@@ -38,8 +38,8 @@ describe("games.router", () => {
             nbSeats: 43,
             tickIntervalSeconds: 420,
             locked: false,
-            starSystemGenerationSettings: {
-              ...createDefaultStarSystemGenerationSettings(),
+            mapGenerationSettings: {
+              ...createDefaultMapGenerationSettings(),
               seed: expect.any(Number),
             },
           },

@@ -16,8 +16,8 @@ import {
   varchar,
 } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
-import { BodyType } from "#lib/star-systems/BodyType.ts"
-import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
+import { BodyType } from "#lib/maps/BodyType.ts"
+import type { MapGenerationSettings } from "#lib/maps/MapGenerationSettings.ts"
 
 /**
  * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
@@ -27,7 +27,7 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
   return Object.values(enumLike) as [TEnumLike, ...TEnumLike[]]
 }
 
-export const starSystemBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
+export const mapBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
 
 /**
  * All registered players.
@@ -69,7 +69,7 @@ export const gameSettingsTable = pgTable("game_settings", {
     .references(() => gamesTable.id, { onDelete: "cascade" }),
   locked: boolean().default(false).notNull(),
   name: varchar({ length: 255 }).notNull(),
-  starSystemGenerationSettings: jsonb("star_system_generation_settings").$type<StarSystemGenerationSettings>().notNull(),
+  mapGenerationSettings: jsonb("map_generation_settings").$type<MapGenerationSettings>().notNull(),
   nbSeats: integer().notNull(),
   tickIntervalSeconds: integer().notNull(),
 })
@@ -180,9 +180,9 @@ export const gameTicksTable = pgTable(
 )
 
 /**
- * Static Star System data for a game.
+ * Static Map data for a game.
  */
-export const starSystemsTable = pgTable("star_systems", {
+export const mapsTable = pgTable("maps", {
   gameId: integer("game_id")
     .primaryKey()
     .references(() => gamesTable.id, { onDelete: "cascade" }),
@@ -190,7 +190,7 @@ export const starSystemsTable = pgTable("star_systems", {
 })
 
 /**
- * Star System orbits. Orbit numbers are the first coordinate segment.
+ * Map orbits. Orbit numbers are the first coordinate segment.
  */
 export const orbitsTable = pgTable(
   "orbits",
@@ -198,7 +198,7 @@ export const orbitsTable = pgTable(
     id: uuid("id").primaryKey(),
     gameId: integer("game_id")
       .notNull()
-      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+      .references(() => mapsTable.gameId, { onDelete: "cascade" }),
     orbitNumber: integer("orbit_number").notNull(),
   },
   (table) => [
@@ -217,7 +217,7 @@ export const sectorsTable = pgTable(
     id: uuid("id").primaryKey(),
     gameId: integer("game_id")
       .notNull()
-      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+      .references(() => mapsTable.gameId, { onDelete: "cascade" }),
     orbitId: uuid("orbit_id").notNull(),
     sectorNumber: integer("sector_number").notNull(),
     angleNumericType: varchar("angle_numeric_type", { length: 16 }).notNull(),
@@ -258,10 +258,10 @@ export const bodiesTable = pgTable(
     id: uuid("id").primaryKey(),
     gameId: integer("game_id")
       .notNull()
-      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+      .references(() => mapsTable.gameId, { onDelete: "cascade" }),
     sectorId: uuid("sector_id").notNull(),
     bodyNumber: integer("body_number").notNull(),
-    bodyType: starSystemBodyTypeEnum("body_type").notNull(),
+    bodyType: mapBodyTypeEnum("body_type").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     movementNodeId: uuid("movement_node_id").notNull(),
   },
@@ -284,7 +284,7 @@ export const bodiesTable = pgTable(
 )
 
 /**
- * Movement graph nodes for all concrete movement targets in a Star System.
+ * Movement graph nodes for all concrete movement targets in a Map.
  */
 export const movementNodesTable = pgTable(
   "movement_nodes",
@@ -292,7 +292,7 @@ export const movementNodesTable = pgTable(
     id: uuid("id").primaryKey(),
     gameId: integer("game_id")
       .notNull()
-      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+      .references(() => mapsTable.gameId, { onDelete: "cascade" }),
   },
   (table) => [unique("movement_nodes_game_id_id_unique").on(table.gameId, table.id), index("movement_nodes_game_id_idx").on(table.gameId)],
 )
@@ -305,7 +305,7 @@ export const movementEdgesTable = pgTable(
   {
     gameId: integer("game_id")
       .notNull()
-      .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
+      .references(() => mapsTable.gameId, { onDelete: "cascade" }),
     fromNodeId: uuid("from_node_id").notNull(),
     toNodeId: uuid("to_node_id").notNull(),
     weight: integer("weight").notNull(),

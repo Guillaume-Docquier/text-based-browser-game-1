@@ -1,7 +1,7 @@
-import type { StarSystemGenerationSettings } from "./StarSystemGenerationSettings.ts"
+import type { MapGenerationSettings } from "./MapGenerationSettings.ts"
 import { Range } from "@guillaume-docquier/tools-ts"
 
-export function createStarSystemGenerationSettingsStub(overrides?: Partial<StarSystemGenerationSettings>): StarSystemGenerationSettings {
+export function createMapGenerationSettingsStub(overrides?: Partial<MapGenerationSettings>): MapGenerationSettings {
   return {
     planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 0.4, max: 0.6 }),
     nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 9, max: 11 }),

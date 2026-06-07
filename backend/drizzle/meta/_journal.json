@@ -43,6 +43,13 @@
       "when": 1780621912378,
       "tag": "0005_game-settings",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780784586109,
+      "tag": "0006_rename-map",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 import type { Range } from "@guillaume-docquier/tools-ts"
 
-export type StarSystemGenerationSettings = {
+export type MapGenerationSettings = {
   planetDensity: Range
   nbPlanets: Range
   nbMoonsPerPlanet: Range

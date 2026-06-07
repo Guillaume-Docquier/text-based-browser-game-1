@@ -11,7 +11,7 @@ type GameSideNavLink = {
 }
 
 const gameSideNavLinks: readonly GameSideNavLink[] = [
-  { to: "/games/$gameId/play/star-system", Icon: Map, label: "Star System" },
+  { to: "/games/$gameId/play/map", Icon: Map, label: "Map" },
   { to: "/games/$gameId/play/actions", Icon: ListChecks, label: "Actions" },
 ]
 

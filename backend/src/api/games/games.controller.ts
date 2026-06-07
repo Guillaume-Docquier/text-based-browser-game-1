@@ -5,7 +5,7 @@ import type { GameSettingsRepository } from "#lib/db/games/gameSettings.reposito
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import type { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import type { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
-import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
+import { createDefaultMapGenerationSettings } from "#lib/maps/createDefaultMapGenerationSettings.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 import { RangeDto } from "#api/RangeDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -65,7 +65,7 @@ export class GamesController {
           {
             ...newGame.settings,
             gameId: game.id,
-            starSystemGenerationSettings: createDefaultStarSystemGenerationSettings(),
+            mapGenerationSettings: createDefaultMapGenerationSettings(),
           },
           tx,
         )
@@ -314,8 +314,8 @@ export const NewGameDto = z.object({
   }),
 })
 
-export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
-export const StarSystemGenerationSettingsDto = z.object({
+export type MapGenerationSettingsDto = z.infer<typeof MapGenerationSettingsDto>
+export const MapGenerationSettingsDto = z.object({
   planetDensity: RangeDto,
   nbPlanets: RangeDto,
   nbMoonsPerPlanet: RangeDto,
@@ -328,7 +328,7 @@ export type GameSettingsDto = z.infer<typeof GameSettingsDto>
 export const GameSettingsDto = z.object({
   name: z.string(),
   locked: z.boolean(),
-  starSystemGenerationSettings: StarSystemGenerationSettingsDto,
+  mapGenerationSettings: MapGenerationSettingsDto,
   nbSeats: z.number(),
   tickIntervalSeconds: z.number(),
 })

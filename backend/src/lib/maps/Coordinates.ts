@@ -15,15 +15,15 @@ export type Coordinates = string
  *
  * This signature uses optional + never to make it easier to implement
  */
-type StarSystemEntities =
+type MapEntities =
   | { orbitNumber: number; sectorNumber?: never; bodyNumber?: never }
   | { orbitNumber: number; sectorNumber: number; bodyNumber?: never }
   | { orbitNumber: number; sectorNumber: number; bodyNumber: number }
 
 /**
- * Converts star system entities to their coordinates.
+ * Converts map entities to their coordinates.
  */
-export function toCoordinates({ orbitNumber, sectorNumber, bodyNumber }: StarSystemEntities): Coordinates {
+export function toCoordinates({ orbitNumber, sectorNumber, bodyNumber }: MapEntities): Coordinates {
   return [orbitNumber, sectorNumber, bodyNumber]
     .filter((entityNumber) => entityNumber !== undefined)
     .map(toCoordinatesSegment)

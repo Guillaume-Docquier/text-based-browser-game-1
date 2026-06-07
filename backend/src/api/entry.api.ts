@@ -13,7 +13,7 @@ import { createDb } from "#lib/db/createDb.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
-import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { MapsRepository } from "#lib/db/maps/maps.repository.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
@@ -49,7 +49,7 @@ async function main(): Promise<void> {
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
-    starSystemsRepository: new StarSystemsRepository({ db, logger }),
+    mapsRepository: new MapsRepository({ db, logger }),
   }
 
   const authService = new AuthService({ logger })

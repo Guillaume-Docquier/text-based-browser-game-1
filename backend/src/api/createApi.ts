@@ -17,9 +17,9 @@ import type { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayer
 import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
-import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
-import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
-import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
+import type { MapsRepository } from "#lib/db/maps/maps.repository.ts"
+import { MapsController } from "#api/maps/maps.controller.ts"
+import { createMapsRouter } from "#api/maps/maps.router.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
@@ -50,7 +50,7 @@ export async function createApi({
   gameTicksRepository: GameTicksRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
-  starSystemsRepository: StarSystemsRepository
+  mapsRepository: MapsRepository
 }): Promise<Express> {
   const controllerServices = { ...services, createTransaction }
   const controllers = {
@@ -58,7 +58,7 @@ export async function createApi({
     gameStatesController: new GameStatesController(controllerServices),
     playersController: new PlayersController(controllerServices),
     gamePlayerActionsController: new GamePlayerActionsController(controllerServices),
-    starSystemsController: new StarSystemsController(controllerServices),
+    mapsController: new MapsController(controllerServices),
   }
 
   const app = express()
@@ -83,7 +83,7 @@ function createTrpcRouter(services: {
   gamesController: GamesController
   gameStatesController: GameStatesController
   gamePlayerActionsController: GamePlayerActionsController
-  starSystemsController: StarSystemsController
+  mapsController: MapsController
   logger: Logger
 }) {
   const trpc = createTrpc()
@@ -93,7 +93,7 @@ function createTrpcRouter(services: {
     games: createGamesRouter(routerServices),
     gameStates: createGameStatesRouter(routerServices),
     gamePlayerActions: createGamePlayerActionsRouter(routerServices),
-    starSystems: createStarSystemsRouter(routerServices),
+    maps: createMapsRouter(routerServices),
   })
 }
 

@@ -78,7 +78,7 @@ export class GamesRepository extends PostgresRepository {
           // settings
           name: gameSettingsTable.name,
           locked: gameSettingsTable.locked,
-          starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
+          mapGenerationSettings: gameSettingsTable.mapGenerationSettings,
           nbSeats: gameSettingsTable.nbSeats,
           tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
 
@@ -123,7 +123,7 @@ export class GamesRepository extends PostgresRepository {
           createdByPlayerId: _createdByPlayerId,
           name,
           locked,
-          starSystemGenerationSettings,
+          mapGenerationSettings,
           nbSeats,
           tickIntervalSeconds,
           ...gameInfo
@@ -134,7 +134,7 @@ export class GamesRepository extends PostgresRepository {
           settings: {
             name,
             locked,
-            starSystemGenerationSettings,
+            mapGenerationSettings,
             nbSeats,
             tickIntervalSeconds,
           },
@@ -172,7 +172,7 @@ export class GamesRepository extends PostgresRepository {
           // settings
           name: gameSettingsTable.name,
           locked: gameSettingsTable.locked,
-          starSystemGenerationSettings: gameSettingsTable.starSystemGenerationSettings,
+          mapGenerationSettings: gameSettingsTable.mapGenerationSettings,
           nbSeats: gameSettingsTable.nbSeats,
           tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
 
@@ -209,7 +209,7 @@ export class GamesRepository extends PostgresRepository {
       createdByPlayerId: _createdByPlayerId,
       name,
       locked,
-      starSystemGenerationSettings,
+      mapGenerationSettings,
       nbSeats,
       tickIntervalSeconds,
       ...gameInfo
@@ -220,7 +220,7 @@ export class GamesRepository extends PostgresRepository {
       settings: {
         name,
         locked,
-        starSystemGenerationSettings,
+        mapGenerationSettings,
         nbSeats,
         tickIntervalSeconds,
       },
