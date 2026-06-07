@@ -13,7 +13,7 @@ export type { TrpcRouter }
 type GamesOutput = TrpcRouterOutput["games"]["getSummaries"]
 export type GameSummary = GamesOutput["games"][number]
 export type GameSummaryStatus = GameSummary["status"]
-export type GameSummaryPlayer = GameSummary["creator"]
+export type GameSummaryPlayer = GameSummary["players"][number]
 
 // Game player actions router
 type GamePlayerActionsOutput = TrpcRouterOutput["gamePlayerActions"]["getCurrentAction"]

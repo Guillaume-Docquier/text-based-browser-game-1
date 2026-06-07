@@ -1,6 +1,6 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GameSummaryModel, GamesRepository } from "#lib/db/games/games.repository.ts"
-import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import type { PlayersRepository } from "#lib/db/games/players.repository.ts"
 import type { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import type { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
@@ -18,7 +18,7 @@ export class GamesController {
   private readonly createTransaction: CreateTransaction
   private readonly gamesRepository: GamesRepository
   private readonly gameSettingsRepository: GameSettingsRepository
-  private readonly gamePlayersRepository: GamePlayersRepository
+  private readonly playersRepository: PlayersRepository
   private readonly gameStatesRepository: GameStatesRepository
   private readonly gameTicksRepository: GameTicksRepository
   private readonly gamePlayerResourcesRepository: GamePlayerResourcesRepository
@@ -28,7 +28,7 @@ export class GamesController {
     createTransaction,
     gamesRepository,
     gameSettingsRepository,
-    gamePlayersRepository,
+    playersRepository,
     gameStatesRepository,
     gameTicksRepository,
     gamePlayerResourcesRepository,
@@ -37,7 +37,7 @@ export class GamesController {
     createTransaction: CreateTransaction
     gamesRepository: GamesRepository
     gameSettingsRepository: GameSettingsRepository
-    gamePlayersRepository: GamePlayersRepository
+    playersRepository: PlayersRepository
     gameStatesRepository: GameStatesRepository
     gameTicksRepository: GameTicksRepository
     gamePlayerResourcesRepository: GamePlayerResourcesRepository
@@ -46,7 +46,7 @@ export class GamesController {
     this.createTransaction = createTransaction
     this.gamesRepository = gamesRepository
     this.gameSettingsRepository = gameSettingsRepository
-    this.gamePlayersRepository = gamePlayersRepository
+    this.playersRepository = playersRepository
     this.gameStatesRepository = gameStatesRepository
     this.gameTicksRepository = gameTicksRepository
     this.gamePlayerResourcesRepository = gamePlayerResourcesRepository
@@ -55,7 +55,7 @@ export class GamesController {
   public async create(newGame: NewGameDto): Promise<Result<CreatedGameDto, string>> {
     const createGameResult = await Result.tryCatch(
       this.createTransaction(async (tx) => {
-        const gameResult = await this.gamesRepository.create({ createdByPlayerId: newGame.createdByPlayerId }, tx)
+        const gameResult = await this.gamesRepository.create({ createdByAccountId: newGame.createdByAccountId }, tx)
         if (Result.isFailure(gameResult)) {
           throw new TransactionRollback("Failed to create game")
         }
@@ -73,8 +73,8 @@ export class GamesController {
           throw new TransactionRollback("Failed to create game settings")
         }
 
-        const joinGameResult = await this.gamePlayersRepository.create({ gameId: game.id, playerId: game.createdByPlayerId }, tx)
-        if (Result.isFailure(joinGameResult)) {
+        const createPlayerResult = await this.playersRepository.create({ gameId: game.id, accountId: game.createdByAccountId }, tx)
+        if (Result.isFailure(createPlayerResult)) {
           throw new TransactionRollback("Failed to join game after creating it")
         }
 
@@ -93,20 +93,26 @@ export class GamesController {
     return createGameResult
   }
 
-  public async getSummaries({ playerId }: { playerId: number | undefined }): Promise<GameSummaryDto[]> {
+  public async getSummaries({ accountId }: { accountId: string | undefined }): Promise<GameSummaryDto[]> {
     const getSummariesResult = await this.gamesRepository.getSummaries()
     if (Result.isFailure(getSummariesResult)) {
-      this.logger.error("Could not get game summaries, returning empty array", { playerId, error: getSummariesResult.error })
+      this.logger.error("Could not get game summaries, returning empty array", { accountId, error: getSummariesResult.error })
       return []
     }
 
-    return getSummariesResult.value.map((gameSummaryModel) => toGameSummaryDto({ gameSummaryModel, playerId }))
+    return getSummariesResult.value.map((gameSummaryModel) => toGameSummaryDto({ gameSummaryModel, accountId }))
   }
 
-  public async getSummaryById({ gameId, playerId }: { gameId: number; playerId: number | undefined }): Promise<GameSummaryDto | undefined> {
+  public async getSummaryById({
+    gameId,
+    accountId,
+  }: {
+    gameId: number
+    accountId: string | undefined
+  }): Promise<GameSummaryDto | undefined> {
     const getSummaryResult = await this.gamesRepository.getSummaryById({ gameId })
     if (Result.isFailure(getSummaryResult)) {
-      this.logger.error("Could not get game summary, returning undefined", { gameId, playerId, error: getSummaryResult.error })
+      this.logger.error("Could not get game summary, returning undefined", { gameId, accountId, error: getSummaryResult.error })
       return undefined
     }
 
@@ -115,10 +121,10 @@ export class GamesController {
       return undefined
     }
 
-    return toGameSummaryDto({ gameSummaryModel, playerId })
+    return toGameSummaryDto({ gameSummaryModel, accountId })
   }
 
-  public async join({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummaryDto, string>> {
+  public async join({ gameId, accountId }: { gameId: number; accountId: string }): Promise<Result<GameSummaryDto, string>> {
     const gameJoinResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
         const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId }, tx)
@@ -131,11 +137,11 @@ export class GamesController {
           throw new TransactionRollback("Cannot join game, the game could not be found")
         }
 
-        if (!toGameSummaryDto({ gameSummaryModel, playerId }).canJoin) {
-          throw new TransactionRollback("Cannot join game, this player cannot join the game at the moment")
+        if (!toGameSummaryDto({ gameSummaryModel, accountId }).canJoin) {
+          throw new TransactionRollback("Cannot join game, this account cannot join the game at the moment")
         }
 
-        const joinResult = await this.gamePlayersRepository.create({ gameId, playerId }, tx)
+        const joinResult = await this.playersRepository.create({ gameId, accountId }, tx)
         if (Result.isFailure(joinResult)) {
           throw new TransactionRollback("Failed to join game")
         }
@@ -143,17 +149,17 @@ export class GamesController {
     )
 
     if (Result.isFailure(gameJoinResult)) {
-      this.logger.error("Could not join game", { gameId, playerId, error: gameJoinResult.error })
+      this.logger.error("Could not join game", { gameId, accountId, error: gameJoinResult.error })
       return Result.Failure(couldNot("join game"))
     }
 
-    const gameSummary = await this.getSummaryById({ gameId, playerId })
+    const gameSummary = await this.getSummaryById({ gameId, accountId })
     Assert.isDefined(gameSummary)
 
     return Result.Success(gameSummary)
   }
 
-  public async leave({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummaryDto, string>> {
+  public async leave({ gameId, accountId }: { gameId: number; accountId: string }): Promise<Result<GameSummaryDto, string>> {
     const gameLeaveResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
         const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId }, tx)
@@ -166,11 +172,16 @@ export class GamesController {
           throw new TransactionRollback("Cannot leave game, the game could not be found")
         }
 
-        if (!toGameSummaryDto({ gameSummaryModel, playerId }).canLeave) {
-          throw new TransactionRollback("Cannot leave game, this player cannot leave the game at the moment")
+        if (!toGameSummaryDto({ gameSummaryModel, accountId }).canLeave) {
+          throw new TransactionRollback("Cannot leave game, this account cannot leave the game at the moment")
         }
 
-        const leaveResult = await this.gamePlayersRepository.delete({ gameId, playerId }, tx)
+        const playerResult = await this.playersRepository.getByGameIdAndAccountId({ gameId, accountId }, tx)
+        if (Result.isFailure(playerResult) || playerResult.value === undefined) {
+          throw new TransactionRollback("Failed to resolve player leaving game")
+        }
+
+        const leaveResult = await this.playersRepository.delete({ gameId, playerId: playerResult.value.id }, tx)
         if (Result.isFailure(leaveResult)) {
           throw new TransactionRollback("Failed to leave game")
         }
@@ -178,17 +189,17 @@ export class GamesController {
     )
 
     if (Result.isFailure(gameLeaveResult)) {
-      this.logger.error("Could not leave game", { gameId, playerId, error: gameLeaveResult.error })
+      this.logger.error("Could not leave game", { gameId, accountId, error: gameLeaveResult.error })
       return Result.Failure(couldNot("leave game"))
     }
 
-    const gameSummary = await this.getSummaryById({ gameId, playerId })
+    const gameSummary = await this.getSummaryById({ gameId, accountId })
     Assert.isDefined(gameSummary)
 
     return Result.Success(gameSummary)
   }
 
-  public async start({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameSummaryDto, string>> {
+  public async start({ gameId, accountId }: { gameId: number; accountId: string }): Promise<Result<GameSummaryDto, string>> {
     const gameStartResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
         const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId }, tx)
@@ -201,8 +212,8 @@ export class GamesController {
           throw new TransactionRollback("Cannot start game, the game could not be found")
         }
 
-        if (!toGameSummaryDto({ gameSummaryModel, playerId }).canStart) {
-          throw new TransactionRollback("Cannot start game, the game is not joinable by this player")
+        if (!toGameSummaryDto({ gameSummaryModel, accountId }).canStart) {
+          throw new TransactionRollback("Cannot start game, the game cannot be started by this account")
         }
 
         const startedAt = new Date()
@@ -222,7 +233,7 @@ export class GamesController {
           throw new TransactionRollback("Failed to create initial game state")
         }
 
-        const playerIdsResult = await this.gamePlayersRepository.getPlayerIds({ gameId }, tx)
+        const playerIdsResult = await this.playersRepository.getPlayerIds({ gameId }, tx)
         if (Result.isFailure(playerIdsResult)) {
           throw new TransactionRollback("Failed to get player ids to setup initial resources")
         }
@@ -253,11 +264,11 @@ export class GamesController {
     )
 
     if (Result.isFailure(gameStartResult)) {
-      this.logger.error("Could not start game", { gameId, playerId, error: gameStartResult.error })
+      this.logger.error("Could not start game", { gameId, accountId, error: gameStartResult.error })
       return Result.Failure(couldNot("start game"))
     }
 
-    const gameSummary = await this.getSummaryById({ gameId, playerId })
+    const gameSummary = await this.getSummaryById({ gameId, accountId })
     Assert.isDefined(gameSummary)
 
     return Result.Success(gameSummary)
@@ -266,10 +277,10 @@ export class GamesController {
 
 function toGameSummaryDto({
   gameSummaryModel,
-  playerId,
+  accountId,
 }: {
   gameSummaryModel: GameSummaryModel
-  playerId: number | undefined
+  accountId: string | undefined
 }): GameSummaryDto {
   // prettier-ignore
   const status =
@@ -279,24 +290,25 @@ function toGameSummaryDto({
     : GameSummaryStatus.WAITING_FOR_PLAYERS
 
   const canJoin =
-    playerId !== undefined &&
+    accountId !== undefined &&
     status === GameSummaryStatus.WAITING_FOR_PLAYERS &&
-    gameSummaryModel.players.every((player) => player.id !== playerId)
+    gameSummaryModel.players.every((player) => player.accountId !== accountId)
 
   const canLeave =
-    playerId !== undefined &&
+    accountId !== undefined &&
     // status < GameSummaryStatus.STARTED would be more future proof
     (status === GameSummaryStatus.WAITING_FOR_PLAYERS || status === GameSummaryStatus.READY_TO_START) &&
-    gameSummaryModel.creator.id !== playerId &&
-    gameSummaryModel.players.some((player) => player.id === playerId)
+    gameSummaryModel.creator.id !== accountId &&
+    gameSummaryModel.players.some((player) => player.accountId === accountId)
 
   const canStart =
-    playerId !== undefined &&
+    accountId !== undefined &&
     (status === GameSummaryStatus.WAITING_FOR_PLAYERS || status === GameSummaryStatus.READY_TO_START) &&
-    gameSummaryModel.creator.id === playerId
+    gameSummaryModel.creator.id === accountId
 
   return {
     ...gameSummaryModel,
+    players: gameSummaryModel.players.map(({ accountId: _accountId, ...player }) => player),
     status,
     canJoin,
     canLeave,
@@ -306,7 +318,7 @@ function toGameSummaryDto({
 
 export type NewGameDto = z.infer<typeof NewGameDto>
 export const NewGameDto = z.object({
-  createdByPlayerId: z.number(),
+  createdByAccountId: z.string(),
   settings: z.object({
     name: z.string(),
     nbSeats: z.number(),
@@ -336,8 +348,8 @@ export const GameSettingsDto = z.object({
 export type CreatedGameDto = z.infer<typeof CreatedGameDto>
 export const CreatedGameDto = z.object({
   id: z.number(),
-  createdByPlayerId: z.number(),
-  winnerPlayerId: z.number().nullable(),
+  createdByAccountId: z.string(),
+  winnerPlayerId: z.string().nullable(),
   settings: GameSettingsDto,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
@@ -353,31 +365,37 @@ export const GameSummaryStatus = {
 
 export type GameSummaryPlayerDto = z.infer<typeof GameSummaryPlayerDto>
 export const GameSummaryPlayerDto = z.object({
-  id: z.number(),
+  id: z.string(),
+  alias: z.string().nullable(),
+})
+
+export type GameSummaryCreatorDto = z.infer<typeof GameSummaryCreatorDto>
+export const GameSummaryCreatorDto = z.object({
+  id: z.string(),
   alias: z.string().nullable(),
 })
 
 export type GameSummaryDto = z.infer<typeof GameSummaryDto>
 export const GameSummaryDto = z.object({
   id: z.number(),
-  winnerPlayerId: z.number().nullable(),
+  winnerPlayerId: z.string().nullable(),
   settings: GameSettingsDto,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
-  creator: GameSummaryPlayerDto,
+  creator: GameSummaryCreatorDto,
   players: z.array(GameSummaryPlayerDto),
   status: z.enum(GameSummaryStatus),
   /**
-   * Whether the current player can join the game.
+   * Whether the current account can join the game.
    */
   canJoin: z.boolean(),
   /**
-   * Whether the current player can leave the game.
+   * Whether the current account can leave the game.
    */
   canLeave: z.boolean(),
   /**
-   * Whether the current player can start the game.
+   * Whether the current account can start the game.
    */
   canStart: z.boolean(),
 })

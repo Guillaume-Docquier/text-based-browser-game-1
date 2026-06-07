@@ -3,7 +3,7 @@ import type { Database } from "#lib/db/createDb.ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { createApi } from "./createApi.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { PlayersRepository } from "#lib/db/players/players.repository.ts"
+import { AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
 import { AuthService } from "./auth/auth.service.ts"
 import pRetry from "p-retry"
 import { Logger } from "@guillaume-docquier/tools-ts"
@@ -15,7 +15,7 @@ import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResou
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
-import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import { PlayersRepository } from "#lib/db/games/players.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 
 main().catch((error) => {
@@ -41,10 +41,10 @@ async function main(): Promise<void> {
 
   logger.info("Creating services")
   const repositories = {
-    playersRepository: new PlayersRepository({ db, logger }),
+    accountsRepository: new AccountsRepository({ db, logger }),
     gamesRepository: new GamesRepository({ db, logger }),
     gameSettingsRepository: new GameSettingsRepository({ db, logger }),
-    gamePlayersRepository: new GamePlayersRepository({ db, logger }),
+    playersRepository: new PlayersRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),

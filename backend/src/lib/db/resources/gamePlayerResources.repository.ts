@@ -13,7 +13,7 @@ export type GamePlayerResourceModel = GamePlayerResourceRow
 
 export type ResourceUpdateModel = {
   gameId: number
-  playerId: number
+  playerId: string
   resourceType: ResourceType
   amountDelta: number
 }

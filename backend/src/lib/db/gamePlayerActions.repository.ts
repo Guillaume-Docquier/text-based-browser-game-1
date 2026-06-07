@@ -20,7 +20,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
   public async upsert(
     params: {
       gameId: number
-      playerId: number
+      playerId: string
       tick: number
       actionType: GamePlayerActionType
     },
@@ -57,7 +57,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
   public async getByGameIdPlayerIdAndTick(
     params: {
       gameId: number
-      playerId: number
+      playerId: string
       tick: number
     },
     db: PostgresRepository["db"] = this.db,
@@ -104,7 +104,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
   }
 
   public async deleteByGameIdPlayerIdAndTick(
-    params: { gameId: number; playerId: number; tick: number },
+    params: { gameId: number; playerId: string; tick: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(async (): Promise<true> => {

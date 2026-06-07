@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express"
 import { clerkClient, clerkMiddleware, getAuth, type User } from "@clerk/express"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { PlayerDto, PlayersController } from "#api/players/players.controller.ts"
+import type { AccountDto, AccountsController } from "#api/accounts/accounts.controller.ts"
 import { couldNot } from "#lib/errors.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
@@ -10,13 +10,13 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace -- This is the way with Express
   namespace Express {
     interface Request {
-      player?: PlayerDto | undefined
+      account?: AccountDto | undefined
     }
   }
 }
 
 export interface IAuthService {
-  authenticationMiddlewares: ({ playersController }: { playersController: PlayersController }) => RequestHandler[]
+  authenticationMiddlewares: ({ accountsController }: { accountsController: AccountsController }) => RequestHandler[]
 }
 
 /**
@@ -36,8 +36,8 @@ export class AuthService implements IAuthService {
    * Express middleware that parses the authentication token for further usage.
    * The trpc procedures will consume this information.
    */
-  public authenticationMiddlewares({ playersController }: { playersController: PlayersController }): RequestHandler[] {
-    return [clerkMiddleware(), this.recordPlayerMiddleware({ playersController })]
+  public authenticationMiddlewares({ accountsController }: { accountsController: AccountsController }): RequestHandler[] {
+    return [clerkMiddleware(), this.recordAccountMiddleware({ accountsController })]
   }
 
   /**
@@ -55,11 +55,11 @@ export class AuthService implements IAuthService {
   }
 
   /**
-   * Records authenticated players to our players database if they aren't already.
+   * Records authenticated accounts in our database if they aren't already.
    *
    * This is an abstraction over Clerk, because we can't full rely on their webhooks to sync data (and we haven't set up one yet anyway).
    */
-  private recordPlayerMiddleware({ playersController }: { playersController: PlayersController }): RequestHandler {
+  private recordAccountMiddleware({ accountsController }: { accountsController: AccountsController }): RequestHandler {
     return async (req, res, next) => {
       const auth = getAuth(req)
       if (!auth.isAuthenticated) {
@@ -68,36 +68,36 @@ export class AuthService implements IAuthService {
       }
 
       const authId = auth.userId
-      const findPlayerResult = await playersController.getByAuthId({ authId })
-      if (Result.isFailure(findPlayerResult)) {
-        this.logger.error("Could not get player from the clerk id", { authId, error: findPlayerResult.error })
+      const findAccountResult = await accountsController.getByAuthId({ authId })
+      if (Result.isFailure(findAccountResult)) {
+        this.logger.error("Could not get account from the auth id", { authId, error: findAccountResult.error })
         next()
         return
       }
 
-      let player = findPlayerResult.value
-      if (player === undefined) {
+      let account = findAccountResult.value
+      if (account === undefined) {
         const clerkUser = await this.getUser({ authId })
         if (Result.isFailure(clerkUser)) {
           next()
           return
         }
 
-        const insertPlayerResult = await playersController.create({
-          clerk_id: authId,
+        const insertAccountResult = await accountsController.create({
+          authId,
           email: clerkUser.value.primaryEmailAddress?.emailAddress,
           alias: clerkUser.value.fullName,
         })
-        if (Result.isFailure(insertPlayerResult)) {
-          this.logger.error("Could not record new player", { authId, error: insertPlayerResult.error })
+        if (Result.isFailure(insertAccountResult)) {
+          this.logger.error("Could not record new account", { authId, error: insertAccountResult.error })
           next()
           return
         }
 
-        player = insertPlayerResult.value
+        account = insertAccountResult.value
       }
 
-      req.player = player
+      req.account = account
       next()
     }
   }

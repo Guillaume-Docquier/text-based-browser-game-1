@@ -1,26 +1,29 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
+import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
 import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 import { createResourceUpdateModelStub } from "#lib/db/resources/ResourceUpdateModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
+import { Assert } from "@guillaume-docquier/tools-ts"
 
 describe("gamePlayerActions.router", () => {
   describe("setCurrentAction", () => {
-    it("should set the current action for the authenticated player", async () => {
+    it("should set the current action for the authenticated account", async () => {
       // Arrange
-      const { api, authService, gamePlayerResourcesRepository, playersRepository } = await createApiStub()
+      const { api, authService, gamePlayerResourcesRepository, accountsRepository, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      authService.player = player
+      const account = extractSuccess(await accountsRepository.create(createNewAccountModelStub()))
+      authService.account = account
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
+      const player = extractSuccess(await playersRepository.getByGameIdAndAccountId({ gameId: newGame.id, accountId: account.id }))
+      Assert.isDefined(player)
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
       await gamePlayerResourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: newGame.id, playerId: player.id, amountDelta: 2 }),
@@ -51,10 +54,10 @@ describe("gamePlayerActions.router", () => {
 
     it("should reject setting an action for a stale tick", async () => {
       // Arrange
-      const { api, authService, playersRepository } = await createApiStub()
+      const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
+      authService.account = extractSuccess(await accountsRepository.create(createNewAccountModelStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -77,19 +80,23 @@ describe("gamePlayerActions.router", () => {
   })
 
   describe("getCurrentAction", () => {
-    it("should get the current action for the authenticated player", async () => {
+    it("should get the current action for the authenticated account", async () => {
       // Arrange
-      const { api, authService, playersRepository, gamePlayerResourcesRepository } = await createApiStub()
+      const { api, authService, accountsRepository, playersRepository, gamePlayerResourcesRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      authService.player = player
+      const account = extractSuccess(await accountsRepository.create(createNewAccountModelStub()))
+      authService.account = account
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {
           settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
+      const player = extractSuccess(
+        await playersRepository.getByGameIdAndAccountId({ gameId: createGameResult.newGame.id, accountId: account.id }),
+      )
+      Assert.isDefined(player)
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
       await gamePlayerResourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),

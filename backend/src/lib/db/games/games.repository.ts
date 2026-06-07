@@ -1,5 +1,5 @@
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamePlayersTable, gamesTable, gameSettingsTable, playersTable } from "#lib/db/schema.ts"
+import { accountsTable, gamesTable, gameSettingsTable, playersTable } from "#lib/db/schema.ts"
 import { eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
@@ -8,20 +8,22 @@ import type { GameSettingsModel } from "#lib/db/games/gameSettings.repository.ts
 
 type NewGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
+type AccountRow = typeof accountsTable.$inferSelect
 type PlayerRow = typeof playersTable.$inferSelect
 
 export type NewGameModel = NewGameRow
 export type GameModel = GameRow
 
-export type GameSummaryModel = Omit<GameRow, "createdByPlayerId"> & {
+export type GameSummaryModel = Omit<GameRow, "createdByAccountId"> & {
   settings: Omit<GameSettingsModel, "gameId">
-  creator: GameSummaryPlayerModel
+  creator: GameSummaryCreatorModel
   players: GameSummaryPlayerModel[]
 }
-export type GameSummaryPlayerModel = Pick<PlayerRow, "id" | "alias">
+export type GameSummaryCreatorModel = Pick<AccountRow, "id" | "alias">
+export type GameSummaryPlayerModel = Pick<PlayerRow, "id" | "accountId"> & Pick<AccountRow, "alias">
 
-const pgCreatorAlias = alias(playersTable, "creator")
-const pgPlayerAlias = alias(playersTable, "player")
+const pgCreatorAccountAlias = alias(accountsTable, "creator_account")
+const pgPlayerAccountAlias = alias(accountsTable, "player_account")
 
 export class GamesRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -69,7 +71,7 @@ export class GamesRepository extends PostgresRepository {
         .select({
           // game info
           id: gamesTable.id,
-          createdByPlayerId: gamesTable.createdByPlayerId,
+          createdByAccountId: gamesTable.createdByAccountId,
           winnerPlayerId: gamesTable.winnerPlayerId,
           createdAt: gamesTable.createdAt,
           startedAt: gamesTable.startedAt,
@@ -83,17 +85,18 @@ export class GamesRepository extends PostgresRepository {
           tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
 
           // player info
-          creatorId: pgCreatorAlias.id,
-          creatorAlias: pgCreatorAlias.alias,
+          creatorId: pgCreatorAccountAlias.id,
+          creatorAlias: pgCreatorAccountAlias.alias,
 
-          playerId: pgPlayerAlias.id,
-          playerAlias: pgPlayerAlias.alias,
+          playerId: playersTable.id,
+          playerAccountId: playersTable.accountId,
+          playerAlias: pgPlayerAccountAlias.alias,
         })
         .from(gamesTable)
         .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
-        .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
-        .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
-        .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId)),
+        .innerJoin(pgCreatorAccountAlias, eq(pgCreatorAccountAlias.id, gamesTable.createdByAccountId))
+        .leftJoin(playersTable, eq(playersTable.gameId, gamesTable.id))
+        .leftJoin(pgPlayerAccountAlias, eq(pgPlayerAccountAlias.id, playersTable.accountId)),
     )
 
     if (Result.isFailure(gameSummariesResult)) {
@@ -119,8 +122,9 @@ export class GamesRepository extends PostgresRepository {
           creatorId,
           creatorAlias,
           playerId: _playerId,
+          playerAccountId: _playerAccountId,
           playerAlias: _playerAlias,
-          createdByPlayerId: _createdByPlayerId,
+          createdByAccountId: _createdByAccountId,
           name,
           locked,
           starSystemGenerationSettings,
@@ -144,11 +148,16 @@ export class GamesRepository extends PostgresRepository {
           },
           players: gameSummaries
             .filter((row) => row.id === gameSummary.id && row.playerId !== null)
-            .map((row) => ({
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- The filter above should have narrowed this type?
-              id: row.playerId!,
-              alias: row.playerAlias,
-            })),
+            .map((row) => {
+              Assert.isDefined(row.playerId)
+              Assert.isDefined(row.playerAccountId)
+
+              return {
+                id: row.playerId,
+                accountId: row.playerAccountId,
+                alias: row.playerAlias,
+              }
+            }),
         }
       }),
     )
@@ -163,7 +172,7 @@ export class GamesRepository extends PostgresRepository {
         .select({
           // game info
           id: gamesTable.id,
-          createdByPlayerId: gamesTable.createdByPlayerId,
+          createdByAccountId: gamesTable.createdByAccountId,
           winnerPlayerId: gamesTable.winnerPlayerId,
           createdAt: gamesTable.createdAt,
           startedAt: gamesTable.startedAt,
@@ -177,17 +186,18 @@ export class GamesRepository extends PostgresRepository {
           tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
 
           // player info
-          creatorId: pgCreatorAlias.id,
-          creatorAlias: pgCreatorAlias.alias,
+          creatorId: pgCreatorAccountAlias.id,
+          creatorAlias: pgCreatorAccountAlias.alias,
 
-          playerId: pgPlayerAlias.id,
-          playerAlias: pgPlayerAlias.alias,
+          playerId: playersTable.id,
+          playerAccountId: playersTable.accountId,
+          playerAlias: pgPlayerAccountAlias.alias,
         })
         .from(gamesTable)
         .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
-        .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
-        .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
-        .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId))
+        .innerJoin(pgCreatorAccountAlias, eq(pgCreatorAccountAlias.id, gamesTable.createdByAccountId))
+        .leftJoin(playersTable, eq(playersTable.gameId, gamesTable.id))
+        .leftJoin(pgPlayerAccountAlias, eq(pgPlayerAccountAlias.id, playersTable.accountId))
         .where(eq(gamesTable.id, gameId)),
     )
 
@@ -205,8 +215,9 @@ export class GamesRepository extends PostgresRepository {
       creatorId,
       creatorAlias,
       playerId: _playerId,
+      playerAccountId: _playerAccountId,
       playerAlias: _playerAlias,
-      createdByPlayerId: _createdByPlayerId,
+      createdByAccountId: _createdByAccountId,
       name,
       locked,
       starSystemGenerationSettings,
@@ -230,16 +241,21 @@ export class GamesRepository extends PostgresRepository {
       },
       players: gameSummariesResult.value
         .filter((row) => row.playerId !== null)
-        .map((row) => ({
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- The filter above should have narrowed this type?
-          id: row.playerId!,
-          alias: row.playerAlias,
-        })),
+        .map((row) => {
+          Assert.isDefined(row.playerId)
+          Assert.isDefined(row.playerAccountId)
+
+          return {
+            id: row.playerId,
+            accountId: row.playerAccountId,
+            alias: row.playerAlias,
+          }
+        }),
     })
   }
 
   public async endWithWinner(
-    { gameId, winnerPlayerId }: { gameId: number; winnerPlayerId: number },
+    { gameId, winnerPlayerId }: { gameId: number; winnerPlayerId: string },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const endResult = await Result.tryCatch(async (): Promise<true> => {

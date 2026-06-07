@@ -81,7 +81,7 @@ function TopBarFact({ icon, label, value, detail }: { icon: ReactElement; label:
 }
 
 function getWinnerLabel(game: ApiTypes.GameSummary): string {
-  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerPlayerId)
+  const winner = game.players.find((player) => player.id === game.winnerPlayerId)
 
   if (winner === undefined) {
     return `Player ${game.winnerPlayerId}`

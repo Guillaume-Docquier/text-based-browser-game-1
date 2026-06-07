@@ -1,24 +1,27 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
+import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
+import { Assert } from "@guillaume-docquier/tools-ts"
 
 describe("gameStates.router", () => {
   describe("getById", () => {
-    it("should get the authenticated player's state for a started game", async () => {
+    it("should get the authenticated account's state for a started game", async () => {
       // Arrange
-      const { api, authService, playersRepository } = await createApiStub()
+      const { api, authService, accountsRepository, playersRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      authService.player = player
+      const account = extractSuccess(await accountsRepository.create(createNewAccountModelStub()))
+      authService.account = account
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
           settings: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
+      const player = extractSuccess(await playersRepository.getByGameIdAndAccountId({ gameId: newGame.id, accountId: account.id }))
+      Assert.isDefined(player)
 
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
 
@@ -42,10 +45,10 @@ describe("gameStates.router", () => {
     it("should reject invalid game ids", async () => {
       // Arrange
 
-      const { api, authService, playersRepository } = await createApiStub()
+      const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
+      authService.account = extractSuccess(await accountsRepository.create(createNewAccountModelStub()))
 
       // Act & Assert
       await expect(trpcClient.client.gameStates.getById.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({

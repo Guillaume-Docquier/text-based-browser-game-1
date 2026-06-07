@@ -20,8 +20,8 @@ export function couldNot(operationName: string): string {
  * ```ts
  * ```
  */
-export function notAuthorized({ playerId, operationName }: { playerId: number; operationName: string }): string {
-  return `Player with id ${playerId} is not authorized to ${operationName}`
+export function notAuthorized({ accountId, operationName }: { accountId: string; operationName: string }): string {
+  return `Account with id ${accountId} is not authorized to ${operationName}`
 }
 
 /**

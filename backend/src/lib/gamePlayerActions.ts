@@ -30,7 +30,7 @@ export const GamePlayerActionTypeSchema = z.enum(GamePlayerActionType)
 export type GamePlayerAction = z.infer<typeof GamePlayerActionSchema>
 export const GamePlayerActionSchema = z.object({
   gameId: z.number(),
-  playerId: z.number(),
+  playerId: z.string(),
   tick: z.number(),
   actionType: GamePlayerActionTypeSchema,
   updatedAt: z.date(),

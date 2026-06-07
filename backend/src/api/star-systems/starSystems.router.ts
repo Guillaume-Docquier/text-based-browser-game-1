@@ -21,8 +21,8 @@ export function createStarSystemsRouter({
     getByGameId: trpc.privateProcedure
       .input(z.object({ gameId: GameIdSchema }))
       .output(z.object({ starSystem: StarSystemDto }))
-      .query(async ({ input: { gameId }, ctx: { player } }) => {
-        const getStarSystemResult = await starSystemsController.getByGameId({ gameId, playerId: player.id })
+      .query(async ({ input: { gameId }, ctx: { account } }) => {
+        const getStarSystemResult = await starSystemsController.getByGameId({ gameId, accountId: account.id })
         if (Result.isFailure(getStarSystemResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -31,7 +31,7 @@ export function createStarSystemsRouter({
         }
 
         if (getStarSystemResult.value === undefined) {
-          starSystemsRouterLogger.error("No star system found", { gameId, player })
+          starSystemsRouterLogger.error("No star system found", { gameId, account })
           throw new TRPCError({
             code: "NOT_FOUND",
             message: `No star system found for game with id ${gameId}`,

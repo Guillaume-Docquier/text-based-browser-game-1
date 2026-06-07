@@ -2,38 +2,52 @@ import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { GamePlayerActionsRepository, GamePlayerActionModel } from "#lib/db/gamePlayerActions.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
+import type { PlayersRepository } from "#lib/db/games/players.repository.ts"
 import { GAME_PLAYER_ACTION_RULES, type GamePlayerActionType, type GamePlayerAction } from "#lib/gamePlayerActions.ts"
 
 export class GamePlayerActionsController {
   private readonly gamePlayerActionsRepository: GamePlayerActionsRepository
   private readonly gameStatesRepository: GameStatesRepository
   private readonly gamesRepository: GamesRepository
+  private readonly playersRepository: PlayersRepository
   private readonly logger: Logger
 
   public constructor({
     gamePlayerActionsRepository,
     gameStatesRepository,
     gamesRepository,
+    playersRepository,
     logger,
   }: {
     gamePlayerActionsRepository: GamePlayerActionsRepository
     gameStatesRepository: GameStatesRepository
     gamesRepository: GamesRepository
+    playersRepository: PlayersRepository
     logger: Logger
   }) {
     this.gamePlayerActionsRepository = gamePlayerActionsRepository
     this.gameStatesRepository = gameStatesRepository
     this.gamesRepository = gamesRepository
+    this.playersRepository = playersRepository
     this.logger = logger.child({ scope: "game-player-actions-controller" })
   }
 
   public async getCurrentAction({
     gameId,
-    playerId,
+    accountId,
   }: {
     gameId: number
-    playerId: number
+    accountId: string
   }): Promise<Result<GamePlayerAction | null, string>> {
+    const playerResult = await this.playersRepository.getByGameIdAndAccountId({ gameId, accountId })
+    if (Result.isFailure(playerResult)) {
+      return playerResult
+    }
+    if (playerResult.value === undefined) {
+      return Result.Failure("Account does not have a player in this game.")
+    }
+    const playerId = playerResult.value.id
+
     const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
     if (Result.isFailure(activeGameResult)) {
       return activeGameResult
@@ -59,14 +73,23 @@ export class GamePlayerActionsController {
   public async setCurrentAction({
     gameId,
     tick,
-    playerId,
+    accountId,
     actionType,
   }: {
     gameId: number
-    playerId: number
+    accountId: string
     tick: number
     actionType: GamePlayerActionType | null
   }): Promise<Result<GamePlayerAction | null, string>> {
+    const playerResult = await this.playersRepository.getByGameIdAndAccountId({ gameId, accountId })
+    if (Result.isFailure(playerResult)) {
+      return playerResult
+    }
+    if (playerResult.value === undefined) {
+      return Result.Failure("Account does not have a player in this game.")
+    }
+    const playerId = playerResult.value.id
+
     const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
     if (Result.isFailure(activeGameResult)) {
       return activeGameResult
@@ -119,7 +142,7 @@ export class GamePlayerActionsController {
     playerId,
   }: {
     gameId: number
-    playerId: number
+    playerId: string
   }): Promise<Result<{ tick: number; money: number }, string>> {
     const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId })
     if (Result.isFailure(gameSummaryResult)) {

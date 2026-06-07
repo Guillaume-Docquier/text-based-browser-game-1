@@ -14,6 +14,7 @@ import {
   uniqueIndex,
   uuid,
   varchar,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
@@ -30,34 +31,38 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 export const starSystemBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
 
 /**
- * All registered players.
- * One sign up is one player.
+ * All registered accounts.
+ * One sign up is one account.
  */
-export const playersTable = pgTable(
-  "players",
+export const accountsTable = pgTable(
+  "accounts",
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    clerk_id: varchar({ length: 255 }).notNull(),
+    id: uuid().primaryKey().defaultRandom(),
+    authId: varchar("auth_id", { length: 255 }).notNull(),
     email: varchar({ length: 255 }),
     alias: varchar({ length: 255 }),
   },
-  (table) => [uniqueIndex("clerk_id_idx").on(table.clerk_id)],
+  (table) => [uniqueIndex("accounts_auth_id_idx").on(table.authId)],
 )
 
 /**
  * All games, past and present.
  * This is only the game settings. Game state will exist in the {@link gameStatesTable}.
  */
-export const gamesTable = pgTable("games", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  createdByPlayerId: integer()
-    .notNull()
-    .references(() => playersTable.id, { onDelete: "cascade" }),
-  winnerPlayerId: integer().references(() => playersTable.id, { onDelete: "set null" }),
-  createdAt: timestamp().defaultNow().notNull(),
-  startedAt: timestamp(),
-  endedAt: timestamp(),
-})
+export const gamesTable = pgTable(
+  "games",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    createdByAccountId: uuid()
+      .notNull()
+      .references(() => accountsTable.id, { onDelete: "cascade" }),
+    winnerPlayerId: uuid().references((): AnyPgColumn => playersTable.id, { onDelete: "set null" }),
+    createdAt: timestamp().defaultNow().notNull(),
+    startedAt: timestamp(),
+    endedAt: timestamp(),
+  },
+  (table) => [unique("games_id_created_by_account_id_unique").on(table.id, table.createdByAccountId)],
+)
 
 /**
  * Settings chosen when a game is created.
@@ -75,24 +80,24 @@ export const gameSettingsTable = pgTable("game_settings", {
 })
 
 /**
- * Join table between games and players.
- * AKA which players are in this game, and which games is this player in.
+ * All players participating in games.
+ * A player belongs to exactly one game and one account.
  */
-export const gamePlayersTable = pgTable(
-  "game_players",
+export const playersTable = pgTable(
+  "players",
   {
+    id: uuid().defaultRandom().primaryKey(),
     gameId: integer()
       .notNull()
       .references(() => gamesTable.id, { onDelete: "cascade" }),
-    playerId: integer()
+    accountId: uuid()
       .notNull()
-      .references(() => playersTable.id, { onDelete: "cascade" }),
+      .references(() => accountsTable.id, { onDelete: "cascade" }),
     joinedAt: timestamp().defaultNow().notNull(),
   },
   (table) => [
-    primaryKey({
-      columns: [table.gameId, table.playerId],
-    }),
+    unique("players_game_id_id_unique").on(table.gameId, table.id),
+    uniqueIndex("players_game_id_account_id_idx").on(table.gameId, table.accountId),
   ],
 )
 
@@ -104,7 +109,7 @@ export const gamePlayerResourcesTable = pgTable(
   "game_player_resources",
   {
     gameId: integer().notNull(),
-    playerId: integer().notNull(),
+    playerId: uuid().notNull(),
     resourceType: varchar({ length: 255 }).notNull(),
     amount: integer().notNull().default(0),
   },
@@ -114,8 +119,8 @@ export const gamePlayerResourcesTable = pgTable(
     }),
     foreignKey({
       columns: [table.gameId, table.playerId],
-      foreignColumns: [gamePlayersTable.gameId, gamePlayersTable.playerId],
-      name: "game_player_resources_gameId_playerId_game_players_fk",
+      foreignColumns: [playersTable.gameId, playersTable.id],
+      name: "game_player_resources_gameId_playerId_players_fk",
     }).onDelete("cascade"),
   ],
 )
@@ -139,7 +144,7 @@ export const gamePlayerActionsTable = pgTable(
   "game_player_actions",
   {
     gameId: integer().notNull(),
-    playerId: integer().notNull(),
+    playerId: uuid().notNull(),
     tick: integer().notNull(),
     actionType: varchar({ length: 255 }).notNull(),
     createdAt: timestamp().defaultNow().notNull(),
@@ -151,8 +156,8 @@ export const gamePlayerActionsTable = pgTable(
     }),
     foreignKey({
       columns: [table.gameId, table.playerId],
-      foreignColumns: [gamePlayersTable.gameId, gamePlayersTable.playerId],
-      name: "game_player_actions_gameId_playerId_game_players_fk",
+      foreignColumns: [playersTable.gameId, playersTable.id],
+      name: "game_player_actions_gameId_playerId_players_fk",
     }).onDelete("cascade"),
   ],
 )

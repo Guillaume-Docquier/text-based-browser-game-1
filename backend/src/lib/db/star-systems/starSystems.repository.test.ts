@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm"
 import { v4 } from "uuid"
 import { Assert, Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
-import { PlayersRepository } from "#lib/db/players/players.repository.ts"
+import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
+import { AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { type NewSectorModel, type NewStarSystemModel, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
@@ -14,7 +14,7 @@ import { extractSuccess } from "#tests/extractSuccess.ts"
 import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
-import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import { PlayersRepository } from "#lib/db/games/players.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
@@ -26,12 +26,12 @@ describe("starSystems.repository", () => {
       const db = await createDbMock()
       const logger = Logger.get()
 
-      const playersRepository = new PlayersRepository({ db, logger })
+      const accountsRepository = new AccountsRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
       const gamesController = createGamesController({ db, logger })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByPlayerId: player.id })))
+      const account = extractSuccess(await accountsRepository.create(createNewAccountModelStub()))
+      const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByAccountId: account.id })))
 
       const system = createCoherentStarSystem({ gameId: game.id })
       const firstSector = system.sectors[0]
@@ -67,12 +67,12 @@ describe("starSystems.repository", () => {
       const db = await createDbMock()
       const logger = Logger.get()
 
-      const playersRepository = new PlayersRepository({ db, logger })
+      const accountsRepository = new AccountsRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
       const gamesController = createGamesController({ db, logger })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByPlayerId: player.id })))
+      const account = extractSuccess(await accountsRepository.create(createNewAccountModelStub()))
+      const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByAccountId: account.id })))
 
       const system1 = createCoherentStarSystem({ gameId: game.id })
       const system2 = createCoherentStarSystem({ gameId: game.id })
@@ -89,12 +89,12 @@ describe("starSystems.repository", () => {
       const db = await createDbMock()
       const logger = Logger.get()
 
-      const playersRepository = new PlayersRepository({ db, logger })
+      const accountsRepository = new AccountsRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
       const gamesController = createGamesController({ db, logger })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByPlayerId: player.id })))
+      const account = extractSuccess(await accountsRepository.create(createNewAccountModelStub()))
+      const game = extractSuccess(await gamesController.create(createNewGameDtoStub({ createdByAccountId: account.id })))
 
       const system = createIncoherentStarSystem({ gameId: game.id })
 
@@ -118,7 +118,7 @@ function createGamesController({ db, logger }: { db: Database; logger: Logger })
     createTransaction: db.transaction.bind(db),
     gamesRepository: new GamesRepository({ db, logger }),
     gameSettingsRepository: new GameSettingsRepository({ db, logger }),
-    gamePlayersRepository: new GamePlayersRepository({ db, logger }),
+    playersRepository: new PlayersRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),

@@ -21,8 +21,8 @@ export function createGamePlayerActionsRouter({
     getCurrentAction: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ action: GamePlayerActionSchema.nullable() }))
-      .query(async ({ input: { gameId }, ctx: { player } }) => {
-        const getCurrentActionResult = await gamePlayerActionsController.getCurrentAction({ gameId, playerId: player.id })
+      .query(async ({ input: { gameId }, ctx: { account } }) => {
+        const getCurrentActionResult = await gamePlayerActionsController.getCurrentAction({ gameId, accountId: account.id })
         if (Result.isFailure(getCurrentActionResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -46,8 +46,13 @@ export function createGamePlayerActionsRouter({
         }),
       )
       .output(z.object({ action: GamePlayerActionSchema.nullable() }))
-      .mutation(async ({ input: { gameId, tick, actionType }, ctx: { player } }) => {
-        const setCurrentActionResult = await gamePlayerActionsController.setCurrentAction({ gameId, playerId: player.id, tick, actionType })
+      .mutation(async ({ input: { gameId, tick, actionType }, ctx: { account } }) => {
+        const setCurrentActionResult = await gamePlayerActionsController.setCurrentAction({
+          gameId,
+          accountId: account.id,
+          tick,
+          actionType,
+        })
         if (Result.isFailure(setCurrentActionResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",

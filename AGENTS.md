@@ -68,6 +68,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 
 - Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw `new TransactionRollback(...)` from `backend/src/lib/errors.ts` instead.
 - Do not return results from transactions. Throw `TransactionRollback` to abort the transaction, or return the value directly.
+- If migration generation requires Drizzle's interactive TTY (for example, to resolve table or column renames), ask the user to run the named `db:generate` command. Do not replace it with a custom migration.
 
 ## Commands
 

@@ -1,5 +1,5 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import type { PlayersRepository } from "#lib/db/games/players.repository.ts"
 import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
@@ -46,42 +46,44 @@ export const StarSystemDto = z.object({
 
 export class StarSystemsController {
   private readonly logger: Logger
-  private readonly gamePlayersRepository: GamePlayersRepository
+  private readonly playersRepository: PlayersRepository
   private readonly starSystemsRepository: StarSystemsRepository
 
   public constructor({
     logger,
-    gamePlayersRepository,
+    playersRepository,
     starSystemsRepository,
   }: {
     logger: Logger
-    gamePlayersRepository: GamePlayersRepository
+    playersRepository: PlayersRepository
     starSystemsRepository: StarSystemsRepository
   }) {
     this.logger = logger.child({ scope: "star-systems-controller" })
-    this.gamePlayersRepository = gamePlayersRepository
+    this.playersRepository = playersRepository
     this.starSystemsRepository = starSystemsRepository
   }
 
-  public async getByGameId({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<StarSystemDto | undefined, string>> {
-    const canReadGameResult = await this.canReadGame({ gameId, playerId })
-    if (Result.isFailure(canReadGameResult)) {
-      return canReadGameResult
+  public async getByGameId({
+    gameId,
+    accountId,
+  }: {
+    gameId: number
+    accountId: string
+  }): Promise<Result<StarSystemDto | undefined, string>> {
+    const playerResult = await this.playersRepository.getByGameIdAndAccountId({ gameId, accountId })
+    if (Result.isFailure(playerResult)) {
+      return playerResult
     }
 
-    if (!canReadGameResult.value) {
-      return this.notAuthorizedFailure({ playerId, gameId })
+    if (playerResult.value === undefined) {
+      return this.notAuthorizedFailure({ accountId, gameId })
     }
 
     return await this.starSystemsRepository.getByGameId({ gameId })
   }
 
-  private async canReadGame({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<boolean, string>> {
-    return await this.gamePlayersRepository.hasPlayerJoinedGame({ gameId, playerId })
-  }
-
-  private notAuthorizedFailure({ playerId, gameId }: { playerId: number; gameId: number }): Failure<string> {
-    const error = notAuthorized({ playerId, operationName: `read game with id ${gameId}` })
+  private notAuthorizedFailure({ accountId, gameId }: { accountId: string; gameId: number }): Failure<string> {
+    const error = notAuthorized({ accountId, operationName: `read game with id ${gameId}` })
     this.logger.error(error)
     return Result.Failure(error)
   }

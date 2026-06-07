@@ -337,7 +337,7 @@ We will need 1 new router, the `StarSystemsRouter`. This router will expose quer
 
 - `getByGameId`
 
-The router will make sure the player is authenticated and will forward the player id to the controller.
+The router will make sure the account is authenticated and will forward the account id to the controller. The controller resolves the account's player for the requested game.
 
 ### Star System View
 
@@ -449,17 +449,17 @@ Implementation steps:
 9. Make repository methods return `Result`, wrap Drizzle calls in `Result.tryCatch`, log only where a new `Failure` is created, and accept an optional trailing `db = this.db` parameter for transaction reuse.
 10. Make `create` accept an already-generated Star System payload and insert the Star System, movement nodes, Orbits, Sectors, Bodies, and directed edges in one transaction. It must never leave orphan MovementNodes or partially inserted targets. Business logic not validated by the database through the specified constraints should be enforced by the controller, not the repository. The repository is only handling access patterns.
 11. Make `getByGameId` return Orbits ordered by `orbit_number`, Sectors by `sector_number`, Bodies by `body_number`, generated coordinates like `02:11:05`, and a MovementGraph keyed by `MovementNodeId`. Account for the fact that numeric object keys serialize as strings over JSON/tRPC.
-12. Implement `StarSystemsController` with `getByGameId`. The method must first verify that the requesting player is in the game through `GamesRepository.hasPlayerJoinedGame(gameId, playerId)`.
-13. Return `Result` values for expected failures: missing game, player not in game, and missing Star System.
+12. Implement `StarSystemsController` with `getByGameId`. The method must resolve the authenticated account's player through `PlayersRepository.getByGameIdAndAccountId(gameId, accountId)`.
+13. Return `Result` values for expected failures: missing game, account without a player in the game, and missing Star System.
 14. Implement `createStarSystemsRouter` with a private procedure for `getByGameId`. Use Zod input parsing for `gameId`; map Star System controller failures to `TRPCError` with `BAD_REQUEST` or `NOT_FOUND` as appropriate.
 15. Wire `StarSystemsRepository`, `StarSystemsController` and `createStarSystemsRouter` through `createApi.ts`, `createApi.stub.ts` and `entry.api.ts`, preserving the local factory pattern and `TrpcRouter` inference.
 16. Export frontend-consumable Star System output types from `backend/src/api/types.ts`.
 
 Backend tests:
 
-- `starSystems.getByGameId` returns the full stored System for an authenticated player in the game.
+- `starSystems.getByGameId` returns the full stored System when the authenticated account has a player in the game.
 - `starSystems.getByGameId` rejects anonymous reads with `UNAUTHORIZED`.
-- `starSystems.getByGameId` rejects a player who is authenticated but not in the game.
+- `starSystems.getByGameId` rejects an authenticated account without a player in the game.
 - Existing game with no Star System returns `NOT_FOUND`.
 
 Definition of done:

@@ -19,7 +19,7 @@ Use `Assert` to express runtime invariants and required preconditions in real co
 Prefer this:
 
 ```ts
-const rows = await db.insert(playersTable).values(newPlayer).returning()
+const rows = await db.insert(accountsTable).values(newAccount).returning()
 
 Assert.isTrue(rows.length === 1)
 Assert.isDefined(rows[0])
@@ -30,9 +30,9 @@ return rows[0]
 Instead of relying on casts, unchecked indexing, or comments that only describe an assumption:
 
 ```ts
-const rows = await db.insert(playersTable).values(newPlayer).returning()
+const rows = await db.insert(accountsTable).values(newAccount).returning()
 
-return rows[0] as PlayerRow
+return rows[0] as AccountRow
 ```
 
 Assertions should be used for invariants that mean our understanding of the code, data, or dependency contract is wrong if they fail. They are not a replacement for expected error handling. Expected failures should still be represented with `Result`.
@@ -44,3 +44,7 @@ Runtime assumptions are visible in the code instead of being hidden in casts.
 If a dependency behavior changes, or if our understanding of a precondition is wrong, the code fails immediately at the invariant instead of producing strange downstream behavior.
 
 The code becomes slightly more verbose, but the added checks document important contracts and make failures easier to diagnose.
+
+## Amendment: account and player terminology
+
+The repository example now uses accounts because it demonstrates creating a website identity. Players are game-specific rows with UUID identities and should use the same explicit invariant assertions when repositories expect exactly one returned row.

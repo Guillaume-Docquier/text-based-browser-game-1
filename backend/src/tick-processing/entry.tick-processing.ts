@@ -9,7 +9,7 @@ import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
-import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import { PlayersRepository } from "#lib/db/games/players.repository.ts"
 
 /**
  * Starts tick processing.
@@ -47,7 +47,7 @@ if (!isMainThread) {
   logger.info("Creating services")
   const repositories = {
     gamesRepository: new GamesRepository({ db, logger }),
-    gamePlayersRepository: new GamePlayersRepository({ db, logger }),
+    playersRepository: new PlayersRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),

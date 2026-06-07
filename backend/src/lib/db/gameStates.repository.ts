@@ -11,7 +11,7 @@ type GameStateRow = typeof gameStatesTable.$inferSelect
 export type NewGameStateModel = NewGameStateRow
 export type GameStateModel = GameStateRow
 export type PlayerGameStateModel = GameStateModel & {
-  playerId: number
+  playerId: string
   resources: {
     money: number
   }
@@ -83,7 +83,7 @@ export class GameStatesRepository extends PostgresRepository {
       playerId,
     }: {
       gameId: number
-      playerId: number
+      playerId: string
     },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<PlayerGameStateModel | undefined, string>> {

@@ -6,7 +6,7 @@ import { type GamesRepository } from "#lib/db/games/games.repository.ts"
 import { ResourceType } from "#lib/gameResources.ts"
 import { GAME_PLAYER_ACTION_RULES, GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 import { type GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
-import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
+import type { PlayersRepository } from "#lib/db/games/players.repository.ts"
 
 /**
  * Processes all ticks that should advance at this point in time.
@@ -18,7 +18,7 @@ export async function processTick({
   gameStatesRepository,
   gamePlayerResourcesRepository,
   gamesRepository,
-  gamePlayersRepository,
+  playersRepository,
   gamePlayerActionsRepository,
 }: {
   logger: Logger
@@ -26,7 +26,7 @@ export async function processTick({
   gameStatesRepository: GameStatesRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamesRepository: GamesRepository
-  gamePlayersRepository: GamePlayersRepository
+  playersRepository: PlayersRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
 }): Promise<void> {
   // Lock the tables, can't update state or submit actions during ticks
@@ -55,7 +55,7 @@ export async function processTick({
     const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds })
     const nextTick = gameTick.tick + 1
 
-    const playerIdsResult = await gamePlayersRepository.getPlayerIds({ gameId: game.id })
+    const playerIdsResult = await playersRepository.getPlayerIds({ gameId: game.id })
     if (Result.isFailure(playerIdsResult)) {
       logger.error("Could not get game players while processing tick", { gameTick, error: playerIdsResult.error })
       continue
@@ -72,7 +72,7 @@ export async function processTick({
     )
 
     let couldNotProcessPlayers = false
-    let winnerPlayerId: number | undefined
+    let winnerPlayerId: string | undefined
     for (const playerId of playerIdsResult.value) {
       const incrementMoneyResult = await gamePlayerResourcesRepository.updateResource({
         gameId: game.id,

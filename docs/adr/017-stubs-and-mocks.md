@@ -53,18 +53,18 @@ Mock are alternate implementations of production dependencies. This is rarely us
 // auth.service.mock.ts
 export class AuthServiceMock implements IAuthService {
   /**
-   * public Player so tests can easily control it
+   * Public Account so tests can easily control it.
    */
-  public player: Player | undefined
+  public account: Account | undefined
 
-  public constructor({ player }: { player?: Player } = {}) {
-    this.player = player
+  public constructor({ account }: { account?: Account } = {}) {
+    this.account = account
   }
 
   public authenticationMiddlewares(): RequestHandler[] {
     return [
       (req, _res, next): void => {
-        req.player = this.player
+        req.account = this.account
         next()
       },
     ]
@@ -86,3 +86,7 @@ Tests become less fragile to unrelated model changes because stubs centralize de
 The codebase gains consistent file naming and discoverability for test doubles.
 
 By favoring real implementations and using mocks sparingly, we keep stronger confidence in production behavior while still enabling focused unit tests when isolation is necessary.
+
+## Amendment: account and player terminology
+
+Website identities are now accounts, while players are game-specific participants. Authentication stubs and mocks should therefore create and attach accounts. Player stubs should only be used when a test needs an in-game participant.
