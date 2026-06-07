@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express"
 import { clerkClient, clerkMiddleware, getAuth, type User } from "@clerk/express"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { AccountDto, AccountsController } from "../accounts/accounts.controller.ts"
+import type { AccountDto, AccountsController } from "#api/accounts/accounts.controller.ts"
 import { couldNot } from "#lib/errors.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.

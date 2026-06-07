@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express"
-import type { AccountDto } from "../accounts/accounts.controller.ts"
+import type { AccountDto } from "#api/accounts/accounts.controller.ts"
 import { type IAuthService } from "./auth.service.ts"
 
 export class AuthServiceMock implements IAuthService {
