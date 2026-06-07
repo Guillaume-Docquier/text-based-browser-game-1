@@ -62,7 +62,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
               <Player player={game.creator} />
             </div>
             <DetailBlock label="Created" value={timeAgo(game.createdAt)} />
-            {game.winnerPlayerId !== null ? <DetailBlock label="Winner" value={getWinnerLabel(game)} /> : null}
+            {game.winnerAccountId !== null ? <DetailBlock label="Winner" value={getWinnerLabel(game)} /> : null}
           </div>
           <Separator />
           <div className="space-y-3">
@@ -171,9 +171,9 @@ function GameLobbyLoadingState(): ReactElement {
 }
 
 function getWinnerLabel(game: ApiTypes.GameSummary): string {
-  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerPlayerId)
+  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerAccountId)
   if (winner === undefined) {
-    return `Player ${game.winnerPlayerId}`
+    return `Player ${game.winnerAccountId}`
   }
 
   return winner.alias ?? `Player ${winner.id}`
