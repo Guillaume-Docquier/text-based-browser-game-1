@@ -123,7 +123,7 @@ export class GamePlayerActionsController {
     gameId: GameId
     playerId: PlayerId
   }): Promise<Result<{ tick: number; money: number }, string>> {
-    const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId })
+    const gameSummaryResult = await this.gamesRepository.getGameSummaryById({ gameId })
     if (Result.isFailure(gameSummaryResult)) {
       return gameSummaryResult
     }

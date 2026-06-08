@@ -68,7 +68,7 @@ export class AuthService implements IAuthService {
       }
 
       const authId = auth.userId
-      const findAccountResult = await accountsController.getByAuthId({ authId })
+      const findAccountResult = await accountsController.getAccountByAuthId({ authId })
       if (Result.isFailure(findAccountResult)) {
         this.logger.error("Could not get account from the clerk id", { authId, error: findAccountResult.error })
         next()

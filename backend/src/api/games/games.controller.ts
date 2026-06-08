@@ -14,7 +14,7 @@ import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/gameResources.ts"
 import z from "zod"
 import { PlayerId } from "#api/games/PlayerId.ts"
 import { AccountId } from "#api/accounts/AccountId.ts"
-import type { GameId } from "#api/games/GameId.ts"
+import { GameId } from "#api/games/GameId.ts"
 
 export class GamesController {
   private readonly logger: Logger
@@ -58,7 +58,7 @@ export class GamesController {
   public async createGame(newGame: NewGameDto): Promise<Result<CreatedGameDto, string>> {
     const createGameResult = await Result.tryCatch(
       this.createTransaction(async (tx) => {
-        const gameResult = await this.gamesRepository.create({ createdByAccountId: newGame.createdByAccountId }, tx)
+        const gameResult = await this.gamesRepository.createGame({ createdByAccountId: newGame.createdByAccountId }, tx)
         if (Result.isFailure(gameResult)) {
           throw new TransactionRollback("Failed to create game")
         }
@@ -96,8 +96,8 @@ export class GamesController {
     return createGameResult
   }
 
-  public async getSummaries({ playerId }: { playerId: PlayerId | undefined }): Promise<GameSummaryDto[]> {
-    const getSummariesResult = await this.gamesRepository.getSummaries()
+  public async getGameSummaries({ playerId }: { playerId: PlayerId | undefined }): Promise<GameSummaryDto[]> {
+    const getSummariesResult = await this.gamesRepository.getGameSummaries()
     if (Result.isFailure(getSummariesResult)) {
       this.logger.error("Could not get game summaries, returning empty array", { playerId, error: getSummariesResult.error })
       return []
@@ -106,14 +106,14 @@ export class GamesController {
     return getSummariesResult.value.map((gameSummaryModel) => toGameSummaryDto({ gameSummaryModel, playerId }))
   }
 
-  public async getSummaryById({
+  public async getGameSummaryById({
     gameId,
     playerId,
   }: {
     gameId: GameId
     playerId: PlayerId | undefined
   }): Promise<GameSummaryDto | undefined> {
-    const getSummaryResult = await this.gamesRepository.getSummaryById({ gameId })
+    const getSummaryResult = await this.gamesRepository.getGameSummaryById({ gameId })
     if (Result.isFailure(getSummaryResult)) {
       this.logger.error("Could not get game summary, returning undefined", { gameId, playerId, error: getSummaryResult.error })
       return undefined
@@ -127,10 +127,10 @@ export class GamesController {
     return toGameSummaryDto({ gameSummaryModel, playerId })
   }
 
-  public async join({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
+  public async joinGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
     const gameJoinResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
-        const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId }, tx)
+        const gameSummaryResult = await this.gamesRepository.getGameSummaryById({ gameId }, tx)
         if (Result.isFailure(gameSummaryResult)) {
           throw new TransactionRollback("Failed to get game summary")
         }
@@ -156,16 +156,16 @@ export class GamesController {
       return Result.Failure(couldNot("join game"))
     }
 
-    const gameSummary = await this.getSummaryById({ gameId, playerId })
+    const gameSummary = await this.getGameSummaryById({ gameId, playerId })
     Assert.isDefined(gameSummary)
 
     return Result.Success(gameSummary)
   }
 
-  public async leave({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
+  public async leaveGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
     const gameLeaveResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
-        const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId }, tx)
+        const gameSummaryResult = await this.gamesRepository.getGameSummaryById({ gameId }, tx)
         if (Result.isFailure(gameSummaryResult)) {
           throw new TransactionRollback("Failed to get game")
         }
@@ -191,16 +191,16 @@ export class GamesController {
       return Result.Failure(couldNot("leave game"))
     }
 
-    const gameSummary = await this.getSummaryById({ gameId, playerId })
+    const gameSummary = await this.getGameSummaryById({ gameId, playerId })
     Assert.isDefined(gameSummary)
 
     return Result.Success(gameSummary)
   }
 
-  public async start({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
+  public async startGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameSummaryDto, string>> {
     const gameStartResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
-        const gameSummaryResult = await this.gamesRepository.getSummaryById({ gameId }, tx)
+        const gameSummaryResult = await this.gamesRepository.getGameSummaryById({ gameId }, tx)
         if (Result.isFailure(gameSummaryResult)) {
           throw new TransactionRollback("Failed to get game")
         }
@@ -215,7 +215,7 @@ export class GamesController {
         }
 
         const startedAt = new Date()
-        const startGameResult = await this.gamesRepository.update({ gameId }, { startedAt }, tx)
+        const startGameResult = await this.gamesRepository.updateGame({ gameId }, { startedAt }, tx)
         if (Result.isFailure(startGameResult)) {
           throw new TransactionRollback("Failed to update game start date")
         }
@@ -266,7 +266,7 @@ export class GamesController {
       return Result.Failure(couldNot("start game"))
     }
 
-    const gameSummary = await this.getSummaryById({ gameId, playerId })
+    const gameSummary = await this.getGameSummaryById({ gameId, playerId })
     Assert.isDefined(gameSummary)
 
     return Result.Success(gameSummary)
@@ -344,7 +344,7 @@ export const GameSettingsDto = z.object({
 
 export type CreatedGameDto = z.infer<typeof CreatedGameDto>
 export const CreatedGameDto = z.object({
-  id: z.number(),
+  id: GameId,
   createdByAccountId: AccountId,
   winnerAccountId: AccountId.nullable(),
   settings: GameSettingsDto,
@@ -368,7 +368,7 @@ export const GameSummaryPlayerDto = z.object({
 
 export type GameSummaryDto = z.infer<typeof GameSummaryDto>
 export const GameSummaryDto = z.object({
-  id: z.number(),
+  id: GameId,
   winnerAccountId: AccountId.nullable(),
   settings: GameSettingsDto,
   createdAt: z.date(),

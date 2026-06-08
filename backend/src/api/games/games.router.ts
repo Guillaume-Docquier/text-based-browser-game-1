@@ -37,7 +37,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
      */
     getSummaries: trpc.publicProcedure.output(z.object({ games: z.array(GameSummaryDto) })).query(async ({ ctx: { account } }) => {
-      const games = await gamesController.getSummaries({ playerId: account?.id })
+      const games = await gamesController.getGameSummaries({ playerId: account?.id })
 
       gamesRouterLogger.info("GET games", { count: games.length })
       return { games }
@@ -50,7 +50,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ game: GameSummaryDto }))
       .query(async ({ input: { gameId }, ctx: { account } }) => {
-        const game = await gamesController.getSummaryById({ gameId, playerId: account?.id })
+        const game = await gamesController.getGameSummaryById({ gameId, playerId: account?.id })
         gamesRouterLogger.info(`GET game ${gameId}`, { game })
 
         if (game === undefined) {
@@ -70,7 +70,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ joinedGame: GameSummaryDto }))
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const joinGameResult = await gamesController.join({ gameId, playerId: account.id })
+        const joinGameResult = await gamesController.joinGame({ gameId, playerId: account.id })
         if (Result.isFailure(joinGameResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -88,7 +88,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ leftGame: GameSummaryDto }))
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const leaveGameResult = await gamesController.leave({ gameId, playerId: account.id })
+        const leaveGameResult = await gamesController.leaveGame({ gameId, playerId: account.id })
         if (Result.isFailure(leaveGameResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -106,7 +106,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
       .input(z.object({ gameId: z.coerce.number() }))
       .output(z.object({ startedGame: GameSummaryDto }))
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const startGameResult = await gamesController.start({ gameId, playerId: account.id })
+        const startGameResult = await gamesController.startGame({ gameId, playerId: account.id })
         if (Result.isFailure(startGameResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",

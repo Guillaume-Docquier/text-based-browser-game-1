@@ -204,8 +204,8 @@ async function seedGames({
     }),
   )
   logger.info("├ Adding accounts to games")
-  assertSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: secondAccount.id }))
-  assertSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: thirdAccount.id }))
+  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.id, playerId: secondAccount.id }))
+  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.id, playerId: thirdAccount.id }))
   logger.info("└ Done")
 }
 

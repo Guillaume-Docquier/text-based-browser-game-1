@@ -33,7 +33,7 @@ export class GamesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "games-repository" })
   }
 
-  public async create(newGame: NewGameModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameModel, string>> {
+  public async createGame(newGame: NewGameModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameModel, string>> {
     const createResult = await Result.tryCatch(async () => {
       const games = await db.insert(gamesTable).values(newGame).returning()
       Assert.isTrue(games.length === 1)
@@ -50,7 +50,7 @@ export class GamesRepository extends PostgresRepository {
     return createResult
   }
 
-  public async update(
+  public async updateGame(
     { gameId }: { gameId: GameId },
     game: Partial<NewGameModel>,
     db: PostgresRepository["db"] = this.db,
@@ -65,7 +65,7 @@ export class GamesRepository extends PostgresRepository {
     return Result.Success(true)
   }
 
-  public async getSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryModel[], string>> {
+  public async getGameSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryModel[], string>> {
     const gameSummariesResult = await Result.tryCatch(
       db
         .select({
@@ -156,7 +156,7 @@ export class GamesRepository extends PostgresRepository {
     )
   }
 
-  public async getSummaryById(
+  public async getGameSummaryById(
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GameSummaryModel | undefined, string>> {
@@ -240,7 +240,7 @@ export class GamesRepository extends PostgresRepository {
     })
   }
 
-  public async endWithWinner(
+  public async endGameWithWinner(
     { gameId, winnerAccountId }: { gameId: GameId; winnerAccountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
@@ -251,7 +251,7 @@ export class GamesRepository extends PostgresRepository {
     })
 
     if (Result.isFailure(endResult)) {
-      this.logger.error("Could not end game with winner", { gameId, winnerPlayerId: winnerAccountId, error: endResult.error })
+      this.logger.error("Could not end game with winner", { gameId, winnerAccountId, error: endResult.error })
       return Result.Failure(couldNot("end game with winner"))
     }
 

@@ -142,7 +142,7 @@ export async function processTick({
       }
 
       if (selectedAction.actionType === GamePlayerActionType.WIN_THE_GAME) {
-        const endGameResult = await gamesRepository.endWithWinner({ gameId: game.id, winnerAccountId: playerId })
+        const endGameResult = await gamesRepository.endGameWithWinner({ gameId: game.id, winnerAccountId: playerId })
         if (Result.isFailure(endGameResult)) {
           logger.error("Could not end game with winner", { playerId, gameTick, error: endGameResult.error })
           couldNotProcessPlayers = true

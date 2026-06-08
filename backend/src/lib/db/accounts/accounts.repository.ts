@@ -56,7 +56,7 @@ export class AccountsRepository extends PostgresRepository {
    * Returns undefined when no matching account was found.
    * Returns a Failure when an error prevented getting the account. The account might exist, but we couldn't retrieve it.
    */
-  public async getByAuthId(
+  public async getAccountByAuthId(
     { authId }: { authId: string },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<AccountModel | undefined, string>> {

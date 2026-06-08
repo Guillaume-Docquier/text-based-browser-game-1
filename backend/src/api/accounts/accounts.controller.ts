@@ -1,6 +1,7 @@
 import { type Result } from "@guillaume-docquier/tools-ts"
 import { type AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
 import z from "zod"
+import { AccountId } from "#api/accounts/AccountId.ts"
 
 export class AccountsController {
   private readonly accountsRepository: AccountsRepository
@@ -22,22 +23,22 @@ export class AccountsController {
    * Returns undefined when no matching account was found.
    * Returns a Failure when an error prevented getting the account. The account might exist, but we couldn't retrieve it.
    */
-  public async getByAuthId({ authId }: { authId: string }): Promise<Result<AccountDto | undefined, string>> {
-    return await this.accountsRepository.getByAuthId({ authId })
+  public async getAccountByAuthId({ authId }: { authId: string }): Promise<Result<AccountDto | undefined, string>> {
+    return await this.accountsRepository.getAccountByAuthId({ authId })
   }
 }
-
-export type AccountDto = z.infer<typeof AccountDto>
-export const AccountDto = z.object({
-  id: z.string(),
-  authId: z.string(),
-  email: z.string().nullable(),
-  alias: z.string().nullable(),
-})
 
 export type NewAccountDto = z.infer<typeof NewAccountDto>
 export const NewAccountDto = z.object({
   authId: z.string(),
   email: z.string().optional(),
   alias: z.string().optional(),
+})
+
+export type AccountDto = z.infer<typeof AccountDto>
+export const AccountDto = z.object({
+  id: AccountId,
+  authId: z.string(),
+  email: z.string().nullable(),
+  alias: z.string().nullable(),
 })
