@@ -58,7 +58,7 @@ export async function processTick({
 
     const playerIdsResult = await gamePlayersRepository.getPlayerIds({ gameId: game.id })
     if (Result.isFailure(playerIdsResult)) {
-      logger.error("Could not get game accounts while processing tick", { gameTick, error: playerIdsResult.error })
+      logger.error("Could not get game players while processing tick", { gameTick, error: playerIdsResult.error })
       continue
     }
 

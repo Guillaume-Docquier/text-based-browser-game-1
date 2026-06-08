@@ -17,7 +17,7 @@ export class GamePlayersRepository extends PostgresRepository {
 
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
-    this.logger = logger.child({ scope: "game-accounts-repository" })
+    this.logger = logger.child({ scope: "game-players-repository" })
   }
 
   public async createPlayer(

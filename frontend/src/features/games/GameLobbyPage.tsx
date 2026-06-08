@@ -1,4 +1,4 @@
-import { useMutation, useQuery, type UseMutationOptions } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import type * as ApiTypes from "@api-types"
@@ -37,15 +37,9 @@ export function GameLobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactEle
 function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const joinGame = useMutation(
-    backendApiClient.games.join.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: ApiTypes.GameId }>,
-  )
-  const leaveGame = useMutation(
-    backendApiClient.games.leave.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: ApiTypes.GameId }>,
-  )
-  const startGame = useMutation(
-    backendApiClient.games.start.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: ApiTypes.GameId }>,
-  )
+  const joinGame = useMutation(backendApiClient.games.join.mutationOptions())
+  const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions())
+  const startGame = useMutation(backendApiClient.games.start.mutationOptions())
 
   return (
     <div className="flex flex-col gap-6">
