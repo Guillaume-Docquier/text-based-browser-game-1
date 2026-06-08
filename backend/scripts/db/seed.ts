@@ -93,10 +93,10 @@ async function main({ connectionString, user }: { connectionString: string; user
   logger.info(`Seeding the '${host}' database with default values`)
   try {
     logger.info("")
-    const players = await seedPlayers({ db, user, logger, accountsRepository })
+    const accounts = await seedAccounts({ db, user, logger, accountsRepository })
 
     logger.info("")
-    await seedGames({ db, accounts: players, logger, gamesController })
+    await seedGames({ db, accounts, logger, gamesController })
 
     logger.info("")
     logger.info("Seeding completed")
@@ -139,7 +139,7 @@ async function resetTable(db: Database, table: Table): Promise<void> {
   await db.execute(sql`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`)
 }
 
-async function seedPlayers({
+async function seedAccounts({
   db,
   user,
   accountsRepository,
@@ -154,21 +154,21 @@ async function seedPlayers({
   logger.info("├ Cleaning up the accounts")
   await resetTable(db, accountsTable)
   logger.info("├ Adding sample accounts")
-  const newPlayers: NewAccountModel[] = [
+  const newAccounts: NewAccountModel[] = [
     ...(user !== undefined ? [{ authId: user.clerkId, email: user.email, alias: user.alias }] : []),
     { authId: "fake1", email: "fake1@email.com", alias: "fake1 name" },
     { authId: "fake2", email: "fake2@email.com" },
     { authId: "fake3" },
   ]
 
-  const players: AccountModel[] = []
-  for (const newPlayer of newPlayers) {
-    players.push(assertSuccess(await accountsRepository.createAccount(newPlayer)))
+  const accounts: AccountModel[] = []
+  for (const newAccount of newAccounts) {
+    accounts.push(assertSuccess(await accountsRepository.createAccount(newAccount)))
   }
 
   logger.info("└ Done")
 
-  return players
+  return accounts
 }
 
 async function seedGames({

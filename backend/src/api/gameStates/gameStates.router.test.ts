@@ -11,8 +11,8 @@ describe("gameStates.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authService.account = player
+      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = account
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -29,7 +29,7 @@ describe("gameStates.router", () => {
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameState: {
           gameId: newGame.id,
-          playerId: player.id,
+          playerId: account.id,
           tick: 0,
           nextTickAt: expect.any(String),
           resources: {

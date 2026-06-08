@@ -13,8 +13,8 @@ describe("gamePlayerActions.router", () => {
       const { api, authService, gamePlayerResourcesRepository, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authService.account = player
+      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = account
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -23,7 +23,7 @@ describe("gamePlayerActions.router", () => {
       })
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: newGame.id, playerId: player.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: newGame.id, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
@@ -40,7 +40,7 @@ describe("gamePlayerActions.router", () => {
       expect(setCurrentActionResult).toEqual<typeof setCurrentActionResult>({
         action: {
           gameId: newGame.id,
-          playerId: player.id,
+          playerId: account.id,
           tick: 0,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
           updatedAt: expect.any(String),
@@ -82,8 +82,8 @@ describe("gamePlayerActions.router", () => {
       const { api, authService, accountsRepository, gamePlayerResourcesRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authService.account = player
+      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = account
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -92,7 +92,7 @@ describe("gamePlayerActions.router", () => {
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: createGameResult.newGame.id, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
