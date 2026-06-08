@@ -1,6 +1,6 @@
 import type { Express } from "express"
 import { createApi } from "#api/createApi.ts"
-import { AuthServiceMock } from "#api/auth/auth.service.mock.ts"
+import { AuthServiceMock } from "#api/accounts/auth.service.mock.ts"
 import { Logger } from "@guillaume-docquier/tools-ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
@@ -11,9 +11,9 @@ import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import { GameListingsRepository } from "#lib/db/games/gameListings.repository.ts"
-import { GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
-import { GameplayRepository } from "#lib/db/games/gameplay.repository.ts"
+import { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
+import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
+import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 
 type AllServices = Omit<Parameters<typeof createApi>[0], "authService"> & { authService: AuthServiceMock }
 

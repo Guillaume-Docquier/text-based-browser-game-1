@@ -14,7 +14,7 @@ import z from "zod"
 import { PlayerId } from "#api/games/PlayerId.ts"
 import { AccountId } from "#api/accounts/AccountId.ts"
 import { GameId } from "#api/games/GameId.ts"
-import { type GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
+import { type GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 
 export class GamesController {
   private readonly logger: Logger

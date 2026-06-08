@@ -18,7 +18,7 @@ import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import type { GameId } from "#api/games/GameId.ts"
-import { GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
+import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 
 describe("starSystems.repository", () => {
   describe("create", () => {

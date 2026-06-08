@@ -11,14 +11,23 @@ type GameSettingsRow = typeof gameSettingsTable.$inferSelect
 export type NewGameSettingsModel = NewGameSettingsRow
 export type GameSettingsModel = GameSettingsRow
 
+/**
+ * @deprecated To be replaced by better repositories
+ */
 export class GameSettingsRepository extends PostgresRepository {
   private readonly logger: Logger
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
     this.logger = logger.child({ scope: "game-settings-repository" })
   }
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async create(
     newGameSettings: NewGameSettingsModel,
     db: PostgresRepository["db"] = this.db,
@@ -39,6 +48,9 @@ export class GameSettingsRepository extends PostgresRepository {
     return createResult
   }
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async update(
     { gameId }: { gameId: GameId },
     gameSettings: Partial<GameSettingsModel>,

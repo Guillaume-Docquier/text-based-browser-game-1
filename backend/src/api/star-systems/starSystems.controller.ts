@@ -6,7 +6,7 @@ import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { RangeDto } from "#api/RangeDto.ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { GameId } from "#api/games/GameId.ts"
-import { type GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
+import { type GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 
 const StarSystemBodyDto = z.object({
   id: z.string(),

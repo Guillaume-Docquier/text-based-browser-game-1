@@ -14,7 +14,7 @@ import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
-import { GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
+import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 
 const YES_I_KNOW = "yes i know"
 

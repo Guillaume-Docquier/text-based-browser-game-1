@@ -4,7 +4,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { createApi } from "./createApi.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
-import { AuthService } from "./auth/auth.service.ts"
+import { AuthService } from "#api/accounts/auth.service.ts"
 import pRetry from "p-retry"
 import { Logger } from "@guillaume-docquier/tools-ts"
 import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
@@ -16,9 +16,9 @@ import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repositor
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import { GameListingsRepository } from "#lib/db/games/gameListings.repository.ts"
-import { GameplayRepository } from "#lib/db/games/gameplay.repository.ts"
-import { GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
+import { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
+import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
+import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })

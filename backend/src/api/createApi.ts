@@ -2,7 +2,7 @@ import express, { type Express } from "express"
 import { createGamesRouter } from "./games/games.router.ts"
 import { GamesController } from "./games/games.controller.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
-import type { IAuthService } from "./auth/auth.service.ts"
+import type { IAuthService } from "#api/accounts/auth.service.ts"
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
@@ -23,9 +23,9 @@ import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import type { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import { type GameListingsRepository } from "#lib/db/games/gameListings.repository.ts"
-import { type GameplayRepository } from "#lib/db/games/gameplay.repository.ts"
-import { type GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
+import { type GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
+import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
+import { type GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 
 /**
  * Import side effect free express app creator.
