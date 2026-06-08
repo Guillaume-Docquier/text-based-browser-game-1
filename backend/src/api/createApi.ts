@@ -11,8 +11,8 @@ import { createGameStatesRouter } from "#api/gameStates/gameStates.router.ts"
 import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 import type { TRPCError } from "@trpc/server"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { PlayersController } from "#api/players/players.controller.ts"
-import type { PlayersRepository } from "#lib/db/players/players.repository.ts"
+import { AccountsController } from "#api/accounts/accounts.controller.ts"
+import type { AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
 import type { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
@@ -42,7 +42,7 @@ export async function createApi({
   createTransaction: CreateTransaction
   authService: IAuthService
   logger: Logger
-  playersRepository: PlayersRepository
+  accountsRepository: AccountsRepository
   gamesRepository: GamesRepository
   gameSettingsRepository: GameSettingsRepository
   gamePlayersRepository: GamePlayersRepository
@@ -56,7 +56,7 @@ export async function createApi({
   const controllers = {
     gamesController: new GamesController(controllerServices),
     gameStatesController: new GameStatesController(controllerServices),
-    playersController: new PlayersController(controllerServices),
+    accountsController: new AccountsController(controllerServices),
     gamePlayerActionsController: new GamePlayerActionsController(controllerServices),
     starSystemsController: new StarSystemsController(controllerServices),
   }

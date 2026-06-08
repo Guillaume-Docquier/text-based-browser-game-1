@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
+import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
 import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 import { createResourceUpdateModelStub } from "#lib/db/resources/ResourceUpdateModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
@@ -10,11 +10,11 @@ describe("gamePlayerActions.router", () => {
   describe("setCurrentAction", () => {
     it("should set the current action for the authenticated player", async () => {
       // Arrange
-      const { api, authService, gamePlayerResourcesRepository, playersRepository } = await createApiStub()
+      const { api, authService, gamePlayerResourcesRepository, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      authService.player = player
+      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = account
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -23,7 +23,7 @@ describe("gamePlayerActions.router", () => {
       })
       await trpcClient.client.games.start.mutate({ gameId: newGame.id })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: newGame.id, playerId: player.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: newGame.id, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
@@ -40,7 +40,7 @@ describe("gamePlayerActions.router", () => {
       expect(setCurrentActionResult).toEqual<typeof setCurrentActionResult>({
         action: {
           gameId: newGame.id,
-          playerId: player.id,
+          playerId: account.id,
           tick: 0,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
           updatedAt: expect.any(String),
@@ -51,10 +51,10 @@ describe("gamePlayerActions.router", () => {
 
     it("should reject setting an action for a stale tick", async () => {
       // Arrange
-      const { api, authService, playersRepository } = await createApiStub()
+      const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -79,11 +79,11 @@ describe("gamePlayerActions.router", () => {
   describe("getCurrentAction", () => {
     it("should get the current action for the authenticated player", async () => {
       // Arrange
-      const { api, authService, playersRepository, gamePlayerResourcesRepository } = await createApiStub()
+      const { api, authService, accountsRepository, gamePlayerResourcesRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      authService.player = player
+      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = account
 
       const createGameResult = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -92,7 +92,7 @@ describe("gamePlayerActions.router", () => {
       })
       await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createGameResult.newGame.id, playerId: player.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: createGameResult.newGame.id, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act

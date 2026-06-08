@@ -3,6 +3,8 @@ import { gamePlayersTable } from "#lib/db/schema.ts"
 import { and, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
+import type { PlayerId } from "#api/games/PlayerId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 type NewGamePlayerRow = typeof gamePlayersTable.$inferInsert
 type GamePlayerRow = typeof gamePlayersTable.$inferSelect
@@ -18,7 +20,10 @@ export class GamePlayersRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "game-players-repository" })
   }
 
-  public async create(newGamePlayer: NewGamePlayerModel, db: PostgresRepository["db"] = this.db): Promise<Result<GamePlayerModel, string>> {
+  public async createPlayer(
+    newGamePlayer: NewGamePlayerModel,
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<GamePlayerModel, string>> {
     const createResult = await Result.tryCatch(async () => {
       const gamePlayers = await db.insert(gamePlayersTable).values(newGamePlayer).returning()
       Assert.isTrue(gamePlayers.length === 1)
@@ -36,7 +41,7 @@ export class GamePlayersRepository extends PostgresRepository {
   }
 
   public async delete(
-    { gameId, playerId }: { gameId: number; playerId: number },
+    { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(async (): Promise<true> => {
@@ -53,7 +58,7 @@ export class GamePlayersRepository extends PostgresRepository {
     return deleteResult
   }
 
-  public async getPlayerIds({ gameId }: { gameId: number }, db: PostgresRepository["db"] = this.db): Promise<Result<number[], string>> {
+  public async getPlayerIds({ gameId }: { gameId: GameId }, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerId[], string>> {
     const gamePlayersResult = await Result.tryCatch(
       db.select({ playerId: gamePlayersTable.playerId }).from(gamePlayersTable).where(eq(gamePlayersTable.gameId, gameId)),
     )
@@ -67,7 +72,7 @@ export class GamePlayersRepository extends PostgresRepository {
   }
 
   public async hasPlayerJoinedGame(
-    { gameId, playerId }: { gameId: number; playerId: number },
+    { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<boolean, string>> {
     const joinedGameResult = await Result.tryCatch(async () => {

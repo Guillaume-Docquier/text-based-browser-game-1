@@ -4,6 +4,8 @@ import { and, eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import { type GamePlayerActionType } from "#lib/gamePlayerActions.ts"
+import type { PlayerId } from "#api/games/PlayerId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 type GamePlayerActionRow = typeof gamePlayerActionsTable.$inferSelect
 
@@ -19,8 +21,8 @@ export class GamePlayerActionsRepository extends PostgresRepository {
 
   public async upsert(
     params: {
-      gameId: number
-      playerId: number
+      gameId: GameId
+      playerId: PlayerId
       tick: number
       actionType: GamePlayerActionType
     },
@@ -56,8 +58,8 @@ export class GamePlayerActionsRepository extends PostgresRepository {
 
   public async getByGameIdPlayerIdAndTick(
     params: {
-      gameId: number
-      playerId: number
+      gameId: GameId
+      playerId: PlayerId
       tick: number
     },
     db: PostgresRepository["db"] = this.db,
@@ -85,7 +87,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
   }
 
   public async getByGameIdAndTick(
-    params: { gameId: number; tick: number },
+    params: { gameId: GameId; tick: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GamePlayerActionModel[], string>> {
     const getResult = await Result.tryCatch(
@@ -104,7 +106,7 @@ export class GamePlayerActionsRepository extends PostgresRepository {
   }
 
   public async deleteByGameIdPlayerIdAndTick(
-    params: { gameId: number; playerId: number; tick: number },
+    params: { gameId: GameId; playerId: PlayerId; tick: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(async (): Promise<true> => {

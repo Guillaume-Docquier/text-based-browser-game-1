@@ -17,7 +17,7 @@ During verification, tests need useful failure output. Assertions such as `expec
 When a test setup call returns a `Result` and the test expects it to succeed, use the `extractSuccess` test helper:
 
 ```ts
-const player = extractSuccess(await playersRepository.create(newPlayer))
+const account = extractSuccess(await accountsRepository.createAccount(newAccount))
 ```
 
 When verifying a `Result` with Vitest, compare the full `Result` object instead of asserting on `Result.isSuccess`:

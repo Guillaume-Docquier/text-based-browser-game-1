@@ -18,15 +18,15 @@ export function createTrpc() {
   const t = initTRPC.context<TrpcContext>().create({ isDev: false })
 
   const publicProcedure = t.procedure.use(async ({ next, ctx }) => {
-    return await next({ ctx: { player: ctx.req.player } })
+    return await next({ ctx: { account: ctx.req.account } })
   })
 
   const privateProcedure = publicProcedure.use(async ({ next, ctx }) => {
-    if (ctx.player === undefined) {
+    if (ctx.account === undefined) {
       throw new TRPCError({ code: "UNAUTHORIZED" })
     }
 
-    return await next({ ctx: { player: ctx.player } })
+    return await next({ ctx: { account: ctx.account } })
   })
 
   return { router: t.router, publicProcedure, privateProcedure }

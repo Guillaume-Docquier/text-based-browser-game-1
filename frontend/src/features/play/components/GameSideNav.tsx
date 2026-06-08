@@ -3,6 +3,7 @@ import { ListChecks, Map, type LucideIcon } from "lucide-react"
 import type { ReactElement } from "react"
 import type { FileRouteTypes } from "../../../routeTree.gen.ts"
 import logo from "../../../assets/logo.png"
+import type { GameId } from "@api-types"
 
 type GameSideNavLink = {
   to: Extract<FileRouteTypes["to"], `/games/$gameId/play${string}`>
@@ -15,7 +16,7 @@ const gameSideNavLinks: readonly GameSideNavLink[] = [
   { to: "/games/$gameId/play/actions", Icon: ListChecks, label: "Actions" },
 ]
 
-export function GameSideNav({ gameId }: { gameId: number }): ReactElement {
+export function GameSideNav({ gameId }: { gameId: GameId }): ReactElement {
   const linkClassName =
     "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
   const activeClassName = "bg-muted text-foreground"

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
+import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
@@ -8,11 +8,11 @@ describe("gameStates.router", () => {
   describe("getById", () => {
     it("should get the authenticated player's state for a started game", async () => {
       // Arrange
-      const { api, authService, playersRepository } = await createApiStub()
+      const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
-      authService.player = player
+      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = account
 
       const { newGame } = await trpcClient.client.games.create.mutate({
         newGame: {
@@ -29,7 +29,7 @@ describe("gameStates.router", () => {
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameState: {
           gameId: newGame.id,
-          playerId: player.id,
+          playerId: account.id,
           tick: 0,
           nextTickAt: expect.any(String),
           resources: {
@@ -42,10 +42,10 @@ describe("gameStates.router", () => {
     it("should reject invalid game ids", async () => {
       // Arrange
 
-      const { api, authService, playersRepository } = await createApiStub()
+      const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       // Act & Assert
       await expect(trpcClient.client.gameStates.getById.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({

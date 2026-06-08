@@ -276,7 +276,7 @@ We will need 1 new repository, the `StarSystemsRepository`. This repository will
 
 ```ts
 type System = {
-  gameId: number
+  gameId: GameId
   orbits: Orbit[]
   movementGraph: MovementGraph
 }

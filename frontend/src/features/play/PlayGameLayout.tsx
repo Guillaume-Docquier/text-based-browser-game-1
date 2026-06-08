@@ -5,8 +5,9 @@ import { GameLayout, GameLayoutSkeleton } from "./components/GameLayout.tsx"
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { useLogger } from "../../lib/LoggerContext.tsx"
 import { PlayGameContextProvider, type PlayGameContextValue } from "./PlayContext.tsx"
+import type { GameId } from "@api-types"
 
-export function PlayGameLayout({ gameId }: { gameId: number }): ReactElement {
+export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const backendApiClient = useBackendApiClient()
   const gameQuery = useQuery(backendApiClient.games.getSummaryById.queryOptions({ gameId }))

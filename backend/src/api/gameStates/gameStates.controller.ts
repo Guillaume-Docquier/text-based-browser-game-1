@@ -1,6 +1,8 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { type GameStatesRepository, type PlayerGameStateModel } from "#lib/db/gameStates.repository.ts"
+import { PlayerId } from "#api/games/PlayerId.ts"
+import { GameId } from "#api/games/GameId.ts"
 
 export class GameStatesController {
   private readonly gameStatesRepository: GameStatesRepository
@@ -9,7 +11,7 @@ export class GameStatesController {
     this.gameStatesRepository = gameStatesRepository
   }
 
-  public async getById({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<GameStateDto | undefined, string>> {
+  public async getById({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameStateDto | undefined, string>> {
     const gameStateResult = await this.gameStatesRepository.getByGameIdAndPlayerId({ gameId, playerId })
     if (Result.isFailure(gameStateResult)) {
       return gameStateResult
@@ -35,8 +37,8 @@ function toGameStateDto(playerGameStateModel: PlayerGameStateModel): GameStateDt
 
 export type GameStateDto = z.infer<typeof GameStateDto>
 export const GameStateDto = z.object({
-  gameId: z.number(),
-  playerId: z.number(),
+  gameId: GameId,
+  playerId: PlayerId,
   tick: z.number(),
   nextTickAt: z.date(),
   resources: z.object({

@@ -1,12 +1,12 @@
 import { createDb, type Database } from "#lib/db/createDb.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
-import { gamesTable, playersTable } from "#lib/db/schema.ts"
+import { gamesTable, accountsTable } from "#lib/db/schema.ts"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
 import { Assert, type Logger, type Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import { PlayersRepository, type NewPlayerModel, type PlayerModel } from "#lib/db/players/players.repository.ts"
+import { AccountsRepository, type NewAccountModel, type AccountModel } from "#lib/db/accounts/accounts.repository.ts"
 import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
@@ -78,7 +78,7 @@ async function main({ connectionString, user }: { connectionString: string; user
   logger.info(`Creating services`)
   const db = createDb({ databaseUrl: connectionString })
   const gamesRepository = new GamesRepository({ db, logger })
-  const playersRepository = new PlayersRepository({ db, logger })
+  const accountsRepository = new AccountsRepository({ db, logger })
   const gamesController = new GamesController({
     logger,
     gamesRepository,
@@ -93,10 +93,10 @@ async function main({ connectionString, user }: { connectionString: string; user
   logger.info(`Seeding the '${host}' database with default values`)
   try {
     logger.info("")
-    const players = await seedPlayers({ db, user, logger, playersRepository })
+    const accounts = await seedAccounts({ db, user, logger, accountsRepository })
 
     logger.info("")
-    await seedGames({ db, players, logger, gamesController })
+    await seedGames({ db, accounts, logger, gamesController })
 
     logger.info("")
     logger.info("Seeding completed")
@@ -139,73 +139,73 @@ async function resetTable(db: Database, table: Table): Promise<void> {
   await db.execute(sql`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`)
 }
 
-async function seedPlayers({
+async function seedAccounts({
   db,
   user,
-  playersRepository,
+  accountsRepository,
   logger,
 }: {
   db: Database
   user: User | undefined
-  playersRepository: PlayersRepository
+  accountsRepository: AccountsRepository
   logger: Logger
-}): Promise<PlayerModel[]> {
-  logger.info("Users")
-  logger.info("├ Cleaning up the users")
-  await resetTable(db, playersTable)
-  logger.info("├ Adding sample users")
-  const newPlayers: NewPlayerModel[] = [
-    ...(user !== undefined ? [{ clerk_id: user.clerkId, email: user.email, alias: user.alias }] : []),
-    { clerk_id: "fake1", email: "fake1@email.com", alias: "fake1 name" },
-    { clerk_id: "fake2", email: "fake2@email.com" },
-    { clerk_id: "fake3" },
+}): Promise<AccountModel[]> {
+  logger.info("Accounts")
+  logger.info("├ Cleaning up the accounts")
+  await resetTable(db, accountsTable)
+  logger.info("├ Adding sample accounts")
+  const newAccounts: NewAccountModel[] = [
+    ...(user !== undefined ? [{ authId: user.clerkId, email: user.email, alias: user.alias }] : []),
+    { authId: "fake1", email: "fake1@email.com", alias: "fake1 name" },
+    { authId: "fake2", email: "fake2@email.com" },
+    { authId: "fake3" },
   ]
 
-  const players: PlayerModel[] = []
-  for (const newPlayer of newPlayers) {
-    players.push(assertSuccess(await playersRepository.create(newPlayer)))
+  const accounts: AccountModel[] = []
+  for (const newAccount of newAccounts) {
+    accounts.push(assertSuccess(await accountsRepository.createAccount(newAccount)))
   }
 
   logger.info("└ Done")
 
-  return players
+  return accounts
 }
 
 async function seedGames({
   db,
-  players,
+  accounts,
   gamesController,
   logger,
 }: {
   db: Database
-  players: PlayerModel[]
+  accounts: AccountModel[]
   gamesController: GamesController
   logger: Logger
 }): Promise<void> {
-  const [firstPlayer, secondPlayer, thirdPlayer] = players
-  Assert.isDefined(firstPlayer)
-  Assert.isDefined(secondPlayer)
-  Assert.isDefined(thirdPlayer)
+  const [firstAccount, secondAccount, thirdAccount] = accounts
+  Assert.isDefined(firstAccount)
+  Assert.isDefined(secondAccount)
+  Assert.isDefined(thirdAccount)
 
   logger.info("Games")
   logger.info("├ Cleaning up the games")
   await resetTable(db, gamesTable)
   logger.info("├ Adding default games")
   const insanelyFastGame = assertSuccess(
-    await gamesController.create({
-      createdByPlayerId: firstPlayer.id,
+    await gamesController.createGame({
+      createdByAccountId: firstAccount.id,
       settings: { name: "insanely fast game", nbSeats: 5, tickIntervalSeconds: 60 },
     }),
   )
   assertSuccess(
-    await gamesController.create({
-      createdByPlayerId: secondPlayer.id,
+    await gamesController.createGame({
+      createdByAccountId: secondAccount.id,
       settings: { name: "fast game", nbSeats: 10, tickIntervalSeconds: 7200 },
     }),
   )
-  logger.info("├ Adding players to games")
-  assertSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: secondPlayer.id }))
-  assertSuccess(await gamesController.join({ gameId: insanelyFastGame.id, playerId: thirdPlayer.id }))
+  logger.info("├ Adding accounts to games")
+  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.id, playerId: secondAccount.id }))
+  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.id, playerId: thirdAccount.id }))
   logger.info("└ Done")
 }
 

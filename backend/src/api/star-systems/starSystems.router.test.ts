@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createNewPlayerModelStub } from "#lib/db/players/NewPlayerModel.stub.ts"
+import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
 import { type NewStarSystemModel, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
@@ -8,15 +8,16 @@ import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { v4 } from "uuid"
 import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 describe("starSystems.router", () => {
   describe("getSystem", () => {
     it("should get the full stored system for an authenticated player in the game", async () => {
       // Arrange
-      const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
+      const { api, authService, accountsRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
       const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
@@ -127,16 +128,16 @@ describe("starSystems.router", () => {
 
     it("should reject a player who is authenticated but not in the game", async () => {
       // Arrange
-      const { api, authService, playersRepository, starSystemsRepository } = await createApiStub()
+      const { api, authService, accountsRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Creator" })))
-      const outsider = extractSuccess(await playersRepository.create(createNewPlayerModelStub({ alias: "Outsider" })))
-      authService.player = creator
+      const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
+      const outsider = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Outsider" })))
+      authService.account = creator
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
       await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
-      authService.player = outsider
+      authService.account = outsider
 
       // Act & Assert
       await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
@@ -146,10 +147,10 @@ describe("starSystems.router", () => {
 
     it("should return not found for an existing game with no Star System", async () => {
       // Arrange
-      const { api, authService, playersRepository } = await createApiStub()
+      const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      authService.player = extractSuccess(await playersRepository.create(createNewPlayerModelStub()))
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
 
@@ -169,7 +170,7 @@ async function createStoredStarSystem({
   gameId,
 }: {
   starSystemsRepository: StarSystemsRepository
-  gameId: number
+  gameId: GameId
 }): Promise<ReturnType<typeof createStarSystemFixture>> {
   const starSystem = createStarSystemFixture({ gameId })
   const createSystemResult = await starSystemsRepository.create(starSystem)
@@ -181,7 +182,7 @@ async function createStoredStarSystem({
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- As const will help the tests verbosity
-function createStarSystemFixture({ gameId }: { gameId: number }) {
+function createStarSystemFixture({ gameId }: { gameId: GameId }) {
   const orbitId = v4()
   const sector1Id = v4()
   const sector2Id = v4()

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, type UseMutationOptions } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import type * as ApiTypes from "@api-types"
@@ -13,7 +13,7 @@ import { useLogger } from "../../lib/LoggerContext.tsx"
 import { formatGameSummaryStatus } from "../../lib/formatGameSummaryStatus.ts"
 import { timeAgo } from "../../lib/timeAgo.ts"
 
-export function GameLobbyPage({ gameId }: { gameId: number }): ReactElement {
+export function GameLobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
   const backendApiClient = useBackendApiClient()
   const gameQuery = useQuery(backendApiClient.games.getSummaryById.queryOptions({ gameId }))
@@ -37,9 +37,9 @@ export function GameLobbyPage({ gameId }: { gameId: number }): ReactElement {
 function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const joinGame = useMutation(backendApiClient.games.join.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
-  const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
-  const startGame = useMutation(backendApiClient.games.start.mutationOptions() as UseMutationOptions<unknown, Error, { gameId: number }>)
+  const joinGame = useMutation(backendApiClient.games.join.mutationOptions())
+  const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions())
+  const startGame = useMutation(backendApiClient.games.start.mutationOptions())
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,7 +62,7 @@ function Game({ game }: { game: ApiTypes.GameSummary }): ReactElement {
               <Player player={game.creator} />
             </div>
             <DetailBlock label="Created" value={timeAgo(game.createdAt)} />
-            {game.winnerPlayerId !== null ? <DetailBlock label="Winner" value={getWinnerLabel(game)} /> : null}
+            {game.winnerAccountId !== null ? <DetailBlock label="Winner" value={getWinnerLabel(game)} /> : null}
           </div>
           <Separator />
           <div className="space-y-3">
@@ -171,9 +171,9 @@ function GameLobbyLoadingState(): ReactElement {
 }
 
 function getWinnerLabel(game: ApiTypes.GameSummary): string {
-  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerPlayerId)
+  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerAccountId)
   if (winner === undefined) {
-    return `Player ${game.winnerPlayerId}`
+    return `Player ${game.winnerAccountId}`
   }
 
   return winner.alias ?? `Player ${winner.id}`

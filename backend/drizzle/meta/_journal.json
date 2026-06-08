@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1776049672826,
+      "when": 1780875478559,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1776306614224,
-      "tag": "0001_overrated_abomination",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1776390000000,
-      "tag": "0002_player_actions_v1",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1778553927560,
-      "tag": "0003_star-systems",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1780280890557,
-      "tag": "0004_add-sector-angle-ranges",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1780621912378,
-      "tag": "0005_game-settings",
       "breakpoints": true
     }
   ]

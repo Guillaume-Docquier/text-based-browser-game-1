@@ -4,6 +4,8 @@ import { and, eq, sql } from "drizzle-orm"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import { type ResourceType } from "#lib/gameResources.ts"
+import type { PlayerId } from "#api/games/PlayerId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 type NewGamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferInsert
 type GamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferSelect
@@ -12,8 +14,8 @@ export type NewGamePlayerResourceModel = NewGamePlayerResourceRow
 export type GamePlayerResourceModel = GamePlayerResourceRow
 
 export type ResourceUpdateModel = {
-  gameId: number
-  playerId: number
+  gameId: GameId
+  playerId: PlayerId
   resourceType: ResourceType
   amountDelta: number
 }

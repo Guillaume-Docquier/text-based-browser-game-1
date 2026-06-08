@@ -5,6 +5,8 @@ import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { RangeDto } from "#api/RangeDto.ts"
+import type { AccountId } from "#api/accounts/AccountId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 const StarSystemBodyDto = z.object({
   id: z.string(),
@@ -63,25 +65,31 @@ export class StarSystemsController {
     this.starSystemsRepository = starSystemsRepository
   }
 
-  public async getByGameId({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<StarSystemDto | undefined, string>> {
-    const canReadGameResult = await this.canReadGame({ gameId, playerId })
+  public async getByGameId({
+    gameId,
+    accountId,
+  }: {
+    gameId: GameId
+    accountId: AccountId
+  }): Promise<Result<StarSystemDto | undefined, string>> {
+    const canReadGameResult = await this.canReadGame({ gameId, accountId })
     if (Result.isFailure(canReadGameResult)) {
       return canReadGameResult
     }
 
     if (!canReadGameResult.value) {
-      return this.notAuthorizedFailure({ playerId, gameId })
+      return this.notAuthorizedFailure({ accountId, gameId })
     }
 
     return await this.starSystemsRepository.getByGameId({ gameId })
   }
 
-  private async canReadGame({ gameId, playerId }: { gameId: number; playerId: number }): Promise<Result<boolean, string>> {
-    return await this.gamePlayersRepository.hasPlayerJoinedGame({ gameId, playerId })
+  private async canReadGame({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<boolean, string>> {
+    return await this.gamePlayersRepository.hasPlayerJoinedGame({ gameId, playerId: accountId })
   }
 
-  private notAuthorizedFailure({ playerId, gameId }: { playerId: number; gameId: number }): Failure<string> {
-    const error = notAuthorized({ playerId, operationName: `read game with id ${gameId}` })
+  private notAuthorizedFailure({ accountId, gameId }: { accountId: AccountId; gameId: GameId }): Failure<string> {
+    const error = notAuthorized({ accountId, operationName: `read game with id ${gameId}` })
     this.logger.error(error)
     return Result.Failure(error)
   }

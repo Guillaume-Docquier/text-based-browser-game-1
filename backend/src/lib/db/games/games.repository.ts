@@ -1,27 +1,29 @@
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamePlayersTable, gamesTable, gameSettingsTable, playersTable } from "#lib/db/schema.ts"
+import { gamePlayersTable, gamesTable, gameSettingsTable, accountsTable } from "#lib/db/schema.ts"
 import { eq } from "drizzle-orm"
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
 import { couldNot } from "#lib/errors.ts"
 import type { GameSettingsModel } from "#lib/db/games/gameSettings.repository.ts"
+import type { AccountId } from "#api/accounts/AccountId.ts"
+import type { GameId } from "#api/games/GameId.ts"
 
 type NewGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
-type PlayerRow = typeof playersTable.$inferSelect
+type PlayerRow = typeof accountsTable.$inferSelect
 
 export type NewGameModel = NewGameRow
 export type GameModel = GameRow
 
-export type GameSummaryModel = Omit<GameRow, "createdByPlayerId"> & {
+export type GameSummaryModel = Omit<GameRow, "createdByAccountId"> & {
   settings: Omit<GameSettingsModel, "gameId">
   creator: GameSummaryPlayerModel
   players: GameSummaryPlayerModel[]
 }
 export type GameSummaryPlayerModel = Pick<PlayerRow, "id" | "alias">
 
-const pgCreatorAlias = alias(playersTable, "creator")
-const pgPlayerAlias = alias(playersTable, "player")
+const pgCreatorAlias = alias(accountsTable, "creator")
+const pgPlayerAlias = alias(accountsTable, "player")
 
 export class GamesRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -31,7 +33,7 @@ export class GamesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "games-repository" })
   }
 
-  public async create(newGame: NewGameModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameModel, string>> {
+  public async createGame(newGame: NewGameModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameModel, string>> {
     const createResult = await Result.tryCatch(async () => {
       const games = await db.insert(gamesTable).values(newGame).returning()
       Assert.isTrue(games.length === 1)
@@ -48,8 +50,8 @@ export class GamesRepository extends PostgresRepository {
     return createResult
   }
 
-  public async update(
-    { gameId }: { gameId: number },
+  public async updateGame(
+    { gameId }: { gameId: GameId },
     game: Partial<NewGameModel>,
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
@@ -63,14 +65,14 @@ export class GamesRepository extends PostgresRepository {
     return Result.Success(true)
   }
 
-  public async getSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryModel[], string>> {
+  public async getGameSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryModel[], string>> {
     const gameSummariesResult = await Result.tryCatch(
       db
         .select({
           // game info
           id: gamesTable.id,
-          createdByPlayerId: gamesTable.createdByPlayerId,
-          winnerPlayerId: gamesTable.winnerPlayerId,
+          createdByAccountId: gamesTable.createdByAccountId,
+          winnerAccountId: gamesTable.winnerAccountId,
           createdAt: gamesTable.createdAt,
           startedAt: gamesTable.startedAt,
           endedAt: gamesTable.endedAt,
@@ -91,7 +93,7 @@ export class GamesRepository extends PostgresRepository {
         })
         .from(gamesTable)
         .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
-        .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
+        .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByAccountId))
         .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
         .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId)),
     )
@@ -120,7 +122,7 @@ export class GamesRepository extends PostgresRepository {
           creatorAlias,
           playerId: _playerId,
           playerAlias: _playerAlias,
-          createdByPlayerId: _createdByPlayerId,
+          createdByAccountId: _createdByAccountId,
           name,
           locked,
           starSystemGenerationSettings,
@@ -154,8 +156,8 @@ export class GamesRepository extends PostgresRepository {
     )
   }
 
-  public async getSummaryById(
-    { gameId }: { gameId: number },
+  public async getGameSummaryById(
+    { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<GameSummaryModel | undefined, string>> {
     const gameSummariesResult = await Result.tryCatch(
@@ -163,8 +165,8 @@ export class GamesRepository extends PostgresRepository {
         .select({
           // game info
           id: gamesTable.id,
-          createdByPlayerId: gamesTable.createdByPlayerId,
-          winnerPlayerId: gamesTable.winnerPlayerId,
+          createdByAccountId: gamesTable.createdByAccountId,
+          winnerAccountId: gamesTable.winnerAccountId,
           createdAt: gamesTable.createdAt,
           startedAt: gamesTable.startedAt,
           endedAt: gamesTable.endedAt,
@@ -185,7 +187,7 @@ export class GamesRepository extends PostgresRepository {
         })
         .from(gamesTable)
         .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
-        .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByPlayerId))
+        .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByAccountId))
         .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
         .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId))
         .where(eq(gamesTable.id, gameId)),
@@ -206,7 +208,7 @@ export class GamesRepository extends PostgresRepository {
       creatorAlias,
       playerId: _playerId,
       playerAlias: _playerAlias,
-      createdByPlayerId: _createdByPlayerId,
+      createdByAccountId: _createdByAccountId,
       name,
       locked,
       starSystemGenerationSettings,
@@ -238,18 +240,18 @@ export class GamesRepository extends PostgresRepository {
     })
   }
 
-  public async endWithWinner(
-    { gameId, winnerPlayerId }: { gameId: number; winnerPlayerId: number },
+  public async endGameWithWinner(
+    { gameId, winnerAccountId }: { gameId: GameId; winnerAccountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const endResult = await Result.tryCatch(async (): Promise<true> => {
-      await db.update(gamesTable).set({ endedAt: new Date(), winnerPlayerId }).where(eq(gamesTable.id, gameId))
+      await db.update(gamesTable).set({ endedAt: new Date(), winnerAccountId }).where(eq(gamesTable.id, gameId))
 
       return true
     })
 
     if (Result.isFailure(endResult)) {
-      this.logger.error("Could not end game with winner", { gameId, winnerPlayerId, error: endResult.error })
+      this.logger.error("Could not end game with winner", { gameId, winnerAccountId, error: endResult.error })
       return Result.Failure(couldNot("end game with winner"))
     }
 

@@ -18,6 +18,7 @@ import {
 import { sql } from "drizzle-orm"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
+import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
 
 /**
  * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
@@ -28,20 +29,25 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 }
 
 export const starSystemBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
+export const gamePlayerActionTypeEnum = pgEnum("action_type", pgEnumify(GamePlayerActionType))
+
+const accountId = uuid
+const playerId = uuid
+const gameId = integer
 
 /**
- * All registered players.
- * One sign up is one player.
+ * User accounts.
+ * Emails should be unique, but since this is handled by clerk, we didn't put a constraint here because I'm not sure if they allow it.
  */
-export const playersTable = pgTable(
-  "players",
+export const accountsTable = pgTable(
+  "accounts",
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    clerk_id: varchar({ length: 255 }).notNull(),
-    email: varchar({ length: 255 }),
-    alias: varchar({ length: 255 }),
+    id: accountId("id").primaryKey().defaultRandom(),
+    authId: varchar("auth_id", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }),
+    alias: varchar("alias", { length: 255 }),
   },
-  (table) => [uniqueIndex("clerk_id_idx").on(table.clerk_id)],
+  (table) => [uniqueIndex("auth_id_idx").on(table.authId)],
 )
 
 /**
@@ -49,14 +55,14 @@ export const playersTable = pgTable(
  * This is only the game settings. Game state will exist in the {@link gameStatesTable}.
  */
 export const gamesTable = pgTable("games", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  createdByPlayerId: integer()
+  id: gameId("id").primaryKey().generatedAlwaysAsIdentity(),
+  createdByAccountId: accountId("created_by_account_id")
     .notNull()
-    .references(() => playersTable.id, { onDelete: "cascade" }),
-  winnerPlayerId: integer().references(() => playersTable.id, { onDelete: "set null" }),
-  createdAt: timestamp().defaultNow().notNull(),
-  startedAt: timestamp(),
-  endedAt: timestamp(),
+    .references(() => accountsTable.id, { onDelete: "cascade" }),
+  winnerAccountId: accountId("winner_account_id").references(() => accountsTable.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
 })
 
 /**
@@ -64,30 +70,34 @@ export const gamesTable = pgTable("games", {
  * These are owned by the game and may change until they are locked when the game starts.
  */
 export const gameSettingsTable = pgTable("game_settings", {
-  gameId: integer("game_id")
+  gameId: gameId("game_id")
     .primaryKey()
     .references(() => gamesTable.id, { onDelete: "cascade" }),
-  locked: boolean().default(false).notNull(),
-  name: varchar({ length: 255 }).notNull(),
+  locked: boolean("locked").default(false).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
   starSystemGenerationSettings: jsonb("star_system_generation_settings").$type<StarSystemGenerationSettings>().notNull(),
-  nbSeats: integer().notNull(),
-  tickIntervalSeconds: integer().notNull(),
+  nbSeats: integer("nb_seats").notNull(),
+  tickIntervalSeconds: integer("tick_interval_seconds").notNull(),
 })
 
 /**
  * Join table between games and players.
  * AKA which players are in this game, and which games is this player in.
+ *
+ * For now, we don't have distinct player ids, we map it to the account id.
+ * However in the future, we might want to have distinct playerIds if we want to do things like anonymous play or seat take over.
+ *
  */
 export const gamePlayersTable = pgTable(
   "game_players",
   {
-    gameId: integer()
+    gameId: gameId("game_id")
       .notNull()
       .references(() => gamesTable.id, { onDelete: "cascade" }),
-    playerId: integer()
+    playerId: playerId("player_id")
       .notNull()
-      .references(() => playersTable.id, { onDelete: "cascade" }),
-    joinedAt: timestamp().defaultNow().notNull(),
+      .references(() => accountsTable.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
   (table) => [
     primaryKey({
@@ -103,10 +113,10 @@ export const gamePlayersTable = pgTable(
 export const gamePlayerResourcesTable = pgTable(
   "game_player_resources",
   {
-    gameId: integer().notNull(),
-    playerId: integer().notNull(),
-    resourceType: varchar({ length: 255 }).notNull(),
-    amount: integer().notNull().default(0),
+    gameId: gameId("game_id").notNull(),
+    playerId: playerId("player_id").notNull(),
+    resourceType: varchar("resource_type", { length: 255 }).notNull(),
+    amount: integer("amount").notNull().default(0),
   },
   (table) => [
     primaryKey({
@@ -124,11 +134,11 @@ export const gamePlayerResourcesTable = pgTable(
  * The state of running games.
  */
 export const gameStatesTable = pgTable("game_states", {
-  gameId: integer()
+  gameId: gameId("game_id")
     .primaryKey()
     .references(() => gamesTable.id, { onDelete: "cascade" }),
-  tick: integer().notNull().default(0),
-  nextTickAt: timestamp().notNull(),
+  tick: integer("tick").notNull().default(0),
+  nextTickAt: timestamp("next_tick_at").notNull(),
 })
 
 /**
@@ -138,12 +148,12 @@ export const gameStatesTable = pgTable("game_states", {
 export const gamePlayerActionsTable = pgTable(
   "game_player_actions",
   {
-    gameId: integer().notNull(),
-    playerId: integer().notNull(),
-    tick: integer().notNull(),
-    actionType: varchar({ length: 255 }).notNull(),
-    createdAt: timestamp().defaultNow().notNull(),
-    updatedAt: timestamp().defaultNow().notNull(),
+    gameId: gameId("game_id").notNull(),
+    playerId: playerId("player_id").notNull(),
+    tick: integer("tick").notNull(),
+    actionType: gamePlayerActionTypeEnum("action_type").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
     primaryKey({
@@ -163,13 +173,13 @@ export const gamePlayerActionsTable = pgTable(
 export const gameTicksTable = pgTable(
   "game_ticks",
   {
-    gameId: integer()
+    gameId: gameId("game_id")
       .notNull()
       .references(() => gamesTable.id, { onDelete: "cascade" }),
-    tick: integer().notNull(),
-    scheduledFor: timestamp().notNull(),
-    processingStartedAt: timestamp(),
-    processingEndedAt: timestamp(),
+    tick: integer("tick").notNull(),
+    scheduledFor: timestamp("scheduled_for").notNull(),
+    processingStartedAt: timestamp("processing_started_at"),
+    processingEndedAt: timestamp("processing_ended_at"),
   },
   (table) => [
     primaryKey({
@@ -183,7 +193,7 @@ export const gameTicksTable = pgTable(
  * Static Star System data for a game.
  */
 export const starSystemsTable = pgTable("star_systems", {
-  gameId: integer("game_id")
+  gameId: gameId("game_id")
     .primaryKey()
     .references(() => gamesTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -196,7 +206,7 @@ export const orbitsTable = pgTable(
   "orbits",
   {
     id: uuid("id").primaryKey(),
-    gameId: integer("game_id")
+    gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
     orbitNumber: integer("orbit_number").notNull(),
@@ -215,7 +225,7 @@ export const sectorsTable = pgTable(
   "sectors",
   {
     id: uuid("id").primaryKey(),
-    gameId: integer("game_id")
+    gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
     orbitId: uuid("orbit_id").notNull(),
@@ -256,7 +266,7 @@ export const bodiesTable = pgTable(
   "bodies",
   {
     id: uuid("id").primaryKey(),
-    gameId: integer("game_id")
+    gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
     sectorId: uuid("sector_id").notNull(),
@@ -290,7 +300,7 @@ export const movementNodesTable = pgTable(
   "movement_nodes",
   {
     id: uuid("id").primaryKey(),
-    gameId: integer("game_id")
+    gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
   },
@@ -303,7 +313,7 @@ export const movementNodesTable = pgTable(
 export const movementEdgesTable = pgTable(
   "movement_edges",
   {
-    gameId: integer("game_id")
+    gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
     fromNodeId: uuid("from_node_id").notNull(),
