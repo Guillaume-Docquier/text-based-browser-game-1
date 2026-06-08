@@ -3,8 +3,8 @@ import type { Database } from "#lib/db/createDb.ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { createApi } from "./createApi.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
-import { AuthService } from "./auth/auth.service.ts"
+import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import { AuthService } from "#api/accounts/auth.service.ts"
 import pRetry from "p-retry"
 import { Logger } from "@guillaume-docquier/tools-ts"
 import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
@@ -15,8 +15,10 @@ import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResou
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
-import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
+import { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
+import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
+import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 
 main().catch((error) => {
   Logger.get().error("Unhandled application error", { error })
@@ -44,12 +46,14 @@ async function main(): Promise<void> {
     accountsRepository: new AccountsRepository({ db, logger }),
     gamesRepository: new GamesRepository({ db, logger }),
     gameSettingsRepository: new GameSettingsRepository({ db, logger }),
-    gamePlayersRepository: new GamePlayersRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
+    gameListingsRepository: new GameListingsRepository({ db, logger }),
+    gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
+    gameplayRepository: new GameplayRepository({ db, logger }),
   }
 
   const authService = new AuthService({ logger })

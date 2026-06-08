@@ -3,22 +3,22 @@ import { eq } from "drizzle-orm"
 import { v4 } from "uuid"
 import { Assert, Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
-import { AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
+import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
+import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { type NewSectorModel, type NewStarSystemModel, StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
+import { createCreateGameDtoStub } from "#api/games/CreateGameDto.stub.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
-import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import type { GameId } from "#api/games/GameId.ts"
+import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 
 describe("starSystems.repository", () => {
   describe("create", () => {
@@ -32,9 +32,9 @@ describe("starSystems.repository", () => {
       const gamesController = createGamesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gamesController.createGame(createNewGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await gamesController.createGame(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
-      const system = createCoherentStarSystem({ gameId: game.id })
+      const system = createCoherentStarSystem({ gameId: game.createdGameId })
       const firstSector = system.sectors[0]
       Assert.isDefined(firstSector)
 
@@ -44,23 +44,23 @@ describe("starSystems.repository", () => {
       // Assert
       expect(createStarSystemResult).toEqual(Result.Success(true))
       expect
-        .soft(await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, game.id)))
-        .toEqual([{ createdAt: expect.any(Date), gameId: game.id }])
+        .soft(await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, game.createdGameId)))
+        .toEqual([{ createdAt: expect.any(Date), gameId: game.createdGameId }])
       expect
-        .soft(await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, game.id)))
-        .toEqual([{ ...system.orbits[0], gameId: game.id }])
+        .soft(await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, game.createdGameId)))
+        .toEqual([{ ...system.orbits[0], gameId: game.createdGameId }])
       expect
-        .soft(await db.select().from(sectorsTable).where(eq(sectorsTable.gameId, game.id)))
-        .toEqual([toStoredSector({ sector: firstSector, gameId: game.id })])
+        .soft(await db.select().from(sectorsTable).where(eq(sectorsTable.gameId, game.createdGameId)))
+        .toEqual([toStoredSector({ sector: firstSector, gameId: game.createdGameId })])
       expect
-        .soft(await db.select().from(bodiesTable).where(eq(bodiesTable.gameId, game.id)))
-        .toEqual(system.bodies.map((body) => ({ ...body, gameId: game.id })))
+        .soft(await db.select().from(bodiesTable).where(eq(bodiesTable.gameId, game.createdGameId)))
+        .toEqual(system.bodies.map((body) => ({ ...body, gameId: game.createdGameId })))
       expect
-        .soft(await db.select().from(movementNodesTable).where(eq(movementNodesTable.gameId, game.id)))
-        .toEqual(system.movementNodes.map((movementNode) => ({ ...movementNode, gameId: game.id })))
+        .soft(await db.select().from(movementNodesTable).where(eq(movementNodesTable.gameId, game.createdGameId)))
+        .toEqual(system.movementNodes.map((movementNode) => ({ ...movementNode, gameId: game.createdGameId })))
       expect
-        .soft(await db.select().from(movementEdgesTable).where(eq(movementEdgesTable.gameId, game.id)))
-        .toEqual([{ ...system.movementEdges[0], gameId: game.id }])
+        .soft(await db.select().from(movementEdgesTable).where(eq(movementEdgesTable.gameId, game.createdGameId)))
+        .toEqual([{ ...system.movementEdges[0], gameId: game.createdGameId }])
     })
 
     it("should fail one request when creating two star systems concurrently for the same game", async () => {
@@ -73,10 +73,10 @@ describe("starSystems.repository", () => {
       const gamesController = createGamesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gamesController.createGame(createNewGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await gamesController.createGame(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
-      const system1 = createCoherentStarSystem({ gameId: game.id })
-      const system2 = createCoherentStarSystem({ gameId: game.id })
+      const system1 = createCoherentStarSystem({ gameId: game.createdGameId })
+      const system2 = createCoherentStarSystem({ gameId: game.createdGameId })
 
       // Act
       const createStarSystemResults = await Promise.all([starSystemsRepository.create(system1), starSystemsRepository.create(system2)])
@@ -95,21 +95,21 @@ describe("starSystems.repository", () => {
       const gamesController = createGamesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gamesController.createGame(createNewGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await gamesController.createGame(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
-      const system = createIncoherentStarSystem({ gameId: game.id })
+      const system = createIncoherentStarSystem({ gameId: game.createdGameId })
 
       // Act
       const createStarSystemResult = await starSystemsRepository.create(system)
 
       // Assert
       expect(createStarSystemResult).toEqual(Result.Failure(expect.any(String)))
-      expect.soft(await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, game.id))).toEqual([])
-      expect.soft(await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, game.id))).toEqual([])
-      expect.soft(await db.select().from(sectorsTable).where(eq(sectorsTable.gameId, game.id))).toEqual([])
-      expect.soft(await db.select().from(bodiesTable).where(eq(bodiesTable.gameId, game.id))).toEqual([])
-      expect.soft(await db.select().from(movementNodesTable).where(eq(movementNodesTable.gameId, game.id))).toEqual([])
-      expect.soft(await db.select().from(movementEdgesTable).where(eq(movementEdgesTable.gameId, game.id))).toEqual([])
+      expect.soft(await db.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, game.createdGameId))).toEqual([])
+      expect.soft(await db.select().from(orbitsTable).where(eq(orbitsTable.gameId, game.createdGameId))).toEqual([])
+      expect.soft(await db.select().from(sectorsTable).where(eq(sectorsTable.gameId, game.createdGameId))).toEqual([])
+      expect.soft(await db.select().from(bodiesTable).where(eq(bodiesTable.gameId, game.createdGameId))).toEqual([])
+      expect.soft(await db.select().from(movementNodesTable).where(eq(movementNodesTable.gameId, game.createdGameId))).toEqual([])
+      expect.soft(await db.select().from(movementEdgesTable).where(eq(movementEdgesTable.gameId, game.createdGameId))).toEqual([])
     })
   })
 })
@@ -119,7 +119,7 @@ function createGamesController({ db, logger }: { db: Database; logger: Logger })
     createTransaction: db.transaction.bind(db),
     gamesRepository: new GamesRepository({ db, logger }),
     gameSettingsRepository: new GameSettingsRepository({ db, logger }),
-    gamePlayersRepository: new GamePlayersRepository({ db, logger }),
+    gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),

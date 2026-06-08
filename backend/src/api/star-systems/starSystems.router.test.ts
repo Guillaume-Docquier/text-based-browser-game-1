@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
+import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { type NewStarSystemModel, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { v4 } from "uuid"
-import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
+import { createCreateGameDtoStub } from "#api/games/CreateGameDto.stub.ts"
 import type { GameId } from "#api/games/GameId.ts"
 
 describe("starSystems.router", () => {
@@ -19,15 +19,17 @@ describe("starSystems.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
-      const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
+      const { createdGameId } = await trpcClient.client.games.create.mutate(createCreateGameDtoStub())
+      const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createdGameId })
 
       // Act
-      const getStarSystemResponse = await trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })
+      const getStarSystemResponse = await trpcClient.client.starSystems.getByGameId.query({
+        gameId: createdGameId,
+      })
 
       // Assert
       expect(getStarSystemResponse.starSystem).toEqual<typeof getStarSystemResponse.starSystem>({
-        gameId: createGameResult.newGame.id,
+        gameId: createdGameId,
         orbits: [
           {
             id: expect.any(String),
@@ -135,12 +137,12 @@ describe("starSystems.router", () => {
       const outsider = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Outsider" })))
       authService.account = creator
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
-      await createStoredStarSystem({ starSystemsRepository, gameId: createGameResult.newGame.id })
+      const { createdGameId } = await trpcClient.client.games.create.mutate(createCreateGameDtoStub())
+      await createStoredStarSystem({ starSystemsRepository, gameId: createdGameId })
       authService.account = outsider
 
       // Act & Assert
-      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -152,10 +154,10 @@ describe("starSystems.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: createNewGameDtoStub() })
+      const { createdGameId } = await trpcClient.client.games.create.mutate(createCreateGameDtoStub())
 
       // Act & Assert
-      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createGameResult.newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "NOT_FOUND" },
       })
     })

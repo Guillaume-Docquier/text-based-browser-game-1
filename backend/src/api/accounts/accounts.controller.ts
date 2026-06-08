@@ -1,5 +1,5 @@
 import { type Result } from "@guillaume-docquier/tools-ts"
-import { type AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
+import { type AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import z from "zod"
 import { AccountId } from "#api/accounts/AccountId.ts"
 

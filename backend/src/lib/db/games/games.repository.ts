@@ -1,12 +1,13 @@
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamePlayersTable, gamesTable, gameSettingsTable, accountsTable } from "#lib/db/schema.ts"
+import { playersTable, gamesTable, gameSettingsTable, accountsTable } from "#lib/db/schema.ts"
 import { eq } from "drizzle-orm"
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { alias } from "drizzle-orm/pg-core"
 import { couldNot } from "#lib/errors.ts"
 import type { GameSettingsModel } from "#lib/db/games/gameSettings.repository.ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { GameId } from "#api/games/GameId.ts"
+import type { PlayerId } from "#api/games/PlayerId.ts"
 
 type NewGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
@@ -25,31 +26,23 @@ export type GameSummaryPlayerModel = Pick<PlayerRow, "id" | "alias">
 const pgCreatorAlias = alias(accountsTable, "creator")
 const pgPlayerAlias = alias(accountsTable, "player")
 
+/**
+ * @deprecated To be replaced by better repositories
+ */
 export class GamesRepository extends PostgresRepository {
   private readonly logger: Logger
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
     this.logger = logger.child({ scope: "games-repository" })
   }
 
-  public async createGame(newGame: NewGameModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameModel, string>> {
-    const createResult = await Result.tryCatch(async () => {
-      const games = await db.insert(gamesTable).values(newGame).returning()
-      Assert.isTrue(games.length === 1)
-      Assert.isDefined(games[0])
-
-      return games[0]
-    })
-
-    if (Result.isFailure(createResult)) {
-      this.logger.error("Could not create game", { newGame, error: createResult.error })
-      return Result.Failure(couldNot("create game"))
-    }
-
-    return createResult
-  }
-
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async updateGame(
     { gameId }: { gameId: GameId },
     game: Partial<NewGameModel>,
@@ -65,6 +58,9 @@ export class GamesRepository extends PostgresRepository {
     return Result.Success(true)
   }
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async getGameSummaries(db: PostgresRepository["db"] = this.db): Promise<Result<GameSummaryModel[], string>> {
     const gameSummariesResult = await Result.tryCatch(
       db
@@ -94,8 +90,8 @@ export class GamesRepository extends PostgresRepository {
         .from(gamesTable)
         .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
         .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByAccountId))
-        .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
-        .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId)),
+        .leftJoin(playersTable, eq(playersTable.gameId, gamesTable.id))
+        .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, playersTable.playerId)),
     )
 
     if (Result.isFailure(gameSummariesResult)) {
@@ -156,6 +152,9 @@ export class GamesRepository extends PostgresRepository {
     )
   }
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async getGameSummaryById(
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
@@ -188,8 +187,8 @@ export class GamesRepository extends PostgresRepository {
         .from(gamesTable)
         .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
         .innerJoin(pgCreatorAlias, eq(pgCreatorAlias.id, gamesTable.createdByAccountId))
-        .leftJoin(gamePlayersTable, eq(gamePlayersTable.gameId, gamesTable.id))
-        .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, gamePlayersTable.playerId))
+        .leftJoin(playersTable, eq(playersTable.gameId, gamesTable.id))
+        .leftJoin(pgPlayerAlias, eq(pgPlayerAlias.id, playersTable.playerId))
         .where(eq(gamesTable.id, gameId)),
     )
 
@@ -240,6 +239,9 @@ export class GamesRepository extends PostgresRepository {
     })
   }
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async endGameWithWinner(
     { gameId, winnerAccountId }: { gameId: GameId; winnerAccountId: AccountId },
     db: PostgresRepository["db"] = this.db,
@@ -256,5 +258,21 @@ export class GamesRepository extends PostgresRepository {
     }
 
     return endResult
+  }
+
+  /**
+   * @deprecated To be replaced by better repositories
+   */
+  public async getPlayerIds({ gameId }: { gameId: GameId }, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerId[], string>> {
+    const gamePlayersResult = await Result.tryCatch(
+      db.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId)),
+    )
+
+    if (Result.isFailure(gamePlayersResult)) {
+      this.logger.error("Could not get player ids", { gameId, error: gamePlayersResult.error })
+      return Result.Failure(couldNot("get player ids"))
+    }
+
+    return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
   }
 }

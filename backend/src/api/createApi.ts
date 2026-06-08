@@ -2,7 +2,7 @@ import express, { type Express } from "express"
 import { createGamesRouter } from "./games/games.router.ts"
 import { GamesController } from "./games/games.controller.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
-import type { IAuthService } from "./auth/auth.service.ts"
+import type { IAuthService } from "#api/accounts/auth.service.ts"
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
@@ -12,7 +12,7 @@ import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 import type { TRPCError } from "@trpc/server"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { AccountsController } from "#api/accounts/accounts.controller.ts"
-import type { AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
+import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import type { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
@@ -22,8 +22,10 @@ import { StarSystemsController } from "#api/star-systems/starSystems.controller.
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
-import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import type { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
+import { type GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
+import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
+import { type GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 
 /**
  * Import side effect free express app creator.
@@ -45,12 +47,14 @@ export async function createApi({
   accountsRepository: AccountsRepository
   gamesRepository: GamesRepository
   gameSettingsRepository: GameSettingsRepository
-  gamePlayersRepository: GamePlayersRepository
   gameStatesRepository: GameStatesRepository
   gameTicksRepository: GameTicksRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
   starSystemsRepository: StarSystemsRepository
+  gameListingsRepository: GameListingsRepository
+  gameLobbiesRepository: GameLobbiesRepository
+  gameplayRepository: GameplayRepository
 }): Promise<Express> {
   const controllerServices = { ...services, createTransaction }
   const controllers = {

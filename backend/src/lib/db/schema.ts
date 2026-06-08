@@ -86,10 +86,9 @@ export const gameSettingsTable = pgTable("game_settings", {
  *
  * For now, we don't have distinct player ids, we map it to the account id.
  * However in the future, we might want to have distinct playerIds if we want to do things like anonymous play or seat take over.
- *
  */
-export const gamePlayersTable = pgTable(
-  "game_players",
+export const playersTable = pgTable(
+  "players",
   {
     gameId: gameId("game_id")
       .notNull()
@@ -124,7 +123,7 @@ export const gamePlayerResourcesTable = pgTable(
     }),
     foreignKey({
       columns: [table.gameId, table.playerId],
-      foreignColumns: [gamePlayersTable.gameId, gamePlayersTable.playerId],
+      foreignColumns: [playersTable.gameId, playersTable.playerId],
       name: "game_player_resources_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
   ],
@@ -161,7 +160,7 @@ export const gamePlayerActionsTable = pgTable(
     }),
     foreignKey({
       columns: [table.gameId, table.playerId],
-      foreignColumns: [gamePlayersTable.gameId, gamePlayersTable.playerId],
+      foreignColumns: [playersTable.gameId, playersTable.playerId],
       name: "game_player_actions_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
   ],

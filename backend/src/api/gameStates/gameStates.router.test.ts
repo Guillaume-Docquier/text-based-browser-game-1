@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
+import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
@@ -14,21 +14,19 @@ describe("gameStates.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = account
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
-        },
+      const { createdGameId } = await trpcClient.client.games.create.mutate({
+        settings: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
 
-      await trpcClient.client.games.start.mutate({ gameId: newGame.id })
+      await trpcClient.client.games.start.mutate({ gameId: createdGameId })
 
       // Act
-      const getByIdResult = await trpcClient.client.gameStates.getById.query({ gameId: newGame.id })
+      const getByIdResult = await trpcClient.client.gameStates.getById.query({ gameId: createdGameId })
 
       // Assert
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameState: {
-          gameId: newGame.id,
+          gameId: createdGameId,
           playerId: account.id,
           tick: 0,
           nextTickAt: expect.any(String),

@@ -555,7 +555,7 @@ Implementation steps:
 
 1. Reuse `Range` from `@guillaume-docquier/tools-ts`.
 2. Keep `StarSystemGenerationSettings` in `backend/src/lib/db/star-systems/starSystemGenerationSettings.repository.ts`, matching the shape in this document exactly.
-3. Create a `NewGameDto` in `backend/src/api/games/games.controller.ts`, then expand it to include the star system generation settings.
+3. Create a `CreateGameDto` in `backend/src/api/games/games.controller.ts`, then expand it to include the star system generation settings.
 4. Update the `games.create` router input to require `StarSystemGenerationSettings` alongside `name`, `nbSeats` and `tickIntervalSeconds`.
 5. Normalize a missing seed in `GamesController.create` to a random unsigned 32-bit integer before settings persistence. The value persisted in `star_system_generation_settings.seed` must always be numeric.
 6. Inject `StarSystemGenerationSettingsRepository` and `createTransaction` into `GamesController`.
