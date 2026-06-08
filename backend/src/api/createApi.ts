@@ -22,8 +22,10 @@ import { StarSystemsController } from "#api/star-systems/starSystems.controller.
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
-import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import type { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
+import { type GameListingsRepository } from "#lib/db/games/gameListings.repository.ts"
+import { type GameplayRepository } from "#lib/db/games/gameplay.repository.ts"
+import { type GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
 
 /**
  * Import side effect free express app creator.
@@ -45,12 +47,14 @@ export async function createApi({
   accountsRepository: AccountsRepository
   gamesRepository: GamesRepository
   gameSettingsRepository: GameSettingsRepository
-  gamePlayersRepository: GamePlayersRepository
   gameStatesRepository: GameStatesRepository
   gameTicksRepository: GameTicksRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
   starSystemsRepository: StarSystemsRepository
+  gameListingsRepository: GameListingsRepository
+  gameLobbiesRepository: GameLobbiesRepository
+  gameplayRepository: GameplayRepository
 }): Promise<Express> {
   const controllerServices = { ...services, createTransaction }
   const controllers = {

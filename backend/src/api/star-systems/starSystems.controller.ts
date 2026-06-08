@@ -1,5 +1,4 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
 import { z } from "zod"
@@ -7,6 +6,7 @@ import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { RangeDto } from "#api/RangeDto.ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { GameId } from "#api/games/GameId.ts"
+import { type GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
 
 const StarSystemBodyDto = z.object({
   id: z.string(),
@@ -48,20 +48,20 @@ export const StarSystemDto = z.object({
 
 export class StarSystemsController {
   private readonly logger: Logger
-  private readonly gamePlayersRepository: GamePlayersRepository
+  private readonly gameLobbiesRepository: GameLobbiesRepository
   private readonly starSystemsRepository: StarSystemsRepository
 
   public constructor({
     logger,
-    gamePlayersRepository,
+    gameLobbiesRepository,
     starSystemsRepository,
   }: {
     logger: Logger
-    gamePlayersRepository: GamePlayersRepository
+    gameLobbiesRepository: GameLobbiesRepository
     starSystemsRepository: StarSystemsRepository
   }) {
     this.logger = logger.child({ scope: "star-systems-controller" })
-    this.gamePlayersRepository = gamePlayersRepository
+    this.gameLobbiesRepository = gameLobbiesRepository
     this.starSystemsRepository = starSystemsRepository
   }
 
@@ -85,7 +85,7 @@ export class StarSystemsController {
   }
 
   private async canReadGame({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<boolean, string>> {
-    return await this.gamePlayersRepository.hasPlayerJoinedGame({ gameId, playerId: accountId })
+    return await this.gameLobbiesRepository.hasAccountJoinedGame({ gameId, accountId })
   }
 
   private notAuthorizedFailure({ accountId, gameId }: { accountId: AccountId; gameId: GameId }): Failure<string> {

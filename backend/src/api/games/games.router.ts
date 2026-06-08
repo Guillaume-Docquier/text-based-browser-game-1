@@ -1,4 +1,13 @@
-import { CreatedGameDto, NewGameDto, type GamesController, GameSummaryDto } from "./games.controller.ts"
+import {
+  CreatedGameDto,
+  CreateGameDto,
+  type GamesController,
+  GameSummaryDto,
+  JoinedGameDto,
+  JoinGameDto,
+  LeaveGameDto,
+  LeftGameDto,
+} from "./games.controller.ts"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { TRPCError } from "@trpc/server"
@@ -18,7 +27,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      * Creates a new game.
      */
     create: trpc.privateProcedure
-      .input(z.object({ newGame: NewGameDto.omit({ createdByAccountId: true }) }))
+      .input(z.object({ newGame: CreateGameDto.omit({ createdByAccountId: true }) }))
       .output(z.object({ newGame: CreatedGameDto }))
       .mutation(async ({ input: { newGame }, ctx: { account } }) => {
         const createResult = await gamesController.createGame({ ...newGame, createdByAccountId: account.id })
@@ -67,10 +76,10 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      * Joins a game, if possible.
      */
     join: trpc.privateProcedure
-      .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ joinedGame: GameSummaryDto }))
+      .input(JoinGameDto.pick({ gameId: true }))
+      .output(JoinedGameDto)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const joinGameResult = await gamesController.joinGame({ gameId, playerId: account.id })
+        const joinGameResult = await gamesController.joinGame({ gameId, accountId: account.id })
         if (Result.isFailure(joinGameResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -78,17 +87,17 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
           })
         }
 
-        return { joinedGame: joinGameResult.value }
+        return joinGameResult.value
       }),
 
     /**
      * Leaves a game, if possible.
      */
     leave: trpc.privateProcedure
-      .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ leftGame: GameSummaryDto }))
+      .input(LeaveGameDto.pick({ gameId: true }))
+      .output(LeftGameDto)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const leaveGameResult = await gamesController.leaveGame({ gameId, playerId: account.id })
+        const leaveGameResult = await gamesController.leaveGame({ gameId, accountId: account.id })
         if (Result.isFailure(leaveGameResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -96,7 +105,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
           })
         }
 
-        return { leftGame: leaveGameResult.value }
+        return leaveGameResult.value
       }),
 
     /**

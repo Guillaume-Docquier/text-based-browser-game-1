@@ -19,14 +19,23 @@ export type PlayerGameStateModel = GameStateModel & {
   }
 }
 
+/**
+ * @deprecated To be replaced by better repositories
+ */
 export class GameStatesRepository extends PostgresRepository {
   private readonly logger: Logger
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
     this.logger = logger.child({ scope: "game-states-repository" })
   }
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async create(newGameState: NewGameStateModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameStateModel, string>> {
     const createResult = await Result.tryCatch(async () => {
       const gameTicks = await db.insert(gameStatesTable).values(newGameState).returning()
@@ -44,6 +53,9 @@ export class GameStatesRepository extends PostgresRepository {
     return createResult
   }
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async update(
     { gameId }: { gameId: GameId },
     gameState: Partial<NewGameStateModel>,
@@ -63,6 +75,9 @@ export class GameStatesRepository extends PostgresRepository {
     return updateResult
   }
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async getById(
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
@@ -79,6 +94,9 @@ export class GameStatesRepository extends PostgresRepository {
     return Result.Success(gameStatesResult.value[0])
   }
 
+  /**
+   * @deprecated To be replaced by better repositories
+   */
   public async getByGameIdAndPlayerId(
     {
       gameId,

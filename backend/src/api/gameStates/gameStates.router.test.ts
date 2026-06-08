@@ -20,15 +20,15 @@ describe("gameStates.router", () => {
         },
       })
 
-      await trpcClient.client.games.start.mutate({ gameId: newGame.id })
+      await trpcClient.client.games.start.mutate({ gameId: newGame.createdGameId })
 
       // Act
-      const getByIdResult = await trpcClient.client.gameStates.getById.query({ gameId: newGame.id })
+      const getByIdResult = await trpcClient.client.gameStates.getById.query({ gameId: newGame.createdGameId })
 
       // Assert
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameState: {
-          gameId: newGame.id,
+          gameId: newGame.createdGameId,
           playerId: account.id,
           tick: 0,
           nextTickAt: expect.any(String),

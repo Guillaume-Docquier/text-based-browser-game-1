@@ -10,8 +10,10 @@ import { AccountsRepository } from "#lib/db/accounts/accounts.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
-import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
+import { GameListingsRepository } from "#lib/db/games/gameListings.repository.ts"
+import { GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
+import { GameplayRepository } from "#lib/db/games/gameplay.repository.ts"
 
 type AllServices = Omit<Parameters<typeof createApi>[0], "authService"> & { authService: AuthServiceMock }
 
@@ -30,13 +32,15 @@ export async function createApiStub(): Promise<AllServices & { api: Express }> {
     createTransaction: db.transaction.bind(db),
     gamesRepository: new GamesRepository({ db, logger }),
     gameSettingsRepository: new GameSettingsRepository({ db, logger }),
-    gamePlayersRepository: new GamePlayersRepository({ db, logger }),
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     accountsRepository: new AccountsRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
+    gameListingsRepository: new GameListingsRepository({ db, logger }),
+    gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
+    gameplayRepository: new GameplayRepository({ db, logger }),
   } as const satisfies Parameters<typeof createApi>[0]
 
   const api = await createApi(services)

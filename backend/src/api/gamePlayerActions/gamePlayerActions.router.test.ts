@@ -21,25 +21,25 @@ describe("gamePlayerActions.router", () => {
           settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
-      await trpcClient.client.games.start.mutate({ gameId: newGame.id })
+      await trpcClient.client.games.start.mutate({ gameId: newGame.createdGameId })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: newGame.id, playerId: account.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: newGame.createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
       const setCurrentActionResult = await trpcClient.client.gamePlayerActions.setCurrentAction.mutate({
-        gameId: newGame.id,
+        gameId: newGame.createdGameId,
         tick: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
       })
       const getCurrentActionResult = await trpcClient.client.gamePlayerActions.getCurrentAction.query({
-        gameId: newGame.id,
+        gameId: newGame.createdGameId,
       })
 
       // Assert
       expect(setCurrentActionResult).toEqual<typeof setCurrentActionResult>({
         action: {
-          gameId: newGame.id,
+          gameId: newGame.createdGameId,
           playerId: account.id,
           tick: 0,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
@@ -61,12 +61,12 @@ describe("gamePlayerActions.router", () => {
           settings: { name: "stale tick game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
-      await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
+      await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.createdGameId })
 
       // Act & Assert
       await expect(
         trpcClient.client.gamePlayerActions.setCurrentAction.mutate({
-          gameId: createGameResult.newGame.id,
+          gameId: createGameResult.newGame.createdGameId,
           tick: 1,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
         }),
@@ -90,14 +90,14 @@ describe("gamePlayerActions.router", () => {
           settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
         },
       })
-      await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.id })
+      await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.createdGameId })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createGameResult.newGame.id, playerId: account.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: createGameResult.newGame.createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
       const getCurrentActionResult = await trpcClient.client.gamePlayerActions.getCurrentAction.query({
-        gameId: createGameResult.newGame.id,
+        gameId: createGameResult.newGame.createdGameId,
       })
 
       // Assert

@@ -11,10 +11,10 @@ import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
-import { GamePlayersRepository } from "#lib/db/games/gamePlayers.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
+import { GameLobbiesRepository } from "#lib/db/games/gameLobbies.repository.ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -84,7 +84,7 @@ async function main({ connectionString, user }: { connectionString: string; user
     gamesRepository,
     createTransaction: db.transaction.bind(db),
     gameSettingsRepository: new GameSettingsRepository({ db, logger }),
-    gamePlayersRepository: new GamePlayersRepository({ db, logger }),
+    gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
@@ -204,8 +204,8 @@ async function seedGames({
     }),
   )
   logger.info("├ Adding accounts to games")
-  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.id, playerId: secondAccount.id }))
-  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.id, playerId: thirdAccount.id }))
+  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
+  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
   logger.info("└ Done")
 }
 

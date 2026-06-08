@@ -3,7 +3,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createNewAccountModelStub } from "#lib/db/accounts/NewAccountModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { GameSummaryStatus } from "#api/games/games.controller.ts"
+import { type CreateGameDto, type GameSummaryPlayerDto, GameSummaryStatus } from "#api/games/games.controller.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
 
 describe("games.router", () => {
@@ -13,30 +13,30 @@ describe("games.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authService.account = account
+      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = creatorAccount
+
+      const newGameSettings: CreateGameDto["settings"] = {
+        name: "my new game",
+        nbSeats: 43,
+        tickIntervalSeconds: 420,
+      }
 
       // Act
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: {
-            name: "my new game",
-            nbSeats: 43,
-            tickIntervalSeconds: 420,
-          },
-        },
-      })
+      const createGameResult = await trpcClient.client.games.create.mutate({ newGame: { settings: newGameSettings } })
 
       // Assert
-      expect(createGameResult).toEqual<typeof createGameResult>({
-        newGame: {
-          id: expect.any(Number),
+      expect(createGameResult).toEqual<typeof createGameResult>({ newGame: { createdGameId: expect.any(Number) } })
+
+      const createdGame = await trpcClient.client.games.getSummaryById.query({ gameId: createGameResult.newGame.createdGameId })
+      const creator: GameSummaryPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
+
+      expect(createdGame).toEqual<typeof createdGame>({
+        game: {
+          id: createGameResult.newGame.createdGameId,
           createdAt: expect.any(String),
-          createdByAccountId: account.id,
           settings: {
-            name: "my new game",
-            nbSeats: 43,
-            tickIntervalSeconds: 420,
+            ...newGameSettings,
             locked: false,
             starSystemGenerationSettings: {
               ...createDefaultStarSystemGenerationSettings(),
@@ -46,6 +46,12 @@ describe("games.router", () => {
           endedAt: null,
           startedAt: null,
           winnerAccountId: null,
+          creator,
+          players: [creator],
+          status: GameSummaryStatus.WAITING_FOR_PLAYERS,
+          canJoin: false, // because already joined
+          canLeave: false, // because creator
+          canStart: true, // because creator
         },
       })
     })
@@ -78,18 +84,16 @@ describe("games.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authService.account = account
+      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = creatorAccount
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: {
-            name: "public game",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-          },
-        },
-      })
+      const newGameSettings: CreateGameDto["settings"] = {
+        name: "public game",
+        nbSeats: 2,
+        tickIntervalSeconds: 60,
+      }
+
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: { settings: newGameSettings } })
 
       authService.account = undefined
 
@@ -97,25 +101,25 @@ describe("games.router", () => {
       const getSummariesResult = await trpcClient.client.games.getSummaries.query()
 
       // Assert
+      const creator: GameSummaryPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
       expect(getSummariesResult).toEqual<typeof getSummariesResult>({
         games: [
           {
-            id: newGame.id,
+            id: newGame.createdGameId,
             createdAt: expect.any(String),
             endedAt: null,
             winnerAccountId: null,
-            settings: newGame.settings,
-            startedAt: null,
-            creator: {
-              id: account.id,
-              alias: account.alias,
-            },
-            players: [
-              {
-                id: account.id,
-                alias: account.alias,
+            settings: {
+              ...newGameSettings,
+              locked: false,
+              starSystemGenerationSettings: {
+                ...createDefaultStarSystemGenerationSettings(),
+                seed: expect.any(Number),
               },
-            ],
+            },
+            startedAt: null,
+            creator,
+            players: [creator],
             status: GameSummaryStatus.WAITING_FOR_PLAYERS,
             canJoin: false, // because anonymous
             canLeave: false, // because not in the game
@@ -130,45 +134,43 @@ describe("games.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
-      authService.account = creator
+      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
+      const viewerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
+      authService.account = creatorAccount
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: {
-            name: "joinable game",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-          },
-        },
-      })
+      const newGameSettings: CreateGameDto["settings"] = {
+        name: "joinable game",
+        nbSeats: 2,
+        tickIntervalSeconds: 60,
+      }
 
-      authService.account = account
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: { settings: newGameSettings } })
+
+      authService.account = viewerAccount
 
       // Act
       const getSummariesResult = await trpcClient.client.games.getSummaries.query()
 
       // Assert
+      const creator: GameSummaryPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
       expect(getSummariesResult).toEqual<typeof getSummariesResult>({
         games: [
           {
-            id: newGame.id,
+            id: newGame.createdGameId,
             createdAt: expect.any(String),
             endedAt: null,
             winnerAccountId: null,
-            settings: newGame.settings,
-            startedAt: null,
-            creator: {
-              id: creator.id,
-              alias: creator.alias,
-            },
-            players: [
-              {
-                id: creator.id,
-                alias: creator.alias,
+            settings: {
+              ...newGameSettings,
+              locked: false,
+              starSystemGenerationSettings: {
+                ...createDefaultStarSystemGenerationSettings(),
+                seed: expect.any(Number),
               },
-            ],
+            },
+            startedAt: null,
+            creator,
+            players: [creator],
             status: GameSummaryStatus.WAITING_FOR_PLAYERS,
             canJoin: true, // because not in the game
             canLeave: false, // because not in the game
@@ -185,44 +187,42 @@ describe("games.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
-      authService.account = creator
+      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
+      const viewerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
+      authService.account = creatorAccount
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: {
-            name: "specific game",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-          },
-        },
-      })
+      const newGameSettings: CreateGameDto["settings"] = {
+        name: "specific game",
+        nbSeats: 2,
+        tickIntervalSeconds: 60,
+      }
 
-      authService.account = account
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: { settings: newGameSettings } })
+
+      authService.account = viewerAccount
 
       // Act
-      const getSummaryByIdResult = await trpcClient.client.games.getSummaryById.query({ gameId: newGame.id })
+      const getSummaryByIdResult = await trpcClient.client.games.getSummaryById.query({ gameId: newGame.createdGameId })
 
       // Assert
+      const creator: GameSummaryPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
       expect(getSummaryByIdResult).toEqual<typeof getSummaryByIdResult>({
         game: {
-          id: newGame.id,
+          id: newGame.createdGameId,
           createdAt: expect.any(String),
           endedAt: null,
           winnerAccountId: null,
-          settings: newGame.settings,
-          startedAt: null,
-          creator: {
-            id: creator.id,
-            alias: creator.alias,
-          },
-          players: [
-            {
-              id: creator.id,
-              alias: creator.alias,
+          settings: {
+            ...newGameSettings,
+            locked: false,
+            starSystemGenerationSettings: {
+              ...createDefaultStarSystemGenerationSettings(),
+              seed: expect.any(Number),
             },
-          ],
+          },
+          startedAt: null,
+          creator,
+          players: [creator],
           status: GameSummaryStatus.WAITING_FOR_PLAYERS,
           canJoin: true,
           canLeave: false,
@@ -237,43 +237,41 @@ describe("games.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      authService.account = creator
+      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
+      authService.account = creatorAccount
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: {
-            name: "specific game",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-          },
-        },
-      })
+      const newGameSettings: CreateGameDto["settings"] = {
+        name: "specific game",
+        nbSeats: 2,
+        tickIntervalSeconds: 60,
+      }
+
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: { settings: newGameSettings } })
 
       authService.account = undefined
 
       // Act
-      const getSummaryByIdResult = await trpcClient.client.games.getSummaryById.query({ gameId: newGame.id })
+      const getSummaryByIdResult = await trpcClient.client.games.getSummaryById.query({ gameId: newGame.createdGameId })
 
       // Assert
+      const creator: GameSummaryPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
       expect(getSummaryByIdResult).toEqual<typeof getSummaryByIdResult>({
         game: {
-          id: newGame.id,
+          id: newGame.createdGameId,
           createdAt: expect.any(String),
           endedAt: null,
           winnerAccountId: null,
-          settings: newGame.settings,
-          startedAt: null,
-          creator: {
-            id: creator.id,
-            alias: creator.alias,
-          },
-          players: [
-            {
-              id: creator.id,
-              alias: creator.alias,
+          settings: {
+            ...newGameSettings,
+            locked: false,
+            starSystemGenerationSettings: {
+              ...createDefaultStarSystemGenerationSettings(),
+              seed: expect.any(Number),
             },
-          ],
+          },
+          startedAt: null,
+          creator,
+          players: [creator],
           status: GameSummaryStatus.WAITING_FOR_PLAYERS,
           canJoin: false,
           canLeave: false,
@@ -300,48 +298,47 @@ describe("games.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
-      authService.account = creator
+      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
+      const joinerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
+      authService.account = creatorAccount
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: {
-            name: "join game",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-          },
-        },
-      })
+      const newGameSettings: CreateGameDto["settings"] = {
+        name: "join game",
+        nbSeats: 2,
+        tickIntervalSeconds: 60,
+      }
 
-      authService.account = account
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: { settings: newGameSettings } })
+
+      authService.account = joinerAccount
 
       // Act
-      const joinGameResult = await trpcClient.client.games.join.mutate({ gameId: newGame.id })
+      const joinGameResult = await trpcClient.client.games.join.mutate({ gameId: newGame.createdGameId })
 
       // Assert
-      expect(joinGameResult).toEqual<typeof joinGameResult>({
-        joinedGame: {
-          id: newGame.id,
+      expect(joinGameResult).toEqual<typeof joinGameResult>({ playerId: joinerAccount.id })
+
+      const joinedGameSummary = await trpcClient.client.games.getSummaryById.query({ gameId: newGame.createdGameId })
+      const creator: GameSummaryPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
+      const joiner: GameSummaryPlayerDto = { id: joinerAccount.id, alias: joinerAccount.alias }
+
+      expect(joinedGameSummary).toEqual<typeof joinedGameSummary>({
+        game: {
+          id: newGame.createdGameId,
           createdAt: expect.any(String),
           endedAt: null,
           winnerAccountId: null,
-          settings: newGame.settings,
-          startedAt: null,
-          creator: {
-            id: creator.id,
-            alias: creator.alias,
+          settings: {
+            ...newGameSettings,
+            locked: false,
+            starSystemGenerationSettings: {
+              ...createDefaultStarSystemGenerationSettings(),
+              seed: expect.any(Number),
+            },
           },
-          players: [
-            {
-              id: creator.id,
-              alias: creator.alias,
-            },
-            {
-              id: account.id,
-              alias: account.alias,
-            },
-          ],
+          startedAt: null,
+          creator,
+          players: [creator, joiner],
           status: GameSummaryStatus.READY_TO_START,
           canJoin: false,
           canLeave: true,
@@ -368,7 +365,7 @@ describe("games.router", () => {
       })
 
       // Act & Assert
-      await expect(trpcClient.client.games.join.mutate({ gameId: newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.games.join.mutate({ gameId: newGame.createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -391,49 +388,51 @@ describe("games.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
-      authService.account = creator
+      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
+      const leaverAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
+      authService.account = creatorAccount
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: {
-            name: "leave game",
-            nbSeats: 3,
-            tickIntervalSeconds: 60,
-          },
-        },
-      })
+      const newGameSettings: CreateGameDto["settings"] = {
+        name: "leave game",
+        nbSeats: 3,
+        tickIntervalSeconds: 60,
+      }
 
-      authService.account = account
-      await trpcClient.client.games.join.mutate({ gameId: newGame.id })
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: { settings: newGameSettings } })
+
+      authService.account = leaverAccount
+      await trpcClient.client.games.join.mutate({ gameId: newGame.createdGameId })
 
       // Act
-      const leaveGameResult = await trpcClient.client.games.leave.mutate({ gameId: newGame.id })
+      const leaveGameResult = await trpcClient.client.games.leave.mutate({ gameId: newGame.createdGameId })
 
       // Assert
-      expect(leaveGameResult).toEqual<typeof leaveGameResult>({
-        leftGame: {
-          id: newGame.id,
+      expect(leaveGameResult).toEqual<typeof leaveGameResult>(true)
+
+      const leftGameSummary = await trpcClient.client.games.getSummaryById.query({ gameId: newGame.createdGameId })
+      const creator: GameSummaryPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
+
+      expect(leftGameSummary).toEqual<typeof leftGameSummary>({
+        game: {
+          id: newGame.createdGameId,
           createdAt: expect.any(String),
           endedAt: null,
           winnerAccountId: null,
-          settings: newGame.settings,
-          startedAt: null,
-          creator: {
-            id: creator.id,
-            alias: creator.alias,
-          },
-          players: [
-            {
-              id: creator.id,
-              alias: creator.alias,
+          settings: {
+            ...newGameSettings,
+            locked: false,
+            starSystemGenerationSettings: {
+              ...createDefaultStarSystemGenerationSettings(),
+              seed: expect.any(Number),
             },
-          ],
+          },
+          startedAt: null,
+          creator,
+          players: [creator],
           status: GameSummaryStatus.WAITING_FOR_PLAYERS,
-          canJoin: true,
-          canLeave: false,
-          canStart: false,
+          canJoin: true, // Because left
+          canLeave: false, // Because left
+          canStart: false, // Because not creator
         },
       })
     })
@@ -456,7 +455,7 @@ describe("games.router", () => {
       })
 
       // Act & Assert
-      await expect(trpcClient.client.games.leave.mutate({ gameId: newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.games.leave.mutate({ gameId: newGame.createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -479,48 +478,44 @@ describe("games.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authService.account = account
+      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = creatorAccount
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: {
-            name: "start game",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-          },
-        },
-      })
+      const newGameSettings: CreateGameDto["settings"] = {
+        name: "start game",
+        nbSeats: 2,
+        tickIntervalSeconds: 60,
+      }
+
+      const { newGame } = await trpcClient.client.games.create.mutate({ newGame: { settings: newGameSettings } })
 
       // Act
-      const startGameResult = await trpcClient.client.games.start.mutate({ gameId: newGame.id })
+      const startGameResult = await trpcClient.client.games.start.mutate({ gameId: newGame.createdGameId })
 
       // Assert
+
+      const creator: GameSummaryPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
       expect(startGameResult).toEqual<typeof startGameResult>({
         startedGame: {
-          id: newGame.id,
+          id: newGame.createdGameId,
           createdAt: expect.any(String),
           endedAt: null,
           winnerAccountId: null,
           settings: {
-            ...newGame.settings,
+            ...newGameSettings,
             locked: true,
+            starSystemGenerationSettings: {
+              ...createDefaultStarSystemGenerationSettings(),
+              seed: expect.any(Number),
+            },
           },
           startedAt: expect.any(String),
-          creator: {
-            id: account.id,
-            alias: account.alias,
-          },
-          players: [
-            {
-              id: account.id,
-              alias: account.alias,
-            },
-          ],
+          creator,
+          players: [creator],
           status: GameSummaryStatus.STARTED,
-          canJoin: false,
-          canLeave: false,
-          canStart: false,
+          canJoin: false, // Because started
+          canLeave: false, // Because started
+          canStart: false, // Because started
         },
       })
     })
@@ -547,7 +542,7 @@ describe("games.router", () => {
       authService.account = account
 
       // Act & Assert
-      await expect(trpcClient.client.games.start.mutate({ gameId: newGame.id })).rejects.toMatchObject({
+      await expect(trpcClient.client.games.start.mutate({ gameId: newGame.createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
