@@ -16,30 +16,28 @@ describe("gamePlayerActions.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = account
 
-      const { newGame } = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
-        },
+      const { createdGameId } = await trpcClient.client.games.create.mutate({
+        settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
-      await trpcClient.client.games.start.mutate({ gameId: newGame.createdGameId })
+      await trpcClient.client.games.start.mutate({ gameId: createdGameId })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: newGame.createdGameId, playerId: account.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
       const setCurrentActionResult = await trpcClient.client.gamePlayerActions.setCurrentAction.mutate({
-        gameId: newGame.createdGameId,
+        gameId: createdGameId,
         tick: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
       })
       const getCurrentActionResult = await trpcClient.client.gamePlayerActions.getCurrentAction.query({
-        gameId: newGame.createdGameId,
+        gameId: createdGameId,
       })
 
       // Assert
       expect(setCurrentActionResult).toEqual<typeof setCurrentActionResult>({
         action: {
-          gameId: newGame.createdGameId,
+          gameId: createdGameId,
           playerId: account.id,
           tick: 0,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
@@ -56,17 +54,15 @@ describe("gamePlayerActions.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: { name: "stale tick game", nbSeats: 2, tickIntervalSeconds: 60 },
-        },
+      const { createdGameId } = await trpcClient.client.games.create.mutate({
+        settings: { name: "stale tick game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
-      await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.createdGameId })
+      await trpcClient.client.games.start.mutate({ gameId: createdGameId })
 
       // Act & Assert
       await expect(
         trpcClient.client.gamePlayerActions.setCurrentAction.mutate({
-          gameId: createGameResult.newGame.createdGameId,
+          gameId: createdGameId,
           tick: 1,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
         }),
@@ -85,19 +81,17 @@ describe("gamePlayerActions.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = account
 
-      const createGameResult = await trpcClient.client.games.create.mutate({
-        newGame: {
-          settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
-        },
+      const { createdGameId } = await trpcClient.client.games.create.mutate({
+        settings: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
-      await trpcClient.client.games.start.mutate({ gameId: createGameResult.newGame.createdGameId })
+      await trpcClient.client.games.start.mutate({ gameId: createdGameId })
       await gamePlayerResourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createGameResult.newGame.createdGameId, playerId: account.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
       const getCurrentActionResult = await trpcClient.client.gamePlayerActions.getCurrentAction.query({
-        gameId: createGameResult.newGame.createdGameId,
+        gameId: createdGameId,
       })
 
       // Assert

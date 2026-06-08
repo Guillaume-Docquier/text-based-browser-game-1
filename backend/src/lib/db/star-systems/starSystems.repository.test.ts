@@ -11,7 +11,7 @@ import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { GamesController } from "#api/games/games.controller.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { createNewGameDtoStub } from "#api/games/NewGameDto.stub.ts"
+import { createCreateGameDtoStub } from "#api/games/CreateGameDto.stub.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
@@ -32,7 +32,7 @@ describe("starSystems.repository", () => {
       const gamesController = createGamesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gamesController.createGame(createNewGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await gamesController.createGame(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
       const system = createCoherentStarSystem({ gameId: game.createdGameId })
       const firstSector = system.sectors[0]
@@ -73,7 +73,7 @@ describe("starSystems.repository", () => {
       const gamesController = createGamesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gamesController.createGame(createNewGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await gamesController.createGame(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
       const system1 = createCoherentStarSystem({ gameId: game.createdGameId })
       const system2 = createCoherentStarSystem({ gameId: game.createdGameId })
@@ -95,7 +95,7 @@ describe("starSystems.repository", () => {
       const gamesController = createGamesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gamesController.createGame(createNewGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await gamesController.createGame(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
       const system = createIncoherentStarSystem({ gameId: game.createdGameId })
 

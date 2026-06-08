@@ -27,9 +27,9 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      * Creates a new game.
      */
     create: trpc.privateProcedure
-      .input(z.object({ newGame: CreateGameDto.omit({ createdByAccountId: true }) }))
-      .output(z.object({ newGame: CreatedGameDto }))
-      .mutation(async ({ input: { newGame }, ctx: { account } }) => {
+      .input(CreateGameDto.omit({ createdByAccountId: true }))
+      .output(CreatedGameDto)
+      .mutation(async ({ input: newGame, ctx: { account } }) => {
         const createResult = await gamesController.createGame({ ...newGame, createdByAccountId: account.id })
         if (Result.isFailure(createResult)) {
           gamesRouterLogger.error("Could not create game.", { newGame, playerId: account.id, error: createResult.error })
@@ -39,7 +39,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
           })
         }
 
-        return { newGame: createResult.value }
+        return createResult.value
       }),
 
     /**
