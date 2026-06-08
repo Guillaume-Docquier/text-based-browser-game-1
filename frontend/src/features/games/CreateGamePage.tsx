@@ -1,4 +1,4 @@
-import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
+import { useMutation } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
 import { type ReactElement, useState } from "react"
@@ -11,20 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 
 type TickIntervalUnit = Enumify<typeof TickIntervalUnit>
-type CreateGameInput = {
-  newGame: {
-    settings: {
-      name: string
-      nbSeats: number
-      tickIntervalSeconds: number
-    }
-  }
-}
-type CreateGameResult = {
-  newGame: {
-    id: number
-  }
-}
 const TickIntervalUnit = {
   days: "days",
   hours: "hours",
@@ -38,9 +24,7 @@ export function CreateGamePage(): ReactElement {
   const [tickIntervalUnit, setTickIntervalUnit] = useState<TickIntervalUnit>(TickIntervalUnit.days)
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const createGame = useMutation(
-    backendApiClient.games.create.mutationOptions() as UseMutationOptions<CreateGameResult, Error, CreateGameInput>,
-  )
+  const createGame = useMutation(backendApiClient.games.create.mutationOptions())
   const isCreateDisabled = name === "" || nbSeats < 2
 
   return (
@@ -112,17 +96,15 @@ export function CreateGamePage(): ReactElement {
               onClick={() => {
                 createGame.mutate(
                   {
-                    newGame: {
-                      settings: {
-                        name,
-                        nbSeats,
-                        tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
-                      },
+                    settings: {
+                      name,
+                      nbSeats,
+                      tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
                     },
                   },
                   {
-                    onSuccess: ({ newGame }) => {
-                      void navigate({ to: "/games/$gameId", params: { gameId: newGame.id } })
+                    onSuccess: ({ createdGameId }) => {
+                      void navigate({ to: "/games/$gameId", params: { gameId: createdGameId } })
                     },
                   },
                 )
