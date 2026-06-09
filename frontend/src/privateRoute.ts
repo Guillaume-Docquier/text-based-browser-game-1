@@ -33,12 +33,12 @@ import type { RouterContext } from "./routes/__root.tsx"
 export function privateRoute({ context, location }: { context: RouterContext; location: ParsedLocation }): void {
   if (!context.auth.isLoaded) {
     // Wait for auth to kick in
-    // eslint-disable-next-line @typescript-eslint/only-throw-error -- That's how tanstack works
+    // oxlint-disable-next-line typescript/only-throw-error -- That's how tanstack works
     throw new Promise(noop)
   }
 
   if (!context.auth.isSignedIn) {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error -- That's how tanstack works
+    // oxlint-disable-next-line typescript/only-throw-error -- That's how tanstack works
     throw redirect({
       to: "/sign-in",
       search: {

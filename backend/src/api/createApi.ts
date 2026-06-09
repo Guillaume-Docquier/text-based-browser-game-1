@@ -82,7 +82,7 @@ export async function createApi({
 }
 
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: {
   gamesController: GamesController
   gameStatesController: GameStatesController

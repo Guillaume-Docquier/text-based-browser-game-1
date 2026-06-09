@@ -18,7 +18,7 @@ Have the best of both worlds, we have to do the following pattern:
 
 ```ts
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter() {
   const trpc = createTrpc()
 

@@ -143,7 +143,7 @@ export class GamesRepository extends PostgresRepository {
           players: gameSummaries
             .filter((row) => row.id === gameSummary.id && row.playerId !== null)
             .map((row) => ({
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- The filter above should have narrowed this type?
+              // oxlint-disable-next-line typescript/no-non-null-assertion -- The filter above should have narrowed this type?
               id: row.playerId!,
               alias: row.playerAlias,
             })),
@@ -232,7 +232,7 @@ export class GamesRepository extends PostgresRepository {
       players: gameSummariesResult.value
         .filter((row) => row.playerId !== null)
         .map((row) => ({
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- The filter above should have narrowed this type?
+          // oxlint-disable-next-line typescript/no-non-null-assertion -- The filter above should have narrowed this type?
           id: row.playerId!,
           alias: row.playerAlias,
         })),

@@ -7,7 +7,7 @@ import { couldNot } from "#lib/errors.ts"
 // If we hooked this into trpc, we'd have better guarantees.
 // I just don't really know how to adapt clerk to trpc yet. For now this does the job.
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace -- This is the way with Express
+  // oxlint-disable-next-line typescript/no-namespace -- This is the way with Express
   namespace Express {
     interface Request {
       account?: AccountDto | undefined

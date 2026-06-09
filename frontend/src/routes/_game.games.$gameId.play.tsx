@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_game/games/$gameId/play")({
   },
   onError: (error) => {
     if (error?.routerCode === "PARSE_PARAMS") {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- That's how tanstack works
+      // oxlint-disable-next-line typescript/only-throw-error -- That's how tanstack works
       throw redirect({ to: "/" })
     }
   },

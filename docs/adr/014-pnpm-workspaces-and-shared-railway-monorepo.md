@@ -16,7 +16,7 @@ With a pnpm monorepo, scripts are easier to use as well because we can run recur
 
 ## Decision
 
-Use a root `pnpm-workspace.yaml` with `backend`, `frontend`, and `shared/*` packages. Keep one root lockfile and install the whole workspace from the root.
+Use a root `pnpm-workspace.yaml` with `backend` and `frontend` packages. Keep one root lockfile and install the whole workspace from the root.
 
 Railway service configs stay next to the deployable packages, but their build and start commands run through workspace filters.
 

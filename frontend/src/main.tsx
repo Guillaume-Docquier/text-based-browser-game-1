@@ -34,7 +34,7 @@ const queryClient = new QueryClient({
 })
 const backendApiClient = createBackendApiClient({ baseUrl: env.VITE_BACKEND_BASE_URL, queryClient })
 
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- root will always exist
+// oxlint-disable-next-line typescript/no-non-null-assertion -- root will always exist
 const rootElement = document.getElementById("root")!
 
 if (rootElement.innerHTML === "") {
@@ -66,7 +66,7 @@ function App(): ReactElement {
   return <RouterProvider router={router} />
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let tanstack inference do the work
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let tanstack inference do the work
 function createAppRouter({ auth }: RouterContext) {
   return createRouter({
     routeTree,

@@ -18,7 +18,7 @@ import {
  * It receives all dependencies so we can easily mock them during tests.
  * It also decouples the router from those dependencies, if done well.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: Trpc; gamesController: GamesController; logger: Logger }) {
   const gamesRouterLogger = others.logger.child({ scope: "games-router" })
 
