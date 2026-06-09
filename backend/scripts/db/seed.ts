@@ -41,7 +41,7 @@ const envSchema = z.object({
   USER_ALIAS: z.string().optional(),
 })
 
-const env = parseEnv({ envSchema })
+const env = parseEnv({ schema: envSchema })
 void main({
   connectionString: env.DATABASE_URL,
   user:

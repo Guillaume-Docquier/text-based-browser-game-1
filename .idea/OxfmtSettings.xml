@@ -5,6 +5,7 @@
     <option name="supportedExtensions">
       <list>
         <option value=".json" />
+        <option value=".jsonc" />
         <option value=".js" />
         <option value=".jsx" />
         <option value=".cjs" />

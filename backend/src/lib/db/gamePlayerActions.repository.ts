@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm"
 import type { GameId } from "#api/games/GameId.ts"
 import type { PlayerId } from "#api/games/PlayerId.ts"
 import { couldNot } from "#lib/errors.ts"
-import { type GamePlayerActionType } from "#lib/gamePlayerActions.ts"
+import { type GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
 import { PostgresRepository } from "./PostgresRepository.ts"
 import { gamePlayerActionsTable } from "./schema.ts"
 

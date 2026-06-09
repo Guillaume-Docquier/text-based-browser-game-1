@@ -5,7 +5,8 @@ import { type GamesRepository } from "#lib/db/games/games.repository.ts"
 import { type GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { type GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { type GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
-import { GAME_PLAYER_ACTION_RULES, GamePlayerActionType } from "#lib/gamePlayerActions.ts"
+import { GAME_PLAYER_ACTION_RULES } from "#lib/gamePlayerActions.ts"
+import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/gameResources.ts"
 
 /**

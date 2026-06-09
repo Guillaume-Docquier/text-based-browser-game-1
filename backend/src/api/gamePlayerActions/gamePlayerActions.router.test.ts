@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourceUpdateModelStub } from "#lib/db/resources/ResourceUpdateModel.stub.ts"
-import { GamePlayerActionType } from "#lib/gamePlayerActions.ts"
+import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 

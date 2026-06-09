@@ -34,14 +34,8 @@ export const envSchema = z.object({
  *
  * This should be the only consumer of `process.env`.
  */
-export function parseEnv<TEnvSchema extends z.ZodObject>({
-  logger,
-  envSchema,
-}: {
-  logger?: Logger
-  envSchema: TEnvSchema
-}): z.infer<TEnvSchema> {
-  const envResult = envSchema.safeParse(process.env)
+export function parseEnv<TEnvSchema extends z.ZodObject>({ logger, schema }: { logger?: Logger; schema: TEnvSchema }): z.infer<TEnvSchema> {
+  const envResult = schema.safeParse(process.env)
   if (!envResult.success) {
     ;(logger ?? console).error("Some environment variables are missing or incorrect.")
     throw new Error(z.prettifyError(envResult.error))
