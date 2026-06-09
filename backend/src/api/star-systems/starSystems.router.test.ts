@@ -183,7 +183,7 @@ async function createStoredStarSystem({
   return starSystem
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- As const will help the tests verbosity
+// oxlint-disable-next-line typescript/explicit-function-return-type -- As const will help the tests verbosity
 function createStarSystemFixture({ gameId }: { gameId: GameId }) {
   const orbitId = v4()
   const sector1Id = v4()

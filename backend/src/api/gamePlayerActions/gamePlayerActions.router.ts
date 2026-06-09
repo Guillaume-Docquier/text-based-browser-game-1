@@ -5,7 +5,7 @@ import type { GamePlayerActionsController } from "#api/gamePlayerActions/gamePla
 import type { Trpc } from "#api/trpc.ts"
 import { GamePlayerActionSchema, GamePlayerActionTypeSchema } from "#lib/gamePlayerActions.ts"
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGamePlayerActionsRouter({
   trpc,
   gamePlayerActionsController,

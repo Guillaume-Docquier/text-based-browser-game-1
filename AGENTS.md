@@ -18,12 +18,13 @@ This repo is a TypeScript monorepo using pnpm workspaces (ADR-014) with separate
 
 - `frontend/`: React 19 + TailwindCSS 4 + Shadcn + Vite 8 UI. File-based TanStack route definitions live in `src/routes/`, page/layout implementations live in `src/features/`, reusable Shadcn components and shared UI live in `src/components/`, and static assets live in `public/` and `src/assets/`.
 - `backend/`: Express 5 + tRPC 11 API + tick-processing worker in TypeScript with no transpilation. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
-- `shared/eslint/`: shared lint config only. Do not share runtime code between backend and frontend.
 - `infra/`: deployment and reverse-proxy config.
 - `docs/`: all project documentation. It includes past, present, and future tech/game designs, adrs, etc.
 - `docs/adr/`: architecture decision records. Read the relevant ADRs before changing established patterns.
 
 Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. This is a TypeScript library of utilities made by us. Their README.md contains a high-level view of the available utilities.
+
+We use oxfmt for formatting and oxlint for type-aware linting. They are configured at the root of the project.
 
 ## Architecture Rules
 

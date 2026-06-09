@@ -4,7 +4,7 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
 
 export type BackendApiClient = ReturnType<typeof createBackendApiClient>
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createBackendApiClient({ baseUrl, queryClient }: { baseUrl: string; queryClient: QueryClient }) {
   return createTRPCOptionsProxy<TrpcRouter>({
     client: createTRPCClient<TrpcRouter>({
