@@ -1,13 +1,7 @@
-import type { Enumify } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { GameId } from "#api/games/GameId.ts"
 import { PlayerId } from "#api/games/PlayerId.ts"
-
-export type GamePlayerActionType = Enumify<typeof GamePlayerActionType>
-export const GamePlayerActionType = {
-  MAKE_MORE_MONEY: "MAKE_MORE_MONEY",
-  WIN_THE_GAME: "WIN_THE_GAME",
-} as const
+import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
 
 type PlayerActionRule = {
   costMoney: number

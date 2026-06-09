@@ -7,7 +7,7 @@
     "build": "vite build",
     "checks": "pnpm typecheck",
     "dev": "vite",
-    "typecheck": "tsc -b"
+    "typecheck": "tsgo -b"
   },
   "dependencies": {
     "@clerk/react": "^6.7.2",
@@ -40,9 +40,9 @@
     "@types/node": "^25.8.0",
     "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "catalog:",
     "@vitejs/plugin-react": "^6.0.2",
     "babel-plugin-react-compiler": "^1.0.0",
-    "typescript": "6.0.3",
     "vite": "^8.0.14"
   }
 }
