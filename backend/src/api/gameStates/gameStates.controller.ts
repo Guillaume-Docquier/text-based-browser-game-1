@@ -1,8 +1,8 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
-import { type GameStatesRepository, type PlayerGameStateModel } from "#lib/db/gameStates.repository.ts"
-import { PlayerId } from "#api/games/PlayerId.ts"
 import { GameId } from "#api/games/GameId.ts"
+import { PlayerId } from "#api/games/PlayerId.ts"
+import { type GameStatesRepository, type PlayerGameStateModel } from "#lib/db/gameStates.repository.ts"
 
 export class GameStatesController {
   private readonly gameStatesRepository: GameStatesRepository

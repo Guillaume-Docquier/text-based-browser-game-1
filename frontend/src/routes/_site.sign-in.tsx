@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
+import type { ReactElement } from "react"
 import { z } from "zod"
 import { SignInPage } from "../features/auth/SignInPage.tsx"
-import type { ReactElement } from "react"
 
 const RedirectSchema = z.object({
   redirect: z.string().default("/games"),

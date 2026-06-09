@@ -1,7 +1,7 @@
+import type { useAuth } from "@clerk/react"
 import { Outlet, createRootRouteWithContext, Navigate } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import type { ReactElement } from "react"
-import type { useAuth } from "@clerk/react"
 
 export interface RouterContext {
   auth: ReturnType<typeof useAuth>

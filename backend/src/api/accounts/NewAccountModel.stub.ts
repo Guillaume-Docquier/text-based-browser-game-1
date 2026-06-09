@@ -1,5 +1,5 @@
-import type { NewAccountModel } from "./accounts.repository.ts"
 import { v4 } from "uuid"
+import type { NewAccountModel } from "./accounts.repository.ts"
 
 export function createNewAccountModelStub(overrides?: Partial<NewAccountModel>): NewAccountModel {
   return {

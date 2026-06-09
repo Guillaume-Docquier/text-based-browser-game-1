@@ -1,9 +1,9 @@
+import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { eq } from "drizzle-orm"
+import type { AccountId } from "#api/accounts/AccountId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable } from "#lib/db/schema.ts"
-import { eq } from "drizzle-orm"
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
-import type { AccountId } from "#api/accounts/AccountId.ts"
 
 type NewAccountRow = typeof accountsTable.$inferInsert
 

@@ -1,5 +1,5 @@
-import type { StarSystemGenerationSettings } from "./StarSystemGenerationSettings.ts"
 import { Range } from "@guillaume-docquier/tools-ts"
+import type { StarSystemGenerationSettings } from "./StarSystemGenerationSettings.ts"
 
 export function createStarSystemGenerationSettingsStub(overrides?: Partial<StarSystemGenerationSettings>): StarSystemGenerationSettings {
   return {

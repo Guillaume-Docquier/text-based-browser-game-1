@@ -1,5 +1,5 @@
-import { createContext, type FC, type PropsWithChildren, useContext } from "react"
 import type { Logger } from "@guillaume-docquier/tools-ts"
+import { createContext, type FC, type PropsWithChildren, useContext } from "react"
 
 type LoggerContextInterface = Logger
 

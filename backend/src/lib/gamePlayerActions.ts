@@ -1,7 +1,7 @@
-import z from "zod"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import { PlayerId } from "#api/games/PlayerId.ts"
+import z from "zod"
 import { GameId } from "#api/games/GameId.ts"
+import { PlayerId } from "#api/games/PlayerId.ts"
 
 export type GamePlayerActionType = Enumify<typeof GamePlayerActionType>
 export const GamePlayerActionType = {

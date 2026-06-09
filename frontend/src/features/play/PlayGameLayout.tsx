@@ -1,11 +1,11 @@
+import type { GameId } from "@api-types"
 import { useQuery } from "@tanstack/react-query"
 import { Navigate, Outlet } from "@tanstack/react-router"
 import type { ReactElement } from "react"
-import { GameLayout, GameLayoutSkeleton } from "./components/GameLayout.tsx"
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { useLogger } from "../../lib/LoggerContext.tsx"
+import { GameLayout, GameLayoutSkeleton } from "./components/GameLayout.tsx"
 import { PlayGameContextProvider, type PlayGameContextValue } from "./PlayContext.tsx"
-import type { GameId } from "@api-types"
 
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()

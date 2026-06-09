@@ -1,6 +1,6 @@
+import { noop } from "@guillaume-docquier/tools-ts"
 import { type ParsedLocation, redirect } from "@tanstack/react-router"
 import type { RouterContext } from "./routes/__root.tsx"
-import { noop } from "@guillaume-docquier/tools-ts"
 
 /**
  * A guard for routes that require authentication.

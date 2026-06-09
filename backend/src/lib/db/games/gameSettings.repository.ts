@@ -1,9 +1,9 @@
+import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { eq } from "drizzle-orm"
+import type { GameId } from "#api/games/GameId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gameSettingsTable } from "#lib/db/schema.ts"
-import { eq } from "drizzle-orm"
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
-import type { GameId } from "#api/games/GameId.ts"
 
 type NewGameSettingsRow = typeof gameSettingsTable.$inferInsert
 type GameSettingsRow = typeof gameSettingsTable.$inferSelect

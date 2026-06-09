@@ -1,9 +1,9 @@
+import { pushSchema } from "drizzle-kit/api"
+import { drizzle } from "drizzle-orm/pglite"
 import { beforeAll } from "vitest"
 import { configureLogger } from "#lib/configureLogger.ts"
-import { pushSchema } from "drizzle-kit/api"
 import * as schema from "#lib/db/schema.ts"
 import { pglite } from "#tests/pglite.ts"
-import { drizzle } from "drizzle-orm/pglite"
 
 beforeAll(async () => {
   await Promise.all([setupLogging(), setupPg()])

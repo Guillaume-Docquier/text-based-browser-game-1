@@ -1,11 +1,11 @@
+import { Assert, type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
+import { eq } from "drizzle-orm"
+import type { GameId } from "#api/games/GameId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
-import { eq } from "drizzle-orm"
-import { Assert, type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import type { BodyType } from "#lib/star-systems/BodyType.ts"
 import { toCoordinates } from "#lib/star-systems/Coordinates.ts"
-import type { GameId } from "#api/games/GameId.ts"
 
 const RANGE_NUMERIC_TYPES = ["float", "integer"] as const
 const RANGE_MAX_BOUND_TYPES = ["inclusive", "exclusive"] as const

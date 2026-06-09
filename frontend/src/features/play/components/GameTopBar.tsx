@@ -1,6 +1,6 @@
+import type * as ApiTypes from "@api-types"
 import { Clock3, Crown, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
-import type * as ApiTypes from "@api-types"
 import type { PlayGameState } from "../PlayContext.tsx"
 import { GameStatusBadge } from "./GameStatusBadge.tsx"
 

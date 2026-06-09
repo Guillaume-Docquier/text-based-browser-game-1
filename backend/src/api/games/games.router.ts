@@ -1,3 +1,7 @@
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { TRPCError } from "@trpc/server"
+import z from "zod"
+import type { Trpc } from "#api/trpc.ts"
 import {
   CreatedGameDto,
   CreateGameDto,
@@ -8,10 +12,6 @@ import {
   LeaveGameDto,
   LeftGameDto,
 } from "./games.controller.ts"
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import z from "zod"
-import { TRPCError } from "@trpc/server"
-import type { Trpc } from "#api/trpc.ts"
 
 /**
  * Import side effect free express router creator.

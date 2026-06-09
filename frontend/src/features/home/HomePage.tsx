@@ -1,6 +1,6 @@
-import { type ReactElement } from "react"
 import { Link } from "@tanstack/react-router"
 import { ArrowRight, ShieldCheck, TimerReset, Waypoints } from "lucide-react"
+import { type ReactElement } from "react"
 import { Button } from "../../components/button.tsx"
 import { Card, CardContent } from "../../components/card.tsx"
 

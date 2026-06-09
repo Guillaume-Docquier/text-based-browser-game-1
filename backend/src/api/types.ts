@@ -2,8 +2,8 @@
  * Exports API types for the frontend
  */
 
-import type { TrpcRouter } from "./createApi.ts"
 import type { inferRouterOutputs } from "@trpc/server"
+import type { TrpcRouter } from "./createApi.ts"
 
 type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 

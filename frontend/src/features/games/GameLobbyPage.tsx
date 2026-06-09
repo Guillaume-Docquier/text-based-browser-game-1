@@ -1,17 +1,17 @@
+import type * as ApiTypes from "@api-types"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement } from "react"
-import type * as ApiTypes from "@api-types"
-import { PageHeader } from "../PageHeader.tsx"
-import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 import { Button } from "../../components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/card.tsx"
 import { Separator } from "../../components/separator.tsx"
 import { Skeleton } from "../../components/skeleton.tsx"
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
-import { useLogger } from "../../lib/LoggerContext.tsx"
 import { formatGameSummaryStatus } from "../../lib/formatGameSummaryStatus.ts"
+import { useLogger } from "../../lib/LoggerContext.tsx"
 import { timeAgo } from "../../lib/timeAgo.ts"
+import { PageHeader } from "../PageHeader.tsx"
+import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 
 export function GameLobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
