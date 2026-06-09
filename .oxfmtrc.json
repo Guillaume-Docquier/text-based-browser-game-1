@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 140,
+  "semi": false,
+  "sortPackageJson": {
+    "sortScripts": true
+  },
+  "ignorePatterns": ["pnpm-lock.yaml", "dist", ".pnpm-store", "*.gen.*"]
+}

@@ -228,7 +228,7 @@ function toGameSummaryDto({
   gameSummaryModel: GameSummaryModel
   playerId: PlayerId | undefined
 }): GameSummaryDto {
-  // prettier-ignore
+  // oxfmt-ignore
   const status =
     gameSummaryModel.endedAt !== null ? GameSummaryStatus.ENDED
     : gameSummaryModel.startedAt !== null ? GameSummaryStatus.STARTED
