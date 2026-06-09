@@ -9,23 +9,22 @@
     "db:nuke": "rm -rf backend/drizzle && pnpm --filter backend db:generate --name init && pnpm db:clean",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
-    "lint": "eslint . --max-warnings 0",
+    "lint": "oxlint --max-warnings 0",
     "lint:fix": "pnpm lint --fix",
     "prepare": "husky",
     "wts": "pnpm i && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
   },
   "devDependencies": {
-    "@shared/eslint": "workspace:*",
-    "eslint": "9.39.4",
-    "globals": "17.6.0",
     "husky": "9.1.7",
     "lint-staged": "17.0.7",
-    "oxfmt": "^0.53.0"
+    "oxfmt": "^0.53.0",
+    "oxlint": "^1.68.0",
+    "oxlint-tsgolint": "^0.23.0"
   },
   "lint-staged": {
     "*.{md,json,yml,yaml,css,scss}": "oxfmt",
     "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
+      "oxlint --fix",
       "oxfmt"
     ]
   },

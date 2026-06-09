@@ -74,6 +74,7 @@ export function CreateGamePage(): ReactElement {
               <Select
                 value={tickIntervalUnit}
                 onValueChange={(value) => {
+                  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Maybe we should parse, but this will be okay
                   setTickIntervalUnit(value as TickIntervalUnit)
                 }}
               >

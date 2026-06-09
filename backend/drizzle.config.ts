@@ -13,7 +13,7 @@ for (const [key, value] of envFromFile) {
   }
 }
 
-const env = parseEnv({ envSchema })
+const env = parseEnv({ schema: envSchema })
 
 export default defineConfig({
   out: "./drizzle",

@@ -32,7 +32,7 @@ async function main(): Promise<void> {
   const logger = await configureLogger({ scope: "api" })
 
   logger.info("Parsing environment")
-  const env = parseEnv({ logger, envSchema })
+  const env = parseEnv({ logger, schema: envSchema })
 
   logger.info("Connecting to the database")
   const db = createDb({ databaseUrl: env.DATABASE_URL })
