@@ -1,5 +1,5 @@
-import { z } from "zod"
 import type { Logger } from "@guillaume-docquier/tools-ts"
+import { z } from "zod"
 
 /**
  * The schema for the environment variables.

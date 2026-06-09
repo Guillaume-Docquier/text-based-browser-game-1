@@ -1,14 +1,14 @@
-import { describe, expect, it } from "vitest"
-import { createApiStub } from "#api/createApi.stub.ts"
-import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
-import { type NewStarSystemModel, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
-import { TrpcClient } from "#tests/TrpcClient.ts"
-import { extractSuccess } from "#tests/extractSuccess.ts"
 import { Range, Result } from "@guillaume-docquier/tools-ts"
-import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { v4 } from "uuid"
+import { describe, expect, it } from "vitest"
+import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
+import { createApiStub } from "#api/createApi.stub.ts"
 import { createCreateGameDtoStub } from "#api/games/CreateGameDto.stub.ts"
 import type { GameId } from "#api/games/GameId.ts"
+import { type NewStarSystemModel, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { BodyType } from "#lib/star-systems/BodyType.ts"
+import { extractSuccess } from "#tests/extractSuccess.ts"
+import { TrpcClient } from "#tests/TrpcClient.ts"
 
 describe("starSystems.router", () => {
   describe("getSystem", () => {

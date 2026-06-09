@@ -1,5 +1,5 @@
-import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import type { Logger } from "@guillaume-docquier/tools-ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 
 export class GameListingsRepository extends PostgresRepository {
   private readonly logger: Logger

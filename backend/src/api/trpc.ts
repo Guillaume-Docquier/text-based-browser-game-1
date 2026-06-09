@@ -1,5 +1,5 @@
-import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { initTRPC, TRPCError } from "@trpc/server"
+import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 
 type ExpressContextOptions = Pick<CreateExpressContextOptions, "req" | "res">
 

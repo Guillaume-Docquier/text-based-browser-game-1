@@ -1,9 +1,9 @@
+import type { GameId } from "@api-types"
 import { Link } from "@tanstack/react-router"
 import { ListChecks, Map, type LucideIcon } from "lucide-react"
 import type { ReactElement } from "react"
-import type { FileRouteTypes } from "../../../routeTree.gen.ts"
 import logo from "../../../assets/logo.png"
-import type { GameId } from "@api-types"
+import type { FileRouteTypes } from "../../../routeTree.gen.ts"
 
 type GameSideNavLink = {
   to: Extract<FileRouteTypes["to"], `/games/$gameId/play${string}`>

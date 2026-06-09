@@ -1,8 +1,8 @@
-import tseslint from "typescript-eslint"
 import stylisticPlugin from "@stylistic/eslint-plugin"
 import importPlugin from "eslint-plugin-import"
 import nodePlugin from "eslint-plugin-n"
 import promisePlugin from "eslint-plugin-promise"
+import tseslint from "typescript-eslint"
 
 export default {
   name: "@project/eslint-config-typescript",

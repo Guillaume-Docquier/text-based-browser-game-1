@@ -1,10 +1,8 @@
-import { type ReactElement, useState } from "react"
-import { Link } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
-import { Search } from "lucide-react"
 import type * as ApiTypes from "@api-types"
-import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
-import { PageHeader } from "../PageHeader.tsx"
+import { useQuery } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
+import { Search } from "lucide-react"
+import { type ReactElement, useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "../../components/alert.tsx"
 import { Button } from "../../components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/card.tsx"
@@ -12,6 +10,8 @@ import { Input } from "../../components/input.tsx"
 import { Skeleton } from "../../components/skeleton.tsx"
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { timeAgo } from "../../lib/timeAgo.ts"
+import { PageHeader } from "../PageHeader.tsx"
+import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 
 export function GamesBrowserPage(): ReactElement {
   const [gameNameFilter, setGameNameFilter] = useState("")

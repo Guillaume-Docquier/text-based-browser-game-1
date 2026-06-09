@@ -1,8 +1,8 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import z from "zod"
 import { TRPCError } from "@trpc/server"
-import type { Trpc } from "#api/trpc.ts"
+import z from "zod"
 import type { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
+import type { Trpc } from "#api/trpc.ts"
 import { GamePlayerActionSchema, GamePlayerActionTypeSchema } from "#lib/gamePlayerActions.ts"
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work

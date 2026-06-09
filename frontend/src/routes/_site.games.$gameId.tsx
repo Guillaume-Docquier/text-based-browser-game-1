@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
+import type { ReactElement } from "react"
 import { z } from "zod"
 import { GameLobbyPage } from "../features/games/GameLobbyPage.tsx"
-import type { ReactElement } from "react"
 
 const paramsSchema = z.object({
   gameId: z.coerce.number(),

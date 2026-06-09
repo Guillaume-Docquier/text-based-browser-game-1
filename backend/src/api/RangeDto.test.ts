@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest"
 import { Assert, Range } from "@guillaume-docquier/tools-ts"
+import { describe, expect, it } from "vitest"
 import { RangeDto } from "#api/RangeDto.ts"
 
 describe("RangeDto", () => {

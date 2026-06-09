@@ -1,6 +1,6 @@
+import * as fs from "node:fs"
 import { defineConfig } from "drizzle-kit"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
-import * as fs from "node:fs"
 
 const envFromFile = fs
   .readFileSync(".env", "utf-8")

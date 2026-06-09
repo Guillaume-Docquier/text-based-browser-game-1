@@ -1,8 +1,8 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import z from "zod"
 import { TRPCError } from "@trpc/server"
-import type { Trpc } from "#api/trpc.ts"
+import z from "zod"
 import { GameStateDto, type GameStatesController } from "#api/gameStates/gameStates.controller.ts"
+import type { Trpc } from "#api/trpc.ts"
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Let trpc inference do the work
 export function createGameStatesRouter({ trpc, gameStatesController }: { trpc: Trpc; gameStatesController: GameStatesController }) {

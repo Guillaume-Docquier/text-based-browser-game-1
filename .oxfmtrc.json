@@ -5,5 +5,8 @@
   "sortPackageJson": {
     "sortScripts": true
   },
+  "sortImports": {
+    "newlinesBetween": false
+  },
   "ignorePatterns": ["pnpm-lock.yaml", "dist", ".pnpm-store", "*.gen.*"]
 }

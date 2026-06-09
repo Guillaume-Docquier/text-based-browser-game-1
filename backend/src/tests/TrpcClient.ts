@@ -1,8 +1,8 @@
-import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import { createServer } from "http"
-import type { TrpcRouter } from "#api/createApi.ts"
-import type { Express } from "express"
 import type { AddressInfo } from "node:net"
+import { createTRPCClient, httpBatchLink } from "@trpc/client"
+import type { Express } from "express"
+import type { TrpcRouter } from "#api/createApi.ts"
 
 /**
  * I can't find the documentation, but server.listen(0) gets assigned an unused port.

@@ -1,11 +1,11 @@
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { and, eq, sql } from "drizzle-orm"
+import type { GameId } from "#api/games/GameId.ts"
+import type { PlayerId } from "#api/games/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gamePlayerResourcesTable } from "#lib/db/schema.ts"
-import { and, eq, sql } from "drizzle-orm"
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { couldNot } from "#lib/errors.ts"
 import { type ResourceType } from "#lib/gameResources.ts"
-import type { PlayerId } from "#api/games/PlayerId.ts"
-import type { GameId } from "#api/games/GameId.ts"
 
 type NewGamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferInsert
 type GamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferSelect

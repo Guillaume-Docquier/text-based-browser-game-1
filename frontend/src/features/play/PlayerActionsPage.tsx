@@ -1,12 +1,12 @@
+import type { GameId } from "@api-types"
 import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
-import { GameActionSelector, GameActionSelectorSkeleton } from "./components/GameActionSelector.tsx"
 import { Alert, AlertDescription, AlertTitle } from "../../components/alert.tsx"
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { useLogger } from "../../lib/LoggerContext.tsx"
+import { GameActionSelector, GameActionSelectorSkeleton } from "./components/GameActionSelector.tsx"
 import { usePlayGameContext } from "./PlayContext.tsx"
-import type { GameId } from "@api-types"
 
 export function PlayerActionsPage({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()

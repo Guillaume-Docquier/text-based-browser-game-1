@@ -1,5 +1,5 @@
-import type { Database } from "#lib/db/createDb.ts"
 import { drizzle } from "drizzle-orm/pglite"
+import type { Database } from "#lib/db/createDb.ts"
 import { getPGLiteInstanceWithSchemas } from "#tests/pglite.ts"
 
 /**

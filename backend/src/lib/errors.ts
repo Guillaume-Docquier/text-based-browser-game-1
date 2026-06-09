@@ -1,5 +1,5 @@
-import type { AccountId } from "#api/accounts/AccountId.ts"
 import { Result, type Success } from "@guillaume-docquier/tools-ts"
+import type { AccountId } from "#api/accounts/AccountId.ts"
 
 /**
  * A generic helper for errors that should not be disclosed to users.
