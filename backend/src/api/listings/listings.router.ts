@@ -9,18 +9,7 @@ import { type ListingsController, ListingDto } from "./listings.controller.ts"
  * It also decouples the router from those dependencies, if done well.
  */
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
-export function createListingsRouter({
-  trpc,
-  listingsController,
-  ...others
-}: {
-  trpc: Trpc
-  listingsController: ListingsController
-  logger: Logger
-}) {
-  // oxlint-disable-next-line no-unused-vars -- Someday we'll need it
-  const listingsRouterLogger = others.logger.child({ scope: "listings-router" })
-
+export function createListingsRouter({ trpc, listingsController }: { trpc: Trpc; listingsController: ListingsController; logger: Logger }) {
   return trpc.router({
     /**
      * Gets all game listings, and eventually will support queries (by name, by state, etc) and pagination
