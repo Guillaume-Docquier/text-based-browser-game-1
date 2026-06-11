@@ -16,7 +16,7 @@ import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 export function GamesBrowserPage(): ReactElement {
   const [gameNameFilter, setGameNameFilter] = useState("")
   const backendApiClient = useBackendApiClient()
-  const gamesQuery = useQuery(backendApiClient.games.getSummaries.queryOptions())
+  const gamesQuery = useQuery(backendApiClient.games.getGameLobbies.queryOptions())
 
   if (gamesQuery.isPending) {
     return <GamesLoadingState />
@@ -42,7 +42,7 @@ export function GamesBrowserPage(): ReactElement {
     )
   }
 
-  const games = gamesQuery.data.games.filter((game) => game.settings.name.includes(gameNameFilter))
+  const games = gamesQuery.data.filter((game) => game.configuration.name.includes(gameNameFilter))
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -85,7 +85,7 @@ export function GamesBrowserPage(): ReactElement {
   )
 }
 
-function GameSummary({ game }: { game: ApiTypes.GameSummary }): ReactElement {
+function GameSummary({ game }: { game: ApiTypes.GameLobby }): ReactElement {
   return (
     <Link to="/games/$gameId" params={{ gameId: game.id }} className="block">
       <Card size="sm" className="border border-border/60 transition-colors hover:bg-muted/40">
@@ -95,11 +95,11 @@ function GameSummary({ game }: { game: ApiTypes.GameSummary }): ReactElement {
               <span className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">#{game.id}</span>
               <GameStatusBadge status={game.status} />
             </div>
-            <div className="font-heading text-lg font-medium text-foreground">{game.settings.name}</div>
+            <div className="font-heading text-lg font-medium text-foreground">{game.configuration.name}</div>
           </div>
           <div className="flex flex-col gap-1 text-sm text-muted-foreground md:items-end">
             <div>
-              {game.players.length}/{game.settings.nbSeats} players
+              {game.players.length}/{game.configuration.nbSeats} players
             </div>
             <div>Created {timeAgo(game.createdAt)}</div>
           </div>

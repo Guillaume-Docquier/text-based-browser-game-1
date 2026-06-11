@@ -6,7 +6,7 @@ import {
   CreatedGameDto,
   CreateGameDto,
   type GamesController,
-  GameSummaryDto,
+  GameLobbyDto,
   JoinedGameDto,
   JoinGameDto,
   LeaveGameDto,
@@ -43,23 +43,23 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
       }),
 
     /**
-     * Gets all games, and eventually will support queries (by name, by state, etc) and pagination
+     * Gets all game lobbies, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getSummaries: trpc.publicProcedure.output(z.object({ games: z.array(GameSummaryDto) })).query(async ({ ctx: { account } }) => {
-      const games = await gamesController.getGameSummaries({ playerId: account?.id })
+    getGameLobbies: trpc.publicProcedure.output(z.array(GameLobbyDto)).query(async ({ ctx: { account } }) => {
+      const games = await gamesController.getGameLobbies({ playerId: account?.id })
 
       gamesRouterLogger.info("GET games", { count: games.length })
-      return { games }
+      return games
     }),
 
     /**
-     * Gets a game by id
+     * Gets a game lobby by id
      */
-    getSummaryById: trpc.publicProcedure
+    getGameLobbyById: trpc.publicProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ game: GameSummaryDto }))
+      .output(GameLobbyDto)
       .query(async ({ input: { gameId }, ctx: { account } }) => {
-        const game = await gamesController.getGameSummaryById({ gameId, playerId: account?.id })
+        const game = await gamesController.getGameLobbyById({ gameId, playerId: account?.id })
         gamesRouterLogger.info(`GET game ${gameId}`, { game })
 
         if (game === undefined) {
@@ -69,7 +69,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
           })
         }
 
-        return { game }
+        return game
       }),
 
     /**
@@ -79,7 +79,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
       .input(JoinGameDto.pick({ gameId: true }))
       .output(JoinedGameDto)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const joinGameResult = await gamesController.joinGame({ gameId, accountId: account.id })
+        const joinGameResult = await gamesController.joinGameLobby({ gameId, accountId: account.id })
         if (Result.isFailure(joinGameResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -97,7 +97,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
       .input(LeaveGameDto.pick({ gameId: true }))
       .output(LeftGameDto)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const leaveGameResult = await gamesController.leaveGame({ gameId, accountId: account.id })
+        const leaveGameResult = await gamesController.leaveGameLobby({ gameId, accountId: account.id })
         if (Result.isFailure(leaveGameResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -113,7 +113,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      */
     start: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(z.object({ startedGame: GameSummaryDto }))
+      .output(GameLobbyDto)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
         const startGameResult = await gamesController.startGame({ gameId, playerId: account.id })
         if (Result.isFailure(startGameResult)) {
@@ -123,7 +123,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
           })
         }
 
-        return { startedGame: startGameResult.value }
+        return startGameResult.value
       }),
   })
 }

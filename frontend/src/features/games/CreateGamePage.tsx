@@ -97,7 +97,7 @@ export function CreateGamePage(): ReactElement {
               onClick={() => {
                 createGame.mutate(
                   {
-                    settings: {
+                    configuration: {
                       name,
                       nbSeats,
                       tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),

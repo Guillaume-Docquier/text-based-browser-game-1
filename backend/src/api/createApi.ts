@@ -17,7 +17,6 @@ import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
-import type { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import type { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import type { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
@@ -46,7 +45,6 @@ export async function createApi({
   logger: Logger
   accountsRepository: AccountsRepository
   gamesRepository: GamesRepository
-  gameSettingsRepository: GameSettingsRepository
   gameStatesRepository: GameStatesRepository
   gameTicksRepository: GameTicksRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository

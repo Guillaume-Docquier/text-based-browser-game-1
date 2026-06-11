@@ -43,7 +43,7 @@ export async function processTick({
   }
 
   // Needs to be a rollbackable transaction
-  for (const { game, gameTick, gameState, tickIntervalSeconds } of ticksToProcess) {
+  for (const { game, gameTick, gameState } of ticksToProcess) {
     logger.info("Processing tick", { game, gameTick, gameState })
     const startProcessingTickResult = await gameTicksRepository.startProcessingTick(gameTick)
     if (Result.isFailure(startProcessingTickResult)) {
@@ -51,7 +51,7 @@ export async function processTick({
       continue
     }
 
-    const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds })
+    const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds: game.tickIntervalSeconds })
     const nextTick = gameTick.tick + 1
 
     const playerIdsResult = await gamesRepository.getPlayerIds({ gameId: game.id })

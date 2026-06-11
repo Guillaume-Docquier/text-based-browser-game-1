@@ -1,7 +1,6 @@
 import { sql } from "drizzle-orm"
 import {
   check,
-  boolean,
   doublePrecision,
   foreignKey,
   index,
@@ -52,7 +51,7 @@ export const accountsTable = pgTable(
 
 /**
  * All games, past and present.
- * This is only the game settings. Game state will exist in the {@link gameStatesTable}.
+ * This is only the game configuration and metadata. Game state will exist in the {@link gameStatesTable}.
  */
 export const gamesTable = pgTable("games", {
   id: gameId("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -63,20 +62,12 @@ export const gamesTable = pgTable("games", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   endedAt: timestamp("ended_at"),
-})
 
-/**
- * Settings chosen when a game is created.
- * These are owned by the game and may change until they are locked when the game starts.
- */
-export const gameSettingsTable = pgTable("game_settings", {
-  gameId: gameId("game_id")
-    .primaryKey()
-    .references(() => gamesTable.id, { onDelete: "cascade" }),
-  locked: boolean("locked").default(false).notNull(),
+  // Game configuration
+
   name: varchar("name", { length: 255 }).notNull(),
-  starSystemGenerationSettings: jsonb("star_system_generation_settings").$type<StarSystemGenerationSettings>().notNull(),
   nbSeats: integer("nb_seats").notNull(),
+  starSystemGenerationSettings: jsonb("star_system_generation_settings").$type<StarSystemGenerationSettings>().notNull(),
   tickIntervalSeconds: integer("tick_interval_seconds").notNull(),
 })
 

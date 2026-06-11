@@ -9,7 +9,6 @@ import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
@@ -31,7 +30,6 @@ export async function createApiStub(): Promise<AllServices & { api: Express }> {
     authService: new AuthServiceMock(),
     createTransaction: db.transaction.bind(db),
     gamesRepository: new GamesRepository({ db, logger }),
-    gameSettingsRepository: new GameSettingsRepository({ db, logger }),
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),

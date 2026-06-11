@@ -11,7 +11,6 @@ import type { Database } from "#lib/db/createDb.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
@@ -45,7 +44,6 @@ async function main(): Promise<void> {
   const repositories = {
     accountsRepository: new AccountsRepository({ db, logger }),
     gamesRepository: new GamesRepository({ db, logger }),
-    gameSettingsRepository: new GameSettingsRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
