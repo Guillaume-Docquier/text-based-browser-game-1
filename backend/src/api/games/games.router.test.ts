@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { type CreateLobbyDto, type LobbyPlayerDto, LobbyStatus } from "#api/lobbies/lobbies.controller.ts"
+import { type CreateLobbyDto, type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
+import { GameStatus } from "#api/shared/GameStatus.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
 describe("games.router", () => {
-  describe("getSummaries", () => {
-    it("should get summaries anonymously", async () => {
+  describe("getListings", () => {
+    it("should get listings when anonymous", async () => {
       // Arrange
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
@@ -27,41 +28,29 @@ describe("games.router", () => {
       authService.account = undefined
 
       // Act
-      const getGameLobbiesResult = await trpcClient.client.games.getGameLobbies.query()
+      const getListingsResult = await trpcClient.client.games.getListings.query()
 
       // Assert
-      const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
-      expect(getGameLobbiesResult).toEqual<typeof getGameLobbiesResult>([
+      expect(getListingsResult).toEqual<typeof getListingsResult>([
         {
           id: createdGameId,
           createdAt: expect.any(String),
           endedAt: null,
-          winnerAccountId: null,
-          configuration: {
-            ...newGameSettings,
-            starSystemGenerationSettings: {
-              ...createDefaultStarSystemGenerationSettings(),
-              seed: expect.any(Number),
-            },
-          },
           startedAt: null,
-          creator,
-          players: [creator],
-          status: LobbyStatus.WAITING_FOR_PLAYERS,
-          canJoin: false, // because anonymous
-          canLeave: false, // because not in the game
-          canStart: false, // because not the creator
+          status: GameStatus.WAITING_FOR_PLAYERS,
+          name: newGameSettings.name,
+          nbPlayers: 1,
+          nbSeats: newGameSettings.nbSeats,
         },
       ])
     })
 
-    it("should get summaries for an authenticated player who can join", async () => {
+    it("should get listings when authenticated", async () => {
       // Arrange
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      const viewerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
       authService.account = creatorAccount
 
       const newGameSettings: CreateLobbyDto["configuration"] = {
@@ -72,33 +61,22 @@ describe("games.router", () => {
 
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
-      authService.account = viewerAccount
+      authService.account = creatorAccount
 
       // Act
-      const lobbiesResult = await trpcClient.client.games.getGameLobbies.query()
+      const getListingsResult = await trpcClient.client.games.getListings.query()
 
       // Assert
-      const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
-      expect(lobbiesResult).toEqual<typeof lobbiesResult>([
+      expect(getListingsResult).toEqual<typeof getListingsResult>([
         {
           id: createdGameId,
           createdAt: expect.any(String),
           endedAt: null,
-          winnerAccountId: null,
-          configuration: {
-            ...newGameSettings,
-            starSystemGenerationSettings: {
-              ...createDefaultStarSystemGenerationSettings(),
-              seed: expect.any(Number),
-            },
-          },
           startedAt: null,
-          creator,
-          players: [creator],
-          status: LobbyStatus.WAITING_FOR_PLAYERS,
-          canJoin: true, // because not in the game
-          canLeave: false, // because not in the game
-          canStart: false, // because not the creator
+          status: GameStatus.WAITING_FOR_PLAYERS,
+          name: newGameSettings.name,
+          nbPlayers: 1,
+          nbSeats: newGameSettings.nbSeats,
         },
       ])
     })
@@ -142,7 +120,7 @@ describe("games.router", () => {
         startedAt: expect.any(String),
         creator,
         players: [creator],
-        status: LobbyStatus.STARTED,
+        status: GameStatus.STARTED,
         canJoin: false, // Because started
         canLeave: false, // Because started
         canStart: false, // Because started

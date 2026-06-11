@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import z from "zod"
 import { LobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import type { Trpc } from "#api/trpc.ts"
-import { type GamesController } from "./games.controller.ts"
+import { type GamesController, ListingDto } from "./games.controller.ts"
 
 /**
  * Import side effect free express router creator.
@@ -16,10 +16,10 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
 
   return trpc.router({
     /**
-     * Gets all game lobbies, and eventually will support queries (by name, by state, etc) and pagination
+     * Gets all game listings, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getGameLobbies: trpc.publicProcedure.output(z.array(LobbyDto)).query(async ({ ctx: { account } }) => {
-      const games = await gamesController.getGameLobbies({ playerId: account?.id })
+    getListings: trpc.publicProcedure.output(z.array(ListingDto)).query(async () => {
+      const games = await gamesController.getListings()
 
       gamesRouterLogger.info("GET games", { count: games.length })
       return games

@@ -1,8 +1,11 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { type GameId } from "#api/games/GameId.ts"
+import { z } from "zod"
+import type { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
+import { GameId } from "#api/games/GameId.ts"
 import { type PlayerId } from "#api/games/PlayerId.ts"
 import { type LobbyDto, toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import { GameStatus } from "#api/shared/GameStatus.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
@@ -17,6 +20,7 @@ export class GamesController {
   private readonly createTransaction: CreateTransaction
   private readonly gamesRepository: GamesRepository
   private readonly lobbiesRepository: LobbiesRepository
+  private readonly gameListingsRepository: GameListingsRepository
   private readonly gameStatesRepository: GameStatesRepository
   private readonly gameTicksRepository: GameTicksRepository
   private readonly gamePlayerResourcesRepository: GamePlayerResourcesRepository
@@ -26,6 +30,7 @@ export class GamesController {
     createTransaction,
     gamesRepository,
     lobbiesRepository,
+    gameListingsRepository,
     gameStatesRepository,
     gameTicksRepository,
     gamePlayerResourcesRepository,
@@ -34,6 +39,7 @@ export class GamesController {
     createTransaction: CreateTransaction
     gamesRepository: GamesRepository
     lobbiesRepository: LobbiesRepository
+    gameListingsRepository: GameListingsRepository
     gameStatesRepository: GameStatesRepository
     gameTicksRepository: GameTicksRepository
     gamePlayerResourcesRepository: GamePlayerResourcesRepository
@@ -42,22 +48,23 @@ export class GamesController {
     this.createTransaction = createTransaction
     this.gamesRepository = gamesRepository
     this.lobbiesRepository = lobbiesRepository
+    this.gameListingsRepository = gameListingsRepository
     this.gameStatesRepository = gameStatesRepository
     this.gameTicksRepository = gameTicksRepository
     this.gamePlayerResourcesRepository = gamePlayerResourcesRepository
   }
 
   /**
-   * Gets ALL the game lobbies. This only makes sense until we have real traffic.
+   * Gets ALL the game listings. This only makes sense until we have real traffic.
    */
-  public async getGameLobbies({ playerId }: { playerId: PlayerId | undefined }): Promise<LobbyDto[]> {
-    const lobbiesResult = await this.lobbiesRepository.getLobbies()
-    if (Result.isFailure(lobbiesResult)) {
-      this.logger.error("Could not get game lobbies, returning empty array", { playerId, error: lobbiesResult.error })
+  public async getListings(): Promise<ListingDto[]> {
+    const getListingsResults = await this.gameListingsRepository.getListings()
+    if (Result.isFailure(getListingsResults)) {
+      this.logger.error("Could not get game listings, returning empty array", { error: getListingsResults.error })
       return []
     }
 
-    return lobbiesResult.value.map((lobbyModel) => toLobbyDto({ lobbyModel, playerId }))
+    return getListingsResults.value
   }
 
   public async startGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<LobbyDto, string>> {
@@ -119,3 +126,15 @@ export class GamesController {
     return Result.Success(toLobbyDto({ lobbyModel: lobbyResult.value, playerId }))
   }
 }
+
+export type ListingDto = z.infer<typeof ListingDto>
+export const ListingDto = z.object({
+  id: GameId,
+  name: z.string(),
+  nbPlayers: z.number(),
+  nbSeats: z.number(),
+  status: z.enum(GameStatus),
+  createdAt: z.date(),
+  startedAt: z.date().nullable(),
+  endedAt: z.date().nullable(),
+})

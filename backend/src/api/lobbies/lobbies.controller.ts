@@ -3,7 +3,8 @@ import z from "zod"
 import { AccountId } from "#api/accounts/AccountId.ts"
 import { GameId } from "#api/games/GameId.ts"
 import { PlayerId } from "#api/games/PlayerId.ts"
-import { RangeDto } from "#api/RangeDto.ts"
+import { computeGameStatus, GameStatus } from "#api/shared/GameStatus.ts"
+import { RangeDto } from "#api/shared/RangeDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
@@ -118,26 +119,26 @@ export class LobbiesController {
 }
 
 export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; playerId: PlayerId | undefined }): LobbyDto {
-  // oxfmt-ignore
-  const status =
-    lobbyModel.endedAt !== null ? LobbyStatus.ENDED
-    : lobbyModel.startedAt !== null ? LobbyStatus.STARTED
-    : lobbyModel.players.length >= lobbyModel.configuration.nbSeats ? LobbyStatus.READY_TO_START
-    : LobbyStatus.WAITING_FOR_PLAYERS
+  const status = computeGameStatus({
+    nbPlayers: lobbyModel.players.length,
+    nbSeats: lobbyModel.configuration.nbSeats,
+    startedAt: lobbyModel.startedAt,
+    endedAt: lobbyModel.endedAt,
+  })
 
   const canJoin =
-    playerId !== undefined && status === LobbyStatus.WAITING_FOR_PLAYERS && lobbyModel.players.every((player) => player.id !== playerId)
+    playerId !== undefined && status === GameStatus.WAITING_FOR_PLAYERS && lobbyModel.players.every((player) => player.id !== playerId)
 
   const canLeave =
     playerId !== undefined &&
     // status < GameSummaryStatus.STARTED would be more future proof
-    (status === LobbyStatus.WAITING_FOR_PLAYERS || status === LobbyStatus.READY_TO_START) &&
+    (status === GameStatus.WAITING_FOR_PLAYERS || status === GameStatus.READY_TO_START) &&
     lobbyModel.creator.id !== playerId &&
     lobbyModel.players.some((player) => player.id === playerId)
 
   const canStart =
     playerId !== undefined &&
-    (status === LobbyStatus.WAITING_FOR_PLAYERS || status === LobbyStatus.READY_TO_START) &&
+    (status === GameStatus.WAITING_FOR_PLAYERS || status === GameStatus.READY_TO_START) &&
     lobbyModel.creator.id === playerId
 
   return {
@@ -202,13 +203,6 @@ export const GameConfigurationDto = z.object({
   tickIntervalSeconds: z.number(),
 })
 
-export const LobbyStatus = {
-  WAITING_FOR_PLAYERS: "WAITING_FOR_PLAYERS",
-  READY_TO_START: "READY_TO_START",
-  STARTED: "STARTED",
-  ENDED: "ENDED",
-} as const
-
 export type LobbyPlayerDto = z.infer<typeof LobbyPlayerDto>
 export const LobbyPlayerDto = z.object({
   id: PlayerId,
@@ -225,7 +219,7 @@ export const LobbyDto = z.object({
   endedAt: z.date().nullable(),
   creator: LobbyPlayerDto,
   players: z.array(LobbyPlayerDto),
-  status: z.enum(LobbyStatus),
+  status: z.enum(GameStatus),
   /**
    * Whether the current player can join the game.
    */

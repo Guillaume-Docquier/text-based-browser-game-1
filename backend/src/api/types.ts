@@ -18,6 +18,9 @@ export type Lobby = TrpcRouterOutput["lobbies"]["getById"]
 export type LobbyStatus = Lobby["status"]
 export type LobbyPlayer = Lobby["creator"]
 
+// Listings
+export type Listing = TrpcRouterOutput["games"]["getListings"][number]
+
 // Game player actions router
 type GamePlayerActionsOutput = TrpcRouterOutput["gamePlayerActions"]["getCurrentAction"]
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
