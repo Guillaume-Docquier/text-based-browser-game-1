@@ -47,19 +47,6 @@ export class GamesController {
     this.gamePlayerResourcesRepository = gamePlayerResourcesRepository
   }
 
-  /**
-   * Gets ALL the game lobbies. This only makes sense until we have real traffic.
-   */
-  public async getGameLobbies({ playerId }: { playerId: PlayerId | undefined }): Promise<LobbyDto[]> {
-    const lobbiesResult = await this.lobbiesRepository.getLobbies()
-    if (Result.isFailure(lobbiesResult)) {
-      this.logger.error("Could not get game lobbies, returning empty array", { playerId, error: lobbiesResult.error })
-      return []
-    }
-
-    return lobbiesResult.value.map((lobbyModel) => toLobbyDto({ lobbyModel, playerId }))
-  }
-
   public async startGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<LobbyDto, string>> {
     const gameStartResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {

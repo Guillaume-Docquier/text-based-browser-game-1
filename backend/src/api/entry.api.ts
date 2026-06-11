@@ -3,8 +3,8 @@ import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AuthService } from "#api/accounts/auth.service.ts"
-import { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
+import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
@@ -49,7 +49,7 @@ async function main(): Promise<void> {
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
-    gameListingsRepository: new GameListingsRepository({ db, logger }),
+    listingsRepository: new ListingsRepository({ db, logger }),
     lobbiesRepository: new LobbiesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger }),
   }

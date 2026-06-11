@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { type CreateLobbyDto, type LobbyPlayerDto, LobbyStatus } from "#api/lobbies/lobbies.controller.ts"
+import { type CreateLobbyDto, type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
+import { GameStatus } from "#api/shared/GameStatus.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
@@ -46,7 +47,7 @@ describe("lobbies.router", () => {
         winnerAccountId: null,
         creator,
         players: [creator],
-        status: LobbyStatus.WAITING_FOR_PLAYERS,
+        status: GameStatus.WAITING_FOR_PLAYERS,
         canJoin: false, // because already joined
         canLeave: false, // because creator
         canStart: true, // because creator
@@ -113,7 +114,7 @@ describe("lobbies.router", () => {
         startedAt: null,
         creator,
         players: [creator],
-        status: LobbyStatus.WAITING_FOR_PLAYERS,
+        status: GameStatus.WAITING_FOR_PLAYERS,
         canJoin: true,
         canLeave: false,
         canStart: false,
@@ -159,7 +160,7 @@ describe("lobbies.router", () => {
         startedAt: null,
         creator,
         players: [creator],
-        status: LobbyStatus.WAITING_FOR_PLAYERS,
+        status: GameStatus.WAITING_FOR_PLAYERS,
         canJoin: false,
         canLeave: false,
         canStart: false,
@@ -223,7 +224,7 @@ describe("lobbies.router", () => {
         startedAt: null,
         creator,
         players: [creator, joiner],
-        status: LobbyStatus.READY_TO_START,
+        status: GameStatus.READY_TO_START,
         canJoin: false,
         canLeave: true,
         canStart: false,
@@ -308,7 +309,7 @@ describe("lobbies.router", () => {
         startedAt: null,
         creator,
         players: [creator],
-        status: LobbyStatus.WAITING_FOR_PLAYERS,
+        status: GameStatus.WAITING_FOR_PLAYERS,
         canJoin: true, // Because left
         canLeave: false, // Because left
         canStart: false, // Because not creator
