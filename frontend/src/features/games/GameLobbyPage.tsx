@@ -16,7 +16,7 @@ import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 export function GameLobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
   const backendApiClient = useBackendApiClient()
-  const gameQuery = useQuery(backendApiClient.games.getGameLobbyById.queryOptions({ gameId }))
+  const gameQuery = useQuery(backendApiClient.gameLobbies.getGameLobbyById.queryOptions({ gameId }))
 
   if (gameQuery.isPending) {
     return <GameLobbyLoadingState />
@@ -37,8 +37,8 @@ export function GameLobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactEle
 function Game({ game }: { game: ApiTypes.GameLobby }): ReactElement {
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const joinGame = useMutation(backendApiClient.games.join.mutationOptions())
-  const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions())
+  const joinGame = useMutation(backendApiClient.gameLobbies.join.mutationOptions())
+  const leaveGame = useMutation(backendApiClient.gameLobbies.leave.mutationOptions())
   const startGame = useMutation(backendApiClient.games.start.mutationOptions())
 
   return (

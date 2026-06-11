@@ -10,7 +10,7 @@ import { PlayGameContextProvider, type PlayGameContextValue } from "./PlayContex
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const backendApiClient = useBackendApiClient()
-  const gameQuery = useQuery(backendApiClient.games.getGameLobbyById.queryOptions({ gameId }))
+  const gameQuery = useQuery(backendApiClient.gameLobbies.getGameLobbyById.queryOptions({ gameId }))
   const gameStateQuery = useQuery(backendApiClient.gameStates.getById.queryOptions({ gameId }))
 
   if (gameQuery.isPending || gameStateQuery.isPending) {

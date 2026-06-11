@@ -6,7 +6,9 @@ import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import type { IAuthService } from "#api/accounts/auth.service.ts"
 import { type GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
+import { GameLobbiesController } from "#api/game-lobbies/gameLobbies.controller.ts"
 import { type GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
+import { createGameLobbiesRouter } from "#api/game-lobbies/gameLobbies.router.ts"
 import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
@@ -57,6 +59,7 @@ export async function createApi({
   const controllerServices = { ...services, createTransaction }
   const controllers = {
     gamesController: new GamesController(controllerServices),
+    gameLobbiesController: new GameLobbiesController(controllerServices),
     gameStatesController: new GameStatesController(controllerServices),
     accountsController: new AccountsController(controllerServices),
     gamePlayerActionsController: new GamePlayerActionsController(controllerServices),
@@ -83,6 +86,7 @@ export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: {
   gamesController: GamesController
+  gameLobbiesController: GameLobbiesController
   gameStatesController: GameStatesController
   gamePlayerActionsController: GamePlayerActionsController
   starSystemsController: StarSystemsController
@@ -93,6 +97,7 @@ function createTrpcRouter(services: {
 
   return trpc.router({
     games: createGamesRouter(routerServices),
+    gameLobbies: createGameLobbiesRouter(routerServices),
     gameStates: createGameStatesRouter(routerServices),
     gamePlayerActions: createGamePlayerActionsRouter(routerServices),
     starSystems: createStarSystemsRouter(routerServices),

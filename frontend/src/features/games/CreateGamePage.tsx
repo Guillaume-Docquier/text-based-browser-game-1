@@ -24,7 +24,7 @@ export function CreateGamePage(): ReactElement {
   const [tickIntervalUnit, setTickIntervalUnit] = useState<TickIntervalUnit>(TickIntervalUnit.days)
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const createGame = useMutation(backendApiClient.games.create.mutationOptions())
+  const createGame = useMutation(backendApiClient.gameLobbies.create.mutationOptions())
   const isCreateDisabled = name === "" || nbSeats < 2
 
   return (

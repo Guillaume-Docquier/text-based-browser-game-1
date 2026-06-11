@@ -1,17 +1,9 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import z from "zod"
+import { GameLobbyDto } from "#api/game-lobbies/gameLobbies.controller.ts"
 import type { Trpc } from "#api/trpc.ts"
-import {
-  CreatedGameDto,
-  CreateGameDto,
-  type GamesController,
-  GameLobbyDto,
-  JoinedGameDto,
-  JoinGameDto,
-  LeaveGameDto,
-  LeftGameDto,
-} from "./games.controller.ts"
+import { type GamesController } from "./games.controller.ts"
 
 /**
  * Import side effect free express router creator.
@@ -24,25 +16,6 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
 
   return trpc.router({
     /**
-     * Creates a new game.
-     */
-    create: trpc.privateProcedure
-      .input(CreateGameDto.omit({ createdByAccountId: true }))
-      .output(CreatedGameDto)
-      .mutation(async ({ input: newGame, ctx: { account } }) => {
-        const createResult = await gamesController.createGame({ ...newGame, createdByAccountId: account.id })
-        if (Result.isFailure(createResult)) {
-          gamesRouterLogger.error("Could not create game.", { newGame, playerId: account.id, error: createResult.error })
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Game could not be created.",
-          })
-        }
-
-        return createResult.value
-      }),
-
-    /**
      * Gets all game lobbies, and eventually will support queries (by name, by state, etc) and pagination
      */
     getGameLobbies: trpc.publicProcedure.output(z.array(GameLobbyDto)).query(async ({ ctx: { account } }) => {
@@ -51,62 +24,6 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
       gamesRouterLogger.info("GET games", { count: games.length })
       return games
     }),
-
-    /**
-     * Gets a game lobby by id
-     */
-    getGameLobbyById: trpc.publicProcedure
-      .input(z.object({ gameId: z.coerce.number() }))
-      .output(GameLobbyDto)
-      .query(async ({ input: { gameId }, ctx: { account } }) => {
-        const game = await gamesController.getGameLobbyById({ gameId, playerId: account?.id })
-        gamesRouterLogger.info(`GET game ${gameId}`, { game })
-
-        if (game === undefined) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: `No game exists with id ${gameId}`,
-          })
-        }
-
-        return game
-      }),
-
-    /**
-     * Joins a game, if possible.
-     */
-    join: trpc.privateProcedure
-      .input(JoinGameDto.pick({ gameId: true }))
-      .output(JoinedGameDto)
-      .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const joinGameResult = await gamesController.joinGameLobby({ gameId, accountId: account.id })
-        if (Result.isFailure(joinGameResult)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: joinGameResult.error,
-          })
-        }
-
-        return joinGameResult.value
-      }),
-
-    /**
-     * Leaves a game, if possible.
-     */
-    leave: trpc.privateProcedure
-      .input(LeaveGameDto.pick({ gameId: true }))
-      .output(LeftGameDto)
-      .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const leaveGameResult = await gamesController.leaveGameLobby({ gameId, accountId: account.id })
-        if (Result.isFailure(leaveGameResult)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: leaveGameResult.error,
-          })
-        }
-
-        return leaveGameResult.value
-      }),
 
     /**
      * Starts a game, if possible.
