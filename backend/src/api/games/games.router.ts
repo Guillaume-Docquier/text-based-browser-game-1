@@ -1,9 +1,9 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import z from "zod"
 import { LobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import type { Trpc } from "#api/trpc.ts"
-import { type GamesController, ListingDto } from "./games.controller.ts"
+import { type GamesController } from "./games.controller.ts"
 
 /**
  * Import side effect free express router creator.
@@ -11,20 +11,8 @@ import { type GamesController, ListingDto } from "./games.controller.ts"
  * It also decouples the router from those dependencies, if done well.
  */
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
-export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: Trpc; gamesController: GamesController; logger: Logger }) {
-  const gamesRouterLogger = others.logger.child({ scope: "games-router" })
-
+export function createGamesRouter({ trpc, gamesController }: { trpc: Trpc; gamesController: GamesController }) {
   return trpc.router({
-    /**
-     * Gets all game listings, and eventually will support queries (by name, by state, etc) and pagination
-     */
-    getListings: trpc.publicProcedure.output(z.array(ListingDto)).query(async () => {
-      const games = await gamesController.getListings()
-
-      gamesRouterLogger.info("GET games", { count: games.length })
-      return games
-    }),
-
     /**
      * Starts a game, if possible.
      */

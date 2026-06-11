@@ -19,7 +19,7 @@ export type LobbyStatus = Lobby["status"]
 export type LobbyPlayer = Lobby["creator"]
 
 // Listings
-export type Listing = TrpcRouterOutput["games"]["getListings"][number]
+export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 
 // Game player actions router
 type GamePlayerActionsOutput = TrpcRouterOutput["gamePlayerActions"]["getCurrentAction"]

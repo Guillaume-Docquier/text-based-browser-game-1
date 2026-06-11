@@ -16,7 +16,7 @@ import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 export function GamesBrowserPage(): ReactElement {
   const [gameNameFilter, setGameNameFilter] = useState("")
   const backendApiClient = useBackendApiClient()
-  const listingsQuery = useQuery(backendApiClient.games.getListings.queryOptions())
+  const listingsQuery = useQuery(backendApiClient.listings.getListings.queryOptions())
 
   if (listingsQuery.isPending) {
     return <GamesLoadingState />

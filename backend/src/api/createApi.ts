@@ -10,7 +10,9 @@ import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerAc
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
 import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 import { createGameStatesRouter } from "#api/gameStates/gameStates.router.ts"
+import { ListingsController } from "#api/listings/listings.controller.ts"
 import { type ListingsRepository } from "#api/listings/listings.repository.ts"
+import { createListingsRouter } from "#api/listings/listings.router.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { createLobbiesRouter } from "#api/lobbies/lobbies.router.ts"
@@ -59,6 +61,7 @@ export async function createApi({
   const controllerServices = { ...services, createTransaction }
   const controllers = {
     gamesController: new GamesController(controllerServices),
+    listingsController: new ListingsController(controllerServices),
     lobbiesController: new LobbiesController(controllerServices),
     gameStatesController: new GameStatesController(controllerServices),
     accountsController: new AccountsController(controllerServices),
@@ -86,6 +89,7 @@ export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: {
   gamesController: GamesController
+  listingsController: ListingsController
   lobbiesController: LobbiesController
   gameStatesController: GameStatesController
   gamePlayerActionsController: GamePlayerActionsController
@@ -97,6 +101,7 @@ function createTrpcRouter(services: {
 
   return trpc.router({
     games: createGamesRouter(routerServices),
+    listings: createListingsRouter(routerServices),
     lobbies: createLobbiesRouter(routerServices),
     gameStates: createGameStatesRouter(routerServices),
     gamePlayerActions: createGamePlayerActionsRouter(routerServices),
