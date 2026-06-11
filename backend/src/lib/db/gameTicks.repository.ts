@@ -4,7 +4,7 @@ import type { GameId } from "#api/games/GameId.ts"
 import type { GameStateModel } from "#lib/db/gameStates.repository.ts"
 import { couldNot } from "#lib/errors.ts"
 import { PostgresRepository } from "./PostgresRepository.ts"
-import { gamesTable, gameSettingsTable, gameStatesTable, gameTicksTable } from "./schema.ts"
+import { gamesTable, gameStatesTable, gameTicksTable } from "./schema.ts"
 
 type NewGameTickRow = typeof gameTicksTable.$inferInsert
 type GameTickRow = typeof gameTicksTable.$inferSelect
@@ -17,7 +17,6 @@ export type TickToProcessModel = {
   game: GameRow
   gameTick: GameTickModel
   gameState: GameStateModel
-  tickIntervalSeconds: number
 }
 
 export class GameTicksRepository extends PostgresRepository {
@@ -52,12 +51,10 @@ export class GameTicksRepository extends PostgresRepository {
           game: gamesTable,
           gameTick: gameTicksTable,
           gameState: gameStatesTable,
-          tickIntervalSeconds: gameSettingsTable.tickIntervalSeconds,
         })
         .from(gameTicksTable)
         .innerJoin(gameStatesTable, eq(gameStatesTable.gameId, gameTicksTable.gameId))
         .innerJoin(gamesTable, eq(gamesTable.id, gameTicksTable.gameId))
-        .innerJoin(gameSettingsTable, eq(gameSettingsTable.gameId, gamesTable.id))
         .where(and(isNull(gameTicksTable.processingStartedAt), lte(gameTicksTable.scheduledFor, new Date()))),
     )
 
@@ -71,7 +68,6 @@ export class GameTicksRepository extends PostgresRepository {
         game: tickToProcess.game,
         gameTick: tickToProcess.gameTick,
         gameState: tickToProcess.gameState,
-        tickIntervalSeconds: tickToProcess.tickIntervalSeconds,
       })),
     )
   }

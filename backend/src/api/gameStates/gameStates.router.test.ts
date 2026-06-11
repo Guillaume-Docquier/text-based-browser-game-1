@@ -15,7 +15,7 @@ describe("gameStates.router", () => {
       authService.account = account
 
       const { createdGameId } = await trpcClient.client.games.create.mutate({
-        settings: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
+        configuration: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
 
       await trpcClient.client.games.start.mutate({ gameId: createdGameId })

@@ -1,8 +1,8 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import type { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 import type { GameId } from "#api/games/GameId.ts"
 import type { PlayerId } from "#api/games/PlayerId.ts"
 import type { GamePlayerActionsRepository, GamePlayerActionModel } from "#lib/db/gamePlayerActions.repository.ts"
-import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GAME_PLAYER_ACTION_RULES, type GamePlayerAction } from "#lib/gamePlayerActions.ts"
 import { type GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
@@ -10,23 +10,23 @@ import { type GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
 export class GamePlayerActionsController {
   private readonly gamePlayerActionsRepository: GamePlayerActionsRepository
   private readonly gameStatesRepository: GameStatesRepository
-  private readonly gamesRepository: GamesRepository
+  private readonly gameLobbiesRepository: GameLobbiesRepository
   private readonly logger: Logger
 
   public constructor({
     gamePlayerActionsRepository,
     gameStatesRepository,
-    gamesRepository,
+    gameLobbiesRepository,
     logger,
   }: {
     gamePlayerActionsRepository: GamePlayerActionsRepository
     gameStatesRepository: GameStatesRepository
-    gamesRepository: GamesRepository
+    gameLobbiesRepository: GameLobbiesRepository
     logger: Logger
   }) {
     this.gamePlayerActionsRepository = gamePlayerActionsRepository
     this.gameStatesRepository = gameStatesRepository
-    this.gamesRepository = gamesRepository
+    this.gameLobbiesRepository = gameLobbiesRepository
     this.logger = logger.child({ scope: "game-player-actions-controller" })
   }
 
@@ -124,12 +124,12 @@ export class GamePlayerActionsController {
     gameId: GameId
     playerId: PlayerId
   }): Promise<Result<{ tick: number; money: number }, string>> {
-    const gameSummaryResult = await this.gamesRepository.getGameSummaryById({ gameId })
-    if (Result.isFailure(gameSummaryResult)) {
-      return gameSummaryResult
+    const gameLobbyResult = await this.gameLobbiesRepository.getGameLobbyById({ gameId })
+    if (Result.isFailure(gameLobbyResult)) {
+      return gameLobbyResult
     }
 
-    const gameSummary = gameSummaryResult.value
+    const gameSummary = gameLobbyResult.value
     if (gameSummary === undefined) {
       this.logger.error("Cannot resolve action context because game does not exist", { gameId, playerId })
       return Result.Failure("Game does not exist.")

@@ -4,14 +4,14 @@ import { type ReactElement, useEffect, useState } from "react"
 import type { PlayGameState } from "../PlayContext.tsx"
 import { GameStatusBadge } from "./GameStatusBadge.tsx"
 
-export function GameTopBar({ game, gameState }: { game: ApiTypes.GameSummary; gameState: PlayGameState }): ReactElement {
+export function GameTopBar({ game, gameState }: { game: ApiTypes.GameLobby; gameState: PlayGameState }): ReactElement {
   return (
     <header className="flex min-h-24 flex-col justify-center border-b border-border/70 bg-background/80 px-4 py-4 sm:px-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0 space-y-1">
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Game #{game.id}</div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">{game.settings.name}</h1>
+            <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">{game.configuration.name}</h1>
             <GameStatusBadge status={game.status} />
           </div>
         </div>
@@ -80,7 +80,7 @@ function TopBarFact({ icon, label, value, detail }: { icon: ReactElement; label:
   )
 }
 
-function getWinnerLabel(game: ApiTypes.GameSummary): string {
+function getWinnerLabel(game: ApiTypes.GameLobby): string {
   const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerAccountId)
 
   if (winner === undefined) {

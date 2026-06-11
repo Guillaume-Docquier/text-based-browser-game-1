@@ -11,7 +11,6 @@ import { GamesController } from "#api/games/games.controller.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
@@ -118,7 +117,6 @@ function createGamesController({ db, logger }: { db: Database; logger: Logger })
   return new GamesController({
     createTransaction: db.transaction.bind(db),
     gamesRepository: new GamesRepository({ db, logger }),
-    gameSettingsRepository: new GameSettingsRepository({ db, logger }),
     gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),

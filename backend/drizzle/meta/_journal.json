@@ -15,6 +15,13 @@
       "when": 1780890056108,
       "tag": "0001_players",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781137505596,
+      "tag": "0002_remove-game-settings",
+      "breakpoints": true
     }
   ]
 }

@@ -9,7 +9,6 @@ import { GamesController } from "#api/games/games.controller.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
 import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { GameSettingsRepository } from "#lib/db/games/gameSettings.repository.ts"
 import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
@@ -83,7 +82,6 @@ async function main({ connectionString, user }: { connectionString: string; user
     logger,
     gamesRepository,
     createTransaction: db.transaction.bind(db),
-    gameSettingsRepository: new GameSettingsRepository({ db, logger }),
     gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
@@ -194,18 +192,18 @@ async function seedGames({
   const insanelyFastGame = assertSuccess(
     await gamesController.createGame({
       createdByAccountId: firstAccount.id,
-      settings: { name: "insanely fast game", nbSeats: 5, tickIntervalSeconds: 60 },
+      configuration: { name: "insanely fast game", nbSeats: 5, tickIntervalSeconds: 60 },
     }),
   )
   assertSuccess(
     await gamesController.createGame({
       createdByAccountId: secondAccount.id,
-      settings: { name: "fast game", nbSeats: 10, tickIntervalSeconds: 7200 },
+      configuration: { name: "fast game", nbSeats: 10, tickIntervalSeconds: 7200 },
     }),
   )
   logger.info("├ Adding accounts to games")
-  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
-  assertSuccess(await gamesController.joinGame({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
+  assertSuccess(await gamesController.joinGameLobby({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
+  assertSuccess(await gamesController.joinGameLobby({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
   logger.info("└ Done")
 }
 

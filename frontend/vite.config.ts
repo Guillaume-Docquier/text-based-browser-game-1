@@ -13,7 +13,11 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       tailwindcss(),
-      tanstackRouter({ target: "react", autoCodeSplitting: true }),
+      tanstackRouter({
+        target: "react",
+        autoCodeSplitting: true,
+        routeTreeFileHeader: ["/* oxlint-disable */", "// @ts-nocheck", "// noinspection JSUnusedGlobalSymbols"],
+      }),
       react(),
       babel({ presets: [reactCompilerPreset()] }),
     ],
