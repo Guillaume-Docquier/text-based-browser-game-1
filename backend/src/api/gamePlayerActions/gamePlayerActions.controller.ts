@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 import type { GameId } from "#api/games/GameId.ts"
 import type { PlayerId } from "#api/games/PlayerId.ts"
+import type { GameLobbiesRepository } from "#api/lobbies/gameLobbies.repository.ts"
 import type { GamePlayerActionsRepository, GamePlayerActionModel } from "#lib/db/gamePlayerActions.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GAME_PLAYER_ACTION_RULES, type GamePlayerAction } from "#lib/gamePlayerActions.ts"

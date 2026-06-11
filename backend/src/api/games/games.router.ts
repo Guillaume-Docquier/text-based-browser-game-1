@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import z from "zod"
-import { LobbyDto } from "#api/game-lobbies/gameLobbies.controller.ts"
+import { LobbyDto } from "#api/lobbies/gameLobbies.controller.ts"
 import type { Trpc } from "#api/trpc.ts"
 import { type GamesController } from "./games.controller.ts"
 

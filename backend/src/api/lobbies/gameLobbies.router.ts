@@ -23,7 +23,7 @@ export function createGameLobbiesRouter({
   gameLobbiesController: GameLobbiesController
   logger: Logger
 }) {
-  const gameLobbiesRouterLogger = others.logger.child({ scope: "game-lobbies-router" })
+  const gameLobbiesRouterLogger = others.logger.child({ scope: "lobbies-router" })
 
   return trpc.router({
     create: trpc.privateProcedure

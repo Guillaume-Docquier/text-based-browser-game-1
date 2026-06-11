@@ -23,7 +23,7 @@ export class GameLobbiesController {
     createTransaction: CreateTransaction
     gameLobbiesRepository: GameLobbiesRepository
   }) {
-    this.logger = logger.child({ scope: "game-lobbies-controller" })
+    this.logger = logger.child({ scope: "lobbies-controller" })
     this.createTransaction = createTransaction
     this.gameLobbiesRepository = gameLobbiesRepository
   }

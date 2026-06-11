@@ -44,7 +44,7 @@ export class GameLobbiesRepository extends PostgresRepository {
 
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
-    this.logger = logger.child({ scope: "game-lobbies-repository" })
+    this.logger = logger.child({ scope: "lobbies-repository" })
   }
 
   public async createLobby(
