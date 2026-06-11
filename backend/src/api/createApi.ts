@@ -5,12 +5,12 @@ import express, { type Express } from "express"
 import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import type { IAuthService } from "#api/accounts/auth.service.ts"
-import { type GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
 import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
 import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 import { createGameStatesRouter } from "#api/gameStates/gameStates.router.ts"
+import { type ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { createLobbiesRouter } from "#api/lobbies/lobbies.router.ts"
@@ -52,7 +52,7 @@ export async function createApi({
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
   gamePlayerActionsRepository: GamePlayerActionsRepository
   starSystemsRepository: StarSystemsRepository
-  gameListingsRepository: GameListingsRepository
+  listingsRepository: ListingsRepository
   lobbiesRepository: LobbiesRepository
   gameplayRepository: GameplayRepository
 }): Promise<Express> {

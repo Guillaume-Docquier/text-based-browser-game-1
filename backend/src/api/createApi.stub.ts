@@ -3,8 +3,8 @@ import type { Express } from "express"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AuthServiceMock } from "#api/accounts/auth.service.mock.ts"
 import { createApi } from "#api/createApi.ts"
-import { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
+import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
@@ -36,7 +36,7 @@ export async function createApiStub(): Promise<AllServices & { api: Express }> {
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     accountsRepository: new AccountsRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
-    gameListingsRepository: new GameListingsRepository({ db, logger }),
+    listingsRepository: new ListingsRepository({ db, logger }),
     lobbiesRepository: new LobbiesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger }),
   } as const satisfies Parameters<typeof createApi>[0]
