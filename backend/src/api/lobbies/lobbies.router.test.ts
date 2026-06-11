@@ -23,16 +23,16 @@ describe("lobbies.router", () => {
       }
 
       // Act
-      const createGameResult = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
+      const createLobbyResult = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Assert
-      expect(createGameResult).toEqual<typeof createGameResult>({ createdGameId: expect.any(Number) })
+      expect(createLobbyResult).toEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
 
-      const createdGame = await trpcClient.client.lobbies.getById.query({ gameId: createGameResult.createdGameId })
+      const createdGame = await trpcClient.client.lobbies.getById.query({ gameId: createLobbyResult.createdGameId })
       const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
 
       expect(createdGame).toEqual<typeof createdGame>({
-        id: createGameResult.createdGameId,
+        id: createLobbyResult.createdGameId,
         createdAt: expect.any(String),
         configuration: {
           ...newGameSettings,
