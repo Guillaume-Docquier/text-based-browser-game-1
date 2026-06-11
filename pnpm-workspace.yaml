@@ -4,7 +4,7 @@ packages:
 
 catalog:
   "@guillaume-docquier/tools-ts": ^5.0.0
-  "@typescript/native-preview": 7.0.0-dev.20260421.2
+  "@typescript/native-preview": 7.0.0-dev.20260607.1
 
 minimumReleaseAgeExclude:
   - "@guillaume-docquier/tools-ts"
