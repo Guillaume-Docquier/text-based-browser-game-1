@@ -42,7 +42,7 @@ export function GamesBrowserPage(): ReactElement {
     )
   }
 
-  const listings = listingsQuery.data.filter((game) => game.name.includes(gameNameFilter))
+  const listings = listingsQuery.data.filter((listing) => listing.name.includes(gameNameFilter))
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
