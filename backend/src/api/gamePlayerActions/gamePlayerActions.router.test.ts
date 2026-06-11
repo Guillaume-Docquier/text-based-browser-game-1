@@ -16,7 +16,7 @@ describe("gamePlayerActions.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = account
 
-      const { createdGameId } = await trpcClient.client.games.create.mutate({
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
       await trpcClient.client.games.start.mutate({ gameId: createdGameId })
@@ -54,7 +54,7 @@ describe("gamePlayerActions.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const { createdGameId } = await trpcClient.client.games.create.mutate({
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "stale tick game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
       await trpcClient.client.games.start.mutate({ gameId: createdGameId })
@@ -81,7 +81,7 @@ describe("gamePlayerActions.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = account
 
-      const { createdGameId } = await trpcClient.client.games.create.mutate({
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
       await trpcClient.client.games.start.mutate({ gameId: createdGameId })

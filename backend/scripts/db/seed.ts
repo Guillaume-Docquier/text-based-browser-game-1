@@ -4,14 +4,10 @@ import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
 import { z } from "zod"
 import { AccountsRepository, type NewAccountModel, type AccountModel } from "#api/accounts/accounts.repository.ts"
-import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
-import { GamesController } from "#api/games/games.controller.ts"
+import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
+import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
-import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { gamesTable, accountsTable } from "#lib/db/schema.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
 
@@ -76,16 +72,11 @@ async function main({ connectionString, user }: { connectionString: string; user
 
   logger.info(`Creating services`)
   const db = createDb({ databaseUrl: connectionString })
-  const gamesRepository = new GamesRepository({ db, logger })
   const accountsRepository = new AccountsRepository({ db, logger })
-  const gamesController = new GamesController({
+  const lobbiesController = new LobbiesController({
     logger,
-    gamesRepository,
     createTransaction: db.transaction.bind(db),
-    gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
-    gameStatesRepository: new GameStatesRepository({ db, logger }),
-    gameTicksRepository: new GameTicksRepository({ db, logger }),
-    gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
+    lobbiesRepository: new LobbiesRepository({ db, logger }),
   })
 
   logger.info(`Seeding the '${host}' database with default values`)
@@ -94,7 +85,7 @@ async function main({ connectionString, user }: { connectionString: string; user
     const accounts = await seedAccounts({ db, user, logger, accountsRepository })
 
     logger.info("")
-    await seedGames({ db, accounts, logger, gamesController })
+    await seedGames({ db, accounts, logger, lobbiesController })
 
     logger.info("")
     logger.info("Seeding completed")
@@ -172,12 +163,12 @@ async function seedAccounts({
 async function seedGames({
   db,
   accounts,
-  gamesController,
+  lobbiesController,
   logger,
 }: {
   db: Database
   accounts: AccountModel[]
-  gamesController: GamesController
+  lobbiesController: LobbiesController
   logger: Logger
 }): Promise<void> {
   const [firstAccount, secondAccount, thirdAccount] = accounts
@@ -190,20 +181,20 @@ async function seedGames({
   await resetTable(db, gamesTable)
   logger.info("├ Adding default games")
   const insanelyFastGame = assertSuccess(
-    await gamesController.createGame({
+    await lobbiesController.createLobby({
       createdByAccountId: firstAccount.id,
       configuration: { name: "insanely fast game", nbSeats: 5, tickIntervalSeconds: 60 },
     }),
   )
   assertSuccess(
-    await gamesController.createGame({
+    await lobbiesController.createLobby({
       createdByAccountId: secondAccount.id,
       configuration: { name: "fast game", nbSeats: 10, tickIntervalSeconds: 7200 },
     }),
   )
   logger.info("├ Adding accounts to games")
-  assertSuccess(await gamesController.joinGameLobby({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
-  assertSuccess(await gamesController.joinGameLobby({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
+  assertSuccess(await lobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
+  assertSuccess(await lobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
   logger.info("└ Done")
 }
 

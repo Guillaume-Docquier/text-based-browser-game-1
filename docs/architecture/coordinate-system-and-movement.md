@@ -269,7 +269,7 @@ Movement edges are stored as directed rows. For undirected movement, the reposit
 
 We will need 1 new repository, the `StarSystemsRepository`. This repository will expose the persisted Star System:
 
-- `create`: Creates a Star System (orbits, sectors, bodies, movement graph, etc)
+- `createLobby`: Creates a Star System (orbits, sectors, bodies, movement graph, etc)
 - `getByGameId`: Gets a Star System (orbits, sectors, bodies, movement graph, etc)
 
 `getByGameId` should return something along the lines of:
@@ -445,9 +445,9 @@ Implementation steps:
 5. Represent Body types as `PLANET`, `MOON` and `ASTEROID`. Use a backend `BodyType` const object and derived union type. If the schema uses a Postgres enum, keep it as a Drizzle runtime schema construct, not a TypeScript enum.
 6. Follow the table definition for `movement_edges`: do not add an undocumented edge id just because the illustrative `MovementEdge` type above contains one. Return `{ fromNodeId, toNodeId, weight }` from API DTOs.
 7. Generate the migration with `pnpm --filter backend db:generate --name star-systems`.
-8. Implement `StarSystemsRepository` with public methods `create` and `getByGameId`.
+8. Implement `StarSystemsRepository` with public methods `createLobby` and `getByGameId`.
 9. Make repository methods return `Result`, wrap Drizzle calls in `Result.tryCatch`, log only where a new `Failure` is created, and accept an optional trailing `db = this.db` parameter for transaction reuse.
-10. Make `create` accept an already-generated Star System payload and insert the Star System, movement nodes, Orbits, Sectors, Bodies, and directed edges in one transaction. It must never leave orphan MovementNodes or partially inserted targets. Business logic not validated by the database through the specified constraints should be enforced by the controller, not the repository. The repository is only handling access patterns.
+10. Make `createLobby` accept an already-generated Star System payload and insert the Star System, movement nodes, Orbits, Sectors, Bodies, and directed edges in one transaction. It must never leave orphan MovementNodes or partially inserted targets. Business logic not validated by the database through the specified constraints should be enforced by the controller, not the repository. The repository is only handling access patterns.
 11. Make `getByGameId` return Orbits ordered by `orbit_number`, Sectors by `sector_number`, Bodies by `body_number`, generated coordinates like `02:11:05`, and a MovementGraph keyed by `MovementNodeId`. Account for the fact that numeric object keys serialize as strings over JSON/tRPC.
 12. Implement `StarSystemsController` with `getByGameId`. The method must first verify that the requesting player is in the game through `GamesRepository.hasPlayerJoinedGame(gameId, playerId)`.
 13. Return `Result` values for expected failures: missing game, player not in game, and missing Star System.
@@ -555,7 +555,7 @@ Implementation steps:
 
 1. Reuse `Range` from `@guillaume-docquier/tools-ts`.
 2. Keep `StarSystemGenerationSettings` in `backend/src/lib/db/star-systems/starSystemGenerationSettings.repository.ts`, matching the shape in this document exactly.
-3. Create a `CreateGameDto` in `backend/src/api/games/games.controller.ts`, then expand it to include the star system generation settings.
+3. Create a `CreateLobbyDto` in `backend/src/api/games/games.controller.ts`, then expand it to include the star system generation settings.
 4. Update the `games.create` router input to require `StarSystemGenerationSettings` alongside `name`, `nbSeats` and `tickIntervalSeconds`.
 5. Normalize a missing seed in `GamesController.create` to a random unsigned 32-bit integer before settings persistence. The value persisted in `star_system_generation_settings.seed` must always be numeric.
 6. Inject `StarSystemGenerationSettingsRepository` and `createTransaction` into `GamesController`.

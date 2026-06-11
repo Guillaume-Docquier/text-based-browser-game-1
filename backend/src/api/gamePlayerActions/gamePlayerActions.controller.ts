@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 import type { GameId } from "#api/games/GameId.ts"
 import type { PlayerId } from "#api/games/PlayerId.ts"
+import type { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import type { GamePlayerActionsRepository, GamePlayerActionModel } from "#lib/db/gamePlayerActions.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GAME_PLAYER_ACTION_RULES, type GamePlayerAction } from "#lib/gamePlayerActions.ts"
@@ -10,23 +10,23 @@ import { type GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
 export class GamePlayerActionsController {
   private readonly gamePlayerActionsRepository: GamePlayerActionsRepository
   private readonly gameStatesRepository: GameStatesRepository
-  private readonly gameLobbiesRepository: GameLobbiesRepository
+  private readonly lobbiesRepository: LobbiesRepository
   private readonly logger: Logger
 
   public constructor({
     gamePlayerActionsRepository,
     gameStatesRepository,
-    gameLobbiesRepository,
+    lobbiesRepository,
     logger,
   }: {
     gamePlayerActionsRepository: GamePlayerActionsRepository
     gameStatesRepository: GameStatesRepository
-    gameLobbiesRepository: GameLobbiesRepository
+    lobbiesRepository: LobbiesRepository
     logger: Logger
   }) {
     this.gamePlayerActionsRepository = gamePlayerActionsRepository
     this.gameStatesRepository = gameStatesRepository
-    this.gameLobbiesRepository = gameLobbiesRepository
+    this.lobbiesRepository = lobbiesRepository
     this.logger = logger.child({ scope: "game-player-actions-controller" })
   }
 
@@ -124,23 +124,23 @@ export class GamePlayerActionsController {
     gameId: GameId
     playerId: PlayerId
   }): Promise<Result<{ tick: number; money: number }, string>> {
-    const gameLobbyResult = await this.gameLobbiesRepository.getGameLobbyById({ gameId })
-    if (Result.isFailure(gameLobbyResult)) {
-      return gameLobbyResult
+    const lobbyResult = await this.lobbiesRepository.getLobbyById({ gameId })
+    if (Result.isFailure(lobbyResult)) {
+      return lobbyResult
     }
 
-    const gameSummary = gameLobbyResult.value
-    if (gameSummary === undefined) {
+    const lobby = lobbyResult.value
+    if (lobby === undefined) {
       this.logger.error("Cannot resolve action context because game does not exist", { gameId, playerId })
       return Result.Failure("Game does not exist.")
     }
 
-    if (gameSummary.startedAt === null) {
+    if (lobby.startedAt === null) {
       this.logger.error("Cannot resolve action context because game has not started", { gameId, playerId })
       return Result.Failure("Game has not started.")
     }
 
-    if (!gameSummary.players.some((player) => player.id === playerId)) {
+    if (!lobby.players.some((player) => player.id === playerId)) {
       this.logger.error("Cannot resolve action context because player is not in game", { gameId, playerId })
       return Result.Failure("Player is not in this game.")
     }

@@ -85,7 +85,7 @@ export function GamesBrowserPage(): ReactElement {
   )
 }
 
-function GameSummary({ game }: { game: ApiTypes.GameLobby }): ReactElement {
+function GameSummary({ game }: { game: ApiTypes.Lobby }): ReactElement {
   return (
     <Link to="/games/$gameId" params={{ gameId: game.id }} className="block">
       <Card size="sm" className="border border-border/60 transition-colors hover:bg-muted/40">

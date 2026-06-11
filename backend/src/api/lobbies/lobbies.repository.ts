@@ -11,49 +11,49 @@ import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemG
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
 
-export type GameLobbyConfiguration = {
+export type LobbyConfigurationModel = {
   name: string
   nbSeats: number
   tickIntervalSeconds: number
   starSystemGenerationSettings: StarSystemGenerationSettings
 }
 
-export type CreateGameLobbyModel = {
+export type CreateLobbyModel = {
   createdByAccountId: AccountId
-  configuration: GameLobbyConfiguration
+  configuration: LobbyConfigurationModel
 }
 
-export type GameLobbyModel = {
+export type LobbyModel = {
   id: GameId
   createdAt: Date
   startedAt: Date | null
   endedAt: Date | null
   winnerAccountId: AccountId | null
-  configuration: GameLobbyConfiguration
-  creator: GameLobbyPlayerModel
-  players: GameLobbyPlayerModel[]
+  configuration: LobbyConfigurationModel
+  creator: LobbyPlayerModel
+  players: LobbyPlayerModel[]
 }
 
-export type GameLobbyPlayerModel = {
+export type LobbyPlayerModel = {
   id: PlayerId
   alias: string | null
 }
 
-export class GameLobbiesRepository extends PostgresRepository {
+export class LobbiesRepository extends PostgresRepository {
   private readonly logger: Logger
 
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
-    this.logger = logger.child({ scope: "game-lobbies-repository" })
+    this.logger = logger.child({ scope: "lobbies-repository" })
   }
 
-  public async createGameLobby(
-    createGameLobbyModel: CreateGameLobbyModel,
+  public async createLobby(
+    createLobbyModel: CreateLobbyModel,
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ createdGameId: GameId }, string>> {
-    const createGameLobbyResult = await Result.tryCatch(
+    const createLobbyResult = await Result.tryCatch(
       db.transaction(async (tx) => {
-        const games = await tx.insert(gamesTable).values(toCreateGameRow(createGameLobbyModel)).returning()
+        const games = await tx.insert(gamesTable).values(toCreateGameRow(createLobbyModel)).returning()
         Assert.isTrue(games.length === 1)
         Assert.isDefined(games[0])
         const game = games[0]
@@ -64,18 +64,18 @@ export class GameLobbiesRepository extends PostgresRepository {
       }),
     )
 
-    if (Result.isFailure(createGameLobbyResult)) {
-      this.logger.error("Could not create game lobby", { createGameLobbyModel, error: createGameLobbyResult.error })
+    if (Result.isFailure(createLobbyResult)) {
+      this.logger.error("Could not create game lobby", { createLobbyModel, error: createLobbyResult.error })
       return Result.Failure(couldNot("create game lobby"))
     }
 
-    return createGameLobbyResult
+    return createLobbyResult
   }
 
   /**
    * Gets ALL the game lobbies. This only makes sense until we have real traffic.
    */
-  public async getGameLobbies(db: PostgresRepository["db"] = this.db): Promise<Result<GameLobbyModel[], string>> {
+  public async getLobbies(db: PostgresRepository["db"] = this.db): Promise<Result<LobbyModel[], string>> {
     const gameRowsResult = await Result.tryCatch(db.select().from(gamesTable))
     if (Result.isFailure(gameRowsResult)) {
       this.logger.error("Failed to get games", { error: gameRowsResult.error })
@@ -102,14 +102,14 @@ export class GameLobbiesRepository extends PostgresRepository {
     const playersByGameId = Map.groupBy(playersResult.value, (player) => player.gameId)
 
     return Result.Success(
-      gameRowsResult.value.map((gameRow) => ({ gameRow, players: playersByGameId.get(gameRow.id) ?? [] })).map(toGameLobbyModel),
+      gameRowsResult.value.map((gameRow) => ({ gameRow, players: playersByGameId.get(gameRow.id) ?? [] })).map(toLobbyModel),
     )
   }
 
-  public async getGameLobbyById(
+  public async getLobbyById(
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameLobbyModel | undefined, string>> {
+  ): Promise<Result<LobbyModel | undefined, string>> {
     const gameRowResult = await Result.tryCatch(db.select().from(gamesTable).where(eq(gamesTable.id, gameId)))
     if (Result.isFailure(gameRowResult)) {
       this.logger.error("Failed to get game", { gameId, error: gameRowResult.error })
@@ -137,14 +137,14 @@ export class GameLobbiesRepository extends PostgresRepository {
       return Result.Failure(couldNot("get players in the lobby"))
     }
 
-    return Result.Success(toGameLobbyModel({ gameRow, players: playersResult.value }))
+    return Result.Success(toLobbyModel({ gameRow, players: playersResult.value }))
   }
 
-  public async joinGameLobby(
+  public async joinLobby(
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ playerId: PlayerId }, string>> {
-    const joinGameLobbyResult = await Result.tryCatch(async () => {
+    const joinLobbyResult = await Result.tryCatch(async () => {
       const gamePlayers = await db.insert(playersTable).values({ gameId, playerId: accountId }).returning()
       Assert.isTrue(gamePlayers.length === 1)
       Assert.isDefined(gamePlayers[0])
@@ -152,15 +152,15 @@ export class GameLobbiesRepository extends PostgresRepository {
       return { playerId: gamePlayers[0].playerId }
     })
 
-    if (Result.isFailure(joinGameLobbyResult)) {
-      this.logger.error("Could not join game lobby", { gameId, accountId, error: joinGameLobbyResult.error })
+    if (Result.isFailure(joinLobbyResult)) {
+      this.logger.error("Could not join game lobby", { gameId, accountId, error: joinLobbyResult.error })
       return Result.Failure(couldNot("join game lobby"))
     }
 
-    return joinGameLobbyResult
+    return joinLobbyResult
   }
 
-  public async leaveGameLobby(
+  public async leaveLobby(
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
@@ -176,7 +176,7 @@ export class GameLobbiesRepository extends PostgresRepository {
     return Result.Success(true)
   }
 
-  public async hasAccountJoinedGame(
+  public async hasAccountJoinedLobby(
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<boolean, string>> {
@@ -199,14 +199,14 @@ export class GameLobbiesRepository extends PostgresRepository {
   }
 }
 
-function toCreateGameRow(createGameLobbyModel: CreateGameLobbyModel): CreateGameRow {
+function toCreateGameRow(createLobbyModel: CreateLobbyModel): CreateGameRow {
   return {
-    createdByAccountId: createGameLobbyModel.createdByAccountId,
-    ...createGameLobbyModel.configuration,
+    createdByAccountId: createLobbyModel.createdByAccountId,
+    ...createLobbyModel.configuration,
   }
 }
 
-function toGameLobbyModel({ gameRow, players }: { gameRow: GameRow; players: GameLobbyPlayerModel[] }): GameLobbyModel {
+function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPlayerModel[] }): LobbyModel {
   const creator = players.find((player) => player.id === gameRow.createdByAccountId)
   Assert.isDefined(creator)
 

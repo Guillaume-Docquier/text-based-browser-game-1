@@ -7,19 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Separator } from "../../components/separator.tsx"
 import { Skeleton } from "../../components/skeleton.tsx"
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
-import { formatGameLobbyStatus } from "../../lib/formatGameLobbyStatus.ts"
+import { formatLobbyStatus } from "../../lib/formatLobbyStatus.ts"
 import { useLogger } from "../../lib/LoggerContext.tsx"
 import { timeAgo } from "../../lib/timeAgo.ts"
 import { PageHeader } from "../PageHeader.tsx"
 import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 
-export function GameLobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
+export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
   const backendApiClient = useBackendApiClient()
-  const gameQuery = useQuery(backendApiClient.games.getGameLobbyById.queryOptions({ gameId }))
+  const gameQuery = useQuery(backendApiClient.lobbies.getById.queryOptions({ gameId }))
 
   if (gameQuery.isPending) {
-    return <GameLobbyLoadingState />
+    return <LobbyLoadingState />
   }
 
   if (gameQuery.isError) {
@@ -34,11 +34,11 @@ export function GameLobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactEle
   )
 }
 
-function Game({ game }: { game: ApiTypes.GameLobby }): ReactElement {
+function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const joinGame = useMutation(backendApiClient.games.join.mutationOptions())
-  const leaveGame = useMutation(backendApiClient.games.leave.mutationOptions())
+  const joinGame = useMutation(backendApiClient.lobbies.join.mutationOptions())
+  const leaveGame = useMutation(backendApiClient.lobbies.leave.mutationOptions())
   const startGame = useMutation(backendApiClient.games.start.mutationOptions())
 
   return (
@@ -55,7 +55,7 @@ function Game({ game }: { game: ApiTypes.GameLobby }): ReactElement {
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <DetailBlock label="Status" value={formatGameLobbyStatus(game.status)} />
+            <DetailBlock label="Status" value={formatLobbyStatus(game.status)} />
             <DetailBlock label="Seats" value={`${game.players.length}/${game.configuration.nbSeats} players`} />
             <div className="space-y-1">
               <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Creator</div>
@@ -134,7 +134,7 @@ function DetailBlock({ label, value }: { label: string; value: string }): ReactE
   )
 }
 
-function Player({ player }: { player: ApiTypes.GameLobbyPlayer }): ReactElement {
+function Player({ player }: { player: ApiTypes.LobbyPlayer }): ReactElement {
   return (
     <div className="rounded-3xl border border-border/60 bg-muted/20 px-4 py-3">
       <div className="font-medium text-foreground">{player.alias ?? `Player ${player.id}`}</div>
@@ -142,7 +142,7 @@ function Player({ player }: { player: ApiTypes.GameLobbyPlayer }): ReactElement 
   )
 }
 
-function GameLobbyLoadingState(): ReactElement {
+function LobbyLoadingState(): ReactElement {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <PageHeader
@@ -170,7 +170,7 @@ function GameLobbyLoadingState(): ReactElement {
   )
 }
 
-function getWinnerLabel(game: ApiTypes.GameLobby): string {
+function getWinnerLabel(game: ApiTypes.Lobby): string {
   const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerAccountId)
   if (winner === undefined) {
     return `Player ${game.winnerAccountId}`

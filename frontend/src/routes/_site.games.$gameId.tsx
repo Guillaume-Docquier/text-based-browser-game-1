@@ -1,14 +1,14 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { z } from "zod"
-import { GameLobbyPage } from "../features/games/GameLobbyPage.tsx"
+import { LobbyPage } from "../features/games/LobbyPage.tsx"
 
 const paramsSchema = z.object({
   gameId: z.coerce.number(),
 })
 
 export const Route = createFileRoute("/_site/games/$gameId")({
-  component: GameLobbyRoute,
+  component: LobbyRoute,
   params: {
     parse: (params) => paramsSchema.parse(params),
   },
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_site/games/$gameId")({
   },
 })
 
-function GameLobbyRoute(): ReactElement {
+function LobbyRoute(): ReactElement {
   const { gameId } = Route.useParams()
-  return <GameLobbyPage gameId={gameId} />
+  return <LobbyPage gameId={gameId} />
 }

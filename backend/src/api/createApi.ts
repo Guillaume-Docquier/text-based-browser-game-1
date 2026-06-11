@@ -6,12 +6,14 @@ import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import type { IAuthService } from "#api/accounts/auth.service.ts"
 import { type GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
-import { type GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
 import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
 import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
 import { createGameStatesRouter } from "#api/gameStates/gameStates.router.ts"
+import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
+import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import { createLobbiesRouter } from "#api/lobbies/lobbies.router.ts"
 import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -51,12 +53,13 @@ export async function createApi({
   gamePlayerActionsRepository: GamePlayerActionsRepository
   starSystemsRepository: StarSystemsRepository
   gameListingsRepository: GameListingsRepository
-  gameLobbiesRepository: GameLobbiesRepository
+  lobbiesRepository: LobbiesRepository
   gameplayRepository: GameplayRepository
 }): Promise<Express> {
   const controllerServices = { ...services, createTransaction }
   const controllers = {
     gamesController: new GamesController(controllerServices),
+    lobbiesController: new LobbiesController(controllerServices),
     gameStatesController: new GameStatesController(controllerServices),
     accountsController: new AccountsController(controllerServices),
     gamePlayerActionsController: new GamePlayerActionsController(controllerServices),
@@ -83,6 +86,7 @@ export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: {
   gamesController: GamesController
+  lobbiesController: LobbiesController
   gameStatesController: GameStatesController
   gamePlayerActionsController: GamePlayerActionsController
   starSystemsController: StarSystemsController
@@ -93,6 +97,7 @@ function createTrpcRouter(services: {
 
   return trpc.router({
     games: createGamesRouter(routerServices),
+    lobbies: createLobbiesRouter(routerServices),
     gameStates: createGameStatesRouter(routerServices),
     gamePlayerActions: createGamePlayerActionsRouter(routerServices),
     starSystems: createStarSystemsRouter(routerServices),

@@ -4,8 +4,8 @@ import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AuthService } from "#api/accounts/auth.service.ts"
 import { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
-import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
+import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { createDb } from "#lib/db/createDb.ts"
@@ -50,7 +50,7 @@ async function main(): Promise<void> {
     gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
     gameListingsRepository: new GameListingsRepository({ db, logger }),
-    gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
+    lobbiesRepository: new LobbiesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger }),
   }
 
