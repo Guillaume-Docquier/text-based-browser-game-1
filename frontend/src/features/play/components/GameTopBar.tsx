@@ -4,7 +4,7 @@ import { type ReactElement, useEffect, useState } from "react"
 import type { PlayGameState } from "../PlayContext.tsx"
 import { GameStatusBadge } from "./GameStatusBadge.tsx"
 
-export function GameTopBar({ game, gameState }: { game: ApiTypes.GameLobby; gameState: PlayGameState }): ReactElement {
+export function GameTopBar({ game, gameState }: { game: ApiTypes.Lobby; gameState: PlayGameState }): ReactElement {
   return (
     <header className="flex min-h-24 flex-col justify-center border-b border-border/70 bg-background/80 px-4 py-4 sm:px-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -80,7 +80,7 @@ function TopBarFact({ icon, label, value, detail }: { icon: ReactElement; label:
   )
 }
 
-function getWinnerLabel(game: ApiTypes.GameLobby): string {
+function getWinnerLabel(game: ApiTypes.Lobby): string {
   const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerAccountId)
 
   if (winner === undefined) {

@@ -55,7 +55,7 @@ export class LobbiesController {
       return undefined
     }
 
-    return toGameLobbyDto({ lobbyModel, playerId })
+    return toLobbyDto({ lobbyModel, playerId })
   }
 
   public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
@@ -69,7 +69,7 @@ export class LobbiesController {
           throw new TransactionRollback("Cannot join game lobby, it could not be found")
         }
 
-        if (!toGameLobbyDto({ lobbyModel, playerId: accountId }).canJoin) {
+        if (!toLobbyDto({ lobbyModel, playerId: accountId }).canJoin) {
           throw new TransactionRollback("Cannot join game lobby, this player is not allowed to join it at the moment")
         }
 
@@ -99,7 +99,7 @@ export class LobbiesController {
           throw new TransactionRollback("Cannot leave game lobby, it could not be found")
         }
 
-        if (!toGameLobbyDto({ lobbyModel, playerId: accountId }).canLeave) {
+        if (!toLobbyDto({ lobbyModel, playerId: accountId }).canLeave) {
           throw new TransactionRollback("Cannot leave game lobby, this player is not allowed to leave it at the moment")
         }
 
@@ -117,27 +117,27 @@ export class LobbiesController {
   }
 }
 
-export function toGameLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; playerId: PlayerId | undefined }): LobbyDto {
+export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; playerId: PlayerId | undefined }): LobbyDto {
   // oxfmt-ignore
   const status =
-    lobbyModel.endedAt !== null ? GameLobbyStatus.ENDED
-    : lobbyModel.startedAt !== null ? GameLobbyStatus.STARTED
-    : lobbyModel.players.length >= lobbyModel.configuration.nbSeats ? GameLobbyStatus.READY_TO_START
-    : GameLobbyStatus.WAITING_FOR_PLAYERS
+    lobbyModel.endedAt !== null ? LobbyStatus.ENDED
+    : lobbyModel.startedAt !== null ? LobbyStatus.STARTED
+    : lobbyModel.players.length >= lobbyModel.configuration.nbSeats ? LobbyStatus.READY_TO_START
+    : LobbyStatus.WAITING_FOR_PLAYERS
 
   const canJoin =
-    playerId !== undefined && status === GameLobbyStatus.WAITING_FOR_PLAYERS && lobbyModel.players.every((player) => player.id !== playerId)
+    playerId !== undefined && status === LobbyStatus.WAITING_FOR_PLAYERS && lobbyModel.players.every((player) => player.id !== playerId)
 
   const canLeave =
     playerId !== undefined &&
     // status < GameSummaryStatus.STARTED would be more future proof
-    (status === GameLobbyStatus.WAITING_FOR_PLAYERS || status === GameLobbyStatus.READY_TO_START) &&
+    (status === LobbyStatus.WAITING_FOR_PLAYERS || status === LobbyStatus.READY_TO_START) &&
     lobbyModel.creator.id !== playerId &&
     lobbyModel.players.some((player) => player.id === playerId)
 
   const canStart =
     playerId !== undefined &&
-    (status === GameLobbyStatus.WAITING_FOR_PLAYERS || status === GameLobbyStatus.READY_TO_START) &&
+    (status === LobbyStatus.WAITING_FOR_PLAYERS || status === LobbyStatus.READY_TO_START) &&
     lobbyModel.creator.id === playerId
 
   return {
@@ -202,7 +202,7 @@ export const GameConfigurationDto = z.object({
   tickIntervalSeconds: z.number(),
 })
 
-export const GameLobbyStatus = {
+export const LobbyStatus = {
   WAITING_FOR_PLAYERS: "WAITING_FOR_PLAYERS",
   READY_TO_START: "READY_TO_START",
   STARTED: "STARTED",
@@ -225,7 +225,7 @@ export const LobbyDto = z.object({
   endedAt: z.date().nullable(),
   creator: LobbyPlayerDto,
   players: z.array(LobbyPlayerDto),
-  status: z.enum(GameLobbyStatus),
+  status: z.enum(LobbyStatus),
   /**
    * Whether the current player can join the game.
    */

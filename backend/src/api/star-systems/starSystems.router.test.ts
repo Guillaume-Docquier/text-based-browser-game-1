@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import type { GameId } from "#api/games/GameId.ts"
-import { createCreateGameDtoStub } from "#api/lobbies/CreateGameDto.stub.ts"
+import { createCreateLobbyDtoStub } from "#api/lobbies/CreateLobbyDto.stub.ts"
 import { type NewStarSystemModel, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
@@ -19,7 +19,7 @@ describe("starSystems.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate(createCreateGameDtoStub())
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate(createCreateLobbyDtoStub())
       const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createdGameId })
 
       // Act
@@ -137,7 +137,7 @@ describe("starSystems.router", () => {
       const outsider = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Outsider" })))
       authService.account = creator
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate(createCreateGameDtoStub())
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate(createCreateLobbyDtoStub())
       await createStoredStarSystem({ starSystemsRepository, gameId: createdGameId })
       authService.account = outsider
 
@@ -154,7 +154,7 @@ describe("starSystems.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate(createCreateGameDtoStub())
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate(createCreateLobbyDtoStub())
 
       // Act & Assert
       await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createdGameId })).rejects.toMatchObject({

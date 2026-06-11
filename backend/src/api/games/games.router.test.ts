@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { type CreateLobbyDto, type LobbyPlayerDto, GameLobbyStatus } from "#api/lobbies/lobbies.controller.ts"
+import { type CreateLobbyDto, type LobbyPlayerDto, LobbyStatus } from "#api/lobbies/lobbies.controller.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
@@ -47,7 +47,7 @@ describe("games.router", () => {
           startedAt: null,
           creator,
           players: [creator],
-          status: GameLobbyStatus.WAITING_FOR_PLAYERS,
+          status: LobbyStatus.WAITING_FOR_PLAYERS,
           canJoin: false, // because anonymous
           canLeave: false, // because not in the game
           canStart: false, // because not the creator
@@ -95,7 +95,7 @@ describe("games.router", () => {
           startedAt: null,
           creator,
           players: [creator],
-          status: GameLobbyStatus.WAITING_FOR_PLAYERS,
+          status: LobbyStatus.WAITING_FOR_PLAYERS,
           canJoin: true, // because not in the game
           canLeave: false, // because not in the game
           canStart: false, // because not the creator
@@ -142,7 +142,7 @@ describe("games.router", () => {
         startedAt: expect.any(String),
         creator,
         players: [creator],
-        status: GameLobbyStatus.STARTED,
+        status: LobbyStatus.STARTED,
         canJoin: false, // Because started
         canLeave: false, // Because started
         canStart: false, // Because started

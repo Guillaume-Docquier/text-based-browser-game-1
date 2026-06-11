@@ -1,7 +1,7 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { type GameId } from "#api/games/GameId.ts"
 import { type PlayerId } from "#api/games/PlayerId.ts"
-import { type LobbyDto, toGameLobbyDto } from "#api/lobbies/lobbies.controller.ts"
+import { type LobbyDto, toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
@@ -57,7 +57,7 @@ export class GamesController {
       return []
     }
 
-    return lobbiesResult.value.map((lobbyModel) => toGameLobbyDto({ lobbyModel, playerId }))
+    return lobbiesResult.value.map((lobbyModel) => toLobbyDto({ lobbyModel, playerId }))
   }
 
   public async startGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<LobbyDto, string>> {
@@ -71,7 +71,7 @@ export class GamesController {
           throw new TransactionRollback("Cannot start game, the lobby could not be found")
         }
 
-        if (!toGameLobbyDto({ lobbyModel, playerId }).canStart) {
+        if (!toLobbyDto({ lobbyModel, playerId }).canStart) {
           throw new TransactionRollback("Cannot start game, this player is not allowed to start it at the moment")
         }
 
@@ -116,6 +116,6 @@ export class GamesController {
     Assert.isSuccess(lobbyResult)
     Assert.isDefined(lobbyResult.value)
 
-    return Result.Success(toGameLobbyDto({ lobbyModel: lobbyResult.value, playerId }))
+    return Result.Success(toLobbyDto({ lobbyModel: lobbyResult.value, playerId }))
   }
 }

@@ -10,7 +10,7 @@ export function GameLayout({
   gameState,
   children,
 }: {
-  game: ApiTypes.GameLobby
+  game: ApiTypes.Lobby
   gameState: PlayGameState
   children: ReactNode
 }): ReactElement {

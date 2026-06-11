@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import type { GameId } from "#api/games/GameId.ts"
-import { createCreateGameDtoStub } from "#api/lobbies/CreateGameDto.stub.ts"
+import { createCreateLobbyDtoStub } from "#api/lobbies/CreateLobbyDto.stub.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
@@ -27,7 +27,7 @@ describe("starSystems.repository", () => {
       const lobbiesController = createGameLobbiesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await lobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await lobbiesController.createLobby(createCreateLobbyDtoStub({ createdByAccountId: account.id })))
 
       const system = createCoherentStarSystem({ gameId: game.createdGameId })
       const firstSector = system.sectors[0]
@@ -68,7 +68,7 @@ describe("starSystems.repository", () => {
       const lobbiesController = createGameLobbiesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await lobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await lobbiesController.createLobby(createCreateLobbyDtoStub({ createdByAccountId: account.id })))
 
       const system1 = createCoherentStarSystem({ gameId: game.createdGameId })
       const system2 = createCoherentStarSystem({ gameId: game.createdGameId })
@@ -90,7 +90,7 @@ describe("starSystems.repository", () => {
       const lobbiesController = createGameLobbiesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await lobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await lobbiesController.createLobby(createCreateLobbyDtoStub({ createdByAccountId: account.id })))
 
       const system = createIncoherentStarSystem({ gameId: game.createdGameId })
 

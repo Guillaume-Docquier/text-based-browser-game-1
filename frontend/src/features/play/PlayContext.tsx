@@ -10,7 +10,7 @@ export type PlayGameState = {
 }
 
 export type PlayGameContextValue = {
-  game: ApiTypes.GameLobby
+  game: ApiTypes.Lobby
   gameState: PlayGameState
 }
 
