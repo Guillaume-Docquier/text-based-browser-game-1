@@ -32,17 +32,17 @@ export class GameListingsRepository extends PostgresRepository {
     const listingsResults = await Result.tryCatch(
       db
         .select({
-          id: playersTable.gameId,
+          id: gamesTable.id,
           name: gamesTable.name,
-          nbPlayers: count(),
+          nbPlayers: count(playersTable.playerId),
           nbSeats: gamesTable.nbSeats,
           createdAt: gamesTable.createdAt,
           startedAt: gamesTable.startedAt,
           endedAt: gamesTable.endedAt,
         })
-        .from(playersTable)
-        .innerJoin(gamesTable, eq(playersTable.gameId, gamesTable.id))
-        .groupBy(playersTable.gameId),
+        .from(gamesTable)
+        .leftJoin(playersTable, eq(playersTable.gameId, gamesTable.id))
+        .groupBy(gamesTable.id),
     )
     if (Result.isFailure(listingsResults)) {
       this.logger.error("Failed to get listings", { error: listingsResults.error })
