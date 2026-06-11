@@ -1,5 +1,5 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { type GameLobbyDto, toGameLobbyDto } from "#api/game-lobbies/gameLobbies.controller.ts"
+import { type LobbyDto, toGameLobbyDto } from "#api/game-lobbies/gameLobbies.controller.ts"
 import { type GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 import { type GameId } from "#api/games/GameId.ts"
 import { type PlayerId } from "#api/games/PlayerId.ts"
@@ -50,8 +50,8 @@ export class GamesController {
   /**
    * Gets ALL the game lobbies. This only makes sense until we have real traffic.
    */
-  public async getGameLobbies({ playerId }: { playerId: PlayerId | undefined }): Promise<GameLobbyDto[]> {
-    const gameLobbiesResult = await this.gameLobbiesRepository.getGameLobbies()
+  public async getGameLobbies({ playerId }: { playerId: PlayerId | undefined }): Promise<LobbyDto[]> {
+    const gameLobbiesResult = await this.gameLobbiesRepository.getLobbies()
     if (Result.isFailure(gameLobbiesResult)) {
       this.logger.error("Could not get game lobbies, returning empty array", { playerId, error: gameLobbiesResult.error })
       return []
@@ -60,10 +60,10 @@ export class GamesController {
     return gameLobbiesResult.value.map((gameLobbyModel) => toGameLobbyDto({ gameLobbyModel, playerId }))
   }
 
-  public async startGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<GameLobbyDto, string>> {
+  public async startGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<LobbyDto, string>> {
     const gameStartResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
-        const gameLobbyResult = await this.gameLobbiesRepository.getGameLobbyById({ gameId }, tx)
+        const gameLobbyResult = await this.gameLobbiesRepository.getLobbyById({ gameId }, tx)
         rollbackOnFailure(gameLobbyResult, "Failed to get game lobby")
 
         const gameLobbyModel = gameLobbyResult.value
@@ -112,7 +112,7 @@ export class GamesController {
       return Result.Failure(couldNot("start game"))
     }
 
-    const gameLobbyResult = await this.gameLobbiesRepository.getGameLobbyById({ gameId })
+    const gameLobbyResult = await this.gameLobbiesRepository.getLobbyById({ gameId })
     Assert.isSuccess(gameLobbyResult)
     Assert.isDefined(gameLobbyResult.value)
 

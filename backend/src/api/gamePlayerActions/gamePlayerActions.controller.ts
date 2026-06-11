@@ -124,7 +124,7 @@ export class GamePlayerActionsController {
     gameId: GameId
     playerId: PlayerId
   }): Promise<Result<{ tick: number; money: number }, string>> {
-    const gameLobbyResult = await this.gameLobbiesRepository.getGameLobbyById({ gameId })
+    const gameLobbyResult = await this.gameLobbiesRepository.getLobbyById({ gameId })
     if (Result.isFailure(gameLobbyResult)) {
       return gameLobbyResult
     }

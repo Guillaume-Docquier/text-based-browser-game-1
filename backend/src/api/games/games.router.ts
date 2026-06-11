@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import z from "zod"
-import { GameLobbyDto } from "#api/game-lobbies/gameLobbies.controller.ts"
+import { LobbyDto } from "#api/game-lobbies/gameLobbies.controller.ts"
 import type { Trpc } from "#api/trpc.ts"
 import { type GamesController } from "./games.controller.ts"
 
@@ -18,7 +18,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
     /**
      * Gets all game lobbies, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getGameLobbies: trpc.publicProcedure.output(z.array(GameLobbyDto)).query(async ({ ctx: { account } }) => {
+    getGameLobbies: trpc.publicProcedure.output(z.array(LobbyDto)).query(async ({ ctx: { account } }) => {
       const games = await gamesController.getGameLobbies({ playerId: account?.id })
 
       gamesRouterLogger.info("GET games", { count: games.length })
@@ -30,7 +30,7 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
      */
     start: trpc.privateProcedure
       .input(z.object({ gameId: z.coerce.number() }))
-      .output(GameLobbyDto)
+      .output(LobbyDto)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
         const startGameResult = await gamesController.startGame({ gameId, playerId: account.id })
         if (Result.isFailure(startGameResult)) {

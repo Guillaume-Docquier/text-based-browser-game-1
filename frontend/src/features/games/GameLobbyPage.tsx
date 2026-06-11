@@ -16,7 +16,7 @@ import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 export function GameLobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
   const backendApiClient = useBackendApiClient()
-  const gameQuery = useQuery(backendApiClient.gameLobbies.getGameLobbyById.queryOptions({ gameId }))
+  const gameQuery = useQuery(backendApiClient.gameLobbies.getById.queryOptions({ gameId }))
 
   if (gameQuery.isPending) {
     return <GameLobbyLoadingState />

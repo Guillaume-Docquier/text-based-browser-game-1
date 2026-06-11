@@ -85,7 +85,7 @@ export class StarSystemsController {
   }
 
   private async canReadGame({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<boolean, string>> {
-    return await this.gameLobbiesRepository.hasAccountJoinedGame({ gameId, accountId })
+    return await this.gameLobbiesRepository.hasAccountJoinedLobby({ gameId, accountId })
   }
 
   private notAuthorizedFailure({ accountId, gameId }: { accountId: AccountId; gameId: GameId }): Failure<string> {

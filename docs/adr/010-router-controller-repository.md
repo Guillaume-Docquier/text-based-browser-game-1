@@ -33,7 +33,7 @@ Repositories represent data access patterns (aka queries) and are not restricted
 
 Repository and database types should follow these naming conventions:
 
-- Repository exposes `Model` suffixed types. (for example: `CreateGameLobbyModel`, `GameModel`).
+- Repository exposes `Model` suffixed types. (for example: `CreateLobbyModel`, `GameModel`).
 - Internal database query row shapes use the `Row` suffix (for example: `GameRow`).
 - `Row` types are internal repository implementation details and must never be exported. This keeps database architecture decoupled from the rest of the application.
 

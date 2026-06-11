@@ -1,7 +1,7 @@
 import { v4 } from "uuid"
-import type { CreateGameDto } from "#api/game-lobbies/gameLobbies.controller.ts"
+import type { CreateLobbyDto } from "#api/game-lobbies/gameLobbies.controller.ts"
 
-export function createCreateGameDtoStub(overrides?: Partial<CreateGameDto>): CreateGameDto {
+export function createCreateGameDtoStub(overrides?: Partial<CreateLobbyDto>): CreateLobbyDto {
   return {
     createdByAccountId: v4(),
     configuration: {

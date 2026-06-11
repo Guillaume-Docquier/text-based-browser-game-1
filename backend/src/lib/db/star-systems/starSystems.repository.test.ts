@@ -27,7 +27,7 @@ describe("starSystems.repository", () => {
       const gameLobbiesController = createGameLobbiesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gameLobbiesController.createGame(createCreateGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await gameLobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
       const system = createCoherentStarSystem({ gameId: game.createdGameId })
       const firstSector = system.sectors[0]
@@ -68,7 +68,7 @@ describe("starSystems.repository", () => {
       const gameLobbiesController = createGameLobbiesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gameLobbiesController.createGame(createCreateGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await gameLobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
       const system1 = createCoherentStarSystem({ gameId: game.createdGameId })
       const system2 = createCoherentStarSystem({ gameId: game.createdGameId })
@@ -90,7 +90,7 @@ describe("starSystems.repository", () => {
       const gameLobbiesController = createGameLobbiesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gameLobbiesController.createGame(createCreateGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await gameLobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
       const system = createIncoherentStarSystem({ gameId: game.createdGameId })
 

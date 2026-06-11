@@ -7,7 +7,7 @@ import { RangeDto } from "#api/RangeDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
-import { type GameLobbiesRepository, type GameLobbyModel } from "./gameLobbies.repository.ts"
+import { type GameLobbiesRepository, type LobbyModel } from "./gameLobbies.repository.ts"
 
 export class GameLobbiesController {
   private readonly logger: Logger
@@ -28,8 +28,8 @@ export class GameLobbiesController {
     this.gameLobbiesRepository = gameLobbiesRepository
   }
 
-  public async createGame(newGame: CreateGameDto): Promise<Result<CreatedGameDto, string>> {
-    const createGameResult = await this.gameLobbiesRepository.createGameLobby({
+  public async createLobby(newGame: CreateLobbyDto): Promise<Result<CreatedLobbyDto, string>> {
+    const createGameResult = await this.gameLobbiesRepository.createLobby({
       createdByAccountId: newGame.createdByAccountId,
       configuration: {
         ...newGame.configuration,
@@ -43,14 +43,8 @@ export class GameLobbiesController {
     return createGameResult
   }
 
-  public async getGameLobbyById({
-    gameId,
-    playerId,
-  }: {
-    gameId: GameId
-    playerId: PlayerId | undefined
-  }): Promise<GameLobbyDto | undefined> {
-    const gameLobbyResult = await this.gameLobbiesRepository.getGameLobbyById({ gameId })
+  public async getLobbyById({ gameId, playerId }: { gameId: GameId; playerId: PlayerId | undefined }): Promise<LobbyDto | undefined> {
+    const gameLobbyResult = await this.gameLobbiesRepository.getLobbyById({ gameId })
     if (Result.isFailure(gameLobbyResult)) {
       this.logger.error("Could not get game summary, returning undefined", { gameId, playerId, error: gameLobbyResult.error })
       return undefined
@@ -64,10 +58,10 @@ export class GameLobbiesController {
     return toGameLobbyDto({ gameLobbyModel, playerId })
   }
 
-  public async joinGameLobby({ gameId, accountId }: JoinGameDto): Promise<Result<JoinedGameDto, string>> {
+  public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
     const joinGameResult = await Result.tryCatch(
       this.createTransaction(async (tx) => {
-        const gameLobbyModelResult = await this.gameLobbiesRepository.getGameLobbyById({ gameId }, tx)
+        const gameLobbyModelResult = await this.gameLobbiesRepository.getLobbyById({ gameId }, tx)
         rollbackOnFailure(gameLobbyModelResult, "Failed to get game lobby")
 
         const gameLobbyModel = gameLobbyModelResult.value
@@ -79,7 +73,7 @@ export class GameLobbiesController {
           throw new TransactionRollback("Cannot join game lobby, this player is not allowed to join it at the moment")
         }
 
-        const joinResult = await this.gameLobbiesRepository.joinGameLobby({ gameId, accountId }, tx)
+        const joinResult = await this.gameLobbiesRepository.joinLobby({ gameId, accountId }, tx)
         rollbackOnFailure(joinResult, "Failed to join game")
 
         return joinResult.value
@@ -94,10 +88,10 @@ export class GameLobbiesController {
     return joinGameResult
   }
 
-  public async leaveGameLobby({ gameId, accountId }: LeaveGameDto): Promise<Result<LeftGameDto, string>> {
+  public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
     const leaveGameResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
-        const gameLobbyResult = await this.gameLobbiesRepository.getGameLobbyById({ gameId }, tx)
+        const gameLobbyResult = await this.gameLobbiesRepository.getLobbyById({ gameId }, tx)
         rollbackOnFailure(gameLobbyResult, "Failed to get game lobby")
 
         const gameLobbyModel = gameLobbyResult.value
@@ -109,7 +103,7 @@ export class GameLobbiesController {
           throw new TransactionRollback("Cannot leave game lobby, this player is not allowed to leave it at the moment")
         }
 
-        const leaveResult = await this.gameLobbiesRepository.leaveGameLobby({ gameId, accountId }, tx)
+        const leaveResult = await this.gameLobbiesRepository.leaveLobby({ gameId, accountId }, tx)
         rollbackOnFailure(leaveResult, "Failed to leave game lobby")
       }),
     )
@@ -123,13 +117,7 @@ export class GameLobbiesController {
   }
 }
 
-export function toGameLobbyDto({
-  gameLobbyModel,
-  playerId,
-}: {
-  gameLobbyModel: GameLobbyModel
-  playerId: PlayerId | undefined
-}): GameLobbyDto {
+export function toGameLobbyDto({ gameLobbyModel, playerId }: { gameLobbyModel: LobbyModel; playerId: PlayerId | undefined }): LobbyDto {
   // oxfmt-ignore
   const status =
     gameLobbyModel.endedAt !== null ? GameLobbyStatus.ENDED
@@ -163,8 +151,8 @@ export function toGameLobbyDto({
   }
 }
 
-export type CreateGameDto = z.infer<typeof CreateGameDto>
-export const CreateGameDto = z.object({
+export type CreateLobbyDto = z.infer<typeof CreateLobbyDto>
+export const CreateLobbyDto = z.object({
   createdByAccountId: AccountId,
   configuration: z.object({
     name: z.string(),
@@ -173,30 +161,30 @@ export const CreateGameDto = z.object({
   }),
 })
 
-export type CreatedGameDto = z.infer<typeof CreatedGameDto>
-export const CreatedGameDto = z.object({
+export type CreatedLobbyDto = z.infer<typeof CreatedLobbyDto>
+export const CreatedLobbyDto = z.object({
   createdGameId: GameId,
 })
 
-export type JoinGameDto = z.infer<typeof JoinGameDto>
-export const JoinGameDto = z.object({
+export type JoinLobbyDto = z.infer<typeof JoinLobbyDto>
+export const JoinLobbyDto = z.object({
   gameId: GameId,
   accountId: AccountId,
 })
 
-export type JoinedGameDto = z.infer<typeof JoinedGameDto>
-export const JoinedGameDto = z.object({
+export type JoinedLobbyDto = z.infer<typeof JoinedLobbyDto>
+export const JoinedLobbyDto = z.object({
   playerId: PlayerId,
 })
 
-export type LeaveGameDto = z.infer<typeof LeaveGameDto>
-export const LeaveGameDto = z.object({
+export type LeaveLobbyDto = z.infer<typeof LeaveLobbyDto>
+export const LeaveLobbyDto = z.object({
   gameId: GameId,
   accountId: AccountId,
 })
 
-export type LeftGameDto = z.infer<typeof LeftGameDto>
-export const LeftGameDto = z.literal(true)
+export type LeftLobbyDto = z.infer<typeof LeftLobbyDto>
+export const LeftLobbyDto = z.literal(true)
 
 export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
 export const StarSystemGenerationSettingsDto = z.object({
@@ -223,22 +211,22 @@ export const GameLobbyStatus = {
   ENDED: "ENDED",
 } as const
 
-export type GameLobbyPlayerDto = z.infer<typeof GameLobbyPlayerDto>
-export const GameLobbyPlayerDto = z.object({
+export type LobbyPlayerDto = z.infer<typeof LobbyPlayerDto>
+export const LobbyPlayerDto = z.object({
   id: PlayerId,
   alias: z.string().nullable(),
 })
 
-export type GameLobbyDto = z.infer<typeof GameLobbyDto>
-export const GameLobbyDto = z.object({
+export type LobbyDto = z.infer<typeof LobbyDto>
+export const LobbyDto = z.object({
   id: GameId,
   winnerAccountId: AccountId.nullable(),
   configuration: GameConfigurationDto,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
-  creator: GameLobbyPlayerDto,
-  players: z.array(GameLobbyPlayerDto),
+  creator: LobbyPlayerDto,
+  players: z.array(LobbyPlayerDto),
   status: z.enum(GameLobbyStatus),
   /**
    * Whether the current player can join the game.

@@ -11,30 +11,30 @@ import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemG
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
 
-export type GameLobbyConfiguration = {
+export type GameConfiguration = {
   name: string
   nbSeats: number
   tickIntervalSeconds: number
   starSystemGenerationSettings: StarSystemGenerationSettings
 }
 
-export type CreateGameLobbyModel = {
+export type CreateLobbyModel = {
   createdByAccountId: AccountId
-  configuration: GameLobbyConfiguration
+  configuration: GameConfiguration
 }
 
-export type GameLobbyModel = {
+export type LobbyModel = {
   id: GameId
   createdAt: Date
   startedAt: Date | null
   endedAt: Date | null
   winnerAccountId: AccountId | null
-  configuration: GameLobbyConfiguration
-  creator: GameLobbyPlayerModel
-  players: GameLobbyPlayerModel[]
+  configuration: GameConfiguration
+  creator: LobbyPlayerModel
+  players: LobbyPlayerModel[]
 }
 
-export type GameLobbyPlayerModel = {
+export type LobbyPlayerModel = {
   id: PlayerId
   alias: string | null
 }
@@ -47,8 +47,8 @@ export class GameLobbiesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "game-lobbies-repository" })
   }
 
-  public async createGameLobby(
-    createGameLobbyModel: CreateGameLobbyModel,
+  public async createLobby(
+    createGameLobbyModel: CreateLobbyModel,
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ createdGameId: GameId }, string>> {
     const createGameLobbyResult = await Result.tryCatch(
@@ -75,7 +75,7 @@ export class GameLobbiesRepository extends PostgresRepository {
   /**
    * Gets ALL the game lobbies. This only makes sense until we have real traffic.
    */
-  public async getGameLobbies(db: PostgresRepository["db"] = this.db): Promise<Result<GameLobbyModel[], string>> {
+  public async getLobbies(db: PostgresRepository["db"] = this.db): Promise<Result<LobbyModel[], string>> {
     const gameRowsResult = await Result.tryCatch(db.select().from(gamesTable))
     if (Result.isFailure(gameRowsResult)) {
       this.logger.error("Failed to get games", { error: gameRowsResult.error })
@@ -106,10 +106,10 @@ export class GameLobbiesRepository extends PostgresRepository {
     )
   }
 
-  public async getGameLobbyById(
+  public async getLobbyById(
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameLobbyModel | undefined, string>> {
+  ): Promise<Result<LobbyModel | undefined, string>> {
     const gameRowResult = await Result.tryCatch(db.select().from(gamesTable).where(eq(gamesTable.id, gameId)))
     if (Result.isFailure(gameRowResult)) {
       this.logger.error("Failed to get game", { gameId, error: gameRowResult.error })
@@ -140,7 +140,7 @@ export class GameLobbiesRepository extends PostgresRepository {
     return Result.Success(toGameLobbyModel({ gameRow, players: playersResult.value }))
   }
 
-  public async joinGameLobby(
+  public async joinLobby(
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ playerId: PlayerId }, string>> {
@@ -160,7 +160,7 @@ export class GameLobbiesRepository extends PostgresRepository {
     return joinGameLobbyResult
   }
 
-  public async leaveGameLobby(
+  public async leaveLobby(
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
@@ -176,7 +176,7 @@ export class GameLobbiesRepository extends PostgresRepository {
     return Result.Success(true)
   }
 
-  public async hasAccountJoinedGame(
+  public async hasAccountJoinedLobby(
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<boolean, string>> {
@@ -199,14 +199,14 @@ export class GameLobbiesRepository extends PostgresRepository {
   }
 }
 
-function toCreateGameRow(createGameLobbyModel: CreateGameLobbyModel): CreateGameRow {
+function toCreateGameRow(createGameLobbyModel: CreateLobbyModel): CreateGameRow {
   return {
     createdByAccountId: createGameLobbyModel.createdByAccountId,
     ...createGameLobbyModel.configuration,
   }
 }
 
-function toGameLobbyModel({ gameRow, players }: { gameRow: GameRow; players: GameLobbyPlayerModel[] }): GameLobbyModel {
+function toGameLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPlayerModel[] }): LobbyModel {
   const creator = players.find((player) => player.id === gameRow.createdByAccountId)
   Assert.isDefined(creator)
 

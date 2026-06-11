@@ -181,20 +181,20 @@ async function seedGames({
   await resetTable(db, gamesTable)
   logger.info("├ Adding default games")
   const insanelyFastGame = assertSuccess(
-    await gameLobbiesController.createGame({
+    await gameLobbiesController.createLobby({
       createdByAccountId: firstAccount.id,
       configuration: { name: "insanely fast game", nbSeats: 5, tickIntervalSeconds: 60 },
     }),
   )
   assertSuccess(
-    await gameLobbiesController.createGame({
+    await gameLobbiesController.createLobby({
       createdByAccountId: secondAccount.id,
       configuration: { name: "fast game", nbSeats: 10, tickIntervalSeconds: 7200 },
     }),
   )
   logger.info("├ Adding accounts to games")
-  assertSuccess(await gameLobbiesController.joinGameLobby({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
-  assertSuccess(await gameLobbiesController.joinGameLobby({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
+  assertSuccess(await gameLobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
+  assertSuccess(await gameLobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
   logger.info("└ Done")
 }
 
