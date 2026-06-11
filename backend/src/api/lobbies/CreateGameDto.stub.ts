@@ -1,5 +1,5 @@
 import { v4 } from "uuid"
-import type { CreateLobbyDto } from "#api/lobbies/gameLobbies.controller.ts"
+import type { CreateLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 
 export function createCreateGameDtoStub(overrides?: Partial<CreateLobbyDto>): CreateLobbyDto {
   return {

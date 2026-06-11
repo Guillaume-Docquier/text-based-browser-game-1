@@ -6,8 +6,8 @@ import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import type { GameId } from "#api/games/GameId.ts"
 import { createCreateGameDtoStub } from "#api/lobbies/CreateGameDto.stub.ts"
-import { GameLobbiesController } from "#api/lobbies/gameLobbies.controller.ts"
-import { GameLobbiesRepository } from "#api/lobbies/gameLobbies.repository.ts"
+import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
+import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
@@ -24,10 +24,10 @@ describe("starSystems.repository", () => {
 
       const playersRepository = new AccountsRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
-      const gameLobbiesController = createGameLobbiesController({ db, logger })
+      const lobbiesController = createGameLobbiesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gameLobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await lobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
       const system = createCoherentStarSystem({ gameId: game.createdGameId })
       const firstSector = system.sectors[0]
@@ -65,10 +65,10 @@ describe("starSystems.repository", () => {
 
       const playersRepository = new AccountsRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
-      const gameLobbiesController = createGameLobbiesController({ db, logger })
+      const lobbiesController = createGameLobbiesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gameLobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await lobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
       const system1 = createCoherentStarSystem({ gameId: game.createdGameId })
       const system2 = createCoherentStarSystem({ gameId: game.createdGameId })
@@ -87,10 +87,10 @@ describe("starSystems.repository", () => {
 
       const playersRepository = new AccountsRepository({ db, logger })
       const starSystemsRepository = new StarSystemsRepository({ db, logger })
-      const gameLobbiesController = createGameLobbiesController({ db, logger })
+      const lobbiesController = createGameLobbiesController({ db, logger })
 
       const account = extractSuccess(await playersRepository.createAccount(createNewAccountModelStub()))
-      const game = extractSuccess(await gameLobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
+      const game = extractSuccess(await lobbiesController.createLobby(createCreateGameDtoStub({ createdByAccountId: account.id })))
 
       const system = createIncoherentStarSystem({ gameId: game.createdGameId })
 
@@ -109,10 +109,10 @@ describe("starSystems.repository", () => {
   })
 })
 
-function createGameLobbiesController({ db, logger }: { db: Database; logger: Logger }): GameLobbiesController {
-  return new GameLobbiesController({
+function createGameLobbiesController({ db, logger }: { db: Database; logger: Logger }): LobbiesController {
+  return new LobbiesController({
     createTransaction: db.transaction.bind(db),
-    gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
+    lobbiesRepository: new LobbiesRepository({ db, logger }),
     logger,
   })
 }

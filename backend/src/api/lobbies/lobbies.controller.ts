@@ -7,29 +7,29 @@ import { RangeDto } from "#api/RangeDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
-import { type GameLobbiesRepository, type LobbyModel } from "./gameLobbies.repository.ts"
+import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
 
-export class GameLobbiesController {
+export class LobbiesController {
   private readonly logger: Logger
   private readonly createTransaction: CreateTransaction
-  private readonly gameLobbiesRepository: GameLobbiesRepository
+  private readonly lobbiesRepository: LobbiesRepository
 
   public constructor({
     logger,
     createTransaction,
-    gameLobbiesRepository,
+    lobbiesRepository,
   }: {
     logger: Logger
     createTransaction: CreateTransaction
-    gameLobbiesRepository: GameLobbiesRepository
+    lobbiesRepository: LobbiesRepository
   }) {
     this.logger = logger.child({ scope: "lobbies-controller" })
     this.createTransaction = createTransaction
-    this.gameLobbiesRepository = gameLobbiesRepository
+    this.lobbiesRepository = lobbiesRepository
   }
 
   public async createLobby(newGame: CreateLobbyDto): Promise<Result<CreatedLobbyDto, string>> {
-    const createGameResult = await this.gameLobbiesRepository.createLobby({
+    const createGameResult = await this.lobbiesRepository.createLobby({
       createdByAccountId: newGame.createdByAccountId,
       configuration: {
         ...newGame.configuration,
@@ -44,36 +44,36 @@ export class GameLobbiesController {
   }
 
   public async getLobbyById({ gameId, playerId }: { gameId: GameId; playerId: PlayerId | undefined }): Promise<LobbyDto | undefined> {
-    const gameLobbyResult = await this.gameLobbiesRepository.getLobbyById({ gameId })
-    if (Result.isFailure(gameLobbyResult)) {
-      this.logger.error("Could not get game summary, returning undefined", { gameId, playerId, error: gameLobbyResult.error })
+    const lobbyResult = await this.lobbiesRepository.getLobbyById({ gameId })
+    if (Result.isFailure(lobbyResult)) {
+      this.logger.error("Could not get game summary, returning undefined", { gameId, playerId, error: lobbyResult.error })
       return undefined
     }
 
-    const gameLobbyModel = gameLobbyResult.value
-    if (gameLobbyModel === undefined) {
+    const lobbyModel = lobbyResult.value
+    if (lobbyModel === undefined) {
       return undefined
     }
 
-    return toGameLobbyDto({ gameLobbyModel, playerId })
+    return toGameLobbyDto({ lobbyModel, playerId })
   }
 
   public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
     const joinGameResult = await Result.tryCatch(
       this.createTransaction(async (tx) => {
-        const gameLobbyModelResult = await this.gameLobbiesRepository.getLobbyById({ gameId }, tx)
-        rollbackOnFailure(gameLobbyModelResult, "Failed to get game lobby")
+        const lobbyModelResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
+        rollbackOnFailure(lobbyModelResult, "Failed to get game lobby")
 
-        const gameLobbyModel = gameLobbyModelResult.value
-        if (gameLobbyModel === undefined) {
+        const lobbyModel = lobbyModelResult.value
+        if (lobbyModel === undefined) {
           throw new TransactionRollback("Cannot join game lobby, it could not be found")
         }
 
-        if (!toGameLobbyDto({ gameLobbyModel, playerId: accountId }).canJoin) {
+        if (!toGameLobbyDto({ lobbyModel, playerId: accountId }).canJoin) {
           throw new TransactionRollback("Cannot join game lobby, this player is not allowed to join it at the moment")
         }
 
-        const joinResult = await this.gameLobbiesRepository.joinLobby({ gameId, accountId }, tx)
+        const joinResult = await this.lobbiesRepository.joinLobby({ gameId, accountId }, tx)
         rollbackOnFailure(joinResult, "Failed to join game")
 
         return joinResult.value
@@ -91,19 +91,19 @@ export class GameLobbiesController {
   public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
     const leaveGameResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
-        const gameLobbyResult = await this.gameLobbiesRepository.getLobbyById({ gameId }, tx)
-        rollbackOnFailure(gameLobbyResult, "Failed to get game lobby")
+        const lobbyResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
+        rollbackOnFailure(lobbyResult, "Failed to get game lobby")
 
-        const gameLobbyModel = gameLobbyResult.value
-        if (gameLobbyModel === undefined) {
+        const lobbyModel = lobbyResult.value
+        if (lobbyModel === undefined) {
           throw new TransactionRollback("Cannot leave game lobby, it could not be found")
         }
 
-        if (!toGameLobbyDto({ gameLobbyModel, playerId: accountId }).canLeave) {
+        if (!toGameLobbyDto({ lobbyModel, playerId: accountId }).canLeave) {
           throw new TransactionRollback("Cannot leave game lobby, this player is not allowed to leave it at the moment")
         }
 
-        const leaveResult = await this.gameLobbiesRepository.leaveLobby({ gameId, accountId }, tx)
+        const leaveResult = await this.lobbiesRepository.leaveLobby({ gameId, accountId }, tx)
         rollbackOnFailure(leaveResult, "Failed to leave game lobby")
       }),
     )
@@ -117,33 +117,31 @@ export class GameLobbiesController {
   }
 }
 
-export function toGameLobbyDto({ gameLobbyModel, playerId }: { gameLobbyModel: LobbyModel; playerId: PlayerId | undefined }): LobbyDto {
+export function toGameLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; playerId: PlayerId | undefined }): LobbyDto {
   // oxfmt-ignore
   const status =
-    gameLobbyModel.endedAt !== null ? GameLobbyStatus.ENDED
-    : gameLobbyModel.startedAt !== null ? GameLobbyStatus.STARTED
-    : gameLobbyModel.players.length >= gameLobbyModel.configuration.nbSeats ? GameLobbyStatus.READY_TO_START
+    lobbyModel.endedAt !== null ? GameLobbyStatus.ENDED
+    : lobbyModel.startedAt !== null ? GameLobbyStatus.STARTED
+    : lobbyModel.players.length >= lobbyModel.configuration.nbSeats ? GameLobbyStatus.READY_TO_START
     : GameLobbyStatus.WAITING_FOR_PLAYERS
 
   const canJoin =
-    playerId !== undefined &&
-    status === GameLobbyStatus.WAITING_FOR_PLAYERS &&
-    gameLobbyModel.players.every((player) => player.id !== playerId)
+    playerId !== undefined && status === GameLobbyStatus.WAITING_FOR_PLAYERS && lobbyModel.players.every((player) => player.id !== playerId)
 
   const canLeave =
     playerId !== undefined &&
     // status < GameSummaryStatus.STARTED would be more future proof
     (status === GameLobbyStatus.WAITING_FOR_PLAYERS || status === GameLobbyStatus.READY_TO_START) &&
-    gameLobbyModel.creator.id !== playerId &&
-    gameLobbyModel.players.some((player) => player.id === playerId)
+    lobbyModel.creator.id !== playerId &&
+    lobbyModel.players.some((player) => player.id === playerId)
 
   const canStart =
     playerId !== undefined &&
     (status === GameLobbyStatus.WAITING_FOR_PLAYERS || status === GameLobbyStatus.READY_TO_START) &&
-    gameLobbyModel.creator.id === playerId
+    lobbyModel.creator.id === playerId
 
   return {
-    ...gameLobbyModel,
+    ...lobbyModel,
     status,
     canJoin,
     canLeave,

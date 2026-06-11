@@ -39,7 +39,7 @@ export type LobbyPlayerModel = {
   alias: string | null
 }
 
-export class GameLobbiesRepository extends PostgresRepository {
+export class LobbiesRepository extends PostgresRepository {
   private readonly logger: Logger
 
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {

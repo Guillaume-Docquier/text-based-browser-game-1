@@ -2,7 +2,7 @@ import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { GameId } from "#api/games/GameId.ts"
-import { type GameLobbiesRepository } from "#api/lobbies/gameLobbies.repository.ts"
+import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { RangeDto } from "#api/RangeDto.ts"
 import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
@@ -48,20 +48,20 @@ export const StarSystemDto = z.object({
 
 export class StarSystemsController {
   private readonly logger: Logger
-  private readonly gameLobbiesRepository: GameLobbiesRepository
+  private readonly lobbiesRepository: LobbiesRepository
   private readonly starSystemsRepository: StarSystemsRepository
 
   public constructor({
     logger,
-    gameLobbiesRepository,
+    lobbiesRepository,
     starSystemsRepository,
   }: {
     logger: Logger
-    gameLobbiesRepository: GameLobbiesRepository
+    lobbiesRepository: LobbiesRepository
     starSystemsRepository: StarSystemsRepository
   }) {
     this.logger = logger.child({ scope: "star-systems-controller" })
-    this.gameLobbiesRepository = gameLobbiesRepository
+    this.lobbiesRepository = lobbiesRepository
     this.starSystemsRepository = starSystemsRepository
   }
 
@@ -85,7 +85,7 @@ export class StarSystemsController {
   }
 
   private async canReadGame({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<boolean, string>> {
-    return await this.gameLobbiesRepository.hasAccountJoinedLobby({ gameId, accountId })
+    return await this.lobbiesRepository.hasAccountJoinedLobby({ gameId, accountId })
   }
 
   private notAuthorizedFailure({ accountId, gameId }: { accountId: AccountId; gameId: GameId }): Failure<string> {

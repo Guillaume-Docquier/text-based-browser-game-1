@@ -19,7 +19,7 @@ describe("starSystems.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const { createdGameId } = await trpcClient.client.gameLobbies.create.mutate(createCreateGameDtoStub())
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate(createCreateGameDtoStub())
       const starSystem = await createStoredStarSystem({ starSystemsRepository, gameId: createdGameId })
 
       // Act
@@ -137,7 +137,7 @@ describe("starSystems.router", () => {
       const outsider = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Outsider" })))
       authService.account = creator
 
-      const { createdGameId } = await trpcClient.client.gameLobbies.create.mutate(createCreateGameDtoStub())
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate(createCreateGameDtoStub())
       await createStoredStarSystem({ starSystemsRepository, gameId: createdGameId })
       authService.account = outsider
 
@@ -154,7 +154,7 @@ describe("starSystems.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const { createdGameId } = await trpcClient.client.gameLobbies.create.mutate(createCreateGameDtoStub())
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate(createCreateGameDtoStub())
 
       // Act & Assert
       await expect(trpcClient.client.starSystems.getByGameId.query({ gameId: createdGameId })).rejects.toMatchObject({

@@ -14,7 +14,7 @@ describe("gameStates.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = account
 
-      const { createdGameId } = await trpcClient.client.gameLobbies.create.mutate({
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
 

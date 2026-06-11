@@ -14,7 +14,7 @@ export type { PlayerId } from "#api/games/PlayerId.ts"
 export type { AccountId } from "#api/accounts/AccountId.ts"
 
 // Lobbies
-export type GameLobby = TrpcRouterOutput["gameLobbies"]["getById"]
+export type GameLobby = TrpcRouterOutput["lobbies"]["getById"]
 export type GameLobbyStatus = GameLobby["status"]
 export type GameLobbyPlayer = GameLobby["creator"]
 

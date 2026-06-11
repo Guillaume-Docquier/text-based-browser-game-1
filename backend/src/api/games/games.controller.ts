@@ -1,8 +1,8 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { type GameId } from "#api/games/GameId.ts"
 import { type PlayerId } from "#api/games/PlayerId.ts"
-import { type LobbyDto, toGameLobbyDto } from "#api/lobbies/gameLobbies.controller.ts"
-import { type GameLobbiesRepository } from "#api/lobbies/gameLobbies.repository.ts"
+import { type LobbyDto, toGameLobbyDto } from "#api/lobbies/lobbies.controller.ts"
+import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
@@ -16,7 +16,7 @@ export class GamesController {
   private readonly logger: Logger
   private readonly createTransaction: CreateTransaction
   private readonly gamesRepository: GamesRepository
-  private readonly gameLobbiesRepository: GameLobbiesRepository
+  private readonly lobbiesRepository: LobbiesRepository
   private readonly gameStatesRepository: GameStatesRepository
   private readonly gameTicksRepository: GameTicksRepository
   private readonly gamePlayerResourcesRepository: GamePlayerResourcesRepository
@@ -25,7 +25,7 @@ export class GamesController {
     logger,
     createTransaction,
     gamesRepository,
-    gameLobbiesRepository,
+    lobbiesRepository,
     gameStatesRepository,
     gameTicksRepository,
     gamePlayerResourcesRepository,
@@ -33,7 +33,7 @@ export class GamesController {
     logger: Logger
     createTransaction: CreateTransaction
     gamesRepository: GamesRepository
-    gameLobbiesRepository: GameLobbiesRepository
+    lobbiesRepository: LobbiesRepository
     gameStatesRepository: GameStatesRepository
     gameTicksRepository: GameTicksRepository
     gamePlayerResourcesRepository: GamePlayerResourcesRepository
@@ -41,7 +41,7 @@ export class GamesController {
     this.logger = logger.child({ scope: "games-controller" })
     this.createTransaction = createTransaction
     this.gamesRepository = gamesRepository
-    this.gameLobbiesRepository = gameLobbiesRepository
+    this.lobbiesRepository = lobbiesRepository
     this.gameStatesRepository = gameStatesRepository
     this.gameTicksRepository = gameTicksRepository
     this.gamePlayerResourcesRepository = gamePlayerResourcesRepository
@@ -51,27 +51,27 @@ export class GamesController {
    * Gets ALL the game lobbies. This only makes sense until we have real traffic.
    */
   public async getGameLobbies({ playerId }: { playerId: PlayerId | undefined }): Promise<LobbyDto[]> {
-    const gameLobbiesResult = await this.gameLobbiesRepository.getLobbies()
-    if (Result.isFailure(gameLobbiesResult)) {
-      this.logger.error("Could not get game lobbies, returning empty array", { playerId, error: gameLobbiesResult.error })
+    const lobbiesResult = await this.lobbiesRepository.getLobbies()
+    if (Result.isFailure(lobbiesResult)) {
+      this.logger.error("Could not get game lobbies, returning empty array", { playerId, error: lobbiesResult.error })
       return []
     }
 
-    return gameLobbiesResult.value.map((gameLobbyModel) => toGameLobbyDto({ gameLobbyModel, playerId }))
+    return lobbiesResult.value.map((lobbyModel) => toGameLobbyDto({ lobbyModel, playerId }))
   }
 
   public async startGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<LobbyDto, string>> {
     const gameStartResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
-        const gameLobbyResult = await this.gameLobbiesRepository.getLobbyById({ gameId }, tx)
-        rollbackOnFailure(gameLobbyResult, "Failed to get game lobby")
+        const lobbyResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
+        rollbackOnFailure(lobbyResult, "Failed to get game lobby")
 
-        const gameLobbyModel = gameLobbyResult.value
-        if (gameLobbyModel === undefined) {
+        const lobbyModel = lobbyResult.value
+        if (lobbyModel === undefined) {
           throw new TransactionRollback("Cannot start game, the lobby could not be found")
         }
 
-        if (!toGameLobbyDto({ gameLobbyModel, playerId }).canStart) {
+        if (!toGameLobbyDto({ lobbyModel, playerId }).canStart) {
           throw new TransactionRollback("Cannot start game, this player is not allowed to start it at the moment")
         }
 
@@ -79,7 +79,7 @@ export class GamesController {
         const startGameResult = await this.gamesRepository.updateGame({ gameId }, { startedAt }, tx)
         rollbackOnFailure(startGameResult, "Failed to update game start date")
 
-        const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: gameLobbyModel.configuration.tickIntervalSeconds })
+        const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: lobbyModel.configuration.tickIntervalSeconds })
         const gameStateResult = await this.gameStatesRepository.create({ gameId, nextTickAt }, tx)
         rollbackOnFailure(gameStateResult, "Failed to create initial game state")
 
@@ -112,10 +112,10 @@ export class GamesController {
       return Result.Failure(couldNot("start game"))
     }
 
-    const gameLobbyResult = await this.gameLobbiesRepository.getLobbyById({ gameId })
-    Assert.isSuccess(gameLobbyResult)
-    Assert.isDefined(gameLobbyResult.value)
+    const lobbyResult = await this.lobbiesRepository.getLobbyById({ gameId })
+    Assert.isSuccess(lobbyResult)
+    Assert.isDefined(lobbyResult.value)
 
-    return Result.Success(toGameLobbyDto({ gameLobbyModel: gameLobbyResult.value, playerId }))
+    return Result.Success(toGameLobbyDto({ lobbyModel: lobbyResult.value, playerId }))
   }
 }

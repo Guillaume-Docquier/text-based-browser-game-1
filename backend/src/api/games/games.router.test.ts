@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { type CreateLobbyDto, type LobbyPlayerDto, GameLobbyStatus } from "#api/lobbies/gameLobbies.controller.ts"
+import { type CreateLobbyDto, type LobbyPlayerDto, GameLobbyStatus } from "#api/lobbies/lobbies.controller.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
@@ -22,7 +22,7 @@ describe("games.router", () => {
         tickIntervalSeconds: 60,
       }
 
-      const { createdGameId } = await trpcClient.client.gameLobbies.create.mutate({ configuration: newGameSettings })
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       authService.account = undefined
 
@@ -70,16 +70,16 @@ describe("games.router", () => {
         tickIntervalSeconds: 60,
       }
 
-      const { createdGameId } = await trpcClient.client.gameLobbies.create.mutate({ configuration: newGameSettings })
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       authService.account = viewerAccount
 
       // Act
-      const gameLobbiesResult = await trpcClient.client.games.getGameLobbies.query()
+      const lobbiesResult = await trpcClient.client.games.getGameLobbies.query()
 
       // Assert
       const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
-      expect(gameLobbiesResult).toEqual<typeof gameLobbiesResult>([
+      expect(lobbiesResult).toEqual<typeof lobbiesResult>([
         {
           id: createdGameId,
           createdAt: expect.any(String),
@@ -119,7 +119,7 @@ describe("games.router", () => {
         tickIntervalSeconds: 60,
       }
 
-      const { createdGameId } = await trpcClient.client.gameLobbies.create.mutate({ configuration: newGameSettings })
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
       const startGameResult = await trpcClient.client.games.start.mutate({ gameId: createdGameId })
@@ -158,7 +158,7 @@ describe("games.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
       authService.account = creator
 
-      const { createdGameId } = await trpcClient.client.gameLobbies.create.mutate({
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: {
           name: "non creator cannot start game",
           nbSeats: 2,
