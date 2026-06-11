@@ -4,6 +4,8 @@ This project is a multiplayer browser strategy game played at a pace of 1 turn a
 
 The goal is to build a game that's as fun as persistent browser games, but that doesn't reward being the most active player.
 
+See @GLOSSARY.md for useful term definitions.
+
 ## Current status
 
 The project is only getting started, and we are building strong foundations. We've built the infrastructure, deployed on Railway, established the tech that we will use, and developed testing strategies for the backend.
