@@ -1,9 +1,9 @@
-import type { GameLobbyStatus } from "@api-types"
+import type { GameStatus } from "@api-types"
 import type { ReactElement } from "react"
 import { Badge } from "../../../components/badge.tsx"
 import { formatGameLobbyStatus } from "../../../lib/formatGameLobbyStatus.ts"
 
-export function GameStatusBadge({ status }: { status: GameLobbyStatus }): ReactElement {
+export function GameStatusBadge({ status }: { status: GameStatus }): ReactElement {
   if (status === "READY_TO_START") {
     return <Badge className="border-emerald-400/30 bg-emerald-500/15 text-emerald-200">{formatGameLobbyStatus(status)}</Badge>
   }

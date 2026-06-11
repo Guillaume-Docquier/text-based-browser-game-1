@@ -1,6 +1,6 @@
 import { Assert, Range } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { RangeDto } from "#api/RangeDto.ts"
+import { RangeDto } from "#api/shared/RangeDto.ts"
 
 describe("RangeDto", () => {
   it("should parse a valid Range", () => {

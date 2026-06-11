@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
 import { z } from "zod"
 import { AccountsRepository, type NewAccountModel, type AccountModel } from "#api/accounts/accounts.repository.ts"
+import { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
 import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 import { GamesController } from "#api/games/games.controller.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
@@ -83,6 +84,7 @@ async function main({ connectionString, user }: { connectionString: string; user
     gamesRepository,
     createTransaction: db.transaction.bind(db),
     gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
+    gameListingsRepository: new GameListingsRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),

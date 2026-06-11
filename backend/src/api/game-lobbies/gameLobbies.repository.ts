@@ -1,5 +1,5 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { GameId } from "#api/games/GameId.ts"
 import type { PlayerId } from "#api/games/PlayerId.ts"
@@ -70,40 +70,6 @@ export class GameLobbiesRepository extends PostgresRepository {
     }
 
     return createGameLobbyResult
-  }
-
-  /**
-   * Gets ALL the game lobbies. This only makes sense until we have real traffic.
-   */
-  public async getGameLobbies(db: PostgresRepository["db"] = this.db): Promise<Result<GameLobbyModel[], string>> {
-    const gameRowsResult = await Result.tryCatch(db.select().from(gamesTable))
-    if (Result.isFailure(gameRowsResult)) {
-      this.logger.error("Failed to get games", { error: gameRowsResult.error })
-      return Result.Failure(couldNot("get games"))
-    }
-
-    const gameIds = gameRowsResult.value.map(({ id }) => id)
-    const playersResult = await Result.tryCatch(
-      db
-        .select({
-          gameId: playersTable.gameId,
-          id: playersTable.playerId,
-          alias: accountsTable.alias,
-        })
-        .from(playersTable)
-        .innerJoin(accountsTable, eq(accountsTable.id, playersTable.playerId))
-        .where(inArray(playersTable.gameId, gameIds)),
-    )
-    if (Result.isFailure(playersResult)) {
-      this.logger.error("Failed to get players in the lobbies", { error: playersResult.error })
-      return Result.Failure(couldNot("get players in the lobbies"))
-    }
-
-    const playersByGameId = Map.groupBy(playersResult.value, (player) => player.gameId)
-
-    return Result.Success(
-      gameRowsResult.value.map((gameRow) => ({ gameRow, players: playersByGameId.get(gameRow.id) ?? [] })).map(toGameLobbyModel),
-    )
   }
 
   public async getGameLobbyById(

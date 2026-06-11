@@ -1,10 +1,12 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { AccountId } from "#api/accounts/AccountId.ts"
+import type { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
 import { type GameLobbiesRepository, type GameLobbyModel } from "#api/game-lobbies/gameLobbies.repository.ts"
 import { GameId } from "#api/games/GameId.ts"
 import { PlayerId } from "#api/games/PlayerId.ts"
-import { RangeDto } from "#api/RangeDto.ts"
+import { computeGameStatus, GameStatus } from "#api/shared/GameStatus.ts"
+import { RangeDto } from "#api/shared/RangeDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GamesRepository } from "#lib/db/games/games.repository.ts"
 import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
@@ -20,6 +22,7 @@ export class GamesController {
   private readonly createTransaction: CreateTransaction
   private readonly gamesRepository: GamesRepository
   private readonly gameLobbiesRepository: GameLobbiesRepository
+  private readonly gameListingsRepository: GameListingsRepository
   private readonly gameStatesRepository: GameStatesRepository
   private readonly gameTicksRepository: GameTicksRepository
   private readonly gamePlayerResourcesRepository: GamePlayerResourcesRepository
@@ -29,6 +32,7 @@ export class GamesController {
     createTransaction,
     gamesRepository,
     gameLobbiesRepository,
+    gameListingsRepository,
     gameStatesRepository,
     gameTicksRepository,
     gamePlayerResourcesRepository,
@@ -37,6 +41,7 @@ export class GamesController {
     createTransaction: CreateTransaction
     gamesRepository: GamesRepository
     gameLobbiesRepository: GameLobbiesRepository
+    gameListingsRepository: GameListingsRepository
     gameStatesRepository: GameStatesRepository
     gameTicksRepository: GameTicksRepository
     gamePlayerResourcesRepository: GamePlayerResourcesRepository
@@ -45,6 +50,7 @@ export class GamesController {
     this.createTransaction = createTransaction
     this.gamesRepository = gamesRepository
     this.gameLobbiesRepository = gameLobbiesRepository
+    this.gameListingsRepository = gameListingsRepository
     this.gameStatesRepository = gameStatesRepository
     this.gameTicksRepository = gameTicksRepository
     this.gamePlayerResourcesRepository = gamePlayerResourcesRepository
@@ -66,16 +72,16 @@ export class GamesController {
   }
 
   /**
-   * Gets ALL the game lobbies. This only makes sense until we have real traffic.
+   * Gets ALL the game listings. This only makes sense until we have real traffic.
    */
-  public async getGameLobbies({ playerId }: { playerId: PlayerId | undefined }): Promise<GameLobbyDto[]> {
-    const gameLobbiesResult = await this.gameLobbiesRepository.getGameLobbies()
-    if (Result.isFailure(gameLobbiesResult)) {
-      this.logger.error("Could not get game lobbies, returning empty array", { playerId, error: gameLobbiesResult.error })
+  public async getListings(): Promise<ListingDto[]> {
+    const gameListingsResult = await this.gameListingsRepository.getListings()
+    if (Result.isFailure(gameListingsResult)) {
+      this.logger.error("Could not get game listings, returning empty array")
       return []
     }
 
-    return gameLobbiesResult.value.map((gameLobbyModel) => toGameLobbyDto({ gameLobbyModel, playerId }))
+    return gameListingsResult.value
   }
 
   public async getGameLobbyById({
@@ -217,28 +223,26 @@ export class GamesController {
 }
 
 function toGameLobbyDto({ gameLobbyModel, playerId }: { gameLobbyModel: GameLobbyModel; playerId: PlayerId | undefined }): GameLobbyDto {
-  // oxfmt-ignore
-  const status =
-    gameLobbyModel.endedAt !== null ? GameLobbyStatus.ENDED
-    : gameLobbyModel.startedAt !== null ? GameLobbyStatus.STARTED
-    : gameLobbyModel.players.length >= gameLobbyModel.configuration.nbSeats ? GameLobbyStatus.READY_TO_START
-    : GameLobbyStatus.WAITING_FOR_PLAYERS
+  const status = computeGameStatus({
+    nbPlayers: gameLobbyModel.players.length,
+    nbSeats: gameLobbyModel.configuration.nbSeats,
+    startedAt: gameLobbyModel.startedAt,
+    endedAt: gameLobbyModel.endedAt,
+  })
 
   const canJoin =
-    playerId !== undefined &&
-    status === GameLobbyStatus.WAITING_FOR_PLAYERS &&
-    gameLobbyModel.players.every((player) => player.id !== playerId)
+    playerId !== undefined && status === GameStatus.WAITING_FOR_PLAYERS && gameLobbyModel.players.every((player) => player.id !== playerId)
 
   const canLeave =
     playerId !== undefined &&
     // status < GameSummaryStatus.STARTED would be more future proof
-    (status === GameLobbyStatus.WAITING_FOR_PLAYERS || status === GameLobbyStatus.READY_TO_START) &&
+    (status === GameStatus.WAITING_FOR_PLAYERS || status === GameStatus.READY_TO_START) &&
     gameLobbyModel.creator.id !== playerId &&
     gameLobbyModel.players.some((player) => player.id === playerId)
 
   const canStart =
     playerId !== undefined &&
-    (status === GameLobbyStatus.WAITING_FOR_PLAYERS || status === GameLobbyStatus.READY_TO_START) &&
+    (status === GameStatus.WAITING_FOR_PLAYERS || status === GameStatus.READY_TO_START) &&
     gameLobbyModel.creator.id === playerId
 
   return {
@@ -249,6 +253,18 @@ function toGameLobbyDto({ gameLobbyModel, playerId }: { gameLobbyModel: GameLobb
     canStart,
   }
 }
+
+export type ListingDto = z.infer<typeof ListingDto>
+export const ListingDto = z.object({
+  id: GameId,
+  name: z.string(),
+  nbPlayers: z.number(),
+  nbSeats: z.number(),
+  status: z.enum(GameStatus),
+  createdAt: z.date(),
+  startedAt: z.date().nullable(),
+  endedAt: z.date().nullable(),
+})
 
 export type CreateGameDto = z.infer<typeof CreateGameDto>
 export const CreateGameDto = z.object({
@@ -303,13 +319,6 @@ export const GameConfigurationDto = z.object({
   tickIntervalSeconds: z.number(),
 })
 
-export const GameLobbyStatus = {
-  WAITING_FOR_PLAYERS: "WAITING_FOR_PLAYERS",
-  READY_TO_START: "READY_TO_START",
-  STARTED: "STARTED",
-  ENDED: "ENDED",
-} as const
-
 export type GameLobbyPlayerDto = z.infer<typeof GameLobbyPlayerDto>
 export const GameLobbyPlayerDto = z.object({
   id: PlayerId,
@@ -326,7 +335,7 @@ export const GameLobbyDto = z.object({
   endedAt: z.date().nullable(),
   creator: GameLobbyPlayerDto,
   players: z.array(GameLobbyPlayerDto),
-  status: z.enum(GameLobbyStatus),
+  status: z.enum(GameStatus),
   /**
    * Whether the current player can join the game.
    */

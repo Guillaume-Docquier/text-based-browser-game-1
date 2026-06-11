@@ -38,22 +38,6 @@ CREATE TABLE "game_player_resources" (
 	CONSTRAINT "game_player_resources_game_id_player_id_resource_type_pk" PRIMARY KEY("game_id","player_id","resource_type")
 );
 --> statement-breakpoint
-CREATE TABLE "game_players" (
-	"game_id" integer NOT NULL,
-	"player_id" uuid NOT NULL,
-	"joined_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "game_players_game_id_player_id_pk" PRIMARY KEY("game_id","player_id")
-);
---> statement-breakpoint
-CREATE TABLE "game_settings" (
-	"game_id" integer PRIMARY KEY NOT NULL,
-	"locked" boolean DEFAULT false NOT NULL,
-	"name" varchar(255) NOT NULL,
-	"star_system_generation_settings" jsonb NOT NULL,
-	"nb_seats" integer NOT NULL,
-	"tick_interval_seconds" integer NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "game_states" (
 	"game_id" integer PRIMARY KEY NOT NULL,
 	"tick" integer DEFAULT 0 NOT NULL,
@@ -75,7 +59,11 @@ CREATE TABLE "games" (
 	"winner_account_id" uuid,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"started_at" timestamp,
-	"ended_at" timestamp
+	"ended_at" timestamp,
+	"name" varchar(255) NOT NULL,
+	"nb_seats" integer NOT NULL,
+	"star_system_generation_settings" jsonb NOT NULL,
+	"tick_interval_seconds" integer NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "movement_edges" (
@@ -98,6 +86,13 @@ CREATE TABLE "orbits" (
 	"orbit_number" integer NOT NULL,
 	CONSTRAINT "orbits_game_id_id_unique" UNIQUE("game_id","id"),
 	CONSTRAINT "orbits_game_id_orbit_number_unique" UNIQUE("game_id","orbit_number")
+);
+--> statement-breakpoint
+CREATE TABLE "players" (
+	"game_id" integer NOT NULL,
+	"player_id" uuid NOT NULL,
+	"joined_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "players_game_id_player_id_pk" PRIMARY KEY("game_id","player_id")
 );
 --> statement-breakpoint
 CREATE TABLE "sectors" (
@@ -128,11 +123,8 @@ CREATE TABLE "star_systems" (
 ALTER TABLE "bodies" ADD CONSTRAINT "bodies_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bodies" ADD CONSTRAINT "bodies_game_id_sector_id_sectors_fk" FOREIGN KEY ("game_id","sector_id") REFERENCES "public"."sectors"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bodies" ADD CONSTRAINT "bodies_game_id_movement_node_id_movement_nodes_fk" FOREIGN KEY ("game_id","movement_node_id") REFERENCES "public"."movement_nodes"("game_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "game_player_actions" ADD CONSTRAINT "game_player_actions_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."game_players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "game_player_resources" ADD CONSTRAINT "game_player_resources_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."game_players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "game_players" ADD CONSTRAINT "game_players_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "game_players" ADD CONSTRAINT "game_players_player_id_accounts_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "game_settings" ADD CONSTRAINT "game_settings_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "game_player_actions" ADD CONSTRAINT "game_player_actions_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "game_player_resources" ADD CONSTRAINT "game_player_resources_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "game_states" ADD CONSTRAINT "game_states_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "game_ticks" ADD CONSTRAINT "game_ticks_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_created_by_account_id_accounts_id_fk" FOREIGN KEY ("created_by_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -142,6 +134,8 @@ ALTER TABLE "movement_edges" ADD CONSTRAINT "movement_edges_game_id_from_node_id
 ALTER TABLE "movement_edges" ADD CONSTRAINT "movement_edges_game_id_to_node_id_movement_nodes_fk" FOREIGN KEY ("game_id","to_node_id") REFERENCES "public"."movement_nodes"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "movement_nodes" ADD CONSTRAINT "movement_nodes_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "orbits" ADD CONSTRAINT "orbits_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "players" ADD CONSTRAINT "players_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "players" ADD CONSTRAINT "players_player_id_accounts_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_orbit_id_orbits_fk" FOREIGN KEY ("game_id","orbit_id") REFERENCES "public"."orbits"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_movement_node_id_movement_nodes_fk" FOREIGN KEY ("game_id","movement_node_id") REFERENCES "public"."movement_nodes"("game_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

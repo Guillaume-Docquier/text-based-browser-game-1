@@ -1,5 +1,5 @@
 {
-  "id": "da9c63a6-a1d9-42f8-af98-dcf24db2b18d",
+  "id": "2518d120-8f52-41a7-ac06-cab0ea9c6735",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -229,7 +229,7 @@
         "game_player_actions_gameId_playerId_game_players_fk": {
           "name": "game_player_actions_gameId_playerId_game_players_fk",
           "tableFrom": "game_player_actions",
-          "tableTo": "game_players",
+          "tableTo": "players",
           "columnsFrom": ["game_id", "player_id"],
           "columnsTo": ["game_id", "player_id"],
           "onDelete": "cascade",
@@ -282,7 +282,7 @@
         "game_player_resources_gameId_playerId_game_players_fk": {
           "name": "game_player_resources_gameId_playerId_game_players_fk",
           "tableFrom": "game_player_resources",
-          "tableTo": "game_players",
+          "tableTo": "players",
           "columnsFrom": ["game_id", "player_id"],
           "columnsTo": ["game_id", "player_id"],
           "onDelete": "cascade",
@@ -295,122 +295,6 @@
           "columns": ["game_id", "player_id", "resource_type"]
         }
       },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.game_players": {
-      "name": "game_players",
-      "schema": "",
-      "columns": {
-        "game_id": {
-          "name": "game_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "player_id": {
-          "name": "player_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "joined_at": {
-          "name": "joined_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "game_players_game_id_games_id_fk": {
-          "name": "game_players_game_id_games_id_fk",
-          "tableFrom": "game_players",
-          "tableTo": "games",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "game_players_player_id_accounts_id_fk": {
-          "name": "game_players_player_id_accounts_id_fk",
-          "tableFrom": "game_players",
-          "tableTo": "accounts",
-          "columnsFrom": ["player_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "game_players_game_id_player_id_pk": {
-          "name": "game_players_game_id_player_id_pk",
-          "columns": ["game_id", "player_id"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.game_settings": {
-      "name": "game_settings",
-      "schema": "",
-      "columns": {
-        "game_id": {
-          "name": "game_id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "locked": {
-          "name": "locked",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "star_system_generation_settings": {
-          "name": "star_system_generation_settings",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nb_seats": {
-          "name": "nb_seats",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tick_interval_seconds": {
-          "name": "tick_interval_seconds",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "game_settings_game_id_games_id_fk": {
-          "name": "game_settings_game_id_games_id_fk",
-          "tableFrom": "game_settings",
-          "tableTo": "games",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -583,6 +467,30 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nb_seats": {
+          "name": "nb_seats",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "star_system_generation_settings": {
+          "name": "star_system_generation_settings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tick_interval_seconds": {
+          "name": "tick_interval_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -825,6 +733,62 @@
           "columns": ["game_id", "orbit_number"]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.players": {
+      "name": "players",
+      "schema": "",
+      "columns": {
+        "game_id": {
+          "name": "game_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "joined_at": {
+          "name": "joined_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "players_game_id_games_id_fk": {
+          "name": "players_game_id_games_id_fk",
+          "tableFrom": "players",
+          "tableTo": "games",
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "players_player_id_accounts_id_fk": {
+          "name": "players_player_id_accounts_id_fk",
+          "tableFrom": "players",
+          "tableTo": "accounts",
+          "columnsFrom": ["player_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "players_game_id_player_id_pk": {
+          "name": "players_game_id_player_id_pk",
+          "columns": ["game_id", "player_id"]
+        }
+      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

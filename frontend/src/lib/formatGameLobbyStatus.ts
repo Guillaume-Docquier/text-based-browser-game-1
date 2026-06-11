@@ -1,6 +1,6 @@
-import type { GameLobbyStatus } from "@api-types"
+import type { GameStatus } from "@api-types"
 
-export function formatGameLobbyStatus(gameStatus: GameLobbyStatus): string {
+export function formatGameLobbyStatus(gameStatus: GameStatus): string {
   switch (gameStatus) {
     case "WAITING_FOR_PLAYERS":
       return "Waiting for more players"

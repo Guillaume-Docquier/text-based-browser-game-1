@@ -4,6 +4,7 @@ import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
+import { GameListingsRepository } from "#api/game-listings/gameListings.repository.ts"
 import { GameLobbiesRepository } from "#api/game-lobbies/gameLobbies.repository.ts"
 import { createCreateGameDtoStub } from "#api/games/CreateGameDto.stub.ts"
 import type { GameId } from "#api/games/GameId.ts"
@@ -118,6 +119,7 @@ function createGamesController({ db, logger }: { db: Database; logger: Logger })
     createTransaction: db.transaction.bind(db),
     gamesRepository: new GamesRepository({ db, logger }),
     gameLobbiesRepository: new GameLobbiesRepository({ db, logger }),
+    gameListingsRepository: new GameListingsRepository({ db, logger }),
     gameStatesRepository: new GameStatesRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),

@@ -11,6 +11,7 @@ import {
   JoinGameDto,
   LeaveGameDto,
   LeftGameDto,
+  ListingDto,
 } from "./games.controller.ts"
 
 /**
@@ -43,13 +44,10 @@ export function createGamesRouter({ trpc, gamesController, ...others }: { trpc: 
       }),
 
     /**
-     * Gets all game lobbies, and eventually will support queries (by name, by state, etc) and pagination
+     * Gets all game listings, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getGameLobbies: trpc.publicProcedure.output(z.array(GameLobbyDto)).query(async ({ ctx: { account } }) => {
-      const games = await gamesController.getGameLobbies({ playerId: account?.id })
-
-      gamesRouterLogger.info("GET games", { count: games.length })
-      return games
+    getListings: trpc.publicProcedure.output(z.array(ListingDto)).query(async () => {
+      return await gamesController.getListings()
     }),
 
     /**
