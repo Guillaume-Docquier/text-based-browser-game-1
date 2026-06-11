@@ -28,11 +28,11 @@ export class LobbiesController {
     this.lobbiesRepository = lobbiesRepository
   }
 
-  public async createLobby(newGame: CreateLobbyDto): Promise<Result<CreatedLobbyDto, string>> {
+  public async createLobby(createLobbyDto: CreateLobbyDto): Promise<Result<CreatedLobbyDto, string>> {
     const createLobbyResult = await this.lobbiesRepository.createLobby({
-      createdByAccountId: newGame.createdByAccountId,
+      createdByAccountId: createLobbyDto.createdByAccountId,
       configuration: {
-        ...newGame.configuration,
+        ...createLobbyDto.configuration,
         starSystemGenerationSettings: createDefaultStarSystemGenerationSettings(),
       },
     })
