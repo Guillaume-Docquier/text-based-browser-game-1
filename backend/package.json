@@ -33,15 +33,15 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.4.6",
+    "@electric-sql/pglite": "^0.5.1",
     "@inquirer/prompts": "^8.5.2",
     "@trpc/client": "^11.17.0",
     "@types/express": "^5.0.6",
-    "@types/node": "^25.8.0",
+    "@types/node": "^25.9.2",
     "@types/pg": "^8.20.0",
     "@typescript/native-preview": "catalog:",
-    "@vitest/coverage-v8": "^4.1.7",
+    "@vitest/coverage-v8": "^4.1.8",
     "drizzle-kit": "^0.31.10",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.8"
   }
 }
