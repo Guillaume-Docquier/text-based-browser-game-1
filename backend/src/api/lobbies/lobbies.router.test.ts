@@ -73,8 +73,8 @@ describe("lobbies.router", () => {
     })
   })
 
-  describe("getSummaryById", () => {
-    it("should get a summary by id when authenticated", async () => {
+  describe("getById", () => {
+    it("should get a lobby by id when authenticated", async () => {
       // Arrange
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
@@ -120,7 +120,7 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should get a summary by id anonymously", async () => {
+    it("should get a lobby by id anonymously", async () => {
       // Arrange
 
       const { api, authService, accountsRepository } = await createApiStub()
@@ -166,7 +166,7 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should return not found when getting a missing summary by id", async () => {
+    it("should return not found when getting a missing lobby by id", async () => {
       // Arrange
       const { api } = await createApiStub()
       using trpcClient = new TrpcClient({ api })

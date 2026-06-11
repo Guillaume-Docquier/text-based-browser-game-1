@@ -46,7 +46,7 @@ export class LobbiesController {
   public async getLobbyById({ gameId, playerId }: { gameId: GameId; playerId: PlayerId | undefined }): Promise<LobbyDto | undefined> {
     const lobbyResult = await this.lobbiesRepository.getLobbyById({ gameId })
     if (Result.isFailure(lobbyResult)) {
-      this.logger.error("Could not get game summary, returning undefined", { gameId, playerId, error: lobbyResult.error })
+      this.logger.error("Could not get game lobby, returning undefined", { gameId, playerId, error: lobbyResult.error })
       return undefined
     }
 

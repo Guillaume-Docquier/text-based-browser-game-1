@@ -129,18 +129,18 @@ export class GamePlayerActionsController {
       return lobbyResult
     }
 
-    const gameSummary = lobbyResult.value
-    if (gameSummary === undefined) {
+    const lobby = lobbyResult.value
+    if (lobby === undefined) {
       this.logger.error("Cannot resolve action context because game does not exist", { gameId, playerId })
       return Result.Failure("Game does not exist.")
     }
 
-    if (gameSummary.startedAt === null) {
+    if (lobby.startedAt === null) {
       this.logger.error("Cannot resolve action context because game has not started", { gameId, playerId })
       return Result.Failure("Game has not started.")
     }
 
-    if (!gameSummary.players.some((player) => player.id === playerId)) {
+    if (!lobby.players.some((player) => player.id === playerId)) {
       this.logger.error("Cannot resolve action context because player is not in game", { gameId, playerId })
       return Result.Failure("Player is not in this game.")
     }
