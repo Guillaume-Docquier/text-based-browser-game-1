@@ -4,7 +4,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
-describe("gameStates.router", () => {
+describe("gameplay.router", () => {
   describe("getById", () => {
     it("should get the authenticated player's state for a started game", async () => {
       // Arrange
@@ -18,10 +18,10 @@ describe("gameStates.router", () => {
         configuration: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
 
-      await trpcClient.client.games.start.mutate({ gameId: createdGameId })
+      await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
 
       // Act
-      const getByIdResult = await trpcClient.client.gameStates.getById.query({ gameId: createdGameId })
+      const getByIdResult = await trpcClient.client.gameplay.getById.query({ gameId: createdGameId })
 
       // Assert
       expect(getByIdResult).toEqual<typeof getByIdResult>({
@@ -46,7 +46,7 @@ describe("gameStates.router", () => {
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       // Act & Assert
-      await expect(trpcClient.client.gameStates.getById.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
+      await expect(trpcClient.client.gameplay.getById.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -57,7 +57,7 @@ describe("gameStates.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.gameStates.getById.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcClient.client.gameplay.getById.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })

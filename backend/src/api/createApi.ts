@@ -5,11 +5,9 @@ import express, { type Express } from "express"
 import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import type { IAuthService } from "#api/accounts/auth.service.ts"
+import { GameplayController } from "#api/gameplay/gameplay.controller.ts"
 import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
-import { GamePlayerActionsController } from "#api/gamePlayerActions/gamePlayerActions.controller.ts"
-import { createGamePlayerActionsRouter } from "#api/gamePlayerActions/gamePlayerActions.router.ts"
-import { GameStatesController } from "#api/gameStates/gameStates.controller.ts"
-import { createGameStatesRouter } from "#api/gameStates/gameStates.router.ts"
+import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
 import { ListingsController } from "#api/listings/listings.controller.ts"
 import { type ListingsRepository } from "#api/listings/listings.repository.ts"
 import { createListingsRouter } from "#api/listings/listings.router.ts"
@@ -19,14 +17,7 @@ import { createLobbiesRouter } from "#api/lobbies/lobbies.router.ts"
 import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
 import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import type { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
-import type { GamesRepository } from "#lib/db/games/games.repository.ts"
-import type { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import type { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import type { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
-import { GamesController } from "./games/games.controller.ts"
-import { createGamesRouter } from "./games/games.router.ts"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
 
@@ -48,11 +39,6 @@ export async function createApi({
   authService: IAuthService
   logger: Logger
   accountsRepository: AccountsRepository
-  gamesRepository: GamesRepository
-  gameStatesRepository: GameStatesRepository
-  gameTicksRepository: GameTicksRepository
-  gamePlayerResourcesRepository: GamePlayerResourcesRepository
-  gamePlayerActionsRepository: GamePlayerActionsRepository
   starSystemsRepository: StarSystemsRepository
   listingsRepository: ListingsRepository
   lobbiesRepository: LobbiesRepository
@@ -60,12 +46,10 @@ export async function createApi({
 }): Promise<Express> {
   const controllerServices = { ...services, createTransaction }
   const controllers = {
-    gamesController: new GamesController(controllerServices),
+    gameplayController: new GameplayController(controllerServices),
     listingsController: new ListingsController(controllerServices),
     lobbiesController: new LobbiesController(controllerServices),
-    gameStatesController: new GameStatesController(controllerServices),
     accountsController: new AccountsController(controllerServices),
-    gamePlayerActionsController: new GamePlayerActionsController(controllerServices),
     starSystemsController: new StarSystemsController(controllerServices),
   }
 
@@ -88,11 +72,9 @@ export async function createApi({
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: {
-  gamesController: GamesController
+  gameplayController: GameplayController
   listingsController: ListingsController
   lobbiesController: LobbiesController
-  gameStatesController: GameStatesController
-  gamePlayerActionsController: GamePlayerActionsController
   starSystemsController: StarSystemsController
   logger: Logger
 }) {
@@ -100,11 +82,9 @@ function createTrpcRouter(services: {
   const routerServices = { trpc, ...services }
 
   return trpc.router({
-    games: createGamesRouter(routerServices),
+    gameplay: createGameplayRouter(routerServices),
     listings: createListingsRouter(routerServices),
     lobbies: createLobbiesRouter(routerServices),
-    gameStates: createGameStatesRouter(routerServices),
-    gamePlayerActions: createGamePlayerActionsRouter(routerServices),
     starSystems: createStarSystemsRouter(routerServices),
   })
 }

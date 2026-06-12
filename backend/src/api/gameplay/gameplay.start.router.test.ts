@@ -7,7 +7,7 @@ import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/cre
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
-describe("games.router", () => {
+describe("gameplay.router", () => {
   describe("start", () => {
     it("should start a game", async () => {
       // Arrange
@@ -26,7 +26,7 @@ describe("games.router", () => {
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const startGameResult = await trpcClient.client.games.start.mutate({ gameId: createdGameId })
+      const startGameResult = await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
 
       // Assert
 
@@ -73,7 +73,7 @@ describe("games.router", () => {
       authService.account = account
 
       // Act & Assert
-      await expect(trpcClient.client.games.start.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+      await expect(trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -84,7 +84,7 @@ describe("games.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.games.start.mutate({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcClient.client.gameplay.start.mutate({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })

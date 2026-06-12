@@ -1,10 +1,8 @@
 import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
 import { type Logger } from "@guillaume-docquier/tools-ts"
+import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
-import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
-import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
 import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
@@ -45,11 +43,9 @@ if (!isMainThread) {
 
   logger.info("Creating services")
   const repositories = {
-    gamesRepository: new GamesRepository({ db, logger }),
+    gameplayRepository: new GameplayRepository({ db, logger }),
     gameTicksRepository: new GameTicksRepository({ db, logger }),
-    gameStatesRepository: new GameStatesRepository({ db, logger }),
     gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
-    gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
   }
 
   logger.info("Processing ticks")

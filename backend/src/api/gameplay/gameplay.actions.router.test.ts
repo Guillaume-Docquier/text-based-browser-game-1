@@ -6,7 +6,7 @@ import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
-describe("gamePlayerActions.router", () => {
+describe("gameplay.router", () => {
   describe("setCurrentAction", () => {
     it("should set the current action for the authenticated player", async () => {
       // Arrange
@@ -19,18 +19,18 @@ describe("gamePlayerActions.router", () => {
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
-      await trpcClient.client.games.start.mutate({ gameId: createdGameId })
+      await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
       await gamePlayerResourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
-      const setCurrentActionResult = await trpcClient.client.gamePlayerActions.setCurrentAction.mutate({
+      const setCurrentActionResult = await trpcClient.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
       })
-      const getCurrentActionResult = await trpcClient.client.gamePlayerActions.getCurrentAction.query({
+      const getCurrentActionResult = await trpcClient.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,
       })
 
@@ -57,11 +57,11 @@ describe("gamePlayerActions.router", () => {
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "stale tick game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
-      await trpcClient.client.games.start.mutate({ gameId: createdGameId })
+      await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
 
       // Act & Assert
       await expect(
-        trpcClient.client.gamePlayerActions.setCurrentAction.mutate({
+        trpcClient.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           tick: 1,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
@@ -84,13 +84,13 @@ describe("gamePlayerActions.router", () => {
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
-      await trpcClient.client.games.start.mutate({ gameId: createdGameId })
+      await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
       await gamePlayerResourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
-      const getCurrentActionResult = await trpcClient.client.gamePlayerActions.getCurrentAction.query({
+      const getCurrentActionResult = await trpcClient.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,
       })
 
@@ -104,7 +104,7 @@ describe("gamePlayerActions.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.gamePlayerActions.getCurrentAction.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcClient.client.gameplay.getCurrentAction.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })

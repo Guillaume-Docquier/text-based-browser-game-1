@@ -1,8 +1,6 @@
 import { Result, type Logger } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
-import { type GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
-import { type GamesRepository } from "#lib/db/games/games.repository.ts"
-import { type GameStatesRepository } from "#lib/db/gameStates.repository.ts"
+import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { type GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
 import { type GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/gamePlayerActions.ts"
@@ -16,17 +14,13 @@ import { ResourceType } from "#lib/gameResources.ts"
 export async function processTick({
   logger,
   gameTicksRepository,
-  gameStatesRepository,
   gamePlayerResourcesRepository,
-  gamesRepository,
-  gamePlayerActionsRepository,
+  gameplayRepository,
 }: {
   logger: Logger
   gameTicksRepository: GameTicksRepository
-  gameStatesRepository: GameStatesRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
-  gamesRepository: GamesRepository
-  gamePlayerActionsRepository: GamePlayerActionsRepository
+  gameplayRepository: GameplayRepository
 }): Promise<void> {
   // Lock the tables, can't update state or submit actions during ticks
 
@@ -54,13 +48,13 @@ export async function processTick({
     const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds: game.tickIntervalSeconds })
     const nextTick = gameTick.tick + 1
 
-    const playerIdsResult = await gamesRepository.getPlayerIds({ gameId: game.id })
+    const playerIdsResult = await gameplayRepository.getPlayerIds({ gameId: game.id })
     if (Result.isFailure(playerIdsResult)) {
       logger.error("Could not get game players while processing tick", { gameTick, error: playerIdsResult.error })
       continue
     }
 
-    const gamePlayerActionsResult = await gamePlayerActionsRepository.getByGameIdAndTick({ gameId: game.id, tick: gameState.tick })
+    const gamePlayerActionsResult = await gameplayRepository.getActionsForTick({ gameId: game.id, tick: gameState.tick })
     if (Result.isFailure(gamePlayerActionsResult)) {
       logger.error("Could not get game player actions while processing tick", { gameTick, error: gamePlayerActionsResult.error })
       continue
@@ -140,7 +134,7 @@ export async function processTick({
       }
 
       if (selectedAction.actionType === GamePlayerActionType.WIN_THE_GAME) {
-        const endGameResult = await gamesRepository.endGameWithWinner({ gameId: game.id, winnerAccountId: playerId })
+        const endGameResult = await gameplayRepository.endGameWithWinner({ gameId: game.id, winnerAccountId: playerId })
         if (Result.isFailure(endGameResult)) {
           logger.error("Could not end game with winner", { playerId, gameTick, error: endGameResult.error })
           couldNotProcessPlayers = true
@@ -166,7 +160,7 @@ export async function processTick({
         continue
       }
 
-      const updateGameStateResult = await gameStatesRepository.update(
+      const updateGameStateResult = await gameplayRepository.updateGameState(
         { gameId: gameState.gameId },
         { tick: nextTick, nextTickAt: nextScheduledFor },
       )

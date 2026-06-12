@@ -11,7 +11,7 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const backendApiClient = useBackendApiClient()
   const gameQuery = useQuery(backendApiClient.lobbies.getById.queryOptions({ gameId }))
-  const gameStateQuery = useQuery(backendApiClient.gameStates.getById.queryOptions({ gameId }))
+  const gameStateQuery = useQuery(backendApiClient.gameplay.getById.queryOptions({ gameId }))
 
   if (gameQuery.isPending || gameStateQuery.isPending) {
     return <GameLayoutSkeleton />

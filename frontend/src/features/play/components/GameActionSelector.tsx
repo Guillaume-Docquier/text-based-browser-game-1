@@ -42,7 +42,7 @@ export function GameActionSelector({
   currentAction: ApiTypes.GamePlayerAction | null
 }): ReactElement {
   const backendApiClient = useBackendApiClient()
-  const setCurrentAction = useMutation(backendApiClient.gamePlayerActions.setCurrentAction.mutationOptions())
+  const setCurrentAction = useMutation(backendApiClient.gameplay.setCurrentAction.mutationOptions())
 
   return (
     <section className="flex flex-col gap-5">

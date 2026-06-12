@@ -12,7 +12,7 @@ export function PlayerActionsPage({ gameId }: { gameId: GameId }): ReactElement 
   const logger = useLogger()
   const { gameState } = usePlayGameContext()
   const backendApiClient = useBackendApiClient()
-  const currentActionQuery = useQuery(backendApiClient.gamePlayerActions.getCurrentAction.queryOptions({ gameId }))
+  const currentActionQuery = useQuery(backendApiClient.gameplay.getCurrentAction.queryOptions({ gameId }))
 
   if (currentActionQuery.isPending) {
     return <GameActionSelectorSkeleton />

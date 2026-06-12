@@ -21,8 +21,8 @@ export type LobbyPlayer = Lobby["creator"]
 // Listings
 export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 
-// Game player actions router
-type GamePlayerActionsOutput = TrpcRouterOutput["gamePlayerActions"]["getCurrentAction"]
+// Gameplay router
+type GamePlayerActionsOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
 
 // Star Systems router
