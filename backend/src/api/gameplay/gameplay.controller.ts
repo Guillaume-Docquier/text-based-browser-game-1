@@ -1,8 +1,8 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
-import { GameId } from "#api/games/GameId.ts"
-import { PlayerId } from "#api/games/PlayerId.ts"
 import { type LobbyDto, toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
+import { GameId } from "#api/shared/GameId.ts"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import {

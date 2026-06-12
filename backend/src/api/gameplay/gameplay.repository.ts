@@ -1,9 +1,9 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#api/accounts/AccountId.ts"
-import type { GameId } from "#api/games/GameId.ts"
-import type { PlayerId } from "#api/games/PlayerId.ts"
 import type { LobbyModel, LobbyPlayerModel } from "#api/lobbies/lobbies.repository.ts"
+import type { GameId } from "#api/shared/GameId.ts"
+import type { PlayerId } from "#api/shared/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   accountsTable,

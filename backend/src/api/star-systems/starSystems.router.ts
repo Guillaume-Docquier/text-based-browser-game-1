@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import z from "zod"
-import { GameId } from "#api/games/GameId.ts"
+import { GameId } from "#api/shared/GameId.ts"
 import { type StarSystemsController, StarSystemDto } from "#api/star-systems/starSystems.controller.ts"
 import type { Trpc } from "#api/trpc.ts"
 

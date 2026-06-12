@@ -1,7 +1,7 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq, lte, isNull } from "drizzle-orm"
 import type { GameStateModel } from "#api/gameplay/gameplay.repository.ts"
-import type { GameId } from "#api/games/GameId.ts"
+import type { GameId } from "#api/shared/GameId.ts"
 import { couldNot } from "#lib/errors.ts"
 import { PostgresRepository } from "./PostgresRepository.ts"
 import { gamesTable, gameStatesTable, gameTicksTable } from "./schema.ts"

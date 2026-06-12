@@ -1,6 +1,6 @@
 import { Assert, type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { eq } from "drizzle-orm"
-import type { GameId } from "#api/games/GameId.ts"
+import type { GameId } from "#api/shared/GameId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"

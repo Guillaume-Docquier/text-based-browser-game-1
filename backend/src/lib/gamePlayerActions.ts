@@ -1,6 +1,6 @@
 import z from "zod"
-import { GameId } from "#api/games/GameId.ts"
-import { PlayerId } from "#api/games/PlayerId.ts"
+import { GameId } from "#api/shared/GameId.ts"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
 
 type PlayerActionRule = {
