@@ -1,4 +1,4 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { type LobbyDto, toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameId } from "#api/shared/GameId.ts"
@@ -13,7 +13,12 @@ import {
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { computeNextTickDate } from "#tick-processing/processTick.ts"
-import { type GamePlayerActionModel, type GameplayRepository, type PlayerGameStateModel } from "./gameplay.repository.ts"
+import {
+  type GamePlayerActionModel,
+  type GameplayRepository,
+  type PlayerGameStateModel,
+  type StartGameModel,
+} from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
@@ -36,7 +41,7 @@ export class GameplayController {
 
   public async start({ gameId, playerId }: StartGameplayDto): Promise<Result<LobbyDto, string>> {
     const gameStartResult = await Result.tryCatch(
-      this.createTransaction(async (tx): Promise<void> => {
+      this.createTransaction(async (tx): Promise<LobbyDto> => {
         const lobbyResult = await this.gameplayRepository.getLobbyById({ gameId }, tx)
         rollbackOnFailure(lobbyResult, "Failed to get game lobby")
 
@@ -50,34 +55,30 @@ export class GameplayController {
         }
 
         const startedAt = new Date()
-        const startGameResult = await this.gameplayRepository.updateGame({ gameId }, { startedAt }, tx)
-        rollbackOnFailure(startGameResult, "Failed to update game start date")
-
         const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: lobbyModel.configuration.tickIntervalSeconds })
-        const gameStateResult = await this.gameplayRepository.createGameState({ gameId, nextTickAt }, tx)
-        rollbackOnFailure(gameStateResult, "Failed to create initial game state")
-
-        const playerIdsResult = await this.gameplayRepository.getPlayerIds({ gameId }, tx)
-        rollbackOnFailure(playerIdsResult, "Failed to get player ids to setup initial resources")
-
-        const createStartingResourcesResult = await this.gameplayRepository.createStartingResources(
-          playerIdsResult.value.flatMap((resourcePlayerId) =>
+        const startGameModel: StartGameModel = {
+          gameId,
+          startedAt,
+          nextTickAt,
+          playerResources: lobbyModel.players.flatMap(({ id: resourcePlayerId }) =>
             Object.values(ResourceType).map((resourceType) => ({
-              gameId,
               playerId: resourcePlayerId,
               resourceType,
               amount: STARTING_RESOURCE_AMOUNTS[resourceType],
             })),
           ),
-          tx,
-        )
-        rollbackOnFailure(createStartingResourcesResult, "Failed to create initial resources")
+        }
 
-        const gameTickResult = await this.gameplayRepository.createGameTick(
-          { gameId, tick: gameStateResult.value.tick, scheduledFor: gameStateResult.value.nextTickAt },
-          tx,
-        )
-        rollbackOnFailure(gameTickResult, "Failed to schedule first game tick")
+        const startGameResult = await this.gameplayRepository.startGame(startGameModel, tx)
+        rollbackOnFailure(startGameResult, "Failed to persist starting game state")
+
+        return toLobbyDto({
+          lobbyModel: {
+            ...lobbyModel,
+            startedAt,
+          },
+          playerId,
+        })
       }),
     )
 
@@ -86,11 +87,7 @@ export class GameplayController {
       return Result.Failure(couldNot("start game"))
     }
 
-    const lobbyResult = await this.gameplayRepository.getLobbyById({ gameId })
-    Assert.isSuccess(lobbyResult)
-    Assert.isDefined(lobbyResult.value)
-
-    return Result.Success(toLobbyDto({ lobbyModel: lobbyResult.value, playerId }))
+    return Result.Success(gameStartResult.value)
   }
 
   public async getById({ gameId, playerId }: GetGameplayDto): Promise<Result<GameStateDto | undefined, string>> {

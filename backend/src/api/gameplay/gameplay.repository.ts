@@ -22,7 +22,6 @@ type GameRow = typeof gamesTable.$inferSelect
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type GameStateRow = typeof gameStatesTable.$inferSelect
 type GamePlayerActionRow = typeof gamePlayerActionsTable.$inferSelect
-type NewGamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferInsert
 
 export type GameStateModel = GameStateRow
 export type GamePlayerActionModel = GamePlayerActionRow
@@ -31,6 +30,16 @@ export type PlayerGameStateModel = GameStateModel & {
   resources: {
     money: number
   }
+}
+export type StartGameModel = {
+  gameId: GameId
+  startedAt: Date
+  nextTickAt: Date
+  playerResources: Array<{
+    playerId: PlayerId
+    resourceType: ResourceType
+    amount: number
+  }>
 }
 
 export class GameplayRepository extends PostgresRepository {
@@ -75,16 +84,35 @@ export class GameplayRepository extends PostgresRepository {
     return Result.Success(toLobbyModel({ gameRow, players: playersResult.value }))
   }
 
-  public async updateGame(
-    { gameId }: { gameId: GameId },
-    game: Partial<GameRow>,
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    const updateResult = await Result.tryCatch(db.update(gamesTable).set(game).where(eq(gamesTable.id, gameId)))
+  public async startGame(startGameModel: StartGameModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
+    Assert.isTrue(startGameModel.playerResources.length > 0)
 
-    if (Result.isFailure(updateResult)) {
-      this.logger.error("Could not update game", { gameId, game, error: updateResult.error })
-      return Result.Failure(couldNot("update game"))
+    const tick = 0
+    const startResult = await Result.tryCatch(async () => {
+      await db.update(gamesTable).set({ startedAt: startGameModel.startedAt }).where(eq(gamesTable.id, startGameModel.gameId))
+      await db.insert(gameStatesTable).values({
+        gameId: startGameModel.gameId,
+        tick,
+        nextTickAt: startGameModel.nextTickAt,
+      })
+
+      await db.insert(gamePlayerResourcesTable).values(
+        startGameModel.playerResources.map((playerResource) => ({
+          gameId: startGameModel.gameId,
+          ...playerResource,
+        })),
+      )
+
+      await db.insert(gameTicksTable).values({
+        gameId: startGameModel.gameId,
+        tick,
+        scheduledFor: startGameModel.nextTickAt,
+      })
+    })
+
+    if (Result.isFailure(startResult)) {
+      this.logger.error("Could not start game", { startGameModel, error: startResult.error })
+      return Result.Failure(couldNot("start game"))
     }
 
     return Result.Success(true)
@@ -101,56 +129,6 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
-  }
-
-  public async createGameState(
-    newGameState: NewGameStateRow,
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameStateModel, string>> {
-    const createResult = await Result.tryCatch(async () => {
-      const gameStates = await db.insert(gameStatesTable).values(newGameState).returning()
-      Assert.isTrue(gameStates.length === 1)
-      Assert.isDefined(gameStates[0])
-
-      return gameStates[0]
-    })
-
-    if (Result.isFailure(createResult)) {
-      this.logger.error("Could not create game state", { newGameState, error: createResult.error })
-      return Result.Failure(couldNot("create game state"))
-    }
-
-    return createResult
-  }
-
-  public async createStartingResources(
-    newGamePlayerResources: NewGamePlayerResourceRow[],
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    if (newGamePlayerResources.length === 0) {
-      return Result.Success(true)
-    }
-
-    const createResult = await Result.tryCatch(db.insert(gamePlayerResourcesTable).values(newGamePlayerResources))
-    if (Result.isFailure(createResult)) {
-      this.logger.error("Could not create starting resources", { newGamePlayerResources, error: createResult.error })
-      return Result.Failure(couldNot("create starting resources"))
-    }
-
-    return Result.Success(true)
-  }
-
-  public async createGameTick(
-    newGameTick: typeof gameTicksTable.$inferInsert,
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    const createResult = await Result.tryCatch(db.insert(gameTicksTable).values(newGameTick))
-    if (Result.isFailure(createResult)) {
-      this.logger.error("Could not create game tick", { newGameTick, error: createResult.error })
-      return Result.Failure(couldNot("create game tick"))
-    }
-
-    return Result.Success(true)
   }
 
   public async getPlayerGameState(
