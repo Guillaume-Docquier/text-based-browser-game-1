@@ -3,6 +3,8 @@ import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts
 import { createApiStub } from "#api/createApi.stub.ts"
 import { type CreateLobbyDto, type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#api/shared/GameStatus.ts"
+import { createDbMock } from "#lib/db/createDb.mock.ts"
+import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
 import { createResourceUpdateModelStub } from "#lib/db/resources/ResourceUpdateModel.stub.ts"
 import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
 import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
@@ -153,7 +155,9 @@ describe("gameplay.router", () => {
   describe("setCurrentAction", () => {
     it("should set the current action for the authenticated player", async () => {
       // Arrange
-      const { api, authService, gamePlayerResourcesRepository, accountsRepository } = await createApiStub()
+      const db = await createDbMock()
+      const { api, authService, logger, accountsRepository } = await createApiStub({ db })
+      const gamePlayerResourcesRepository = new GamePlayerResourcesRepository({ db, logger })
       using trpcClient = new TrpcClient({ api })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
@@ -218,7 +222,9 @@ describe("gameplay.router", () => {
   describe("getCurrentAction", () => {
     it("should get the current action for the authenticated player", async () => {
       // Arrange
-      const { api, authService, accountsRepository, gamePlayerResourcesRepository } = await createApiStub()
+      const db = await createDbMock()
+      const { api, authService, logger, accountsRepository } = await createApiStub({ db })
+      const gamePlayerResourcesRepository = new GamePlayerResourcesRepository({ db, logger })
       using trpcClient = new TrpcClient({ api })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
