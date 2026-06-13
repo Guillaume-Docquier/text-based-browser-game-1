@@ -3,9 +3,9 @@ import { type Logger } from "@guillaume-docquier/tools-ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
-import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
+import { GamePlayerResourcesRepository } from "#lib/db/gameplay/gamePlayerResources.repository.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
+import { GameTicksRepository } from "#tick-processing/gameTicks.repository.ts"
 import { processTick } from "#tick-processing/processTick.ts"
 
 /**

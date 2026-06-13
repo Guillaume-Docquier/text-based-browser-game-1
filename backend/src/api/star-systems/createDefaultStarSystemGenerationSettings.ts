@@ -1,5 +1,5 @@
 import { Range } from "@guillaume-docquier/tools-ts"
-import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
+import type { StarSystemGenerationSettings } from "#api/star-systems/StarSystemGenerationSettings.ts"
 
 function randomUInt32(): number {
   return Math.floor(Math.random() * 0x100000000)

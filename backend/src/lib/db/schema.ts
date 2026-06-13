@@ -15,9 +15,9 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core"
-import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
+import type { StarSystemGenerationSettings } from "#api/star-systems/StarSystemGenerationSettings.ts"
+import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
-import type { StarSystemGenerationSettings } from "#lib/star-systems/StarSystemGenerationSettings.ts"
 
 /**
  * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.

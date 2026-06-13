@@ -5,9 +5,9 @@ import { GameId } from "#api/shared/GameId.ts"
 import { computeGameStatus, GameStatus } from "#api/shared/GameStatus.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
+import { createDefaultStarSystemGenerationSettings } from "#api/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
-import { createDefaultStarSystemGenerationSettings } from "#lib/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
 
 export class LobbiesController {

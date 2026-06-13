@@ -1,7 +1,7 @@
 import z from "zod"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
-import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
+import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 
 type PlayerActionRule = {
   costMoney: number

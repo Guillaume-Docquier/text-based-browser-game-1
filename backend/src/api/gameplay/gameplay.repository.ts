@@ -4,6 +4,8 @@ import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { LobbyModel, LobbyPlayerModel } from "#api/lobbies/lobbies.repository.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   accountsTable,
@@ -15,8 +17,6 @@ import {
   playersTable,
 } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
-import { ResourceType } from "#lib/gameResources.ts"
 
 type GameRow = typeof gamesTable.$inferSelect
 type NewGameStateRow = typeof gameStatesTable.$inferInsert

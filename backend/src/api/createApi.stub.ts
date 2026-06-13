@@ -6,9 +6,9 @@ import { createApi } from "#api/createApi.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import { StarSystemsRepository } from "#api/star-systems/starSystems.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import type { Database } from "#lib/db/createDb.ts"
-import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 
 type AllServices = Omit<Parameters<typeof createApi>[0], "authService"> & { authService: AuthServiceMock }
 

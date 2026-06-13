@@ -4,14 +4,14 @@ import { type LobbyDto, toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import {
   GAME_PLAYER_ACTION_RULES,
   type GamePlayerAction,
   GamePlayerActionSchema,
   GamePlayerActionTypeSchema,
-} from "#lib/gamePlayerActions.ts"
-import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/gameResources.ts"
+} from "#lib/db/gameplay/gamePlayerActions.ts"
+import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
+import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { computeNextTickDate } from "#tick-processing/processTick.ts"
 import { type GamePlayerActionModel, type GameplayRepository, type PlayerGameStateModel } from "./gameplay.repository.ts"
 

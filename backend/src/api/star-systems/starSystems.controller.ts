@@ -4,7 +4,7 @@ import type { AccountId } from "#api/accounts/AccountId.ts"
 import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
-import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import type { StarSystemsRepository } from "#api/star-systems/starSystems.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 

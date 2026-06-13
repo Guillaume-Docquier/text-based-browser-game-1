@@ -2,10 +2,10 @@ import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import { type ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gamePlayerResourcesTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import { type ResourceType } from "#lib/gameResources.ts"
 
 type NewGamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferInsert
 type GamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferSelect
@@ -32,27 +32,6 @@ export class GamePlayerResourcesRepository extends PostgresRepository {
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
     this.logger = logger.child({ scope: "game-player-resources-repository" })
-  }
-
-  /**
-   * @deprecated To be replaced by better repositories
-   */
-  public async createMany(
-    newGamePlayerResources: NewGamePlayerResourceModel[],
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GamePlayerResourceModel[], string>> {
-    if (newGamePlayerResources.length === 0) {
-      return Result.Success([])
-    }
-
-    const createManyResult = await Result.tryCatch(db.insert(gamePlayerResourcesTable).values(newGamePlayerResources).returning())
-
-    if (Result.isFailure(createManyResult)) {
-      this.logger.error("Could not create game player resources", { newGamePlayerResources, error: createManyResult.error })
-      return Result.Failure(couldNot("create game player resources"))
-    }
-
-    return createManyResult
   }
 
   /**

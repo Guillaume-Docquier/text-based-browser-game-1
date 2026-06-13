@@ -5,7 +5,7 @@ import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createCreateLobbyDtoStub } from "#api/lobbies/CreateLobbyDto.stub.ts"
 import type { GameId } from "#api/shared/GameId.ts"
-import { type NewStarSystemModel, type StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import { type NewStarSystemModel, type StarSystemsRepository } from "#api/star-systems/starSystems.repository.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"

@@ -2,9 +2,9 @@ import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq, lte, isNull } from "drizzle-orm"
 import type { GameStateModel } from "#api/gameplay/gameplay.repository.ts"
 import type { GameId } from "#api/shared/GameId.ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { gamesTable, gameStatesTable, gameTicksTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import { PostgresRepository } from "./PostgresRepository.ts"
-import { gamesTable, gameStatesTable, gameTicksTable } from "./schema.ts"
 
 type NewGameTickRow = typeof gameTicksTable.$inferInsert
 type GameTickRow = typeof gameTicksTable.$inferSelect

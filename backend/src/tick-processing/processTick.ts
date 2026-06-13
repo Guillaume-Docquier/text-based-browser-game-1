@@ -1,11 +1,11 @@
 import { Result, type Logger } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
-import { type GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import { type GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
-import { GAME_PLAYER_ACTION_RULES } from "#lib/gamePlayerActions.ts"
-import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
-import { ResourceType } from "#lib/gameResources.ts"
+import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
+import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { type GamePlayerResourcesRepository } from "#lib/db/gameplay/gamePlayerResources.repository.ts"
+import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { type GameTicksRepository } from "#tick-processing/gameTicks.repository.ts"
 
 /**
  * Processes all ticks that should advance at this point in time.
