@@ -4,9 +4,9 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { type CreateLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
-import { GamePlayerResourcesRepository } from "#lib/db/gameplay/gamePlayerResources.repository.ts"
-import { createResourceUpdateModelStub } from "#lib/db/gameplay/ResourceUpdateModel.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
+import { GamePlayerResourcesRepository } from "#tests/resources/gamePlayerResources.repository.ts"
+import { createResourceUpdateModelStub } from "#tests/resources/ResourceUpdateModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
 describe("gameplay.router", () => {
