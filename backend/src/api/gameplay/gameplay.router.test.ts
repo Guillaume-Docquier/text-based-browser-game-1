@@ -10,14 +10,39 @@ import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
 describe("gameplay.router", () => {
+  it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
+    // Arrange
+    const { api, authService, accountsRepository } = await createApiStub()
+    using trpcClient = new TrpcClient({ api })
+
+    authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+    const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
+      configuration: { name: "private gameplay", nbSeats: 2, tickIntervalSeconds: 60 },
+    })
+
+    authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+
+    // Act & Assert
+    const expectedError = { data: { code: "FORBIDDEN" } }
+    await expect(trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(trpcClient.client.gameplay.getCurrentAction.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(
+      trpcClient.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        tick: 0,
+        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+      }),
+    ).rejects.toMatchObject(expectedError)
+  })
+
   describe("start", () => {
     it("should start a game", async () => {
       // Arrange
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authService.account = creatorAccount
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const newGameSettings: CreateLobbyDto["configuration"] = {
         name: "start game",
@@ -40,10 +65,7 @@ describe("gameplay.router", () => {
       const { api, authService, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
-      const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
-      authService.account = creator
-
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: {
           name: "non creator cannot start game",
@@ -52,7 +74,8 @@ describe("gameplay.router", () => {
         },
       })
 
-      authService.account = account
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      await trpcClient.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Act & Assert
       await expect(trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
@@ -111,6 +134,7 @@ describe("gameplay.router", () => {
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       // Act & Assert
+      // @ts-expect-error Testing runtime input parsing with an invalid game id
       await expect(trpcClient.client.gameplay.getPlayerView.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })

@@ -65,6 +65,9 @@ export class StarSystemsController {
     this.starSystemsRepository = starSystemsRepository
   }
 
+  /**
+   * @deprecated Should be part of the PlayerView
+   */
   public async getByGameId({
     gameId,
     accountId,
@@ -84,10 +87,16 @@ export class StarSystemsController {
     return await this.starSystemsRepository.getByGameId({ gameId })
   }
 
+  /**
+   * @deprecated This is enforced by the gameplay router, we don't need to do this at the controller level
+   */
   private async canReadGame({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<boolean, string>> {
     return await this.lobbiesRepository.hasAccountJoinedLobby({ gameId, accountId })
   }
 
+  /**
+   * @deprecated This is enforced by the gameplay router, we don't need to do this at the controller level
+   */
   private notAuthorizedFailure({ accountId, gameId }: { accountId: AccountId; gameId: GameId }): Failure<string> {
     const error = notAuthorized({ accountId, operationName: `read game with id ${gameId}` })
     this.logger.error(error)

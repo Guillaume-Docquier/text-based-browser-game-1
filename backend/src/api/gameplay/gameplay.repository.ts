@@ -84,11 +84,11 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     const startResult = await Result.tryCatch(
-      db.transaction(async () => {
-        await db.update(gamesTable).set({ startedAt: startGameModel.startedAt }).where(eq(gamesTable.id, startGameModel.gameId))
-        await db.insert(gameStatesTable).values(gameState)
-        await db.insert(gamePlayerResourcesTable).values(playerResources)
-        await db.insert(gameTicksTable).values(gameTick)
+      db.transaction(async (tx) => {
+        await tx.update(gamesTable).set({ startedAt: startGameModel.startedAt }).where(eq(gamesTable.id, startGameModel.gameId))
+        await tx.insert(gameStatesTable).values(gameState)
+        await tx.insert(gamePlayerResourcesTable).values(playerResources)
+        await tx.insert(gameTicksTable).values(gameTick)
       }),
     )
 

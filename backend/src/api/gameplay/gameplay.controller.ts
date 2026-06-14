@@ -81,6 +81,10 @@ export class GameplayController {
     return startGameResult
   }
 
+  public async hasPlayerJoinedGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<boolean, string>> {
+    return await this.lobbiesRepository.hasAccountJoinedLobby({ gameId, accountId: playerId })
+  }
+
   public async getPlayerView({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto | undefined, string>> {
     const playerViewResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
     if (Result.isFailure(playerViewResult)) {
