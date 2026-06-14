@@ -10,3 +10,6 @@ These are terms and their meaning in the context of this app.
 | Listing  | Public summary display of past and current games. Does not contain information about the gameplay.                                                                                                 |
 | Lobby    | Operations on games outside of gameplay.                                                                                                                                                           |
 | Gameplay | Operations on games by players.                                                                                                                                                                    |
+| Order    | Game actions submitted by players for a turn that will be applied during tick processing.                                                                                                          |
+| Turn     | Period of time during which players decide which orders they want to submit.                                                                                                                       |
+| Tick     | The computation of the next game state by applying this turn's orders.                                                                                                                             |

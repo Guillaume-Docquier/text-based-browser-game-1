@@ -22,6 +22,13 @@
       "when": 1781137505596,
       "tag": "0002_remove-game-settings",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781408669712,
+      "tag": "0003_remove-game-prefix",
+      "breakpoints": true
     }
   ]
 }

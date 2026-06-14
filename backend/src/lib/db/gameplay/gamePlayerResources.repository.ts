@@ -4,14 +4,14 @@ import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import { type ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamePlayerResourcesTable } from "#lib/db/schema.ts"
+import { resourcesTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
-type NewGamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferInsert
-type GamePlayerResourceRow = typeof gamePlayerResourcesTable.$inferSelect
+type NewResourceRow = typeof resourcesTable.$inferInsert
+type ResourceRow = typeof resourcesTable.$inferSelect
 
-export type NewGamePlayerResourceModel = NewGamePlayerResourceRow
-export type GamePlayerResourceModel = GamePlayerResourceRow
+export type NewResourceModel = NewResourceRow
+export type ResourceModel = ResourceRow
 
 export type ResourceUpdateModel = {
   gameId: GameId
@@ -40,13 +40,13 @@ export class GamePlayerResourcesRepository extends PostgresRepository {
   public async updateResource(resourceUpdate: ResourceUpdateModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
     const updateResourceResult = await Result.tryCatch(async (): Promise<true> => {
       await db
-        .update(gamePlayerResourcesTable)
-        .set({ amount: sql`${gamePlayerResourcesTable.amount} + ${resourceUpdate.amountDelta}` })
+        .update(resourcesTable)
+        .set({ amount: sql`${resourcesTable.amount} + ${resourceUpdate.amountDelta}` })
         .where(
           and(
-            eq(gamePlayerResourcesTable.gameId, resourceUpdate.gameId),
-            eq(gamePlayerResourcesTable.playerId, resourceUpdate.playerId),
-            eq(gamePlayerResourcesTable.resourceType, resourceUpdate.resourceType),
+            eq(resourcesTable.gameId, resourceUpdate.gameId),
+            eq(resourcesTable.playerId, resourceUpdate.playerId),
+            eq(resourcesTable.resourceType, resourceUpdate.resourceType),
           ),
         )
 

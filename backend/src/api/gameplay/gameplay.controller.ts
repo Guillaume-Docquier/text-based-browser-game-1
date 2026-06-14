@@ -13,7 +13,7 @@ import {
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { couldNot } from "#lib/errors.ts"
 import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
-import { type GamePlayerActionModel, type GameplayRepository, type PlayerViewModel, type StartGameModel } from "./gameplay.repository.ts"
+import { type OrderModel, type GameplayRepository, type PlayerViewModel, type StartGameModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
@@ -225,7 +225,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
   }
 }
 
-function toGamePlayerAction(gamePlayerActionModel: GamePlayerActionModel): GamePlayerAction {
+function toGamePlayerAction(gamePlayerActionModel: OrderModel): GamePlayerAction {
   return {
     gameId: gamePlayerActionModel.gameId,
     playerId: gamePlayerActionModel.playerId,

@@ -3,11 +3,11 @@ import { and, eq, lte, isNull } from "drizzle-orm"
 import type { GameStateModel } from "#api/gameplay/gameplay.repository.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamesTable, gameStatesTable, gameTicksTable } from "#lib/db/schema.ts"
+import { gamesTable, gameStatesTable, ticksTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
-type NewGameTickRow = typeof gameTicksTable.$inferInsert
-type GameTickRow = typeof gameTicksTable.$inferSelect
+type NewGameTickRow = typeof ticksTable.$inferInsert
+type GameTickRow = typeof ticksTable.$inferSelect
 type GameRow = typeof gamesTable.$inferSelect
 
 export type NewGameTickModel = NewGameTickRow
@@ -29,7 +29,7 @@ export class GameTicksRepository extends PostgresRepository {
 
   public async create(newGameTick: NewGameTickModel, db: PostgresRepository["db"] = this.db): Promise<Result<GameTickModel, string>> {
     const createResult = await Result.tryCatch(async () => {
-      const gameTicks = await db.insert(gameTicksTable).values(newGameTick).returning()
+      const gameTicks = await db.insert(ticksTable).values(newGameTick).returning()
       Assert.isTrue(gameTicks.length === 1)
       Assert.isDefined(gameTicks[0])
 
@@ -49,13 +49,13 @@ export class GameTicksRepository extends PostgresRepository {
       db
         .select({
           game: gamesTable,
-          gameTick: gameTicksTable,
+          gameTick: ticksTable,
           gameState: gameStatesTable,
         })
-        .from(gameTicksTable)
-        .innerJoin(gameStatesTable, eq(gameStatesTable.gameId, gameTicksTable.gameId))
-        .innerJoin(gamesTable, eq(gamesTable.id, gameTicksTable.gameId))
-        .where(and(isNull(gameTicksTable.processingStartedAt), lte(gameTicksTable.scheduledFor, new Date()))),
+        .from(ticksTable)
+        .innerJoin(gameStatesTable, eq(gameStatesTable.gameId, ticksTable.gameId))
+        .innerJoin(gamesTable, eq(gamesTable.id, ticksTable.gameId))
+        .where(and(isNull(ticksTable.processingStartedAt), lte(ticksTable.scheduledFor, new Date()))),
     )
 
     if (Result.isFailure(ticksToProcessResult)) {
@@ -78,9 +78,9 @@ export class GameTicksRepository extends PostgresRepository {
   ): Promise<Result<true, string>> {
     const startProcessingTickResult = await Result.tryCatch(
       db
-        .update(gameTicksTable)
+        .update(ticksTable)
         .set({ processingStartedAt: new Date() })
-        .where(and(eq(gameTicksTable.gameId, gameId), eq(gameTicksTable.tick, tick))),
+        .where(and(eq(ticksTable.gameId, gameId), eq(ticksTable.tick, tick))),
     )
 
     if (Result.isFailure(startProcessingTickResult)) {
@@ -97,9 +97,9 @@ export class GameTicksRepository extends PostgresRepository {
   ): Promise<Result<true, string>> {
     const finishProcessingTickResult = await Result.tryCatch(
       db
-        .update(gameTicksTable)
+        .update(ticksTable)
         .set({ processingEndedAt: new Date() })
-        .where(and(eq(gameTicksTable.gameId, gameId), eq(gameTicksTable.tick, tick))),
+        .where(and(eq(ticksTable.gameId, gameId), eq(ticksTable.tick, tick))),
     )
 
     if (Result.isFailure(finishProcessingTickResult)) {

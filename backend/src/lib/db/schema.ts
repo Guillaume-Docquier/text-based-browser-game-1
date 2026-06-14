@@ -100,8 +100,8 @@ export const playersTable = pgTable(
  * Resources owned by a player in a specific game.
  * One row per resource type.
  */
-export const gamePlayerResourcesTable = pgTable(
-  "game_player_resources",
+export const resourcesTable = pgTable(
+  "resources",
   {
     gameId: gameId("game_id").notNull(),
     playerId: playerId("player_id").notNull(),
@@ -115,7 +115,7 @@ export const gamePlayerResourcesTable = pgTable(
     foreignKey({
       columns: [table.gameId, table.playerId],
       foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "game_player_resources_gameId_playerId_game_players_fk",
+      name: "resources_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
   ],
 )
@@ -132,11 +132,11 @@ export const gameStatesTable = pgTable("game_states", {
 })
 
 /**
- * Player actions selected for a specific game tick.
+ * Orders submitted for a specific game tick.
  * Rows are kept as append-only history across ticks.
  */
-export const gamePlayerActionsTable = pgTable(
-  "game_player_actions",
+export const ordersTable = pgTable(
+  "orders",
   {
     gameId: gameId("game_id").notNull(),
     playerId: playerId("player_id").notNull(),
@@ -152,7 +152,7 @@ export const gamePlayerActionsTable = pgTable(
     foreignKey({
       columns: [table.gameId, table.playerId],
       foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "game_player_actions_gameId_playerId_game_players_fk",
+      name: "orders_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
   ],
 )
@@ -160,8 +160,8 @@ export const gamePlayerActionsTable = pgTable(
 /**
  * The state of tick computation
  */
-export const gameTicksTable = pgTable(
-  "game_ticks",
+export const ticksTable = pgTable(
+  "ticks",
   {
     gameId: gameId("game_id")
       .notNull()

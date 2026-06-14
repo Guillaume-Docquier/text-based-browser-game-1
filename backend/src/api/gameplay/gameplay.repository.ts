@@ -6,24 +6,17 @@ import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import {
-  gamePlayerActionsTable,
-  gamePlayerResourcesTable,
-  gamesTable,
-  gameStatesTable,
-  gameTicksTable,
-  playersTable,
-} from "#lib/db/schema.ts"
+import { ordersTable, resourcesTable, gamesTable, gameStatesTable, ticksTable, playersTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type GameStateRow = typeof gameStatesTable.$inferSelect
-type GamePlayerActionRow = typeof gamePlayerActionsTable.$inferSelect
-type NewResourceRow = typeof gamePlayerResourcesTable.$inferInsert
-type NewTickRow = typeof gameTicksTable.$inferInsert
+type OrderRow = typeof ordersTable.$inferSelect
+type NewResourceRow = typeof resourcesTable.$inferInsert
+type NewTickRow = typeof ticksTable.$inferInsert
 
 export type GameStateModel = GameStateRow
-export type GamePlayerActionModel = GamePlayerActionRow
+export type OrderModel = OrderRow
 
 export type PlayerViewModel = {
   gameId: number
@@ -87,8 +80,8 @@ export class GameplayRepository extends PostgresRepository {
       db.transaction(async (tx) => {
         await tx.update(gamesTable).set({ startedAt: startGameModel.startedAt }).where(eq(gamesTable.id, startGameModel.gameId))
         await tx.insert(gameStatesTable).values(gameState)
-        await tx.insert(gamePlayerResourcesTable).values(playerResources)
-        await tx.insert(gameTicksTable).values(gameTick)
+        await tx.insert(resourcesTable).values(playerResources)
+        await tx.insert(ticksTable).values(gameTick)
       }),
     )
 
@@ -129,8 +122,8 @@ export class GameplayRepository extends PostgresRepository {
 
         const playerResources = await tx
           .select()
-          .from(gamePlayerResourcesTable)
-          .where(and(eq(gamePlayerResourcesTable.gameId, gameId), eq(gamePlayerResourcesTable.playerId, playerId)))
+          .from(resourcesTable)
+          .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
         const money = playerResources.find((resource) => resource.resourceType === ResourceType.MONEY)
         Assert.isDefined(money)
 
@@ -155,18 +148,12 @@ export class GameplayRepository extends PostgresRepository {
   public async getCurrentAction(
     params: { gameId: GameId; playerId: PlayerId; tick: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GamePlayerActionModel | null, string>> {
+  ): Promise<Result<OrderModel | null, string>> {
     const getResult = await Result.tryCatch(
       db
         .select()
-        .from(gamePlayerActionsTable)
-        .where(
-          and(
-            eq(gamePlayerActionsTable.gameId, params.gameId),
-            eq(gamePlayerActionsTable.playerId, params.playerId),
-            eq(gamePlayerActionsTable.tick, params.tick),
-          ),
-        ),
+        .from(ordersTable)
+        .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.tick, params.tick))),
     )
 
     if (Result.isFailure(getResult)) {
@@ -181,14 +168,14 @@ export class GameplayRepository extends PostgresRepository {
   public async setCurrentAction(
     params: { gameId: GameId; playerId: PlayerId; tick: number; actionType: GamePlayerActionType },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GamePlayerActionModel, string>> {
+  ): Promise<Result<OrderModel, string>> {
     const upsertResult = await Result.tryCatch(async () => {
       const updatedAt = new Date()
       const gamePlayerActions = await db
-        .insert(gamePlayerActionsTable)
+        .insert(ordersTable)
         .values({ ...params, updatedAt })
         .onConflictDoUpdate({
-          target: [gamePlayerActionsTable.gameId, gamePlayerActionsTable.playerId, gamePlayerActionsTable.tick],
+          target: [ordersTable.gameId, ordersTable.playerId, ordersTable.tick],
           set: {
             actionType: params.actionType,
             updatedAt,
@@ -216,14 +203,8 @@ export class GameplayRepository extends PostgresRepository {
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(
       db
-        .delete(gamePlayerActionsTable)
-        .where(
-          and(
-            eq(gamePlayerActionsTable.gameId, params.gameId),
-            eq(gamePlayerActionsTable.playerId, params.playerId),
-            eq(gamePlayerActionsTable.tick, params.tick),
-          ),
-        ),
+        .delete(ordersTable)
+        .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.tick, params.tick))),
     )
 
     if (Result.isFailure(deleteResult)) {
@@ -237,12 +218,12 @@ export class GameplayRepository extends PostgresRepository {
   public async getActionsForTick(
     params: { gameId: GameId; tick: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GamePlayerActionModel[], string>> {
+  ): Promise<Result<OrderModel[], string>> {
     const getResult = await Result.tryCatch(
       db
         .select()
-        .from(gamePlayerActionsTable)
-        .where(and(eq(gamePlayerActionsTable.gameId, params.gameId), eq(gamePlayerActionsTable.tick, params.tick))),
+        .from(ordersTable)
+        .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.tick, params.tick))),
     )
 
     if (Result.isFailure(getResult)) {
