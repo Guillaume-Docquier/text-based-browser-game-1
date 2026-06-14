@@ -94,6 +94,9 @@ export class GameplayController {
     return Result.Success(toPlayerViewDto(playerViewResult.value))
   }
 
+  /**
+   * @deprecated Temporary POC implementation
+   */
   public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<GamePlayerAction | null, string>> {
     const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
     if (Result.isFailure(activeGameResult)) {
@@ -112,6 +115,9 @@ export class GameplayController {
     return Result.Success(getCurrentActionResult.value === null ? null : toGamePlayerAction(getCurrentActionResult.value))
   }
 
+  /**
+   * @deprecated Temporary POC implementation
+   */
   public async setCurrentAction({
     gameId,
     tick,
@@ -156,6 +162,9 @@ export class GameplayController {
     return Result.Success(toGamePlayerAction(upsertResult.value))
   }
 
+  /**
+   * @deprecated Temporary POC implementation
+   */
   private async getActiveGameForPlayer({
     gameId,
     playerId,
