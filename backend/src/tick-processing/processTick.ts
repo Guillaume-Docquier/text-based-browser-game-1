@@ -23,18 +23,22 @@ export async function processTick({ logger, ticksRepository }: { logger: Logger;
     return
   }
 
-  for (const tickToProcess of ticksToProcess) {
-    logger.info("Processing tick", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
-    const processedTick = processTickInMemory(tickToProcess)
-    const saveResult = await ticksRepository.saveProcessedTick(processedTick)
-    if (Result.isFailure(saveResult)) {
-      logger.error("Could not save processed tick", {
-        gameId: tickToProcess.gameId,
-        tick: tickToProcess.tick,
-        error: saveResult.error,
-      })
-    }
-  }
+  // Long term we'll probably want to have each invocation process 1 tick a distribute the work on multiple workers
+  // But for now this will work just fine
+  await Promise.allSettled(
+    ticksToProcess.map(async (tickToProcess) => {
+      logger.info("Processing tick", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
+      const processedTick = processTickInMemory(tickToProcess)
+      const saveResult = await ticksRepository.saveProcessedTick(processedTick)
+      if (Result.isFailure(saveResult)) {
+        logger.error("Could not save processed tick", {
+          gameId: tickToProcess.gameId,
+          tick: tickToProcess.tick,
+          error: saveResult.error,
+        })
+      }
+    }),
+  )
 }
 
 function processTickInMemory(tickToProcess: TickToProcessModel): ProcessedTickModel {
@@ -50,11 +54,13 @@ function processTickInMemory(tickToProcess: TickToProcessModel): ProcessedTickMo
 
       if (actionType !== undefined) {
         const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
-        money.amount -= actionRule.costMoney
-        money.amount += actionRule.rewardMoney
+        if (actionRule.costMoney <= money.amount) {
+          money.amount -= actionRule.costMoney
+          money.amount += actionRule.rewardMoney
 
-        if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
-          winnerAccountId = playerId
+          if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
+            winnerAccountId = playerId
+          }
         }
       }
 
