@@ -40,28 +40,31 @@ export async function processTick({ logger, ticksRepository }: { logger: Logger;
 function processTickInMemory(tickToProcess: TickToProcessModel): ProcessedTickModel {
   let winnerAccountId: AccountId | undefined
 
-  const players = tickToProcess.players.map(({ playerId, resources, actionType }) => {
-    const updatedResources = resources.map((resource) => ({ ...resource }))
-    const money = updatedResources.find((resource) => resource.resourceType === ResourceType.MONEY)
-    Assert.isDefined(money)
+  const players = Object.entries(tickToProcess.players).reduce<ProcessedTickModel["players"]>(
+    (processedPlayers, [playerId, { resources, actionType }]) => {
+      const updatedResources = resources.map((resource) => ({ ...resource }))
+      const money = updatedResources.find((resource) => resource.resourceType === ResourceType.MONEY)
+      Assert.isDefined(money)
 
-    money.amount += 1
+      money.amount += 1
 
-    if (actionType !== undefined) {
-      const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
-      money.amount -= actionRule.costMoney
-      money.amount += actionRule.rewardMoney
+      if (actionType !== undefined) {
+        const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
+        money.amount -= actionRule.costMoney
+        money.amount += actionRule.rewardMoney
 
-      if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
-        winnerAccountId = playerId
+        if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
+          winnerAccountId = playerId
+        }
       }
-    }
 
-    return {
-      playerId,
-      resources: updatedResources,
-    }
-  })
+      processedPlayers[playerId] = {
+        resources: updatedResources,
+      }
+      return processedPlayers
+    },
+    {},
+  )
 
   const nextTick =
     winnerAccountId === undefined

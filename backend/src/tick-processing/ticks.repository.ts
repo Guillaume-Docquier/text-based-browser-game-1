@@ -14,27 +14,31 @@ export type TickToProcessModel = {
   tick: number
   scheduledFor: Date
   tickIntervalSeconds: number
-  players: Array<{
-    playerId: PlayerId
-    resources: Array<{
-      resourceType: ResourceType
-      amount: number
-    }>
-    actionType: GamePlayerActionType | undefined
-  }>
+  players: Record<
+    PlayerId,
+    {
+      resources: Array<{
+        resourceType: ResourceType
+        amount: number
+      }>
+      actionType: GamePlayerActionType | undefined
+    }
+  >
 }
 
 export type ProcessedTickModel = {
   gameId: GameId
   tick: number
   processedAt: Date
-  players: Array<{
-    playerId: PlayerId
-    resources: Array<{
-      resourceType: ResourceType
-      amount: number
-    }>
-  }>
+  players: Record<
+    PlayerId,
+    {
+      resources: Array<{
+        resourceType: ResourceType
+        amount: number
+      }>
+    }
+  >
   winnerAccountId: AccountId | undefined
   nextTick:
     | {
@@ -95,18 +99,20 @@ export class TicksRepository extends PostgresRepository {
           ...dueTick,
           players: players
             .filter(({ gameId }) => gameId === dueTick.gameId)
-            .map(({ playerId }) => ({
-              playerId,
-              resources: resources
-                .filter((resource) => resource.gameId === dueTick.gameId && resource.playerId === playerId)
-                .map(({ resourceType, amount }) => ({
-                  resourceType: resourceType as ResourceType,
-                  amount,
-                })),
-              actionType: orders.find(
-                (order) => order.gameId === dueTick.gameId && order.playerId === playerId && order.tick === dueTick.tick,
-              )?.actionType,
-            })),
+            .reduce<TickToProcessModel["players"]>((playersById, { playerId }) => {
+              playersById[playerId] = {
+                resources: resources
+                  .filter((resource) => resource.gameId === dueTick.gameId && resource.playerId === playerId)
+                  .map(({ resourceType, amount }) => ({
+                    resourceType: resourceType as ResourceType,
+                    amount,
+                  })),
+                actionType: orders.find(
+                  (order) => order.gameId === dueTick.gameId && order.playerId === playerId && order.tick === dueTick.tick,
+                )?.actionType,
+              }
+              return playersById
+            }, {}),
         }),
       )
     })
@@ -146,7 +152,7 @@ export class TicksRepository extends PostgresRepository {
           throw new TransactionRollback("Cannot save a stale tick")
         }
 
-        const resources = processedTick.players.flatMap(({ playerId, resources: playerResources }) =>
+        const resources = Object.entries(processedTick.players).flatMap(([playerId, { resources: playerResources }]) =>
           playerResources.map((resource) => ({
             gameId: processedTick.gameId,
             playerId,

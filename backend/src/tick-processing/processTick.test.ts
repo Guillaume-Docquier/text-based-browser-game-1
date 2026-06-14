@@ -149,14 +149,13 @@ describe("processTick", () => {
       gameId: tickToProcess.gameId,
       tick: tickToProcess.tick,
       processedAt: new Date(),
-      players: [
+      players: {
         ...tickToProcess.players,
         // Unknown player will fail to insert
-        {
-          playerId: v4(),
+        [v4()]: {
           resources: [{ resourceType: ResourceType.MONEY, amount: 1 }],
         },
-      ],
+      },
       winnerAccountId: undefined,
       nextTick: {
         tick: tickToProcess.tick + 1,
