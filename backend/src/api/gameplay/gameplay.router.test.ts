@@ -28,7 +28,7 @@ describe("gameplay.router", () => {
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const startGameResult = await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
+      const startGameResult = await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Assert
       expect(startGameResult).toEqual<typeof startGameResult>({ nextTickAt: expect.any(String) }) // trpc serializes the date to string
@@ -55,7 +55,7 @@ describe("gameplay.router", () => {
       authService.account = account
 
       // Act & Assert
-      await expect(trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+      await expect(trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -66,7 +66,7 @@ describe("gameplay.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.gameplay.start.mutate({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcClient.client.gameplay.startGame.mutate({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
@@ -85,7 +85,7 @@ describe("gameplay.router", () => {
         configuration: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
 
-      await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
+      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act
       const getByIdResult = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -142,7 +142,7 @@ describe("gameplay.router", () => {
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
-      await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
+      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await gamePlayerResourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )
@@ -180,7 +180,7 @@ describe("gameplay.router", () => {
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "stale tick game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
-      await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
+      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act & Assert
       await expect(
@@ -209,7 +209,7 @@ describe("gameplay.router", () => {
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
-      await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
+      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await gamePlayerResourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )

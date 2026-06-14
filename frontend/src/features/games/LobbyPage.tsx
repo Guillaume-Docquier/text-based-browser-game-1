@@ -39,7 +39,7 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
   const backendApiClient = useBackendApiClient()
   const joinGame = useMutation(backendApiClient.lobbies.join.mutationOptions())
   const leaveGame = useMutation(backendApiClient.lobbies.leave.mutationOptions())
-  const startGame = useMutation(backendApiClient.gameplay.start.mutationOptions())
+  const startGame = useMutation(backendApiClient.gameplay.startGame.mutationOptions())
 
   return (
     <div className="flex flex-col gap-6">

@@ -16,7 +16,7 @@ import {
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGameplayRouter({ trpc, gameplayController }: { trpc: Trpc; gameplayController: GameplayController }) {
   return trpc.router({
-    start: trpc.privateProcedure
+    startGame: trpc.privateProcedure
       .input(z.object({ gameId: GameId }))
       .output(StartedGameDto)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
@@ -46,7 +46,7 @@ export function createGameplayRouter({ trpc, gameplayController }: { trpc: Trpc;
         if (getByIdResult.value === undefined) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: `No view exists for this player and this game`,
+            message: "No view exists for this player and this game",
           })
         }
 
