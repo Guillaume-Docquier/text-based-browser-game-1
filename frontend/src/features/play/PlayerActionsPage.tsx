@@ -10,7 +10,7 @@ import { usePlayGameContext } from "./PlayContext.tsx"
 
 export function PlayerActionsPage({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
-  const { gameState } = usePlayGameContext()
+  const { playerView } = usePlayGameContext()
   const backendApiClient = useBackendApiClient()
   const currentActionQuery = useQuery(backendApiClient.gameplay.getCurrentAction.queryOptions({ gameId }))
 
@@ -29,5 +29,5 @@ export function PlayerActionsPage({ gameId }: { gameId: GameId }): ReactElement 
     )
   }
 
-  return <GameActionSelector gameId={gameId} gameState={gameState} currentAction={currentActionQuery.data.action} />
+  return <GameActionSelector gameId={gameId} playerView={playerView} currentAction={currentActionQuery.data.action} />
 }

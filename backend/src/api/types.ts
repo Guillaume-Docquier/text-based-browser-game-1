@@ -24,6 +24,7 @@ export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 // Gameplay router
 type GamePlayerActionsOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
+export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
 
 // Star Systems router
 type GetSystemOutput = TrpcRouterOutput["starSystems"]["getByGameId"]

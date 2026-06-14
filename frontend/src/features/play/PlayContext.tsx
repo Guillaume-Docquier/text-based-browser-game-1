@@ -1,17 +1,10 @@
 import type * as ApiTypes from "@api-types"
+import type { PlayerView } from "@api-types"
 import { createContext, type FC, type PropsWithChildren, useContext } from "react"
-
-export type PlayGameState = {
-  tick: number
-  nextTickAt: string | Date
-  resources: {
-    money: number
-  }
-}
 
 export type PlayGameContextValue = {
   game: ApiTypes.Lobby
-  gameState: PlayGameState
+  playerView: PlayerView
 }
 
 const PlayContext = createContext<PlayGameContextValue | undefined>(undefined)

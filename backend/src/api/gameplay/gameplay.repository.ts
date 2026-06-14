@@ -1,14 +1,12 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#api/accounts/AccountId.ts"
-import type { LobbyModel, LobbyPlayerModel } from "#api/lobbies/lobbies.repository.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
-  accountsTable,
   gamePlayerActionsTable,
   gamePlayerResourcesTable,
   gamesTable,
@@ -18,28 +16,38 @@ import {
 } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
-type GameRow = typeof gamesTable.$inferSelect
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type GameStateRow = typeof gameStatesTable.$inferSelect
 type GamePlayerActionRow = typeof gamePlayerActionsTable.$inferSelect
+type NewResourceRow = typeof gamePlayerResourcesTable.$inferInsert
+type NewTickRow = typeof gameTicksTable.$inferInsert
 
 export type GameStateModel = GameStateRow
 export type GamePlayerActionModel = GamePlayerActionRow
-export type PlayerGameStateModel = GameStateModel & {
+
+export type PlayerViewModel = {
+  gameId: number
   playerId: PlayerId
+  tick: number
+  nextTickAt: Date
   resources: {
     money: number
   }
 }
+
 export type StartGameModel = {
   gameId: GameId
   startedAt: Date
   nextTickAt: Date
-  playerResources: Array<{
-    playerId: PlayerId
-    resourceType: ResourceType
-    amount: number
-  }>
+  players: Record<
+    PlayerId,
+    {
+      resources: Array<{
+        resourceType: ResourceType
+        amount: number
+      }>
+    }
+  >
 }
 
 export class GameplayRepository extends PostgresRepository {
@@ -50,72 +58,46 @@ export class GameplayRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "gameplay-repository" })
   }
 
-  public async getLobbyById(
-    { gameId }: { gameId: GameId },
+  public async startGame(
+    startGameModel: StartGameModel,
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<LobbyModel | undefined, string>> {
-    const gameRowResult = await Result.tryCatch(db.select().from(gamesTable).where(eq(gamesTable.id, gameId)))
-    if (Result.isFailure(gameRowResult)) {
-      this.logger.error("Failed to get game", { gameId, error: gameRowResult.error })
-      return Result.Failure(couldNot("get game"))
-    }
-    Assert.isTrue(gameRowResult.value.length <= 1)
+  ): Promise<Result<{ nextTickAt: Date }, string>> {
+    const gameState = {
+      gameId: startGameModel.gameId,
+      tick: 0,
+      nextTickAt: startGameModel.nextTickAt,
+    } as const satisfies NewGameStateRow
 
-    const gameRow = gameRowResult.value[0]
-    if (gameRow === undefined) {
-      return Result.Success(undefined)
-    }
-
-    const playersResult = await Result.tryCatch(
-      db
-        .select({
-          id: playersTable.playerId,
-          alias: accountsTable.alias,
-        })
-        .from(playersTable)
-        .innerJoin(accountsTable, eq(accountsTable.id, playersTable.playerId))
-        .where(eq(playersTable.gameId, gameId)),
+    const playerResources: NewResourceRow[] = Object.entries(startGameModel.players).flatMap(([playerId, { resources }]) =>
+      resources.map((resource) => ({
+        gameId: startGameModel.gameId,
+        playerId,
+        ...resource,
+      })),
     )
-    if (Result.isFailure(playersResult)) {
-      this.logger.error("Failed to get players in the lobby", { gameId, error: playersResult.error })
-      return Result.Failure(couldNot("get players in the lobby"))
+    Assert.isTrue(playerResources.length > 0)
+
+    const gameTick: NewTickRow = {
+      gameId: startGameModel.gameId,
+      tick: gameState.tick,
+      scheduledFor: startGameModel.nextTickAt,
     }
 
-    return Result.Success(toLobbyModel({ gameRow, players: playersResult.value }))
-  }
-
-  public async startGame(startGameModel: StartGameModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
-    Assert.isTrue(startGameModel.playerResources.length > 0)
-
-    const tick = 0
-    const startResult = await Result.tryCatch(async () => {
-      await db.update(gamesTable).set({ startedAt: startGameModel.startedAt }).where(eq(gamesTable.id, startGameModel.gameId))
-      await db.insert(gameStatesTable).values({
-        gameId: startGameModel.gameId,
-        tick,
-        nextTickAt: startGameModel.nextTickAt,
-      })
-
-      await db.insert(gamePlayerResourcesTable).values(
-        startGameModel.playerResources.map((playerResource) => ({
-          gameId: startGameModel.gameId,
-          ...playerResource,
-        })),
-      )
-
-      await db.insert(gameTicksTable).values({
-        gameId: startGameModel.gameId,
-        tick,
-        scheduledFor: startGameModel.nextTickAt,
-      })
-    })
+    const startResult = await Result.tryCatch(
+      db.transaction(async () => {
+        await db.update(gamesTable).set({ startedAt: startGameModel.startedAt }).where(eq(gamesTable.id, startGameModel.gameId))
+        await db.insert(gameStatesTable).values(gameState)
+        await db.insert(gamePlayerResourcesTable).values(playerResources)
+        await db.insert(gameTicksTable).values(gameTick)
+      }),
+    )
 
     if (Result.isFailure(startResult)) {
       this.logger.error("Could not start game", { startGameModel, error: startResult.error })
       return Result.Failure(couldNot("start game"))
     }
 
-    return Result.Success(true)
+    return Result.Success({ nextTickAt: gameState.nextTickAt })
   }
 
   public async getPlayerIds({ gameId }: { gameId: GameId }, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerId[], string>> {
@@ -131,11 +113,11 @@ export class GameplayRepository extends PostgresRepository {
     return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
   }
 
-  public async getPlayerGameState(
+  public async getPlayerView(
     { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerGameStateModel | undefined, string>> {
-    const playerGameStateResult = await Result.tryCatch(
+  ): Promise<Result<PlayerViewModel | undefined, string>> {
+    const playerViewResult = await Result.tryCatch(
       db.transaction(async (tx) => {
         const gameStates = await tx.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId))
         Assert.isTrue(gameStates.length === 1)
@@ -162,12 +144,12 @@ export class GameplayRepository extends PostgresRepository {
       }),
     )
 
-    if (Result.isFailure(playerGameStateResult)) {
-      this.logger.error("Could not get player game state by ids", { gameId, playerId, error: playerGameStateResult.error })
+    if (Result.isFailure(playerViewResult)) {
+      this.logger.error("Could not get player game state by ids", { gameId, playerId, error: playerViewResult.error })
       return Result.Failure(couldNot("get player game state by ids"))
     }
 
-    return playerGameStateResult
+    return playerViewResult
   }
 
   public async getCurrentAction(
@@ -300,26 +282,5 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return Result.Success(true)
-  }
-}
-
-function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPlayerModel[] }): LobbyModel {
-  const creator = players.find((player) => player.id === gameRow.createdByAccountId)
-  Assert.isDefined(creator)
-
-  return {
-    id: gameRow.id,
-    createdAt: gameRow.createdAt,
-    startedAt: gameRow.startedAt,
-    endedAt: gameRow.endedAt,
-    winnerAccountId: gameRow.winnerAccountId,
-    configuration: {
-      name: gameRow.name,
-      nbSeats: gameRow.nbSeats,
-      tickIntervalSeconds: gameRow.tickIntervalSeconds,
-      starSystemGenerationSettings: gameRow.starSystemGenerationSettings,
-    },
-    creator,
-    players,
   }
 }

@@ -1,10 +1,9 @@
-import type * as ApiTypes from "@api-types"
+import type { Lobby, PlayerView } from "@api-types"
 import { Clock3, Crown, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
-import type { PlayGameState } from "../PlayContext.tsx"
 import { GameStatusBadge } from "./GameStatusBadge.tsx"
 
-export function GameTopBar({ game, gameState }: { game: ApiTypes.Lobby; gameState: PlayGameState }): ReactElement {
+export function GameTopBar({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
   return (
     <header className="flex min-h-24 flex-col justify-center border-b border-border/70 bg-background/80 px-4 py-4 sm:px-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -16,8 +15,8 @@ export function GameTopBar({ game, gameState }: { game: ApiTypes.Lobby; gameStat
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <TopBarFact icon={<TimerReset className="size-4" />} label="Tick" value={gameState.tick.toString()} />
-          <NextTickFact targetTimestamp={gameState.nextTickAt} />
+          <TopBarFact icon={<TimerReset className="size-4" />} label="Tick" value={playerView.tick.toString()} />
+          <NextTickFact targetTimestamp={playerView.nextTickAt} />
         </div>
       </div>
       {game.winnerAccountId === null ? null : (
@@ -80,7 +79,7 @@ function TopBarFact({ icon, label, value, detail }: { icon: ReactElement; label:
   )
 }
 
-function getWinnerLabel(game: ApiTypes.Lobby): string {
+function getWinnerLabel(game: Lobby): string {
   const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerAccountId)
 
   if (winner === undefined) {

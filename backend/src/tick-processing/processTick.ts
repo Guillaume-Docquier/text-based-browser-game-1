@@ -1,10 +1,11 @@
-import { Result, type Logger } from "@guillaume-docquier/tools-ts"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { type GamePlayerResourcesRepository } from "#lib/db/gameplay/gamePlayerResources.repository.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
 import { type GameTicksRepository } from "#tick-processing/gameTicks.repository.ts"
 
 /**
@@ -176,12 +177,4 @@ export async function processTick({
       continue
     }
   }
-}
-
-/**
- * Computes the date at which the next tick should happen.
- * The date argument is the last tick date to which we'll add tickIntervalSeconds.
- */
-export function computeNextTickDate({ date, tickIntervalSeconds }: { date: Date; tickIntervalSeconds: number }): Date {
-  return new Date(date.getTime() + tickIntervalSeconds * 1000)
 }

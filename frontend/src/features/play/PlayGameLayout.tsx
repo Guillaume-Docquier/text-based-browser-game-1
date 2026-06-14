@@ -11,9 +11,9 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const backendApiClient = useBackendApiClient()
   const gameQuery = useQuery(backendApiClient.lobbies.getById.queryOptions({ gameId }))
-  const gameStateQuery = useQuery(backendApiClient.gameplay.getById.queryOptions({ gameId }))
+  const playerViewQuery = useQuery(backendApiClient.gameplay.getPlayerView.queryOptions({ gameId }))
 
-  if (gameQuery.isPending || gameStateQuery.isPending) {
+  if (gameQuery.isPending || playerViewQuery.isPending) {
     return <GameLayoutSkeleton />
   }
 
@@ -22,16 +22,16 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     return <Navigate to="/games" />
   }
 
-  if (gameStateQuery.isError) {
-    logger.error("Could not fetch game state", { gameId, error: gameStateQuery.error.message })
+  if (playerViewQuery.isError) {
+    logger.error("Could not fetch game state", { gameId, error: playerViewQuery.error.message })
     return <Navigate to="/games" />
   }
 
-  const context: PlayGameContextValue = { game: gameQuery.data, gameState: gameStateQuery.data.gameState }
+  const context: PlayGameContextValue = { game: gameQuery.data, playerView: playerViewQuery.data }
 
   return (
     <PlayGameContextProvider value={context}>
-      <GameLayout game={context.game} gameState={context.gameState}>
+      <GameLayout game={context.game} playerView={context.playerView}>
         <Outlet />
       </GameLayout>
     </PlayGameContextProvider>

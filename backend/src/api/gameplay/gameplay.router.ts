@@ -1,25 +1,26 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
+import { z } from "zod"
+import { GameId } from "#api/shared/GameId.ts"
 import type { Trpc } from "#api/trpc.ts"
-import { LobbyDto } from "../lobbies/lobbies.controller.ts"
 import {
   CurrentActionDto,
   GetCurrentActionDto,
-  GetGameplayDto,
-  GameplayDto,
+  GetPlayerViewDto,
+  PlayerViewDto,
   type GameplayController,
   SetCurrentActionDto,
-  StartGameplayDto,
+  StartedGameDto,
 } from "./gameplay.controller.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGameplayRouter({ trpc, gameplayController }: { trpc: Trpc; gameplayController: GameplayController }) {
   return trpc.router({
     start: trpc.privateProcedure
-      .input(StartGameplayDto.pick({ gameId: true }))
-      .output(LobbyDto)
+      .input(z.object({ gameId: GameId }))
+      .output(StartedGameDto)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const startResult = await gameplayController.start({ gameId, playerId: account.id })
+        const startResult = await gameplayController.startGame({ gameId, playerId: account.id })
         if (Result.isFailure(startResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -30,11 +31,11 @@ export function createGameplayRouter({ trpc, gameplayController }: { trpc: Trpc;
         return startResult.value
       }),
 
-    getById: trpc.privateProcedure
-      .input(GetGameplayDto.pick({ gameId: true }))
-      .output(GameplayDto)
+    getPlayerView: trpc.privateProcedure
+      .input(GetPlayerViewDto.pick({ gameId: true }))
+      .output(PlayerViewDto)
       .query(async ({ input: { gameId }, ctx: { account } }) => {
-        const getByIdResult = await gameplayController.getById({ gameId, playerId: account.id })
+        const getByIdResult = await gameplayController.getPlayerView({ gameId, playerId: account.id })
         if (Result.isFailure(getByIdResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -45,11 +46,11 @@ export function createGameplayRouter({ trpc, gameplayController }: { trpc: Trpc;
         if (getByIdResult.value === undefined) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: `No game state exists with id ${gameId}`,
+            message: `No view exists for this player and this game`,
           })
         }
 
-        return { gameState: getByIdResult.value }
+        return getByIdResult.value
       }),
 
     getCurrentAction: trpc.privateProcedure

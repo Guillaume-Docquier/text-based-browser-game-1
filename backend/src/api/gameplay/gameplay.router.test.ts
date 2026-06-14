@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { type CreateLobbyDto, type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
-import { GameStatus } from "#api/shared/GameStatus.ts"
-import { createDefaultStarSystemGenerationSettings } from "#api/star-systems/createDefaultStarSystemGenerationSettings.ts"
+import { type CreateLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { GamePlayerResourcesRepository } from "#lib/db/gameplay/gamePlayerResources.repository.ts"
@@ -33,28 +31,8 @@ describe("gameplay.router", () => {
       const startGameResult = await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
 
       // Assert
-
-      const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
-      expect(startGameResult).toEqual<typeof startGameResult>({
-        id: createdGameId,
-        createdAt: expect.any(String),
-        endedAt: null,
-        winnerAccountId: null,
-        configuration: {
-          ...newGameSettings,
-          starSystemGenerationSettings: {
-            ...createDefaultStarSystemGenerationSettings(),
-            seed: expect.any(Number),
-          },
-        },
-        startedAt: expect.any(String),
-        creator,
-        players: [creator],
-        status: GameStatus.STARTED,
-        canJoin: false, // Because started
-        canLeave: false, // Because started
-        canStart: false, // Because started
-      })
+      expect(startGameResult).toEqual<typeof startGameResult>({ nextTickAt: expect.any(String) }) // trpc serializes the date to string
+      expect(new Date(startGameResult.nextTickAt).toString()).not.toBe("Invalid Date")
     })
 
     it("should reject starting a game as a non-creator", async () => {
@@ -110,18 +88,16 @@ describe("gameplay.router", () => {
       await trpcClient.client.gameplay.start.mutate({ gameId: createdGameId })
 
       // Act
-      const getByIdResult = await trpcClient.client.gameplay.getById.query({ gameId: createdGameId })
+      const getByIdResult = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
       expect(getByIdResult).toEqual<typeof getByIdResult>({
-        gameState: {
-          gameId: createdGameId,
-          playerId: account.id,
-          tick: 0,
-          nextTickAt: expect.any(String),
-          resources: {
-            money: 0,
-          },
+        gameId: createdGameId,
+        playerId: account.id,
+        tick: 0,
+        nextTickAt: expect.any(String),
+        resources: {
+          money: 0,
         },
       })
     })
@@ -135,7 +111,7 @@ describe("gameplay.router", () => {
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       // Act & Assert
-      await expect(trpcClient.client.gameplay.getById.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
+      await expect(trpcClient.client.gameplay.getPlayerView.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -146,7 +122,7 @@ describe("gameplay.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.gameplay.getById.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcClient.client.gameplay.getPlayerView.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
