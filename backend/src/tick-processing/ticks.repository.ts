@@ -9,6 +9,33 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gameStatesTable, gamesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 
+type DueTickRow = Pick<typeof ticksTable.$inferSelect, "gameId" | "tick" | "scheduledFor"> & {
+  tickIntervalSeconds: (typeof gamesTable.$inferSelect)["tickIntervalSeconds"]
+}
+type PlayerRow = typeof playersTable.$inferSelect
+type ResourceRow = typeof resourcesTable.$inferSelect
+type OrderRow = typeof ordersTable.$inferSelect
+type NewResourceRow = typeof resourcesTable.$inferInsert
+type NewTickRow = typeof ticksTable.$inferInsert
+type CompletedTickRow = Pick<typeof ticksTable.$inferInsert, "processingStartedAt" | "processingEndedAt">
+type EndedGameRow = Pick<typeof gamesTable.$inferInsert, "winnerAccountId" | "endedAt">
+type NextGameStateRow = Pick<typeof gameStatesTable.$inferInsert, "tick" | "nextTickAt">
+
+type ProcessedTickRows =
+  | {
+      result: "continue"
+      completedTick: CompletedTickRow
+      resources: NewResourceRow[]
+      nextGameState: NextGameStateRow
+      nextTick: NewTickRow
+    }
+  | {
+      result: "end"
+      completedTick: CompletedTickRow
+      resources: NewResourceRow[]
+      endedGame: EndedGameRow
+    }
+
 export type TickToProcessModel = {
   gameId: GameId
   tick: number
@@ -58,7 +85,7 @@ export class TicksRepository extends PostgresRepository {
 
   public async getTicksToProcess(db: PostgresRepository["db"] = this.db): Promise<Result<TickToProcessModel[], string>> {
     const ticksToProcessResult = await Result.tryCatch(async () => {
-      const dueTicks = await db
+      const ticksToProcessRows = await db
         .select({
           gameId: ticksTable.gameId,
           tick: ticksTable.tick,
@@ -71,11 +98,11 @@ export class TicksRepository extends PostgresRepository {
         .where(and(isNull(ticksTable.processingEndedAt), isNull(gamesTable.endedAt), lte(ticksTable.scheduledFor, new Date())))
         .orderBy(asc(ticksTable.scheduledFor), asc(ticksTable.gameId), asc(ticksTable.tick))
 
-      if (dueTicks.length === 0) {
+      if (ticksToProcessRows.length === 0) {
         return []
       }
 
-      const gameIds = dueTicks.map(({ gameId }) => gameId)
+      const gameIds = ticksToProcessRows.map(({ gameId }) => gameId)
       const [players, resources, orders] = await Promise.all([
         db
           .select()
@@ -94,27 +121,7 @@ export class TicksRepository extends PostgresRepository {
           .orderBy(asc(ordersTable.gameId), asc(ordersTable.playerId), asc(ordersTable.tick)),
       ])
 
-      return dueTicks.map(
-        (dueTick): TickToProcessModel => ({
-          ...dueTick,
-          players: players
-            .filter(({ gameId }) => gameId === dueTick.gameId)
-            .reduce<TickToProcessModel["players"]>((playersById, { playerId }) => {
-              playersById[playerId] = {
-                resources: resources
-                  .filter((resource) => resource.gameId === dueTick.gameId && resource.playerId === playerId)
-                  .map(({ resourceType, amount }) => ({
-                    resourceType: resourceType as ResourceType,
-                    amount,
-                  })),
-                actionType: orders.find(
-                  (order) => order.gameId === dueTick.gameId && order.playerId === playerId && order.tick === dueTick.tick,
-                )?.actionType,
-              }
-              return playersById
-            }, {}),
-        }),
-      )
+      return ticksToProcessRows.map((tickToProcess) => toTickToProcessModel({ dueTick: tickToProcess, players, resources, orders }))
     })
 
     if (Result.isFailure(ticksToProcessResult)) {
@@ -125,17 +132,22 @@ export class TicksRepository extends PostgresRepository {
     return ticksToProcessResult
   }
 
-  public async saveProcessedTick(processedTick: ProcessedTickModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
+  public async saveProcessedTick(
+    processedTickModel: ProcessedTickModel,
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<{ saved: true }, string>> {
+    const processedTickRows = toProcessedTickRows(processedTickModel)
     const saveResult = await Result.tryCatch(
-      db.transaction(async (tx): Promise<true> => {
+      db.transaction(async (tx) => {
         const completedTicks = await tx
           .update(ticksTable)
-          .set({
-            processingStartedAt: processedTick.processedAt,
-            processingEndedAt: processedTick.processedAt,
-          })
+          .set(processedTickRows.completedTick)
           .where(
-            and(eq(ticksTable.gameId, processedTick.gameId), eq(ticksTable.tick, processedTick.tick), isNull(ticksTable.processingEndedAt)),
+            and(
+              eq(ticksTable.gameId, processedTickModel.gameId),
+              eq(ticksTable.tick, processedTickModel.tick),
+              isNull(ticksTable.processingEndedAt),
+            ),
           )
           .returning()
 
@@ -146,24 +158,15 @@ export class TicksRepository extends PostgresRepository {
         const currentGameStates = await tx
           .select({ tick: gameStatesTable.tick })
           .from(gameStatesTable)
-          .where(and(eq(gameStatesTable.gameId, processedTick.gameId), eq(gameStatesTable.tick, processedTick.tick)))
+          .where(and(eq(gameStatesTable.gameId, processedTickModel.gameId), eq(gameStatesTable.tick, processedTickModel.tick)))
 
         if (currentGameStates.length !== 1) {
           throw new TransactionRollback("Cannot save a stale tick")
         }
 
-        const resources = Object.entries(processedTick.players).flatMap(([playerId, { resources: playerResources }]) =>
-          playerResources.map((resource) => ({
-            gameId: processedTick.gameId,
-            playerId,
-            ...resource,
-          })),
-        )
-        Assert.isTrue(resources.length > 0)
-
         await tx
           .insert(resourcesTable)
-          .values(resources)
+          .values(processedTickRows.resources)
           .onConflictDoUpdate({
             target: [resourcesTable.gameId, resourcesTable.playerId, resourcesTable.resourceType],
             set: {
@@ -171,41 +174,101 @@ export class TicksRepository extends PostgresRepository {
             },
           })
 
-        if (processedTick.winnerAccountId !== undefined) {
-          await tx
-            .update(gamesTable)
-            .set({
-              winnerAccountId: processedTick.winnerAccountId,
-              endedAt: processedTick.processedAt,
-            })
-            .where(eq(gamesTable.id, processedTick.gameId))
-        } else {
-          Assert.isDefined(processedTick.nextTick)
-
-          await tx
-            .update(gameStatesTable)
-            .set({
-              tick: processedTick.nextTick.tick,
-              nextTickAt: processedTick.nextTick.scheduledFor,
-            })
-            .where(eq(gameStatesTable.gameId, processedTick.gameId))
-
-          await tx.insert(ticksTable).values({
-            gameId: processedTick.gameId,
-            tick: processedTick.nextTick.tick,
-            scheduledFor: processedTick.nextTick.scheduledFor,
-          })
+        switch (processedTickRows.result) {
+          case "continue":
+            await tx
+              .update(gameStatesTable)
+              .set(processedTickRows.nextGameState)
+              .where(eq(gameStatesTable.gameId, processedTickModel.gameId))
+            await tx.insert(ticksTable).values(processedTickRows.nextTick)
+            break
+          case "end":
+            await tx.update(gamesTable).set(processedTickRows.endedGame).where(eq(gamesTable.id, processedTickModel.gameId))
+            break
         }
-
-        return true
       }),
     )
 
     if (Result.isFailure(saveResult)) {
-      this.logger.error("Could not save processed tick", { processedTick, error: saveResult.error })
+      this.logger.error("Could not save processed tick", { processedTick: processedTickModel, error: saveResult.error })
       return Result.Failure(couldNot("save processed tick"))
     }
 
-    return saveResult
+    return Result.Success({ saved: true })
+  }
+}
+
+function toTickToProcessModel({
+  dueTick,
+  players,
+  resources,
+  orders,
+}: {
+  dueTick: DueTickRow
+  players: PlayerRow[]
+  resources: ResourceRow[]
+  orders: OrderRow[]
+}): TickToProcessModel {
+  return {
+    ...dueTick,
+    players: players
+      .filter(({ gameId }) => gameId === dueTick.gameId)
+      .reduce<TickToProcessModel["players"]>((playersById, { playerId }) => {
+        playersById[playerId] = {
+          resources: resources
+            .filter((resource) => resource.gameId === dueTick.gameId && resource.playerId === playerId)
+            .map(({ resourceType, amount }) => ({
+              resourceType: resourceType as ResourceType,
+              amount,
+            })),
+          actionType: orders.find((order) => order.gameId === dueTick.gameId && order.playerId === playerId && order.tick === dueTick.tick)
+            ?.actionType,
+        }
+        return playersById
+      }, {}),
+  }
+}
+
+function toProcessedTickRows(processedTick: ProcessedTickModel): ProcessedTickRows {
+  const resources: NewResourceRow[] = Object.entries(processedTick.players).flatMap(([playerId, { resources: playerResources }]) =>
+    playerResources.map((resource) => ({
+      gameId: processedTick.gameId,
+      playerId,
+      ...resource,
+    })),
+  )
+  Assert.isTrue(resources.length > 0)
+
+  const completedTick: CompletedTickRow = {
+    processingStartedAt: processedTick.processedAt,
+    processingEndedAt: processedTick.processedAt,
+  }
+
+  if (processedTick.winnerAccountId !== undefined) {
+    return {
+      result: "end",
+      completedTick,
+      resources,
+      endedGame: {
+        winnerAccountId: processedTick.winnerAccountId,
+        endedAt: processedTick.processedAt,
+      },
+    }
+  }
+  Assert.isDefined(processedTick.nextTick)
+
+  return {
+    result: "continue",
+    completedTick,
+    resources,
+    nextGameState: {
+      tick: processedTick.nextTick.tick,
+      nextTickAt: processedTick.nextTick.scheduledFor,
+    },
+    nextTick: {
+      gameId: processedTick.gameId,
+      tick: processedTick.nextTick.tick,
+      scheduledFor: processedTick.nextTick.scheduledFor,
+    },
   }
 }

@@ -313,7 +313,7 @@ class FailingTicksRepository extends TicksRepository {
     this.failingGameId = failingGameId
   }
 
-  public override async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<true, string>> {
+  public override async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<{ saved: true }, string>> {
     if (processedTick.gameId === this.failingGameId) {
       return Result.Failure("Expected tick save failure")
     }
