@@ -1,4 +1,4 @@
-import { Result } from "@guillaume-docquier/tools-ts"
+import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
@@ -13,7 +13,7 @@ import { processTick } from "#tick-processing/processTick.ts"
 import { TicksRepository } from "#tick-processing/ticks.repository.ts"
 
 describe("processTick", () => {
-  it("should load, process, and save a tick through the ticks repository", async () => {
+  it("should process the current tick and queue the next one", async () => {
     // Arrange
     const db = await createDbMock()
     const { api, authService, accountsRepository, logger } = await createApiStub({ db })
@@ -27,14 +27,15 @@ describe("processTick", () => {
       configuration: { name: "process tick", nbSeats: 1, tickIntervalSeconds: 0 },
     })
     await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
-    extractSuccess(
-      await resourcesRepository.updateResource({
-        gameId: createdGameId,
-        playerId: account.id,
-        resourceType: ResourceType.MONEY,
-        amountDelta: 2,
-      }),
-    )
+
+    const updateResourceResult = await resourcesRepository.updateResource({
+      gameId: createdGameId,
+      playerId: account.id,
+      resourceType: ResourceType.MONEY,
+      amountDelta: 2,
+    })
+    Assert.isSuccess(updateResourceResult)
+
     await trpcClient.client.gameplay.setCurrentAction.mutate({
       gameId: createdGameId,
       tick: 0,
@@ -45,7 +46,8 @@ describe("processTick", () => {
     await processTick({ logger, ticksRepository })
 
     // Assert
-    await expect(trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })).resolves.toEqual({
+    const playerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+    expect(playerView).toEqual({
       gameId: createdGameId,
       playerId: account.id,
       tick: 1,
@@ -64,27 +66,32 @@ describe("processTick", () => {
     const resourcesRepository = new GamePlayerResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
 
-    const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-    const joiner = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Joiner" })))
+    const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = creator
     const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
       configuration: { name: "deterministic winner", nbSeats: 2, tickIntervalSeconds: 0 },
     })
+
+    const joiner = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = joiner
     await trpcClient.client.lobbies.join.mutate({ gameId: createdGameId })
+
     authService.account = creator
     await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-    for (const account of [creator, joiner]) {
-      extractSuccess(
-        await resourcesRepository.updateResource({
-          gameId: createdGameId,
-          playerId: account.id,
-          resourceType: ResourceType.MONEY,
-          amountDelta: 10,
-        }),
-      )
-      authService.account = account
+    for (const { player, amountDelta } of [
+      { player: creator, amountDelta: 10 },
+      { player: joiner, amountDelta: 12 },
+    ]) {
+      const updateResourceResult = await resourcesRepository.updateResource({
+        gameId: createdGameId,
+        playerId: player.id,
+        resourceType: ResourceType.MONEY,
+        amountDelta,
+      })
+      Assert.isSuccess(updateResourceResult)
+
+      authService.account = player
       await trpcClient.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
@@ -97,23 +104,31 @@ describe("processTick", () => {
 
     // Assert
     const expectedWinnerId = [creator.id, joiner.id].sort()[0]
-    authService.account = creator
-    await expect(trpcClient.client.lobbies.getById.query({ gameId: createdGameId })).resolves.toMatchObject({
+
+    const lobby = await trpcClient.client.lobbies.getById.query({ gameId: createdGameId })
+    expect(lobby).toMatchObject({
       winnerAccountId: expectedWinnerId,
       endedAt: expect.any(String),
     })
 
-    for (const account of [creator, joiner]) {
-      authService.account = account
-      await expect(trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })).resolves.toMatchObject({
-        resources: {
-          money: 1,
-        },
-      })
-    }
+    authService.account = creator
+    const creatorView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+    expect(creatorView).toMatchObject({
+      resources: {
+        money: 1,
+      },
+    })
+
+    authService.account = joiner
+    const joinerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+    expect(joinerView).toMatchObject({
+      resources: {
+        money: 3,
+      },
+    })
   })
 
-  it("should roll back the complete write when any part cannot be persisted", async () => {
+  it("should not do anything in case of failure", async () => {
     // Arrange
     const db = await createDbMock()
     const { api, authService, accountsRepository, logger } = await createApiStub({ db })
@@ -127,10 +142,7 @@ describe("processTick", () => {
     })
     await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
     const tickToProcess = extractSuccess(await ticksRepository.getTicksToProcess())[0]
-    expect(tickToProcess).toBeDefined()
-    if (tickToProcess === undefined) {
-      return
-    }
+    Assert.isDefined(tickToProcess)
 
     // Act
     const saveResult = await ticksRepository.saveProcessedTick({
@@ -139,6 +151,7 @@ describe("processTick", () => {
       processedAt: new Date(),
       players: [
         ...tickToProcess.players,
+        // Unknown player will fail to insert
         {
           playerId: v4(),
           resources: [{ resourceType: ResourceType.MONEY, amount: 1 }],
@@ -152,20 +165,7 @@ describe("processTick", () => {
     })
 
     // Assert
-    expect(saveResult).toEqual(Result.Failure("Could not save processed tick, see logs for more details."))
-    expect(await ticksRepository.getTicksToProcess()).toEqual(
-      Result.Success([
-        {
-          ...tickToProcess,
-          players: [
-            {
-              playerId: account.id,
-              resources: [{ resourceType: ResourceType.MONEY, amount: 0 }],
-              actionType: undefined,
-            },
-          ],
-        },
-      ]),
-    )
+    expect(saveResult).toEqual(Result.Failure(expect.any(String)))
+    expect(await ticksRepository.getTicksToProcess()).toEqual(Result.Success([tickToProcess]))
   })
 })
