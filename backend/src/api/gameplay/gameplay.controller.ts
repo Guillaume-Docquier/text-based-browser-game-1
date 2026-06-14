@@ -4,7 +4,6 @@ import { toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import type { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
-import type { CreateTransaction } from "#lib/db/createDb.ts"
 import {
   GAME_PLAYER_ACTION_RULES,
   type GamePlayerAction,
@@ -12,93 +11,87 @@ import {
   GamePlayerActionTypeSchema,
 } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
-import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
+import { couldNot } from "#lib/errors.ts"
 import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
 import { type GamePlayerActionModel, type GameplayRepository, type PlayerViewModel, type StartGameModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
-  private readonly createTransaction: CreateTransaction
   private readonly gameplayRepository: GameplayRepository
   private readonly lobbiesRepository: LobbiesRepository
 
   public constructor({
     logger,
-    createTransaction,
     gameplayRepository,
     lobbiesRepository,
   }: {
     logger: Logger
-    createTransaction: CreateTransaction
     gameplayRepository: GameplayRepository
     lobbiesRepository: LobbiesRepository
   }) {
     this.logger = logger.child({ scope: "gameplay-controller" })
-    this.createTransaction = createTransaction
     this.gameplayRepository = gameplayRepository
     this.lobbiesRepository = lobbiesRepository
   }
 
   public async startGame({ gameId, playerId }: StartGameDto): Promise<Result<StartedGameDto, string>> {
-    const gameStartResult = await Result.tryCatch(
-      this.createTransaction(async (tx) => {
-        const getLobbyResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
-        rollbackOnFailure(getLobbyResult, "Failed to get game lobby")
-
-        const lobbyModel = getLobbyResult.value
-        if (lobbyModel === undefined) {
-          throw new TransactionRollback("Cannot start game, the lobby could not be found")
-        }
-
-        // I don't really like importing the lobbiesRepository and using toLobbyDto, but it is convenient
-        if (!toLobbyDto({ lobbyModel, playerId }).canStart) {
-          throw new TransactionRollback("Cannot start game, this player is not allowed to start it at the moment")
-        }
-
-        const startedAt = new Date()
-        const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: lobbyModel.configuration.tickIntervalSeconds })
-        const startGameModel: StartGameModel = {
-          gameId,
-          startedAt,
-          nextTickAt,
-          players: lobbyModel.players.reduce<StartGameModel["players"]>((players, player) => {
-            players[player.id] = {
-              resources: Object.values(ResourceType).map((resourceType) => ({
-                resourceType,
-                amount: STARTING_RESOURCE_AMOUNTS[resourceType],
-              })),
-            }
-
-            return players
-          }, {}),
-        }
-
-        const startGameResult = await this.gameplayRepository.startGame(startGameModel, tx)
-        rollbackOnFailure(startGameResult, "Failed to persist starting game state")
-
-        return startGameResult.value
-      }),
-    )
-
-    if (Result.isFailure(gameStartResult)) {
-      this.logger.error("Could not start game", { gameId, playerId, error: gameStartResult.error })
+    const getLobbyResult = await this.lobbiesRepository.getLobbyById({ gameId })
+    if (Result.isFailure(getLobbyResult)) {
+      this.logger.error("Failed to get lobby", { gameId, playerId, error: getLobbyResult.error })
       return Result.Failure(couldNot("start game"))
     }
 
-    return gameStartResult
+    const lobbyModel = getLobbyResult.value
+    if (lobbyModel === undefined) {
+      this.logger.error("Lobby not found", { gameId, playerId })
+      return Result.Failure(couldNot("start game"))
+    }
+
+    // I don't really like importing the lobbiesRepository and using toLobbyDto, but it is convenient
+    const lobbyDto = toLobbyDto({ lobbyModel, playerId })
+    if (!lobbyDto.canStart) {
+      this.logger.error("Cannot start game, this player is not allowed to start it at the moment", { gameId, playerId, lobbyDto })
+      return Result.Failure(couldNot("start game"))
+    }
+
+    const startedAt = new Date()
+    const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: lobbyModel.configuration.tickIntervalSeconds })
+    const startGameModel: StartGameModel = {
+      gameId,
+      startedAt,
+      nextTickAt,
+      players: lobbyModel.players.reduce<StartGameModel["players"]>((players, player) => {
+        players[player.id] = {
+          resources: Object.values(ResourceType).map((resourceType) => ({
+            resourceType,
+            amount: STARTING_RESOURCE_AMOUNTS[resourceType],
+          })),
+        }
+
+        return players
+      }, {}),
+    }
+
+    const startGameResult = await this.gameplayRepository.startGame(startGameModel)
+    if (Result.isFailure(startGameResult)) {
+      this.logger.error("Failed to start game", { gameId, playerId, error: startGameResult.error })
+      return Result.Failure(couldNot("start game"))
+    }
+
+    return startGameResult
   }
 
   public async getPlayerView({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto | undefined, string>> {
-    const gameStateResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
-    if (Result.isFailure(gameStateResult)) {
-      return gameStateResult
+    const playerViewResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
+    if (Result.isFailure(playerViewResult)) {
+      return playerViewResult
     }
 
-    if (gameStateResult.value === undefined) {
+    if (playerViewResult.value === undefined) {
       return Result.Success(undefined)
     }
 
-    return Result.Success(toGameStateDto(gameStateResult.value))
+    return Result.Success(toPlayerViewDto(playerViewResult.value))
   }
 
   public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<GamePlayerAction | null, string>> {
@@ -209,13 +202,13 @@ export class GameplayController {
   }
 }
 
-function toGameStateDto(playerGameStateModel: PlayerViewModel): PlayerViewDto {
+function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
   return {
-    gameId: playerGameStateModel.gameId,
-    playerId: playerGameStateModel.playerId,
-    tick: playerGameStateModel.tick,
-    nextTickAt: playerGameStateModel.nextTickAt,
-    resources: playerGameStateModel.resources,
+    gameId: playerViewModel.gameId,
+    playerId: playerViewModel.playerId,
+    tick: playerViewModel.tick,
+    nextTickAt: playerViewModel.nextTickAt,
+    resources: playerViewModel.resources,
   }
 }
 
