@@ -30,7 +30,7 @@ main().catch((error) => {
 async function main(): Promise<void> {
   const logger = await configureLogger({ scope: "api" })
 
-  logger.info("Parsing environment")
+  logger.info("Parsing environment", { nodeVersion: process.version })
   const env = parseEnv({ logger, schema: envSchema })
 
   logger.info("Connecting to the database")
