@@ -10,7 +10,7 @@ import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { processTick } from "#tick-processing/processTick.ts"
-import { TicksRepository } from "#tick-processing/ticks.repository.ts"
+import { type ProcessedTickModel, TicksRepository } from "#tick-processing/ticks.repository.ts"
 
 describe("processTick", () => {
   it("should process the current tick and queue the next one", async () => {
@@ -55,6 +55,135 @@ describe("processTick", () => {
       resources: {
         money: 6,
       },
+    })
+  })
+
+  it("should not apply an action when the player cannot afford it", async () => {
+    // Arrange
+    const db = await createDbMock()
+    const { api, authService, accountsRepository, logger } = await createApiStub({ db })
+    const ticksRepository = new TicksRepository({ db, logger })
+    const resourcesRepository = new GamePlayerResourcesRepository({ db, logger })
+    using trpcClient = new TrpcClient({ api })
+
+    const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+    authService.account = account
+    const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
+      configuration: { name: "unaffordable action", nbSeats: 1, tickIntervalSeconds: 0 },
+    })
+    await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+    Assert.isSuccess(
+      await resourcesRepository.updateResource({
+        gameId: createdGameId,
+        playerId: account.id,
+        resourceType: ResourceType.MONEY,
+        amountDelta: 2,
+      }),
+    )
+    await trpcClient.client.gameplay.setCurrentAction.mutate({
+      gameId: createdGameId,
+      tick: 0,
+      actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+    })
+    Assert.isSuccess(
+      await resourcesRepository.updateResource({
+        gameId: createdGameId,
+        playerId: account.id,
+        resourceType: ResourceType.MONEY,
+        amountDelta: -2,
+      }),
+    )
+
+    // Act
+    await processTick({ logger, ticksRepository })
+
+    // Assert
+    const playerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+    expect(playerView).toMatchObject({
+      tick: 1,
+      resources: {
+        money: 1,
+      },
+    })
+  })
+
+  it("should process multiple ticks in the same invocation", async () => {
+    // Arrange
+    const db = await createDbMock()
+    const { api, authService, accountsRepository, logger } = await createApiStub({ db })
+    const ticksRepository = new TicksRepository({ db, logger })
+    using trpcClient = new TrpcClient({ api })
+
+    const firstAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+    authService.account = firstAccount
+    const { createdGameId: firstGameId } = await trpcClient.client.lobbies.create.mutate({
+      configuration: { name: "first simultaneous tick", nbSeats: 1, tickIntervalSeconds: 0 },
+    })
+    await trpcClient.client.gameplay.startGame.mutate({ gameId: firstGameId })
+
+    await processTick({ logger, ticksRepository }) // This will process the first game once, making the assertions different
+
+    const secondAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+    authService.account = secondAccount
+    const { createdGameId: secondGameId } = await trpcClient.client.lobbies.create.mutate({
+      configuration: { name: "second simultaneous tick", nbSeats: 1, tickIntervalSeconds: 0 },
+    })
+    await trpcClient.client.gameplay.startGame.mutate({ gameId: secondGameId })
+
+    // Act
+    await processTick({ logger, ticksRepository })
+
+    // Assert
+    authService.account = firstAccount
+    expect(await trpcClient.client.gameplay.getPlayerView.query({ gameId: firstGameId })).toMatchObject({
+      tick: 2,
+      resources: { money: 2 },
+    })
+
+    authService.account = secondAccount
+    expect(await trpcClient.client.gameplay.getPlayerView.query({ gameId: secondGameId })).toMatchObject({
+      tick: 1,
+      resources: { money: 1 },
+    })
+  })
+
+  it("should save other ticks when one tick fails", async () => {
+    // Arrange
+    const db = await createDbMock()
+    const { api, authService, accountsRepository, logger } = await createApiStub({ db })
+    using trpcClient = new TrpcClient({ api })
+
+    const failingAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+    authService.account = failingAccount
+    const { createdGameId: failingGameId } = await trpcClient.client.lobbies.create.mutate({
+      configuration: { name: "failing simultaneous tick", nbSeats: 1, tickIntervalSeconds: 0 },
+    })
+    await trpcClient.client.gameplay.startGame.mutate({ gameId: failingGameId })
+
+    const successfulAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+    authService.account = successfulAccount
+    const { createdGameId: successfulGameId } = await trpcClient.client.lobbies.create.mutate({
+      configuration: { name: "successful simultaneous tick", nbSeats: 1, tickIntervalSeconds: 0 },
+    })
+    await trpcClient.client.gameplay.startGame.mutate({ gameId: successfulGameId })
+
+    const ticksRepository = new FailingTicksRepository({ db, logger, failingGameId })
+
+    // Act
+    await processTick({ logger, ticksRepository })
+
+    // Assert
+    authService.account = failingAccount
+    expect(await trpcClient.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
+      tick: 0,
+      resources: { money: 0 },
+    })
+
+    authService.account = successfulAccount
+    expect(await trpcClient.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
+      tick: 1,
+      resources: { money: 1 },
     })
   })
 
@@ -168,3 +297,26 @@ describe("processTick", () => {
     expect(await ticksRepository.getTicksToProcess()).toEqual(Result.Success([tickToProcess]))
   })
 })
+
+class FailingTicksRepository extends TicksRepository {
+  private readonly failingGameId: number
+
+  public constructor({
+    db,
+    logger,
+    failingGameId,
+  }: ConstructorParameters<typeof TicksRepository>[0] & {
+    failingGameId: number
+  }) {
+    super({ db, logger })
+    this.failingGameId = failingGameId
+  }
+
+  public override async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<true, string>> {
+    if (processedTick.gameId === this.failingGameId) {
+      return Result.Failure("Expected tick save failure")
+    }
+
+    return await super.saveProcessedTick(processedTick)
+  }
+}

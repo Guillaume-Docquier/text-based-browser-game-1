@@ -43,19 +43,10 @@ if (!isMainThread) {
   const ticksRepository = new TicksRepository({ db, logger })
 
   logger.info("Processing ticks")
-  let isProcessingTicks = false
-  setInterval(() => {
-    if (isProcessingTicks) {
-      return
-    }
+  await processTicksForever({ logger, ticksRepository }, 1000)
+}
 
-    isProcessingTicks = true
-    void processTick({ logger, ticksRepository })
-      .catch((error: unknown) => {
-        logger.error("Tick processing failed unexpectedly", { error })
-      })
-      .finally(() => {
-        isProcessingTicks = false
-      })
-  }, 1000)
+async function processTicksForever(services: Parameters<typeof processTick>[0], frequency: number): Promise<void> {
+  await processTick(services)
+  setTimeout(() => void processTicksForever(services, frequency), frequency)
 }
