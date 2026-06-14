@@ -12,6 +12,7 @@ import {
 } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { couldNot } from "#lib/errors.ts"
+import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
 import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
 import { type OrderModel, type GameplayRepository, type PlayerViewModel, type StartGameModel } from "./gameplay.repository.ts"
 
@@ -56,10 +57,20 @@ export class GameplayController {
 
     const startedAt = new Date()
     const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: lobbyModel.configuration.tickIntervalSeconds })
+    const starSystemResult = generateStarSystem({
+      gameId,
+      settings: lobbyModel.configuration.starSystemGenerationSettings,
+    })
+    if (Result.isFailure(starSystemResult)) {
+      this.logger.error("Failed to generate Star System", { gameId, playerId, error: starSystemResult.error })
+      return Result.Failure(couldNot("start game"))
+    }
+
     const startGameModel: StartGameModel = {
       gameId,
       startedAt,
       nextTickAt,
+      starSystem: starSystemResult.value,
       players: lobbyModel.players.reduce<StartGameModel["players"]>((players, player) => {
         players[player.id] = {
           resources: Object.values(ResourceType).map((resourceType) => ({

@@ -1,7 +1,9 @@
+import { Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { type CreateLobbyDto } from "#api/lobbies/lobbies.controller.ts"
+import { createStarSystemGenerationSettingsStub } from "#api/star-systems/StarSystemGenerationSettings.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
@@ -39,7 +41,7 @@ describe("gameplay.router", () => {
   describe("start", () => {
     it("should start a game", async () => {
       // Arrange
-      const { api, authService, accountsRepository } = await createApiStub()
+      const { api, authService, accountsRepository, starSystemsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
@@ -54,10 +56,19 @@ describe("gameplay.router", () => {
 
       // Act
       const startGameResult = await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const starSystemResult = await starSystemsRepository.getByGameId({ gameId: createdGameId })
 
       // Assert
       expect(startGameResult).toEqual<typeof startGameResult>({ nextTickAt: expect.any(String) }) // trpc serializes the date to string
       expect(new Date(startGameResult.nextTickAt).toString()).not.toBe("Invalid Date")
+      expect(starSystemResult).toEqual(
+        Result.Success(
+          expect.objectContaining({
+            gameId: createdGameId,
+            orbits: expect.arrayContaining([expect.objectContaining({ number: 1 })]),
+          }),
+        ),
+      )
     })
 
     it("should reject starting a game as a non-creator", async () => {
@@ -81,6 +92,47 @@ describe("gameplay.router", () => {
       await expect(trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
+    })
+
+    it("should start two games with identical deterministic Star Systems", async () => {
+      // Arrange
+      const { api, authService, accountsRepository, lobbiesRepository, starSystemsRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authService.account = account
+      const starSystemGenerationSettings = createStarSystemGenerationSettingsStub({ seed: 42 })
+      const firstGame = extractSuccess(
+        await lobbiesRepository.createLobby({
+          createdByAccountId: account.id,
+          configuration: {
+            name: "first deterministic game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+            starSystemGenerationSettings,
+          },
+        }),
+      )
+      const secondGame = extractSuccess(
+        await lobbiesRepository.createLobby({
+          createdByAccountId: account.id,
+          configuration: {
+            name: "second deterministic game",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+            starSystemGenerationSettings,
+          },
+        }),
+      )
+
+      // Act
+      await trpcClient.client.gameplay.startGame.mutate({ gameId: firstGame.createdGameId })
+      await trpcClient.client.gameplay.startGame.mutate({ gameId: secondGame.createdGameId })
+      const firstStarSystem = extractSuccess(await starSystemsRepository.getByGameId({ gameId: firstGame.createdGameId }))
+      const secondStarSystem = extractSuccess(await starSystemsRepository.getByGameId({ gameId: secondGame.createdGameId }))
+
+      // Assert
+      expect(secondStarSystem?.orbits.map(({ id }) => id)).toEqual(firstStarSystem?.orbits.map(({ id }) => id))
     })
 
     it("should reject anonymous game start", async () => {

@@ -195,14 +195,14 @@ export const starSystemsTable = pgTable("star_systems", {
 export const orbitsTable = pgTable(
   "orbits",
   {
-    id: uuid("id").primaryKey(),
+    id: uuid("id").notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
     orbitNumber: integer("orbit_number").notNull(),
   },
   (table) => [
-    unique("orbits_game_id_id_unique").on(table.gameId, table.id),
+    primaryKey({ columns: [table.gameId, table.id] }),
     unique("orbits_game_id_orbit_number_unique").on(table.gameId, table.orbitNumber),
     index("orbits_game_id_idx").on(table.gameId),
   ],
@@ -214,7 +214,7 @@ export const orbitsTable = pgTable(
 export const sectorsTable = pgTable(
   "sectors",
   {
-    id: uuid("id").primaryKey(),
+    id: uuid("id").notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
@@ -227,9 +227,9 @@ export const sectorsTable = pgTable(
     movementNodeId: uuid("movement_node_id").notNull(),
   },
   (table) => [
-    unique("sectors_game_id_id_unique").on(table.gameId, table.id),
-    unique("sectors_orbit_id_sector_number_unique").on(table.orbitId, table.sectorNumber),
-    unique("sectors_movement_node_id_unique").on(table.movementNodeId),
+    primaryKey({ columns: [table.gameId, table.id] }),
+    unique("sectors_game_id_orbit_id_sector_number_unique").on(table.gameId, table.orbitId, table.sectorNumber),
+    unique("sectors_game_id_movement_node_id_unique").on(table.gameId, table.movementNodeId),
     foreignKey({
       columns: [table.gameId, table.orbitId],
       foreignColumns: [orbitsTable.gameId, orbitsTable.id],
@@ -255,7 +255,7 @@ export const sectorsTable = pgTable(
 export const bodiesTable = pgTable(
   "bodies",
   {
-    id: uuid("id").primaryKey(),
+    id: uuid("id").notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
@@ -266,9 +266,9 @@ export const bodiesTable = pgTable(
     movementNodeId: uuid("movement_node_id").notNull(),
   },
   (table) => [
-    unique("bodies_game_id_id_unique").on(table.gameId, table.id),
-    unique("bodies_sector_id_body_number_unique").on(table.sectorId, table.bodyNumber),
-    unique("bodies_movement_node_id_unique").on(table.movementNodeId),
+    primaryKey({ columns: [table.gameId, table.id] }),
+    unique("bodies_game_id_sector_id_body_number_unique").on(table.gameId, table.sectorId, table.bodyNumber),
+    unique("bodies_game_id_movement_node_id_unique").on(table.gameId, table.movementNodeId),
     foreignKey({
       columns: [table.gameId, table.sectorId],
       foreignColumns: [sectorsTable.gameId, sectorsTable.id],
@@ -289,12 +289,12 @@ export const bodiesTable = pgTable(
 export const movementNodesTable = pgTable(
   "movement_nodes",
   {
-    id: uuid("id").primaryKey(),
+    id: uuid("id").notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
   },
-  (table) => [unique("movement_nodes_game_id_id_unique").on(table.gameId, table.id), index("movement_nodes_game_id_idx").on(table.gameId)],
+  (table) => [primaryKey({ columns: [table.gameId, table.id] }), index("movement_nodes_game_id_idx").on(table.gameId)],
 )
 
 /**

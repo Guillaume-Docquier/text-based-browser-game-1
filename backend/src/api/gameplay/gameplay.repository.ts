@@ -3,10 +3,24 @@ import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { NewStarSystemModel, NewSectorModel } from "#api/star-systems/starSystems.repository.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { ordersTable, resourcesTable, gamesTable, gameStatesTable, ticksTable, playersTable } from "#lib/db/schema.ts"
+import {
+  bodiesTable,
+  gamesTable,
+  gameStatesTable,
+  movementEdgesTable,
+  movementNodesTable,
+  orbitsTable,
+  ordersTable,
+  playersTable,
+  resourcesTable,
+  sectorsTable,
+  starSystemsTable,
+  ticksTable,
+} from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
@@ -14,6 +28,7 @@ type GameStateRow = typeof gameStatesTable.$inferSelect
 type OrderRow = typeof ordersTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTickRow = typeof ticksTable.$inferInsert
+type NewSectorRow = Omit<typeof sectorsTable.$inferInsert, "gameId">
 
 export type GameStateModel = GameStateRow
 export type OrderModel = OrderRow
@@ -32,6 +47,7 @@ export type StartGameModel = {
   gameId: GameId
   startedAt: Date
   nextTickAt: Date
+  starSystem: NewStarSystemModel
   players: Record<
     PlayerId,
     {
@@ -75,6 +91,7 @@ export class GameplayRepository extends PostgresRepository {
       tick: gameState.tick,
       scheduledFor: startGameModel.nextTickAt,
     }
+    Assert.isTrue(startGameModel.starSystem.gameId === startGameModel.gameId)
 
     const startResult = await Result.tryCatch(
       db.transaction(async (tx) => {
@@ -82,6 +99,7 @@ export class GameplayRepository extends PostgresRepository {
         await tx.insert(gameStatesTable).values(gameState)
         await tx.insert(resourcesTable).values(playerResources)
         await tx.insert(ticksTable).values(gameTick)
+        await storeStarSystem(startGameModel.starSystem, tx)
       }),
     )
 
@@ -264,4 +282,54 @@ export class GameplayRepository extends PostgresRepository {
 
     return Result.Success(true)
   }
+}
+
+async function storeStarSystem(starSystem: NewStarSystemModel, db: PostgresRepository["db"]): Promise<void> {
+  const withGameId = createWithGameId(starSystem.gameId)
+
+  await db.insert(starSystemsTable).values(withGameId({}))
+
+  const movementNodes = starSystem.movementNodes.map(withGameId)
+  if (movementNodes.length > 0) {
+    await db.insert(movementNodesTable).values(movementNodes)
+  }
+
+  const movementEdges = starSystem.movementEdges.map(withGameId)
+  if (movementEdges.length > 0) {
+    await db.insert(movementEdgesTable).values(movementEdges)
+  }
+
+  const orbits = starSystem.orbits.map(withGameId)
+  if (orbits.length > 0) {
+    await db.insert(orbitsTable).values(orbits)
+  }
+
+  const sectors = starSystem.sectors.map(toNewSectorRow).map(withGameId)
+  if (sectors.length > 0) {
+    await db.insert(sectorsTable).values(sectors)
+  }
+
+  const bodies = starSystem.bodies.map(withGameId)
+  if (bodies.length > 0) {
+    await db.insert(bodiesTable).values(bodies)
+  }
+}
+
+function toNewSectorRow(newSector: NewSectorModel): NewSectorRow {
+  return {
+    id: newSector.id,
+    orbitId: newSector.orbitId,
+    sectorNumber: newSector.sectorNumber,
+    angleNumericType: newSector.angleRange.numericType,
+    angleMaxBoundType: newSector.angleRange.maxBoundType,
+    startAngleDegrees: newSector.angleRange.min,
+    endAngleDegrees: newSector.angleRange.max,
+    movementNodeId: newSector.movementNodeId,
+  }
+}
+
+function createWithGameId(
+  gameId: NewStarSystemModel["gameId"],
+): <T extends Record<string, unknown>>(data: T) => T & Pick<NewStarSystemModel, "gameId"> {
+  return (data) => ({ ...data, gameId })
 }
