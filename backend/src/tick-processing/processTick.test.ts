@@ -232,6 +232,7 @@ describe("processTick", () => {
     await processTick({ logger, ticksRepository })
 
     // Assert
+    // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
     const expectedWinnerId = [creator.id, joiner.id].sort()[0]
 
     const lobby = await trpcClient.client.lobbies.getById.query({ gameId: createdGameId })
