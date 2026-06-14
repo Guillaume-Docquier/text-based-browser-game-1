@@ -1,12 +1,10 @@
 import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
 import { type Logger } from "@guillaume-docquier/tools-ts"
-import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
-import { GamePlayerResourcesRepository } from "#lib/db/gameplay/gamePlayerResources.repository.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
-import { GameTicksRepository } from "#tick-processing/gameTicks.repository.ts"
 import { processTick } from "#tick-processing/processTick.ts"
+import { TicksRepository } from "#tick-processing/ticks.repository.ts"
 
 /**
  * Starts tick processing.
@@ -42,14 +40,22 @@ if (!isMainThread) {
   const db = createDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Creating services")
-  const repositories = {
-    gameplayRepository: new GameplayRepository({ db, logger }),
-    gameTicksRepository: new GameTicksRepository({ db, logger }),
-    gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
-  }
+  const ticksRepository = new TicksRepository({ db, logger })
 
   logger.info("Processing ticks")
+  let isProcessingTicks = false
   setInterval(() => {
-    void processTick({ logger, ...repositories })
+    if (isProcessingTicks) {
+      return
+    }
+
+    isProcessingTicks = true
+    void processTick({ logger, ticksRepository })
+      .catch((error: unknown) => {
+        logger.error("Tick processing failed unexpectedly", { error })
+      })
+      .finally(() => {
+        isProcessingTicks = false
+      })
   }, 1000)
 }
