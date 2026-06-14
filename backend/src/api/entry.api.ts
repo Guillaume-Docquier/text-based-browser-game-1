@@ -6,15 +6,10 @@ import { AuthService } from "#api/accounts/auth.service.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import { StarSystemsRepository } from "#api/star-systems/starSystems.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { createDb } from "#lib/db/createDb.ts"
-import { GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
-import { GamesRepository } from "#lib/db/games/games.repository.ts"
-import { GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import { GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
-import { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
 import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
 import { createApi } from "./createApi.ts"
@@ -43,11 +38,6 @@ async function main(): Promise<void> {
   logger.info("Creating services")
   const repositories = {
     accountsRepository: new AccountsRepository({ db, logger }),
-    gamesRepository: new GamesRepository({ db, logger }),
-    gameStatesRepository: new GameStatesRepository({ db, logger }),
-    gameTicksRepository: new GameTicksRepository({ db, logger }),
-    gamePlayerResourcesRepository: new GamePlayerResourcesRepository({ db, logger }),
-    gamePlayerActionsRepository: new GamePlayerActionsRepository({ db, logger }),
     starSystemsRepository: new StarSystemsRepository({ db, logger }),
     listingsRepository: new ListingsRepository({ db, logger }),
     lobbiesRepository: new LobbiesRepository({ db, logger }),

@@ -1,13 +1,12 @@
-import { Result, type Logger } from "@guillaume-docquier/tools-ts"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
-import { type GamePlayerActionsRepository } from "#lib/db/gamePlayerActions.repository.ts"
-import { type GamesRepository } from "#lib/db/games/games.repository.ts"
-import { type GameStatesRepository } from "#lib/db/gameStates.repository.ts"
-import { type GameTicksRepository } from "#lib/db/gameTicks.repository.ts"
-import { type GamePlayerResourcesRepository } from "#lib/db/resources/gamePlayerResources.repository.ts"
-import { GAME_PLAYER_ACTION_RULES } from "#lib/gamePlayerActions.ts"
-import { GamePlayerActionType } from "#lib/gamePlayerActionType.ts"
-import { ResourceType } from "#lib/gameResources.ts"
+import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
+import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
+import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { type GamePlayerResourcesRepository } from "#lib/db/gameplay/gamePlayerResources.repository.ts"
+import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
+import { type GameTicksRepository } from "#tick-processing/gameTicks.repository.ts"
 
 /**
  * Processes all ticks that should advance at this point in time.
@@ -16,17 +15,13 @@ import { ResourceType } from "#lib/gameResources.ts"
 export async function processTick({
   logger,
   gameTicksRepository,
-  gameStatesRepository,
   gamePlayerResourcesRepository,
-  gamesRepository,
-  gamePlayerActionsRepository,
+  gameplayRepository,
 }: {
   logger: Logger
   gameTicksRepository: GameTicksRepository
-  gameStatesRepository: GameStatesRepository
   gamePlayerResourcesRepository: GamePlayerResourcesRepository
-  gamesRepository: GamesRepository
-  gamePlayerActionsRepository: GamePlayerActionsRepository
+  gameplayRepository: GameplayRepository
 }): Promise<void> {
   // Lock the tables, can't update state or submit actions during ticks
 
@@ -54,13 +49,13 @@ export async function processTick({
     const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds: game.tickIntervalSeconds })
     const nextTick = gameTick.tick + 1
 
-    const playerIdsResult = await gamesRepository.getPlayerIds({ gameId: game.id })
+    const playerIdsResult = await gameplayRepository.getPlayerIds({ gameId: game.id })
     if (Result.isFailure(playerIdsResult)) {
       logger.error("Could not get game players while processing tick", { gameTick, error: playerIdsResult.error })
       continue
     }
 
-    const gamePlayerActionsResult = await gamePlayerActionsRepository.getByGameIdAndTick({ gameId: game.id, tick: gameState.tick })
+    const gamePlayerActionsResult = await gameplayRepository.getActionsForTick({ gameId: game.id, tick: gameState.tick })
     if (Result.isFailure(gamePlayerActionsResult)) {
       logger.error("Could not get game player actions while processing tick", { gameTick, error: gamePlayerActionsResult.error })
       continue
@@ -140,7 +135,7 @@ export async function processTick({
       }
 
       if (selectedAction.actionType === GamePlayerActionType.WIN_THE_GAME) {
-        const endGameResult = await gamesRepository.endGameWithWinner({ gameId: game.id, winnerAccountId: playerId })
+        const endGameResult = await gameplayRepository.endGameWithWinner({ gameId: game.id, winnerAccountId: playerId })
         if (Result.isFailure(endGameResult)) {
           logger.error("Could not end game with winner", { playerId, gameTick, error: endGameResult.error })
           couldNotProcessPlayers = true
@@ -166,7 +161,7 @@ export async function processTick({
         continue
       }
 
-      const updateGameStateResult = await gameStatesRepository.update(
+      const updateGameStateResult = await gameplayRepository.updateGameState(
         { gameId: gameState.gameId },
         { tick: nextTick, nextTickAt: nextScheduledFor },
       )
@@ -182,12 +177,4 @@ export async function processTick({
       continue
     }
   }
-}
-
-/**
- * Computes the date at which the next tick should happen.
- * The date argument is the last tick date to which we'll add tickIntervalSeconds.
- */
-export function computeNextTickDate({ date, tickIntervalSeconds }: { date: Date; tickIntervalSeconds: number }): Date {
-  return new Date(date.getTime() + tickIntervalSeconds * 1000)
 }

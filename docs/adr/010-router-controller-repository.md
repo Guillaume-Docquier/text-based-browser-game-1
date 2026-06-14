@@ -8,6 +8,7 @@ Accepted
 
 - 2026-05-14: Clarified ownership for Zod schemas and naming conventions for DTOs and repository/database types.
 - 2026-06-04: Updated naming conventions for repository/database types.
+- 2026-06-13: Updated controller/repository responsibilities
 
 ## Context
 
@@ -24,6 +25,7 @@ We'll make sure to decouple each layer, with:
 - Controllers: business logic that bridge routers and repositories.
 
 Repositories represent data access patterns (aka queries) and are not restricted to accessing single tables (think, joins).
+Controllers decide what to store, Repositories know how to store.
 
 ### Schema ownership and naming
 

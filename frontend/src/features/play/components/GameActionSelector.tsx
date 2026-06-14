@@ -1,4 +1,5 @@
 import type * as ApiTypes from "@api-types"
+import type { PlayerView } from "@api-types"
 import { useMutation } from "@tanstack/react-query"
 import { AlertTriangle, CheckCircle2, Coins } from "lucide-react"
 import type { KeyboardEvent, ReactElement } from "react"
@@ -7,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Skeleton } from "../../../components/skeleton.tsx"
 import { useBackendApiClient } from "../../../lib/api/BackendApiClientContext.tsx"
 import { cn } from "../../../lib/cn.ts"
-import type { PlayGameState } from "../PlayContext.tsx"
 
 const PLAYER_ACTIONS = [
   {
@@ -34,15 +34,15 @@ const PLAYER_ACTIONS = [
 
 export function GameActionSelector({
   gameId,
-  gameState,
+  playerView,
   currentAction,
 }: {
   gameId: ApiTypes.GameId
-  gameState: PlayGameState
+  playerView: PlayerView
   currentAction: ApiTypes.GamePlayerAction | null
 }): ReactElement {
   const backendApiClient = useBackendApiClient()
-  const setCurrentAction = useMutation(backendApiClient.gamePlayerActions.setCurrentAction.mutationOptions())
+  const setCurrentAction = useMutation(backendApiClient.gameplay.setCurrentAction.mutationOptions())
 
   return (
     <section className="flex flex-col gap-5">
@@ -51,19 +51,19 @@ export function GameActionSelector({
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Actions</div>
           <h2 className="font-heading text-2xl font-semibold text-foreground">Choose your action</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Your selection applies to tick {gameState.tick} only. Click the selected action again to clear it.
+            Your selection applies to tick {playerView.tick} only. Click the selected action again to clear it.
           </p>
         </div>
         <div className="flex h-10 w-fit items-center gap-2 rounded-md border border-border/70 bg-card/45 px-3 text-sm font-medium text-foreground">
           <Coins className="size-4 text-primary" />
-          {gameState.resources.money} money
+          {playerView.resources.money} money
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {PLAYER_ACTIONS.map((action) => {
           const isSelected = currentAction?.actionType === action.actionType
-          const hasEnoughMoney = gameState.resources.money >= action.costMoney
+          const hasEnoughMoney = playerView.resources.money >= action.costMoney
           const disabledReason = !hasEnoughMoney && !isSelected ? `Requires ${action.costMoney} money.` : undefined
           const canSubmitAction = !setCurrentAction.isPending && (hasEnoughMoney || isSelected)
 
@@ -87,7 +87,7 @@ export function GameActionSelector({
 
                 setCurrentAction.mutate({
                   gameId,
-                  tick: gameState.tick,
+                  tick: playerView.tick,
                   actionType: isSelected ? null : action.actionType,
                 })
               }}
@@ -98,7 +98,7 @@ export function GameActionSelector({
                   onSelect: () => {
                     setCurrentAction.mutate({
                       gameId,
-                      tick: gameState.tick,
+                      tick: playerView.tick,
                       actionType: isSelected ? null : action.actionType,
                     })
                   },

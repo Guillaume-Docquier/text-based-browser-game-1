@@ -9,8 +9,8 @@ type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 
 export type { TrpcRouter }
 
-export type { GameId } from "#api/games/GameId.ts"
-export type { PlayerId } from "#api/games/PlayerId.ts"
+export type { GameId } from "#api/shared/GameId.ts"
+export type { PlayerId } from "#api/shared/PlayerId.ts"
 export type { AccountId } from "#api/accounts/AccountId.ts"
 
 // Lobbies
@@ -21,9 +21,10 @@ export type LobbyPlayer = Lobby["creator"]
 // Listings
 export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 
-// Game player actions router
-type GamePlayerActionsOutput = TrpcRouterOutput["gamePlayerActions"]["getCurrentAction"]
+// Gameplay router
+type GamePlayerActionsOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
+export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
 
 // Star Systems router
 type GetSystemOutput = TrpcRouterOutput["starSystems"]["getByGameId"]

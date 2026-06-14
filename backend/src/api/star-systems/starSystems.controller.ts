@@ -1,10 +1,10 @@
 import { type Failure, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import type { AccountId } from "#api/accounts/AccountId.ts"
-import type { GameId } from "#api/games/GameId.ts"
 import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import type { GameId } from "#api/shared/GameId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
-import type { StarSystemsRepository } from "#lib/db/star-systems/starSystems.repository.ts"
+import type { StarSystemsRepository } from "#api/star-systems/starSystems.repository.ts"
 import { notAuthorized } from "#lib/errors.ts"
 import { BodyType } from "#lib/star-systems/BodyType.ts"
 
@@ -65,6 +65,9 @@ export class StarSystemsController {
     this.starSystemsRepository = starSystemsRepository
   }
 
+  /**
+   * @deprecated Should be part of the PlayerView
+   */
   public async getByGameId({
     gameId,
     accountId,
@@ -84,10 +87,16 @@ export class StarSystemsController {
     return await this.starSystemsRepository.getByGameId({ gameId })
   }
 
+  /**
+   * @deprecated This is enforced by the gameplay router, we don't need to do this at the controller level
+   */
   private async canReadGame({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<boolean, string>> {
     return await this.lobbiesRepository.hasAccountJoinedLobby({ gameId, accountId })
   }
 
+  /**
+   * @deprecated This is enforced by the gameplay router, we don't need to do this at the controller level
+   */
   private notAuthorizedFailure({ accountId, gameId }: { accountId: AccountId; gameId: GameId }): Failure<string> {
     const error = notAuthorized({ accountId, operationName: `read game with id ${gameId}` })
     this.logger.error(error)

@@ -1,24 +1,15 @@
-import type * as ApiTypes from "@api-types"
+import type { Lobby, PlayerView } from "@api-types"
 import type { ReactElement, ReactNode } from "react"
 import { Skeleton } from "../../../components/skeleton.tsx"
-import type { PlayGameState } from "../PlayContext.tsx"
 import { GameSideNav } from "./GameSideNav.tsx"
 import { GameTopBar } from "./GameTopBar.tsx"
 
-export function GameLayout({
-  game,
-  gameState,
-  children,
-}: {
-  game: ApiTypes.Lobby
-  gameState: PlayGameState
-  children: ReactNode
-}): ReactElement {
+export function GameLayout({ game, playerView, children }: { game: Lobby; playerView: PlayerView; children: ReactNode }): ReactElement {
   return (
     <div className="flex min-h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
       <GameSideNav gameId={game.id} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <GameTopBar game={game} gameState={gameState} />
+        <GameTopBar game={game} playerView={playerView} />
         <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>

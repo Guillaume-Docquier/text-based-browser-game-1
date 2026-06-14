@@ -1,0 +1,63 @@
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { and, eq, sql } from "drizzle-orm"
+import type { GameId } from "#api/shared/GameId.ts"
+import type { PlayerId } from "#api/shared/PlayerId.ts"
+import { type ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import { resourcesTable } from "#lib/db/schema.ts"
+import { couldNot } from "#lib/errors.ts"
+
+type NewResourceRow = typeof resourcesTable.$inferInsert
+type ResourceRow = typeof resourcesTable.$inferSelect
+
+export type NewResourceModel = NewResourceRow
+export type ResourceModel = ResourceRow
+
+export type ResourceUpdateModel = {
+  gameId: GameId
+  playerId: PlayerId
+  resourceType: ResourceType
+  amountDelta: number
+}
+
+/**
+ * @deprecated To be replaced by better repositories
+ */
+export class GamePlayerResourcesRepository extends PostgresRepository {
+  private readonly logger: Logger
+
+  /**
+   * @deprecated To be replaced by better repositories
+   */
+  public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
+    super({ db })
+    this.logger = logger.child({ scope: "game-player-resources-repository" })
+  }
+
+  /**
+   * @deprecated To be replaced by better repositories
+   */
+  public async updateResource(resourceUpdate: ResourceUpdateModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
+    const updateResourceResult = await Result.tryCatch(async (): Promise<true> => {
+      await db
+        .update(resourcesTable)
+        .set({ amount: sql`${resourcesTable.amount} + ${resourceUpdate.amountDelta}` })
+        .where(
+          and(
+            eq(resourcesTable.gameId, resourceUpdate.gameId),
+            eq(resourcesTable.playerId, resourceUpdate.playerId),
+            eq(resourcesTable.resourceType, resourceUpdate.resourceType),
+          ),
+        )
+
+      return true
+    })
+
+    if (Result.isFailure(updateResourceResult)) {
+      this.logger.error("Could not update resource for game and player", { ...resourceUpdate, error: updateResourceResult.error })
+      return Result.Failure(couldNot("update resource for game and player"))
+    }
+
+    return updateResourceResult
+  }
+}
