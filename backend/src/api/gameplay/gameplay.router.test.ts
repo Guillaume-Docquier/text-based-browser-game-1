@@ -4,9 +4,9 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { type CreateLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
-import { GamePlayerResourcesRepository } from "#lib/db/gameplay/gamePlayerResources.repository.ts"
-import { createResourceUpdateModelStub } from "#lib/db/gameplay/ResourceUpdateModel.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
+import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
+import { createResourceUpdateModelStub } from "#tests/resources/ResourceUpdateModel.stub.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
 describe("gameplay.router", () => {
@@ -157,7 +157,7 @@ describe("gameplay.router", () => {
       // Arrange
       const db = await createDbMock()
       const { api, authService, logger, accountsRepository } = await createApiStub({ db })
-      const gamePlayerResourcesRepository = new GamePlayerResourcesRepository({ db, logger })
+      const resourcesRepository = new ResourcesRepository({ db, logger })
       using trpcClient = new TrpcClient({ api })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
@@ -167,7 +167,7 @@ describe("gameplay.router", () => {
         configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
       await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      await gamePlayerResourcesRepository.updateResource(
+      await resourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 
@@ -224,7 +224,7 @@ describe("gameplay.router", () => {
       // Arrange
       const db = await createDbMock()
       const { api, authService, logger, accountsRepository } = await createApiStub({ db })
-      const gamePlayerResourcesRepository = new GamePlayerResourcesRepository({ db, logger })
+      const resourcesRepository = new ResourcesRepository({ db, logger })
       using trpcClient = new TrpcClient({ api })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
@@ -234,7 +234,7 @@ describe("gameplay.router", () => {
         configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
       })
       await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      await gamePlayerResourcesRepository.updateResource(
+      await resourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 

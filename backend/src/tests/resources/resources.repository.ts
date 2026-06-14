@@ -17,7 +17,7 @@ export type ResourceUpdateModel = {
 /**
  * A repository just to facilitate tests, as manipulating resources can be tedious otherwise.
  */
-export class GamePlayerResourcesRepository extends PostgresRepository {
+export class ResourcesRepository extends PostgresRepository {
   private readonly logger: Logger
 
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
