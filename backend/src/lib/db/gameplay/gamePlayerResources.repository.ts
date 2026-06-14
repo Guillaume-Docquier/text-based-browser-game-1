@@ -7,12 +7,6 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { resourcesTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
-type NewResourceRow = typeof resourcesTable.$inferInsert
-type ResourceRow = typeof resourcesTable.$inferSelect
-
-export type NewResourceModel = NewResourceRow
-export type ResourceModel = ResourceRow
-
 export type ResourceUpdateModel = {
   gameId: GameId
   playerId: PlayerId
@@ -21,22 +15,16 @@ export type ResourceUpdateModel = {
 }
 
 /**
- * @deprecated To be replaced by better repositories
+ * A repository just to facilitate tests, as manipulating resources can be tedious otherwise.
  */
 export class GamePlayerResourcesRepository extends PostgresRepository {
   private readonly logger: Logger
 
-  /**
-   * @deprecated To be replaced by better repositories
-   */
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
     this.logger = logger.child({ scope: "game-player-resources-repository" })
   }
 
-  /**
-   * @deprecated To be replaced by better repositories
-   */
   public async updateResource(resourceUpdate: ResourceUpdateModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
     const updateResourceResult = await Result.tryCatch(async (): Promise<true> => {
       await db

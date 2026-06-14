@@ -1,31 +1,17 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
-import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
-import { type GamePlayerResourcesRepository } from "#lib/db/gameplay/gamePlayerResources.repository.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
-import { type GameTicksRepository } from "#tick-processing/gameTicks.repository.ts"
+import { type ProcessedTickModel, type TicksRepository, type TickToProcessModel } from "#tick-processing/ticks.repository.ts"
 
 /**
  * Processes all ticks that should advance at this point in time.
  * This will resolve all player actions, update the game state and schedule the next tick.
  */
-export async function processTick({
-  logger,
-  gameTicksRepository,
-  gamePlayerResourcesRepository,
-  gameplayRepository,
-}: {
-  logger: Logger
-  gameTicksRepository: GameTicksRepository
-  gamePlayerResourcesRepository: GamePlayerResourcesRepository
-  gameplayRepository: GameplayRepository
-}): Promise<void> {
-  // Lock the tables, can't update state or submit actions during ticks
-
-  const ticksToProcessResult = await gameTicksRepository.getTicksToProcess()
+export async function processTick({ logger, ticksRepository }: { logger: Logger; ticksRepository: TicksRepository }): Promise<void> {
+  const ticksToProcessResult = await ticksRepository.getTicksToProcess()
   if (Result.isFailure(ticksToProcessResult)) {
     logger.error("Could not get ticks to process", { error: ticksToProcessResult.error })
     return
@@ -37,144 +23,72 @@ export async function processTick({
     return
   }
 
-  // Needs to be a rollbackable transaction
-  for (const { game, gameTick, gameState } of ticksToProcess) {
-    logger.info("Processing tick", { game, gameTick, gameState })
-    const startProcessingTickResult = await gameTicksRepository.startProcessingTick(gameTick)
-    if (Result.isFailure(startProcessingTickResult)) {
-      logger.error("Could not start processing tick", { gameTick, error: startProcessingTickResult.error })
-      continue
-    }
-
-    const nextScheduledFor = computeNextTickDate({ date: gameTick.scheduledFor, tickIntervalSeconds: game.tickIntervalSeconds })
-    const nextTick = gameTick.tick + 1
-
-    const playerIdsResult = await gameplayRepository.getPlayerIds({ gameId: game.id })
-    if (Result.isFailure(playerIdsResult)) {
-      logger.error("Could not get game players while processing tick", { gameTick, error: playerIdsResult.error })
-      continue
-    }
-
-    const gamePlayerActionsResult = await gameplayRepository.getActionsForTick({ gameId: game.id, tick: gameState.tick })
-    if (Result.isFailure(gamePlayerActionsResult)) {
-      logger.error("Could not get game player actions while processing tick", { gameTick, error: gamePlayerActionsResult.error })
-      continue
-    }
-
-    const gamePlayerActionByPlayerId = new Map(
-      gamePlayerActionsResult.value.map((gamePlayerAction) => [gamePlayerAction.playerId, gamePlayerAction]),
-    )
-
-    let couldNotProcessPlayers = false
-    let winnerAccountId: AccountId | undefined
-    for (const playerId of playerIdsResult.value) {
-      const incrementMoneyResult = await gamePlayerResourcesRepository.updateResource({
-        gameId: game.id,
-        playerId,
-        resourceType: ResourceType.MONEY,
-        amountDelta: 1,
-      })
-      if (Result.isFailure(incrementMoneyResult)) {
-        logger.error("Could not increment player money", { playerId, gameTick, error: incrementMoneyResult.error })
-        couldNotProcessPlayers = true
-        break
-      }
-
-      const selectedAction = gamePlayerActionByPlayerId.get(playerId)
-      if (selectedAction === undefined) {
-        continue
-      }
-
-      const actionRule = GAME_PLAYER_ACTION_RULES[selectedAction.actionType]
-      if (actionRule === undefined) {
-        logger.error("Encountered unsupported action type while processing tick", {
-          gameTick,
-          playerId,
-          actionType: selectedAction.actionType,
+  // Long term we'll probably want to have each invocation process 1 tick a distribute the work on multiple workers
+  // But for now this will work just fine
+  await Promise.allSettled(
+    ticksToProcess.map(async (tickToProcess) => {
+      logger.info("Processing tick", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
+      const processedTick = processTickInMemory(tickToProcess)
+      const saveResult = await ticksRepository.saveProcessedTick(processedTick)
+      if (Result.isFailure(saveResult)) {
+        logger.error("Could not save processed tick", {
+          gameId: tickToProcess.gameId,
+          tick: tickToProcess.tick,
+          error: saveResult.error,
         })
-        couldNotProcessPlayers = true
-        break
       }
+    }),
+  )
+}
 
-      const subtractActionCostResult = await gamePlayerResourcesRepository.updateResource({
-        gameId: game.id,
-        playerId,
-        resourceType: ResourceType.MONEY,
-        amountDelta: -actionRule.costMoney,
-      })
-      if (Result.isFailure(subtractActionCostResult)) {
-        logger.error("Could not subtract action cost", {
-          playerId,
-          gameTick,
-          actionType: selectedAction.actionType,
-          error: subtractActionCostResult.error,
-        })
-        couldNotProcessPlayers = true
-        break
-      }
+function processTickInMemory(tickToProcess: TickToProcessModel): ProcessedTickModel {
+  let winnerAccountId: AccountId | undefined
 
-      if (selectedAction.actionType === GamePlayerActionType.MAKE_MORE_MONEY) {
-        const addActionRewardResult = await gamePlayerResourcesRepository.updateResource({
-          gameId: game.id,
-          playerId,
-          resourceType: ResourceType.MONEY,
-          amountDelta: actionRule.rewardMoney,
-        })
-        if (Result.isFailure(addActionRewardResult)) {
-          logger.error("Could not add action reward", {
-            playerId,
-            gameTick,
-            actionType: selectedAction.actionType,
-            error: addActionRewardResult.error,
-          })
-          couldNotProcessPlayers = true
-          break
+  const players = Object.entries(tickToProcess.players).reduce<ProcessedTickModel["players"]>(
+    (processedPlayers, [playerId, { resources, actionType }]) => {
+      const updatedResources = resources.map((resource) => ({ ...resource }))
+      const money = updatedResources.find((resource) => resource.resourceType === ResourceType.MONEY)
+      Assert.isDefined(money)
+
+      money.amount += 1
+
+      if (actionType !== undefined) {
+        const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
+        if (actionRule.costMoney <= money.amount) {
+          money.amount -= actionRule.costMoney
+          money.amount += actionRule.rewardMoney
+
+          if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
+            winnerAccountId = playerId
+          }
         }
-
-        continue
       }
 
-      if (selectedAction.actionType === GamePlayerActionType.WIN_THE_GAME) {
-        const endGameResult = await gameplayRepository.endGameWithWinner({ gameId: game.id, winnerAccountId: playerId })
-        if (Result.isFailure(endGameResult)) {
-          logger.error("Could not end game with winner", { playerId, gameTick, error: endGameResult.error })
-          couldNotProcessPlayers = true
-        } else {
-          winnerAccountId = playerId
+      processedPlayers[playerId] = {
+        resources: updatedResources,
+      }
+      return processedPlayers
+    },
+    {},
+  )
+
+  const nextTick =
+    winnerAccountId === undefined
+      ? {
+          tick: tickToProcess.tick + 1,
+          scheduledFor: computeNextTickDate({
+            date: tickToProcess.scheduledFor,
+            tickIntervalSeconds: tickToProcess.tickIntervalSeconds,
+          }),
         }
+      : undefined
 
-        break
-      }
-    }
-    if (couldNotProcessPlayers) {
-      continue
-    }
-
-    if (winnerAccountId === undefined) {
-      const createGameTickResult = await gameTicksRepository.create({
-        gameId: gameTick.gameId,
-        tick: nextTick,
-        scheduledFor: nextScheduledFor,
-      })
-      if (Result.isFailure(createGameTickResult)) {
-        logger.error("Could not create next game tick", { gameTick, nextTick, nextScheduledFor, error: createGameTickResult.error })
-        continue
-      }
-
-      const updateGameStateResult = await gameplayRepository.updateGameState(
-        { gameId: gameState.gameId },
-        { tick: nextTick, nextTickAt: nextScheduledFor },
-      )
-      if (Result.isFailure(updateGameStateResult)) {
-        logger.error("Could not update game state", { gameState, nextTick, nextScheduledFor, error: updateGameStateResult.error })
-        continue
-      }
-    }
-
-    const finishProcessingTickResult = await gameTicksRepository.finishProcessingTick(gameTick)
-    if (Result.isFailure(finishProcessingTickResult)) {
-      logger.error("Could not finish processing tick", { gameTick, error: finishProcessingTickResult.error })
-      continue
-    }
+  return {
+    gameId: tickToProcess.gameId,
+    tick: tickToProcess.tick,
+    processedAt: new Date(),
+    players,
+    winnerAccountId,
+    nextTick,
   }
 }
