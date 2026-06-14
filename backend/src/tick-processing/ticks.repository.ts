@@ -56,9 +56,9 @@ export class TicksRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "ticks-repository" })
   }
 
-  public async getTicksToProcess(): Promise<Result<TickToProcessModel[], string>> {
+  public async getTicksToProcess(db: PostgresRepository["db"] = this.db): Promise<Result<TickToProcessModel[], string>> {
     const ticksToProcessResult = await Result.tryCatch(async () => {
-      const dueTicks = await this.db
+      const dueTicks = await db
         .select({
           gameId: ticksTable.gameId,
           tick: ticksTable.tick,
@@ -77,17 +77,17 @@ export class TicksRepository extends PostgresRepository {
 
       const gameIds = dueTicks.map(({ gameId }) => gameId)
       const [players, resources, orders] = await Promise.all([
-        this.db
+        db
           .select()
           .from(playersTable)
           .where(inArray(playersTable.gameId, gameIds))
           .orderBy(asc(playersTable.gameId), asc(playersTable.playerId)),
-        this.db
+        db
           .select()
           .from(resourcesTable)
           .where(inArray(resourcesTable.gameId, gameIds))
           .orderBy(asc(resourcesTable.gameId), asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
-        this.db
+        db
           .select()
           .from(ordersTable)
           .where(inArray(ordersTable.gameId, gameIds))
@@ -125,9 +125,9 @@ export class TicksRepository extends PostgresRepository {
     return ticksToProcessResult
   }
 
-  public async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<true, string>> {
+  public async saveProcessedTick(processedTick: ProcessedTickModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
     const saveResult = await Result.tryCatch(
-      this.db.transaction(async (tx): Promise<true> => {
+      db.transaction(async (tx): Promise<true> => {
         const completedTicks = await tx
           .update(ticksTable)
           .set({
