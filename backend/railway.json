@@ -1,7 +1,7 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "watchPatterns": [".nvmrc", "backend/**"]
+    "watchPatterns": ["backend/**"]
   },
   "deploy": {
     "startCommand": "pnpm --filter backend start"
