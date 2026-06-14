@@ -1,6 +1,6 @@
 import { v4 } from "uuid"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
-import type { ResourceUpdateModel } from "#tests/resources/gamePlayerResources.repository.ts"
+import type { ResourceUpdateModel } from "#tests/resources/resources.repository.ts"
 
 export function createResourceUpdateModelStub(override: Partial<ResourceUpdateModel> = {}): ResourceUpdateModel {
   return {

@@ -7,7 +7,7 @@ import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { GamePlayerResourcesRepository } from "#tests/resources/gamePlayerResources.repository.ts"
+import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 import { processTick } from "#tick-processing/processTick.ts"
 import { type ProcessedTickModel, TicksRepository } from "#tick-processing/ticks.repository.ts"
@@ -18,7 +18,7 @@ describe("processTick", () => {
     const db = await createDbMock()
     const { api, authService, accountsRepository, logger } = await createApiStub({ db })
     const ticksRepository = new TicksRepository({ db, logger })
-    const resourcesRepository = new GamePlayerResourcesRepository({ db, logger })
+    const resourcesRepository = new ResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
 
     const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
@@ -63,7 +63,7 @@ describe("processTick", () => {
     const db = await createDbMock()
     const { api, authService, accountsRepository, logger } = await createApiStub({ db })
     const ticksRepository = new TicksRepository({ db, logger })
-    const resourcesRepository = new GamePlayerResourcesRepository({ db, logger })
+    const resourcesRepository = new ResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
 
     const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
@@ -192,7 +192,7 @@ describe("processTick", () => {
     const db = await createDbMock()
     const { api, authService, accountsRepository, logger } = await createApiStub({ db })
     const ticksRepository = new TicksRepository({ db, logger })
-    const resourcesRepository = new GamePlayerResourcesRepository({ db, logger })
+    const resourcesRepository = new ResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
 
     const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
