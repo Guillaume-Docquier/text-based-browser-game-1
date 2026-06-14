@@ -1,14 +1,39 @@
+import { Range } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createDefaultStarSystemGenerationSettings } from "#api/gameplay/star-systems/createDefaultStarSystemGenerationSettings.ts"
+import { createStarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsLimits.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
-import { type CreateLobbyDto, type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
+import { type GameConfigurationDto, type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#api/shared/GameStatus.ts"
+import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
 describe("lobbies.router", () => {
+  describe("getCreationSettings", () => {
+    it("should return backend-driven defaults and limits", async () => {
+      // Arrange
+      const { api, authService, accountsRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+
+      // Act
+      const creationSettings = await trpcClient.client.lobbies.getCreationSettings.query()
+
+      // Assert
+      expect(creationSettings).toEqual<typeof creationSettings>({
+        defaultStarSystemGenerationSettings: {
+          ...createDefaultStarSystemGenerationSettings(),
+          seed: expect.any(Number),
+        },
+        starSystemGenerationSettingsLimits: createStarSystemGenerationSettingsLimits(),
+      })
+    })
+  })
+
   describe("create", () => {
     it("should create a game for the authenticated player", async () => {
       // Arrange
@@ -18,10 +43,14 @@ describe("lobbies.router", () => {
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = creatorAccount
 
-      const newGameSettings: CreateLobbyDto["configuration"] = {
+      const newGameSettings: GameConfigurationDto = {
         name: "my new game",
         nbSeats: 43,
         tickIntervalSeconds: 420,
+        starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
+          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 12, max: 12 }),
+          seed: 9876,
+        }),
       }
 
       // Act
@@ -36,13 +65,7 @@ describe("lobbies.router", () => {
       expect(createdGame).toEqual<typeof createdGame>({
         id: createLobbyResult.createdGameId,
         createdAt: expect.any(String),
-        configuration: {
-          ...newGameSettings,
-          starSystemGenerationSettings: {
-            ...createDefaultStarSystemGenerationSettings(),
-            seed: expect.any(Number),
-          },
-        },
+        configuration: newGameSettings,
         endedAt: null,
         startedAt: null,
         winnerAccountId: null,
@@ -67,6 +90,59 @@ describe("lobbies.router", () => {
         }),
       ).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
+      })
+    })
+
+    it("should reject malformed Star System generation ranges", async () => {
+      // Arrange
+      const { api, authService, accountsRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+
+      // Act & Assert
+      await expect(
+        trpcClient.client.lobbies.create.mutate({
+          configuration: {
+            name: "invalid ranges",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+            starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
+              nbPlanets: {
+                numericType: "integer",
+                maxBoundType: "inclusive",
+                min: 5,
+                max: 4,
+              },
+            }),
+          },
+        }),
+      ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
+    })
+
+    it("should reject Star System generation settings outside the accepted limits", async () => {
+      // Arrange
+      const { api, authService, accountsRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+
+      // Act & Assert
+      await expect(
+        trpcClient.client.lobbies.create.mutate({
+          configuration: {
+            name: "out of bounds",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+            starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
+              planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 0.5, max: 1.1 }),
+            }),
+          },
+        }),
+      ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
       })
     })
   })
@@ -96,13 +172,7 @@ describe("lobbies.router", () => {
         createdAt: expect.any(String),
         endedAt: null,
         winnerAccountId: null,
-        configuration: {
-          ...newGameSettings,
-          starSystemGenerationSettings: {
-            ...createDefaultStarSystemGenerationSettings(),
-            seed: expect.any(Number),
-          },
-        },
+        configuration: newGameSettings,
         startedAt: null,
         creator,
         players: [creator],
@@ -137,13 +207,7 @@ describe("lobbies.router", () => {
         createdAt: expect.any(String),
         endedAt: null,
         winnerAccountId: null,
-        configuration: {
-          ...newGameSettings,
-          starSystemGenerationSettings: {
-            ...createDefaultStarSystemGenerationSettings(),
-            seed: expect.any(Number),
-          },
-        },
+        configuration: newGameSettings,
         startedAt: null,
         creator,
         players: [creator],
@@ -196,13 +260,7 @@ describe("lobbies.router", () => {
         createdAt: expect.any(String),
         endedAt: null,
         winnerAccountId: null,
-        configuration: {
-          ...newGameSettings,
-          starSystemGenerationSettings: {
-            ...createDefaultStarSystemGenerationSettings(),
-            seed: expect.any(Number),
-          },
-        },
+        configuration: newGameSettings,
         startedAt: null,
         creator,
         players: [creator, joiner],
@@ -270,13 +328,7 @@ describe("lobbies.router", () => {
         createdAt: expect.any(String),
         endedAt: null,
         winnerAccountId: null,
-        configuration: {
-          ...newGameSettings,
-          starSystemGenerationSettings: {
-            ...createDefaultStarSystemGenerationSettings(),
-            seed: expect.any(Number),
-          },
-        },
+        configuration: newGameSettings,
         startedAt: null,
         creator,
         players: [creator],

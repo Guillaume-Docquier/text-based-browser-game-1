@@ -1,5 +1,6 @@
+import type * as ApiTypes from "@api-types"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { type ReactElement, useState } from "react"
 import { Button } from "../../components/button.tsx"
@@ -7,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Input } from "../../components/input.tsx"
 import { Label } from "../../components/label.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/select.tsx"
+import { Skeleton } from "../../components/skeleton.tsx"
+import { Slider } from "../../components/slider.tsx"
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { PageHeader } from "../PageHeader.tsx"
 
@@ -17,11 +20,64 @@ const TickIntervalUnit = {
   minutes: "minutes",
 } as const
 
+const RANGE_SETTING_KEYS = [
+  "planetDensity",
+  "nbPlanets",
+  "nbMoonsPerPlanet",
+  "nbAsteroidBelts",
+  "nbAsteroidsPerSector",
+] as const satisfies ReadonlyArray<keyof Omit<ApiTypes.StarSystemGenerationSettings, "seed">>
+
+type RangeSettingKey = (typeof RANGE_SETTING_KEYS)[number]
+
+const RANGE_SETTING_LABELS = {
+  planetDensity: {
+    label: "Planet density",
+    description: "Share of available sectors populated by planets.",
+  },
+  nbPlanets: {
+    label: "Planets",
+    description: "Total planets generated in the star system.",
+  },
+  nbMoonsPerPlanet: {
+    label: "Moons per planet",
+    description: "Possible number of moons generated around each planet.",
+  },
+  nbAsteroidBelts: {
+    label: "Asteroid belts",
+    description: "Possible number of orbits dedicated to asteroid belts.",
+  },
+  nbAsteroidsPerSector: {
+    label: "Asteroids per sector",
+    description: "Possible number of asteroids in each belt sector.",
+  },
+} satisfies Record<RangeSettingKey, { label: string; description: string }>
+
 export function CreateGamePage(): ReactElement {
+  const backendApiClient = useBackendApiClient()
+  const creationSettingsQuery = useQuery(backendApiClient.lobbies.getCreationSettings.queryOptions())
+
+  if (creationSettingsQuery.isPending) {
+    return <CreateGameLoadingState />
+  }
+
+  if (creationSettingsQuery.isError) {
+    return (
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <PageHeader title="Create a new game" description="The game creation settings could not be loaded." />
+      </div>
+    )
+  }
+
+  return <CreateGameForm creationSettings={creationSettingsQuery.data} />
+}
+
+function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.LobbyCreationSettings }): ReactElement {
   const [name, setName] = useState("")
   const [nbSeats, setNbSeats] = useState(5)
   const [tickIntervalMultiplier, setTickIntervalMultiplier] = useState(1)
   const [tickIntervalUnit, setTickIntervalUnit] = useState<TickIntervalUnit>(TickIntervalUnit.days)
+  const [starSystemGenerationSettings, setStarSystemGenerationSettings] = useState(creationSettings.defaultStarSystemGenerationSettings)
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
   const createGame = useMutation(backendApiClient.lobbies.create.mutationOptions())
@@ -29,14 +85,12 @@ export function CreateGamePage(): ReactElement {
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-      <PageHeader
-        title="Create a new game"
-        description="Set the lobby name, seat count, and turn cadence. Submission behavior and validation are unchanged."
-      />
+      <PageHeader title="Create a new game" description="Configure the lobby and the star map players will explore." />
+
       <Card className="border border-border/60">
         <CardHeader>
-          <CardTitle>Lobby settings</CardTitle>
-          <CardDescription>Invite players once the game is created, then start when the lobby is ready.</CardDescription>
+          <CardTitle>General</CardTitle>
+          <CardDescription>Set the lobby name, player capacity, and turn cadence.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
@@ -65,6 +119,7 @@ export function CreateGamePage(): ReactElement {
             <Label>Turn length</Label>
             <div className="flex gap-3">
               <Input
+                aria-label="Turn length"
                 type="number"
                 value={tickIntervalMultiplier}
                 onChange={(event) => {
@@ -74,7 +129,7 @@ export function CreateGamePage(): ReactElement {
               <Select
                 value={tickIntervalUnit}
                 onValueChange={(value) => {
-                  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Maybe we should parse, but this will be okay
+                  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Select values come from TickIntervalUnit
                   setTickIntervalUnit(value as TickIntervalUnit)
                 }}
               >
@@ -91,31 +146,136 @@ export function CreateGamePage(): ReactElement {
               </Select>
             </div>
           </div>
-          <div className="md:col-span-2">
-            <Button
-              disabled={isCreateDisabled || createGame.isPending}
-              onClick={() => {
-                createGame.mutate(
-                  {
-                    configuration: {
-                      name,
-                      nbSeats,
-                      tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
-                    },
+        </CardContent>
+      </Card>
+
+      <Card className="border border-border/60">
+        <CardHeader>
+          <CardTitle>Star map</CardTitle>
+          <CardDescription>Choose a fixed value or a range for each generated feature.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-8">
+          {RANGE_SETTING_KEYS.map((key) => (
+            <RangeSetting
+              key={key}
+              settingKey={key}
+              value={starSystemGenerationSettings[key]}
+              limits={creationSettings.starSystemGenerationSettingsLimits[key]}
+              onChange={(value) => {
+                setStarSystemGenerationSettings((currentSettings) => ({
+                  ...currentSettings,
+                  [key]: {
+                    ...currentSettings[key],
+                    min: value[0],
+                    max: value[1],
                   },
-                  {
-                    onSuccess: ({ createdGameId }) => {
-                      void navigate({ to: "/games/$gameId", params: { gameId: createdGameId } })
-                    },
-                  },
-                )
+                }))
               }}
-            >
-              {createGame.isPending ? "Creating..." : "Create"}
-            </Button>
+            />
+          ))}
+          <div className="space-y-2">
+            <Label htmlFor="generation-seed">Generation seed</Label>
+            <p className="text-sm text-muted-foreground">Games with the same settings and seed generate the same star map.</p>
+            <Input
+              id="generation-seed"
+              type="number"
+              min={creationSettings.starSystemGenerationSettingsLimits.seed.min}
+              max={creationSettings.starSystemGenerationSettingsLimits.seed.max}
+              step={1}
+              value={starSystemGenerationSettings.seed}
+              onChange={(event) => {
+                setStarSystemGenerationSettings((currentSettings) => ({
+                  ...currentSettings,
+                  seed: Number(event.target.value),
+                }))
+              }}
+            />
           </div>
         </CardContent>
       </Card>
+
+      <div>
+        <Button
+          disabled={isCreateDisabled || createGame.isPending}
+          onClick={() => {
+            createGame.mutate(
+              {
+                configuration: {
+                  name,
+                  nbSeats,
+                  tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
+                  starSystemGenerationSettings,
+                },
+              },
+              {
+                onSuccess: ({ createdGameId }) => {
+                  void navigate({ to: "/games/$gameId", params: { gameId: createdGameId } })
+                },
+              },
+            )
+          }}
+        >
+          {createGame.isPending ? "Creating..." : "Create"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function RangeSetting({
+  settingKey,
+  value,
+  limits,
+  onChange,
+}: {
+  settingKey: RangeSettingKey
+  value: ApiTypes.StarSystemGenerationSettings[RangeSettingKey]
+  limits: ApiTypes.StarSystemGenerationSettingsLimits[RangeSettingKey]
+  onChange: (value: [number, number]) => void
+}): ReactElement {
+  const text = RANGE_SETTING_LABELS[settingKey]
+  const step = limits.numericType === "integer" ? 1 : 0.01
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <Label>{text.label}</Label>
+          <p className="text-sm text-muted-foreground">{text.description}</p>
+        </div>
+        <div className="flex items-center gap-2 font-mono text-sm">
+          <span className="min-w-12 rounded-full bg-muted px-3 py-1 text-center">{value.min}</span>
+          <span className="text-muted-foreground">to</span>
+          <span className="min-w-12 rounded-full bg-muted px-3 py-1 text-center">{value.max}</span>
+        </div>
+      </div>
+      <Slider
+        min={limits.min}
+        max={limits.max}
+        step={step}
+        value={[value.min, value.max]}
+        thumbLabels={[`${text.label} minimum`, `${text.label} maximum`]}
+        onValueChange={(newValue) => {
+          const [min, max] = newValue
+          if (min !== undefined && max !== undefined) {
+            onChange([min, max])
+          }
+        }}
+      />
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>{limits.min}</span>
+        <span>{limits.max}</span>
+      </div>
+    </div>
+  )
+}
+
+function CreateGameLoadingState(): ReactElement {
+  return (
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <PageHeader title="Create a new game" description="Loading game creation settings." />
+      <Skeleton className="h-64 w-full rounded-4xl" />
+      <Skeleton className="h-150 w-full rounded-4xl" />
     </div>
   )
 }
