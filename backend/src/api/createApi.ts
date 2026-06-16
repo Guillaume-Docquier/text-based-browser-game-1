@@ -14,9 +14,6 @@ import { createListingsRouter } from "#api/listings/listings.router.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { createLobbiesRouter } from "#api/lobbies/lobbies.router.ts"
-import { StarSystemsController } from "#api/star-systems/starSystems.controller.ts"
-import type { StarSystemsRepository } from "#api/star-systems/starSystems.repository.ts"
-import { createStarSystemsRouter } from "#api/star-systems/starSystems.router.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
@@ -39,7 +36,6 @@ export async function createApi({
   authService: IAuthService
   logger: Logger
   accountsRepository: AccountsRepository
-  starSystemsRepository: StarSystemsRepository
   listingsRepository: ListingsRepository
   lobbiesRepository: LobbiesRepository
   gameplayRepository: GameplayRepository
@@ -50,7 +46,6 @@ export async function createApi({
     listingsController: new ListingsController(controllerServices),
     lobbiesController: new LobbiesController(controllerServices),
     accountsController: new AccountsController(controllerServices),
-    starSystemsController: new StarSystemsController(controllerServices),
   }
 
   const app = express()
@@ -75,7 +70,6 @@ function createTrpcRouter(services: {
   gameplayController: GameplayController
   listingsController: ListingsController
   lobbiesController: LobbiesController
-  starSystemsController: StarSystemsController
   logger: Logger
 }) {
   const trpc = createTrpc()
@@ -85,7 +79,6 @@ function createTrpcRouter(services: {
     gameplay: createGameplayRouter(routerServices),
     listings: createListingsRouter(routerServices),
     lobbies: createLobbiesRouter(routerServices),
-    starSystems: createStarSystemsRouter(routerServices),
   })
 }
 

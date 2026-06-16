@@ -6,7 +6,6 @@ import { AuthService } from "#api/accounts/auth.service.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
-import { StarSystemsRepository } from "#api/star-systems/starSystems.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { createDb } from "#lib/db/createDb.ts"
@@ -38,7 +37,6 @@ async function main(): Promise<void> {
   logger.info("Creating services")
   const repositories = {
     accountsRepository: new AccountsRepository({ db, logger }),
-    starSystemsRepository: new StarSystemsRepository({ db, logger }),
     listingsRepository: new ListingsRepository({ db, logger }),
     lobbiesRepository: new LobbiesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger }),

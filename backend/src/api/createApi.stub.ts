@@ -6,7 +6,6 @@ import { createApi } from "#api/createApi.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
-import { StarSystemsRepository } from "#api/star-systems/starSystems.repository.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import type { Database } from "#lib/db/createDb.ts"
 
@@ -26,7 +25,6 @@ export async function createApiStub({ db }: { db?: Database } = {}): Promise<All
     authService: new AuthServiceMock(),
     createTransaction: db.transaction.bind(db),
     accountsRepository: new AccountsRepository({ db, logger }),
-    starSystemsRepository: new StarSystemsRepository({ db, logger }),
     listingsRepository: new ListingsRepository({ db, logger }),
     lobbiesRepository: new LobbiesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger }),

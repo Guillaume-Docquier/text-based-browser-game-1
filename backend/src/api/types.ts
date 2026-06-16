@@ -25,10 +25,3 @@ export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 type GamePlayerActionsOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
-
-// Star Systems router
-type GetSystemOutput = TrpcRouterOutput["starSystems"]["getByGameId"]
-export type StarSystem = GetSystemOutput["starSystem"]
-export type Orbit = StarSystem["orbits"][number]
-export type MovementEdges = StarSystem["movementEdges"]
-export type MovementEdge = MovementEdges[string][number]

@@ -1,7 +1,7 @@
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import type { NewStarSystemModel } from "#api/gameplay/gameplay.repository.ts"
 import type { StarSystemGenerationSettings } from "#api/star-systems/StarSystemGenerationSettings.ts"
-import type { NewStarSystemModel } from "#api/star-systems/starSystems.repository.ts"
 import { BodyType } from "./BodyType.ts"
 import { generateStarSystem } from "./generateStarSystem.ts"
 

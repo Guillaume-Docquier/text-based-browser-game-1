@@ -4,6 +4,7 @@ import { toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import type { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
+import { RangeDto } from "#api/shared/RangeDto.ts"
 import {
   GAME_PLAYER_ACTION_RULES,
   type GamePlayerAction,
@@ -12,6 +13,7 @@ import {
 } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { couldNot } from "#lib/errors.ts"
+import { BodyType } from "#lib/star-systems/BodyType.ts"
 import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
 import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
 import { type OrderModel, type GameplayRepository, type PlayerViewModel, type StartGameModel } from "./gameplay.repository.ts"
@@ -232,6 +234,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     playerId: playerViewModel.playerId,
     tick: playerViewModel.tick,
     nextTickAt: playerViewModel.nextTickAt,
+    starSystem: playerViewModel.starSystem,
     resources: playerViewModel.resources,
   }
 }
@@ -257,6 +260,43 @@ export const StartedGameDto = z.object({
   nextTickAt: z.date(),
 })
 
+const StarSystemBodyDto = z.object({
+  id: z.string(),
+  number: z.number(),
+  coordinates: z.string(),
+  name: z.string(),
+  type: z.enum(BodyType),
+  movementNodeId: z.string(),
+})
+
+const StarSystemSectorDto = z.object({
+  id: z.string(),
+  number: z.number(),
+  coordinates: z.string(),
+  angleRange: RangeDto,
+  bodies: z.array(StarSystemBodyDto),
+  movementNodeId: z.string(),
+})
+
+const StarSystemOrbitDto = z.object({
+  id: z.string(),
+  number: z.number(),
+  coordinates: z.string(),
+  sectors: z.array(StarSystemSectorDto),
+})
+
+const MovementEdgeDto = z.object({
+  fromNodeId: z.string(),
+  toNodeId: z.string(),
+  weight: z.number(),
+})
+
+type StarSystemDto = z.infer<typeof StarSystemDto>
+const StarSystemDto = z.object({
+  orbits: z.array(StarSystemOrbitDto),
+  movementEdges: z.record(z.string(), z.array(MovementEdgeDto)),
+})
+
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
 export const GetPlayerViewDto = z.object({
   gameId: z.coerce.number(),
@@ -269,6 +309,7 @@ export const PlayerViewDto = z.object({
   playerId: PlayerId,
   tick: z.number(),
   nextTickAt: z.date(),
+  starSystem: StarSystemDto,
   resources: z.object({
     money: z.number(),
   }),

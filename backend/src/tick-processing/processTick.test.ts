@@ -52,6 +52,11 @@ describe("processTick", () => {
       playerId: account.id,
       tick: 1,
       nextTickAt: expect.any(String),
+      starSystem: expect.objectContaining({
+        // Fix me
+        orbits: expect.arrayContaining([expect.objectContaining({ number: 1 })]),
+        movementEdges: expect.any(Object),
+      }),
       resources: {
         money: 6,
       },
