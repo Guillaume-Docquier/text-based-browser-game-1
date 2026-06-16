@@ -26,13 +26,11 @@ import { couldNot } from "#lib/errors.ts"
 import type { BodyType } from "#lib/star-systems/BodyType.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
-type GameStateRow = typeof gameStatesTable.$inferSelect
 type OrderRow = typeof ordersTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTickRow = typeof ticksTable.$inferInsert
 type NewSectorRow = Omit<typeof sectorsTable.$inferInsert, "gameId">
 
-export type GameStateModel = GameStateRow
 export type OrderModel = OrderRow
 
 export type PlayerViewModel = {
