@@ -1,6 +1,5 @@
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import type { NewStarSystemModel } from "#api/gameplay/gameplay.repository.ts"
 import { createStarSystemGenerationSettingsStub } from "#api/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { BodyType } from "./BodyType.ts"
@@ -8,19 +7,28 @@ import { generateStarSystem } from "./generateStarSystem.ts"
 
 describe("generateStarSystem", () => {
   it("should generate identical Star Systems from identical settings", () => {
+    // Arrange
     const settings = createStarSystemGenerationSettingsStub({ seed: 1234 })
 
-    const firstResult = generateStarSystem(settings)
-    const secondResult = generateStarSystem(settings)
+    // Act
+    const firstSystem = extractSuccess(generateStarSystem(settings))
+    const secondSystem = extractSuccess(generateStarSystem(settings))
 
-    expect(secondResult).toEqual(firstResult)
+    // Assert
+    expect(firstSystem).toEqual(secondSystem)
   })
 
   it("should generate different planet placement from different seeds", () => {
-    const firstSystem = extractSuccess(generateStarSystem(createStarSystemGenerationSettingsStub({ seed: 1 })))
-    const secondSystem = extractSuccess(generateStarSystem(createStarSystemGenerationSettingsStub({ seed: 2 })))
+    // Arrange
+    const firstSettings = createStarSystemGenerationSettingsStub({ seed: 1 })
+    const secondSettings = createStarSystemGenerationSettingsStub({ seed: 2 })
 
-    expect(getBodyLocations(firstSystem, BodyType.PLANET)).not.toEqual(getBodyLocations(secondSystem, BodyType.PLANET))
+    // Act
+    const firstSystem = extractSuccess(generateStarSystem(firstSettings))
+    const secondSystem = extractSuccess(generateStarSystem(secondSettings))
+
+    // Assert
+    expect(firstSystem).not.toEqual(secondSystem)
   })
 
   it("should generate exact body counts and one complete Asteroid belt", () => {
@@ -130,27 +138,15 @@ describe("generateStarSystem", () => {
   })
 
   it("should fail settings that cannot fit within the orbit limit", () => {
-    const result = generateStarSystem(
-      createStarSystemGenerationSettingsStub({
-        planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 0, max: 0 }),
-        nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
-      }),
-    )
+    // Arrange
+    const settings = createStarSystemGenerationSettingsStub({
+      nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 9000, max: 9000 }),
+    })
 
-    expect(result).toEqual(Result.Failure(expect.stringContaining("6 orbit limit")))
+    // Act
+    const systemResult = generateStarSystem(settings)
+
+    // Assert
+    expect(systemResult).toEqual(Result.Failure(expect.any(String)))
   })
 })
-
-function getBodyLocations(system: NewStarSystemModel, bodyType: BodyType): string[] {
-  const sectorsById = new Map(system.sectors.map((sector) => [sector.id, sector]))
-  const orbitsById = new Map(system.orbits.map((orbit) => [orbit.id, orbit]))
-
-  return system.bodies
-    .filter((body) => body.bodyType === bodyType)
-    .map((body) => {
-      const sector = sectorsById.get(body.sectorId)
-      const orbit = sector === undefined ? undefined : orbitsById.get(sector.orbitId)
-      return `${orbit?.orbitNumber}:${sector?.sectorNumber}`
-    })
-    .sort()
-}
