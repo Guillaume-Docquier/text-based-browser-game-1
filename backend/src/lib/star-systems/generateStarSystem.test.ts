@@ -35,10 +35,10 @@ describe("generateStarSystem", () => {
     const system = extractSuccess(
       generateStarSystem(
         createStarSystemGenerationSettingsStub({
-          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 5, max: 5 }),
-          nbMoonsPerPlanet: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 2, max: 2 }),
-          nbAsteroidBelts: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
-          nbAsteroidsPerSector: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 2, max: 2 }),
+          nbPlanets: Range.integer({ min: 5, max: 5 }),
+          nbMoonsPerPlanet: Range.integer({ min: 2, max: 2 }),
+          nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
+          nbAsteroidsPerSector: Range.integer({ min: 2, max: 2 }),
         }),
       ),
     )
@@ -80,10 +80,10 @@ describe("generateStarSystem", () => {
       generateStarSystem(
         createStarSystemGenerationSettingsStub({
           planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 1, max: 1 }),
-          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 2, max: 2 }),
-          nbMoonsPerPlanet: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 0, max: 0 }),
-          nbAsteroidBelts: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
-          nbAsteroidsPerSector: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
+          nbPlanets: Range.integer({ min: 2, max: 2 }),
+          nbMoonsPerPlanet: Range.integer({ min: 0, max: 0 }),
+          nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
+          nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
           seed: 0,
         }),
       ),
@@ -100,10 +100,10 @@ describe("generateStarSystem", () => {
     const system = extractSuccess(
       generateStarSystem(
         createStarSystemGenerationSettingsStub({
-          planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 0.2, max: 0.2 }),
-          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
-          nbMoonsPerPlanet: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 0, max: 0 }),
-          nbAsteroidBelts: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 0, max: 0 }),
+          planetDensity: Range.float({ min: 0.2, max: 0.3 }),
+          nbPlanets: Range.integer({ min: 1, max: 1 }),
+          nbMoonsPerPlanet: Range.integer({ min: 0, max: 0 }),
+          nbAsteroidBelts: Range.integer({ min: 0, max: 0 }),
         }),
       ),
     )
@@ -140,7 +140,7 @@ describe("generateStarSystem", () => {
   it("should fail settings that cannot fit within the orbit limit", () => {
     // Arrange
     const settings = createStarSystemGenerationSettingsStub({
-      nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 9000, max: 9000 }),
+      nbPlanets: Range.integer({ min: 9000, max: 9000 }),
     })
 
     // Act

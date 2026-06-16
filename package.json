@@ -12,7 +12,7 @@
     "lint": "oxlint --max-warnings 0",
     "lint:fix": "pnpm lint --fix",
     "prepare": "husky",
-    "wts": "pnpm i && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
+    "wts": "pnpm ci && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
   },
   "devDependencies": {
     "husky": "9.1.7",

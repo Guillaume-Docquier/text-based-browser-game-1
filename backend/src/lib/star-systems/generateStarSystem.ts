@@ -65,9 +65,7 @@ export function generateStarSystem(settings: StarSystemGenerationSettings): Resu
         orbitId,
         orbitNumber: orbit.orbitNumber,
         sectorNumber,
-        angleRange: Range.create({
-          numericType: "float",
-          maxBoundType: "exclusive",
+        angleRange: Range.float({
           min: (sectorNumber - 1) * sectorAngle,
           max: sectorNumber * sectorAngle,
         }),
@@ -230,9 +228,7 @@ function createDeterministicUuidFactory({ rng, seed }: { rng: Rng; seed: number 
   const baseTimestamp = seed >>> 0
 
   return () => {
-    const random = Uint8Array.from({ length: UUID_RANDOM_BYTE_COUNT }, () =>
-      rng.int(Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 0, max: 255 })),
-    )
+    const random = Uint8Array.from({ length: UUID_RANDOM_BYTE_COUNT }, () => rng.int(Range.integer({ min: 0, max: 255 })))
     const id = v7({
       random,
       msecs: baseTimestamp + sequence,

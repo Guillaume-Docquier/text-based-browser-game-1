@@ -22,7 +22,7 @@ jobs:
         uses: pnpm/action-setup@v6.0.8
 
       - name: Install packages
-        run: pnpm i
+        run: pnpm ci
 
       - name: Format
         run: pnpm format
@@ -41,7 +41,7 @@ jobs:
         uses: pnpm/action-setup@v6.0.8
 
       - name: Install packages
-        run: pnpm i
+        run: pnpm ci
 
       - name: Typecheck
         run: pnpm --filter frontend typecheck
@@ -60,7 +60,7 @@ jobs:
         uses: pnpm/action-setup@v6.0.8
 
       - name: Install packages
-        run: pnpm i
+        run: pnpm ci
 
       - name: Typecheck
         run: pnpm --filter backend typecheck
