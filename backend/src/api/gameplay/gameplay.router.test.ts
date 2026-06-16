@@ -93,6 +93,7 @@ describe("gameplay.router", () => {
       authService.account = account
       const starSystemGenerationSettings = createStarSystemGenerationSettingsStub({ seed: 42 })
       const firstGame = extractSuccess(
+        // We'll use the route instead when it is available
         await lobbiesRepository.createLobby({
           createdByAccountId: account.id,
           configuration: {
@@ -104,6 +105,7 @@ describe("gameplay.router", () => {
         }),
       )
       const secondGame = extractSuccess(
+        // We'll use the route instead when it is available
         await lobbiesRepository.createLobby({
           createdByAccountId: account.id,
           configuration: {

@@ -1,38 +1,38 @@
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import type { NewStarSystemModel } from "#api/gameplay/gameplay.repository.ts"
-import type { StarSystemGenerationSettings } from "#api/star-systems/StarSystemGenerationSettings.ts"
+import { createStarSystemGenerationSettingsStub } from "#api/star-systems/StarSystemGenerationSettings.stub.ts"
+import { extractSuccess } from "#tests/extractSuccess.ts"
 import { BodyType } from "./BodyType.ts"
 import { generateStarSystem } from "./generateStarSystem.ts"
 
 describe("generateStarSystem", () => {
   it("should generate identical Star Systems from identical settings", () => {
-    const settings = createSettings({ seed: 1234 })
+    const settings = createStarSystemGenerationSettingsStub({ seed: 1234 })
 
-    const firstResult = generateStarSystem({ gameId: 1, settings })
-    const secondResult = generateStarSystem({ gameId: 1, settings })
+    const firstResult = generateStarSystem(settings)
+    const secondResult = generateStarSystem(settings)
 
     expect(secondResult).toEqual(firstResult)
   })
 
   it("should generate different planet placement from different seeds", () => {
-    const firstSystem = extractSystem(generateStarSystem({ gameId: 1, settings: createSettings({ seed: 1 }) }))
-    const secondSystem = extractSystem(generateStarSystem({ gameId: 1, settings: createSettings({ seed: 2 }) }))
+    const firstSystem = extractSuccess(generateStarSystem(createStarSystemGenerationSettingsStub({ seed: 1 })))
+    const secondSystem = extractSuccess(generateStarSystem(createStarSystemGenerationSettingsStub({ seed: 2 })))
 
     expect(getBodyLocations(firstSystem, BodyType.PLANET)).not.toEqual(getBodyLocations(secondSystem, BodyType.PLANET))
   })
 
   it("should generate exact body counts and one complete Asteroid belt", () => {
-    const system = extractSystem(
-      generateStarSystem({
-        gameId: 1,
-        settings: createSettings({
-          nbPlanets: integerRange(5),
-          nbMoonsPerPlanet: integerRange(2),
-          nbAsteroidBelts: integerRange(1),
-          nbAsteroidsPerSector: integerRange(2),
+    const system = extractSuccess(
+      generateStarSystem(
+        createStarSystemGenerationSettingsStub({
+          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 5, max: 5 }),
+          nbMoonsPerPlanet: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 2, max: 2 }),
+          nbAsteroidBelts: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
+          nbAsteroidsPerSector: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 2, max: 2 }),
         }),
-      }),
+      ),
     )
 
     const planets = system.bodies.filter(({ bodyType }) => bodyType === BodyType.PLANET)
@@ -58,7 +58,7 @@ describe("generateStarSystem", () => {
   })
 
   it("should create reciprocal movement edges and one node per Sector and Body", () => {
-    const system = extractSystem(generateStarSystem({ gameId: 1, settings: createSettings() }))
+    const system = extractSuccess(generateStarSystem(createStarSystemGenerationSettingsStub()))
     const edges = new Set(system.movementEdges.map(({ fromNodeId, toNodeId }) => `${fromNodeId}:${toNodeId}`))
 
     expect(system.movementNodes).toHaveLength(system.sectors.length + system.bodies.length)
@@ -68,18 +68,17 @@ describe("generateStarSystem", () => {
   })
 
   it("should allow the outermost Orbit to be an Asteroid belt", () => {
-    const system = extractSystem(
-      generateStarSystem({
-        gameId: 1,
-        settings: createSettings({
-          planetDensity: floatRange(1),
-          nbPlanets: integerRange(2),
-          nbMoonsPerPlanet: integerRange(0),
-          nbAsteroidBelts: integerRange(1),
-          nbAsteroidsPerSector: integerRange(1),
+    const system = extractSuccess(
+      generateStarSystem(
+        createStarSystemGenerationSettingsStub({
+          planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 1, max: 1 }),
+          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 2, max: 2 }),
+          nbMoonsPerPlanet: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 0, max: 0 }),
+          nbAsteroidBelts: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
+          nbAsteroidsPerSector: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
           seed: 0,
         }),
-      }),
+      ),
     )
     const outerOrbit = system.orbits.at(-1)
     const outerSectorIds = new Set(system.sectors.filter(({ orbitId }) => orbitId === outerOrbit?.id).map(({ id }) => id))
@@ -90,16 +89,15 @@ describe("generateStarSystem", () => {
   })
 
   it("should connect Sectors when their angle ranges share a border", () => {
-    const system = extractSystem(
-      generateStarSystem({
-        gameId: 1,
-        settings: createSettings({
-          planetDensity: floatRange(0.2),
-          nbPlanets: integerRange(1),
-          nbMoonsPerPlanet: integerRange(0),
-          nbAsteroidBelts: integerRange(0),
+    const system = extractSuccess(
+      generateStarSystem(
+        createStarSystemGenerationSettingsStub({
+          planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 0.2, max: 0.2 }),
+          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
+          nbMoonsPerPlanet: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 0, max: 0 }),
+          nbAsteroidBelts: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 0, max: 0 }),
         }),
-      }),
+      ),
     )
     const orbitNumbersById = new Map(system.orbits.map(({ id, orbitNumber }) => [id, orbitNumber]))
     const sectorEdges = new Set(system.movementEdges.map(({ fromNodeId, toNodeId }) => `${fromNodeId}:${toNodeId}`))
@@ -132,45 +130,16 @@ describe("generateStarSystem", () => {
   })
 
   it("should fail settings that cannot fit within the orbit limit", () => {
-    const result = generateStarSystem({
-      gameId: 1,
-      settings: createSettings({
-        planetDensity: floatRange(0),
-        nbPlanets: integerRange(1),
+    const result = generateStarSystem(
+      createStarSystemGenerationSettingsStub({
+        planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 0, max: 0 }),
+        nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
       }),
-    })
+    )
 
     expect(result).toEqual(Result.Failure(expect.stringContaining("6 orbit limit")))
   })
 })
-
-function createSettings(overrides: Partial<StarSystemGenerationSettings> = {}): StarSystemGenerationSettings {
-  return {
-    planetDensity: floatRange(0.5),
-    nbPlanets: integerRange(9),
-    nbMoonsPerPlanet: integerRange(1),
-    nbAsteroidBelts: integerRange(1),
-    nbAsteroidsPerSector: integerRange(1),
-    seed: 1234,
-    ...overrides,
-  }
-}
-
-function integerRange(value: number): Range<"integer", "inclusive"> {
-  return Range.create({ numericType: "integer", maxBoundType: "inclusive", min: value, max: value })
-}
-
-function floatRange(value: number): Range<"float", "inclusive"> {
-  return Range.create({ numericType: "float", maxBoundType: "inclusive", min: value, max: value })
-}
-
-function extractSystem(result: ReturnType<typeof generateStarSystem>): NewStarSystemModel {
-  if (Result.isFailure(result)) {
-    throw new Error(result.error)
-  }
-
-  return result.value
-}
 
 function getBodyLocations(system: NewStarSystemModel, bodyType: BodyType): string[] {
   const sectorsById = new Map(system.sectors.map((sector) => [sector.id, sector]))

@@ -1,7 +1,6 @@
 import { createRng, mulberry32Prng, Range, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { v7 } from "uuid"
 import type { NewStarSystemModel } from "#api/gameplay/gameplay.repository.ts"
-import type { GameId } from "#api/shared/GameId.ts"
 import type { StarSystemGenerationSettings } from "#api/star-systems/StarSystemGenerationSettings.ts"
 import { BodyType } from "./BodyType.ts"
 
@@ -20,13 +19,7 @@ type GeneratedSector = NewStarSystemModel["sectors"][number] & {
   isAsteroidBelt: boolean
 }
 
-export function generateStarSystem({
-  gameId,
-  settings,
-}: {
-  gameId: GameId
-  settings: StarSystemGenerationSettings
-}): Result<NewStarSystemModel, string> {
+export function generateStarSystem(settings: StarSystemGenerationSettings): Result<NewStarSystemModel, string> {
   const invalidSettingsReason = validateSettings(settings)
   if (invalidSettingsReason !== undefined) {
     return Result.Failure(invalidSettingsReason)
@@ -149,7 +142,6 @@ export function generateStarSystem({
   const movementEdges = createMovementEdges({ sectors, bodies })
 
   return Result.Success({
-    gameId,
     orbits: orbitModels,
     sectors: storedSectors,
     bodies,

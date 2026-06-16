@@ -59,10 +59,7 @@ export class GameplayController {
 
     const startedAt = new Date()
     const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: lobbyModel.configuration.tickIntervalSeconds })
-    const starSystemResult = generateStarSystem({
-      gameId,
-      settings: lobbyModel.configuration.starSystemGenerationSettings,
-    })
+    const starSystemResult = generateStarSystem(lobbyModel.configuration.starSystemGenerationSettings)
     if (Result.isFailure(starSystemResult)) {
       this.logger.error("Failed to generate Star System", { gameId, playerId, error: starSystemResult.error })
       return Result.Failure(couldNot("start game"))
