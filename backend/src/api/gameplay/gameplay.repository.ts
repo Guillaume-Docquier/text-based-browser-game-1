@@ -242,15 +242,7 @@ export class GameplayRepository extends PostgresRepository {
           return undefined
         }
 
-        const starSystems = await tx.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, gameId))
-        Assert.isTrue(starSystems.length === 1)
-        const starSystem = starSystems[0]
-        Assert.isDefined(starSystem)
-
-        const orbits = await tx.select().from(orbitsTable).where(eq(orbitsTable.gameId, gameId))
-        const sectors = await tx.select().from(sectorsTable).where(eq(sectorsTable.gameId, gameId))
-        const bodies = await tx.select().from(bodiesTable).where(eq(bodiesTable.gameId, gameId))
-        const movementEdges = await tx.select().from(movementEdgesTable).where(eq(movementEdgesTable.gameId, gameId))
+        const starSystem = await selectStarSystem(gameId, tx)
 
         const playerResources = await tx
           .select()
@@ -262,7 +254,7 @@ export class GameplayRepository extends PostgresRepository {
         return {
           ...gameState,
           playerId,
-          starSystem: toStarSystemModel({ starSystem, orbits, sectors, bodies, movementEdges }),
+          starSystem,
           resources: {
             money: money.amount,
           },
@@ -431,6 +423,20 @@ async function insertStarSystem(
   if (bodies.length > 0) {
     await tx.insert(bodiesTable).values(bodies)
   }
+}
+
+async function selectStarSystem(gameId: GameId, tx: Transaction): Promise<StarSystemModel> {
+  const starSystems = await tx.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, gameId))
+  Assert.isTrue(starSystems.length === 1)
+  Assert.isDefined(starSystems[0])
+
+  const starSystem = starSystems[0]
+  const orbits = await tx.select().from(orbitsTable).where(eq(orbitsTable.gameId, gameId))
+  const sectors = await tx.select().from(sectorsTable).where(eq(sectorsTable.gameId, gameId))
+  const bodies = await tx.select().from(bodiesTable).where(eq(bodiesTable.gameId, gameId))
+  const movementEdges = await tx.select().from(movementEdgesTable).where(eq(movementEdgesTable.gameId, gameId))
+
+  return toStarSystemModel({ starSystem, orbits, sectors, bodies, movementEdges })
 }
 
 function toNewSectorRow(newSector: NewSectorModel): NewSectorRow {
