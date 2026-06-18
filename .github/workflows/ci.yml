@@ -21,6 +21,9 @@ jobs:
       - name: Setting up pnpm
         uses: pnpm/action-setup@v6.0.8
 
+      - name: Validate peer dependencies
+        run: pnpm peers check
+
       - name: Install packages
         run: pnpm ci
 
