@@ -4,6 +4,7 @@ import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-sys
 import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { Clock } from "#lib/Clock.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
@@ -46,10 +47,12 @@ export type StartGameModel = {
 
 export class GameplayRepository extends PostgresRepository {
   private readonly logger: Logger
+  private readonly clock: Clock
 
-  public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
+  public constructor({ logger, db, clock }: { logger: Logger; db: PostgresRepository["db"]; clock: Clock }) {
     super({ db })
     this.logger = logger.child({ scope: "gameplay-repository" })
+    this.clock = clock
   }
 
   public async startGame(
@@ -162,7 +165,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<OrderModel, string>> {
     const upsertResult = await Result.tryCatch(async () => {
-      const updatedAt = new Date()
+      const updatedAt = this.clock.now()
       const gamePlayerActions = await db
         .insert(ordersTable)
         .values({ ...params, updatedAt })

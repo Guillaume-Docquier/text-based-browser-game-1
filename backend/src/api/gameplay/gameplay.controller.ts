@@ -6,6 +6,8 @@ import type { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
+import type { Clock } from "#lib/Clock.ts"
+import { Datetime } from "#lib/Datetime.ts"
 import {
   GAME_PLAYER_ACTION_RULES,
   type GamePlayerAction,
@@ -15,24 +17,27 @@ import {
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot } from "#lib/errors.ts"
-import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
 import { type OrderModel, type GameplayRepository, type PlayerViewModel, type StartGameModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
+  private readonly clock: Clock
   private readonly gameplayRepository: GameplayRepository
   private readonly lobbiesRepository: LobbiesRepository
 
   public constructor({
     logger,
+    clock,
     gameplayRepository,
     lobbiesRepository,
   }: {
     logger: Logger
+    clock: Clock
     gameplayRepository: GameplayRepository
     lobbiesRepository: LobbiesRepository
   }) {
     this.logger = logger.child({ scope: "gameplay-controller" })
+    this.clock = clock
     this.gameplayRepository = gameplayRepository
     this.lobbiesRepository = lobbiesRepository
   }
@@ -57,8 +62,8 @@ export class GameplayController {
       return Result.Failure(couldNot("start game"))
     }
 
-    const startedAt = new Date()
-    const nextTickAt = computeNextTickDate({ date: startedAt, tickIntervalSeconds: lobbyModel.configuration.tickIntervalSeconds })
+    const startedAt = this.clock.now()
+    const nextTickAt = Datetime.increment({ date: startedAt, incrementSeconds: lobbyModel.configuration.tickIntervalSeconds })
     const starSystemResult = generateStarSystem(lobbyModel.configuration.starSystemGenerationSettings)
     if (Result.isFailure(starSystemResult)) {
       this.logger.error("Failed to generate Star System", { gameId, playerId, error: starSystemResult.error })

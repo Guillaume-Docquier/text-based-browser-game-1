@@ -1,17 +1,26 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
+import type { Clock } from "#lib/Clock.ts"
+import { Datetime } from "#lib/Datetime.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
-import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
 import { type ProcessedTickModel, type TicksRepository, type TickToProcessModel } from "#tick-processing/ticks.repository.ts"
 
 /**
  * Processes all ticks that should advance at this point in time.
  * This will resolve all player actions, update the game state and schedule the next tick.
  */
-export async function processTick({ logger, ticksRepository }: { logger: Logger; ticksRepository: TicksRepository }): Promise<void> {
-  const ticksToProcessResult = await ticksRepository.getTicksToProcess()
+export async function processTick({
+  logger,
+  ticksRepository,
+  clock,
+}: {
+  logger: Logger
+  ticksRepository: TicksRepository
+  clock: Clock
+}): Promise<void> {
+  const ticksToProcessResult = await ticksRepository.getTicksToProcess({ since: clock.now() })
   if (Result.isFailure(ticksToProcessResult)) {
     logger.error("Could not get ticks to process", { error: ticksToProcessResult.error })
     return
@@ -28,7 +37,7 @@ export async function processTick({ logger, ticksRepository }: { logger: Logger;
   await Promise.allSettled(
     ticksToProcess.map(async (tickToProcess) => {
       logger.info("Processing tick", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
-      const processedTick = processTickInMemory(tickToProcess)
+      const processedTick = processTickInMemory(tickToProcess, clock)
       const saveResult = await ticksRepository.saveProcessedTick(processedTick)
       if (Result.isFailure(saveResult)) {
         logger.error("Could not save processed tick", {
@@ -41,7 +50,7 @@ export async function processTick({ logger, ticksRepository }: { logger: Logger;
   )
 }
 
-function processTickInMemory(tickToProcess: TickToProcessModel): ProcessedTickModel {
+function processTickInMemory(tickToProcess: TickToProcessModel, clock: Clock): ProcessedTickModel {
   let winnerAccountId: AccountId | undefined
 
   const players = Object.entries(tickToProcess.players).reduce<ProcessedTickModel["players"]>(
@@ -76,9 +85,9 @@ function processTickInMemory(tickToProcess: TickToProcessModel): ProcessedTickMo
     winnerAccountId === undefined
       ? {
           tick: tickToProcess.tick + 1,
-          scheduledFor: computeNextTickDate({
+          scheduledFor: Datetime.increment({
             date: tickToProcess.scheduledFor,
-            tickIntervalSeconds: tickToProcess.tickIntervalSeconds,
+            incrementSeconds: tickToProcess.tickIntervalSeconds,
           }),
         }
       : undefined
@@ -86,7 +95,7 @@ function processTickInMemory(tickToProcess: TickToProcessModel): ProcessedTickMo
   return {
     gameId: tickToProcess.gameId,
     tick: tickToProcess.tick,
-    processedAt: new Date(),
+    processedAt: clock.now(),
     players,
     winnerAccountId,
     nextTick,

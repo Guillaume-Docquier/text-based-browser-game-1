@@ -14,6 +14,7 @@ import { createListingsRouter } from "#api/listings/listings.router.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { createLobbiesRouter } from "#api/lobbies/lobbies.router.ts"
+import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
@@ -35,6 +36,7 @@ export async function createApi({
   createTransaction: CreateTransaction
   authService: IAuthService
   logger: Logger
+  clock: Clock
   accountsRepository: AccountsRepository
   listingsRepository: ListingsRepository
   lobbiesRepository: LobbiesRepository

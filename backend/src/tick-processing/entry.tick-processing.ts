@@ -1,5 +1,6 @@
 import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
 import { type Logger } from "@guillaume-docquier/tools-ts"
+import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
@@ -40,10 +41,11 @@ if (!isMainThread) {
   const db = createDb({ databaseUrl: env.DATABASE_URL })
 
   logger.info("Creating services")
+  const clock = Clock
   const ticksRepository = new TicksRepository({ db, logger })
 
   logger.info("Processing ticks")
-  await processTicksForever({ logger, ticksRepository }, 1000)
+  await processTicksForever({ logger, ticksRepository, clock }, 1000)
 }
 
 async function processTicksForever(services: Parameters<typeof processTick>[0], frequency: number): Promise<void> {

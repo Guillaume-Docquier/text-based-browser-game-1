@@ -6,6 +6,7 @@ import { AuthService } from "#api/accounts/auth.service.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import { createDb } from "#lib/db/createDb.ts"
@@ -35,11 +36,12 @@ async function main(): Promise<void> {
   await migrateDatabase(db, { migrationsFolder: "./drizzle/", logger })
 
   logger.info("Creating services")
+  const clock = Clock
   const repositories = {
     accountsRepository: new AccountsRepository({ db, logger }),
     listingsRepository: new ListingsRepository({ db, logger }),
     lobbiesRepository: new LobbiesRepository({ db, logger }),
-    gameplayRepository: new GameplayRepository({ db, logger }),
+    gameplayRepository: new GameplayRepository({ db, logger, clock }),
   }
 
   const authService = new AuthService({ logger })
@@ -47,6 +49,7 @@ async function main(): Promise<void> {
   logger.info("Creating the API")
   const app = await createApi({
     logger,
+    clock,
     createTransaction: db.transaction.bind(db),
     authService,
     ...repositories,
