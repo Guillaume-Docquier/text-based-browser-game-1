@@ -2,6 +2,7 @@ import { Assert, type Logger, Range, Result } from "@guillaume-docquier/tools-ts
 import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import { toCoordinates } from "#api/gameplay/star-systems/Coordinates.ts"
+import type { MovementNodeId } from "#api/gameplay/star-systems/MovementNodeId.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
@@ -30,6 +31,11 @@ type OrderRow = typeof ordersTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTickRow = typeof ticksTable.$inferInsert
 type NewSectorRow = Omit<typeof sectorsTable.$inferInsert, "gameId">
+type StarSystemRow = typeof starSystemsTable.$inferSelect
+type OrbitRow = typeof orbitsTable.$inferSelect
+type SectorRow = typeof sectorsTable.$inferSelect
+type BodyRow = typeof bodiesTable.$inferSelect
+type MovementEdgeRow = typeof movementEdgesTable.$inferSelect
 
 export type OrderModel = OrderRow
 
@@ -43,15 +49,6 @@ export type PlayerViewModel = {
     money: number
   }
 }
-
-const RANGE_NUMERIC_TYPES = ["float", "integer"] as const
-const RANGE_MAX_BOUND_TYPES = ["inclusive", "exclusive"] as const
-
-type StarSystemRow = typeof starSystemsTable.$inferSelect
-type OrbitRow = typeof orbitsTable.$inferSelect
-type SectorRow = typeof sectorsTable.$inferSelect
-type BodyRow = typeof bodiesTable.$inferSelect
-type MovementEdgeRow = typeof movementEdgesTable.$inferSelect
 
 export type NewStarSystemModel = {
   orbits: NewOrbitModel[]
@@ -71,7 +68,7 @@ export type NewSectorModel = {
   orbitId: string
   sectorNumber: number
   angleRange: Range
-  movementNodeId: string
+  movementNodeId: MovementNodeId
 }
 
 export type NewBodyModel = {
@@ -80,16 +77,16 @@ export type NewBodyModel = {
   bodyNumber: number
   bodyType: BodyType
   name: string
-  movementNodeId: string
+  movementNodeId: MovementNodeId
 }
 
 export type NewMovementNodeModel = {
-  id: string
+  id: MovementNodeId
 }
 
 export type NewMovementEdgeModel = {
-  fromNodeId: string
-  toNodeId: string
+  fromNodeId: MovementNodeId
+  toNodeId: MovementNodeId
   weight: number
 }
 
@@ -101,7 +98,7 @@ export type StarSystemModel = {
   /**
    * Movement edges by movement node id
    */
-  movementEdges: Record<string, MovementEdgeModel[]>
+  movementEdges: Record<MovementNodeId, MovementEdgeModel[]>
 }
 
 export type OrbitModel = {
@@ -117,7 +114,7 @@ export type SectorModel = {
   coordinates: string
   angleRange: Range
   bodies: BodyModel[]
-  movementNodeId: string
+  movementNodeId: MovementNodeId
 }
 
 export type BodyModel = {
@@ -126,12 +123,12 @@ export type BodyModel = {
   coordinates: string
   name: string
   type: BodyType
-  movementNodeId: string
+  movementNodeId: MovementNodeId
 }
 
 export type MovementEdgeModel = {
-  fromNodeId: string
-  toNodeId: string
+  fromNodeId: MovementNodeId
+  toNodeId: MovementNodeId
   weight: number
 }
 
@@ -484,6 +481,8 @@ export function toStarSystemModel(starSystemRows: StarSystemAggregatedRows): Sta
   }
 }
 
+const RANGE_NUMERIC_TYPES = ["float", "integer"] as const
+const RANGE_MAX_BOUND_TYPES = ["inclusive", "exclusive"] as const
 function toSectorAngleRange(sector: SectorRow): Range {
   Assert.isOneOf(RANGE_NUMERIC_TYPES, sector.angleNumericType, "sector.angleNumericType")
   Assert.isOneOf(RANGE_MAX_BOUND_TYPES, sector.angleMaxBoundType, "sector.angleMaxBoundType")
