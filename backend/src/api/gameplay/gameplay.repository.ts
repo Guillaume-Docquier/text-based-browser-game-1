@@ -1,6 +1,7 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
-import { type NewStarSystemModel, type StarSystemModel, StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
+import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
+import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"

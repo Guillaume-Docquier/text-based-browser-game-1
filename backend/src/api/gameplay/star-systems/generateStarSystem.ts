@@ -1,6 +1,6 @@
 import { createRng, mulberry32Prng, Range, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { v7 } from "uuid"
-import type { NewStarSystemModel } from "#api/gameplay/gameplay.repository.ts"
+import type { NewStarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 

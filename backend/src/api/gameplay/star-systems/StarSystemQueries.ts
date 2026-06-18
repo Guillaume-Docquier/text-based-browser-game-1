@@ -1,11 +1,10 @@
 import { Assert, Range } from "@guillaume-docquier/tools-ts"
 import { eq } from "drizzle-orm"
 import { toCoordinates } from "#api/gameplay/star-systems/Coordinates.ts"
-import type { MovementNodeId } from "#api/gameplay/star-systems/MovementNodeId.ts"
+import type { NewSectorModel, NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
-import type { BodyType } from "#lib/db/star-systems/BodyType.ts"
 
 type NewSectorRow = Omit<typeof sectorsTable.$inferInsert, "gameId">
 type StarSystemRow = typeof starSystemsTable.$inferSelect
@@ -13,88 +12,6 @@ type OrbitRow = typeof orbitsTable.$inferSelect
 type SectorRow = typeof sectorsTable.$inferSelect
 type BodyRow = typeof bodiesTable.$inferSelect
 type MovementEdgeRow = typeof movementEdgesTable.$inferSelect
-
-export type NewStarSystemModel = {
-  orbits: NewOrbitModel[]
-  sectors: NewSectorModel[]
-  bodies: NewBodyModel[]
-  movementNodes: NewMovementNodeModel[]
-  movementEdges: NewMovementEdgeModel[]
-}
-
-export type NewOrbitModel = {
-  id: string
-  orbitNumber: number
-}
-
-export type NewSectorModel = {
-  id: string
-  orbitId: string
-  sectorNumber: number
-  angleRange: Range
-  movementNodeId: MovementNodeId
-}
-
-export type NewBodyModel = {
-  id: string
-  sectorId: string
-  bodyNumber: number
-  bodyType: BodyType
-  name: string
-  movementNodeId: MovementNodeId
-}
-
-export type NewMovementNodeModel = {
-  id: MovementNodeId
-}
-
-export type NewMovementEdgeModel = {
-  fromNodeId: MovementNodeId
-  toNodeId: MovementNodeId
-  weight: number
-}
-
-export type StarSystemModel = {
-  /**
-   * Star system as a tree
-   */
-  orbits: OrbitModel[]
-  /**
-   * Movement edges by movement node id
-   */
-  movementEdges: Record<MovementNodeId, MovementEdgeModel[]>
-}
-
-export type OrbitModel = {
-  id: string
-  number: number
-  coordinates: string
-  sectors: SectorModel[]
-}
-
-export type SectorModel = {
-  id: string
-  number: number
-  coordinates: string
-  angleRange: Range
-  bodies: BodyModel[]
-  movementNodeId: MovementNodeId
-}
-
-export type BodyModel = {
-  id: string
-  number: number
-  coordinates: string
-  name: string
-  type: BodyType
-  movementNodeId: MovementNodeId
-}
-
-export type MovementEdgeModel = {
-  fromNodeId: MovementNodeId
-  toNodeId: MovementNodeId
-  weight: number
-}
 
 type StarSystemAggregatedRows = {
   starSystem: StarSystemRow
