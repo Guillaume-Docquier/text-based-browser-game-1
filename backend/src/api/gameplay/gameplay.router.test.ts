@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { type CreateLobbyDto } from "#api/lobbies/lobbies.controller.ts"
+import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
@@ -17,9 +17,7 @@ describe("gameplay.router", () => {
     using trpcClient = new TrpcClient({ api })
 
     authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-    const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "private gameplay", nbSeats: 2, tickIntervalSeconds: 60 },
-    })
+    const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
 
     authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
@@ -45,12 +43,7 @@ describe("gameplay.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const newGameSettings: CreateLobbyDto["configuration"] = {
-        name: "start game",
-        nbSeats: 2,
-        tickIntervalSeconds: 60,
-      }
-
+      const newGameSettings = createGameConfigurationDtoStub()
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -67,13 +60,7 @@ describe("gameplay.router", () => {
       using trpcClient = new TrpcClient({ api })
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-        configuration: {
-          name: "non creator cannot start game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-        },
-      })
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       await trpcClient.client.lobbies.join.mutate({ gameId: createdGameId })
@@ -92,29 +79,15 @@ describe("gameplay.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = account
       const starSystemGenerationSettings = createStarSystemGenerationSettingsStub({ seed: 42 })
+
+      const gameConfiguration = createGameConfigurationDtoStub({ starSystemGenerationSettings })
       const firstGame = extractSuccess(
         // We'll use the route instead when it is available
-        await lobbiesRepository.createLobby({
-          createdByAccountId: account.id,
-          configuration: {
-            name: "first deterministic game",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-            starSystemGenerationSettings,
-          },
-        }),
+        await lobbiesRepository.createLobby({ createdByAccountId: account.id, configuration: gameConfiguration }),
       )
       const secondGame = extractSuccess(
         // We'll use the route instead when it is available
-        await lobbiesRepository.createLobby({
-          createdByAccountId: account.id,
-          configuration: {
-            name: "second deterministic game",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-            starSystemGenerationSettings,
-          },
-        }),
+        await lobbiesRepository.createLobby({ createdByAccountId: account.id, configuration: gameConfiguration }),
       )
 
       // Act
@@ -146,9 +119,7 @@ describe("gameplay.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = account
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-        configuration: { name: "running game", nbSeats: 2, tickIntervalSeconds: 60 },
-      })
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
 
       await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
@@ -210,9 +181,7 @@ describe("gameplay.router", () => {
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = account
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-        configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
-      })
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await resourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
@@ -248,9 +217,7 @@ describe("gameplay.router", () => {
 
       authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-        configuration: { name: "stale tick game", nbSeats: 2, tickIntervalSeconds: 60 },
-      })
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act & Assert

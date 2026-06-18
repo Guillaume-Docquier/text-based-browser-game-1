@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { type CreateLobbyDto } from "#api/lobbies/lobbies.controller.ts"
+import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { GameStatus } from "#api/shared/GameStatus.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
@@ -16,12 +16,7 @@ describe("listings.router", () => {
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = creatorAccount
 
-      const newGameSettings: CreateLobbyDto["configuration"] = {
-        name: "public game",
-        nbSeats: 2,
-        tickIntervalSeconds: 60,
-      }
-
+      const newGameSettings = createGameConfigurationDtoStub()
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       authService.account = undefined
@@ -52,12 +47,7 @@ describe("listings.router", () => {
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
       authService.account = creatorAccount
 
-      const newGameSettings: CreateLobbyDto["configuration"] = {
-        name: "joinable game",
-        nbSeats: 2,
-        tickIntervalSeconds: 60,
-      }
-
+      const newGameSettings = createGameConfigurationDtoStub()
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       authService.account = creatorAccount

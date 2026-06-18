@@ -1,14 +1,14 @@
-import { Assert, type Logger, type Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, type Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
 import { z } from "zod"
-import { AccountsRepository, type NewAccountModel, type AccountModel } from "#api/accounts/accounts.repository.ts"
+import { type AccountModel, AccountsRepository, type NewAccountModel } from "#api/accounts/accounts.repository.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
-import { gamesTable, accountsTable } from "#lib/db/schema.ts"
+import { accountsTable, gamesTable } from "#lib/db/schema.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
 
 const YES_I_KNOW = "yes i know"
@@ -189,7 +189,7 @@ async function seedGames({
   assertSuccess(
     await lobbiesController.createLobby({
       createdByAccountId: secondAccount.id,
-      configuration: { name: "fast game", nbSeats: 10, tickIntervalSeconds: 7200 },
+      configuration: { name: "fast game", nbSeats: 10, tickIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS) },
     }),
   )
   logger.info("├ Adding accounts to games")
