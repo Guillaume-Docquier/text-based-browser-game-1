@@ -1,8 +1,8 @@
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { createStarSystemGenerationSettingsStub } from "#api/star-systems/StarSystemGenerationSettings.stub.ts"
+import { BodyType } from "#lib/db/star-systems/BodyType.ts"
+import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { BodyType } from "./BodyType.ts"
 import { generateStarSystem } from "./generateStarSystem.ts"
 
 describe("generateStarSystem", () => {

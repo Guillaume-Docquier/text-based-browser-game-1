@@ -1,9 +1,9 @@
 import { Assert, type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#api/accounts/AccountId.ts"
+import { toCoordinates } from "#api/gameplay/star-systems/Coordinates.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
-import { toCoordinates } from "#api/star-systems/Coordinates.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
@@ -22,8 +22,8 @@ import {
   starSystemsTable,
   ticksTable,
 } from "#lib/db/schema.ts"
+import type { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { BodyType } from "#lib/star-systems/BodyType.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type OrderRow = typeof ordersTable.$inferSelect

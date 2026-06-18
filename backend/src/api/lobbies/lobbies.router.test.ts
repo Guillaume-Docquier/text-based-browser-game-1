@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
+import { createDefaultStarSystemGenerationSettings } from "#api/gameplay/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import { type CreateLobbyDto, type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#api/shared/GameStatus.ts"
-import { createDefaultStarSystemGenerationSettings } from "#api/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 

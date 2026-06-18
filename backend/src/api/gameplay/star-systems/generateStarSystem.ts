@@ -1,8 +1,8 @@
 import { createRng, mulberry32Prng, Range, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { v7 } from "uuid"
 import type { NewStarSystemModel } from "#api/gameplay/gameplay.repository.ts"
-import type { StarSystemGenerationSettings } from "#api/star-systems/StarSystemGenerationSettings.ts"
-import { BodyType } from "./BodyType.ts"
+import { BodyType } from "#lib/db/star-systems/BodyType.ts"
+import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 
 const MAX_ORBITS = 6
 const FIRST_ORBIT_SECTOR_COUNT = 2

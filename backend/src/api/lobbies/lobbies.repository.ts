@@ -3,9 +3,9 @@ import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
-import type { StarSystemGenerationSettings } from "#api/star-systems/StarSystemGenerationSettings.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
+import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type CreateGameRow = typeof gamesTable.$inferInsert

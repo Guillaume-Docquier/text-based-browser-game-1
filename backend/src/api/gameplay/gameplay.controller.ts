@@ -1,5 +1,6 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
+import { generateStarSystem } from "#api/gameplay/star-systems/generateStarSystem.ts"
 import { toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import type { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { GameId } from "#api/shared/GameId.ts"
@@ -12,9 +13,8 @@ import {
   GamePlayerActionTypeSchema,
 } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
+import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot } from "#lib/errors.ts"
-import { BodyType } from "#lib/star-systems/BodyType.ts"
-import { generateStarSystem } from "#lib/star-systems/generateStarSystem.ts"
 import { computeNextTickDate } from "#tick-processing/computeNextTickDate.ts"
 import { type OrderModel, type GameplayRepository, type PlayerViewModel, type StartGameModel } from "./gameplay.repository.ts"
 
