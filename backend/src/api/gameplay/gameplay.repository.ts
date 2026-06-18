@@ -1,13 +1,12 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
-import type { AccountId } from "#api/accounts/AccountId.ts"
 import { type NewStarSystemModel, type StarSystemModel, StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamesTable, gameStatesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
+import { gamesTable, gameStatesTable, ordersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
@@ -93,19 +92,6 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return Result.Success({ nextTickAt: gameState.nextTickAt })
-  }
-
-  public async getPlayerIds({ gameId }: { gameId: GameId }, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerId[], string>> {
-    const gamePlayersResult = await Result.tryCatch(
-      db.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId)),
-    )
-
-    if (Result.isFailure(gamePlayersResult)) {
-      this.logger.error("Could not get player ids", { gameId, error: gamePlayersResult.error })
-      return Result.Failure(couldNot("get player ids"))
-    }
-
-    return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
   }
 
   public async getPlayerView(
@@ -215,56 +201,6 @@ export class GameplayRepository extends PostgresRepository {
     if (Result.isFailure(deleteResult)) {
       this.logger.error("Could not delete game player action", { ...params, error: deleteResult.error })
       return Result.Failure(couldNot("delete game player action"))
-    }
-
-    return Result.Success(true)
-  }
-
-  public async getActionsForTick(
-    params: { gameId: GameId; tick: number },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<OrderModel[], string>> {
-    const getResult = await Result.tryCatch(
-      db
-        .select()
-        .from(ordersTable)
-        .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.tick, params.tick))),
-    )
-
-    if (Result.isFailure(getResult)) {
-      this.logger.error("Could not get game player actions by tick", { ...params, error: getResult.error })
-      return Result.Failure(couldNot("get game player actions by tick"))
-    }
-
-    return Result.Success(getResult.value)
-  }
-
-  public async endGameWithWinner(
-    { gameId, winnerAccountId }: { gameId: GameId; winnerAccountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    const endResult = await Result.tryCatch(
-      db.update(gamesTable).set({ endedAt: new Date(), winnerAccountId }).where(eq(gamesTable.id, gameId)),
-    )
-
-    if (Result.isFailure(endResult)) {
-      this.logger.error("Could not end game with winner", { gameId, winnerAccountId, error: endResult.error })
-      return Result.Failure(couldNot("end game with winner"))
-    }
-
-    return Result.Success(true)
-  }
-
-  public async updateGameState(
-    { gameId }: { gameId: GameId },
-    gameState: Partial<NewGameStateRow>,
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    const updateResult = await Result.tryCatch(db.update(gameStatesTable).set(gameState).where(eq(gameStatesTable.gameId, gameId)))
-
-    if (Result.isFailure(updateResult)) {
-      this.logger.error("Could not update game state", { gameId, gameState, error: updateResult.error })
-      return Result.Failure(couldNot("update game state"))
     }
 
     return Result.Success(true)
