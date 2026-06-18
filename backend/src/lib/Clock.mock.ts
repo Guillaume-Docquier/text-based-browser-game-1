@@ -1,5 +1,5 @@
+import { Datetime, type Time } from "@guillaume-docquier/tools-ts"
 import type { Clock } from "#lib/Clock.ts"
-import { Datetime } from "#lib/Datetime.ts"
 
 export class ClockMock implements Clock {
   private rightNow: Date
@@ -8,8 +8,8 @@ export class ClockMock implements Clock {
     this.rightNow = startDate
   }
 
-  public increment({ incrementSeconds }: { incrementSeconds: number }): void {
-    this.rightNow = Datetime.increment({ date: this.rightNow, incrementSeconds })
+  public increment({ time }: { time: Time }): void {
+    this.rightNow = Datetime.increment({ date: this.rightNow, time })
   }
 
   public now(): Date {

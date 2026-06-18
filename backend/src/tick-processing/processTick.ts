@@ -1,7 +1,6 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { Clock } from "#lib/Clock.ts"
-import { Datetime } from "#lib/Datetime.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
@@ -87,7 +86,7 @@ function processTickInMemory(tickToProcess: TickToProcessModel, clock: Clock): P
           tick: tickToProcess.tick + 1,
           scheduledFor: Datetime.increment({
             date: tickToProcess.scheduledFor,
-            incrementSeconds: tickToProcess.tickIntervalSeconds,
+            time: Time.create(tickToProcess.tickIntervalSeconds, UnitOfTime.SECONDS),
           }),
         }
       : undefined

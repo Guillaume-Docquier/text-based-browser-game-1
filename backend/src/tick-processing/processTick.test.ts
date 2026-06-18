@@ -1,10 +1,9 @@
-import { Assert, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { ClockMock } from "#lib/Clock.mock.ts"
-import { Datetime } from "#lib/Datetime.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
@@ -27,9 +26,9 @@ describe("processTick", () => {
     const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = account
 
-    const tickIntervalSeconds = 60
+    const tickInterval = Time.create(1000, UnitOfTime.SECONDS)
     const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "process tick", nbSeats: 1, tickIntervalSeconds },
+      configuration: { name: "process tick", nbSeats: 1, tickIntervalSeconds: Time.in(tickInterval, UnitOfTime.SECONDS) },
     })
 
     await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
@@ -49,7 +48,7 @@ describe("processTick", () => {
     })
 
     // Act
-    clock.increment({ incrementSeconds: tickIntervalSeconds })
+    clock.increment({ time: tickInterval })
     await processTick({ logger, ticksRepository, clock })
 
     // Assert
@@ -58,7 +57,7 @@ describe("processTick", () => {
       gameId: createdGameId,
       playerId: account.id,
       tick: 1,
-      nextTickAt: Datetime.increment({ date: clock.now(), incrementSeconds: tickIntervalSeconds }).toISOString(),
+      nextTickAt: Datetime.increment({ date: clock.now(), time: tickInterval }).toISOString(),
       starSystem: expect.any(Object),
       resources: {
         money: 6,
