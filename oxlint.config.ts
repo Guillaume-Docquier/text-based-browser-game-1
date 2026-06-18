@@ -410,6 +410,19 @@ export default defineConfig({
       },
     },
     {
+      files: ["backend/src/**/*.ts"],
+      excludeFiles: ["backend/src/**/*.test.ts"],
+      rules: {
+        "no-restricted-globals": [
+          "error",
+          {
+            name: "Date",
+            message: "Use an injected clock instead.",
+          },
+        ],
+      },
+    },
+    {
       files: ["backend/scripts/**/*"],
       rules: {
         "no-console": "off",
