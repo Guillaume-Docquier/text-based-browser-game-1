@@ -8,7 +8,7 @@ import { generateStarSystem } from "./generateStarSystem.ts"
 describe("generateStarSystem", () => {
   it("should generate identical Star Systems from identical settings", () => {
     // Arrange
-    const settings = createStarSystemGenerationSettingsStub({ seed: 1234 })
+    const settings = createStarSystemGenerationSettingsStub({ seed: 2275537979 })
 
     // Act
     const firstSystem = extractSuccess(generateStarSystem(settings))
@@ -107,7 +107,7 @@ describe("generateStarSystem", () => {
         }),
       ),
     )
-    const orbitNumbersById = new Map(system.orbits.map(({ id, orbitNumber }) => [id, orbitNumber]))
+    const orbitNumbersById = new Map(system.orbits.map(({ id, number }) => [id, number]))
     const sectorEdges = new Set(system.movementEdges.map(({ fromNodeId, toNodeId }) => `${fromNodeId}:${toNodeId}`))
 
     for (let firstSectorIndex = 0; firstSectorIndex < system.sectors.length; firstSectorIndex++) {

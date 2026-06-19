@@ -76,6 +76,7 @@ export class GameplayController {
       gameId,
       startedAt,
       nextTickAt,
+      // @ts-expect-error -- wip
       starSystem: starSystemResult.value,
       players: lobbyModel.players.reduce<StartGameModel["players"]>((players, player) => {
         players[player.id] = {
