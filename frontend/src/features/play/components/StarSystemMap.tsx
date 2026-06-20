@@ -55,10 +55,10 @@ export function StarSystemMap({ starSystem, resetSignal }: { starSystem: StarSys
       <MapDefinitions />
 
       <g transform={panZoom.transform}>
-        <Sectors sectors={rendering.sectors} />
-        <Orbits outerRadii={rendering.orbitOuterRadii} />
-        <Bodies bodies={rendering.bodies} satelliteOrbits={rendering.satelliteOrbits} />
         <Star />
+        <Orbits outerRadii={rendering.orbitOuterRadii} />
+        <Sectors sectors={rendering.sectors} />
+        <Bodies bodies={rendering.bodies} satelliteOrbits={rendering.satelliteOrbits} />
       </g>
     </svg>
   )
