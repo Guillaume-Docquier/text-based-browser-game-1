@@ -261,7 +261,7 @@ function validateStarSystemGenerationSettings(settings: StarSystemGenerationSett
   const limits = createStarSystemGenerationSettingsLimits()
 
   function validate(range: Range, limit: Range): boolean {
-    return range.numericType === limit.numericType && range.maxBoundType === limit.maxBoundType && Range.isWithin(limit, range)
+    return range.numericType === limit.numericType && Range.isWithin(limit, range)
   }
 
   return (

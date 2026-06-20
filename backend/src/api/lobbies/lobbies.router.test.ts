@@ -48,7 +48,7 @@ describe("lobbies.router", () => {
         nbSeats: 43,
         tickIntervalSeconds: 420,
         starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
-          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 12, max: 12 }),
+          nbPlanets: Range.integer({ min: 12, max: 12 }),
           seed: 9876,
         }),
       }

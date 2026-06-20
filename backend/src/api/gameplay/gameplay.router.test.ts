@@ -123,11 +123,11 @@ describe("gameplay.router", () => {
 
       const gameConfiguration = createGameConfigurationDtoStub({
         starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
-          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
-          planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 0.99, max: 1 }),
-          nbMoonsPerPlanet: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
-          nbAsteroidBelts: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
-          nbAsteroidsPerSector: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
+          nbPlanets: Range.integer({ min: 1, max: 1 }),
+          planetDensity: Range.float({ min: 0.99, max: 1 }),
+          nbMoonsPerPlanet: Range.integer({ min: 1, max: 1 }),
+          nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
+          nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
           seed: 42,
         }),
       })
