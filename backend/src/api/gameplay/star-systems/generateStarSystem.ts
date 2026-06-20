@@ -1,58 +1,31 @@
 import { createRng, mulberry32Prng, Range, Result, type Rng, Sort } from "@guillaume-docquier/tools-ts"
 import { v7 } from "uuid"
-import type { MovementNodeId } from "#api/gameplay/star-systems/MovementNodeId.ts"
+import type {
+  NewBodyModel,
+  NewMovementEdgeModel,
+  NewMovementNodeModel,
+  NewOrbitModel,
+  NewSectorModel,
+  NewStarSystemModel,
+} from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 
 const MAX_ORBITS = 6
 const FIRST_ORBIT_SECTOR_COUNT = 2
 
-type GeneratedOrbit = {
-  id: string
-  number: number
+type GeneratedOrbit = NewOrbitModel & {
   sectorCount: number
   isAsteroidBelt: boolean
 }
 
-type GeneratedSector = {
-  id: string
-  orbitId: string
+type GeneratedSector = NewSectorModel & {
   orbitNumber: number
-  number: number
-  angleRange: Range
   bodyCount: number
   isAsteroidSector: boolean
-  movementNodeId: MovementNodeId
 }
 
-type GeneratedBody = {
-  id: string
-  sectorId: string
-  number: number
-  name: string
-  bodyType: BodyType
-  movementNodeId: MovementNodeId
-}
-
-type GeneratedMovementNode = {
-  id: MovementNodeId
-}
-
-type GeneratedMovementEdge = {
-  fromNodeId: MovementNodeId
-  toNodeId: MovementNodeId
-  weight: number
-}
-
-type GeneratedStarSystem = {
-  orbits: GeneratedOrbit[]
-  sectors: GeneratedSector[]
-  bodies: GeneratedBody[]
-  movementNodes: GeneratedMovementNode[]
-  movementEdges: GeneratedMovementEdge[]
-}
-
-export function generateStarSystem(settings: Readonly<StarSystemGenerationSettings>): Result<GeneratedStarSystem, string> {
+export function generateStarSystem(settings: Readonly<StarSystemGenerationSettings>): Result<NewStarSystemModel, string> {
   const invalidSettingsReason = validateSettings(settings)
   if (invalidSettingsReason !== undefined) {
     return Result.Failure(invalidSettingsReason)
@@ -76,7 +49,7 @@ export function generateStarSystem(settings: Readonly<StarSystemGenerationSettin
   const orbits = orbitsResult.value
   const sectors = generateSectors({ orbits, rng, uuidFactory, settings })
   const bodies = generateBodies({ sectors, nbPlanets, rng, uuidFactory, settings })
-  const movementNodes: GeneratedMovementNode[] = [
+  const movementNodes: NewMovementNodeModel[] = [
     ...sectors.map((sector) => ({ id: sector.movementNodeId })),
     ...bodies.map((sector) => ({ id: sector.movementNodeId })),
   ]
@@ -136,7 +109,7 @@ function generateOrbits({
   const orbits = [
     ...asteroidOrbitNumbers.map((orbitNumber) => generateOrbit({ orbitNumber, isAsteroidBelt: true, uuidFactory })),
     ...orbitNumbers.map((orbitNumber) => generateOrbit({ orbitNumber, isAsteroidBelt: false, uuidFactory })),
-  ].sort(Sort.byAscendingProperty("number"))
+  ].sort(Sort.byAscendingProperty("orbitNumber"))
 
   // And we trim the orbits to avoid the overshoot
   let maxSectorCount = orbits.reduce((sectorCount, orbit) => {
@@ -184,7 +157,7 @@ function generateOrbit({
   return {
     id: uuidFactory(),
     isAsteroidBelt,
-    number: orbitNumber,
+    orbitNumber,
     sectorCount: FIRST_ORBIT_SECTOR_COUNT ** orbitNumber,
   }
 }
@@ -210,8 +183,8 @@ function generateSectors({
       return {
         id: uuidFactory(),
         orbitId: orbit.id,
-        orbitNumber: orbit.number,
-        number: sectorNumber,
+        orbitNumber: orbit.orbitNumber,
+        sectorNumber,
         angleRange: Range.create({ numericType: "integer", maxBoundType: "exclusive", min: minAngle, max: maxAngle }),
         bodyCount: orbit.isAsteroidBelt ? rng.random(settings.nbAsteroidsPerSector) : 1,
         isAsteroidSector: orbit.isAsteroidBelt,
@@ -233,10 +206,10 @@ function generateBodies({
   rng: Rng
   uuidFactory: UuidFactory
   settings: Readonly<StarSystemGenerationSettings>
-}): GeneratedBody[] {
+}): NewBodyModel[] {
   const asteroidSectors = sectors.filter((sector) => sector.isAsteroidSector)
   const normalSectors = sectors.filter((sector) => !sector.isAsteroidSector)
-  const bodies: GeneratedBody[] = []
+  const bodies: NewBodyModel[] = []
 
   for (const sector of asteroidSectors) {
     bodies.push(
@@ -268,11 +241,11 @@ function generateBody({
   bodyNumber: number
   uuidFactory: UuidFactory
   bodyType: BodyType
-}): GeneratedBody {
+}): NewBodyModel {
   return {
     id: uuidFactory(),
     sectorId: sector.id,
-    number: bodyNumber,
+    bodyNumber,
     // We'll do better in the future
     name: `${toTitleCase(bodyType)} ${bodyNumber.toString().padStart(2, "0")}`,
     bodyType,
@@ -305,8 +278,8 @@ function createUuidFactory({ rng, seed }: { rng: Rng; seed: number }): UuidFacto
  * - Each Body in a Sector is connected to that Sector.
  * - Each Sector is connected to all adjacent Sectors.
  */
-function generateMovementEdges({ sectors, bodies }: { sectors: GeneratedSector[]; bodies: GeneratedBody[] }): GeneratedMovementEdge[] {
-  const movementEdges: GeneratedMovementEdge[] = []
+function generateMovementEdges({ sectors, bodies }: { sectors: GeneratedSector[]; bodies: NewBodyModel[] }): NewMovementEdgeModel[] {
+  const movementEdges: NewMovementEdgeModel[] = []
   const bodiesBySectorId = Map.groupBy(bodies, (body) => body.sectorId)
 
   // Yeah this is O(n^2)
@@ -356,7 +329,7 @@ function areSectorsAdjacent(firstSector: GeneratedSector, secondSector: Generate
   )
 }
 
-function generateMovementEdge(fromNodeId: string, toNodeId: string): GeneratedMovementEdge {
+function generateMovementEdge(fromNodeId: string, toNodeId: string): NewMovementEdgeModel {
   return {
     fromNodeId,
     toNodeId,

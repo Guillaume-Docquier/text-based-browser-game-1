@@ -12,7 +12,7 @@ If a Zod rule cannot be represented by the inferred TypeScript type, then that r
 
 This leads to "shotgun validation": repeated validation of the same data at multiple layers because code cannot trust that prior validation was enough.
 
-Examples of non-representable constraints include `z.number().int()` and `z.string().email()`. Both return broad runtime types (`number`, `string`) that do not encode the narrower guarantees (integer, email format).
+Examples of non-representable constraints include `z.number().int()` and `z.string().email()`. Both return broad runtime types (`orbitNumber`, `string`) that do not encode the narrower guarantees (integer, email format).
 
 ## Decision
 

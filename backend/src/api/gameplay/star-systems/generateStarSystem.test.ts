@@ -107,7 +107,7 @@ describe("generateStarSystem", () => {
         }),
       ),
     )
-    const orbitNumbersById = new Map(system.orbits.map(({ id, number }) => [id, number]))
+    const orbitNumbersById = new Map(system.orbits.map(({ id, orbitNumber }) => [id, orbitNumber]))
     const sectorEdges = new Set(system.movementEdges.map(({ fromNodeId, toNodeId }) => `${fromNodeId}:${toNodeId}`))
 
     for (let firstSectorIndex = 0; firstSectorIndex < system.sectors.length; firstSectorIndex++) {
