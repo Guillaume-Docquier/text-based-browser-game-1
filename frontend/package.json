@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "checks": "pnpm typecheck",
+    "checks": "pnpm typecheck && pnpm storybook:build",
     "dev": "vite",
     "storybook": "storybook dev --port 6006",
+    "storybook:build": "storybook build",
     "typecheck": "tsgo -b"
   },
   "dependencies": {

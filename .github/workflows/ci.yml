@@ -49,6 +49,9 @@ jobs:
       - name: Typecheck
         run: pnpm --filter frontend typecheck
 
+      - name: Storybook
+        run: pnpm --filter frontend storybook:build
+
       - name: Tests
         run: pnpm --filter frontend test
 
