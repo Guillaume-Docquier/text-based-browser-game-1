@@ -11,7 +11,26 @@ export default defineConfig({
     },
     environment: "node",
     globals: false,
-    include: ["src/**/*.test.ts"],
-    setupFiles: ["./src/tests/vitest.setup.ts"],
+    slowTestThreshold: 600,
+    // I would do something like .unit.test.ts and .e2e.test.ts
+    // However, this breaks WebStorm's "Go to test" and it cannot be configured...
+    projects: [
+      {
+        extends: true,
+        test: {
+          include: ["src/**/*.test.ts"],
+          exclude: ["src/**/*.router.test.ts", "src/**/processTick.test.ts"],
+          name: "unit",
+        },
+      },
+      {
+        extends: true,
+        test: {
+          include: ["src/**/*.router.test.ts", "src/**/processTick.test.ts"],
+          name: "e2e",
+          setupFiles: ["./src/tests/vitest.e2e.setup.ts"],
+        },
+      },
+    ],
   },
 })

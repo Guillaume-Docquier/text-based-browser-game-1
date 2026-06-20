@@ -29,6 +29,13 @@
       "when": 1781408669712,
       "tag": "0003_remove-game-prefix",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781442605180,
+      "tag": "0004_deterministic-star-system-ids",
+      "breakpoints": true
     }
   ]
 }

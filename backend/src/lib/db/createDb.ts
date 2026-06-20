@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres"
 
 export type Database = ReturnType<typeof createDb>
 export type CreateTransaction = Database["transaction"]
+export type Transaction = Parameters<Parameters<CreateTransaction>[0]>[0]
 
 /**
  * Connects to the database.

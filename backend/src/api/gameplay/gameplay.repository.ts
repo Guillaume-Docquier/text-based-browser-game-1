@@ -1,21 +1,21 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
-import type { AccountId } from "#api/accounts/AccountId.ts"
+import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
+import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { Clock } from "#lib/Clock.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { ordersTable, resourcesTable, gamesTable, gameStatesTable, ticksTable, playersTable } from "#lib/db/schema.ts"
+import { gamesTable, gameStatesTable, ordersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
-type GameStateRow = typeof gameStatesTable.$inferSelect
 type OrderRow = typeof ordersTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTickRow = typeof ticksTable.$inferInsert
 
-export type GameStateModel = GameStateRow
 export type OrderModel = OrderRow
 
 export type PlayerViewModel = {
@@ -23,6 +23,7 @@ export type PlayerViewModel = {
   playerId: PlayerId
   tick: number
   nextTickAt: Date
+  starSystem: StarSystemModel
   resources: {
     money: number
   }
@@ -32,6 +33,7 @@ export type StartGameModel = {
   gameId: GameId
   startedAt: Date
   nextTickAt: Date
+  starSystem: NewStarSystemModel
   players: Record<
     PlayerId,
     {
@@ -45,10 +47,12 @@ export type StartGameModel = {
 
 export class GameplayRepository extends PostgresRepository {
   private readonly logger: Logger
+  private readonly clock: Clock
 
-  public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
+  public constructor({ logger, db, clock }: { logger: Logger; db: PostgresRepository["db"]; clock: Clock }) {
     super({ db })
     this.logger = logger.child({ scope: "gameplay-repository" })
+    this.clock = clock
   }
 
   public async startGame(
@@ -82,6 +86,7 @@ export class GameplayRepository extends PostgresRepository {
         await tx.insert(gameStatesTable).values(gameState)
         await tx.insert(resourcesTable).values(playerResources)
         await tx.insert(ticksTable).values(gameTick)
+        await StarSystemQueries.insertStarSystem({ gameId: startGameModel.gameId, starSystem: startGameModel.starSystem }, tx)
       }),
     )
 
@@ -91,19 +96,6 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return Result.Success({ nextTickAt: gameState.nextTickAt })
-  }
-
-  public async getPlayerIds({ gameId }: { gameId: GameId }, db: PostgresRepository["db"] = this.db): Promise<Result<PlayerId[], string>> {
-    const gamePlayersResult = await Result.tryCatch(
-      db.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId)),
-    )
-
-    if (Result.isFailure(gamePlayersResult)) {
-      this.logger.error("Could not get player ids", { gameId, error: gamePlayersResult.error })
-      return Result.Failure(couldNot("get player ids"))
-    }
-
-    return Result.Success(gamePlayersResult.value.map(({ playerId }) => playerId))
   }
 
   public async getPlayerView(
@@ -120,6 +112,8 @@ export class GameplayRepository extends PostgresRepository {
           return undefined
         }
 
+        const starSystem = await StarSystemQueries.selectStarSystem(gameId, tx)
+
         const playerResources = await tx
           .select()
           .from(resourcesTable)
@@ -130,6 +124,7 @@ export class GameplayRepository extends PostgresRepository {
         return {
           ...gameState,
           playerId,
+          starSystem,
           resources: {
             money: money.amount,
           },
@@ -170,7 +165,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<OrderModel, string>> {
     const upsertResult = await Result.tryCatch(async () => {
-      const updatedAt = new Date()
+      const updatedAt = this.clock.now()
       const gamePlayerActions = await db
         .insert(ordersTable)
         .values({ ...params, updatedAt })
@@ -210,56 +205,6 @@ export class GameplayRepository extends PostgresRepository {
     if (Result.isFailure(deleteResult)) {
       this.logger.error("Could not delete game player action", { ...params, error: deleteResult.error })
       return Result.Failure(couldNot("delete game player action"))
-    }
-
-    return Result.Success(true)
-  }
-
-  public async getActionsForTick(
-    params: { gameId: GameId; tick: number },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<OrderModel[], string>> {
-    const getResult = await Result.tryCatch(
-      db
-        .select()
-        .from(ordersTable)
-        .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.tick, params.tick))),
-    )
-
-    if (Result.isFailure(getResult)) {
-      this.logger.error("Could not get game player actions by tick", { ...params, error: getResult.error })
-      return Result.Failure(couldNot("get game player actions by tick"))
-    }
-
-    return Result.Success(getResult.value)
-  }
-
-  public async endGameWithWinner(
-    { gameId, winnerAccountId }: { gameId: GameId; winnerAccountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    const endResult = await Result.tryCatch(
-      db.update(gamesTable).set({ endedAt: new Date(), winnerAccountId }).where(eq(gamesTable.id, gameId)),
-    )
-
-    if (Result.isFailure(endResult)) {
-      this.logger.error("Could not end game with winner", { gameId, winnerAccountId, error: endResult.error })
-      return Result.Failure(couldNot("end game with winner"))
-    }
-
-    return Result.Success(true)
-  }
-
-  public async updateGameState(
-    { gameId }: { gameId: GameId },
-    gameState: Partial<NewGameStateRow>,
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    const updateResult = await Result.tryCatch(db.update(gameStatesTable).set(gameState).where(eq(gameStatesTable.gameId, gameId)))
-
-    if (Result.isFailure(updateResult)) {
-      this.logger.error("Could not update game state", { gameId, gameState, error: updateResult.error })
-      return Result.Failure(couldNot("update game state"))
     }
 
     return Result.Success(true)

@@ -5,12 +5,7 @@ import { RangeDto } from "#api/shared/RangeDto.ts"
 describe("RangeDto", () => {
   it("should parse a valid Range", () => {
     // Arrange
-    const range = Range.create({
-      numericType: "float",
-      maxBoundType: "exclusive",
-      min: 0,
-      max: 1,
-    })
+    const range = Range.float({ min: 0, max: 1 })
 
     // Act
     const parsedRange = RangeDto.parse(range)

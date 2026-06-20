@@ -3,7 +3,7 @@ packages:
   - frontend
 
 catalog:
-  "@guillaume-docquier/tools-ts": ^5.0.0
+  "@guillaume-docquier/tools-ts": ^6.1.0
   "@typescript/native-preview": 7.0.0-dev.20260607.1
 
 minimumReleaseAgeExclude:
@@ -16,3 +16,10 @@ allowBuilds:
   esbuild: true
   msw: true
   utf-8-validate: true
+
+peerDependencyRules:
+  allowedVersions:
+    # @clerk/ui ships with peer deps conflicts
+    utf-8-validate: "6"
+
+strictPeerDependencies: true

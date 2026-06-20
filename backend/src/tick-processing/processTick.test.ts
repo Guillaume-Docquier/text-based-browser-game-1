@@ -1,8 +1,10 @@
-import { Assert, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
+import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
+import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
@@ -16,16 +18,20 @@ describe("processTick", () => {
   it("should process the current tick and queue the next one", async () => {
     // Arrange
     const db = await createDbMock()
-    const { api, authService, accountsRepository, logger } = await createApiStub({ db })
+    const clock = new ControlledClock({ startDate: new Date(0) })
+    const { api, authService, accountsRepository, logger } = await createApiStub({ db, clock })
     const ticksRepository = new TicksRepository({ db, logger })
     const resourcesRepository = new ResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
 
     const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = account
+
+    const tickInterval = Time.create(1000, UnitOfTime.SECONDS)
     const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "process tick", nbSeats: 1, tickIntervalSeconds: 0 },
+      configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(tickInterval, UnitOfTime.SECONDS) }),
     })
+
     await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
     const updateResourceResult = await resourcesRepository.updateResource({
@@ -43,15 +49,17 @@ describe("processTick", () => {
     })
 
     // Act
-    await processTick({ logger, ticksRepository })
+    clock.increment({ time: tickInterval })
+    await processTick({ logger, ticksRepository, clock })
 
     // Assert
     const playerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-    expect(playerView).toEqual({
+    expect(playerView).toEqual<typeof playerView>({
       gameId: createdGameId,
       playerId: account.id,
       tick: 1,
-      nextTickAt: expect.any(String),
+      nextTickAt: Datetime.increment({ date: clock.now(), time: tickInterval }).toISOString(),
+      starSystem: expect.any(Object),
       resources: {
         money: 6,
       },
@@ -61,7 +69,7 @@ describe("processTick", () => {
   it("should not apply an action when the player cannot afford it", async () => {
     // Arrange
     const db = await createDbMock()
-    const { api, authService, accountsRepository, logger } = await createApiStub({ db })
+    const { api, authService, accountsRepository, logger, clock } = await createApiStub({ db })
     const ticksRepository = new TicksRepository({ db, logger })
     const resourcesRepository = new ResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
@@ -69,7 +77,7 @@ describe("processTick", () => {
     const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = account
     const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "unaffordable action", nbSeats: 1, tickIntervalSeconds: 0 },
+      configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
     })
     await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
@@ -96,7 +104,7 @@ describe("processTick", () => {
     )
 
     // Act
-    await processTick({ logger, ticksRepository })
+    await processTick({ logger, ticksRepository, clock })
 
     // Assert
     const playerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -111,28 +119,29 @@ describe("processTick", () => {
   it("should process multiple ticks in the same invocation", async () => {
     // Arrange
     const db = await createDbMock()
-    const { api, authService, accountsRepository, logger } = await createApiStub({ db })
+    const { api, authService, accountsRepository, logger, clock } = await createApiStub({ db })
     const ticksRepository = new TicksRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
 
     const firstAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = firstAccount
     const { createdGameId: firstGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "first simultaneous tick", nbSeats: 1, tickIntervalSeconds: 0 },
+      configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
     })
     await trpcClient.client.gameplay.startGame.mutate({ gameId: firstGameId })
 
-    await processTick({ logger, ticksRepository }) // This will process the first game once, making the assertions different
+    // This will increment the tick on the first game
+    await processTick({ logger, ticksRepository, clock })
 
     const secondAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = secondAccount
     const { createdGameId: secondGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "second simultaneous tick", nbSeats: 1, tickIntervalSeconds: 0 },
+      configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
     })
     await trpcClient.client.gameplay.startGame.mutate({ gameId: secondGameId })
 
     // Act
-    await processTick({ logger, ticksRepository })
+    await processTick({ logger, ticksRepository, clock })
 
     // Assert
     authService.account = firstAccount
@@ -151,27 +160,27 @@ describe("processTick", () => {
   it("should save other ticks when one tick fails", async () => {
     // Arrange
     const db = await createDbMock()
-    const { api, authService, accountsRepository, logger } = await createApiStub({ db })
+    const { api, authService, accountsRepository, logger, clock } = await createApiStub({ db })
     using trpcClient = new TrpcClient({ api })
 
     const failingAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = failingAccount
     const { createdGameId: failingGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "failing simultaneous tick", nbSeats: 1, tickIntervalSeconds: 0 },
+      configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
     })
     await trpcClient.client.gameplay.startGame.mutate({ gameId: failingGameId })
 
     const successfulAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = successfulAccount
     const { createdGameId: successfulGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "successful simultaneous tick", nbSeats: 1, tickIntervalSeconds: 0 },
+      configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
     })
     await trpcClient.client.gameplay.startGame.mutate({ gameId: successfulGameId })
 
     const ticksRepository = new FailingTicksRepository({ db, logger, failingGameId })
 
     // Act
-    await processTick({ logger, ticksRepository })
+    await processTick({ logger, ticksRepository, clock })
 
     // Assert
     authService.account = failingAccount
@@ -190,7 +199,7 @@ describe("processTick", () => {
   it("should fully process every player and select at most one deterministic winner", async () => {
     // Arrange
     const db = await createDbMock()
-    const { api, authService, accountsRepository, logger } = await createApiStub({ db })
+    const { api, authService, accountsRepository, logger, clock } = await createApiStub({ db })
     const ticksRepository = new TicksRepository({ db, logger })
     const resourcesRepository = new ResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
@@ -198,7 +207,7 @@ describe("processTick", () => {
     const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = creator
     const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "deterministic winner", nbSeats: 2, tickIntervalSeconds: 0 },
+      configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
     })
 
     const joiner = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
@@ -229,7 +238,7 @@ describe("processTick", () => {
     }
 
     // Act
-    await processTick({ logger, ticksRepository })
+    await processTick({ logger, ticksRepository, clock })
 
     // Assert
     // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
@@ -268,10 +277,10 @@ describe("processTick", () => {
     const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = account
     const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-      configuration: { name: "atomic tick", nbSeats: 1, tickIntervalSeconds: 0 },
+      configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
     })
     await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
-    const tickToProcess = extractSuccess(await ticksRepository.getTicksToProcess())[0]
+    const tickToProcess = extractSuccess(await ticksRepository.getTicksToProcess({ since: new Date() }))[0]
     Assert.isDefined(tickToProcess)
 
     // Act
@@ -295,7 +304,7 @@ describe("processTick", () => {
 
     // Assert
     expect(saveResult).toEqual(Result.Failure(expect.any(String)))
-    expect(await ticksRepository.getTicksToProcess()).toEqual(Result.Success([tickToProcess]))
+    expect(await ticksRepository.getTicksToProcess({ since: new Date() })).toEqual(Result.Success([tickToProcess]))
   })
 })
 

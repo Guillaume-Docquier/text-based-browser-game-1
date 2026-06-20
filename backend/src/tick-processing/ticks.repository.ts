@@ -83,7 +83,10 @@ export class TicksRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "ticks-repository" })
   }
 
-  public async getTicksToProcess(db: PostgresRepository["db"] = this.db): Promise<Result<TickToProcessModel[], string>> {
+  public async getTicksToProcess(
+    { since }: { since: Date },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<TickToProcessModel[], string>> {
     const ticksToProcessResult = await Result.tryCatch(async () => {
       const ticksToProcessRows = await db
         .select({
@@ -95,7 +98,7 @@ export class TicksRepository extends PostgresRepository {
         .from(ticksTable)
         .innerJoin(gamesTable, eq(gamesTable.id, ticksTable.gameId))
         .innerJoin(gameStatesTable, and(eq(gameStatesTable.gameId, ticksTable.gameId), eq(gameStatesTable.tick, ticksTable.tick)))
-        .where(and(isNull(ticksTable.processingEndedAt), isNull(gamesTable.endedAt), lte(ticksTable.scheduledFor, new Date())))
+        .where(and(isNull(ticksTable.processingEndedAt), isNull(gamesTable.endedAt), lte(ticksTable.scheduledFor, since)))
         .orderBy(asc(ticksTable.scheduledFor), asc(ticksTable.gameId), asc(ticksTable.tick))
 
       if (ticksToProcessRows.length === 0) {
