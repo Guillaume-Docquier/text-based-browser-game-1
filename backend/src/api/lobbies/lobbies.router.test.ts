@@ -93,35 +93,6 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should reject malformed Star System generation ranges", async () => {
-      // Arrange
-      const { api, authService, accountsRepository } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
-
-      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-
-      // Act & Assert
-      await expect(
-        trpcClient.client.lobbies.create.mutate({
-          configuration: {
-            name: "invalid ranges",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
-            starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
-              nbPlanets: {
-                numericType: "integer",
-                maxBoundType: "inclusive",
-                min: 5,
-                max: 4,
-              },
-            }),
-          },
-        }),
-      ).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
-    })
-
     it("should reject Star System generation settings outside the accepted limits", async () => {
       // Arrange
       const { api, authService, accountsRepository } = await createApiStub()
@@ -137,7 +108,31 @@ describe("lobbies.router", () => {
             nbSeats: 2,
             tickIntervalSeconds: 60,
             starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
-              planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 0.5, max: 1.1 }),
+              planetDensity: Range.float({ min: 0.5, max: 1.1 }),
+            }),
+          },
+        }),
+      ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
+    })
+
+    it("should reject a non-integer Star System generation seed", async () => {
+      // Arrange
+      const { api, authService, accountsRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+
+      // Act & Assert
+      await expect(
+        trpcClient.client.lobbies.create.mutate({
+          configuration: {
+            name: "invalid seed",
+            nbSeats: 2,
+            tickIntervalSeconds: 60,
+            starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
+              seed: 1.5,
             }),
           },
         }),

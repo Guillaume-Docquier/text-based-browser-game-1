@@ -1,12 +1,8 @@
 import { Range } from "@guillaume-docquier/tools-ts"
+import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 
 export type StarSystemGenerationSettingsLimits = {
-  planetDensity: Range
-  nbPlanets: Range
-  nbMoonsPerPlanet: Range
-  nbAsteroidBelts: Range
-  nbAsteroidsPerSector: Range
-  seed: Range
+  [Key in keyof StarSystemGenerationSettings]: Range
 }
 
 export function createStarSystemGenerationSettingsLimits(): StarSystemGenerationSettingsLimits {

@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
 import { z } from "zod"
 import { type AccountModel, AccountsRepository, type NewAccountModel } from "#api/accounts/accounts.repository.ts"
+import { createDefaultStarSystemGenerationSettings } from "#api/gameplay/star-systems/createDefaultStarSystemGenerationSettings.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
@@ -183,13 +184,23 @@ async function seedGames({
   const insanelyFastGame = assertSuccess(
     await lobbiesController.createLobby({
       createdByAccountId: firstAccount.id,
-      configuration: { name: "insanely fast game", nbSeats: 5, tickIntervalSeconds: 60 },
+      configuration: {
+        name: "insanely fast game",
+        nbSeats: 5,
+        tickIntervalSeconds: 60,
+        starSystemGenerationSettings: createDefaultStarSystemGenerationSettings(),
+      },
     }),
   )
   assertSuccess(
     await lobbiesController.createLobby({
       createdByAccountId: secondAccount.id,
-      configuration: { name: "fast game", nbSeats: 10, tickIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS) },
+      configuration: {
+        name: "fast game",
+        nbSeats: 10,
+        tickIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+        starSystemGenerationSettings: createDefaultStarSystemGenerationSettings(),
+      },
     }),
   )
   logger.info("├ Adding accounts to games")

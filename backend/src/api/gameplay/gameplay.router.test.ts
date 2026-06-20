@@ -416,7 +416,12 @@ describe("gameplay.router", () => {
       authService.account = account
 
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-        configuration: { name: "action game", nbSeats: 2, tickIntervalSeconds: 60 },
+        configuration: {
+          name: "action game",
+          nbSeats: 2,
+          tickIntervalSeconds: 60,
+          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
+        },
       })
       await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await resourcesRepository.updateResource(

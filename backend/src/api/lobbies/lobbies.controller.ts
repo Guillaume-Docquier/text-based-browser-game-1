@@ -31,20 +31,11 @@ export class LobbiesController {
   }
 
   public async createLobby(createLobbyDto: CreateLobbyDto): Promise<Result<CreatedLobbyDto, string>> {
-    const starSystemGenerationSettings =
-      createLobbyDto.configuration.starSystemGenerationSettings ?? createDefaultStarSystemGenerationSettings()
-    const validateSettingsResult = validateStarSystemGenerationSettings(starSystemGenerationSettings)
-    if (Result.isFailure(validateSettingsResult)) {
-      return validateSettingsResult
+    if (!validateStarSystemGenerationSettings(createLobbyDto.configuration.starSystemGenerationSettings)) {
+      return Result.Failure("Star System generation settings must be within the accepted limits")
     }
 
-    const createLobbyResult = await this.lobbiesRepository.createLobby({
-      ...createLobbyDto,
-      configuration: {
-        ...createLobbyDto.configuration,
-        starSystemGenerationSettings,
-      },
-    })
+    const createLobbyResult = await this.lobbiesRepository.createLobby(createLobbyDto)
     if (Result.isFailure(createLobbyResult)) {
       return createLobbyResult
     }
@@ -182,7 +173,7 @@ export const CreateLobbyDto = z.object({
     name: z.string(),
     nbSeats: z.number(),
     tickIntervalSeconds: z.number(),
-    starSystemGenerationSettings: StarSystemGenerationSettingsDto.optional(),
+    starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   }),
 })
 
@@ -266,33 +257,20 @@ export const LobbyDto = z.object({
   canStart: z.boolean(),
 })
 
-const STAR_SYSTEM_RANGE_SETTING_KEYS = [
-  "planetDensity",
-  "nbPlanets",
-  "nbMoonsPerPlanet",
-  "nbAsteroidBelts",
-  "nbAsteroidsPerSector",
-] as const satisfies ReadonlyArray<keyof Omit<StarSystemGenerationSettingsDto, "seed">>
-
-function validateStarSystemGenerationSettings(settings: StarSystemGenerationSettingsDto): Result<true, string> {
+function validateStarSystemGenerationSettings(settings: StarSystemGenerationSettingsDto): boolean {
   const limits = createStarSystemGenerationSettingsLimits()
 
-  for (const key of STAR_SYSTEM_RANGE_SETTING_KEYS) {
-    const range = settings[key]
-    const validRangeResult = Range.safeCreate(range)
-    if (Result.isFailure(validRangeResult)) {
-      return Result.Failure(`Invalid ${key}: ${validRangeResult.error}`)
-    }
-
-    const limit = limits[key]
-    if (range.numericType !== limit.numericType || range.maxBoundType !== limit.maxBoundType || !Range.isWithin(limit, range)) {
-      return Result.Failure(`${key} must be within the accepted limits`)
-    }
+  function validate(range: Range, limit: Range): boolean {
+    return range.numericType === limit.numericType && range.maxBoundType === limit.maxBoundType && Range.isWithin(limit, range)
   }
 
-  if (!Number.isInteger(settings.seed) || !Range.isWithin(limits.seed, settings.seed)) {
-    return Result.Failure("seed must be within the accepted limits")
-  }
-
-  return Result.Success(true)
+  return (
+    validate(settings.planetDensity, limits.planetDensity) &&
+    validate(settings.nbPlanets, limits.nbPlanets) &&
+    validate(settings.nbMoonsPerPlanet, limits.nbMoonsPerPlanet) &&
+    validate(settings.nbAsteroidBelts, limits.nbAsteroidBelts) &&
+    validate(settings.nbAsteroidsPerSector, limits.nbAsteroidsPerSector) &&
+    Number.isInteger(settings.seed) &&
+    Range.isWithin(limits.seed, settings.seed)
+  )
 }

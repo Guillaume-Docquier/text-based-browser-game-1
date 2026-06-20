@@ -7,9 +7,9 @@ import { Button } from "../../components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/card.tsx"
 import { Input } from "../../components/input.tsx"
 import { Label } from "../../components/label.tsx"
+import { RangeSlider } from "../../components/RangeSlider.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/select.tsx"
 import { Skeleton } from "../../components/skeleton.tsx"
-import { Slider } from "../../components/slider.tsx"
 import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
 import { PageHeader } from "../PageHeader.tsx"
 
@@ -129,7 +129,7 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
               <Select
                 value={tickIntervalUnit}
                 onValueChange={(value) => {
-                  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Select values come from TickIntervalUnit
+                  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Maybe we should parse, but this will be okay
                   setTickIntervalUnit(value as TickIntervalUnit)
                 }}
               >
@@ -249,7 +249,7 @@ function RangeSetting({
           <span className="min-w-12 rounded-full bg-muted px-3 py-1 text-center">{value.max}</span>
         </div>
       </div>
-      <Slider
+      <RangeSlider
         min={limits.min}
         max={limits.max}
         step={step}
