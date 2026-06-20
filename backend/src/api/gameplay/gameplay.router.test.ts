@@ -156,7 +156,7 @@ describe("gameplay.router", () => {
               number: 1,
               sectors: [
                 {
-                  angleRange: Range.create({ numericType: "integer", maxBoundType: "exclusive", min: 0, max: 180 }),
+                  angleRange: Range.float({ min: 0, max: 180 }),
                   bodies: [
                     {
                       coordinates: "01:01:01",
@@ -173,7 +173,7 @@ describe("gameplay.router", () => {
                   number: 1,
                 },
                 {
-                  angleRange: Range.create({ numericType: "integer", maxBoundType: "exclusive", min: 180, max: 360 }),
+                  angleRange: Range.float({ min: 180, max: 360 }),
                   bodies: [
                     {
                       coordinates: "01:02:01",
@@ -197,7 +197,7 @@ describe("gameplay.router", () => {
               number: 2,
               sectors: [
                 {
-                  angleRange: Range.create({ numericType: "integer", maxBoundType: "exclusive", min: 0, max: 90 }),
+                  angleRange: Range.float({ min: 0, max: 90 }),
                   bodies: [
                     {
                       coordinates: "02:01:01",
@@ -222,7 +222,7 @@ describe("gameplay.router", () => {
                   number: 1,
                 },
                 {
-                  angleRange: Range.create({ numericType: "integer", maxBoundType: "exclusive", min: 90, max: 180 }),
+                  angleRange: Range.float({ min: 90, max: 180 }),
                   bodies: [],
                   coordinates: "02:02",
                   id: "00000000-0000-7000-8000-216f6baf6656",
@@ -230,7 +230,7 @@ describe("gameplay.router", () => {
                   number: 2,
                 },
                 {
-                  angleRange: Range.create({ numericType: "integer", maxBoundType: "exclusive", min: 180, max: 270 }),
+                  angleRange: Range.float({ min: 180, max: 270 }),
                   bodies: [],
                   coordinates: "02:03",
                   id: "00000000-0000-7000-8000-2bde86d7e473",
@@ -238,7 +238,7 @@ describe("gameplay.router", () => {
                   number: 3,
                 },
                 {
-                  angleRange: Range.create({ numericType: "integer", maxBoundType: "exclusive", min: 270, max: 360 }),
+                  angleRange: Range.float({ min: 270, max: 360 }),
                   bodies: [],
                   coordinates: "02:04",
                   id: "00000000-0000-7000-8000-3259f0a054d8",

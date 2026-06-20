@@ -86,6 +86,55 @@ describe("generateStarSystem", () => {
     expect(orbitNumbers).toEqual(Array.from({ length: MAX_ORBIT_COUNT }, (_, i) => i + 1))
   })
 
+  it("should generate equally wide sectors in each orbit", () => {
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({
+      nbPlanets: Range.integer({ min: 1, max: 1 }),
+      planetDensity: Range.float({ min: 0.99, max: 1 }),
+      nbAsteroidBelts: Range.integer({ min: MAX_ORBIT_COUNT - 1, max: MAX_ORBIT_COUNT - 1 }),
+      seed: 5,
+    })
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
+    Assert.isTrue(system.orbits.length === MAX_ORBIT_COUNT)
+    const sectorsByOrbitId = Map.groupBy(system.sectors, (sector) => sector.orbitId)
+    for (const orbit of system.orbits) {
+      const sectors = sectorsByOrbitId.get(orbit.id)
+      Assert.isDefined(sectors)
+      const sectorWidths = new Set(sectors.map((sector) => sector.angleRange.max - sector.angleRange.min))
+      expect.soft(sectorWidths).toEqual(new Set([360 / sectors.length]))
+    }
+  })
+
+  it("should end each orbit's final sector at 360 degrees", () => {
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({
+      nbPlanets: Range.integer({ min: 1, max: 1 }),
+      planetDensity: Range.float({ min: 0.99, max: 1 }),
+      nbAsteroidBelts: Range.integer({ min: MAX_ORBIT_COUNT - 1, max: MAX_ORBIT_COUNT - 1 }),
+      seed: 5,
+    })
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
+    Assert.isTrue(system.orbits.length === MAX_ORBIT_COUNT)
+    const sectorsByOrbitId = Map.groupBy(system.sectors, (sector) => sector.orbitId)
+    for (const orbit of system.orbits) {
+      const sectors = sectorsByOrbitId.get(orbit.id)
+      Assert.isDefined(sectors)
+      const finalSector = sectors.at(-1)
+      Assert.isDefined(finalSector)
+      expect.soft(finalSector.angleRange.max).toBe(360)
+    }
+  })
+
   it("should allow the outermost orbit to be an asteroid belt", () => {
     // Arrange
     const clock = new ControlledClock()

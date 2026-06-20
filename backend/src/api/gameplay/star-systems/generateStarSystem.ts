@@ -184,16 +184,17 @@ function generateSectors({
   return orbits.flatMap((orbit) =>
     Array.from({ length: orbit.sectorCount }, (_, i) => {
       const sectorNumber = i + 1
-      const angleSpan = Math.floor(360 / orbit.sectorCount)
+      const angleSpan = 360 / orbit.sectorCount
       const minAngle = angleSpan * i
-      const maxAngle = sectorNumber === orbit.sectorCount ? 360 : minAngle + angleSpan // last sectors takes all remaining space due to rounding errors
+      // Make sure the last sector cleanly ends at 360 for a full loop in case we have floating point errors.
+      const maxAngle = sectorNumber === orbit.sectorCount ? 360 : angleSpan * sectorNumber
 
       return {
         id: uuidFactory(),
         orbitId: orbit.id,
         orbitNumber: orbit.orbitNumber,
         sectorNumber,
-        angleRange: Range.create({ numericType: "integer", maxBoundType: "exclusive", min: minAngle, max: maxAngle }),
+        angleRange: Range.float({ min: minAngle, max: maxAngle }),
         bodyCount: orbit.isAsteroidBelt ? rng.random(settings.nbAsteroidsPerSector) : 1,
         isAsteroidSector: orbit.isAsteroidBelt,
         movementNodeId: uuidFactory(),

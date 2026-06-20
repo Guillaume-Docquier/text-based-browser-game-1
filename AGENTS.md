@@ -67,6 +67,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Use `as const` objects and the `Enumify` type helper to create the enum type.
 - Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
 - When importing a value and a type of the same name from the same package (e.g `Range` or `Result`), just import the value. Do not import the type to rename it.
+- Prefer the specialized `Range.float({ min, max })` and `Range.integer({ min, max })` constructors over `Range.create` when their default exclusive maximum bound is appropriate.
 
 ## Drizzle Gotchas
 
