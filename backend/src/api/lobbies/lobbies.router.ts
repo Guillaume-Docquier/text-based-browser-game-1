@@ -6,6 +6,7 @@ import {
   CreatedLobbyDto,
   CreateLobbyDto,
   type LobbiesController,
+  LobbyCreationSettingsDto,
   LobbyDto,
   JoinedLobbyDto,
   JoinLobbyDto,
@@ -26,6 +27,10 @@ export function createLobbiesRouter({
   const lobbiesRouterLogger = others.logger.child({ scope: "lobbies-router" })
 
   return trpc.router({
+    getCreationSettings: trpc.privateProcedure.output(LobbyCreationSettingsDto).query(() => {
+      return lobbiesController.getCreationSettings()
+    }),
+
     create: trpc.privateProcedure
       .input(CreateLobbyDto.omit({ createdByAccountId: true }))
       .output(CreatedLobbyDto)

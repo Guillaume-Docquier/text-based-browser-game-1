@@ -1,7 +1,8 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { AccountId } from "#api/accounts/AccountId.ts"
-import { createDefaultStarSystemGenerationSettings } from "#api/gameplay/star-systems/createDefaultStarSystemGenerationSettings.ts"
+import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
+import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { computeGameStatus, GameStatus } from "#api/shared/GameStatus.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
@@ -30,18 +31,23 @@ export class LobbiesController {
   }
 
   public async createLobby(createLobbyDto: CreateLobbyDto): Promise<Result<CreatedLobbyDto, string>> {
-    const createLobbyResult = await this.lobbiesRepository.createLobby({
-      createdByAccountId: createLobbyDto.createdByAccountId,
-      configuration: {
-        ...createLobbyDto.configuration,
-        starSystemGenerationSettings: createDefaultStarSystemGenerationSettings(),
-      },
-    })
+    if (!validateStarSystemGenerationSettings(createLobbyDto.configuration.starSystemGenerationSettings)) {
+      return Result.Failure("Star System generation settings must be within the accepted limits")
+    }
+
+    const createLobbyResult = await this.lobbiesRepository.createLobby(createLobbyDto)
     if (Result.isFailure(createLobbyResult)) {
       return createLobbyResult
     }
 
     return createLobbyResult
+  }
+
+  public getCreationSettings(): LobbyCreationSettingsDto {
+    return {
+      defaultStarSystemGenerationSettings: createStarSystemGenerationSettingsDefaults(),
+      starSystemGenerationSettingsLimits: StarSystemGenerationSettingsLimits,
+    }
   }
 
   public async getLobbyById({ gameId, playerId }: { gameId: GameId; playerId: PlayerId | undefined }): Promise<LobbyDto | undefined> {
@@ -150,6 +156,16 @@ export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; p
   }
 }
 
+export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
+export const StarSystemGenerationSettingsDto = z.object({
+  planetDensity: RangeDto,
+  nbPlanets: RangeDto,
+  nbMoonsPerPlanet: RangeDto,
+  nbAsteroidBelts: RangeDto,
+  nbAsteroidsPerSector: RangeDto,
+  seed: z.number(),
+})
+
 export type CreateLobbyDto = z.infer<typeof CreateLobbyDto>
 export const CreateLobbyDto = z.object({
   createdByAccountId: AccountId,
@@ -157,6 +173,7 @@ export const CreateLobbyDto = z.object({
     name: z.string(),
     nbSeats: z.number(),
     tickIntervalSeconds: z.number(),
+    starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   }),
 })
 
@@ -185,14 +202,20 @@ export const LeaveLobbyDto = z.object({
 export type LeftLobbyDto = z.infer<typeof LeftLobbyDto>
 export const LeftLobbyDto = z.literal(true)
 
-export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
-export const StarSystemGenerationSettingsDto = z.object({
-  planetDensity: RangeDto,
+export type StarSystemGenerationSettingsLimitsDto = z.infer<typeof StarSystemGenerationSettingsLimitsDto>
+export const StarSystemGenerationSettingsLimitsDto = z.object({
   nbPlanets: RangeDto,
+  planetDensity: RangeDto,
   nbMoonsPerPlanet: RangeDto,
   nbAsteroidBelts: RangeDto,
   nbAsteroidsPerSector: RangeDto,
-  seed: z.number(),
+  seed: RangeDto,
+})
+
+export type LobbyCreationSettingsDto = z.infer<typeof LobbyCreationSettingsDto>
+export const LobbyCreationSettingsDto = z.object({
+  defaultStarSystemGenerationSettings: StarSystemGenerationSettingsDto,
+  starSystemGenerationSettingsLimits: StarSystemGenerationSettingsLimitsDto,
 })
 
 export type GameConfigurationDto = z.infer<typeof GameConfigurationDto>
@@ -233,3 +256,21 @@ export const LobbyDto = z.object({
    */
   canStart: z.boolean(),
 })
+
+function validateStarSystemGenerationSettings(settings: StarSystemGenerationSettingsDto): boolean {
+  const limits = StarSystemGenerationSettingsLimits
+
+  function validate(range: Range, limit: Range): boolean {
+    return range.numericType === limit.numericType && Range.isWithin(limit, range)
+  }
+
+  return (
+    validate(settings.planetDensity, limits.planetDensity) &&
+    validate(settings.nbPlanets, limits.nbPlanets) &&
+    validate(settings.nbMoonsPerPlanet, limits.nbMoonsPerPlanet) &&
+    validate(settings.nbAsteroidBelts, limits.nbAsteroidBelts) &&
+    validate(settings.nbAsteroidsPerSector, limits.nbAsteroidsPerSector) &&
+    Number.isInteger(settings.seed) &&
+    Range.isWithin(limits.seed, settings.seed)
+  )
+}

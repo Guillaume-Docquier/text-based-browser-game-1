@@ -99,6 +99,7 @@ Minimum verification for meaningful changes:
 - `pnpm checks` (when touching all projects)
 - `pnpm --filter backend checks` (when touching only backend)
 - `pnpm --filter frontend checks` (when touching only frontend)
+- Do not start Vite or attempt visual/browser verification. The project is not set up for agent-driven visual verification yet.
 - Call out relevant extra manual verification that the user should perform for the area changed
 
 ## Commits And PRs

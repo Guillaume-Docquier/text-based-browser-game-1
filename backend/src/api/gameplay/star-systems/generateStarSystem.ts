@@ -1,5 +1,6 @@
 import { createRng, mulberry32Prng, Range, Result, type Rng, Sort } from "@guillaume-docquier/tools-ts"
 import { v7 } from "uuid"
+import { FIRST_ORBIT_SECTOR_COUNT, MAX_ORBIT_COUNT } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import type {
   NewBodyModel,
   NewMovementEdgeModel,
@@ -11,9 +12,6 @@ import type {
 import type { Clock } from "#lib/Clock.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
-
-const MAX_ORBITS = 6
-const FIRST_ORBIT_SECTOR_COUNT = 2
 
 type GeneratedOrbit = NewOrbitModel & {
   sectorCount: number
@@ -105,8 +103,8 @@ function generateOrbits({
   const requiredSectorCount = computeRequiredSectorCount({ nbPlanets, planetDensity })
   const requiredOrbitCount = computeRequiredOrbitCount(requiredSectorCount) + nbAsteroidBelts
 
-  if (requiredOrbitCount > MAX_ORBITS) {
-    return Result.Failure(`This star system requires more than the maximum allowed orbits count (${MAX_ORBITS}).`)
+  if (requiredOrbitCount > MAX_ORBIT_COUNT) {
+    return Result.Failure(`This star system requires more than the maximum allowed orbits count (${MAX_ORBIT_COUNT}).`)
   }
 
   // Then we roll the asteroid belts

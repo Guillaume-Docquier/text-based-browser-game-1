@@ -1,5 +1,6 @@
 import { Assert, Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { MAX_ORBIT_COUNT } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import type { NewMovementEdgeModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { Clock } from "#lib/Clock.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
@@ -73,7 +74,7 @@ describe("generateStarSystem", () => {
     const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub({
       nbPlanets: Range.integer({ min: 1, max: 1 }),
-      nbAsteroidBelts: Range.integer({ min: 5, max: 5 }),
+      nbAsteroidBelts: Range.integer({ min: MAX_ORBIT_COUNT - 1, max: MAX_ORBIT_COUNT - 1 }),
       seed: 4,
     })
 
@@ -82,7 +83,7 @@ describe("generateStarSystem", () => {
 
     // Assert
     const orbitNumbers = system.orbits.map((orbit) => orbit.orbitNumber)
-    expect(orbitNumbers).toEqual([1, 2, 3, 4, 5, 6])
+    expect(orbitNumbers).toEqual(Array.from({ length: MAX_ORBIT_COUNT }, (_, i) => i + 1))
   })
 
   it("should allow the outermost orbit to be an asteroid belt", () => {
