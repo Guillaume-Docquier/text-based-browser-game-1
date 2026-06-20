@@ -104,7 +104,7 @@ export function StarSystemSvg({ starSystem }: { starSystem: StarSystem }): React
 
             return [
               <BodyMarker key={centralBody.id} body={centralBody} position={geometry.center} />,
-              satellites.length > 0 ? (
+              centralBody.type === "PLANET" && satellites.length > 0 ? (
                 <circle
                   key={`${sector.id}-body-orbit`}
                   aria-hidden="true"
