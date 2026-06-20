@@ -1,4 +1,4 @@
-import type { PlayerView } from "@api-types"
+import type { StarSystem, StarSystemBody } from "@api-types"
 import type { ReactElement } from "react"
 import {
   getOrbitRadii,
@@ -9,9 +9,6 @@ import {
   type Point,
 } from "../starSystemGeometry.ts"
 import { useStarSystemPanZoom } from "../useStarSystemPanZoom.ts"
-
-type StarSystem = PlayerView["starSystem"]
-type StarSystemBody = StarSystem["orbits"][number]["sectors"][number]["bodies"][number]
 
 export function StarSystemSvg({ starSystem, resetSignal }: { starSystem: StarSystem; resetSignal: number }): ReactElement {
   const orbitCount = starSystem.orbits.length

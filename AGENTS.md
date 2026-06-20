@@ -55,6 +55,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - ADR-019: Do not leave expected invariants implicit, use explicit `Assert` calls.
 - ADR-020: Frontend Tanstack routes should only do the routing. The UI is implemented in `frontend/src/features/` in vertical slices.
 - ADR-021: All Typescript schema column names should be `camelCased` but renamed to `snake_cased` for postgres via the `name` argument of column builders.
+- ADR-022: Frontend code imports named backend contract types from `backend/src/api/types.ts`. It only defines types for frontend concerns and never duplicates, reconstructs, or deconstructs backend types.
 
 ## Coding Conventions
 
