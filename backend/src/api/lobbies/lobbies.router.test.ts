@@ -5,7 +5,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
 import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
-import { type GameConfigurationDto, type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
+import { type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#api/shared/GameStatus.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
@@ -43,15 +43,7 @@ describe("lobbies.router", () => {
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       authService.account = creatorAccount
 
-      const newGameSettings: GameConfigurationDto = {
-        name: "my new game",
-        nbSeats: 43,
-        tickIntervalSeconds: 420,
-        starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
-          nbPlanets: Range.integer({ min: 12, max: 12 }),
-          seed: 9876,
-        }),
-      }
+      const newGameSettings = createGameConfigurationDtoStub()
 
       // Act
       const createLobbyResult = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
