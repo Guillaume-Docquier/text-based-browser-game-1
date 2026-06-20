@@ -2,8 +2,8 @@ import { Range } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createDefaultStarSystemGenerationSettings } from "#api/gameplay/star-systems/createDefaultStarSystemGenerationSettings.ts"
-import { createStarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsLimits.ts"
+import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
+import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { type GameConfigurationDto, type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#api/shared/GameStatus.ts"
@@ -26,10 +26,10 @@ describe("lobbies.router", () => {
       // Assert
       expect(creationSettings).toEqual<typeof creationSettings>({
         defaultStarSystemGenerationSettings: {
-          ...createDefaultStarSystemGenerationSettings(),
+          ...createStarSystemGenerationSettingsDefaults(),
           seed: expect.any(Number),
         },
-        starSystemGenerationSettingsLimits: createStarSystemGenerationSettingsLimits(),
+        starSystemGenerationSettingsLimits: StarSystemGenerationSettingsLimits,
       })
     })
   })

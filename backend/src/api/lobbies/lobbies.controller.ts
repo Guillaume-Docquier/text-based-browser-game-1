@@ -1,8 +1,8 @@
 import { type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { AccountId } from "#api/accounts/AccountId.ts"
-import { createDefaultStarSystemGenerationSettings } from "#api/gameplay/star-systems/createDefaultStarSystemGenerationSettings.ts"
-import { createStarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsLimits.ts"
+import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
+import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { computeGameStatus, GameStatus } from "#api/shared/GameStatus.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
@@ -45,8 +45,8 @@ export class LobbiesController {
 
   public getCreationSettings(): LobbyCreationSettingsDto {
     return {
-      defaultStarSystemGenerationSettings: createDefaultStarSystemGenerationSettings(),
-      starSystemGenerationSettingsLimits: createStarSystemGenerationSettingsLimits(),
+      defaultStarSystemGenerationSettings: createStarSystemGenerationSettingsDefaults(),
+      starSystemGenerationSettingsLimits: StarSystemGenerationSettingsLimits,
     }
   }
 
@@ -204,8 +204,8 @@ export const LeftLobbyDto = z.literal(true)
 
 export type StarSystemGenerationSettingsLimitsDto = z.infer<typeof StarSystemGenerationSettingsLimitsDto>
 export const StarSystemGenerationSettingsLimitsDto = z.object({
-  planetDensity: RangeDto,
   nbPlanets: RangeDto,
+  planetDensity: RangeDto,
   nbMoonsPerPlanet: RangeDto,
   nbAsteroidBelts: RangeDto,
   nbAsteroidsPerSector: RangeDto,
@@ -258,7 +258,7 @@ export const LobbyDto = z.object({
 })
 
 function validateStarSystemGenerationSettings(settings: StarSystemGenerationSettingsDto): boolean {
-  const limits = createStarSystemGenerationSettingsLimits()
+  const limits = StarSystemGenerationSettingsLimits
 
   function validate(range: Range, limit: Range): boolean {
     return range.numericType === limit.numericType && Range.isWithin(limit, range)

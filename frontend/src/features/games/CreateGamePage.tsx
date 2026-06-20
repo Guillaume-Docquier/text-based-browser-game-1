@@ -20,16 +20,6 @@ const TickIntervalUnit = {
   minutes: "minutes",
 } as const
 
-const RANGE_SETTING_KEYS = [
-  "planetDensity",
-  "nbPlanets",
-  "nbMoonsPerPlanet",
-  "nbAsteroidBelts",
-  "nbAsteroidsPerSector",
-] as const satisfies ReadonlyArray<keyof Omit<ApiTypes.StarSystemGenerationSettings, "seed">>
-
-type RangeSettingKey = (typeof RANGE_SETTING_KEYS)[number]
-
 const RANGE_SETTING_LABELS = {
   planetDensity: {
     label: "Planet density",
@@ -51,7 +41,7 @@ const RANGE_SETTING_LABELS = {
     label: "Asteroids per sector",
     description: "Possible number of asteroids in each belt sector.",
   },
-} satisfies Record<RangeSettingKey, { label: string; description: string }>
+} satisfies Record<ApiTypes.RangeSettingKey, { label: string; description: string }>
 
 export function CreateGamePage(): ReactElement {
   const backendApiClient = useBackendApiClient()
@@ -155,24 +145,32 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
           <CardDescription>Choose a fixed value or a range for each generated feature.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-8">
-          {RANGE_SETTING_KEYS.map((key) => (
-            <RangeSetting
-              key={key}
-              settingKey={key}
-              value={starSystemGenerationSettings[key]}
-              limits={creationSettings.starSystemGenerationSettingsLimits[key]}
-              onChange={(value) => {
-                setStarSystemGenerationSettings((currentSettings) => ({
-                  ...currentSettings,
-                  [key]: {
-                    ...currentSettings[key],
-                    min: value[0],
-                    max: value[1],
-                  },
-                }))
-              }}
-            />
-          ))}
+          {Object.entries(starSystemGenerationSettings).map((entry) => {
+            if (!isRangeSettingEntry(entry)) {
+              return null
+            }
+
+            const [settingKey, settingRange] = entry
+
+            return (
+              <RangeSetting
+                key={settingKey}
+                settingKey={settingKey}
+                value={settingRange}
+                limits={creationSettings.starSystemGenerationSettingsLimits[settingKey]}
+                onChange={([min, max]) => {
+                  setStarSystemGenerationSettings((currentSettings) => ({
+                    ...currentSettings,
+                    [settingKey]: {
+                      ...currentSettings[settingKey],
+                      min,
+                      max,
+                    },
+                  }))
+                }}
+              />
+            )
+          })}
           <div className="space-y-2">
             <Label htmlFor="generation-seed">Generation seed</Label>
             <p className="text-sm text-muted-foreground">Games with the same settings and seed generate the same star map.</p>
@@ -228,9 +226,9 @@ function RangeSetting({
   limits,
   onChange,
 }: {
-  settingKey: RangeSettingKey
-  value: ApiTypes.StarSystemGenerationSettings[RangeSettingKey]
-  limits: ApiTypes.StarSystemGenerationSettingsLimits[RangeSettingKey]
+  settingKey: ApiTypes.RangeSettingKey
+  value: ApiTypes.StarSystemGenerationSettings[ApiTypes.RangeSettingKey]
+  limits: ApiTypes.StarSystemGenerationSettingsLimits[ApiTypes.RangeSettingKey]
   onChange: (value: [number, number]) => void
 }): ReactElement {
   const text = RANGE_SETTING_LABELS[settingKey]
@@ -255,12 +253,7 @@ function RangeSetting({
         step={step}
         value={[value.min, value.max]}
         thumbLabels={[`${text.label} minimum`, `${text.label} maximum`]}
-        onValueChange={(newValue) => {
-          const [min, max] = newValue
-          if (min !== undefined && max !== undefined) {
-            onChange([min, max])
-          }
-        }}
+        onValueChange={onChange}
       />
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>{limits.min}</span>
@@ -268,6 +261,15 @@ function RangeSetting({
       </div>
     </div>
   )
+}
+
+/**
+ * Kind of a weak check, we'd want the Range zod schema here.
+ */
+function isRangeSettingEntry(
+  entry: [string, unknown],
+): entry is [ApiTypes.RangeSettingKey, ApiTypes.StarSystemGenerationSettings[ApiTypes.RangeSettingKey]] {
+  return typeof entry[1] === "object"
 }
 
 function CreateGameLoadingState(): ReactElement {

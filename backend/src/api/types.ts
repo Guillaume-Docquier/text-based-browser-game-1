@@ -20,6 +20,7 @@ export type LobbyPlayer = Lobby["creator"]
 export type LobbyCreationSettings = TrpcRouterOutput["lobbies"]["getCreationSettings"]
 export type StarSystemGenerationSettings = LobbyCreationSettings["defaultStarSystemGenerationSettings"]
 export type StarSystemGenerationSettingsLimits = LobbyCreationSettings["starSystemGenerationSettingsLimits"]
+export type RangeSettingKey = Exclude<keyof StarSystemGenerationSettings, "seed">
 
 // Listings
 export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
