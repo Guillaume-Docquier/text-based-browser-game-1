@@ -18,7 +18,7 @@ We have 0 users. When dealing with database schema changes, we never need to bac
 
 This repo is a TypeScript monorepo using pnpm workspaces (ADR-014) with separate deployable projects:
 
-- `frontend/`: React 19 + TailwindCSS 4 + Shadcn + Vite 8 UI. File-based TanStack route definitions live in `src/routes/`, page/layout implementations live in `src/features/`, reusable Shadcn components and shared UI live in `src/components/`, and static assets live in `public/` and `src/assets/`.
+- `frontend/`: React 19 + TailwindCSS 4 + Shadcn + Vite 8 UI. File-based TanStack route definitions live in `src/routes/`, page/layout implementations live in `src/features/`, reusable Shadcn components and shared UI live in `src/components/`, Storybook configuration lives in `.storybook/`, and static assets live in `public/` and `src/assets/`.
 - `backend/`: Express 5 + tRPC 11 API + tick-processing worker in TypeScript with no transpilation. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
 - `infra/`: deployment and reverse-proxy config.
 - `docs/`: all project documentation. It includes past, present, and future tech/game designs, adrs, etc.
@@ -56,6 +56,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - ADR-020: Frontend Tanstack routes should only do the routing. The UI is implemented in `frontend/src/features/` in vertical slices.
 - ADR-021: All Typescript schema column names should be `camelCased` but renamed to `snake_cased` for postgres via the `name` argument of column builders.
 - ADR-022: Frontend code imports named backend contract types from `backend/src/api/types.ts`. It only defines types for frontend concerns and never duplicates, reconstructs, or deconstructs backend types.
+- ADR-023: Add Storybook stories for all components in `frontend/src/components`. This is used for manual inspection only for now.
 
 ## Coding Conventions
 
@@ -87,6 +88,7 @@ Always use pnpm, never use npm.
 
 - `pnpm i`: install node_modules for all packages.
 - `pnpm checks`: runs all quality checks (lint, format, typecheck, test) on all packages.
+- `pnpm storybook`: start the frontend Storybook development sandbox.
 - `pnpm --filter frontend build`: build the frontend.
 - `pnpm --filter frontend checks`: run all frontend quality checks (typecheck).
 - `pnpm --filter backend checks`: run all backend quality checks (typecheck, test).
@@ -113,7 +115,7 @@ Minimum verification for meaningful changes:
 - `pnpm checks` (when touching all projects)
 - `pnpm --filter backend checks` (when touching only backend)
 - `pnpm --filter frontend checks` (when touching only frontend)
-- Do not start Vite or attempt visual/browser verification. The project is not set up for agent-driven visual verification yet.
+- Do not start Vite/Storybook or attempt visual/browser verification. The project is not set up for agent-driven visual verification yet.
 - Call out relevant extra manual verification that the user should perform for the area changed
 
 ## Commits And PRs

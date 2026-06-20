@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "checks": "pnpm typecheck",
+    "checks": "pnpm typecheck && pnpm storybook:build",
     "dev": "vite",
+    "storybook": "storybook dev --port 6006",
+    "storybook:build": "storybook build",
     "typecheck": "tsgo -b"
   },
   "dependencies": {
@@ -34,6 +36,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@rolldown/plugin-babel": "^0.2.3",
+    "@storybook/react-vite": "^10.4.6",
     "@tailwindcss/vite": "^4.2.4",
     "@tanstack/router-plugin": "^1.168.18",
     "@types/babel__core": "^7.20.5",
@@ -43,6 +46,7 @@
     "@typescript/native-preview": "catalog:",
     "@vitejs/plugin-react": "^6.0.2",
     "babel-plugin-react-compiler": "^1.0.0",
+    "storybook": "^10.4.6",
     "vite": "^8.0.16"
   }
 }

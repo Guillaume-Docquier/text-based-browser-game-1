@@ -12,6 +12,7 @@
     "lint": "oxlint --max-warnings 0",
     "lint:fix": "pnpm lint --fix",
     "prepare": "husky",
+    "storybook": "pnpm --filter frontend storybook",
     "wts": "pnpm ci && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
   },
   "devDependencies": {
