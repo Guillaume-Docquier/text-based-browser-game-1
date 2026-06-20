@@ -1,5 +1,6 @@
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { Clock } from "#lib/Clock.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
@@ -10,7 +11,7 @@ describe("generateStarSystem", () => {
   it("should generate identical Star Systems from identical settings", () => {
     // Arrange
     const clock = new ControlledClock()
-    const settings = createStarSystemGenerationSettingsStub({ seed: 1234 })
+    const settings = createStarSystemGenerationSettingsStub({ seed: 1 })
 
     // Act
     const firstSystem = extractSuccess(generateStarSystem({ settings, clock }))
@@ -20,7 +21,20 @@ describe("generateStarSystem", () => {
     expect(firstSystem).toEqual(secondSystem)
   })
 
-  it("should generate different planet placement from different seeds", () => {
+  it("should generate different Star Systems with a real clock even if the settings are the same", () => {
+    // Arrange
+    const clock = Clock
+    const settings = createStarSystemGenerationSettingsStub({ seed: 1 })
+
+    // Act
+    const firstSystem = extractSuccess(generateStarSystem({ settings, clock }))
+    const secondSystem = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
+    expect(firstSystem).not.toEqual(secondSystem)
+  })
+
+  it("should generate different Star Systems from different settings", () => {
     // Arrange
     const clock = new ControlledClock()
     const firstSettings = createStarSystemGenerationSettingsStub({ seed: 1 })
@@ -34,7 +48,7 @@ describe("generateStarSystem", () => {
     expect(firstSystem).not.toEqual(secondSystem)
   })
 
-  it("should generate exact body counts and one complete Asteroid belt", () => {
+  it("[to review] should generate exact body counts and one complete Asteroid belt", () => {
     // Arrange
     const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub({
@@ -70,7 +84,7 @@ describe("generateStarSystem", () => {
     }
   })
 
-  it("should create reciprocal movement edges and one node per Sector and Body", () => {
+  it("[to review] should create reciprocal movement edges and one node per Sector and Body", () => {
     // Arrange
     const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub()
@@ -87,7 +101,7 @@ describe("generateStarSystem", () => {
     }
   })
 
-  it("should allow the outermost Orbit to be an Asteroid belt", () => {
+  it("[to review] should allow the outermost Orbit to be an Asteroid belt", () => {
     // Arrange
     const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub({
@@ -111,7 +125,7 @@ describe("generateStarSystem", () => {
     ).toBe(true)
   })
 
-  it("should connect Sectors when their angle ranges share a border", () => {
+  it("[to review] should connect Sectors when their angle ranges share a border", () => {
     // Arrange
     const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub({
@@ -155,12 +169,37 @@ describe("generateStarSystem", () => {
     }
   })
 
-  it("should fail settings that cannot fit within the orbit limit", () => {
+  it.each([Range.float({ min: -0.1, max: 0.5 }), Range.float({ min: 0.5, max: 1.1 })])(
+    "should fail with planet density outside [0, 1] (%s)",
+    (planetDensity) => {
+      // Arrange
+      const clock = new ControlledClock()
+      const settings = createStarSystemGenerationSettingsStub({ planetDensity })
+
+      // Act
+      const systemResult = generateStarSystem({ settings, clock })
+
+      // Assert
+      expect(systemResult).toEqual(Result.Failure(expect.any(String)))
+    },
+  )
+
+  it("should fail when settings are negative", () => {
     // Arrange
     const clock = new ControlledClock()
-    const settings = createStarSystemGenerationSettingsStub({
-      nbPlanets: Range.integer({ min: 9000, max: 9000 }),
-    })
+    const settings = createStarSystemGenerationSettingsStub({ nbAsteroidBelts: Range.integer({ min: -1, max: 1 }) })
+
+    // Act
+    const systemResult = generateStarSystem({ settings, clock })
+
+    // Assert
+    expect(systemResult).toEqual(Result.Failure(expect.any(String)))
+  })
+
+  it("should fail when settings result in too many orbits", () => {
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({ nbAsteroidBelts: Range.integer({ min: 10, max: 10 }) })
 
     // Act
     const systemResult = generateStarSystem({ settings, clock })
