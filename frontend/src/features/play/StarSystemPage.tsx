@@ -1,9 +1,11 @@
-import { CircleDot } from "lucide-react"
-import type { ReactElement } from "react"
+import { CircleDot, LocateFixed } from "lucide-react"
+import { type ReactElement, useState } from "react"
+import { Button } from "../../components/button.tsx"
 import { StarSystemSvg } from "./components/StarSystemSvg.tsx"
 import { usePlayGameContext } from "./PlayContext.tsx"
 
 export function StarSystemPage(): ReactElement {
+  const [resetSignal, setResetSignal] = useState(0)
   const { playerView } = usePlayGameContext()
   const { starSystem } = playerView
   const sectorCount = starSystem.orbits.reduce((count, orbit) => count + orbit.sectors.length, 0)
@@ -24,9 +26,20 @@ export function StarSystemPage(): ReactElement {
               This Star System has no orbits.
             </div>
           ) : (
-            <StarSystemSvg starSystem={starSystem} />
+            <StarSystemSvg starSystem={starSystem} resetSignal={resetSignal} />
           )}
         </div>
+        <Button
+          className="absolute top-4 right-4 bg-background/80"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setResetSignal((currentSignal) => currentSignal + 1)
+          }}
+        >
+          <LocateFixed />
+          Reset view
+        </Button>
         <div className="pointer-events-none absolute bottom-4 left-4 flex items-center gap-3 rounded-md border border-border/70 bg-background/80 px-2.5 py-1.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full bg-lime-600" />
