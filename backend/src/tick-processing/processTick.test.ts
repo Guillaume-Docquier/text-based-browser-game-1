@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
-import { ClockMock } from "#lib/Clock.mock.ts"
+import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
@@ -18,7 +18,7 @@ describe("processTick", () => {
   it("should process the current tick and queue the next one", async () => {
     // Arrange
     const db = await createDbMock()
-    const clock = new ClockMock({ startDate: new Date(0) })
+    const clock = new ControlledClock({ startDate: new Date(0) })
     const { api, authService, accountsRepository, logger } = await createApiStub({ db, clock })
     const ticksRepository = new TicksRepository({ db, logger })
     const resourcesRepository = new ResourcesRepository({ db, logger })

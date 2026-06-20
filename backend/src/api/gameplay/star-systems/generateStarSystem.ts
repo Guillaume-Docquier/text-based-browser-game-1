@@ -8,6 +8,7 @@ import type {
   NewSectorModel,
   NewStarSystemModel,
 } from "#api/gameplay/star-systems/StarSystemModels.ts"
+import type { Clock } from "#lib/Clock.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 
@@ -25,7 +26,13 @@ type GeneratedSector = NewSectorModel & {
   isAsteroidSector: boolean
 }
 
-export function generateStarSystem(settings: Readonly<StarSystemGenerationSettings>): Result<NewStarSystemModel, string> {
+export function generateStarSystem({
+  settings,
+  clock,
+}: {
+  settings: Readonly<StarSystemGenerationSettings>
+  clock: Clock
+}): Result<NewStarSystemModel, string> {
   const invalidSettingsReason = validateSettings(settings)
   if (invalidSettingsReason !== undefined) {
     return Result.Failure(invalidSettingsReason)
@@ -33,7 +40,7 @@ export function generateStarSystem(settings: Readonly<StarSystemGenerationSettin
 
   // Create the PRNG
   const rng = createRng(mulberry32Prng(settings.seed))
-  const uuidFactory = createUuidFactory({ rng, seed: settings.seed })
+  const uuidFactory = createUuidFactory({ rng, clock })
 
   // Roll global values
   const planetDensity = rng.random(settings.planetDensity)
@@ -49,12 +56,15 @@ export function generateStarSystem(settings: Readonly<StarSystemGenerationSettin
   const orbits = orbitsResult.value
   const sectors = generateSectors({ orbits, rng, uuidFactory, settings })
   const bodies = generateBodies({ sectors, nbPlanets, rng, uuidFactory, settings })
+
+  // Compute movements graph
   const movementNodes: NewMovementNodeModel[] = [
     ...sectors.map((sector) => ({ id: sector.movementNodeId })),
     ...bodies.map((sector) => ({ id: sector.movementNodeId })),
   ]
   const movementEdges = generateMovementEdges({ sectors, bodies })
 
+  // Tadaa!
   return Result.Success({
     orbits,
     sectors,
@@ -254,22 +264,19 @@ function generateBody({
 }
 
 function toTitleCase(value: string): string {
-  return value.charAt(0) + value.slice(1).toLowerCase()
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
 }
 
 type UuidFactory = () => string
-function createUuidFactory({ rng, seed }: { rng: Rng; seed: number }): UuidFactory {
+function createUuidFactory({ rng, clock }: { rng: Rng; clock: Clock }): UuidFactory {
   let sequence = 0
 
-  return () => {
-    const random = Uint8Array.from({ length: 16 }, () => rng.int(Range.integer({ min: 0, max: 255 })))
-    const id = v7({
-      random,
-      msecs: seed,
+  return () =>
+    v7({
+      random: Uint8Array.from({ length: 16 }, () => rng.int(Range.integer({ min: 0, max: 255 }))),
+      msecs: clock.now().getTime(),
+      seq: sequence++,
     })
-    sequence++
-    return id
-  }
 }
 
 /**

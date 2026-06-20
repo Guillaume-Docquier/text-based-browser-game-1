@@ -1,5 +1,6 @@
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
@@ -8,11 +9,12 @@ import { generateStarSystem } from "./generateStarSystem.ts"
 describe("generateStarSystem", () => {
   it("should generate identical Star Systems from identical settings", () => {
     // Arrange
-    const settings = createStarSystemGenerationSettingsStub({ seed: 2275537979 })
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({ seed: 1234 })
 
     // Act
-    const firstSystem = extractSuccess(generateStarSystem(settings))
-    const secondSystem = extractSuccess(generateStarSystem(settings))
+    const firstSystem = extractSuccess(generateStarSystem({ settings, clock }))
+    const secondSystem = extractSuccess(generateStarSystem({ settings, clock }))
 
     // Assert
     expect(firstSystem).toEqual(secondSystem)
@@ -20,29 +22,32 @@ describe("generateStarSystem", () => {
 
   it("should generate different planet placement from different seeds", () => {
     // Arrange
+    const clock = new ControlledClock()
     const firstSettings = createStarSystemGenerationSettingsStub({ seed: 1 })
     const secondSettings = createStarSystemGenerationSettingsStub({ seed: 2 })
 
     // Act
-    const firstSystem = extractSuccess(generateStarSystem(firstSettings))
-    const secondSystem = extractSuccess(generateStarSystem(secondSettings))
+    const firstSystem = extractSuccess(generateStarSystem({ settings: firstSettings, clock }))
+    const secondSystem = extractSuccess(generateStarSystem({ settings: secondSettings, clock }))
 
     // Assert
     expect(firstSystem).not.toEqual(secondSystem)
   })
 
   it("should generate exact body counts and one complete Asteroid belt", () => {
-    const system = extractSuccess(
-      generateStarSystem(
-        createStarSystemGenerationSettingsStub({
-          nbPlanets: Range.integer({ min: 5, max: 5 }),
-          nbMoonsPerPlanet: Range.integer({ min: 2, max: 2 }),
-          nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
-          nbAsteroidsPerSector: Range.integer({ min: 2, max: 2 }),
-        }),
-      ),
-    )
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({
+      nbPlanets: Range.integer({ min: 5, max: 5 }),
+      nbMoonsPerPlanet: Range.integer({ min: 2, max: 2 }),
+      nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
+      nbAsteroidsPerSector: Range.integer({ min: 2, max: 2 }),
+    })
 
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
     const planets = system.bodies.filter(({ bodyType }) => bodyType === BodyType.PLANET)
     const moons = system.bodies.filter(({ bodyType }) => bodyType === BodyType.MOON)
     const asteroidSectorIds = new Set(
@@ -66,7 +71,14 @@ describe("generateStarSystem", () => {
   })
 
   it("should create reciprocal movement edges and one node per Sector and Body", () => {
-    const system = extractSuccess(generateStarSystem(createStarSystemGenerationSettingsStub()))
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub()
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
     const edges = new Set(system.movementEdges.map(({ fromNodeId, toNodeId }) => `${fromNodeId}:${toNodeId}`))
 
     expect(system.movementNodes).toHaveLength(system.sectors.length + system.bodies.length)
@@ -76,18 +88,21 @@ describe("generateStarSystem", () => {
   })
 
   it("should allow the outermost Orbit to be an Asteroid belt", () => {
-    const system = extractSuccess(
-      generateStarSystem(
-        createStarSystemGenerationSettingsStub({
-          planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 1, max: 1 }),
-          nbPlanets: Range.integer({ min: 2, max: 2 }),
-          nbMoonsPerPlanet: Range.integer({ min: 0, max: 0 }),
-          nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
-          nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
-          seed: 0,
-        }),
-      ),
-    )
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({
+      planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 1, max: 1 }),
+      nbPlanets: Range.integer({ min: 2, max: 2 }),
+      nbMoonsPerPlanet: Range.integer({ min: 0, max: 0 }),
+      nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
+      nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
+      seed: 0,
+    })
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
     const outerOrbit = system.orbits.at(-1)
     const outerSectorIds = new Set(system.sectors.filter(({ orbitId }) => orbitId === outerOrbit?.id).map(({ id }) => id))
 
@@ -97,16 +112,19 @@ describe("generateStarSystem", () => {
   })
 
   it("should connect Sectors when their angle ranges share a border", () => {
-    const system = extractSuccess(
-      generateStarSystem(
-        createStarSystemGenerationSettingsStub({
-          planetDensity: Range.float({ min: 0.2, max: 0.3 }),
-          nbPlanets: Range.integer({ min: 1, max: 1 }),
-          nbMoonsPerPlanet: Range.integer({ min: 0, max: 0 }),
-          nbAsteroidBelts: Range.integer({ min: 0, max: 0 }),
-        }),
-      ),
-    )
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({
+      planetDensity: Range.float({ min: 0.2, max: 0.3 }),
+      nbPlanets: Range.integer({ min: 1, max: 1 }),
+      nbMoonsPerPlanet: Range.integer({ min: 0, max: 0 }),
+      nbAsteroidBelts: Range.integer({ min: 0, max: 0 }),
+    })
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
     const orbitNumbersById = new Map(system.orbits.map(({ id, orbitNumber }) => [id, orbitNumber]))
     const sectorEdges = new Set(system.movementEdges.map(({ fromNodeId, toNodeId }) => `${fromNodeId}:${toNodeId}`))
 
@@ -139,12 +157,13 @@ describe("generateStarSystem", () => {
 
   it("should fail settings that cannot fit within the orbit limit", () => {
     // Arrange
+    const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub({
       nbPlanets: Range.integer({ min: 9000, max: 9000 }),
     })
 
     // Act
-    const systemResult = generateStarSystem(settings)
+    const systemResult = generateStarSystem({ settings, clock })
 
     // Assert
     expect(systemResult).toEqual(Result.Failure(expect.any(String)))

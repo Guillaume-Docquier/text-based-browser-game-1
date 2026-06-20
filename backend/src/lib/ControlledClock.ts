@@ -1,7 +1,11 @@
 import { Datetime, type Time } from "@guillaume-docquier/tools-ts"
 import type { Clock } from "#lib/Clock.ts"
 
-export class ClockMock implements Clock {
+/**
+ * A clock that is entirely controlled.
+ * Useful for tests where you need determinism.
+ */
+export class ControlledClock implements Clock {
   private rightNow: Date
 
   // oxlint-disable-next-line no-restricted-globals -- This is a clock
