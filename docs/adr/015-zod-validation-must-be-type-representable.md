@@ -4,6 +4,10 @@
 
 Accepted
 
+### Amendment history
+
+- 2026-06-20: Clarified cases where `.refine()` can be used.
+
 ## Context
 
 We use Zod schemas in routers to validate and parse user input.
@@ -32,6 +36,8 @@ Disallowed Zod constraints are rules that express business or integrity constrai
 - `z.number().int()`
 - `z.string().email()`
 - most `.refine()` / `.superRefine()` checks for domain invariants
+
+Using `.refine()` is only appropriate if the model being parsed already enforces the invariants. For example, the `RangeDto` schema is fine, because the `Range` factory method enforces the checks that the schema does. In fact, the schema uses the same checks as the `Range` factory method.
 
 Business logic and data integrity validation must happen in controllers/services, where it is explicit and close to domain behavior.
 
