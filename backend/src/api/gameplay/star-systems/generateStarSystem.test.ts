@@ -151,6 +151,28 @@ describe("generateStarSystem", () => {
     expect(allBodyTypes).toEqual(new Set([BodyType.ASTEROID, BodyType.PLANET, BodyType.MOON]))
   })
 
+  it("should contain only valid movement node ids", () => {
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({ seed: 1 })
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
+    const sectorBodiesMovementNodeIds = new Set([
+      ...system.sectors.map((sector) => sector.movementNodeId),
+      ...system.bodies.map((sector) => sector.movementNodeId),
+    ])
+    const movementNodeIds = new Set(system.movementNodes.map((movementNode) => movementNode.id))
+    const movementEdgesMovementNodeIds = new Set(
+      system.movementEdges.flatMap((movementEdge) => [movementEdge.fromNodeId, movementEdge.toNodeId]),
+    )
+
+    expect(sectorBodiesMovementNodeIds).toEqual(movementNodeIds)
+    expect(movementEdgesMovementNodeIds).toEqual(movementNodeIds)
+  })
+
   it("should connect bodies and sectors correctly", () => {
     // Arrange
     const clock = new ControlledClock()
@@ -186,6 +208,20 @@ describe("generateStarSystem", () => {
     const o2s4 = system.sectors.find((sector) => sector.orbitId === o2.id && sector.sectorNumber === 4)
     Assert.isDefined(o2s4)
 
+    const o1s2p1 = system.bodies.find((body) => body.sectorId === o1s2.id && body.bodyNumber === 1)
+    Assert.isDefined(o1s2p1)
+    const o1s2m2 = system.bodies.find((body) => body.sectorId === o1s2.id && body.bodyNumber === 2)
+    Assert.isDefined(o1s2m2)
+
+    const o2s1a1 = system.bodies.find((body) => body.sectorId === o2s1.id && body.bodyNumber === 1)
+    Assert.isDefined(o2s1a1)
+    const o2s2a1 = system.bodies.find((body) => body.sectorId === o2s2.id && body.bodyNumber === 1)
+    Assert.isDefined(o2s2a1)
+    const o2s3a1 = system.bodies.find((body) => body.sectorId === o2s3.id && body.bodyNumber === 1)
+    Assert.isDefined(o2s3a1)
+    const o2s4a1 = system.bodies.find((body) => body.sectorId === o2s4.id && body.bodyNumber === 1)
+    Assert.isDefined(o2s4a1)
+
     expect(system.movementEdges).toEqual([
       // o1s1
       generateMovementEdge(o1s1.movementNodeId, o1s2.movementNodeId),
@@ -196,26 +232,52 @@ describe("generateStarSystem", () => {
       generateMovementEdge(o1s2.movementNodeId, o1s1.movementNodeId),
       generateMovementEdge(o1s2.movementNodeId, o2s3.movementNodeId),
       generateMovementEdge(o1s2.movementNodeId, o2s4.movementNodeId),
+      generateMovementEdge(o1s2.movementNodeId, o1s2p1.movementNodeId),
+      generateMovementEdge(o1s2.movementNodeId, o1s2m2.movementNodeId),
+
+      // o1s2b1
+      generateMovementEdge(o1s2p1.movementNodeId, o1s2.movementNodeId),
+      generateMovementEdge(o1s2p1.movementNodeId, o1s2m2.movementNodeId),
+
+      // o1s2b2
+      generateMovementEdge(o1s2m2.movementNodeId, o1s2.movementNodeId),
+      generateMovementEdge(o1s2m2.movementNodeId, o1s2p1.movementNodeId),
 
       // o2s1
       generateMovementEdge(o2s1.movementNodeId, o1s1.movementNodeId),
       generateMovementEdge(o2s1.movementNodeId, o2s4.movementNodeId),
       generateMovementEdge(o2s1.movementNodeId, o2s2.movementNodeId),
+      generateMovementEdge(o2s1.movementNodeId, o2s1a1.movementNodeId),
+
+      // o2s1b1
+      generateMovementEdge(o2s1a1.movementNodeId, o2s1.movementNodeId),
 
       // o2s2
       generateMovementEdge(o2s2.movementNodeId, o1s1.movementNodeId),
       generateMovementEdge(o2s2.movementNodeId, o2s1.movementNodeId),
       generateMovementEdge(o2s2.movementNodeId, o2s3.movementNodeId),
+      generateMovementEdge(o2s2.movementNodeId, o2s2a1.movementNodeId),
+
+      // o2s2b1
+      generateMovementEdge(o2s2a1.movementNodeId, o2s2.movementNodeId),
 
       // o2s3
       generateMovementEdge(o2s3.movementNodeId, o1s2.movementNodeId),
       generateMovementEdge(o2s3.movementNodeId, o2s2.movementNodeId),
       generateMovementEdge(o2s3.movementNodeId, o2s4.movementNodeId),
+      generateMovementEdge(o2s3.movementNodeId, o2s3a1.movementNodeId),
+
+      // o2s3b1
+      generateMovementEdge(o2s3a1.movementNodeId, o2s3.movementNodeId),
 
       // o2s4
       generateMovementEdge(o2s4.movementNodeId, o1s2.movementNodeId),
       generateMovementEdge(o2s4.movementNodeId, o2s3.movementNodeId),
       generateMovementEdge(o2s4.movementNodeId, o2s1.movementNodeId),
+      generateMovementEdge(o2s4.movementNodeId, o2s4a1.movementNodeId),
+
+      // o2s4b1
+      generateMovementEdge(o2s4a1.movementNodeId, o2s4.movementNodeId),
     ])
   })
 
