@@ -1,4 +1,4 @@
-import { Range, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { Clock } from "#lib/Clock.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
@@ -83,40 +83,72 @@ describe("generateStarSystem", () => {
     expect(orbitNumbers).toEqual([1, 2, 3, 4, 5, 6])
   })
 
-  it("[to review] should generate exact body counts and one complete Asteroid belt", () => {
+  it("should allow the outermost orbit to be an asteroid belt", () => {
     // Arrange
     const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub({
-      nbPlanets: Range.integer({ min: 5, max: 5 }),
-      nbMoonsPerPlanet: Range.integer({ min: 2, max: 2 }),
+      nbPlanets: Range.integer({ min: 1, max: 1 }),
+      planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 1, max: 1 }),
+      nbMoonsPerPlanet: Range.integer({ min: 1, max: 1 }),
       nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
-      nbAsteroidsPerSector: Range.integer({ min: 2, max: 2 }),
+      nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
+      seed: 2381652680,
     })
 
     // Act
     const system = extractSuccess(generateStarSystem({ settings, clock }))
 
     // Assert
-    const planets = system.bodies.filter(({ bodyType }) => bodyType === BodyType.PLANET)
-    const moons = system.bodies.filter(({ bodyType }) => bodyType === BodyType.MOON)
-    const asteroidSectorIds = new Set(
-      system.bodies.filter(({ bodyType }) => bodyType === BodyType.ASTEROID).map(({ sectorId }) => sectorId),
-    )
-    const sectorsByOrbitId = Map.groupBy(system.sectors, ({ orbitId }) => orbitId)
-    const asteroidBeltOrbits = system.orbits.filter(({ id }) =>
-      (sectorsByOrbitId.get(id) ?? []).every(({ id: sectorId }) => asteroidSectorIds.has(sectorId)),
-    )
+    expect(system.orbits).toHaveLength(2)
+    Assert.isDefined(system.orbits[1])
 
-    expect(planets).toHaveLength(5)
-    expect(moons).toHaveLength(10)
-    expect(asteroidBeltOrbits).toHaveLength(1)
+    const asteroidBeltOrbitId = system.orbits[1].id
+    const asteroidBeltSectorIds = new Set(
+      system.sectors.filter((sector) => sector.orbitId === asteroidBeltOrbitId).map((sector) => sector.id),
+    )
+    expect(asteroidBeltSectorIds.size).toBeGreaterThan(0)
 
-    for (const sector of sectorsByOrbitId.get(asteroidBeltOrbits[0]?.id ?? "") ?? []) {
-      expect(system.bodies.filter(({ sectorId }) => sectorId === sector.id)).toHaveLength(2)
-      expect(system.bodies.filter(({ sectorId }) => sectorId === sector.id).every(({ bodyType }) => bodyType === BodyType.ASTEROID)).toBe(
-        true,
-      )
-    }
+    const asteroidBeltBodies = system.bodies.filter((body) => asteroidBeltSectorIds.has(body.sectorId))
+    expect(asteroidBeltBodies).toHaveLength(asteroidBeltSectorIds.size)
+
+    const asteroidBeltBodiesTypes = new Set(asteroidBeltBodies.map((body) => body.bodyType))
+    expect(asteroidBeltBodiesTypes).toEqual(new Set([BodyType.ASTEROID]))
+
+    const allBodyTypes = new Set(system.bodies.map((body) => body.bodyType))
+    expect(allBodyTypes).toEqual(new Set([BodyType.ASTEROID, BodyType.PLANET, BodyType.MOON]))
+  })
+
+  it("should not force the outermost orbit to be an asteroid belt", () => {
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({
+      nbPlanets: Range.integer({ min: 1, max: 1 }),
+      planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 1, max: 1 }),
+      nbMoonsPerPlanet: Range.integer({ min: 1, max: 1 }),
+      nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
+      nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
+      seed: 3132067520,
+    })
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
+    expect(system.orbits).toHaveLength(2)
+    Assert.isDefined(system.orbits[1])
+
+    const normalOrbitId = system.orbits[1].id
+    const normalSectorIds = new Set(system.sectors.filter((sector) => sector.orbitId === normalOrbitId).map((sector) => sector.id))
+    expect(normalSectorIds.size).toBeGreaterThan(0)
+
+    const normalBodies = system.bodies.filter((body) => normalSectorIds.has(body.sectorId))
+    expect(normalBodies).toHaveLength(2)
+
+    const normalBodyTypes = new Set(normalBodies.map((body) => body.bodyType))
+    expect(normalBodyTypes).toEqual(new Set([BodyType.PLANET, BodyType.MOON]))
+
+    const allBodyTypes = new Set(system.bodies.map((body) => body.bodyType))
+    expect(allBodyTypes).toEqual(new Set([BodyType.ASTEROID, BodyType.PLANET, BodyType.MOON]))
   })
 
   it("[to review] should create reciprocal movement edges and one node per Sector and Body", () => {
@@ -134,30 +166,6 @@ describe("generateStarSystem", () => {
     for (const edge of system.movementEdges) {
       expect(edges.has(`${edge.toNodeId}:${edge.fromNodeId}`)).toBe(true)
     }
-  })
-
-  it("[to review] should allow the outermost Orbit to be an Asteroid belt", () => {
-    // Arrange
-    const clock = new ControlledClock()
-    const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 1, max: 1 }),
-      nbPlanets: Range.integer({ min: 2, max: 2 }),
-      nbMoonsPerPlanet: Range.integer({ min: 0, max: 0 }),
-      nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
-      nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
-      seed: 0,
-    })
-
-    // Act
-    const system = extractSuccess(generateStarSystem({ settings, clock }))
-
-    // Assert
-    const outerOrbit = system.orbits.at(-1)
-    const outerSectorIds = new Set(system.sectors.filter(({ orbitId }) => orbitId === outerOrbit?.id).map(({ id }) => id))
-
-    expect(
-      system.bodies.filter(({ sectorId }) => outerSectorIds.has(sectorId)).every(({ bodyType }) => bodyType === BodyType.ASTEROID),
-    ).toBe(true)
   })
 
   it("[to review] should connect Sectors when their angle ranges share a border", () => {
