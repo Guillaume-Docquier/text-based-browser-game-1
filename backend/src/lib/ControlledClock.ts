@@ -9,7 +9,7 @@ export class ControlledClock implements Clock {
   private rightNow: Date
 
   // oxlint-disable-next-line no-restricted-globals -- This is a clock
-  public constructor({ startDate = new Date() }: { startDate?: Date } = {}) {
+  public constructor({ startDate = new Date(0) }: { startDate?: Date } = {}) {
     this.rightNow = startDate
   }
 
