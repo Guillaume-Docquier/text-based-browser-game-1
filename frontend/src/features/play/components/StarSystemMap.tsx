@@ -1,5 +1,5 @@
 import type { StarSystem, StarSystemBody } from "@api-types"
-import type { ReactElement } from "react"
+import { type ReactElement } from "react"
 import {
   getOrbitRadii,
   getSatellitePosition,
@@ -10,8 +10,34 @@ import {
 } from "../starSystemGeometry.ts"
 import { useStarSystemPanZoom } from "../useStarSystemPanZoom.ts"
 
+type RenderedSector = {
+  id: string
+  coordinates: string
+  bodyCount: number
+  path: string
+}
+
+type RenderedBody = {
+  body: StarSystemBody
+  position: Point
+}
+
+type RenderedSatelliteOrbit = {
+  sectorId: string
+  center: Point
+  radius: number
+}
+
+type StarSystemRendering = {
+  orbitOuterRadii: number[]
+  sectors: RenderedSector[]
+  bodies: RenderedBody[]
+  satelliteOrbits: RenderedSatelliteOrbit[]
+}
+
 export function StarSystemMap({ starSystem, resetSignal }: { starSystem: StarSystem; resetSignal: number }): ReactElement {
   const orbitCount = starSystem.orbits.length
+  const rendering = createStarSystemRendering(starSystem)
   const panZoom = useStarSystemPanZoom({ resetSignal })
 
   return (
@@ -53,81 +79,39 @@ export function StarSystemMap({ starSystem, resetSignal }: { starSystem: StarSys
 
       <g transform={panZoom.transform}>
         <g aria-label="Sectors">
-          {starSystem.orbits.map((orbit, orbitIndex) => {
-            const orbitRadii = getOrbitRadii({ orbitIndex, orbitCount })
-
-            return orbit.sectors.map((sector) => {
-              const geometry = getSectorGeometry({
-                orbitRadii,
-                minAngle: sector.angleRange.min,
-                maxAngle: sector.angleRange.max,
-              })
-
-              return (
-                <path
-                  key={sector.id}
-                  aria-label={`Sector ${sector.coordinates}`}
-                  className="fill-white/[0.025] stroke-white/10 stroke-[1.25] transition-[fill,stroke,filter] duration-150 outline-none hover:fill-primary/20 hover:stroke-primary hover:[filter:drop-shadow(0_0_10px_rgb(251_191_36/0.7))] focus-visible:fill-primary/20 focus-visible:stroke-primary focus-visible:[filter:drop-shadow(0_0_10px_rgb(251_191_36/0.7))]"
-                  d={geometry.path}
-                  tabIndex={0}
-                >
-                  <title>{`Sector ${sector.coordinates} · ${sector.bodies.length} ${sector.bodies.length === 1 ? "body" : "bodies"}`}</title>
-                </path>
-              )
-            })
-          })}
+          {rendering.sectors.map((sector) => (
+            <path
+              key={sector.id}
+              aria-label={`Sector ${sector.coordinates}`}
+              className="fill-white/[0.025] stroke-white/10 stroke-[1.25] transition-[fill,stroke,filter] duration-150 outline-none hover:fill-primary/20 hover:stroke-primary hover:[filter:drop-shadow(0_0_10px_rgb(251_191_36/0.7))] focus-visible:fill-primary/20 focus-visible:stroke-primary focus-visible:[filter:drop-shadow(0_0_10px_rgb(251_191_36/0.7))]"
+              d={sector.path}
+              tabIndex={0}
+            >
+              <title>{`Sector ${sector.coordinates} · ${sector.bodyCount} ${sector.bodyCount === 1 ? "body" : "bodies"}`}</title>
+            </path>
+          ))}
         </g>
 
         <g aria-hidden="true" className="pointer-events-none fill-none stroke-primary/25 stroke-2">
-          {starSystem.orbits.map((_, orbitIndex) => {
-            const { outerRadius } = getOrbitRadii({ orbitIndex, orbitCount })
-            return <circle key={outerRadius} cx={STAR_SYSTEM_CENTER.x} cy={STAR_SYSTEM_CENTER.y} r={outerRadius} />
-          })}
+          {rendering.orbitOuterRadii.map((outerRadius) => (
+            <circle key={outerRadius} cx={STAR_SYSTEM_CENTER.x} cy={STAR_SYSTEM_CENTER.y} r={outerRadius} />
+          ))}
         </g>
 
         <g aria-label="Bodies">
-          {starSystem.orbits.flatMap((orbit, orbitIndex) => {
-            const orbitRadii = getOrbitRadii({ orbitIndex, orbitCount })
-
-            return orbit.sectors.flatMap((sector) => {
-              const geometry = getSectorGeometry({
-                orbitRadii,
-                minAngle: sector.angleRange.min,
-                maxAngle: sector.angleRange.max,
-              })
-              const [centralBody, ...satellites] = sector.bodies
-
-              if (centralBody === undefined) {
-                return []
-              }
-
-              const satelliteMarkers = satellites.map((body, satelliteIndex) => {
-                const position = getSatellitePosition({
-                  center: geometry.center,
-                  satelliteIndex,
-                  satelliteCount: satellites.length,
-                  orbitRadius: geometry.satelliteOrbitRadius,
-                })
-
-                return <BodyMarker key={body.id} body={body} position={position} />
-              })
-
-              return [
-                <BodyMarker key={centralBody.id} body={centralBody} position={geometry.center} />,
-                centralBody.type === "PLANET" && satellites.length > 0 ? (
-                  <circle
-                    key={`${sector.id}-body-orbit`}
-                    aria-hidden="true"
-                    className="pointer-events-none fill-none stroke-white/15"
-                    cx={geometry.center.x}
-                    cy={geometry.center.y}
-                    r={geometry.satelliteOrbitRadius}
-                  />
-                ) : null,
-                ...satelliteMarkers,
-              ]
-            })
-          })}
+          {rendering.satelliteOrbits.map((satelliteOrbit) => (
+            <circle
+              key={satelliteOrbit.sectorId}
+              aria-hidden="true"
+              className="pointer-events-none fill-none stroke-white/15"
+              cx={satelliteOrbit.center.x}
+              cy={satelliteOrbit.center.y}
+              r={satelliteOrbit.radius}
+            />
+          ))}
+          {rendering.bodies.map(({ body, position }) => (
+            <BodyMarker key={body.id} body={body} position={position} />
+          ))}
         </g>
 
         <g aria-label="Star" className="pointer-events-none">
@@ -138,6 +122,63 @@ export function StarSystemMap({ starSystem, resetSignal }: { starSystem: StarSys
       </g>
     </svg>
   )
+}
+
+function createStarSystemRendering(starSystem: StarSystem): StarSystemRendering {
+  const orbitCount = starSystem.orbits.length
+  const rendering: StarSystemRendering = {
+    orbitOuterRadii: [],
+    sectors: [],
+    bodies: [],
+    satelliteOrbits: [],
+  }
+
+  for (const [orbitIndex, orbit] of starSystem.orbits.entries()) {
+    const orbitRadii = getOrbitRadii({ orbitIndex, orbitCount })
+    rendering.orbitOuterRadii.push(orbitRadii.outerRadius)
+
+    for (const sector of orbit.sectors) {
+      const geometry = getSectorGeometry({
+        orbitRadii,
+        minAngle: sector.angleRange.min,
+        maxAngle: sector.angleRange.max,
+      })
+      rendering.sectors.push({
+        id: sector.id,
+        coordinates: sector.coordinates,
+        bodyCount: sector.bodies.length,
+        path: geometry.path,
+      })
+
+      const [centralBody, ...satellites] = sector.bodies
+      if (centralBody === undefined) {
+        continue
+      }
+
+      rendering.bodies.push({ body: centralBody, position: geometry.center })
+      if (centralBody.type === "PLANET" && satellites.length > 0) {
+        rendering.satelliteOrbits.push({
+          sectorId: sector.id,
+          center: geometry.center,
+          radius: geometry.satelliteOrbitRadius,
+        })
+      }
+
+      for (const [satelliteIndex, body] of satellites.entries()) {
+        rendering.bodies.push({
+          body,
+          position: getSatellitePosition({
+            center: geometry.center,
+            satelliteIndex,
+            satelliteCount: satellites.length,
+            orbitRadius: geometry.satelliteOrbitRadius,
+          }),
+        })
+      }
+    }
+  }
+
+  return rendering
 }
 
 function BodyMarker({ body, position }: { body: StarSystemBody; position: Point }): ReactElement {
