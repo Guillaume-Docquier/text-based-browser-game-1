@@ -13,11 +13,11 @@ export function StarSystemPage(): ReactElement {
   )
 
   return (
-    <section className="flex min-h-[34rem] flex-col">
-      <div className="relative min-h-[28rem] flex-1 overflow-hidden rounded-md border border-border/70 bg-[#080b12]">
+    <section className="flex min-h-[34rem] min-w-0 flex-1 flex-col">
+      <div className="relative min-h-[34rem] flex-1 overflow-hidden bg-[#080b12]">
         <div className="absolute inset-0 opacity-60 [background-image:radial-gradient(circle,rgba(255,255,255,0.35)_0.7px,transparent_0.8px)] [background-size:31px_31px]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(31,41,55,0.15),rgba(3,7,18,0.7)_75%)]" />
-        <div className="relative mx-auto aspect-square h-full max-h-[calc(100vh-13rem)] min-h-[28rem] max-w-full">
+        <div className="absolute inset-0">
           {starSystem.orbits.length === 0 ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
               <CircleDot className="size-8" />

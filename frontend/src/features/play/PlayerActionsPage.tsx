@@ -15,19 +15,29 @@ export function PlayerActionsPage({ gameId }: { gameId: GameId }): ReactElement 
   const currentActionQuery = useQuery(backendApiClient.gameplay.getCurrentAction.queryOptions({ gameId }))
 
   if (currentActionQuery.isPending) {
-    return <GameActionSelectorSkeleton />
+    return (
+      <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
+        <GameActionSelectorSkeleton />
+      </div>
+    )
   }
 
   if (currentActionQuery.isError) {
     logger.error("Could not fetch current action", { gameId, error: currentActionQuery.error.message })
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="size-4" />
-        <AlertTitle>Could not load current action</AlertTitle>
-        <AlertDescription>{currentActionQuery.error.message}</AlertDescription>
-      </Alert>
+      <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" />
+          <AlertTitle>Could not load current action</AlertTitle>
+          <AlertDescription>{currentActionQuery.error.message}</AlertDescription>
+        </Alert>
+      </div>
     )
   }
 
-  return <GameActionSelector gameId={gameId} playerView={playerView} currentAction={currentActionQuery.data.action} />
+  return (
+    <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
+      <GameActionSelector gameId={gameId} playerView={playerView} currentAction={currentActionQuery.data.action} />
+    </div>
+  )
 }
