@@ -8,9 +8,9 @@ export function GameLayout({ game, playerView, children }: { game: Lobby; player
   return (
     <div className="flex min-h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
       <GameSideNav gameId={game.id} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <GameTopBar game={game} playerView={playerView} />
-        <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">{children}</main>
+        <main className="flex min-h-0 min-w-0 flex-1">{children}</main>
       </div>
     </div>
   )

@@ -55,6 +55,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - ADR-019: Do not leave expected invariants implicit, use explicit `Assert` calls.
 - ADR-020: Frontend Tanstack routes should only do the routing. The UI is implemented in `frontend/src/features/` in vertical slices.
 - ADR-021: All Typescript schema column names should be `camelCased` but renamed to `snake_cased` for postgres via the `name` argument of column builders.
+- ADR-022: Frontend code imports named backend contract types from `backend/src/api/types.ts`. It only defines types for frontend concerns and never duplicates, reconstructs, or deconstructs backend types.
 
 ## Coding Conventions
 
@@ -67,6 +68,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Use `as const` objects and the `Enumify` type helper to create the enum type.
 - Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
 - When importing a value and a type of the same name from the same package (e.g `Range` or `Result`), just import the value. Do not import the type to rename it.
+- Prefer the specialized `Range.float({ min, max })` and `Range.integer({ min, max })` constructors over `Range.create` when their default exclusive maximum bound is appropriate.
 
 ## Drizzle Gotchas
 
