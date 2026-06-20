@@ -75,7 +75,12 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
   const [starSystemGenerationSettings, setStarSystemGenerationSettings] = useState(creationSettings.defaultStarSystemGenerationSettings)
   const navigate = useNavigate()
   const backendApiClient = useBackendApiClient()
-  const createGame = useMutation(backendApiClient.lobbies.create.mutationOptions())
+  const createGame = useMutation({
+    ...backendApiClient.lobbies.create.mutationOptions(),
+    onSuccess: async ({ createdGameId }) => {
+      await navigate({ to: "/games/$gameId", params: { gameId: createdGameId } })
+    },
+  })
   const isCreateDisabled = name === "" || nbSeats < 2
 
   return (
@@ -197,21 +202,14 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
         <Button
           disabled={isCreateDisabled || createGame.isPending}
           onClick={() => {
-            createGame.mutate(
-              {
-                configuration: {
-                  name,
-                  nbSeats,
-                  tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
-                  starSystemGenerationSettings,
-                },
+            createGame.mutate({
+              configuration: {
+                name,
+                nbSeats,
+                tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
+                starSystemGenerationSettings,
               },
-              {
-                onSuccess: ({ createdGameId }) => {
-                  void navigate({ to: "/games/$gameId", params: { gameId: createdGameId } })
-                },
-              },
-            )
+            })
           }}
         >
           {createGame.isPending ? "Creating..." : "Create"}
