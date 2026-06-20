@@ -45,7 +45,11 @@ const RANGE_SETTING_LABELS = {
 
 export function CreateGamePage(): ReactElement {
   const backendApiClient = useBackendApiClient()
-  const creationSettingsQuery = useQuery(backendApiClient.lobbies.getCreationSettings.queryOptions())
+  const creationSettingsQuery = useQuery({
+    ...backendApiClient.lobbies.getCreationSettings.queryOptions(),
+    staleTime: "static",
+    gcTime: Infinity,
+  })
 
   if (creationSettingsQuery.isPending) {
     return <CreateGameLoadingState />

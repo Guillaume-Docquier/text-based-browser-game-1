@@ -4,7 +4,7 @@ import { dark } from "@clerk/ui/themes"
 import { Logger, createConsoleLogSink, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
-import { type ReactElement, StrictMode } from "react"
+import { type ReactElement, StrictMode, useMemo } from "react"
 import ReactDOM from "react-dom/client"
 import { createBackendApiClient } from "./lib/api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "./lib/api/BackendApiClientContext.tsx"
@@ -61,7 +61,12 @@ if (rootElement.innerHTML === "") {
 
 function App(): ReactElement {
   const auth = useAuth()
-  const router = createAppRouter({ auth })
+  const router = useMemo(
+    () => createAppRouter({ auth }),
+    // Recreate the router for auth transitions, but not Clerk token refreshes.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- The router only reads these auth properties in route guards
+    [auth.isLoaded, auth.isSignedIn],
+  )
 
   return <RouterProvider router={router} />
 }
