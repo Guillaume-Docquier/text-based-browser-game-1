@@ -10,7 +10,7 @@ import {
 } from "../starSystemGeometry.ts"
 import { useStarSystemPanZoom } from "../useStarSystemPanZoom.ts"
 
-export function StarSystemSvg({ starSystem, resetSignal }: { starSystem: StarSystem; resetSignal: number }): ReactElement {
+export function StarSystemMap({ starSystem, resetSignal }: { starSystem: StarSystem; resetSignal: number }): ReactElement {
   const orbitCount = starSystem.orbits.length
   const panZoom = useStarSystemPanZoom({ resetSignal })
 

@@ -1,7 +1,7 @@
 import { CircleDot, LocateFixed } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { Button } from "../../components/button.tsx"
-import { StarSystemSvg } from "./components/StarSystemSvg.tsx"
+import { StarSystemMap } from "./components/StarSystemMap.tsx"
 import { usePlayGameContext } from "./PlayContext.tsx"
 
 export function StarSystemPage(): ReactElement {
@@ -26,7 +26,7 @@ export function StarSystemPage(): ReactElement {
               This Star System has no orbits.
             </div>
           ) : (
-            <StarSystemSvg starSystem={starSystem} resetSignal={resetSignal} />
+            <StarSystemMap starSystem={starSystem} resetSignal={resetSignal} />
           )}
         </div>
         <Button
