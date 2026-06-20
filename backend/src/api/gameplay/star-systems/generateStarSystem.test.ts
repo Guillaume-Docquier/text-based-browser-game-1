@@ -48,6 +48,41 @@ describe("generateStarSystem", () => {
     expect(firstSystem).not.toEqual(secondSystem)
   })
 
+  it("should generate unique ids", () => {
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({ seed: 3 })
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
+    const ids = [
+      ...system.orbits.map((orbit) => orbit.id),
+      ...system.sectors.flatMap((sector) => [sector.id, sector.movementNodeId]),
+      ...system.bodies.flatMap((body) => [body.id, body.movementNodeId]),
+    ]
+    const uniqueIds = Array.from(new Set(ids))
+    expect(ids).toEqual(uniqueIds)
+  })
+
+  it("should generate orbits without gaps", () => {
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({
+      nbPlanets: Range.integer({ min: 1, max: 1 }),
+      nbAsteroidBelts: Range.integer({ min: 5, max: 5 }),
+      seed: 4,
+    })
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
+    const orbitNumbers = system.orbits.map((orbit) => orbit.orbitNumber)
+    expect(orbitNumbers).toEqual([1, 2, 3, 4, 5, 6])
+  })
+
   it("[to review] should generate exact body counts and one complete Asteroid belt", () => {
     // Arrange
     const clock = new ControlledClock()
