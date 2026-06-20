@@ -336,7 +336,7 @@ function areSectorsAdjacent(firstSector: GeneratedSector, secondSector: Generate
   )
 }
 
-function generateMovementEdge(fromNodeId: string, toNodeId: string): NewMovementEdgeModel {
+export function generateMovementEdge(fromNodeId: string, toNodeId: string): NewMovementEdgeModel {
   return {
     fromNodeId,
     toNodeId,

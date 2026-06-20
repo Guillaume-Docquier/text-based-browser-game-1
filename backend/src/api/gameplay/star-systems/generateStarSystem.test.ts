@@ -5,7 +5,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { generateStarSystem } from "./generateStarSystem.ts"
+import { generateMovementEdge, generateStarSystem } from "./generateStarSystem.ts"
 
 describe("generateStarSystem", () => {
   it("should generate identical Star Systems from identical settings", () => {
@@ -88,7 +88,7 @@ describe("generateStarSystem", () => {
     const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub({
       nbPlanets: Range.integer({ min: 1, max: 1 }),
-      planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 1, max: 1 }),
+      planetDensity: Range.float({ min: 0.99, max: 1 }),
       nbMoonsPerPlanet: Range.integer({ min: 1, max: 1 }),
       nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
       nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
@@ -123,7 +123,7 @@ describe("generateStarSystem", () => {
     const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub({
       nbPlanets: Range.integer({ min: 1, max: 1 }),
-      planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 1, max: 1 }),
+      planetDensity: Range.float({ min: 0.99, max: 1 }),
       nbMoonsPerPlanet: Range.integer({ min: 1, max: 1 }),
       nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
       nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
@@ -149,6 +149,74 @@ describe("generateStarSystem", () => {
 
     const allBodyTypes = new Set(system.bodies.map((body) => body.bodyType))
     expect(allBodyTypes).toEqual(new Set([BodyType.ASTEROID, BodyType.PLANET, BodyType.MOON]))
+  })
+
+  it("should connect bodies and sectors correctly", () => {
+    // Arrange
+    const clock = new ControlledClock()
+    const settings = createStarSystemGenerationSettingsStub({
+      nbPlanets: Range.integer({ min: 1, max: 1 }),
+      planetDensity: Range.float({ min: 0.99, max: 1 }),
+      nbMoonsPerPlanet: Range.integer({ min: 1, max: 1 }),
+      nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
+      nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
+      seed: 0,
+    })
+
+    // Act
+    const system = extractSuccess(generateStarSystem({ settings, clock }))
+
+    // Assert
+    const o1 = system.orbits.find((orbit) => orbit.orbitNumber === 1)
+    Assert.isDefined(o1)
+    const o2 = system.orbits.find((orbit) => orbit.orbitNumber === 2)
+    Assert.isDefined(o2)
+
+    const o1s1 = system.sectors.find((sector) => sector.orbitId === o1.id && sector.sectorNumber === 1)
+    Assert.isDefined(o1s1)
+    const o1s2 = system.sectors.find((sector) => sector.orbitId === o1.id && sector.sectorNumber === 2)
+    Assert.isDefined(o1s2)
+
+    const o2s1 = system.sectors.find((sector) => sector.orbitId === o2.id && sector.sectorNumber === 1)
+    Assert.isDefined(o2s1)
+    const o2s2 = system.sectors.find((sector) => sector.orbitId === o2.id && sector.sectorNumber === 2)
+    Assert.isDefined(o2s2)
+    const o2s3 = system.sectors.find((sector) => sector.orbitId === o2.id && sector.sectorNumber === 3)
+    Assert.isDefined(o2s3)
+    const o2s4 = system.sectors.find((sector) => sector.orbitId === o2.id && sector.sectorNumber === 4)
+    Assert.isDefined(o2s4)
+
+    expect(system.movementEdges).toEqual([
+      // o1s1
+      generateMovementEdge(o1s1.movementNodeId, o1s2.movementNodeId),
+      generateMovementEdge(o1s1.movementNodeId, o2s1.movementNodeId),
+      generateMovementEdge(o1s1.movementNodeId, o2s2.movementNodeId),
+
+      // o1s2
+      generateMovementEdge(o1s2.movementNodeId, o1s1.movementNodeId),
+      generateMovementEdge(o1s2.movementNodeId, o2s3.movementNodeId),
+      generateMovementEdge(o1s2.movementNodeId, o2s4.movementNodeId),
+
+      // o2s1
+      generateMovementEdge(o2s1.movementNodeId, o1s1.movementNodeId),
+      generateMovementEdge(o2s1.movementNodeId, o2s4.movementNodeId),
+      generateMovementEdge(o2s1.movementNodeId, o2s2.movementNodeId),
+
+      // o2s2
+      generateMovementEdge(o2s2.movementNodeId, o1s1.movementNodeId),
+      generateMovementEdge(o2s2.movementNodeId, o2s1.movementNodeId),
+      generateMovementEdge(o2s2.movementNodeId, o2s3.movementNodeId),
+
+      // o2s3
+      generateMovementEdge(o2s3.movementNodeId, o1s2.movementNodeId),
+      generateMovementEdge(o2s3.movementNodeId, o2s2.movementNodeId),
+      generateMovementEdge(o2s3.movementNodeId, o2s4.movementNodeId),
+
+      // o2s4
+      generateMovementEdge(o2s4.movementNodeId, o1s2.movementNodeId),
+      generateMovementEdge(o2s4.movementNodeId, o2s3.movementNodeId),
+      generateMovementEdge(o2s4.movementNodeId, o2s1.movementNodeId),
+    ])
   })
 
   it("[to review] should create reciprocal movement edges and one node per Sector and Body", () => {
