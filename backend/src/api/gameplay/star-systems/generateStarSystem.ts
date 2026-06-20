@@ -304,7 +304,10 @@ function generateMovementEdges({ sectors, bodies }: { sectors: GeneratedSector[]
       movementEdges.push(generateMovementEdge(sector.movementNodeId, body.movementNodeId))
 
       for (const otherBody of bodiesInSector) {
-        movementEdges.push(generateMovementEdge(body.movementNodeId, otherBody.movementNodeId))
+        // Don't count yourself
+        if (body.id !== otherBody.id) {
+          movementEdges.push(generateMovementEdge(body.movementNodeId, otherBody.movementNodeId))
+        }
       }
     }
   }

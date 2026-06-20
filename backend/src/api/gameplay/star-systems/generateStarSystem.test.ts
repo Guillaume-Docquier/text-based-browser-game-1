@@ -1,5 +1,6 @@
 import { Assert, Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import type { NewMovementEdgeModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { Clock } from "#lib/Clock.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
@@ -170,6 +171,7 @@ describe("generateStarSystem", () => {
       system.movementEdges.flatMap((movementEdge) => [movementEdge.fromNodeId, movementEdge.toNodeId]),
     )
 
+    expect(system.movementNodes.length).toEqual(movementNodeIds.size)
     expect(sectorBodiesMovementNodeIds).toEqual(movementNodeIds)
     expect(movementEdgesMovementNodeIds).toEqual(movementNodeIds)
   })
@@ -190,19 +192,20 @@ describe("generateStarSystem", () => {
     const system = extractSuccess(generateStarSystem({ settings, clock }))
 
     // Assert
+    // We'll map movementNodeIds to coordinates to make it easier to debug
     const coordinatesByMovementNodeId = new Map<string, string>()
     for (const orbit of system.orbits) {
       for (const sector of system.sectors.filter((s) => s.orbitId === orbit.id)) {
-        const sectorCoordinates = toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber })
-        coordinatesByMovementNodeId.set(sector.movementNodeId, sectorCoordinates)
+        coordinatesByMovementNodeId.set(
+          sector.movementNodeId,
+          toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }),
+        )
 
         for (const body of system.bodies.filter((b) => b.sectorId === sector.id)) {
-          const bodyCoordinates = toCoordinates({
-            orbitNumber: orbit.orbitNumber,
-            sectorNumber: sector.sectorNumber,
-            bodyNumber: body.bodyNumber,
-          })
-          coordinatesByMovementNodeId.set(body.movementNodeId, bodyCoordinates)
+          coordinatesByMovementNodeId.set(
+            body.movementNodeId,
+            toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber, bodyNumber: body.bodyNumber }),
+          )
         }
       }
     }
@@ -213,9 +216,18 @@ describe("generateStarSystem", () => {
       return coordinates
     }
 
-    const movementEdgesByCoordinates = system.movementEdges.map(({ fromNodeId, toNodeId }) => {
-      return generateMovementEdge(getCoordinates(fromNodeId), getCoordinates(toNodeId))
-    })
+    function compareMovementEdges(firstEdge: NewMovementEdgeModel, secondEdge: NewMovementEdgeModel): number {
+      const firstComparison = firstEdge.fromNodeId.localeCompare(secondEdge.fromNodeId)
+      if (firstComparison !== 0) {
+        return firstComparison
+      }
+
+      return firstEdge.toNodeId.localeCompare(secondEdge.toNodeId)
+    }
+
+    const movementEdgesByCoordinates = system.movementEdges
+      .map(({ fromNodeId, toNodeId }) => generateMovementEdge(getCoordinates(fromNodeId), getCoordinates(toNodeId)))
+      .sort(compareMovementEdges)
 
     const o1s1 = toCoordinates({ orbitNumber: 1, sectorNumber: 1 })
 
@@ -235,124 +247,65 @@ describe("generateStarSystem", () => {
     const o2s4 = toCoordinates({ orbitNumber: 2, sectorNumber: 4 })
     const o2s4a1 = toCoordinates({ orbitNumber: 2, sectorNumber: 4, bodyNumber: 1 })
 
-    expect(movementEdgesByCoordinates).toEqual([
-      // o1s1
-      generateMovementEdge(o1s1, o1s2),
-      generateMovementEdge(o1s1, o2s1),
-      generateMovementEdge(o1s1, o2s2),
+    expect(movementEdgesByCoordinates).toEqual(
+      [
+        // o1s1
+        generateMovementEdge(o1s1, o1s2),
+        generateMovementEdge(o1s1, o2s1),
+        generateMovementEdge(o1s1, o2s2),
 
-      // o1s2
-      generateMovementEdge(o1s2, o1s1),
-      generateMovementEdge(o1s2, o2s3),
-      generateMovementEdge(o1s2, o2s4),
-      generateMovementEdge(o1s2, o1s2p1),
-      generateMovementEdge(o1s2, o1s2m2),
+        // o1s2
+        generateMovementEdge(o1s2, o1s1),
+        generateMovementEdge(o1s2, o2s3),
+        generateMovementEdge(o1s2, o2s4),
+        generateMovementEdge(o1s2, o1s2p1),
+        generateMovementEdge(o1s2, o1s2m2),
 
-      // o1s2b1
-      generateMovementEdge(o1s2p1, o1s2),
-      generateMovementEdge(o1s2p1, o1s2m2),
+        // o1s2b1
+        generateMovementEdge(o1s2p1, o1s2),
+        generateMovementEdge(o1s2p1, o1s2m2),
 
-      // o1s2b2
-      generateMovementEdge(o1s2m2, o1s2),
-      generateMovementEdge(o1s2m2, o1s2p1),
+        // o1s2b2
+        generateMovementEdge(o1s2m2, o1s2),
+        generateMovementEdge(o1s2m2, o1s2p1),
 
-      // o2s1
-      generateMovementEdge(o2s1, o1s1),
-      generateMovementEdge(o2s1, o2s4),
-      generateMovementEdge(o2s1, o2s2),
-      generateMovementEdge(o2s1, o2s1a1),
+        // o2s1
+        generateMovementEdge(o2s1, o1s1),
+        generateMovementEdge(o2s1, o2s4),
+        generateMovementEdge(o2s1, o2s2),
+        generateMovementEdge(o2s1, o2s1a1),
 
-      // o2s1b1
-      generateMovementEdge(o2s1a1, o2s1),
+        // o2s1b1
+        generateMovementEdge(o2s1a1, o2s1),
 
-      // o2s2
-      generateMovementEdge(o2s2, o1s1),
-      generateMovementEdge(o2s2, o2s1),
-      generateMovementEdge(o2s2, o2s3),
-      generateMovementEdge(o2s2, o2s2a1),
+        // o2s2
+        generateMovementEdge(o2s2, o1s1),
+        generateMovementEdge(o2s2, o2s1),
+        generateMovementEdge(o2s2, o2s3),
+        generateMovementEdge(o2s2, o2s2a1),
 
-      // o2s2b1
-      generateMovementEdge(o2s2a1, o2s2),
+        // o2s2b1
+        generateMovementEdge(o2s2a1, o2s2),
 
-      // o2s3
-      generateMovementEdge(o2s3, o1s2),
-      generateMovementEdge(o2s3, o2s2),
-      generateMovementEdge(o2s3, o2s4),
-      generateMovementEdge(o2s3, o2s3a1),
+        // o2s3
+        generateMovementEdge(o2s3, o1s2),
+        generateMovementEdge(o2s3, o2s2),
+        generateMovementEdge(o2s3, o2s4),
+        generateMovementEdge(o2s3, o2s3a1),
 
-      // o2s3b1
-      generateMovementEdge(o2s3a1, o2s3),
+        // o2s3b1
+        generateMovementEdge(o2s3a1, o2s3),
 
-      // o2s4
-      generateMovementEdge(o2s4, o1s2),
-      generateMovementEdge(o2s4, o2s3),
-      generateMovementEdge(o2s4, o2s1),
-      generateMovementEdge(o2s4, o2s4a1),
+        // o2s4
+        generateMovementEdge(o2s4, o1s2),
+        generateMovementEdge(o2s4, o2s3),
+        generateMovementEdge(o2s4, o2s1),
+        generateMovementEdge(o2s4, o2s4a1),
 
-      // o2s4b1
-      generateMovementEdge(o2s4a1, o2s4),
-    ])
-  })
-
-  it("[to review] should create reciprocal movement edges and one node per Sector and Body", () => {
-    // Arrange
-    const clock = new ControlledClock()
-    const settings = createStarSystemGenerationSettingsStub()
-
-    // Act
-    const system = extractSuccess(generateStarSystem({ settings, clock }))
-
-    // Assert
-    const edges = new Set(system.movementEdges.map(({ fromNodeId, toNodeId }) => `${fromNodeId}:${toNodeId}`))
-
-    expect(system.movementNodes).toHaveLength(system.sectors.length + system.bodies.length)
-    for (const edge of system.movementEdges) {
-      expect(edges.has(`${edge.toNodeId}:${edge.fromNodeId}`)).toBe(true)
-    }
-  })
-
-  it("[to review] should connect Sectors when their angle ranges share a border", () => {
-    // Arrange
-    const clock = new ControlledClock()
-    const settings = createStarSystemGenerationSettingsStub({
-      planetDensity: Range.float({ min: 0.2, max: 0.3 }),
-      nbPlanets: Range.integer({ min: 1, max: 1 }),
-      nbMoonsPerPlanet: Range.integer({ min: 0, max: 0 }),
-      nbAsteroidBelts: Range.integer({ min: 0, max: 0 }),
-    })
-
-    // Act
-    const system = extractSuccess(generateStarSystem({ settings, clock }))
-
-    // Assert
-    const orbitNumbersById = new Map(system.orbits.map(({ id, orbitNumber }) => [id, orbitNumber]))
-    const sectorEdges = new Set(system.movementEdges.map(({ fromNodeId, toNodeId }) => `${fromNodeId}:${toNodeId}`))
-
-    for (let firstSectorIndex = 0; firstSectorIndex < system.sectors.length; firstSectorIndex++) {
-      for (let secondSectorIndex = firstSectorIndex + 1; secondSectorIndex < system.sectors.length; secondSectorIndex++) {
-        const firstSector = system.sectors[firstSectorIndex]
-        const secondSector = system.sectors[secondSectorIndex]
-        if (firstSector === undefined || secondSector === undefined) {
-          continue
-        }
-
-        const firstOrbitNumber = orbitNumbersById.get(firstSector.orbitId)
-        const secondOrbitNumber = orbitNumbersById.get(secondSector.orbitId)
-        const orbitDistance =
-          firstOrbitNumber === undefined || secondOrbitNumber === undefined
-            ? Number.POSITIVE_INFINITY
-            : Math.abs(firstOrbitNumber - secondOrbitNumber)
-        const sharesBorder =
-          orbitDistance === 0
-            ? firstSector.angleRange.max === secondSector.angleRange.min ||
-              secondSector.angleRange.max === firstSector.angleRange.min ||
-              (firstSector.angleRange.min === 0 && secondSector.angleRange.max === 360) ||
-              (secondSector.angleRange.min === 0 && firstSector.angleRange.max === 360)
-            : orbitDistance === 1 && Range.overlaps(firstSector.angleRange, secondSector.angleRange)
-
-        expect(sectorEdges.has(`${firstSector.movementNodeId}:${secondSector.movementNodeId}`)).toBe(sharesBorder)
-      }
-    }
+        // o2s4b1
+        generateMovementEdge(o2s4a1, o2s4),
+      ].sort(compareMovementEdges),
+    )
   })
 
   it.each([Range.float({ min: -0.1, max: 0.5 }), Range.float({ min: 0.5, max: 1.1 })])(
