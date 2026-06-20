@@ -5,6 +5,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
+import { toCoordinates } from "./Coordinates.ts"
 import { generateMovementEdge, generateStarSystem } from "./generateStarSystem.ts"
 
 describe("generateStarSystem", () => {
@@ -189,95 +190,107 @@ describe("generateStarSystem", () => {
     const system = extractSuccess(generateStarSystem({ settings, clock }))
 
     // Assert
-    const o1 = system.orbits.find((orbit) => orbit.orbitNumber === 1)
-    Assert.isDefined(o1)
-    const o2 = system.orbits.find((orbit) => orbit.orbitNumber === 2)
-    Assert.isDefined(o2)
+    const coordinatesByMovementNodeId = new Map<string, string>()
+    for (const orbit of system.orbits) {
+      for (const sector of system.sectors.filter((s) => s.orbitId === orbit.id)) {
+        const sectorCoordinates = toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber })
+        coordinatesByMovementNodeId.set(sector.movementNodeId, sectorCoordinates)
 
-    const o1s1 = system.sectors.find((sector) => sector.orbitId === o1.id && sector.sectorNumber === 1)
-    Assert.isDefined(o1s1)
-    const o1s2 = system.sectors.find((sector) => sector.orbitId === o1.id && sector.sectorNumber === 2)
-    Assert.isDefined(o1s2)
+        for (const body of system.bodies.filter((b) => b.sectorId === sector.id)) {
+          const bodyCoordinates = toCoordinates({
+            orbitNumber: orbit.orbitNumber,
+            sectorNumber: sector.sectorNumber,
+            bodyNumber: body.bodyNumber,
+          })
+          coordinatesByMovementNodeId.set(body.movementNodeId, bodyCoordinates)
+        }
+      }
+    }
 
-    const o2s1 = system.sectors.find((sector) => sector.orbitId === o2.id && sector.sectorNumber === 1)
-    Assert.isDefined(o2s1)
-    const o2s2 = system.sectors.find((sector) => sector.orbitId === o2.id && sector.sectorNumber === 2)
-    Assert.isDefined(o2s2)
-    const o2s3 = system.sectors.find((sector) => sector.orbitId === o2.id && sector.sectorNumber === 3)
-    Assert.isDefined(o2s3)
-    const o2s4 = system.sectors.find((sector) => sector.orbitId === o2.id && sector.sectorNumber === 4)
-    Assert.isDefined(o2s4)
+    function getCoordinates(movementNodeId: string): string {
+      const coordinates = coordinatesByMovementNodeId.get(movementNodeId)
+      Assert.isDefined(coordinates)
+      return coordinates
+    }
 
-    const o1s2p1 = system.bodies.find((body) => body.sectorId === o1s2.id && body.bodyNumber === 1)
-    Assert.isDefined(o1s2p1)
-    const o1s2m2 = system.bodies.find((body) => body.sectorId === o1s2.id && body.bodyNumber === 2)
-    Assert.isDefined(o1s2m2)
+    const movementEdgesByCoordinates = system.movementEdges.map(({ fromNodeId, toNodeId }) => {
+      return generateMovementEdge(getCoordinates(fromNodeId), getCoordinates(toNodeId))
+    })
 
-    const o2s1a1 = system.bodies.find((body) => body.sectorId === o2s1.id && body.bodyNumber === 1)
-    Assert.isDefined(o2s1a1)
-    const o2s2a1 = system.bodies.find((body) => body.sectorId === o2s2.id && body.bodyNumber === 1)
-    Assert.isDefined(o2s2a1)
-    const o2s3a1 = system.bodies.find((body) => body.sectorId === o2s3.id && body.bodyNumber === 1)
-    Assert.isDefined(o2s3a1)
-    const o2s4a1 = system.bodies.find((body) => body.sectorId === o2s4.id && body.bodyNumber === 1)
-    Assert.isDefined(o2s4a1)
+    const o1s1 = toCoordinates({ orbitNumber: 1, sectorNumber: 1 })
 
-    expect(system.movementEdges).toEqual([
+    const o1s2 = toCoordinates({ orbitNumber: 1, sectorNumber: 2 })
+    const o1s2p1 = toCoordinates({ orbitNumber: 1, sectorNumber: 2, bodyNumber: 1 })
+    const o1s2m2 = toCoordinates({ orbitNumber: 1, sectorNumber: 2, bodyNumber: 2 })
+
+    const o2s1 = toCoordinates({ orbitNumber: 2, sectorNumber: 1 })
+    const o2s1a1 = toCoordinates({ orbitNumber: 2, sectorNumber: 1, bodyNumber: 1 })
+
+    const o2s2 = toCoordinates({ orbitNumber: 2, sectorNumber: 2 })
+    const o2s2a1 = toCoordinates({ orbitNumber: 2, sectorNumber: 2, bodyNumber: 1 })
+
+    const o2s3 = toCoordinates({ orbitNumber: 2, sectorNumber: 3 })
+    const o2s3a1 = toCoordinates({ orbitNumber: 2, sectorNumber: 3, bodyNumber: 1 })
+
+    const o2s4 = toCoordinates({ orbitNumber: 2, sectorNumber: 4 })
+    const o2s4a1 = toCoordinates({ orbitNumber: 2, sectorNumber: 4, bodyNumber: 1 })
+
+    expect(movementEdgesByCoordinates).toEqual([
       // o1s1
-      generateMovementEdge(o1s1.movementNodeId, o1s2.movementNodeId),
-      generateMovementEdge(o1s1.movementNodeId, o2s1.movementNodeId),
-      generateMovementEdge(o1s1.movementNodeId, o2s2.movementNodeId),
+      generateMovementEdge(o1s1, o1s2),
+      generateMovementEdge(o1s1, o2s1),
+      generateMovementEdge(o1s1, o2s2),
 
       // o1s2
-      generateMovementEdge(o1s2.movementNodeId, o1s1.movementNodeId),
-      generateMovementEdge(o1s2.movementNodeId, o2s3.movementNodeId),
-      generateMovementEdge(o1s2.movementNodeId, o2s4.movementNodeId),
-      generateMovementEdge(o1s2.movementNodeId, o1s2p1.movementNodeId),
-      generateMovementEdge(o1s2.movementNodeId, o1s2m2.movementNodeId),
+      generateMovementEdge(o1s2, o1s1),
+      generateMovementEdge(o1s2, o2s3),
+      generateMovementEdge(o1s2, o2s4),
+      generateMovementEdge(o1s2, o1s2p1),
+      generateMovementEdge(o1s2, o1s2m2),
 
       // o1s2b1
-      generateMovementEdge(o1s2p1.movementNodeId, o1s2.movementNodeId),
-      generateMovementEdge(o1s2p1.movementNodeId, o1s2m2.movementNodeId),
+      generateMovementEdge(o1s2p1, o1s2),
+      generateMovementEdge(o1s2p1, o1s2m2),
 
       // o1s2b2
-      generateMovementEdge(o1s2m2.movementNodeId, o1s2.movementNodeId),
-      generateMovementEdge(o1s2m2.movementNodeId, o1s2p1.movementNodeId),
+      generateMovementEdge(o1s2m2, o1s2),
+      generateMovementEdge(o1s2m2, o1s2p1),
 
       // o2s1
-      generateMovementEdge(o2s1.movementNodeId, o1s1.movementNodeId),
-      generateMovementEdge(o2s1.movementNodeId, o2s4.movementNodeId),
-      generateMovementEdge(o2s1.movementNodeId, o2s2.movementNodeId),
-      generateMovementEdge(o2s1.movementNodeId, o2s1a1.movementNodeId),
+      generateMovementEdge(o2s1, o1s1),
+      generateMovementEdge(o2s1, o2s4),
+      generateMovementEdge(o2s1, o2s2),
+      generateMovementEdge(o2s1, o2s1a1),
 
       // o2s1b1
-      generateMovementEdge(o2s1a1.movementNodeId, o2s1.movementNodeId),
+      generateMovementEdge(o2s1a1, o2s1),
 
       // o2s2
-      generateMovementEdge(o2s2.movementNodeId, o1s1.movementNodeId),
-      generateMovementEdge(o2s2.movementNodeId, o2s1.movementNodeId),
-      generateMovementEdge(o2s2.movementNodeId, o2s3.movementNodeId),
-      generateMovementEdge(o2s2.movementNodeId, o2s2a1.movementNodeId),
+      generateMovementEdge(o2s2, o1s1),
+      generateMovementEdge(o2s2, o2s1),
+      generateMovementEdge(o2s2, o2s3),
+      generateMovementEdge(o2s2, o2s2a1),
 
       // o2s2b1
-      generateMovementEdge(o2s2a1.movementNodeId, o2s2.movementNodeId),
+      generateMovementEdge(o2s2a1, o2s2),
 
       // o2s3
-      generateMovementEdge(o2s3.movementNodeId, o1s2.movementNodeId),
-      generateMovementEdge(o2s3.movementNodeId, o2s2.movementNodeId),
-      generateMovementEdge(o2s3.movementNodeId, o2s4.movementNodeId),
-      generateMovementEdge(o2s3.movementNodeId, o2s3a1.movementNodeId),
+      generateMovementEdge(o2s3, o1s2),
+      generateMovementEdge(o2s3, o2s2),
+      generateMovementEdge(o2s3, o2s4),
+      generateMovementEdge(o2s3, o2s3a1),
 
       // o2s3b1
-      generateMovementEdge(o2s3a1.movementNodeId, o2s3.movementNodeId),
+      generateMovementEdge(o2s3a1, o2s3),
 
       // o2s4
-      generateMovementEdge(o2s4.movementNodeId, o1s2.movementNodeId),
-      generateMovementEdge(o2s4.movementNodeId, o2s3.movementNodeId),
-      generateMovementEdge(o2s4.movementNodeId, o2s1.movementNodeId),
-      generateMovementEdge(o2s4.movementNodeId, o2s4a1.movementNodeId),
+      generateMovementEdge(o2s4, o1s2),
+      generateMovementEdge(o2s4, o2s3),
+      generateMovementEdge(o2s4, o2s1),
+      generateMovementEdge(o2s4, o2s4a1),
 
       // o2s4b1
-      generateMovementEdge(o2s4a1.movementNodeId, o2s4.movementNodeId),
+      generateMovementEdge(o2s4a1, o2s4),
     ])
   })
 
