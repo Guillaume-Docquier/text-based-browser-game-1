@@ -6,6 +6,7 @@ import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDt
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
@@ -147,6 +148,7 @@ describe("gameplay.router", () => {
       const getByIdResult = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
+      // This is basically a snapshot test since we've tested the star systems extensively already in unit tests
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameId: createdGameId,
         playerId: account.id,
@@ -171,7 +173,7 @@ describe("gameplay.router", () => {
                       movementNodeId: "00000000-0000-7000-8000-3e8019d20e5e",
                       name: "Asteroid 01",
                       number: 1,
-                      type: "ASTEROID",
+                      type: BodyType.ASTEROID,
                     },
                   ],
                   coordinates: "01:01",
@@ -188,7 +190,7 @@ describe("gameplay.router", () => {
                       movementNodeId: "00000000-0000-7000-8000-44f1f34484dc",
                       name: "Asteroid 01",
                       number: 1,
-                      type: "ASTEROID",
+                      type: BodyType.ASTEROID,
                     },
                   ],
                   coordinates: "01:02",
@@ -212,7 +214,7 @@ describe("gameplay.router", () => {
                       movementNodeId: "00000000-0000-7000-8000-4df67c46a1c5",
                       name: "Planet 01",
                       number: 1,
-                      type: "PLANET",
+                      type: BodyType.PLANET,
                     },
                     {
                       coordinates: "02:01:02",
@@ -220,7 +222,7 @@ describe("gameplay.router", () => {
                       movementNodeId: "00000000-0000-7000-8000-55b345dba0e8",
                       name: "Moon 02",
                       number: 2,
-                      type: "MOON",
+                      type: BodyType.MOON,
                     },
                   ],
                   coordinates: "02:01",
