@@ -47,11 +47,12 @@ export function CreateGamePage(): ReactElement {
   const backendApiClient = useBackendApiClient()
   const creationSettingsQuery = useQuery({
     ...backendApiClient.lobbies.getCreationSettings.queryOptions(),
-    staleTime: "static",
+    staleTime: Infinity,
     gcTime: Infinity,
+    refetchOnMount: "always",
   })
 
-  if (creationSettingsQuery.isPending) {
+  if (creationSettingsQuery.isPending || creationSettingsQuery.isFetching) {
     return <CreateGameLoadingState />
   }
 
