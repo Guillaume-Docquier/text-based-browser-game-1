@@ -1,7 +1,5 @@
 import type * as ApiTypes from "@api-types"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
 import { type ReactElement, useState } from "react"
 import { Button } from "../../components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/card.tsx"
@@ -10,7 +8,8 @@ import { Label } from "../../components/label.tsx"
 import { RangeSlider } from "../../components/RangeSlider.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/select.tsx"
 import { Skeleton } from "../../components/skeleton.tsx"
-import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
+import { useCreateGameMutation } from "../../lib/api/useCreateGameMutation.ts"
+import { useLobbyCreationSettingsQuery } from "../../lib/api/useLobbyCreationSettingsQuery.ts"
 import { PageHeader } from "../PageHeader.tsx"
 
 type TickIntervalUnit = Enumify<typeof TickIntervalUnit>
@@ -44,13 +43,7 @@ const RANGE_SETTING_LABELS = {
 } satisfies Record<ApiTypes.RangeSettingKey, { label: string; description: string }>
 
 export function CreateGamePage(): ReactElement {
-  const backendApiClient = useBackendApiClient()
-  const creationSettingsQuery = useQuery({
-    ...backendApiClient.lobbies.getCreationSettings.queryOptions(),
-    staleTime: Infinity,
-    gcTime: Infinity,
-    refetchOnMount: "always",
-  })
+  const creationSettingsQuery = useLobbyCreationSettingsQuery()
 
   if (creationSettingsQuery.isPending || creationSettingsQuery.isFetching) {
     return <CreateGameLoadingState />
@@ -73,14 +66,7 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
   const [tickIntervalMultiplier, setTickIntervalMultiplier] = useState(1)
   const [tickIntervalUnit, setTickIntervalUnit] = useState<TickIntervalUnit>(TickIntervalUnit.days)
   const [starSystemGenerationSettings, setStarSystemGenerationSettings] = useState(creationSettings.defaultStarSystemGenerationSettings)
-  const navigate = useNavigate()
-  const backendApiClient = useBackendApiClient()
-  const createGame = useMutation({
-    ...backendApiClient.lobbies.create.mutationOptions(),
-    onSuccess: async ({ createdGameId }) => {
-      await navigate({ to: "/games/$gameId", params: { gameId: createdGameId } })
-    },
-  })
+  const createGame = useCreateGameMutation()
   const isCreateDisabled = name === "" || nbSeats < 2
 
   return (

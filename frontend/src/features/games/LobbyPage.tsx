@@ -1,12 +1,14 @@
 import type * as ApiTypes from "@api-types"
-import { useMutation, useQuery } from "@tanstack/react-query"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { Button } from "../../components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/card.tsx"
 import { Separator } from "../../components/separator.tsx"
 import { Skeleton } from "../../components/skeleton.tsx"
-import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
+import { useJoinGameMutation } from "../../lib/api/useJoinGameMutation.ts"
+import { useLeaveGameMutation } from "../../lib/api/useLeaveGameMutation.ts"
+import { useLobbyQuery } from "../../lib/api/useLobbyQuery.ts"
+import { useStartGameMutation } from "../../lib/api/useStartGameMutation.ts"
 import { formatLobbyStatus } from "../../lib/formatLobbyStatus.ts"
 import { useLogger } from "../../lib/LoggerContext.tsx"
 import { timeAgo } from "../../lib/timeAgo.ts"
@@ -15,8 +17,7 @@ import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 
 export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
-  const backendApiClient = useBackendApiClient()
-  const gameQuery = useQuery(backendApiClient.lobbies.getById.queryOptions({ gameId }))
+  const gameQuery = useLobbyQuery(gameId)
 
   if (gameQuery.isPending) {
     return <LobbyLoadingState />
@@ -36,10 +37,9 @@ export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement
 
 function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
   const navigate = useNavigate()
-  const backendApiClient = useBackendApiClient()
-  const joinGame = useMutation(backendApiClient.lobbies.join.mutationOptions())
-  const leaveGame = useMutation(backendApiClient.lobbies.leave.mutationOptions())
-  const startGame = useMutation(backendApiClient.gameplay.startGame.mutationOptions())
+  const joinGame = useJoinGameMutation()
+  const leaveGame = useLeaveGameMutation()
+  const startGame = useStartGameMutation()
 
   return (
     <div className="flex flex-col gap-6">
