@@ -77,7 +77,7 @@ describe("gameplay.router", () => {
     it("should start two games with identical deterministic Star Systems", async () => {
       // Arrange
       const clock = new ControlledClock()
-      const { api, authService, accountsRepository, lobbiesRepository } = await createApiStub({ clock })
+      const { api, authService, accountsRepository } = await createApiStub({ clock })
       using trpcClient = new TrpcClient({ api })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
@@ -86,14 +86,8 @@ describe("gameplay.router", () => {
       const gameConfiguration = createGameConfigurationDtoStub({
         starSystemGenerationSettings: createStarSystemGenerationSettingsStub({ seed: 42 }),
       })
-      const firstGame = extractSuccess(
-        // We'll use the route instead when it is available
-        await lobbiesRepository.createLobby({ createdByAccountId: account.id, configuration: gameConfiguration }),
-      )
-      const secondGame = extractSuccess(
-        // We'll use the route instead when it is available
-        await lobbiesRepository.createLobby({ createdByAccountId: account.id, configuration: gameConfiguration }),
-      )
+      const firstGame = await trpcClient.client.lobbies.create.mutate({ configuration: gameConfiguration })
+      const secondGame = await trpcClient.client.lobbies.create.mutate({ configuration: gameConfiguration })
 
       // Act
       await trpcClient.client.gameplay.startGame.mutate({ gameId: firstGame.createdGameId })
@@ -121,7 +115,7 @@ describe("gameplay.router", () => {
     it("should get the authenticated player's state for a started game", async () => {
       // Arrange
       const clock = new ControlledClock()
-      const { api, authService, accountsRepository, lobbiesRepository } = await createApiStub({ clock })
+      const { api, authService, accountsRepository } = await createApiStub({ clock })
       using trpcClient = new TrpcClient({ api })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
@@ -129,18 +123,15 @@ describe("gameplay.router", () => {
 
       const gameConfiguration = createGameConfigurationDtoStub({
         starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
-          nbPlanets: Range.integer({ min: 1, max: 1 }),
-          planetDensity: Range.float({ min: 0.99, max: 1 }),
-          nbMoonsPerPlanet: Range.integer({ min: 1, max: 1 }),
-          nbAsteroidBelts: Range.integer({ min: 1, max: 1 }),
-          nbAsteroidsPerSector: Range.integer({ min: 1, max: 1 }),
+          nbPlanets: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
+          planetDensity: Range.create({ numericType: "float", maxBoundType: "inclusive", min: 0.99, max: 1 }),
+          nbMoonsPerPlanet: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
+          nbAsteroidBelts: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
+          nbAsteroidsPerSector: Range.create({ numericType: "integer", maxBoundType: "inclusive", min: 1, max: 1 }),
           seed: 42,
         }),
       })
-      const { createdGameId } = extractSuccess(
-        // We'll use the route instead when it is available
-        await lobbiesRepository.createLobby({ createdByAccountId: account.id, configuration: gameConfiguration }),
-      )
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: gameConfiguration })
 
       await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
@@ -416,12 +407,7 @@ describe("gameplay.router", () => {
       authService.account = account
 
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
-        configuration: {
-          name: "action game",
-          nbSeats: 2,
-          tickIntervalSeconds: 60,
-          starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-        },
+        configuration: createGameConfigurationDtoStub(),
       })
       await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await resourcesRepository.updateResource(

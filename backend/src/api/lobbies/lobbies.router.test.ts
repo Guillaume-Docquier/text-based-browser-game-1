@@ -103,14 +103,11 @@ describe("lobbies.router", () => {
       // Act & Assert
       await expect(
         trpcClient.client.lobbies.create.mutate({
-          configuration: {
-            name: "out of bounds",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
+          configuration: createGameConfigurationDtoStub({
             starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
               planetDensity: Range.float({ min: 0.5, max: 1.1 }),
             }),
-          },
+          }),
         }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
@@ -127,14 +124,11 @@ describe("lobbies.router", () => {
       // Act & Assert
       await expect(
         trpcClient.client.lobbies.create.mutate({
-          configuration: {
-            name: "invalid seed",
-            nbSeats: 2,
-            tickIntervalSeconds: 60,
+          configuration: createGameConfigurationDtoStub({
             starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
               seed: 1.5,
             }),
-          },
+          }),
         }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
