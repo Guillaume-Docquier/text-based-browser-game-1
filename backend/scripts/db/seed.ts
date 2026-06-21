@@ -8,7 +8,7 @@ import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-s
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
-import { createDb, type Database } from "#lib/db/createDb.ts"
+import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { accountsTable, gamesTable } from "#lib/db/schema.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
 
@@ -76,7 +76,7 @@ async function main({ connectionString, user }: { connectionString: string; user
   const accountsRepository = new AccountsRepository({ db, logger })
   const lobbiesController = new LobbiesController({
     logger,
-    createTransaction: db.transaction.bind(db),
+    createTransaction: createCreateTransaction(db),
     lobbiesRepository: new LobbiesRepository({ db, logger }),
   })
 

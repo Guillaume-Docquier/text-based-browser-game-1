@@ -8,8 +8,7 @@ import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
-import type { Database } from "#lib/db/createDb.ts"
-import { createDb } from "#lib/db/createDb.ts"
+import { createDb, createCreateTransaction, type Database } from "#lib/db/createDb.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
 import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
 import { createApi } from "./createApi.ts"
@@ -50,7 +49,7 @@ async function main(): Promise<void> {
   const app = await createApi({
     logger,
     clock,
-    createTransaction: db.transaction.bind(db),
+    createTransaction: createCreateTransaction(db),
     authService,
     ...repositories,
   })
