@@ -8,7 +8,7 @@ import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { Clock } from "#lib/Clock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import type { Database } from "#lib/db/createDb.ts"
+import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
 
 type AllServices = Omit<Parameters<typeof createApi>[0], "authService"> & { authService: AuthServiceMock }
 
@@ -25,7 +25,7 @@ export async function createApiStub({ db, clock = Clock }: { db?: Database; cloc
     logger,
     clock,
     authService: new AuthServiceMock(),
-    createTransaction: db.transaction.bind(db),
+    createTransaction: createCreateTransaction(db),
     accountsRepository: new AccountsRepository({ db, logger }),
     listingsRepository: new ListingsRepository({ db, logger }),
     lobbiesRepository: new LobbiesRepository({ db, logger }),

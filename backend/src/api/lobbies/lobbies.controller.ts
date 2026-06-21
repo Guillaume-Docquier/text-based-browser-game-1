@@ -66,26 +66,24 @@ export class LobbiesController {
   }
 
   public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
-    const joinGameResult = await Result.tryCatch(
-      this.createTransaction(async (tx) => {
-        const lobbyModelResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
-        rollbackOnFailure(lobbyModelResult, "Failed to get game lobby")
+    const joinGameResult = await this.createTransaction(async (tx) => {
+      const lobbyModelResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
+      rollbackOnFailure(lobbyModelResult, "Failed to get game lobby")
 
-        const lobbyModel = lobbyModelResult.value
-        if (lobbyModel === undefined) {
-          throw new TransactionRollback("Cannot join game lobby, it could not be found")
-        }
+      const lobbyModel = lobbyModelResult.value
+      if (lobbyModel === undefined) {
+        throw new TransactionRollback("Cannot join game lobby, it could not be found")
+      }
 
-        if (!toLobbyDto({ lobbyModel, playerId: accountId }).canJoin) {
-          throw new TransactionRollback("Cannot join game lobby, this player is not allowed to join it at the moment")
-        }
+      if (!toLobbyDto({ lobbyModel, playerId: accountId }).canJoin) {
+        throw new TransactionRollback("Cannot join game lobby, this player is not allowed to join it at the moment")
+      }
 
-        const joinResult = await this.lobbiesRepository.joinLobby({ gameId, accountId }, tx)
-        rollbackOnFailure(joinResult, "Failed to join game")
+      const joinResult = await this.lobbiesRepository.joinLobby({ gameId, accountId }, tx)
+      rollbackOnFailure(joinResult, "Failed to join game")
 
-        return joinResult.value
-      }),
-    )
+      return joinResult.value
+    })
 
     if (Result.isFailure(joinGameResult)) {
       this.logger.error("Could not join game lobby", { gameId, playerId: accountId, error: joinGameResult.error })
@@ -96,24 +94,22 @@ export class LobbiesController {
   }
 
   public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
-    const leaveGameResult = await Result.tryCatch(
-      this.createTransaction(async (tx): Promise<void> => {
-        const lobbyResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
-        rollbackOnFailure(lobbyResult, "Failed to get game lobby")
+    const leaveGameResult = await this.createTransaction(async (tx) => {
+      const lobbyResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
+      rollbackOnFailure(lobbyResult, "Failed to get game lobby")
 
-        const lobbyModel = lobbyResult.value
-        if (lobbyModel === undefined) {
-          throw new TransactionRollback("Cannot leave game lobby, it could not be found")
-        }
+      const lobbyModel = lobbyResult.value
+      if (lobbyModel === undefined) {
+        throw new TransactionRollback("Cannot leave game lobby, it could not be found")
+      }
 
-        if (!toLobbyDto({ lobbyModel, playerId: accountId }).canLeave) {
-          throw new TransactionRollback("Cannot leave game lobby, this player is not allowed to leave it at the moment")
-        }
+      if (!toLobbyDto({ lobbyModel, playerId: accountId }).canLeave) {
+        throw new TransactionRollback("Cannot leave game lobby, this player is not allowed to leave it at the moment")
+      }
 
-        const leaveResult = await this.lobbiesRepository.leaveLobby({ gameId, accountId }, tx)
-        rollbackOnFailure(leaveResult, "Failed to leave game lobby")
-      }),
-    )
+      const leaveResult = await this.lobbiesRepository.leaveLobby({ gameId, accountId }, tx)
+      rollbackOnFailure(leaveResult, "Failed to leave game lobby")
+    })
 
     if (Result.isFailure(leaveGameResult)) {
       this.logger.error("Could not leave game lobby", { gameId, accountId, error: leaveGameResult.error })
