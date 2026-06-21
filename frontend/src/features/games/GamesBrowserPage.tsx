@@ -1,5 +1,4 @@
 import type * as ApiTypes from "@api-types"
-import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Search } from "lucide-react"
 import { type ReactElement, useState } from "react"
@@ -8,15 +7,14 @@ import { Button } from "../../components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/card.tsx"
 import { Input } from "../../components/input.tsx"
 import { Skeleton } from "../../components/skeleton.tsx"
-import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
+import { useListingsQuery } from "../../lib/api/useListingsQuery.ts"
 import { timeAgo } from "../../lib/timeAgo.ts"
 import { PageHeader } from "../PageHeader.tsx"
 import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
 
 export function GamesBrowserPage(): ReactElement {
   const [gameNameFilter, setGameNameFilter] = useState("")
-  const backendApiClient = useBackendApiClient()
-  const listingsQuery = useQuery(backendApiClient.listings.getListings.queryOptions())
+  const listingsQuery = useListingsQuery()
 
   if (listingsQuery.isPending) {
     return <GamesLoadingState />

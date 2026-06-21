@@ -1,9 +1,8 @@
 import type { GameId } from "@api-types"
-import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement, ReactNode } from "react"
 import { Alert, AlertDescription, AlertTitle } from "../../components/alert.tsx"
-import { useBackendApiClient } from "../../lib/api/BackendApiClientContext.tsx"
+import { useCurrentActionQuery } from "../../lib/api/useCurrentActionQuery.ts"
 import { useLogger } from "../../lib/LoggerContext.tsx"
 import { GameActionSelector, GameActionSelectorSkeleton } from "./components/GameActionSelector.tsx"
 import { usePlayGameContext } from "./PlayContext.tsx"
@@ -15,8 +14,7 @@ function PlayerActionsContainer({ children }: { children: ReactNode }): ReactEle
 export function PlayerActionsPage({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
   const { playerView } = usePlayGameContext()
-  const backendApiClient = useBackendApiClient()
-  const currentActionQuery = useQuery(backendApiClient.gameplay.getCurrentAction.queryOptions({ gameId }))
+  const currentActionQuery = useCurrentActionQuery(gameId)
 
   if (currentActionQuery.isPending) {
     return (
