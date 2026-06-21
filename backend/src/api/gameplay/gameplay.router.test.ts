@@ -6,6 +6,7 @@ import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDt
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { GameStatus } from "#lib/db/gameplay/GameStatus.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
@@ -55,6 +56,9 @@ describe("gameplay.router", () => {
       // Assert
       expect(startGameResult).toEqual<typeof startGameResult>({ nextTickAt: expect.any(String) }) // trpc serializes the date to string
       expect(new Date(startGameResult.nextTickAt).toString()).not.toBe("Invalid Date")
+      await expect(trpcClient.client.lobbies.getById.query({ gameId: createdGameId })).resolves.toMatchObject({
+        status: GameStatus.STARTED,
+      })
     })
 
     it("should reject starting a game as a non-creator", async () => {

@@ -6,8 +6,10 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
+import type { Transaction } from "#lib/db/createDb.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { GameStatus } from "#lib/db/gameplay/GameStatus.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
@@ -50,7 +52,7 @@ describe("processTick", () => {
 
     // Act
     clock.increment({ time: tickInterval })
-    await processTick({ logger, ticksRepository, clock })
+    await processTick({ logger, ticksRepository, clock, createTransaction: db.transaction.bind(db) })
 
     // Assert
     const playerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -104,7 +106,7 @@ describe("processTick", () => {
     )
 
     // Act
-    await processTick({ logger, ticksRepository, clock })
+    await processTick({ logger, ticksRepository, clock, createTransaction: db.transaction.bind(db) })
 
     // Assert
     const playerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -131,7 +133,7 @@ describe("processTick", () => {
     await trpcClient.client.gameplay.startGame.mutate({ gameId: firstGameId })
 
     // This will increment the tick on the first game
-    await processTick({ logger, ticksRepository, clock })
+    await processTick({ logger, ticksRepository, clock, createTransaction: db.transaction.bind(db) })
 
     const secondAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = secondAccount
@@ -141,7 +143,7 @@ describe("processTick", () => {
     await trpcClient.client.gameplay.startGame.mutate({ gameId: secondGameId })
 
     // Act
-    await processTick({ logger, ticksRepository, clock })
+    await processTick({ logger, ticksRepository, clock, createTransaction: db.transaction.bind(db) })
 
     // Assert
     authService.account = firstAccount
@@ -180,7 +182,7 @@ describe("processTick", () => {
     const ticksRepository = new FailingTicksRepository({ db, logger, failingGameId })
 
     // Act
-    await processTick({ logger, ticksRepository, clock })
+    await processTick({ logger, ticksRepository, clock, createTransaction: db.transaction.bind(db) })
 
     // Assert
     authService.account = failingAccount
@@ -238,7 +240,7 @@ describe("processTick", () => {
     }
 
     // Act
-    await processTick({ logger, ticksRepository, clock })
+    await processTick({ logger, ticksRepository, clock, createTransaction: db.transaction.bind(db) })
 
     // Assert
     // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
@@ -248,6 +250,7 @@ describe("processTick", () => {
     expect(lobby).toMatchObject({
       winnerAccountId: expectedWinnerId,
       endedAt: expect.any(String),
+      status: GameStatus.ENDED,
     })
 
     authService.account = creator
@@ -322,11 +325,14 @@ class FailingTicksRepository extends TicksRepository {
     this.failingGameId = failingGameId
   }
 
-  public override async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<{ saved: true }, string>> {
+  public override async saveProcessedTickForMutation(
+    processedTick: ProcessedTickModel,
+    tx: Transaction,
+  ): Promise<Result<{ saved: true }, string>> {
     if (processedTick.gameId === this.failingGameId) {
       return Result.Failure("Expected tick save failure")
     }
 
-    return await super.saveProcessedTick(processedTick)
+    return await super.saveProcessedTickForMutation(processedTick, tx)
   }
 }

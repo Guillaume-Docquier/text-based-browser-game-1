@@ -4,10 +4,10 @@ import { AccountId } from "#api/accounts/AccountId.ts"
 import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
 import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { GameId } from "#api/shared/GameId.ts"
-import { computeGameStatus, GameStatus } from "#api/shared/GameStatus.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
+import { GameStatus } from "#lib/db/gameplay/GameStatus.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
 
@@ -68,7 +68,7 @@ export class LobbiesController {
   public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
     const joinGameResult = await Result.tryCatch(
       this.createTransaction(async (tx) => {
-        const lobbyModelResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
+        const lobbyModelResult = await this.lobbiesRepository.getLobbyByIdForMutation({ gameId }, tx)
         rollbackOnFailure(lobbyModelResult, "Failed to get game lobby")
 
         const lobbyModel = lobbyModelResult.value
@@ -80,7 +80,9 @@ export class LobbiesController {
           throw new TransactionRollback("Cannot join game lobby, this player is not allowed to join it at the moment")
         }
 
-        const joinResult = await this.lobbiesRepository.joinLobby({ gameId, accountId }, tx)
+        const status =
+          lobbyModel.players.length + 1 >= lobbyModel.configuration.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
+        const joinResult = await this.lobbiesRepository.joinLobby({ gameId, accountId, status }, tx)
         rollbackOnFailure(joinResult, "Failed to join game")
 
         return joinResult.value
@@ -98,7 +100,7 @@ export class LobbiesController {
   public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
     const leaveGameResult = await Result.tryCatch(
       this.createTransaction(async (tx): Promise<void> => {
-        const lobbyResult = await this.lobbiesRepository.getLobbyById({ gameId }, tx)
+        const lobbyResult = await this.lobbiesRepository.getLobbyByIdForMutation({ gameId }, tx)
         rollbackOnFailure(lobbyResult, "Failed to get game lobby")
 
         const lobbyModel = lobbyResult.value
@@ -110,7 +112,9 @@ export class LobbiesController {
           throw new TransactionRollback("Cannot leave game lobby, this player is not allowed to leave it at the moment")
         }
 
-        const leaveResult = await this.lobbiesRepository.leaveLobby({ gameId, accountId }, tx)
+        const status =
+          lobbyModel.players.length - 1 >= lobbyModel.configuration.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
+        const leaveResult = await this.lobbiesRepository.leaveLobby({ gameId, accountId, status }, tx)
         rollbackOnFailure(leaveResult, "Failed to leave game lobby")
       }),
     )
@@ -125,12 +129,7 @@ export class LobbiesController {
 }
 
 export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; playerId: PlayerId | undefined }): LobbyDto {
-  const status = computeGameStatus({
-    nbPlayers: lobbyModel.players.length,
-    nbSeats: lobbyModel.configuration.nbSeats,
-    startedAt: lobbyModel.startedAt,
-    endedAt: lobbyModel.endedAt,
-  })
+  const status = lobbyModel.status
 
   const canJoin =
     playerId !== undefined && status === GameStatus.WAITING_FOR_PLAYERS && lobbyModel.players.every((player) => player.id !== playerId)

@@ -36,6 +36,13 @@
       "when": 1781442605180,
       "tag": "0004_deterministic-star-system-ids",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782050654047,
+      "tag": "0005_persist-game-status",
+      "breakpoints": true
     }
   ]
 }

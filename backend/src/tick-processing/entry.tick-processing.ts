@@ -45,7 +45,7 @@ if (!isMainThread) {
   const ticksRepository = new TicksRepository({ db, logger })
 
   logger.info("Processing ticks")
-  await processTicksForever({ logger, ticksRepository, clock }, 1000)
+  await processTicksForever({ logger, ticksRepository, clock, createTransaction: db.transaction.bind(db) }, 1000)
 }
 
 async function processTicksForever(services: Parameters<typeof processTick>[0], frequency: number): Promise<void> {

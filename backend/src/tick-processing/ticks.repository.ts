@@ -3,8 +3,10 @@ import { and, asc, eq, inArray, isNull, lte, sql } from "drizzle-orm"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { Transaction } from "#lib/db/createDb.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import type { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { GameStatus } from "#lib/db/gameplay/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gameStatesTable, gamesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
@@ -35,6 +37,11 @@ type ProcessedTickRows =
       resources: NewResourceRow[]
       endedGame: EndedGameRow
     }
+
+export type DueTickModel = {
+  gameId: GameId
+  tick: number
+}
 
 export type TickToProcessModel = {
   gameId: GameId
@@ -83,6 +90,25 @@ export class TicksRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "ticks-repository" })
   }
 
+  public async getDueTicks({ since }: { since: Date }): Promise<Result<DueTickModel[], string>> {
+    const dueTicksResult = await Result.tryCatch(
+      this.db
+        .select({ gameId: ticksTable.gameId, tick: ticksTable.tick })
+        .from(ticksTable)
+        .innerJoin(gamesTable, eq(gamesTable.id, ticksTable.gameId))
+        .innerJoin(gameStatesTable, and(eq(gameStatesTable.gameId, ticksTable.gameId), eq(gameStatesTable.tick, ticksTable.tick)))
+        .where(and(isNull(ticksTable.processingEndedAt), eq(gamesTable.status, GameStatus.STARTED), lte(ticksTable.scheduledFor, since)))
+        .orderBy(asc(ticksTable.scheduledFor), asc(ticksTable.gameId), asc(ticksTable.tick)),
+    )
+
+    if (Result.isFailure(dueTicksResult)) {
+      this.logger.error("Could not get due ticks", { error: dueTicksResult.error })
+      return Result.Failure(couldNot("get due ticks"))
+    }
+
+    return dueTicksResult
+  }
+
   public async getTicksToProcess(
     { since }: { since: Date },
     db: PostgresRepository["db"] = this.db,
@@ -98,7 +124,7 @@ export class TicksRepository extends PostgresRepository {
         .from(ticksTable)
         .innerJoin(gamesTable, eq(gamesTable.id, ticksTable.gameId))
         .innerJoin(gameStatesTable, and(eq(gameStatesTable.gameId, ticksTable.gameId), eq(gameStatesTable.tick, ticksTable.tick)))
-        .where(and(isNull(ticksTable.processingEndedAt), isNull(gamesTable.endedAt), lte(ticksTable.scheduledFor, since)))
+        .where(and(isNull(ticksTable.processingEndedAt), eq(gamesTable.status, GameStatus.STARTED), lte(ticksTable.scheduledFor, since)))
         .orderBy(asc(ticksTable.scheduledFor), asc(ticksTable.gameId), asc(ticksTable.tick))
 
       if (ticksToProcessRows.length === 0) {
@@ -135,62 +161,143 @@ export class TicksRepository extends PostgresRepository {
     return ticksToProcessResult
   }
 
-  public async saveProcessedTick(
-    processedTickModel: ProcessedTickModel,
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<{ saved: true }, string>> {
-    const processedTickRows = toProcessedTickRows(processedTickModel)
+  public async getTickToProcessForMutation(
+    { gameId, tick }: { gameId: GameId; tick: number },
+    tx: Transaction,
+  ): Promise<Result<TickToProcessModel | undefined, string>> {
+    const tickResult = await Result.tryCatch(async () => {
+      const games = await tx.select({ status: gamesTable.status }).from(gamesTable).where(eq(gamesTable.id, gameId)).for("update")
+      Assert.isTrue(games.length <= 1)
+      if (games[0]?.status !== GameStatus.STARTED) {
+        return undefined
+      }
+
+      const dueTicks = await tx
+        .select({
+          gameId: ticksTable.gameId,
+          tick: ticksTable.tick,
+          scheduledFor: ticksTable.scheduledFor,
+          tickIntervalSeconds: gamesTable.tickIntervalSeconds,
+        })
+        .from(ticksTable)
+        .innerJoin(gamesTable, eq(gamesTable.id, ticksTable.gameId))
+        .innerJoin(gameStatesTable, and(eq(gameStatesTable.gameId, ticksTable.gameId), eq(gameStatesTable.tick, ticksTable.tick)))
+        .where(
+          and(
+            eq(ticksTable.gameId, gameId),
+            eq(ticksTable.tick, tick),
+            isNull(ticksTable.processingEndedAt),
+            eq(gamesTable.status, GameStatus.STARTED),
+          ),
+        )
+      Assert.isTrue(dueTicks.length <= 1)
+      const dueTick = dueTicks[0]
+      if (dueTick === undefined) {
+        return undefined
+      }
+
+      const [players, resources, orders] = await Promise.all([
+        tx.select().from(playersTable).where(eq(playersTable.gameId, gameId)).orderBy(asc(playersTable.playerId)),
+        tx
+          .select()
+          .from(resourcesTable)
+          .where(eq(resourcesTable.gameId, gameId))
+          .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
+        tx.select().from(ordersTable).where(eq(ordersTable.gameId, gameId)).orderBy(asc(ordersTable.playerId), asc(ordersTable.tick)),
+      ])
+
+      return toTickToProcessModel({ dueTick, players, resources, orders })
+    })
+
+    if (Result.isFailure(tickResult)) {
+      this.logger.error("Could not get locked tick to process", { gameId, tick, error: tickResult.error })
+      return Result.Failure(couldNot("get locked tick to process"))
+    }
+
+    return tickResult
+  }
+
+  public async saveProcessedTick(processedTickModel: ProcessedTickModel): Promise<Result<{ saved: true }, string>> {
     const saveResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
-        const completedTicks = await tx
-          .update(ticksTable)
-          .set(processedTickRows.completedTick)
-          .where(
-            and(
-              eq(ticksTable.gameId, processedTickModel.gameId),
-              eq(ticksTable.tick, processedTickModel.tick),
-              isNull(ticksTable.processingEndedAt),
-            ),
-          )
-          .returning()
-
-        if (completedTicks.length !== 1) {
-          throw new TransactionRollback("Cannot save an already processed or missing tick")
+      this.db.transaction(async (tx) => {
+        const games = await tx
+          .select({ status: gamesTable.status })
+          .from(gamesTable)
+          .where(eq(gamesTable.id, processedTickModel.gameId))
+          .for("update")
+        if (games.length !== 1 || games[0]?.status !== GameStatus.STARTED) {
+          throw new TransactionRollback("Cannot save a tick for a game that is not started")
         }
 
-        const currentGameStates = await tx
-          .select({ tick: gameStatesTable.tick })
-          .from(gameStatesTable)
-          .where(and(eq(gameStatesTable.gameId, processedTickModel.gameId), eq(gameStatesTable.tick, processedTickModel.tick)))
-
-        if (currentGameStates.length !== 1) {
-          throw new TransactionRollback("Cannot save a stale tick")
-        }
-
-        await tx
-          .insert(resourcesTable)
-          .values(processedTickRows.resources)
-          .onConflictDoUpdate({
-            target: [resourcesTable.gameId, resourcesTable.playerId, resourcesTable.resourceType],
-            set: {
-              amount: sql`excluded.amount`,
-            },
-          })
-
-        switch (processedTickRows.result) {
-          case "continue":
-            await tx
-              .update(gameStatesTable)
-              .set(processedTickRows.nextGameState)
-              .where(eq(gameStatesTable.gameId, processedTickModel.gameId))
-            await tx.insert(ticksTable).values(processedTickRows.nextTick)
-            break
-          case "end":
-            await tx.update(gamesTable).set(processedTickRows.endedGame).where(eq(gamesTable.id, processedTickModel.gameId))
-            break
+        const persistResult = await this.saveProcessedTickForMutation(processedTickModel, tx)
+        if (Result.isFailure(persistResult)) {
+          throw new TransactionRollback(persistResult.error)
         }
       }),
     )
+
+    if (Result.isFailure(saveResult)) {
+      this.logger.error("Could not save processed tick", { processedTick: processedTickModel, error: saveResult.error })
+      return Result.Failure(couldNot("save processed tick"))
+    }
+
+    return Result.Success({ saved: true })
+  }
+
+  public async saveProcessedTickForMutation(
+    processedTickModel: ProcessedTickModel,
+    tx: Transaction,
+  ): Promise<Result<{ saved: true }, string>> {
+    const processedTickRows = toProcessedTickRows(processedTickModel)
+    const saveResult = await Result.tryCatch(async () => {
+      const completedTicks = await tx
+        .update(ticksTable)
+        .set(processedTickRows.completedTick)
+        .where(
+          and(
+            eq(ticksTable.gameId, processedTickModel.gameId),
+            eq(ticksTable.tick, processedTickModel.tick),
+            isNull(ticksTable.processingEndedAt),
+          ),
+        )
+        .returning()
+
+      if (completedTicks.length !== 1) {
+        throw new TransactionRollback("Cannot save an already processed or missing tick")
+      }
+
+      const currentGameStates = await tx
+        .select({ tick: gameStatesTable.tick })
+        .from(gameStatesTable)
+        .where(and(eq(gameStatesTable.gameId, processedTickModel.gameId), eq(gameStatesTable.tick, processedTickModel.tick)))
+
+      if (currentGameStates.length !== 1) {
+        throw new TransactionRollback("Cannot save a stale tick")
+      }
+
+      await tx
+        .insert(resourcesTable)
+        .values(processedTickRows.resources)
+        .onConflictDoUpdate({
+          target: [resourcesTable.gameId, resourcesTable.playerId, resourcesTable.resourceType],
+          set: {
+            amount: sql`excluded.amount`,
+          },
+        })
+
+      switch (processedTickRows.result) {
+        case "continue":
+          await tx.update(gameStatesTable).set(processedTickRows.nextGameState).where(eq(gameStatesTable.gameId, processedTickModel.gameId))
+          await tx.insert(ticksTable).values(processedTickRows.nextTick)
+          break
+        case "end":
+          await tx
+            .update(gamesTable)
+            .set({ ...processedTickRows.endedGame, status: GameStatus.ENDED })
+            .where(eq(gamesTable.id, processedTickModel.gameId))
+          break
+      }
+    })
 
     if (Result.isFailure(saveResult)) {
       this.logger.error("Could not save processed tick", { processedTick: processedTickModel, error: saveResult.error })

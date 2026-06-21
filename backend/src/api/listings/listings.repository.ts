@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { count, eq } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
-import { computeGameStatus, type GameStatus } from "#api/shared/GameStatus.ts"
+import type { GameStatus } from "#lib/db/gameplay/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gamesTable, playersTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
@@ -36,6 +36,7 @@ export class ListingsRepository extends PostgresRepository {
           name: gamesTable.name,
           nbPlayers: count(playersTable.playerId),
           nbSeats: gamesTable.nbSeats,
+          status: gamesTable.status,
           createdAt: gamesTable.createdAt,
           startedAt: gamesTable.startedAt,
           endedAt: gamesTable.endedAt,
@@ -49,13 +50,6 @@ export class ListingsRepository extends PostgresRepository {
       return Result.Failure(couldNot("get listings"))
     }
 
-    return Result.Success(listingsResults.value.map(toListingModel))
-  }
-}
-
-function toListingModel(data: Omit<ListingModel, "status">): ListingModel {
-  return {
-    ...data,
-    status: computeGameStatus(data),
+    return Result.Success(listingsResults.value)
   }
 }

@@ -1,0 +1,2 @@
+CREATE TYPE "public"."game_status" AS ENUM('WAITING_FOR_PLAYERS', 'READY_TO_START', 'STARTED', 'ENDED');--> statement-breakpoint
+ALTER TABLE "games" ADD COLUMN "status" "game_status" DEFAULT 'WAITING_FOR_PLAYERS' NOT NULL;

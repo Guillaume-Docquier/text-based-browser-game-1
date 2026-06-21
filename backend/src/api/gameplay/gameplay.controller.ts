@@ -1,12 +1,11 @@
 import { Datetime, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { generateStarSystem } from "#api/gameplay/star-systems/generateStarSystem.ts"
-import { toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
-import type { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
 import type { Clock } from "#lib/Clock.ts"
+import type { CreateTransaction, Transaction } from "#lib/db/createDb.ts"
 import {
   GAME_PLAYER_ACTION_RULES,
   type GamePlayerAction,
@@ -14,82 +13,82 @@ import {
   GamePlayerActionTypeSchema,
 } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
+import { GameStatus } from "#lib/db/gameplay/GameStatus.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
-import { couldNot } from "#lib/errors.ts"
+import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { type GameplayRepository, type OrderModel, type PlayerViewModel, type StartGameModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
   private readonly clock: Clock
   private readonly gameplayRepository: GameplayRepository
-  private readonly lobbiesRepository: LobbiesRepository
+  private readonly createTransaction: CreateTransaction
 
   public constructor({
     logger,
     clock,
     gameplayRepository,
-    lobbiesRepository,
+    createTransaction,
   }: {
     logger: Logger
     clock: Clock
     gameplayRepository: GameplayRepository
-    lobbiesRepository: LobbiesRepository
+    createTransaction: CreateTransaction
   }) {
     this.logger = logger.child({ scope: "gameplay-controller" })
     this.clock = clock
     this.gameplayRepository = gameplayRepository
-    this.lobbiesRepository = lobbiesRepository
+    this.createTransaction = createTransaction
   }
 
   public async startGame({ gameId, playerId }: StartGameDto): Promise<Result<StartedGameDto, string>> {
-    const getLobbyResult = await this.lobbiesRepository.getLobbyById({ gameId })
-    if (Result.isFailure(getLobbyResult)) {
-      this.logger.error("Failed to get lobby", { gameId, playerId, error: getLobbyResult.error })
-      return Result.Failure(couldNot("start game"))
-    }
+    const startGameResult = await Result.tryCatch(
+      this.createTransaction(async (tx) => {
+        const contextResult = await this.gameplayRepository.getStartGameContextForMutation({ gameId }, tx)
+        rollbackOnFailure(contextResult, "Failed to get game start context")
 
-    const lobbyModel = getLobbyResult.value
-    if (lobbyModel === undefined) {
-      this.logger.error("Lobby not found", { gameId, playerId })
-      return Result.Failure(couldNot("start game"))
-    }
-
-    // I don't really like importing the lobbiesRepository and using toLobbyDto, but it is convenient
-    const lobbyDto = toLobbyDto({ lobbyModel, playerId })
-    if (!lobbyDto.canStart) {
-      this.logger.error("Cannot start game, this player is not allowed to start it at the moment", { gameId, playerId, lobbyDto })
-      return Result.Failure(couldNot("start game"))
-    }
-
-    const startedAt = this.clock.now()
-    const nextTickAt = Datetime.increment({
-      date: startedAt,
-      time: Time.create(lobbyModel.configuration.tickIntervalSeconds, UnitOfTime.SECONDS),
-    })
-    const starSystemResult = generateStarSystem({ settings: lobbyModel.configuration.starSystemGenerationSettings, clock: this.clock })
-    if (Result.isFailure(starSystemResult)) {
-      this.logger.error("Failed to generate Star System", { gameId, playerId, error: starSystemResult.error })
-      return Result.Failure(couldNot("start game"))
-    }
-
-    const startGameModel: StartGameModel = {
-      gameId,
-      startedAt,
-      nextTickAt,
-      starSystem: starSystemResult.value,
-      players: lobbyModel.players.reduce<StartGameModel["players"]>((players, player) => {
-        players[player.id] = {
-          resources: Object.values(ResourceType).map((resourceType) => ({
-            resourceType,
-            amount: STARTING_RESOURCE_AMOUNTS[resourceType],
-          })),
+        const context = contextResult.value
+        if (context === undefined) {
+          throw new TransactionRollback("Cannot start game because it does not exist")
         }
 
-        return players
-      }, {}),
-    }
+        if (
+          (context.status !== GameStatus.WAITING_FOR_PLAYERS && context.status !== GameStatus.READY_TO_START) ||
+          context.creatorPlayerId !== playerId
+        ) {
+          throw new TransactionRollback("Cannot start game, this player is not allowed to start it at the moment")
+        }
 
-    const startGameResult = await this.gameplayRepository.startGame(startGameModel)
+        const startedAt = this.clock.now()
+        const nextTickAt = Datetime.increment({
+          date: startedAt,
+          time: Time.create(context.tickIntervalSeconds, UnitOfTime.SECONDS),
+        })
+        const starSystemResult = generateStarSystem({ settings: context.starSystemGenerationSettings, clock: this.clock })
+        rollbackOnFailure(starSystemResult, "Failed to generate Star System")
+
+        const startModel: StartGameModel = {
+          gameId,
+          startedAt,
+          nextTickAt,
+          starSystem: starSystemResult.value,
+          players: context.playerIds.reduce<StartGameModel["players"]>((players, currentPlayerId) => {
+            players[currentPlayerId] = {
+              resources: Object.values(ResourceType).map((resourceType) => ({
+                resourceType,
+                amount: STARTING_RESOURCE_AMOUNTS[resourceType],
+              })),
+            }
+            return players
+          }, {}),
+        }
+
+        const persistResult = await this.gameplayRepository.startGame(startModel, tx)
+        rollbackOnFailure(persistResult, "Failed to persist started game")
+        return persistResult.value
+      }),
+    )
+
     if (Result.isFailure(startGameResult)) {
       this.logger.error("Failed to start game", { gameId, playerId, error: startGameResult.error })
       return Result.Failure(couldNot("start game"))
@@ -99,7 +98,7 @@ export class GameplayController {
   }
 
   public async hasPlayerJoinedGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<boolean, string>> {
-    return await this.lobbiesRepository.hasAccountJoinedLobby({ gameId, accountId: playerId })
+    return await this.gameplayRepository.hasPlayerJoinedGame({ gameId, playerId })
   }
 
   public async getPlayerView({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto | undefined, string>> {
@@ -145,90 +144,86 @@ export class GameplayController {
     playerId,
     actionType,
   }: SetCurrentActionDto): Promise<Result<GamePlayerAction | null, string>> {
-    const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId })
-    if (Result.isFailure(activeGameResult)) {
-      return activeGameResult
+    const transactionResult = await Result.tryCatch(
+      this.createTransaction(async (tx): Promise<Result<GamePlayerAction | null, string>> => {
+        const activeGameResult = await this.getActiveGameForPlayer({ gameId, playerId }, tx)
+        if (Result.isFailure(activeGameResult)) {
+          return activeGameResult
+        }
+
+        if (activeGameResult.value.tick !== tick) {
+          return Result.Failure(`Cannot submit action for tick ${tick}, the game is currently at tick ${activeGameResult.value.tick}.`)
+        }
+
+        if (actionType === null) {
+          const deleteResult = await this.gameplayRepository.clearCurrentAction({ gameId, playerId, tick }, tx)
+          rollbackOnFailure(deleteResult, "Failed to clear current action")
+          return Result.Success(null)
+        }
+
+        const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
+        if (activeGameResult.value.money < actionRule.costMoney) {
+          this.logger.error("Player cannot afford selected game player action", {
+            gameId,
+            playerId,
+            actionType,
+            money: activeGameResult.value.money,
+            costMoney: actionRule.costMoney,
+          })
+          return Result.Failure(`You need ${actionRule.costMoney} money to select this action.`)
+        }
+
+        const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, playerId, tick, actionType }, tx)
+        rollbackOnFailure(upsertResult, "Failed to set current action")
+        return Result.Success(toGamePlayerAction(upsertResult.value))
+      }),
+    )
+
+    if (Result.isFailure(transactionResult)) {
+      this.logger.error("Could not set current action", { gameId, tick, playerId, actionType, error: transactionResult.error })
+      return Result.Failure(couldNot("set current action"))
     }
 
-    if (activeGameResult.value.tick !== tick) {
-      return Result.Failure(`Cannot submit action for tick ${tick}, the game is currently at tick ${activeGameResult.value.tick}.`)
-    }
-
-    if (actionType === null) {
-      const deleteResult = await this.gameplayRepository.clearCurrentAction({ gameId, playerId, tick })
-      if (Result.isFailure(deleteResult)) {
-        return deleteResult
-      }
-
-      return Result.Success(null)
-    }
-
-    const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
-    if (activeGameResult.value.money < actionRule.costMoney) {
-      this.logger.error("Player cannot afford selected game player action", {
-        gameId,
-        playerId,
-        actionType,
-        money: activeGameResult.value.money,
-        costMoney: actionRule.costMoney,
-      })
-      return Result.Failure(`You need ${actionRule.costMoney} money to select this action.`)
-    }
-
-    const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, playerId, tick, actionType })
-    if (Result.isFailure(upsertResult)) {
-      return upsertResult
-    }
-
-    return Result.Success(toGamePlayerAction(upsertResult.value))
+    return transactionResult.value
   }
 
   /**
    * @deprecated Temporary POC implementation
    */
-  private async getActiveGameForPlayer({
-    gameId,
-    playerId,
-  }: {
-    gameId: GameId
-    playerId: PlayerId
-  }): Promise<Result<{ tick: number; money: number }, string>> {
-    const getLobbyResult = await this.lobbiesRepository.getLobbyById({ gameId })
-    if (Result.isFailure(getLobbyResult)) {
-      return getLobbyResult
+  private async getActiveGameForPlayer(
+    { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
+    tx?: Transaction,
+  ): Promise<Result<{ tick: number; money: number }, string>> {
+    const contextResult =
+      tx === undefined
+        ? await this.gameplayRepository.getGamePlayerContext({ gameId, playerId })
+        : await this.gameplayRepository.getGamePlayerContextForMutation({ gameId, playerId }, tx)
+    if (Result.isFailure(contextResult)) {
+      return contextResult
     }
 
-    const lobby = getLobbyResult.value
-    if (lobby === undefined) {
+    const context = contextResult.value
+    if (context === undefined) {
       this.logger.error("Cannot resolve action context because game does not exist", { gameId, playerId })
       return Result.Failure("Game does not exist.")
     }
 
-    if (lobby.startedAt === null) {
-      this.logger.error("Cannot resolve action context because game has not started", { gameId, playerId })
-      return Result.Failure("Game has not started.")
+    if (context.status !== GameStatus.STARTED) {
+      this.logger.error("Cannot resolve action context because game is not active", { gameId, playerId, status: context.status })
+      return Result.Failure("Game is not active.")
     }
 
-    if (!lobby.players.some((player) => player.id === playerId)) {
+    if (!context.hasPlayerJoined) {
       this.logger.error("Cannot resolve action context because player is not in game", { gameId, playerId })
       return Result.Failure("Player is not in this game.")
     }
 
-    const gameStateResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
-    if (Result.isFailure(gameStateResult)) {
-      return gameStateResult
-    }
-
-    const gameState = gameStateResult.value
-    if (gameState === undefined) {
+    if (context.tick === undefined || context.money === undefined) {
       this.logger.error("Cannot resolve action context because game state does not exist", { gameId, playerId })
       return Result.Failure("Game state does not exist.")
     }
 
-    return Result.Success({
-      tick: gameState.tick,
-      money: gameState.resources.money,
-    })
+    return Result.Success({ tick: context.tick, money: context.money })
   }
 }
 

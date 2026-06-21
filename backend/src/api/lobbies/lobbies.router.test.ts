@@ -6,7 +6,7 @@ import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-s
 import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
-import { GameStatus } from "#api/shared/GameStatus.ts"
+import { GameStatus } from "#lib/db/gameplay/GameStatus.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
@@ -67,6 +67,24 @@ describe("lobbies.router", () => {
         canJoin: false, // because already joined
         canLeave: false, // because creator
         canStart: true, // because creator
+      })
+    })
+
+    it("should create a full game as ready to start", async () => {
+      // Arrange
+      const { api, authService, accountsRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+
+      // Act
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 1 }),
+      })
+
+      // Assert
+      await expect(trpcClient.client.lobbies.getById.query({ gameId: createdGameId })).resolves.toMatchObject({
+        status: GameStatus.READY_TO_START,
       })
     })
 

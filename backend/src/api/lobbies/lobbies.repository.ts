@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { Transaction } from "#lib/db/createDb.ts"
+import { GameStatus } from "#lib/db/gameplay/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
@@ -29,6 +31,7 @@ export type LobbyModel = {
   startedAt: Date | null
   endedAt: Date | null
   winnerAccountId: AccountId | null
+  status: GameStatus
   configuration: LobbyConfigurationModel
   creator: LobbyPlayerModel
   players: LobbyPlayerModel[]
@@ -106,14 +109,46 @@ export class LobbiesRepository extends PostgresRepository {
     return Result.Success(toLobbyModel({ gameRow, players: playersResult.value }))
   }
 
+  public async getLobbyByIdForMutation({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyModel | undefined, string>> {
+    const gameRowResult = await Result.tryCatch(tx.select().from(gamesTable).where(eq(gamesTable.id, gameId)).for("update"))
+    if (Result.isFailure(gameRowResult)) {
+      this.logger.error("Failed to lock game", { gameId, error: gameRowResult.error })
+      return Result.Failure(couldNot("lock game"))
+    }
+    Assert.isTrue(gameRowResult.value.length <= 1)
+
+    const gameRow = gameRowResult.value[0]
+    if (gameRow === undefined) {
+      return Result.Success(undefined)
+    }
+
+    const playersResult = await Result.tryCatch(
+      tx
+        .select({
+          id: playersTable.playerId,
+          alias: accountsTable.alias,
+        })
+        .from(playersTable)
+        .innerJoin(accountsTable, eq(accountsTable.id, playersTable.playerId))
+        .where(eq(playersTable.gameId, gameId)),
+    )
+    if (Result.isFailure(playersResult)) {
+      this.logger.error("Failed to get players in the locked lobby", { gameId, error: playersResult.error })
+      return Result.Failure(couldNot("get players in the locked lobby"))
+    }
+
+    return Result.Success(toLobbyModel({ gameRow, players: playersResult.value }))
+  }
+
   public async joinLobby(
-    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
+    { gameId, accountId, status }: { gameId: GameId; accountId: AccountId; status: GameStatus },
+    tx: Transaction,
   ): Promise<Result<{ playerId: PlayerId }, string>> {
     const joinLobbyResult = await Result.tryCatch(async () => {
-      const gamePlayers = await db.insert(playersTable).values({ gameId, playerId: accountId }).returning()
+      const gamePlayers = await tx.insert(playersTable).values({ gameId, playerId: accountId }).returning()
       Assert.isTrue(gamePlayers.length === 1)
       Assert.isDefined(gamePlayers[0])
+      await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, gameId))
 
       return { playerId: gamePlayers[0].playerId }
     })
@@ -127,12 +162,13 @@ export class LobbiesRepository extends PostgresRepository {
   }
 
   public async leaveLobby(
-    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
+    { gameId, accountId, status }: { gameId: GameId; accountId: AccountId; status: GameStatus },
+    tx: Transaction,
   ): Promise<Result<true, string>> {
-    const deleteResult = await Result.tryCatch(
-      db.delete(playersTable).where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId))),
-    )
+    const deleteResult = await Result.tryCatch(async () => {
+      await tx.delete(playersTable).where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId)))
+      await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, gameId))
+    })
 
     if (Result.isFailure(deleteResult)) {
       this.logger.error("Could not leave game lobby", { gameId, accountId, error: deleteResult.error })
@@ -169,6 +205,7 @@ function toCreateGameRow(createLobbyModel: CreateLobbyModel): CreateGameRow {
   return {
     createdByAccountId: createLobbyModel.createdByAccountId,
     ...createLobbyModel.configuration,
+    status: createLobbyModel.configuration.nbSeats <= 1 ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS,
   }
 }
 
@@ -182,6 +219,7 @@ function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPl
     startedAt: gameRow.startedAt,
     endedAt: gameRow.endedAt,
     winnerAccountId: gameRow.winnerAccountId,
+    status: gameRow.status,
     configuration: {
       name: gameRow.name,
       nbSeats: gameRow.nbSeats,
