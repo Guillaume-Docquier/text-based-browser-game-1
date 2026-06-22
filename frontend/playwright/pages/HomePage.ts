@@ -14,6 +14,12 @@ export class HomePage {
     this.createAccountLink = page.getByRole("link", { name: "Create account" })
   }
 
+  public static async goto(page: Page): Promise<HomePage> {
+    const homePage = new HomePage(page)
+    await homePage.goto()
+    return homePage
+  }
+
   public async goto(): Promise<void> {
     await this.page.goto("/")
   }

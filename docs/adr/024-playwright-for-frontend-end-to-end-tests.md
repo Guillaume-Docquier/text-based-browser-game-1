@@ -16,7 +16,7 @@ Use Playwright with Chromium for frontend end-to-end tests in `frontend/playwrig
 
 Tests select elements by semantic roles and accessible names. Production test IDs must not be added solely to make E2E selection easier.
 
-Use strict page objects in `frontend/playwright/pages`. Tests instantiate the page objects they need. Every page object receives Playwright's `Page` in its constructor, exposes a parameterless `goto()` method, and owns the semantic locators and thin interaction methods for that page. Page objects do not make assertions, encode scenarios, or contain business decisions.
+Use strict page objects in `frontend/playwright/pages`. Tests instantiate the page objects they need. Every page object receives Playwright's `Page` in its constructor and provides a static `goto()` factory that creates, navigates, and returns the page object. Route parameters belong to `goto()`, not the constructor. Page objects own the semantic locators and thin interaction methods for that page. They do not make assertions, encode scenarios, or contain business decisions.
 
 Use Clerk's Playwright helpers with a project-based setup. The setup obtains a Clerk testing token, signs in an existing development user by email, and stores the resulting browser state in the gitignored `frontend/playwright/.clerk` directory. Authenticated test projects reuse that state.
 

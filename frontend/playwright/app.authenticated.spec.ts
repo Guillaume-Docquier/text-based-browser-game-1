@@ -3,8 +3,7 @@ import { CreateGamePage } from "./pages/CreateGamePage.ts"
 import { LobbyPage } from "./pages/LobbyPage.ts"
 
 test("creates a game as an authenticated user", async ({ page }) => {
-  const createGamePage = new CreateGamePage(page)
-  await createGamePage.goto()
+  const createGamePage = await CreateGamePage.goto(page)
 
   const gameName = `Playwright game ${Date.now()}`
 
@@ -13,10 +12,7 @@ test("creates a game as an authenticated user", async ({ page }) => {
   await createGamePage.setMaxPlayers(2)
   await createGamePage.submit()
 
-  await expect(page).toHaveURL(/\/games\/\d+$/)
-  const gameId = Number(page.url().split("/").at(-1))
-
-  const lobbyPage = new LobbyPage(page, gameId, gameName)
-  await expect(lobbyPage.gameNameHeading).toBeVisible()
+  const lobbyPage = new LobbyPage(page)
+  await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
   await expect(lobbyPage.startGameButton).toBeVisible()
 })

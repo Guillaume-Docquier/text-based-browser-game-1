@@ -18,6 +18,12 @@ export class CreateGamePage {
     this.createButton = page.getByRole("button", { name: "Create", exact: true })
   }
 
+  public static async goto(page: Page): Promise<CreateGamePage> {
+    const createGamePage = new CreateGamePage(page)
+    await createGamePage.goto()
+    return createGamePage
+  }
+
   public async goto(): Promise<void> {
     await this.page.goto("/games/create")
   }

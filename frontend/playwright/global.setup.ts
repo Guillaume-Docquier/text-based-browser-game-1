@@ -22,12 +22,10 @@ setup("authenticate test user", async ({ page }) => {
     throw new FatalError("E2E_CLERK_USER_EMAIL must be set in frontend/.env", { E2E_CLERK_USER_EMAIL: process.env.E2E_CLERK_USER_EMAIL })
   }
 
-  const homePage = new HomePage(page)
-  await homePage.goto()
+  await HomePage.goto(page)
   await clerk.signIn({ page, emailAddress })
 
-  const createGamePage = new CreateGamePage(page)
-  await createGamePage.goto()
+  const createGamePage = await CreateGamePage.goto(page)
   await expect(page).toHaveURL(/\/games\/create$/)
   await expect(createGamePage.heading).toBeVisible()
 

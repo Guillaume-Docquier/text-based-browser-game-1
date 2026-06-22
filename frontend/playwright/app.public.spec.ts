@@ -4,8 +4,7 @@ import { HomePage } from "./pages/HomePage.ts"
 import { SignInPage } from "./pages/SignInPage.ts"
 
 test("shows the public landing page", async ({ page }) => {
-  const homePage = new HomePage(page)
-  await homePage.goto()
+  const homePage = await HomePage.goto(page)
 
   await expect(homePage.heading).toBeVisible()
   await expect(homePage.playForFreeLink).toBeVisible()
@@ -13,8 +12,7 @@ test("shows the public landing page", async ({ page }) => {
 })
 
 test("redirects signed-out users from game creation to sign in", async ({ page }) => {
-  const createGamePage = new CreateGamePage(page)
-  await createGamePage.goto()
+  await CreateGamePage.goto(page)
 
   await expect(page).toHaveURL(/\/sign-in\?redirect=%2Fgames%2Fcreate$/)
   const signInPage = new SignInPage(page)
