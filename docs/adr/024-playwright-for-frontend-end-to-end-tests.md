@@ -20,7 +20,9 @@ Use strict page objects in `frontend/playwright/pages`. Tests instantiate the pa
 
 Use `test.step` to group related scenario operations such as navigation, form interaction, submission, and verification. Step names should describe user-visible intent so Playwright UI and reports show useful scenario phases. Steps belong in tests and setup files, not page objects.
 
-Use Clerk's Playwright helpers with a project-based setup. The setup obtains a Clerk testing token, signs in an existing development user by email, and stores the resulting browser state in the gitignored `frontend/playwright/.clerk` directory. Authenticated test projects reuse that state.
+Organize test suites by product feature rather than authentication state. A feature suite may contain both signed-out and authenticated scenarios. Apply saved Clerk state to the relevant `test.describe` scope with `test.use` instead of splitting files or Playwright projects into public and authenticated suites.
+
+Use Clerk's Playwright helpers with a project-based setup. The setup obtains a Clerk testing token, signs in an existing development user by email, and stores the resulting browser state in the gitignored `frontend/playwright/.clerk` directory. Authenticated scenarios reuse that state.
 
 Local E2E configuration reads `frontend/.env`. The existing `VITE_CLERK_PUBLISHABLE_KEY` is also provided to Clerk's test helper as `CLERK_PUBLISHABLE_KEY`; developers must separately configure `CLERK_SECRET_KEY` and `E2E_CLERK_USER_EMAIL`.
 

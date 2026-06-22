@@ -1,16 +1,12 @@
-import { dirname, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
 import { clerk, clerkSetup } from "@clerk/testing/playwright"
 import { FatalError } from "@guillaume-docquier/tools-ts"
 import { expect, test as setup } from "@playwright/test"
+import { authFilePath } from "./authenticatedUser.ts"
 import { CreateGamePage } from "./pages/CreateGamePage.ts"
 import { HomePage } from "./pages/HomePage.ts"
 
 // Based on Clerk's docs: https://clerk.com/docs/guides/development/testing/playwright/test-authenticated-flows
 setup.describe.configure({ mode: "serial" })
-
-const playwrightDirectory = dirname(fileURLToPath(import.meta.url))
-const authFile = resolve(playwrightDirectory, ".clerk/user.json")
 
 setup("configure Clerk testing", async () => {
   await clerkSetup()
@@ -28,12 +24,12 @@ setup("authenticate test user", async ({ page }) => {
   })
 
   await setup.step("Verify access to a protected page", async () => {
-    await expect(page).toHaveURL(/\/games\/create$/)
     const createGamePage = await CreateGamePage.goto(page)
+    await expect(page).toHaveURL(/\/games\/create$/)
     await expect(createGamePage.heading).toBeVisible()
   })
 
   await setup.step("Save authenticated browser state", async () => {
-    await page.context().storageState({ path: authFile })
+    await page.context().storageState({ path: authFilePath })
   })
 })

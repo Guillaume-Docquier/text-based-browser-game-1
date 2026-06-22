@@ -32,18 +32,8 @@ export default defineConfig({
     },
     {
       name: "chromium",
-      testMatch: /.*\.public\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-      },
-      dependencies: ["setup"],
-    },
-    {
-      name: "authenticated chromium",
-      testMatch: /.*\.authenticated\.spec\.ts/,
-      use: {
-        ...devices["Desktop Chrome"],
-        storageState: "playwright/.clerk/user.json",
       },
       dependencies: ["setup"],
     },

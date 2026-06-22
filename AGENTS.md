@@ -106,6 +106,8 @@ For example, backend tests should test through the API. Some repository tests ca
 
 Frontend tests are mostly e2e tests using playwright. Prefer semantic role-based selectors and accessible names over data-test-ids. Use strict page objects from `frontend/playwright/pages`: tests instantiate the objects they need; every page object provides a static `goto()` factory that creates, navigates, and returns the page object; route parameters belong to `goto()`, not constructors; page objects only expose page elements and thin interaction methods; assertions and scenario logic stay in tests.
 
+Organize Playwright suites by product feature, not authentication state. Apply saved Clerk state with scoped `test.use` for authenticated scenarios inside the relevant feature suite.
+
 Some code is better tested in unit tests. In those rare cases, it's fine to test without using the backend api. The star system generation is a good example of when to use unit tests.
 
 Optimize assertions for useful failure output: compare semantic values instead of opaque IDs, sort unordered collections before comparison, and keep test setup control flow straightforward.
