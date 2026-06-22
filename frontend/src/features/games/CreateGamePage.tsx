@@ -11,6 +11,7 @@ import { Skeleton } from "../../components/skeleton.tsx"
 import { useCreateGameMutation } from "../../lib/api/useCreateGameMutation.ts"
 import { useLobbyCreationSettingsQuery } from "../../lib/api/useLobbyCreationSettingsQuery.ts"
 import { PageHeader } from "../PageHeader.tsx"
+import { RANGE_SETTING_LABELS } from "./rangeSettingLabels.ts"
 
 type TickIntervalUnit = Enumify<typeof TickIntervalUnit>
 const TickIntervalUnit = {
@@ -18,29 +19,6 @@ const TickIntervalUnit = {
   hours: "hours",
   minutes: "minutes",
 } as const
-
-const RANGE_SETTING_LABELS = {
-  nbPlanets: {
-    label: "Planets",
-    description: "Total planets generated in the star system.",
-  },
-  planetDensity: {
-    label: "Planet density",
-    description: "Share of available sectors populated by planets.",
-  },
-  nbMoonsPerPlanet: {
-    label: "Moons per planet",
-    description: "Possible number of moons generated around each planet.",
-  },
-  nbAsteroidBelts: {
-    label: "Asteroid belts",
-    description: "Possible number of orbits dedicated to asteroid belts.",
-  },
-  nbAsteroidsPerSector: {
-    label: "Asteroids per sector",
-    description: "Possible number of asteroids in each belt sector.",
-  },
-} satisfies Record<ApiTypes.RangeSettingKey, { label: string; description: string }>
 
 export function CreateGamePage(): ReactElement {
   const creationSettingsQuery = useLobbyCreationSettingsQuery()
