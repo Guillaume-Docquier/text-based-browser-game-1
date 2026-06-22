@@ -46,6 +46,9 @@ jobs:
       - name: Install packages
         run: pnpm ci
 
+      - name: Build
+        run: pnpm --filter frontend build
+
       - name: Typecheck
         run: pnpm --filter frontend typecheck
 
