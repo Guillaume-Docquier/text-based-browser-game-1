@@ -1,16 +1,22 @@
 import { expect, test } from "@playwright/test"
+import { CreateGamePage } from "./pages/CreateGamePage.ts"
+import { LobbyPage } from "./pages/LobbyPage.ts"
 
 test("creates a game as an authenticated user", async ({ page }) => {
+  const createGamePage = new CreateGamePage(page)
+  await createGamePage.goto()
+
   const gameName = `Playwright game ${Date.now()}`
 
-  await page.goto("/games/create")
-
-  await expect(page.getByRole("button", { name: "Open user menu" })).toBeVisible()
-  await page.getByRole("textbox", { name: "Game name" }).fill(gameName)
-  await page.getByRole("spinbutton", { name: "Max number of players" }).fill("2")
-  await page.getByRole("button", { name: "Create", exact: true }).click()
+  await expect(createGamePage.userMenuButton).toBeVisible()
+  await createGamePage.setGameName(gameName)
+  await createGamePage.setMaxPlayers(2)
+  await createGamePage.submit()
 
   await expect(page).toHaveURL(/\/games\/\d+$/)
-  await expect(page.getByRole("heading", { name: gameName })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Start game" })).toBeVisible()
+  const gameId = Number(page.url().split("/").at(-1))
+
+  const lobbyPage = new LobbyPage(page, gameId, gameName)
+  await expect(lobbyPage.gameNameHeading).toBeVisible()
+  await expect(lobbyPage.startGameButton).toBeVisible()
 })

@@ -104,7 +104,7 @@ We prefer end-to-end or integration tests. We use unit tests sparingly for compl
 
 For example, backend tests should test through the API. Some repository tests can be useful when we want to validate that transactions behave the way we want. We shouldn't be testing basic table mutation or query, that's done via the API.
 
-Frontend tests are mostly e2e tests using playwright. Prefer semantic role-based selectors and accessible names over data-test-ids.
+Frontend tests are mostly e2e tests using playwright. Prefer semantic role-based selectors and accessible names over data-test-ids. Use strict page objects from `frontend/playwright/pages`: tests instantiate the objects they need; every page object has a parameterless `goto()` and only exposes page elements plus thin interaction methods; assertions and scenario logic stay in tests.
 
 Some code is better tested in unit tests. In those rare cases, it's fine to test without using the backend api. The star system generation is a good example of when to use unit tests.
 

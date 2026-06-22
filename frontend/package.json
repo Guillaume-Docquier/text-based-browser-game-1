@@ -8,7 +8,7 @@
     "checks": "pnpm typecheck && pnpm storybook:build",
     "dev": "vite",
     "e2e": "playwright test",
-    "e2e:install": "playwright install chromium",
+    "e2e:install": "playwright install --with-deps chromium",
     "e2e:ui": "playwright test --ui",
     "storybook": "storybook dev --port 6006",
     "storybook:build": "storybook build",
