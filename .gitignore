@@ -140,5 +140,10 @@ storybook-static
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Playwright
+frontend/blob-report/
+frontend/playwright-report/
+frontend/playwright/.clerk/
+frontend/test-results/
 
 .env
