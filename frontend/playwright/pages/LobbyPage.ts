@@ -1,6 +1,8 @@
 import type { Locator, Page } from "@playwright/test"
 
 export class LobbyPage {
+  public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId" })
+
   private readonly page: Page
 
   public readonly gameNameHeading: Locator

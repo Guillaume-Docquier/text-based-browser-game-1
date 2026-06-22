@@ -25,7 +25,7 @@ setup("authenticate test user", async ({ page }) => {
 
   await setup.step("Verify access to a protected page", async () => {
     const createGamePage = await CreateGamePage.goto(page)
-    await expect(page).toHaveURL(/\/games\/create$/)
+    await expect(page).toHaveURL(CreateGamePage.urlPattern)
     await expect(createGamePage.heading).toBeVisible()
   })
 

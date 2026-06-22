@@ -1,6 +1,8 @@
 import type { Locator, Page } from "@playwright/test"
 
 export class SignInPage {
+  public static readonly urlPattern = new URLPattern({ pathname: "/sign-in" })
+
   private readonly page: Page
 
   public readonly heading: Locator
@@ -17,6 +19,6 @@ export class SignInPage {
   }
 
   public async goto(): Promise<void> {
-    await this.page.goto("/sign-in")
+    await this.page.goto(SignInPage.urlPattern.pathname)
   }
 }

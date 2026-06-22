@@ -9,7 +9,7 @@ test.describe("anonymous user", () => {
     await CreateGamePage.goto(page)
 
     await test.step("Verify the sign-in redirect", async () => {
-      await expect(page).toHaveURL(/\/sign-in\?redirect=%2Fgames%2Fcreate$/)
+      await expect(page).toHaveURL(SignInPage.urlPattern)
       const signInPage = new SignInPage(page)
       await expect(signInPage.heading).toBeVisible()
     })

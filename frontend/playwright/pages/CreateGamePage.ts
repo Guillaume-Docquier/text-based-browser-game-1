@@ -1,6 +1,8 @@
 import type { Locator, Page } from "@playwright/test"
 
 export class CreateGamePage {
+  public static readonly urlPattern = new URLPattern({ pathname: "/games/create" })
+
   private readonly page: Page
 
   public readonly heading: Locator
@@ -25,7 +27,7 @@ export class CreateGamePage {
   }
 
   public async goto(): Promise<void> {
-    await this.page.goto("/games/create")
+    await this.page.goto(CreateGamePage.urlPattern.pathname)
   }
 
   public async setGameName(name: string): Promise<void> {
