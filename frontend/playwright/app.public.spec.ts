@@ -6,15 +6,20 @@ import { SignInPage } from "./pages/SignInPage.ts"
 test("shows the public landing page", async ({ page }) => {
   const homePage = await HomePage.goto(page)
 
-  await expect(homePage.heading).toBeVisible()
-  await expect(homePage.playForFreeLink).toBeVisible()
-  await expect(homePage.createAccountLink).toBeVisible()
+  await test.step("Verify the landing page content", async () => {
+    await expect(homePage.heading).toBeVisible()
+    await expect(homePage.playForFreeLink).toBeVisible()
+    await expect(homePage.createAccountLink).toBeVisible()
+  })
 })
 
 test("redirects signed-out users from game creation to sign in", async ({ page }) => {
   await CreateGamePage.goto(page)
 
-  await expect(page).toHaveURL(/\/sign-in\?redirect=%2Fgames%2Fcreate$/)
-  const signInPage = new SignInPage(page)
-  await expect(signInPage.heading).toBeVisible()
+  await test.step("Verify the sign-in redirect", async () => {
+    await expect(page).toHaveURL(/\/sign-in\?redirect=%2Fgames%2Fcreate$/)
+
+    const signInPage = new SignInPage(page)
+    await expect(signInPage.heading).toBeVisible()
+  })
 })

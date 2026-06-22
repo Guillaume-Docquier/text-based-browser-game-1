@@ -22,12 +22,18 @@ setup("authenticate test user", async ({ page }) => {
     throw new FatalError("E2E_CLERK_USER_EMAIL must be set in frontend/.env", { E2E_CLERK_USER_EMAIL: process.env.E2E_CLERK_USER_EMAIL })
   }
 
-  await HomePage.goto(page)
-  await clerk.signIn({ page, emailAddress })
+  await setup.step("Sign in the Clerk test user", async () => {
+    await HomePage.goto(page)
+    await clerk.signIn({ page, emailAddress })
+  })
 
-  const createGamePage = await CreateGamePage.goto(page)
-  await expect(page).toHaveURL(/\/games\/create$/)
-  await expect(createGamePage.heading).toBeVisible()
+  await setup.step("Verify access to a protected page", async () => {
+    await expect(page).toHaveURL(/\/games\/create$/)
+    const createGamePage = await CreateGamePage.goto(page)
+    await expect(createGamePage.heading).toBeVisible()
+  })
 
-  await page.context().storageState({ path: authFile })
+  await setup.step("Save authenticated browser state", async () => {
+    await page.context().storageState({ path: authFile })
+  })
 })

@@ -4,15 +4,21 @@ import { LobbyPage } from "./pages/LobbyPage.ts"
 
 test("creates a game as an authenticated user", async ({ page }) => {
   const createGamePage = await CreateGamePage.goto(page)
-
   const gameName = `Playwright game ${Date.now()}`
 
-  await expect(createGamePage.userMenuButton).toBeVisible()
-  await createGamePage.setGameName(gameName)
-  await createGamePage.setMaxPlayers(2)
-  await createGamePage.submit()
+  await test.step("Configure the game", async () => {
+    await expect(createGamePage.userMenuButton).toBeVisible()
+    await createGamePage.setGameName(gameName)
+    await createGamePage.setMaxPlayers(2)
+  })
 
-  const lobbyPage = new LobbyPage(page)
-  await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
-  await expect(lobbyPage.startGameButton).toBeVisible()
+  await test.step("Create the game", async () => {
+    await createGamePage.submit()
+  })
+
+  await test.step("Verify the created lobby", async () => {
+    const lobbyPage = new LobbyPage(page)
+    await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
+    await expect(lobbyPage.startGameButton).toBeVisible()
+  })
 })

@@ -18,6 +18,8 @@ Tests select elements by semantic roles and accessible names. Production test ID
 
 Use strict page objects in `frontend/playwright/pages`. Tests instantiate the page objects they need. Every page object receives Playwright's `Page` in its constructor and provides a static `goto()` factory that creates, navigates, and returns the page object. Route parameters belong to `goto()`, not the constructor. Page objects own the semantic locators and thin interaction methods for that page. They do not make assertions, encode scenarios, or contain business decisions.
 
+Use `test.step` to group related scenario operations such as navigation, form interaction, submission, and verification. Step names should describe user-visible intent so Playwright UI and reports show useful scenario phases. Steps belong in tests and setup files, not page objects.
+
 Use Clerk's Playwright helpers with a project-based setup. The setup obtains a Clerk testing token, signs in an existing development user by email, and stores the resulting browser state in the gitignored `frontend/playwright/.clerk` directory. Authenticated test projects reuse that state.
 
 Local E2E configuration reads `frontend/.env`. The existing `VITE_CLERK_PUBLISHABLE_KEY` is also provided to Clerk's test helper as `CLERK_PUBLISHABLE_KEY`; developers must separately configure `CLERK_SECRET_KEY` and `E2E_CLERK_USER_EMAIL`.
