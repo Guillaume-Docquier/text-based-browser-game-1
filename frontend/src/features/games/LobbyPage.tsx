@@ -14,6 +14,7 @@ import { useLogger } from "../../lib/LoggerContext.tsx"
 import { timeAgo } from "../../lib/timeAgo.ts"
 import { PageHeader } from "../PageHeader.tsx"
 import { GameStatusBadge } from "../play/components/GameStatusBadge.tsx"
+import { RANGE_SETTING_LABELS } from "./rangeSettingLabels.ts"
 
 export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
@@ -77,6 +78,7 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
           </div>
         </CardContent>
       </Card>
+      <GameConfiguration configuration={game.configuration} />
       <div className="flex flex-wrap gap-3">
         {game.canJoin && (
           <Button
@@ -122,6 +124,41 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
         )}
       </div>
     </div>
+  )
+}
+
+function GameConfiguration({ configuration }: { configuration: ApiTypes.Lobby["configuration"] }): ReactElement {
+  return (
+    <Card className="border border-border/60">
+      <CardHeader>
+        <CardTitle>Game configuration</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
+          <DetailBlock label="Time per tick" value={formatTickInterval(configuration.tickIntervalSeconds)} />
+        </div>
+        <Separator />
+        <div className="space-y-4">
+          <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Star map</div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {Object.entries(RANGE_SETTING_LABELS).map(([key, metadata]) => {
+              // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries does not preserve the object's key type
+              const settingKey = key as ApiTypes.RangeSettingKey
+
+              return (
+                <DetailBlock
+                  key={settingKey}
+                  label={metadata.label}
+                  value={formatRange(configuration.starSystemGenerationSettings[settingKey])}
+                />
+              )
+            })}
+            <DetailBlock label="Generation seed" value={configuration.starSystemGenerationSettings.seed.toString()} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -177,4 +214,12 @@ function getWinnerLabel(game: ApiTypes.Lobby): string {
   }
 
   return winner.alias ?? `Player ${winner.id}`
+}
+
+function formatRange(value: ApiTypes.StarSystemGenerationSettings[ApiTypes.RangeSettingKey]): string {
+  return value.min === value.max ? value.min.toString() : `${value.min}–${value.max}`
+}
+
+function formatTickInterval(tickIntervalSeconds: number): string {
+  return Temporal.Duration.from({ seconds: tickIntervalSeconds }).round({ largestUnit: "days" }).toLocaleString()
 }
