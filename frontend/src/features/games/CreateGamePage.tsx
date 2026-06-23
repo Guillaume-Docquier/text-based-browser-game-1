@@ -171,9 +171,7 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
               configuration: {
                 name,
                 nbSeats,
-                tickIntervalSeconds: Temporal.Duration.from({
-                  [tickIntervalUnit]: tickIntervalMultiplier,
-                }).total("seconds"),
+                tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
                 starSystemGenerationSettings,
               },
             })
