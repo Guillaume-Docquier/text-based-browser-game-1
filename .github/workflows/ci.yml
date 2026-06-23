@@ -48,6 +48,8 @@ jobs:
 
       - name: Build
         run: pnpm --filter frontend build
+        env:
+          VITE_CLERK_PUBLISHABLE_KEY: "the value doesn't matter during the CI build, it only needs to be present"
 
       - name: Typecheck
         run: pnpm --filter frontend typecheck
