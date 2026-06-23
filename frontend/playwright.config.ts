@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url"
 import { defineConfig, devices } from "@playwright/test"
 
 const frontendDirectory = dirname(fileURLToPath(import.meta.url))
+const backendDirectory = resolve(frontendDirectory, "../backend")
 const envFile = resolve(frontendDirectory, ".env")
 
 if (existsSync(envFile)) {
@@ -20,11 +21,19 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:4173",
     trace: "on-first-retry",
   },
-  webServer: {
-    command: "pnpm dev --host 127.0.0.1 --port 4173",
-    url: "http://127.0.0.1:4173",
-    reuseExistingServer: true,
-  },
+  webServer: [
+    {
+      command: "pnpm dev",
+      cwd: backendDirectory,
+      url: "http://127.0.0.1:3000/health",
+      reuseExistingServer: true,
+    },
+    {
+      command: "pnpm dev --host 127.0.0.1 --port 4173",
+      url: "http://127.0.0.1:4173",
+      reuseExistingServer: true,
+    },
+  ],
   projects: [
     {
       name: "setup",

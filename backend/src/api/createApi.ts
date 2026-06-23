@@ -8,6 +8,7 @@ import type { IAuthService } from "#api/accounts/auth.service.ts"
 import { GameplayController } from "#api/gameplay/gameplay.controller.ts"
 import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
+import { createHealthRouter } from "#api/health/health.router.ts"
 import { ListingsController } from "#api/listings/listings.controller.ts"
 import { type ListingsRepository } from "#api/listings/listings.repository.ts"
 import { createListingsRouter } from "#api/listings/listings.router.ts"
@@ -62,6 +63,8 @@ export async function createApi({
       onError: createErrorHandler({ logger: services.logger }),
     }),
   )
+
+  app.use(createHealthRouter())
 
   return app
 }
