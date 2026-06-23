@@ -97,7 +97,7 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
                   setTickIntervalUnit(value as TickIntervalUnit)
                 }}
               >
-                <SelectTrigger className="w-40">
+                <SelectTrigger aria-label="Turn length unit" className="w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -146,6 +146,7 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
             <Label htmlFor="generation-seed">Generation seed</Label>
             <p className="text-sm text-muted-foreground">Games with the same settings and seed generate the same star map.</p>
             <Input
+              id="generation-seed"
               type="number"
               min={creationSettings.starSystemGenerationSettingsLimits.seed.min}
               max={creationSettings.starSystemGenerationSettingsLimits.seed.max}
@@ -170,7 +171,9 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
               configuration: {
                 name,
                 nbSeats,
-                tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
+                tickIntervalSeconds: Temporal.Duration.from({
+                  [tickIntervalUnit]: tickIntervalMultiplier,
+                }).total("seconds"),
                 starSystemGenerationSettings,
               },
             })

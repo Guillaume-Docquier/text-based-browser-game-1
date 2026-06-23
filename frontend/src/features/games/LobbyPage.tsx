@@ -166,7 +166,9 @@ function DetailBlock({ label, value }: { label: string; value: string }): ReactE
   return (
     <div className="space-y-1">
       <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">{label}</div>
-      <div className="text-sm text-foreground">{value}</div>
+      <div aria-label={label} className="text-sm text-foreground">
+        {value}
+      </div>
     </div>
   )
 }
