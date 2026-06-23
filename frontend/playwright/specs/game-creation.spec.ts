@@ -1,8 +1,8 @@
-import { expect, test } from "@playwright/test"
-import { authenticatedUser } from "./authenticatedUser.ts"
-import { CreateGamePage } from "./pages/CreateGamePage.ts"
-import { LobbyPage } from "./pages/LobbyPage.ts"
-import { SignInPage } from "./pages/SignInPage.ts"
+import { authenticatedUser } from "../authenticatedUser.ts"
+import { expect, test } from "../fixtures.ts"
+import { CreateGamePage } from "../pages/CreateGamePage.ts"
+import { LobbyPage } from "../pages/LobbyPage.ts"
+import { SignInPage } from "../pages/SignInPage.ts"
 
 test.describe("anonymous user", () => {
   test("redirects to sign in", async ({ page }) => {

@@ -430,6 +430,7 @@ export default defineConfig({
     },
     {
       files: ["frontend/**/*.{ts,tsx}"],
+      excludeFiles: ["frontend/playwright/**/*"],
       rules: {
         "react/display-name": "error",
         "react/jsx-key": "error",

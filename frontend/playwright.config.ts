@@ -1,19 +1,17 @@
-import { existsSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { defineConfig, devices } from "@playwright/test"
+import { loadEnv } from "./playwright/loadEnv.ts"
 
 const frontendDirectory = dirname(fileURLToPath(import.meta.url))
 const backendDirectory = resolve(frontendDirectory, "../backend")
-const envFile = resolve(frontendDirectory, ".env")
 
-if (existsSync(envFile)) {
-  process.loadEnvFile(envFile)
-}
-
-process.env.CLERK_PUBLISHABLE_KEY ??= process.env.VITE_CLERK_PUBLISHABLE_KEY
+const env = loadEnv({ envFilePath: resolve(frontendDirectory, ".env") })
 
 export default defineConfig({
+  metadata: {
+    env,
+  },
   testDir: "./playwright",
   fullyParallel: true,
   reporter: "html",

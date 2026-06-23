@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test"
-import { HomePage } from "./pages/HomePage.ts"
+import { expect, test } from "../fixtures.ts"
+import { HomePage } from "../pages/HomePage.ts"
 
 test("shows the public landing page", async ({ page }) => {
   const homePage = await HomePage.goto(page)
