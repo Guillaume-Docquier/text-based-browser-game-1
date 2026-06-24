@@ -6,30 +6,18 @@ Accepted
 
 ## Context
 
-The frontend has backend integration tests and a Storybook sandbox for manual component inspection, but it does not have automated coverage for browser routing, rendered accessibility semantics, or Clerk-authenticated behavior.
-
-The initial browser suite only needs to run locally. It should exercise production frontend code without introducing selector-only markup or making the normal frontend quality gate depend on developer credentials.
+The backend has good integration feature oriented tests, but the frontend has nothing. Unit tests could be used easily, but that wouldn't be feature oriented and would leave a gap in our testing: authentication.
 
 ## Decision
 
-Use Playwright with Chromium for frontend end-to-end tests in `frontend/playwright`.
+Use Playwright with Chromium for frontend end-to-end (e2e) tests in `frontend/playwright`.
 
-Tests select elements by semantic roles and accessible names. Production test IDs must not be added solely to make E2E selection easier.
+The e2e tests should test real user flows with real authentication, real backend, real everything.
 
-Use strict page objects in `frontend/playwright/pages`. Tests instantiate the page objects they need. Every page object receives Playwright's `Page` in its constructor and provides a static `goto()` factory that creates, navigates, and returns the page object. Route parameters belong to `goto()`, not the constructor. Page objects own the semantic locators and thin interaction methods for that page. They do not make assertions, encode scenarios, or contain business decisions.
+Railway supports PR environments, but for now we won't hook the e2e tests to the CI to avoid costs.
 
-Use `test.step` to group related scenario operations such as navigation, form interaction, submission, and verification. Step names should describe user-visible intent so Playwright UI and reports show useful scenario phases. Steps belong in tests and setup files, not page objects.
-
-Organize test suites by product feature rather than authentication state. A feature suite may contain both signed-out and authenticated scenarios. Apply saved Clerk state to the relevant `test.describe` scope with `test.use` instead of splitting files or Playwright projects into public and authenticated suites.
-
-Use Clerk's Playwright helpers with a project-based setup. The setup obtains a Clerk testing token, signs in an existing development user by email, and stores the resulting browser state in the gitignored `frontend/playwright/.clerk` directory. Authenticated scenarios reuse that state.
-
-Local E2E configuration reads `frontend/.env`. The existing `VITE_CLERK_PUBLISHABLE_KEY` is also provided to Clerk's test helper as `CLERK_PUBLISHABLE_KEY`; developers must separately configure `CLERK_SECRET_KEY` and `E2E_CLERK_USER_EMAIL`.
-
-The E2E suite is not part of `frontend checks`. It has dedicated local commands because it requires Clerk credentials, a Clerk development user, and an installed browser. CI integration is deferred.
+We've set up the `e2e+clerk_test@example.com` in the Clerk dev env for use in tests.
 
 ## Consequences
 
-The frontend gains browser-level coverage for public routes, protected-route redirects, and authenticated rendering. Tests are coupled to user-visible semantics rather than implementation details.
-
-Developers must install Playwright's Chromium build once and maintain a Clerk development test user. Authentication state and Playwright output remain local and are not committed.
+We'll have e2e tests offering good coverage of the system, but the tests will be run locally only. This is fine since I'm the only contributor right now.

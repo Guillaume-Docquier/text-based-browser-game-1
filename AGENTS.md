@@ -57,7 +57,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - ADR-021: All Typescript schema column names should be `camelCased` but renamed to `snake_cased` for postgres via the `name` argument of column builders.
 - ADR-022: Frontend code imports named backend contract types from `backend/src/api/types.ts`. It only defines types for frontend concerns and never duplicates, reconstructs, or deconstructs backend types.
 - ADR-023: Add Storybook stories for all components in `frontend/src/components`. This is used for manual inspection only for now.
-- ADR-024: Frontend browser E2E tests use Playwright with role-based selectors. Authenticated tests use Clerk's testing helpers and saved browser state.
+- ADR-024: Write frontend E2E tests using Playwright with role-based selectors, not test ids. Authenticated tests use Clerk's testing helpers and saved browser state.
 
 ## Coding Conventions
 

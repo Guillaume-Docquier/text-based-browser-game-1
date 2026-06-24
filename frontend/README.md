@@ -10,12 +10,11 @@ We might pull out the public pages into a static site later on, who knows.
 
 ## End-to-end tests
 
-The Playwright suite runs locally against the Vite development server and uses Chromium.
+The Playwright suite runs locally against the Vite development server, the NodeJS backend and the db and uses Chromium. They all start and stop automatically when launching the tests.
 
 Add these values to `frontend/.env`:
 
 ```dotenv
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 E2E_CLERK_USER_EMAIL=e2e+clerk_test@example.com
 ```
