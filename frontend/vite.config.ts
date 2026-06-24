@@ -26,6 +26,9 @@ export default defineConfig(({ mode }) => {
     //   tsconfigPaths: true,
     // },
     server: {
+      watch: {
+        ignored: ["**/storybook-static/**", "**/playwright/**", "**/playwright-report/**", "**/playwright.config.ts"],
+      },
       // Matches the reverse proxy configuration in production
       proxy: {
         [env.VITE_BACKEND_BASE_URL]: {

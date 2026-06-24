@@ -57,6 +57,7 @@ The below rules are derived from `docs/adr/`. When applying the concepts, you sh
 - ADR-021: All Typescript schema column names should be `camelCased` but renamed to `snake_cased` for postgres via the `name` argument of column builders.
 - ADR-022: Frontend code imports named backend contract types from `backend/src/api/types.ts`. It only defines types for frontend concerns and never duplicates, reconstructs, or deconstructs backend types.
 - ADR-023: Add Storybook stories for all components in `frontend/src/components`. This is used for manual inspection only for now.
+- ADR-024: Write frontend E2E tests using Playwright with role-based selectors, not test ids. Authenticated tests use Clerk's testing helpers and saved browser state.
 
 ## Coding Conventions
 
@@ -91,6 +92,7 @@ Always use pnpm, never use npm.
 - `pnpm storybook`: start the frontend Storybook development sandbox.
 - `pnpm --filter frontend build`: build the frontend.
 - `pnpm --filter frontend checks`: run all frontend quality checks (typecheck).
+- `pnpm --filter frontend e2e`: run local frontend E2E tests.
 - `pnpm --filter backend checks`: run all backend quality checks (typecheck, test).
 - `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
 
@@ -101,6 +103,10 @@ We test the production code. We do not use `vitest.mock()`.
 We prefer end-to-end or integration tests. We use unit tests sparingly for complex scenarios (algorithm verification, validating race conditions, regression tests, etc.)
 
 For example, backend tests should test through the API. Some repository tests can be useful when we want to validate that transactions behave the way we want. We shouldn't be testing basic table mutation or query, that's done via the API.
+
+Frontend tests are mostly e2e tests using playwright. Prefer semantic role-based selectors and accessible names over data-test-ids. Use strict page objects from `frontend/playwright/pages`: tests instantiate the objects they need; every page object provides a static `goto()` factory that creates, navigates, and returns the page object; route parameters belong to `goto()`, not constructors; page objects only expose page elements and thin interaction methods; assertions and scenario logic stay in tests.
+
+Organize Playwright suites by product feature, not authentication state. Apply saved Clerk state with scoped `test.use` for authenticated scenarios inside the relevant feature suite.
 
 Some code is better tested in unit tests. In those rare cases, it's fine to test without using the backend api. The star system generation is a good example of when to use unit tests.
 
