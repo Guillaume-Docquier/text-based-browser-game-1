@@ -19,7 +19,7 @@
     "test": "vitest run --silent",
     "test:coverage": "pnpm test --coverage",
     "test:watch": "vitest",
-    "typecheck": "tsgo"
+    "typecheck": "tsc"
   },
   "dependencies": {
     "@clerk/express": "^2.1.23",
@@ -39,9 +39,9 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.2",
     "@types/pg": "^8.20.0",
-    "@typescript/native-preview": "catalog:",
     "@vitest/coverage-v8": "^4.1.8",
     "drizzle-kit": "^0.31.10",
+    "typescript": "catalog:",
     "vitest": "^4.1.8"
   }
 }
