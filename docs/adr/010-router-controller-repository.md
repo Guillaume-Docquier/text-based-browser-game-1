@@ -27,6 +27,8 @@ We'll make sure to decouple each layer, with:
 Repositories represent data access patterns (aka queries) and are not restricted to accessing single tables (think, joins).
 Controllers decide what to store, Repositories know how to store.
 
+Controllers can have access to a `tx` object through `createTransaction` but should only pass it to repositories, never use it to query/write to db. This abstraction leakage is because of how Drizzle deals with transactions, we can't hide them.
+
 ### Schema ownership and naming
 
 - Repositories never own Zod schemas. Repositories do not validate user input and should focus on persistence concerns.

@@ -145,5 +145,3 @@ frontend/blob-report/
 frontend/playwright-report/
 frontend/playwright/.clerk/
 frontend/test-results/
-
-.env

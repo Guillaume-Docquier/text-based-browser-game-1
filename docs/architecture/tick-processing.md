@@ -1,10 +1,6 @@
-# Architecture
+# Tick processing
 
-Describes the current architecture in details. This is a living document.
-
-## Tick processing
-
-The tick processing pipeline is almost entirely data driven.
+The tick processing pipeline aims to be entirely data driven.
 
 Every game will configure its ruleset, which defines:
 

@@ -1,87 +1,128 @@
 # Cosmic Supremacy
 
-This project is a multiplayer browser strategy game played at a pace of 1 turn a day for a few months.
+Cosmic Empires is a multiplayer turn based space strategy game where games span over weeks or months.
 
-The goal is to build a game that's as fun as persistent browser games, but that doesn't reward being the most active player.
-
-See @GLOSSARY.md for useful term definitions.
+The goal is to build a game that's as fun as persistent browser games, but that are finite and don't reward being the most active player.
 
 ## Current status
 
-The project is only getting started, and we are building strong foundations. We've built the infrastructure, deployed on Railway, established the tech that we will use, and developed testing strategies for the backend.
+The project is only getting started, and we are focused on building strong foundations. We've built the infrastructure, deployed on Railway, established the tech that we will use, and developed testing strategies.
 
 Code quality and architecture design choices matter more than speed of execution.
 
 We have 0 users. When dealing with database schema changes, we never need to backfill. We can always reset the db.
 
-## Project Structure And Tech Stack
+## Project Structure
 
-This repo is a TypeScript monorepo using pnpm workspaces (ADR-014) with separate deployable projects:
+This is a TypeScript monorepo using pnpm workspaces.
 
-- `frontend/`: React 19 + TailwindCSS 4 + Shadcn + Vite 8 UI. File-based TanStack route definitions live in `src/routes/`, page/layout implementations live in `src/features/`, reusable Shadcn components and shared UI live in `src/components/`, Storybook configuration lives in `.storybook/`, and static assets live in `public/` and `src/assets/`.
-- `backend/`: Express 5 + tRPC 11 API + tick-processing worker in TypeScript with no transpilation. API code lives in `src/api/`, tick-processing in `src/tick-processing/`, shared backend utilities in `src/lib/`, and DB schema/repositories in `src/lib/db/`.
-- `infra/`: deployment and reverse-proxy config.
-- `docs/`: all project documentation. It includes past, present, and future tech/game designs, adrs, etc.
-- `docs/adr/`: architecture decision records. Read the relevant ADRs before changing established patterns.
+### Key Directories
 
-Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. This is a TypeScript library of utilities made by us. Their README.md contains a high-level view of the available utilities.
+| Directory               | Description                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| frontend                | The web application.                                                                       |
+| backend/api             | The api for the frontend.                                                                  |
+| backend/tick-processing | The tick processing engine.                                                                |
+| infra                   | The IaC for 3rd parties that we use.                                                       |
+| docs                    | All the documentation for the project. There is no documentation in the other directories. |
 
-We use oxfmt for formatting and oxlint for type-aware linting. They are configured at the root of the project.
+### Dependencies
 
-## Architecture Rules
+```
+frontend ───api-types───▶ backend/api ───orders-validation───▶ backend/tick-processing
+```
 
-The below rules are derived from `docs/adr/`. When applying the concepts, you should read the related ADR for more context.
+There are no other allowed dependencies.
 
-- ADR-006: Only dedicated service/repository boundaries may talk to third parties directly:
-  - Clerk only in auth services.
-  - Drizzle only in repositories.
-- ADR-007: The only allowed shared code between backend and frontend are the tRPC router types from `backend/src/api/types`.
-- ADR-008: No import side effects outside app entry points. Do not create stateful objects in the module global scope; pass dependencies through arguments.
-  - For tRPC routers, preserve the local factory pattern used for DI and type inference:
-    - export `type TrpcRouter = ReturnType<typeof createTrpcRouter>`
-    - create the router in a function, not in global scope
-- ADR-009: Always write return types, except for tRPC and Tanstack Router, since they are built to leverage inference.
-- ADR-010: Keep backend layering strict:
-  - Routers are the only layer that knows about Express/tRPC.
-  - Repositories are the only layer that knows about Drizzle/Postgres. They never contain zod schemas. They export WriteModel and ReadModel types.
-  - Controllers contain business logic between routers and repositories. They export DTO zod schemas and types.
-  - Controllers can have access to a `tx` object through `createTransaction` but should only pass it to repositories, never use it to query/write to db. This abstraction leakage is because Drizzle transactions have the same API as db objects.
-- ADR-011: Tick processing should stay decoupled from the web server so it can be extracted later. The web server may depend on worker code; worker code should not depend on the web server.
-- ADR-013: Never throw for expected errors. Return `Result` values to represent runtime errors. Wrap third-party calls that may throw with `Result.tryCatch`. Only fatal crash-the-process errors may be thrown.
-- ADR-015: Use Zod for parsing, not validation. Do not use zod functions that cannot translate to TypeScript types. `.int()`, `.email()`, most `.refine()`, etc are forbidden.
-- ADR-016: Use repositories in tests, not the db. The db can only be used in repository tests since it is a direct dependency.
-- ADR-017: Use stubs when creating any data in tests. Create the stub if it doesn't exist in a file next to the type for discovery and reusability. Use mocks for third parties that are hard to control.
-- ADR-018: Assert the whole Result object in tests, not its individual properties. `expect(result).toEqual(Result.Success(expectedValue))`
-- ADR-019: Do not leave expected invariants implicit, use explicit `Assert` calls.
-- ADR-020: Frontend Tanstack routes should only do the routing. The UI is implemented in `frontend/src/features/` in vertical slices.
-- ADR-021: All Typescript schema column names should be `camelCased` but renamed to `snake_cased` for postgres via the `name` argument of column builders.
-- ADR-022: Frontend code imports named backend contract types from `backend/src/api/types.ts`. It only defines types for frontend concerns and never duplicates, reconstructs, or deconstructs backend types.
-- ADR-023: Add Storybook stories for all components in `frontend/src/components`. This is used for manual inspection only for now.
-- ADR-024: Write frontend E2E tests using Playwright with role-based selectors, not test ids. Authenticated tests use Clerk's testing helpers and saved browser state.
+### CI/CD
 
-## Coding Conventions
+All code changes require a pull request before merging to main. A CI enforces the quality gates there.
 
-- TypeScript ESM
-- Prefer inline exports on declarations such as `export function foo()` or `export const bar = ...` instead of collecting exports in a bottom-of-file export block.
-- Follow existing naming conventions:
-  - React components and feature pages: PascalCase files like `TextInput.tsx`
-  - Utilities: camelCase files like `timeAgo.ts`
-  - Route files: TanStack Router flat-file naming like `_site.games.$gameId.tsx` or `_game.games.$gameId.play.tsx`
-- Backend code relies on `erasableSyntaxOnly`, so do not use TypeScript `enum` in the backend. Use `as const` objects and the `Enumify` type helper to create the enum type.
-- Do not create shared utility/helper files or folders. Create dedicated files with actual names instead of generic files.
-- When importing a value and a type of the same name from the same package (e.g `Range` or `Result`), just import the value. Do not import the type to rename it.
-- Prefer the specialized `Range.float({ min, max })` and `Range.integer({ min, max })` constructors over `Range.create` whenever possible.
-- Comments should explain intent, not restate the code.
+All merges to main are automatically deployed to Railway based on which files changed.
 
-## React Gotchas
+## Tech Stack
 
-- React Compiler is enabled. Do not add `useMemo` or `useCallback` only to optimize derived render data; use them when stable identity is part of correctness or lifecycle.
-- Extract repeated or complex JSX into local components, even when they stay in the same file.
+We use:
 
-## Drizzle Gotchas
+- pnpm to manage the pnpm (11) and node (24) versions
+- oxfmt for formatting
+- oxlint for linting
+- typescript 7 (dev, soon rc)
 
-- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw `new TransactionRollback(...)` from `backend/src/lib/errors.ts` instead.
-- Do not return results from transactions. Throw `TransactionRollback` to abort the transaction, or return the value directly.
+### @guillaume-docquier/tools-ts
+
+Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. This is a TypeScript library of utilities made by us. Their README.md contains a high-level view of the available utilities, read it.
+
+### Frontend
+
+We use:
+
+- React 19 with compiler
+- TailwindCSS 4
+- Tanstack Router
+- Shadcn
+- Clerk auth
+- Vite 8
+- Playwright
+- Storybook
+
+Key Directories:
+
+| Directory               | Description                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| frontend/src/routes     | All the tanstack routes using file based routing. Imports pages from frontend/src/features.                        |
+| frontend/src/features   | Vertical slices for all features in the app.                                                                       |
+| frontend/src/components | Shared components, aka the design system.                                                                          |
+| frontend/src/lib/api    | API client and hooks to use it live here. Calling code doesn't even know we use trpc in the backend + react query. |
+| frontend/.storybook     | Configuration for storybook. We use storybook to inspect the design system. stories live next to their components. |
+| frontend/playwright     | All e2e tests. We use POM and integrate clerk auth in the tests.                                                   |
+
+### Backend API
+
+We use:
+
+- Express 5
+- tRPC 11
+- drizzle + postgres
+- Clerk auth
+- Vitest 4
+- pglite for in memory db during integration tests
+
+Key Directories:
+
+| Directory       | Description                                                                        |
+| --------------- | ---------------------------------------------------------------------------------- |
+| backend/src/api | All code for the API organized by vertical slices of router-controller-repository. |
+| backend/src/lib | Shared code between API and tick processing, mostly DB schemas.                    |
+
+There is no build for the backend, we run TypeScript natively on node 24+. This means we require isolated modules and cannot use certain features like enums or decorators.
+
+### Backend Tick Processing
+
+The tick processing module runs in a TypeScript worker hosted by the API process.
+
+It runs there for simplicity of deployment, but is designed to be isolated so we can scale the number of workers, or extract the workers into its own runtime, or even re-write in another language.
+
+The code is in `backend/src/tick-processing` and runs TypeScript natively on node 24+ just like the API.
+
+## Coding standards
+
+Read `docs/typescript-coding-standards.md` to properly follow coding standards.
+
+## Glossary
+
+Read `docs/glossary.md` for common terms with specific meaning in this project. When introducing new vocabulary, update the glossary.
+
+## Architecture Decision Records (ADRs)
+
+This repo uses ADRs in `docs/adr/` to capture important architecture decisions. Before making changes that touch architecture (new dependencies, new patterns, API design, infrastructure), check existing ADRs:
+
+1. Read `docs/adr/README.md` for the index of decisions.
+2. Read any accepted ADRs relevant to your area of work. Follow the decisions and implementation patterns they specify.
+3. If you encounter a pattern in the code and wonder "why is it done this way?", check whether an ADR explains it.
+4. If your work would contradict an existing accepted ADR, stop and discuss with the human before proceeding.
+
+To propose or create a new ADR, follow `docs/adr/how-to.md`
 
 ## Commands
 
@@ -89,28 +130,19 @@ Always use pnpm, never use npm.
 
 - `pnpm i`: install node_modules for all packages.
 - `pnpm checks`: runs all quality checks (lint, format, typecheck, test) on all packages.
-- `pnpm storybook`: start the frontend Storybook development sandbox.
-- `pnpm --filter frontend build`: build the frontend.
-- `pnpm --filter frontend checks`: run all frontend quality checks (typecheck).
-- `pnpm --filter frontend e2e`: run local frontend E2E tests.
-- `pnpm --filter backend checks`: run all backend quality checks (typecheck, test).
+- `pnpm integration`: run local backend integration tests.
+- `pnpm e2e`: run local E2E tests.
+- `pnpm --filter frontend checks`: run all frontend quality checks (typecheck, build, e2e).
+- `pnpm --filter backend checks`: run all backend quality checks (typecheck, integration).
 - `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
 
 ## Testing
 
 We test the production code. We do not use `vitest.mock()`.
 
-We prefer end-to-end or integration tests. We use unit tests sparingly for complex scenarios (algorithm verification, validating race conditions, regression tests, etc.)
+We prefer end-to-end and integration tests. We use unit tests sparingly for complex scenarios (algorithm verification, validating race conditions, regression tests, etc.)
 
-For example, backend tests should test through the API. Some repository tests can be useful when we want to validate that transactions behave the way we want. We shouldn't be testing basic table mutation or query, that's done via the API.
-
-Frontend tests are mostly e2e tests using playwright. Prefer semantic role-based selectors and accessible names over data-test-ids. Use strict page objects from `frontend/playwright/pages`: tests instantiate the objects they need; every page object provides a static `goto()` factory that creates, navigates, and returns the page object; route parameters belong to `goto()`, not constructors; page objects only expose page elements and thin interaction methods; assertions and scenario logic stay in tests.
-
-Organize Playwright suites by product feature, not authentication state. Apply saved Clerk state with scoped `test.use` for authenticated scenarios inside the relevant feature suite.
-
-Some code is better tested in unit tests. In those rare cases, it's fine to test without using the backend api. The star system generation is a good example of when to use unit tests.
-
-Optimize assertions for useful failure output: compare semantic values instead of opaque IDs, sort unordered collections before comparison, and keep test setup control flow straightforward.
+Optimize assertions for useful failure output: compare semantic values instead of opaque IDs, sort unordered collections before comparison, keep test setup control flow straightforward, etc.
 
 Do not reimplement the logic in the test to create the expected result. Be explicit and create the expected state by hand instead of computing it. This is often more code, but it avoids encoding bugs in the test.
 
@@ -126,21 +158,26 @@ Minimum verification for meaningful changes:
 
 ## Commits And PRs
 
-- Husky enforces scoped commit prefixes: `project:`, `frontend:`, `backend:`, `ci:`, `adr:`, `infra:`, `docs:`.
 - Pre-commit runs `pnpm lint-staged`, for linting and formatting
 - If a change affects schema, env usage, or deployment behavior, call that out explicitly in the PR.
 
 ## Env Vars
 
+Every service parses env vars via a zod schema very early at boot. This serves as documentation for the required env vars and as validation that the application has all the configuration needed.
+
 Never change environment variable values yourself. Ask the user to do it, and suggest the required change if needed.
 
-## Source Code Reference
+## React Gotchas
 
-Source code for dependencies is cached at `~/.opensrc/`.
+- React Compiler is enabled. You probably don't need that `useMemo` or `useCallback`. Use them only when the compiler cannot do it for you.
+- Extract repeated or complex JSX into local components, even when they stay in the same file.
 
-Use `opensrc path` inside other commands to read source:
+## Drizzle Gotchas
 
-```bash
-rg "pattern" $(opensrc path <package>)
-cat $(opensrc path <package>)/path/to/file
-```
+- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw `new TransactionRollback(...)` from `backend/src/lib/errors.ts` instead.
+- Do not return results from transactions. Throw `TransactionRollback` to abort the transaction, or return the value directly.
+
+## `@guillaume-docquier/tools-ts` Gotchas
+
+- When importing a value and a type of the same name from the same package (e.g `Range` or `Result`), just import the value. Do not import the type to rename it.
+- Prefer the specialized `Range.float({ min, max })` and `Range.integer({ min, max })` constructors over `Range.create` whenever possible.
