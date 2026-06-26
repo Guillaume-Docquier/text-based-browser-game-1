@@ -1,8 +1,8 @@
 import type { Lobby, PlayerView } from "@api-types"
 import type { ReactElement, ReactNode } from "react"
-import { Skeleton } from "../../../components/skeleton.tsx"
-import { GameSideNav } from "./GameSideNav.tsx"
-import { GameTopBar } from "./GameTopBar.tsx"
+import { Skeleton } from "@/components/skeleton.tsx"
+import { GameSideNav } from "@/features/play/components/GameSideNav.tsx"
+import { GameTopBar } from "@/features/play/components/GameTopBar.tsx"
 
 export function GameLayout({ game, playerView, children }: { game: Lobby; playerView: PlayerView; children: ReactNode }): ReactElement {
   return (

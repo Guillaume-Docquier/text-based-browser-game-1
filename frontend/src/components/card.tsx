@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cn } from "../lib/cn.ts"
+import { cn } from "@/lib/cn.ts"
 
 export function Card({
   className,

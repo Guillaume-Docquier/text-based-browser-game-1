@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { AlertTriangleIcon, InfoIcon } from "lucide-react"
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "./alert"
-import { Button } from "./button"
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/alert"
+import { Button } from "@/components/button"
 
 const meta = {
   title: "Design System/Alert",

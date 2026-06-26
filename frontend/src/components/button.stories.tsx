@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { RocketIcon } from "lucide-react"
-import { Button } from "./button"
+import { Button } from "@/components/button"
 
 const meta = {
   title: "Design System/Button",

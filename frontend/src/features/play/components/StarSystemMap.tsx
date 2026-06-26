@@ -7,8 +7,8 @@ import {
   STAR_SYSTEM_CENTER,
   STAR_SYSTEM_VIEW_BOX,
   type Point,
-} from "../starSystemGeometry.ts"
-import { useStarSystemPanZoom } from "../useStarSystemPanZoom.ts"
+} from "@/features/play/starSystemGeometry.ts"
+import { useStarSystemPanZoom } from "@/features/play/useStarSystemPanZoom.ts"
 
 type RenderedSector = {
   id: string
