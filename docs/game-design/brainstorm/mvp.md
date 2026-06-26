@@ -88,21 +88,21 @@ The visual direction is inspired by Dune, The Expanse and Homeworld 2: tactical,
 
 ### Ships
 
-| The Expanse Rocinante                                                   | Homeworld 2 Corvettes                                                         |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| ![The Expanse Rocinante](../.github/images/inspiration-the-expanse.png) | ![Homeworld 2 Corvettes](../.github/images/inspiration-homeworld-2-ships.png) |
+| The Expanse Rocinante                                                         | Homeworld 2 Corvettes                                                               |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| ![The Expanse Rocinante](../../../.github/images/inspiration-the-expanse.png) | ![Homeworld 2 Corvettes](../../../.github/images/inspiration-homeworld-2-ships.png) |
 
 ### Maps
 
-| Dune Board Game Map                                            | Homeworld 2 Tactical Map                                                       |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| ![Dune Board Game Map](../.github/images/inspiration-dune.png) | ![Homeworld 2 Tactical Map](../.github/images/inspiration-homeworld-2-map.png) |
+| Dune Board Game Map                                                  | Homeworld 2 Tactical Map                                                             |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| ![Dune Board Game Map](../../../.github/images/inspiration-dune.png) | ![Homeworld 2 Tactical Map](../../../.github/images/inspiration-homeworld-2-map.png) |
 
 ### AI Generated UI
 
-| AI Generated Solar System UI                                                       | AI Generated Planet UI                                                 |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| ![AI Generated Solar System UI](../.github/images/mockup-ai-solar-system-view.png) | ![AI Generated Planet UI](../.github/images/mockup-ai-planet-view.png) |
+| AI Generated Solar System UI                                                             | AI Generated Planet UI                                                       |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| ![AI Generated Solar System UI](../../../.github/images/mockup-ai-solar-system-view.png) | ![AI Generated Planet UI](../../../.github/images/mockup-ai-planet-view.png) |
 
 ## Game World Fiction
 

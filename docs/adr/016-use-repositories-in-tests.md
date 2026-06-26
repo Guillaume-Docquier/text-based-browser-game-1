@@ -19,3 +19,5 @@ Backend tests should prefer using repositories over the database. Only repositor
 Tests are less coupled to the database schema and easier to refactor.
 
 We'll get better test coverage of repositories.
+
+In most cases this should not even be a concern, because we favor integration tests through the API.

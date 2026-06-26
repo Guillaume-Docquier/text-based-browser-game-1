@@ -1,6 +1,6 @@
 # Game design
 
-Describes the current game design in details. This is a living document.
+Describes the game design in details.
 
 # Initial ideas (to evolve into the actual doc)
 

@@ -6,7 +6,7 @@ import { SignInPage } from "../pages/SignInPage.ts"
 import { StarSystemPage } from "../pages/StarSystemPage.ts"
 
 test.describe("anonymous user", () => {
-  test("redirects to sign in", async ({ page }) => {
+  test("must sign in to create a game", async ({ page }) => {
     await CreateGamePage.goto(page)
 
     await test.step("Verify the sign-in redirect", async () => {

@@ -1,7 +1,7 @@
 import { type Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
-import { AccountId } from "#api/accounts/AccountId.ts"
 import { type AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import { AccountId } from "#lib/db/accounts/AccountId.ts"
 
 export class AccountsController {
   private readonly accountsRepository: AccountsRepository
