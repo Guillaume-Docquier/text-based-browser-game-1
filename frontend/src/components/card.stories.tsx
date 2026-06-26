@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { Badge } from "./badge"
-import { Button } from "./button"
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card"
+import { Badge } from "@/components/badge"
+import { Button } from "@/components/button"
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/card"
 
 const meta = {
   title: "Design System/Card",

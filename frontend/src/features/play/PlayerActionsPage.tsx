@@ -1,11 +1,11 @@
 import type { GameId } from "@api-types"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement, ReactNode } from "react"
-import { Alert, AlertDescription, AlertTitle } from "../../components/alert.tsx"
-import { useCurrentActionQuery } from "../../lib/api/useCurrentActionQuery.ts"
-import { useLogger } from "../../lib/LoggerContext.tsx"
-import { GameActionSelector, GameActionSelectorSkeleton } from "./components/GameActionSelector.tsx"
-import { usePlayGameContext } from "./PlayContext.tsx"
+import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
+import { GameActionSelector, GameActionSelectorSkeleton } from "@/features/play/components/GameActionSelector.tsx"
+import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
+import { useCurrentActionQuery } from "@/lib/api/useCurrentActionQuery.ts"
+import { useLogger } from "@/lib/LoggerContext.tsx"
 
 function PlayerActionsContainer({ children }: { children: ReactNode }): ReactElement {
   return <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">{children}</div>

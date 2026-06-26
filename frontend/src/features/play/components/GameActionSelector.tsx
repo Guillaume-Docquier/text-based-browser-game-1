@@ -2,11 +2,11 @@ import type * as ApiTypes from "@api-types"
 import type { PlayerView } from "@api-types"
 import { AlertTriangle, CheckCircle2, Coins } from "lucide-react"
 import type { KeyboardEvent, ReactElement } from "react"
-import { Alert, AlertDescription, AlertTitle } from "../../../components/alert.tsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/card.tsx"
-import { Skeleton } from "../../../components/skeleton.tsx"
-import { useSetCurrentActionMutation } from "../../../lib/api/useSetCurrentActionMutation.ts"
-import { cn } from "../../../lib/cn.ts"
+import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
+import { Skeleton } from "@/components/skeleton.tsx"
+import { useSetCurrentActionMutation } from "@/lib/api/useSetCurrentActionMutation.ts"
+import { cn } from "@/lib/cn.ts"
 
 const PLAYER_ACTIONS = [
   {

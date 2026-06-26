@@ -21,7 +21,7 @@
     "husky": "9.1.7",
     "lint-staged": "17.0.7",
     "oxfmt": "^0.53.0",
-    "oxlint": "^1.68.0",
+    "oxlint": "^1.71.0",
     "oxlint-tsgolint": "^0.23.0"
   },
   "lint-staged": {
@@ -34,7 +34,7 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "11.8.0",
+      "version": "11.9.0",
       "onFail": "download"
     },
     "runtime": {

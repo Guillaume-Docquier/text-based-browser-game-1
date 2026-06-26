@@ -2,9 +2,9 @@ import { Show, UserButton } from "@clerk/react"
 import { Link, Outlet } from "@tanstack/react-router"
 import { Rocket, UserSearch } from "lucide-react"
 import type { ReactElement } from "react"
-import logo from "../assets/logo.png"
-import { Button } from "../components/button.tsx"
-import { Separator } from "../components/separator.tsx"
+import logo from "@/assets/logo.png"
+import { Button } from "@/components/button.tsx"
+import { Separator } from "@/components/separator.tsx"
 
 export function AppLayout(): ReactElement {
   return (

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react"
-import type { Point } from "./starSystemGeometry.ts"
+import type { Point } from "@/features/play/starSystemGeometry.ts"
 
 type ViewportTransform = {
   x: number

@@ -1,7 +1,7 @@
 import type { Lobby, PlayerView } from "@api-types"
 import { Clock3, Crown, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
-import { GameStatusBadge } from "./GameStatusBadge.tsx"
+import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
 
 export function GameTopBar({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
   return (

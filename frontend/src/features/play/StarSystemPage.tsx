@@ -1,8 +1,8 @@
 import { CircleDot, LocateFixed } from "lucide-react"
 import { type ReactElement, useState } from "react"
-import { Button } from "../../components/button.tsx"
-import { StarSystemMap } from "./components/StarSystemMap.tsx"
-import { usePlayGameContext } from "./PlayContext.tsx"
+import { Button } from "@/components/button.tsx"
+import { StarSystemMap } from "@/features/play/components/StarSystemMap.tsx"
+import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 
 export function StarSystemPage(): ReactElement {
   const [resetSignal, setResetSignal] = useState(0)

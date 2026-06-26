@@ -1,6 +1,6 @@
 import { SignUp } from "@clerk/react"
 import type { ReactElement } from "react"
-import { AuthPageShell } from "./components/AuthPageShell.tsx"
+import { AuthPageShell } from "@/features/auth/components/AuthPageShell.tsx"
 
 export function SignUpPage({ redirect }: { redirect: string }): ReactElement {
   return (

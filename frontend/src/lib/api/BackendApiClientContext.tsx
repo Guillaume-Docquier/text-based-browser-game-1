@@ -1,5 +1,5 @@
 import { createContext, type FC, type PropsWithChildren, useContext } from "react"
-import type { BackendApiClient } from "./BackendApiClient.ts"
+import type { BackendApiClient } from "@/lib/api/BackendApiClient.ts"
 
 type BackendApiClientContextInterface = BackendApiClient
 

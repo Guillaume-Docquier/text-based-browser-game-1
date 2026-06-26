@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import * as React from "react"
-import { RangeSlider } from "./RangeSlider"
+import { RangeSlider } from "@/components/RangeSlider"
 
 const meta = {
   title: "Design System/RangeSlider",
