@@ -85,7 +85,7 @@ throw new FatalError("something went wrong", { data })
 
 Use `Assert.isExhausted` for exhaustive union handling.
 
-### Custom errors (not yet implemented)
+### Custom errors (aspirational)
 
 Expected failures should use custom tagged errors extending `TaggedError` from `@guillaume-docquier/tools-ts`
 
@@ -122,7 +122,7 @@ Result<User, UserNotFound | UserStoreUnavailable>
 
 Avoid broad `AppError`-style types except near entrypoints, orchestration, logging, and rendering layers.
 
-## Sensitive data, telemetry, and debugging
+## Sensitive data, telemetry, and debugging (aspirational)
 
 Prefer end-to-end structured tracing across requests, jobs, workflows, application modules, adapters, and external calls.
 
@@ -138,7 +138,7 @@ Tracing/logging should make failures diagnosable with safe fields:
 
 Do not put secrets in errors, traces, logs, or snapshots.
 
-Use a `Redacted<T>` wrapper for sensitive values such as tokens, API keys, passwords, raw credentials, and secrets. Prefer Effect's `Redacted.Redacted` in Effect codebases or a local `Redacted<T>` in `prelude.ts`.
+Use a `Redacted<T>` wrapper for sensitive values such as tokens, API keys, passwords, raw credentials, and secrets.
 
 Wrap sensitive values at the boundary and unwrap only where the raw value is needed, usually inside an adapter making an external call.
 
@@ -175,7 +175,7 @@ Use Zod as boundary parsers, not as ad-hoc validators sprinkled through core log
 
 Schema parsing should produce refined/domain types and typed custom errors where practical.
 
-## Branded types and correct construction (not yet implemented)
+## Branded types and correct construction (aspirational)
 
 Use branded/refined types for meaningful primitives:
 
@@ -302,7 +302,7 @@ They coordinate domain modules, persistence, external calls, authorization, work
 
 Prefer classes with constructor injection when the module has dependencies, stateful resources, configuration, or multiple cohesive operations.
 
-Avoid dependency bags like `deps` objects passed into every function. In Effect codebases, use Effect services/tags/layers instead.
+Avoid dependency bags like `deps` objects passed into every function.
 
 No arbitrary method limit. Split when methods are unrelated, change for different reasons, require unrelated dependencies, or create an accidental grab bag.
 
@@ -450,7 +450,7 @@ Avoid spy-driven tests like `expect(sendEmail).toHaveBeenCalledWith(...)` unless
 
 For persistence behavior, prefer PGLite/local DB-backed tests over hand-rolled in-memory fakes when SQL/schema/transaction behavior matters.
 
-### Property tests and arbitraries
+### Property tests and arbitraries (aspirational)
 
 Use `fast-check` where properties are clearer than examples, especially for:
 
@@ -638,7 +638,7 @@ Do not read `process.env` throughout the app. Missing/invalid config is a startu
 
 Avoid top-level side effects except in true entrypoint/bootstrap files. Modules should not start servers, open connections, read env, register handlers, or perform I/O at import time.
 
-Resource creation and cleanup should be explicit and owned by bootstrap/imperative shell code or Effect layers when using Effect.
+Resource creation and cleanup should be explicit and owned by bootstrap/imperative shell code.
 
 Avoid mutable singletons/global state. Constants and pure lookup tables are fine. If a singleton is required by a framework/runtime, isolate it at the boundary.
 

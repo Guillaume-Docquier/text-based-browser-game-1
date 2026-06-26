@@ -1,6 +1,6 @@
 import { Assert, Datetime, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import type { AccountId } from "#api/accounts/AccountId.ts"
 import type { Clock } from "#lib/Clock.ts"
+import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"

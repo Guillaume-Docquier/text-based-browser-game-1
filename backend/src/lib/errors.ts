@@ -1,5 +1,4 @@
 import { Result, type Success } from "@guillaume-docquier/tools-ts"
-import type { AccountId } from "#api/accounts/AccountId.ts"
 
 /**
  * A generic helper for errors that should not be disclosed to users.
@@ -14,17 +13,6 @@ import type { AccountId } from "#api/accounts/AccountId.ts"
  */
 export function couldNot(operationName: string): string {
   return `Could not ${operationName}, see logs for more details.`
-}
-
-/**
- * A generic helper for errors due to lack of authorization.
- *
- * @example
- * ```ts
- * ```
- */
-export function notAuthorized({ accountId, operationName }: { accountId: AccountId; operationName: string }): string {
-  return `Account with id ${accountId} is not authorized to ${operationName}`
 }
 
 /**

@@ -93,7 +93,6 @@ Interview the human to understand the decision space. Ask questions **one at a t
 > - **Lean**: {which option and why}
 > - **Non-goals**: {what's explicitly out of scope}
 > - **Related ADRs/code**: {what exists that this interacts with}
-> - **Verification**: {how we'll know it's implemented correctly}
 >
 > **Does this capture your intent? Anything to add or correct?**
 
@@ -154,11 +153,9 @@ Agents should read existing ADRs **before implementing changes** in a codebase t
 
 2. **Scan titles and statuses.** Read the index or list filenames. Focus on `accepted` ADRs — these are active decisions.
 
-3. **Read relevant ADRs fully.** Don't just read the title — read context, decision, consequences, non-goals, AND the Implementation Plan. The Implementation Plan tells you what patterns to follow and what files are governed by this decision.
+3. **Read relevant ADRs fully.** Don't just read the title — read context, decision, consequences, non-goals.
 
 4. **Respect the decisions.** If an accepted ADR says "use PostgreSQL," don't propose switching to MongoDB without creating a new ADR that supersedes it. If you find a conflict between what the code does and what the ADR says, flag it to the human.
-
-5. **Reference ADRs in your work.** Add `ADR-NNNN` references in code comments and PR descriptions (see "Code ↔ ADR Linking" below).
 
 ## Other Operations
 
@@ -169,16 +166,6 @@ Agents should read existing ADRs **before implementing changes** in a codebase t
    - **Deprecate**: status → `deprecated`, explain replacement path.
    - **Supersede**: create a new ADR, link both ways (old → new, new → old).
    - **Add learnings**: append to `## More Information` with a date stamp. Do not rewrite history.
-
-### Post-Acceptance Lifecycle
-
-After an ADR is accepted:
-
-1. **Create implementation tasks.** Each item in the Implementation Plan and each follow-up in Consequences should become a trackable task (issue, ticket, or TODO).
-2. **Reference the ADR in PRs.** Link to the ADR in PR descriptions: "Implements ADR-0004."
-3. **Add code references.** Add `ADR-NNNN` comments at key implementation points.
-4. **Check verification criteria.** Once implementation is complete, walk through the Verification checkboxes. Update the ADR with results in `## More Information`.
-5. **Revisit when triggers fire.** If the ADR specified revisit conditions ("if X happens, reconsider"), monitor for those conditions.
 
 ### Index
 

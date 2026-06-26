@@ -11,7 +11,7 @@ export type { TrpcRouter }
 
 export type { GameId } from "#api/shared/GameId.ts"
 export type { PlayerId } from "#api/shared/PlayerId.ts"
-export type { AccountId } from "#api/accounts/AccountId.ts"
+export type { AccountId } from "#lib/db/accounts/AccountId.ts"
 
 // Lobbies
 export type Lobby = TrpcRouterOutput["lobbies"]["getById"]

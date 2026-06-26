@@ -1,4 +1,4 @@
-# Cosmic Supremacy
+# Cosmic Empires
 
 Cosmic Empires is a multiplayer turn based space strategy game where games span over weeks or months.
 
@@ -155,7 +155,7 @@ Minimum verification for meaningful changes:
 - `pnpm checks` (when touching all projects)
 - `pnpm --filter backend checks` (when touching only backend)
 - `pnpm --filter frontend checks` (when touching only frontend)
-- Do not start Vite/Storybook or attempt visual/browser verification. The project is not set up for agent-driven visual verification yet.
+- Do not start Vite/Storybook for the user or attempt visual/browser verification. The project is not set up for agent-driven visual verification yet, and the user knows how to start the app.
 - Call out relevant extra manual verification that the user should perform for the area changed
 
 ## Commits And PRs
