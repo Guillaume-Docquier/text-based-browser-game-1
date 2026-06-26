@@ -138,6 +138,8 @@ Always use pnpm, never use npm.
 - `pnpm --filter backend checks`: run all backend quality checks (typecheck, integration).
 - `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
 
+When formatting the code, always run oxfmt with write. oxfmt is deterministic, there's no point in checking before applying formatting.
+
 ## Testing
 
 We test the production code. We do not use `vitest.mock()`.

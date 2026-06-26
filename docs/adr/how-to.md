@@ -2,174 +2,156 @@
 
 ## Philosophy
 
-- Constraints must be explicit and measurable, not vibes
-- Decisions must be specific enough to act on ("use PostgreSQL 16 with pgvector" not "use a database")
-- Consequences must map to concrete follow-up tasks
-- Non-goals must be stated to prevent scope creep
+- ADRs explain durable decisions, not every implementation detail.
+- The ADR template is intentionally small: `Title`, `Status`, `Context`, `Decision`, and `Consequences`.
+- Capture useful options, rejected alternatives, boundaries, risks, and follow-up work inside the existing template sections.
 - The ADR must be self-contained — no tribal knowledge assumptions
 
 ## When to Write an ADR
 
 Write an ADR when a decision:
 
-- **Changes how the system is built or operated** (new dependency, architecture pattern, infrastructure choice, API design)
-- **Is hard to reverse** once code is written against it
-- **Affects other people or agents** who will work in this codebase later
-- **Has real alternatives** that were considered and rejected
+- Changes how the system is built or operated, such as a new dependency, architecture pattern, infrastructure choice, API design, or testing strategy.
+- Is hard to reverse once code is written against it.
+- Affects other people or agents who will work in this codebase later.
+- Has real alternatives or tradeoffs that are worth preserving.
 
-Do NOT write an ADR for:
+Do not write an ADR for:
 
-- Routine implementation choices within an established pattern
-- Bug fixes or typo corrections
-- Decisions already captured in an existing ADR (update it instead)
-- Style preferences already covered by linters or formatters
+- Routine implementation choices within an established pattern.
+- Bug fixes or typo corrections.
+- Decisions already captured in an existing ADR. Update the existing ADR instead.
+- Style preferences already covered by linters or formatters.
 
 When in doubt: if a future agent working in this codebase would benefit from knowing _why_ this choice was made, write the ADR.
 
-### Proactive ADR Triggers (For Agents)
+### Proactive ADR Triggers for Agents
 
-If you are an agent coding in a repo and you encounter any of these situations, **stop and propose an ADR** before continuing:
+If you are an agent coding in this repo and encounter any of these situations, stop and propose an ADR before continuing:
 
-- You are about to introduce a new dependency that doesn't already exist in the project
-- You are about to create a new architectural pattern (new way of handling errors, new data access layer, new API convention) that other code will need to follow
-- You are about to make a choice between two or more real alternatives and the tradeoffs are non-obvious
-- You are about to change something that contradicts an existing accepted ADR
-- You realize you're writing a long code comment explaining "why" — that reasoning belongs in an ADR
+- You are about to introduce a new dependency that does not already exist in the project.
+- You are about to create a new architectural pattern that other code will need to follow.
+- You are choosing between two or more real alternatives and the tradeoffs are non-obvious.
+- You are about to change something that contradicts an accepted ADR.
+- You are writing a long code comment explaining why a pattern exists.
 
-**How to propose**: Tell the human what decision you've hit, why it matters, and ask if they want to capture it as an ADR. If yes, run the full four-phase workflow. If no, note the decision in a code comment and move on.
+To propose one, tell the human what decision you have reached, why it matters, and ask whether they want to capture it as an ADR. If yes, use the workflow below.
 
-## Creating an ADR: Four-Phase Workflow
+## Creating an ADR
 
 Every ADR goes through four phases. Do not skip phases.
 
 ### Phase 0: Scan the Codebase
 
-Before asking any questions, gather context from the repo:
+Before asking questions, gather repo context:
 
-1. **Find existing ADRs.** Check `docs/adr/` for existing records. Read them. Note:
-   - Existing conventions (directory, naming, template style)
-   - Decisions that relate to or constrain the current one
-   - Any ADRs this new decision might supersede
+1. Read `docs/adr/README.md` and any relevant accepted ADRs.
+2. Read `docs/adr/000-adr-template.md`.
+3. Check the relevant package and project files, such as `package.json`, route definitions, API types, schemas, tests, or infrastructure files.
+4. Find related code patterns that the decision would affect.
+5. Note conflicts with existing ADRs or conventions before drafting.
 
-2. **Check the tech stack.** Read `package.json`. Note relevant dependencies and versions.
-
-3. **Find related code patterns.** If the decision involves a specific area (e.g., "how we handle auth"), scan for existing implementations. Identify the specific files, directories, and patterns that will be affected by the decision.
-
-4. **Check for ADR references in code.** Look for `ADR-NNNN` references in comments and docs (see "Code ↔ ADR Linking" below). This reveals which existing decisions govern which parts of the codebase.
-
-5. **Note what you found.** Carry this context into Phase 1 — it will sharpen your questions and prevent the ADR from contradicting existing decisions.
+Carry this context into the questioning loop so the ADR does not contradict the repo.
 
 ### Phase 1: Capture Intent (Socratic)
 
-Interview the human to understand the decision space. Ask questions **one at a time**, building on previous answers. Do not dump a list of questions.
+Interview the human to understand the decision space. Ask questions one at a time and build on previous answers. Do not dump a list of questions.
 
-**Core questions** (ask in roughly this order, skip what's already clear from context or Phase 0):
+Core questions (ask in roughly this order, skip what's already clear from context or Phase 0):
 
-1. **What are you deciding?** — Get a short, specific title. Push for a verb phrase ("Choose X", "Adopt Y", "Replace Z with W").
-2. **Why now?** — What broke, what's changing, or what will break if you do nothing? This is the trigger.
-3. **What constraints exist?** — Tech stack, timeline, budget, team size, existing code, compliance. Be concrete. Reference what you found in Phase 0 ("I see you're already using X — does that constrain this?").
-4. **What does success look like?** — Measurable outcomes. Push past "it works" to specifics (latency, throughput, DX, maintenance burden).
-5. **What options have you considered?** — At least two. For each: what's the core tradeoff? If they only have one option, help them articulate why alternatives were rejected.
-6. **What's your current lean?** — Capture gut intuition early. Often reveals unstated priorities.
+1. What are we deciding? — Get a short, specific title. Push for a verb phrase ("Choose X", "Adopt Y", "Replace Z with W").
+2. Why now? What changed, broke, or will break if we do nothing?
+3. What existing constraints matter?
+4. What options or patterns were considered?
+5. What option are we choosing, and why?
+6. What becomes easier because of this?
+7. What becomes harder, riskier, or more constrained?
+8. What's your current lean? — Capture gut intuition early. Often reveals unstated priorities.
+9. Is anything explicitly out of scope?
 
-**Adaptive follow-ups**: Based on answers, probe deeper where the decision is fuzzy. Common follow-ups:
+Adaptive follow-ups:
 
-- "What's the worst-case outcome if this decision is wrong?"
-- "What would make you revisit this in 6 months?"
-- "Is there anything you're explicitly choosing NOT to do?"
-- "What prior art or existing patterns in the codebase does this relate to?"
-- "I found [existing ADR/pattern] — does this new decision interact with it?"
+- What would make us revisit this later?
+- What is the worst outcome if this decision is wrong?
+- Which existing ADRs or code patterns does this interact with?
+- What work follows from accepting this decision?
 
-**When to stop**: You have enough when you can fill every section of the ADR without making things up. If you're guessing at any section, ask another question.
+Stop when you can fill the template without making things up.
 
-**Intent Summary Gate**: Before moving to Phase 2, present a structured summary of what you captured and ask the human to confirm or correct it:
+Before drafting, present a short intent summary and ask the human to confirm or correct it:
 
-> **Here's what I'm capturing for the ADR:**
+> **ADR Intent Summary**
 >
 > - **Title**: {title}
-> - **Trigger**: {why now}
-> - **Constraints**: {list}
-> - **Options**: {option 1} vs {option 2} [vs ...]
-> - **Lean**: {which option and why}
-> - **Non-goals**: {what's explicitly out of scope}
-> - **Related ADRs/code**: {what exists that this interacts with}
+> - **Status**: {status}
+> - **Context**: {trigger, constraints, related ADRs/code, alternatives if useful}
+> - **Decision**: {chosen rule or change, including scope boundaries if useful}
+> - **Consequences**: {positive consequences, negative consequences, risks, follow-up work}
 >
-> **Does this capture your intent? Anything to add or correct?**
+> Does this capture your intent?
 
-Do NOT proceed to Phase 2 until the human confirms the summary.
+Do not proceed to Phase 2 until the human confirms the summary.
 
 ### Phase 2: Draft the ADR
 
-1. **Choose the ADR directory.**
-   - If one exists (found in Phase 0), use it.
-   - If none exists, create `docs/decisions/` (MADR default) or `adr/` (simpler repos).
+1. Copy `docs/adr/000-adr-template.md`.
+2. Choose the next numeric filename, using the existing `NNN-slug.md` convention.
+3. Use a title that names the decision, not just the problem.
+4. Fill the template sections:
+   - `Status`: Usually `Proposed` for a draft and `Accepted` once agreed. Use `Rejected`, `Deprecated`, or `Superseded` when updating old decisions.
+   - `Context`: Explain the problem, trigger, relevant constraints, related ADRs/code, and alternatives or rejected options when they matter.
+   - `Decision`: State the chosen rule or change clearly enough to act on. Include scope boundaries or non-goals here when needed.
+   - `Consequences`: Capture concrete upsides, downsides, risks, operational impact, and follow-up work.
+5. Do not leave placeholder text.
+6. Do not add top-level sections just to satisfy a checklist. If extra information matters, fit it into the template or add a small subsection inside the relevant template section.
 
-2. **Choose a filename strategy.**
-   - If existing ADRs use numeric prefixes (`0001-...`), continue that.
-   - Otherwise use slug-only filenames (`choose-database.md`).
+### Phase 3: Review the Draft
 
-3. **Use the `000-adr-template.md` as starting template.**
+Review the draft against `docs/adr/review-checklist.md`.
 
-4. **Fill every section from the confirmed intent summary.** Do not leave placeholder text. Every section should contain real content or be removed (optional sections only).
-
-### Phase 3: Review Against Checklist
-
-After drafting, review the ADR against the agent-readiness checklist in `docs/adr/review-checklist.md`.
-
-**Present the review as a summary**, not a raw checklist dump. Format:
+Present the review as a concise summary, not a raw checklist dump:
 
 > **ADR Review**
 >
-> ✅ **Passes**: {list what's solid — e.g., "context is self-contained"}
+> **Passes**: {what is solid}
 >
-> ⚠️ **Gaps found**:
+> **Gaps found**:
 >
-> - {specific gap 1}
-> - {specific gap 2}
+> - {specific gap}
 >
-> **Recommendation**: {Ship it / Fix the gaps first / Needs more Phase 1 work}
+> **Recommendation**: {ship it, fix the gaps first, or return to Phase 1}
 
-Only surface failures and notable strengths — do not recite every passing checkbox.
+Only surface failures and notable strengths. If there are gaps, propose specific fixes and ask the human to approve them.
 
-If there are gaps, propose specific fixes. Do not just flag problems — offer solutions and ask the human to approve.
+Do not finalize until the ADR passes review or the human explicitly accepts the gaps.
 
-Do not finalize until the ADR passes the checklist or the human explicitly accepts the gaps.
+## Consulting ADRs
 
-## Consulting ADRs (Read Workflow)
-
-Agents should read existing ADRs **before implementing changes** in a codebase that has them. This is not part of the create-an-ADR workflow — it's a standalone operation any agent should do.
+Agents should read existing ADRs before implementing changes that touch architecture, API design, infrastructure, persistence, testing strategy, or cross-cutting conventions.
 
 ### When to Consult ADRs
 
-- Before starting work on a feature that touches architecture (auth, data layer, API design, infrastructure)
-- When you encounter a pattern in the code and wonder "why is it done this way?"
-- Before proposing a change that might contradict an existing decision
-- When a human says "check the ADRs" or "there's a decision about this"
-- When you find an `ADR-NNNN` reference in a code comment
+- Before starting work on a feature that touches architecture.
+- When you encounter a pattern and wonder why it is done that way.
+- Before proposing a change that might contradict an accepted decision.
+- When a human says to check the ADRs.
+- When an ADR reference appears in code, docs, or review feedback.
 
 ### How to Consult ADRs
 
-1. **Find the ADR directory.** Check `docs/adr/`. Also check for an index file (`README.md` or `index.md`).
+1. Read `docs/adr/README.md`.
+2. Scan the relevant titles and summaries.
+3. Read the relevant ADRs fully.
+4. Follow accepted ADRs unless the work is explicitly to supersede or revise them.
+5. If code and an accepted ADR disagree, flag the mismatch before changing direction.
 
-2. **Scan titles and statuses.** Read the index or list filenames. Focus on `accepted` ADRs — these are active decisions.
+## Updating ADRs
 
-3. **Read relevant ADRs fully.** Don't just read the title — read context, decision, consequences, non-goals.
+Do not rewrite history unless the ADR is still a draft. For accepted ADRs:
 
-4. **Respect the decisions.** If an accepted ADR says "use PostgreSQL," don't propose switching to MongoDB without creating a new ADR that supersedes it. If you find a conflict between what the code does and what the ADR says, flag it to the human.
+- To accept or reject a draft, update `Status` and add any final context needed.
+- To deprecate an ADR, set `Status` to `Deprecated` and explain the replacement path.
+- To supersede an ADR, create a new ADR and link both ways.
+- To add later learning, add a dated note or amendment inside the relevant template section.
 
-## Other Operations
-
-### Update an Existing ADR
-
-1. Identify the intent:
-   - **Accept / reject**: change status, add any final context.
-   - **Deprecate**: status → `deprecated`, explain replacement path.
-   - **Supersede**: create a new ADR, link both ways (old → new, new → old).
-   - **Add learnings**: append to `## More Information` with a date stamp. Do not rewrite history.
-
-### Index
-
-Always update the ADR index at `docs/adr/README.md` when adding / updating ADRs.
-
-- Add a bullet entry for the new ADR.
-- Keep ordering consistent (numeric if numbered; date or alpha if slugs).
+Update `docs/adr/README.md` when an ADR is accepted, deprecated, superseded, or otherwise changes how contributors should use the index.

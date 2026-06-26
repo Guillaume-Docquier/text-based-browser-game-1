@@ -1,58 +1,68 @@
 # ADR Review Checklist
 
-Use this checklist in Phase 3 to validate an ADR before finalizing.
+Use this checklist in Phase 3 to validate an ADR before finalizing it.
 
-## Agent-Readiness Checks
+The checklist reviews ADRs written from `docs/adr/000-adr-template.md`. Do not add new top-level template sections just to satisfy a checklist item.
 
-### Context & Problem
+## Template Fit
 
-- [ ] A reader with no prior context can understand why this decision exists
-- [ ] The trigger is clear (what changed, broke, or is about to break)
-- [ ] No tribal knowledge is assumed — acronyms are defined, systems are named explicitly
-- [ ] Links to relevant issues, PRs, or prior ADRs are included
+- [ ] The ADR uses the repo template sections: `Status`, `Context`, `Decision`, and `Consequences`.
+- [ ] Any options, rejected alternatives, non-goals, risks, or follow-up work are captured inside those sections.
+- [ ] There are no placeholder questions left from the template.
+- [ ] The filename follows the existing `NNN-slug.md` convention.
 
-### Decision
+## Status
 
-- [ ] The decision is specific enough to act on (not "use a better approach" but "use X for Y")
-- [ ] Scope is bounded — what's in AND what's out (non-goals)
-- [ ] Constraints are explicit and measurable where possible (e.g., "< 200ms p95" not "fast enough")
+- [ ] Status is set correctly.
+- [ ] Superseded, deprecated, or rejected ADRs explain the replacement or reason.
+- [ ] Links to related ADRs are included when they affect the decision.
 
-### Consequences
+## Context
 
-- [ ] Each consequence is concrete and actionable, not aspirational
-- [ ] Follow-up tasks are identified (migrations, config changes, documentation, new tests)
-- [ ] Risks are stated with mitigation strategies or acceptance rationale
-- [ ] No consequence is a disguised restatement of the decision
+- [ ] A reader with no prior context can understand why this decision exists.
+- [ ] The trigger is clear: what changed, broke, or is about to break.
+- [ ] Relevant constraints are explicit.
+- [ ] Important existing ADRs, code patterns, dependencies, or operational facts are named.
+- [ ] Alternatives or rejected options are included when they explain the decision.
+- [ ] Context describes the problem before selling the solution.
 
-### Options (MADR template)
+## Decision
 
-- [ ] At least two options were genuinely considered (not just "do the thing" vs "do nothing")
-- [ ] Each option has real pros AND cons (not a straw-man comparison)
-- [ ] The justification for the chosen option references specific drivers or tradeoffs
-- [ ] Rejected options explain WHY they were rejected, not just what they are
+- [ ] The decision is specific enough to act on.
+- [ ] The scope is bounded.
+- [ ] Important non-goals are stated when omitting them would cause confusion.
+- [ ] The decision does not contradict accepted ADRs unless it explicitly supersedes them.
+- [ ] The wording tells future contributors what to do differently.
 
-### Meta
+## Consequences
 
-- [ ] Status is set correctly (usually `proposed` for new ADRs)
-- [ ] Date is set
-- [ ] Decision-makers are listed
-- [ ] Title is a verb phrase describing the decision (not the problem)
-- [ ] Filename follows repo conventions
+- [ ] Consequences are concrete, not aspirational.
+- [ ] Both benefits and costs are represented.
+- [ ] Risks are either mitigated or explicitly accepted.
+- [ ] Required follow-up work is called out.
+- [ ] Consequences are not just a restatement of the decision.
+
+## Index
+
+- [ ] `docs/adr/README.md` is updated if the ADR is accepted, deprecated, superseded, or changes how contributors should find decisions.
+- [ ] The index entry summarizes the decision, not the whole ADR.
+- [ ] The "Use when" guidance points contributors to the ADR at the right time.
 
 ## Quick Scoring
 
-Count the checked items. This isn't a gate — it's a conversation tool.
+Count the unchecked items. This is a conversation tool, not a mechanical gate.
 
 - **All checked**: Ship it.
-- **1–2 unchecked**: Discuss the gaps with the human. Most can be fixed in a minute.
-- **3+ unchecked**: The ADR needs more work. Go back to Phase 1 for the fuzzy areas.
+- **1-2 unchecked**: Discuss the gaps with the human. Most can be fixed quickly.
+- **3+ unchecked**: The ADR needs more work. Return to Phase 1 for the fuzzy areas.
 
 ## Common Failure Modes
 
-| Symptom                                | Root Cause                             | Fix                                                         |
-| -------------------------------------- | -------------------------------------- | ----------------------------------------------------------- |
-| "Improve performance" as a consequence | Vague intent                           | Ask: "improve which metric, by how much, measured how?"     |
-| Only one option listed                 | Decision already made, ADR is post-hoc | Ask: "what did you reject and why?" — capture the reasoning |
-| Context reads like a solution pitch    | Skipped problem framing                | Rewrite context as the problem, move solution to Decision   |
-| Consequences are all positive          | Cherry-picking                         | Ask: "what gets harder? what's the maintenance cost?"       |
-| "We decided to use X" with no why      | Missing justification                  | Ask: "why X over Y?" — the 'over Y' forces comparison       |
+| Symptom                                       | Root Cause               | Fix                                                       |
+| --------------------------------------------- | ------------------------ | --------------------------------------------------------- |
+| The ADR adds `Options` as a top-level section | Imported template habits | Fold the useful comparison into `Context` or `Decision`   |
+| Only one option is discussed                  | Decision is post-hoc     | Ask what was rejected and why, then capture the reasoning |
+| Context reads like a solution pitch           | Skipped problem framing  | Move the solution to `Decision`                           |
+| Consequences are all positive                 | Costs were not discussed | Ask what gets harder or more constrained                  |
+| "Use X" with no why                           | Missing tradeoff         | Ask why X over the realistic alternative                  |
+| Index entry repeats the full ADR              | Summary is too broad     | Keep the index focused on when to consult the ADR         |
