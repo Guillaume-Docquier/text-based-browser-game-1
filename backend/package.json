@@ -19,7 +19,7 @@
     "test": "vitest run --silent",
     "test:coverage": "pnpm test --coverage",
     "test:watch": "vitest",
-    "typecheck": "tscgo"
+    "typecheck": "tsgo"
   },
   "dependencies": {
     "@clerk/express": "^2.1.31",
