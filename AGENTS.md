@@ -18,21 +18,23 @@ This is a TypeScript monorepo using pnpm workspaces.
 
 ### Key Directories
 
-| Directory               | Description                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------ |
-| frontend                | The web application.                                                                       |
-| backend/api             | The api for the frontend.                                                                  |
-| backend/tick-processing | The tick processing engine.                                                                |
-| infra                   | The IaC for 3rd parties that we use.                                                       |
-| docs                    | All the documentation for the project. There is no documentation in the other directories. |
+| Directory                    | Description                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| frontend/                    | The web application.                                                                       |
+| backend/src/api/             | The api for the frontend.                                                                  |
+| backend/src/tick-processing/ | The tick processing engine.                                                                |
+| infra/                       | The IaC for 3rd parties that we use.                                                       |
+| docs/                        | All the documentation for the project. There is no documentation in the other directories. |
 
 ### Dependencies
 
 ```
-frontend ───api-types───▶ backend/api ───orders-validation───▶ backend/tick-processing
+frontend/ ───api-types───▶ backend/src/api/ ───orders-validation───▶ backend/src/tick-processing/
 ```
 
 There are no other allowed dependencies.
+
+Note: The orders validation code doesn't yet exist, but soon will.
 
 ### CI/CD
 

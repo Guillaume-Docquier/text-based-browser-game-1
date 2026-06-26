@@ -1,4 +1,4 @@
-# Tick processing
+# Tick processing (target architecture)
 
 The tick processing pipeline aims to be entirely data driven.
 

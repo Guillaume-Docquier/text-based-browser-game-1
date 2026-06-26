@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [025-backend-initiated-db-migrations](025-backend-initiated-db-migrations.md)
 
 ## Context
 

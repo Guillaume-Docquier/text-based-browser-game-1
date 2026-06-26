@@ -8,7 +8,7 @@ The game will have:
 - A single Express backend
 - Hosted infra (db, reverse proxy)
 
-![infra.png](./.github/images/infra.png)
+![infra.png](../../.github/images/infra.png)
 
 Long term, the backend project will be split in two:
 
