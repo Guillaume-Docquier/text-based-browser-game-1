@@ -1,5 +1,5 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, asc, eq, inArray, isNull, lte, sql } from "drizzle-orm"
+import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
@@ -83,12 +83,12 @@ export class TicksRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "ticks-repository" })
   }
 
-  public async getTicksToProcess(
+  public async getNextTickToProcess(
     { since }: { since: Date },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<TickToProcessModel[], string>> {
-    const ticksToProcessResult = await Result.tryCatch(async () => {
-      const ticksToProcessRows = await db
+  ): Promise<Result<TickToProcessModel | undefined, string>> {
+    const tickToProcessResult = await Result.tryCatch(async () => {
+      const tickToProcessRows = await db
         .select({
           gameId: ticksTable.gameId,
           tick: ticksTable.tick,
@@ -100,39 +100,36 @@ export class TicksRepository extends PostgresRepository {
         .innerJoin(gameStatesTable, and(eq(gameStatesTable.gameId, ticksTable.gameId), eq(gameStatesTable.tick, ticksTable.tick)))
         .where(and(isNull(ticksTable.processingEndedAt), isNull(gamesTable.endedAt), lte(ticksTable.scheduledFor, since)))
         .orderBy(asc(ticksTable.scheduledFor), asc(ticksTable.gameId), asc(ticksTable.tick))
+        .limit(1)
 
-      if (ticksToProcessRows.length === 0) {
-        return []
+      const tickToProcessRow = tickToProcessRows[0]
+      if (tickToProcessRow === undefined) {
+        return undefined
       }
 
-      const gameIds = ticksToProcessRows.map(({ gameId }) => gameId)
       const [players, resources, orders] = await Promise.all([
-        db
-          .select()
-          .from(playersTable)
-          .where(inArray(playersTable.gameId, gameIds))
-          .orderBy(asc(playersTable.gameId), asc(playersTable.playerId)),
+        db.select().from(playersTable).where(eq(playersTable.gameId, tickToProcessRow.gameId)).orderBy(asc(playersTable.playerId)),
         db
           .select()
           .from(resourcesTable)
-          .where(inArray(resourcesTable.gameId, gameIds))
-          .orderBy(asc(resourcesTable.gameId), asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
+          .where(eq(resourcesTable.gameId, tickToProcessRow.gameId))
+          .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
         db
           .select()
           .from(ordersTable)
-          .where(inArray(ordersTable.gameId, gameIds))
-          .orderBy(asc(ordersTable.gameId), asc(ordersTable.playerId), asc(ordersTable.tick)),
+          .where(and(eq(ordersTable.gameId, tickToProcessRow.gameId), eq(ordersTable.tick, tickToProcessRow.tick)))
+          .orderBy(asc(ordersTable.playerId)),
       ])
 
-      return ticksToProcessRows.map((tickToProcess) => toTickToProcessModel({ dueTick: tickToProcess, players, resources, orders }))
+      return toTickToProcessModel({ dueTick: tickToProcessRow, players, resources, orders })
     })
 
-    if (Result.isFailure(ticksToProcessResult)) {
-      this.logger.error("Could not get ticks to process", { error: ticksToProcessResult.error })
-      return Result.Failure(couldNot("get ticks to process"))
+    if (Result.isFailure(tickToProcessResult)) {
+      this.logger.error("Could not get next tick to process", { error: tickToProcessResult.error })
+      return Result.Failure(couldNot("get next tick to process"))
     }
 
-    return ticksToProcessResult
+    return tickToProcessResult
   }
 
   public async saveProcessedTick(

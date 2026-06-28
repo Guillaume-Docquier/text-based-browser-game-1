@@ -7,7 +7,7 @@ import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { type ProcessedTickModel, type TicksRepository, type TickToProcessModel } from "#tick-processing/ticks.repository.ts"
 
 /**
- * Processes all ticks that should advance at this point in time.
+ * Processes the next tick that should advance at this point in time.
  * This will resolve all player actions, update the game state and schedule the next tick.
  */
 export async function processTick({
@@ -19,34 +19,28 @@ export async function processTick({
   ticksRepository: TicksRepository
   clock: Clock
 }): Promise<void> {
-  const ticksToProcessResult = await ticksRepository.getTicksToProcess({ since: clock.now() })
-  if (Result.isFailure(ticksToProcessResult)) {
-    logger.error("Could not get ticks to process", { error: ticksToProcessResult.error })
+  const tickToProcessResult = await ticksRepository.getNextTickToProcess({ since: clock.now() })
+  if (Result.isFailure(tickToProcessResult)) {
+    logger.error("Could not get next tick to process", { error: tickToProcessResult.error })
     return
   }
 
-  const ticksToProcess = ticksToProcessResult.value
-  if (ticksToProcess.length === 0) {
-    logger.debug("No ticks to process")
+  const tickToProcess = tickToProcessResult.value
+  if (tickToProcess === undefined) {
+    logger.debug("No tick to process")
     return
   }
 
-  // Long term we'll probably want to have each invocation process 1 tick a distribute the work on multiple workers
-  // But for now this will work just fine
-  await Promise.allSettled(
-    ticksToProcess.map(async (tickToProcess) => {
-      logger.info("Processing tick", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
-      const processedTick = processTickInMemory(tickToProcess, clock)
-      const saveResult = await ticksRepository.saveProcessedTick(processedTick)
-      if (Result.isFailure(saveResult)) {
-        logger.error("Could not save processed tick", {
-          gameId: tickToProcess.gameId,
-          tick: tickToProcess.tick,
-          error: saveResult.error,
-        })
-      }
-    }),
-  )
+  logger.info("Processing tick", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
+  const processedTick = processTickInMemory(tickToProcess, clock)
+  const saveResult = await ticksRepository.saveProcessedTick(processedTick)
+  if (Result.isFailure(saveResult)) {
+    logger.error("Could not save processed tick", {
+      gameId: tickToProcess.gameId,
+      tick: tickToProcess.tick,
+      error: saveResult.error,
+    })
+  }
 }
 
 function processTickInMemory(tickToProcess: TickToProcessModel, clock: Clock): ProcessedTickModel {
