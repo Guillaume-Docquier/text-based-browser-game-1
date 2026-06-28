@@ -334,6 +334,7 @@ class InvalidPlayerTicksRepository extends TicksRepository {
       ...processedTick,
       players: {
         ...processedTick.players,
+        // Unknown player will fail to insert
         [v4()]: {
           resources: [{ resourceType: ResourceType.MONEY, amount: 1 }],
         },
