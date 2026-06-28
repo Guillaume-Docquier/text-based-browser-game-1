@@ -104,10 +104,10 @@ export class TicksRepository extends PostgresRepository {
         .from(ticksTable)
         .innerJoin(gamesTable, eq(gamesTable.id, ticksTable.gameId))
         .innerJoin(gameStatesTable, and(eq(gameStatesTable.gameId, ticksTable.gameId), eq(gameStatesTable.tick, ticksTable.tick)))
-        .where(and(isNull(ticksTable.processingEndedAt), isNull(gamesTable.endedAt), lte(ticksTable.scheduledFor, since)))
-        .orderBy(asc(ticksTable.scheduledFor), asc(ticksTable.gameId), asc(ticksTable.tick))
+        .where(and(lte(ticksTable.scheduledFor, since), isNull(ticksTable.processingStartedAt)))
+        .orderBy(asc(ticksTable.scheduledFor))
         .limit(1)
-        .for("no key update")
+        .for("no key update", { skipLocked: true })
 
       const tickToProcessRow = tickToProcessRows[0]
       if (tickToProcessRow === undefined) {
@@ -139,6 +139,9 @@ export class TicksRepository extends PostgresRepository {
     return tickToProcessResult
   }
 
+  /**
+   * Trying to start processing a tick that doesn't exist or that is already processing will result in an Failure.
+   */
   public async startProcessingTick(
     tick: { gameId: GameId; tick: number },
     db: PostgresRepository["db"] = this.db,
@@ -162,6 +165,30 @@ export class TicksRepository extends PostgresRepository {
     }
 
     return Result.Success({ started: true })
+  }
+
+  /**
+   * This is fragile and mostly a testing utility for now.
+   * It doesn't verify the integrity of other tables.
+   */
+  public async resetProcessingAttempt(
+    tick: { gameId: GameId; tick: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<{ reset: true }, string>> {
+    const tickResult = await Result.tryCatch(
+      db
+        .update(ticksTable)
+        .set({ processingStartedAt: null })
+        .where(and(eq(ticksTable.gameId, tick.gameId), eq(ticksTable.tick, tick.tick), isNull(ticksTable.processingEndedAt)))
+        .returning(),
+    )
+    if (Result.isFailure(tickResult)) {
+      this.logger.error("Could not reset tick processing", { tick, error: tickResult.error })
+      return Result.Failure(couldNot("reset tick processing"))
+    }
+    Assert.isTrue(tickResult.value.length === 1)
+
+    return Result.Success({ reset: true })
   }
 
   public async saveProcessedTick(
