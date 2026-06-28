@@ -1,7 +1,8 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, asc, eq, inArray, isNull, lte, sql } from "drizzle-orm"
+import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import type { ResourceType } from "#lib/db/gameplay/gameResources.ts"
@@ -77,18 +78,23 @@ export type ProcessedTickModel = {
 
 export class TicksRepository extends PostgresRepository {
   private readonly logger: Logger
+  private readonly clock: Clock
 
-  public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
+  public constructor({ logger, clock, db }: { logger: Logger; clock: Clock; db: PostgresRepository["db"] }) {
     super({ db })
     this.logger = logger.child({ scope: "ticks-repository" })
+    this.clock = clock
   }
 
-  public async getTicksToProcess(
+  /**
+   * The next tick to process row will be locked during the transaction.
+   */
+  public async getNextTickToProcess(
     { since }: { since: Date },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<TickToProcessModel[], string>> {
-    const ticksToProcessResult = await Result.tryCatch(async () => {
-      const ticksToProcessRows = await db
+  ): Promise<Result<TickToProcessModel | undefined, string>> {
+    const tickToProcessResult = await Result.tryCatch(async () => {
+      const tickToProcessRows = await db
         .select({
           gameId: ticksTable.gameId,
           tick: ticksTable.tick,
@@ -98,41 +104,91 @@ export class TicksRepository extends PostgresRepository {
         .from(ticksTable)
         .innerJoin(gamesTable, eq(gamesTable.id, ticksTable.gameId))
         .innerJoin(gameStatesTable, and(eq(gameStatesTable.gameId, ticksTable.gameId), eq(gameStatesTable.tick, ticksTable.tick)))
-        .where(and(isNull(ticksTable.processingEndedAt), isNull(gamesTable.endedAt), lte(ticksTable.scheduledFor, since)))
-        .orderBy(asc(ticksTable.scheduledFor), asc(ticksTable.gameId), asc(ticksTable.tick))
+        .where(and(lte(ticksTable.scheduledFor, since), isNull(ticksTable.processingStartedAt)))
+        .orderBy(asc(ticksTable.scheduledFor))
+        .limit(1)
+        .for("no key update", { skipLocked: true })
 
-      if (ticksToProcessRows.length === 0) {
-        return []
+      const tickToProcessRow = tickToProcessRows[0]
+      if (tickToProcessRow === undefined) {
+        return undefined
       }
 
-      const gameIds = ticksToProcessRows.map(({ gameId }) => gameId)
       const [players, resources, orders] = await Promise.all([
-        db
-          .select()
-          .from(playersTable)
-          .where(inArray(playersTable.gameId, gameIds))
-          .orderBy(asc(playersTable.gameId), asc(playersTable.playerId)),
+        db.select().from(playersTable).where(eq(playersTable.gameId, tickToProcessRow.gameId)).orderBy(asc(playersTable.playerId)),
         db
           .select()
           .from(resourcesTable)
-          .where(inArray(resourcesTable.gameId, gameIds))
-          .orderBy(asc(resourcesTable.gameId), asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
+          .where(eq(resourcesTable.gameId, tickToProcessRow.gameId))
+          .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
         db
           .select()
           .from(ordersTable)
-          .where(inArray(ordersTable.gameId, gameIds))
-          .orderBy(asc(ordersTable.gameId), asc(ordersTable.playerId), asc(ordersTable.tick)),
+          .where(and(eq(ordersTable.gameId, tickToProcessRow.gameId), eq(ordersTable.tick, tickToProcessRow.tick)))
+          .orderBy(asc(ordersTable.playerId)),
       ])
 
-      return ticksToProcessRows.map((tickToProcess) => toTickToProcessModel({ dueTick: tickToProcess, players, resources, orders }))
+      return toTickToProcessModel({ dueTick: tickToProcessRow, players, resources, orders })
     })
 
-    if (Result.isFailure(ticksToProcessResult)) {
-      this.logger.error("Could not get ticks to process", { error: ticksToProcessResult.error })
-      return Result.Failure(couldNot("get ticks to process"))
+    if (Result.isFailure(tickToProcessResult)) {
+      this.logger.error("Could not get next tick to process", { error: tickToProcessResult.error })
+      return Result.Failure(couldNot("get next tick to process"))
     }
 
-    return ticksToProcessResult
+    return tickToProcessResult
+  }
+
+  /**
+   * Trying to start processing a tick that doesn't exist or that is already processing will result in an Failure.
+   */
+  public async startProcessingTick(
+    tick: { gameId: GameId; tick: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<{ started: true }, string>> {
+    const tickResult = await Result.tryCatch(
+      db
+        .update(ticksTable)
+        .set({ processingStartedAt: this.clock.now() })
+        .where(and(eq(ticksTable.gameId, tick.gameId), eq(ticksTable.tick, tick.tick), isNull(ticksTable.processingStartedAt)))
+        .returning(),
+    )
+    if (Result.isFailure(tickResult)) {
+      this.logger.error("Could not start processing tick", { tick, error: tickResult.error })
+      return Result.Failure(couldNot("start processing tick"))
+    }
+
+    Assert.isTrue(tickResult.value.length <= 1)
+    if (tickResult.value.length === 0) {
+      this.logger.error("No ticks found to start processing, is it already processing?", { tick })
+      return Result.Failure(couldNot("start processing tick"))
+    }
+
+    return Result.Success({ started: true })
+  }
+
+  /**
+   * This is fragile and mostly a testing utility for now.
+   * It doesn't verify the integrity of other tables.
+   */
+  public async resetProcessingAttempt(
+    tick: { gameId: GameId; tick: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<{ reset: true }, string>> {
+    const tickResult = await Result.tryCatch(
+      db
+        .update(ticksTable)
+        .set({ processingStartedAt: null })
+        .where(and(eq(ticksTable.gameId, tick.gameId), eq(ticksTable.tick, tick.tick), isNull(ticksTable.processingEndedAt)))
+        .returning(),
+    )
+    if (Result.isFailure(tickResult)) {
+      this.logger.error("Could not reset tick processing", { tick, error: tickResult.error })
+      return Result.Failure(couldNot("reset tick processing"))
+    }
+    Assert.isTrue(tickResult.value.length === 1)
+
+    return Result.Success({ reset: true })
   }
 
   public async saveProcessedTick(

@@ -42,9 +42,9 @@ sequenceDiagram
         participant P7@{ "type": "collections" } as GameStep
         loop every second
           P3->>P4: call
-          P4->>P1: getTicksToProcess()
-          P1->>P4: Array<GameTick>
-          loop foreach async GameTick
+          P4->>P1: getNextTickToProcess()
+          P1->>P4: GameTick | undefined
+          alt GameTick found
             P4->>P2: getGameState(gameId, tick)
             P4->>P6: getGameRuleset(gameId)
             P2->>P4: GameState
