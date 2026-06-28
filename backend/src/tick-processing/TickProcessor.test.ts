@@ -11,7 +11,7 @@ import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
-import { processTick } from "#tick-processing/processTick.ts"
+import { createTickProcessorStub } from "#tick-processing/TickProcessor.stub.ts"
 import { type ProcessedTickModel, TicksRepository } from "#tick-processing/ticks.repository.ts"
 
 describe("processTick", () => {
@@ -20,9 +20,10 @@ describe("processTick", () => {
     const db = await createDbMock()
     const clock = new ControlledClock({ startDate: new Date(0) })
     const { api, authService, accountsRepository, logger } = await createApiStub({ db, clock })
-    const ticksRepository = new TicksRepository({ db, logger })
-    const resourcesRepository = new ResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
+
+    const { tickProcessor } = await createTickProcessorStub({ db, clock })
+    const resourcesRepository = new ResourcesRepository({ db, logger })
 
     const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = account
@@ -50,7 +51,7 @@ describe("processTick", () => {
 
     // Act
     clock.increment({ time: tickInterval })
-    await processTick({ logger, ticksRepository, clock })
+    await tickProcessor.processNextDueTick()
 
     // Assert
     const playerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -70,9 +71,10 @@ describe("processTick", () => {
     // Arrange
     const db = await createDbMock()
     const { api, authService, accountsRepository, logger, clock } = await createApiStub({ db })
-    const ticksRepository = new TicksRepository({ db, logger })
-    const resourcesRepository = new ResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
+
+    const { tickProcessor } = await createTickProcessorStub({ db, clock })
+    const resourcesRepository = new ResourcesRepository({ db, logger })
 
     const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = account
@@ -104,7 +106,7 @@ describe("processTick", () => {
     )
 
     // Act
-    await processTick({ logger, ticksRepository, clock })
+    await tickProcessor.processNextDueTick()
 
     // Assert
     const playerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -120,9 +122,10 @@ describe("processTick", () => {
     // Arrange
     const db = await createDbMock()
     const clock = new ControlledClock({ startDate: new Date(0) })
-    const { api, authService, accountsRepository, logger } = await createApiStub({ db, clock })
-    const ticksRepository = new TicksRepository({ db, logger })
+    const { api, authService, accountsRepository } = await createApiStub({ db, clock })
     using trpcClient = new TrpcClient({ api })
+
+    const { tickProcessor } = await createTickProcessorStub({ db, clock })
 
     // later game
     const laterTickInterval = Time.create(100, UnitOfTime.SECONDS)
@@ -144,7 +147,7 @@ describe("processTick", () => {
 
     // Act
     clock.increment({ time: Time.create(200, UnitOfTime.SECONDS) })
-    await processTick({ logger, ticksRepository, clock })
+    await tickProcessor.processNextDueTick()
 
     // Assert
     authService.account = laterAccount
@@ -183,11 +186,12 @@ describe("processTick", () => {
     })
     await trpcClient.client.gameplay.startGame.mutate({ gameId: successfulGameId })
 
-    const ticksRepository = new FailingTicksRepository({ db, logger, failingGameId })
+    const ticksRepository = new FailingTicksRepository({ db, logger, clock, failingGameId })
+    const { tickProcessor } = await createTickProcessorStub({ db, clock, ticksRepository })
 
     // Act
     clock.increment({ time: laterTickInterval })
-    await processTick({ logger, ticksRepository, clock })
+    await tickProcessor.processNextDueTick()
 
     // Assert
     authService.account = failingAccount
@@ -207,9 +211,10 @@ describe("processTick", () => {
     // Arrange
     const db = await createDbMock()
     const { api, authService, accountsRepository, logger, clock } = await createApiStub({ db })
-    const ticksRepository = new TicksRepository({ db, logger })
-    const resourcesRepository = new ResourcesRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
+
+    const { tickProcessor } = await createTickProcessorStub({ db, clock })
+    const resourcesRepository = new ResourcesRepository({ db, logger })
 
     const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = creator
@@ -245,7 +250,7 @@ describe("processTick", () => {
     }
 
     // Act
-    await processTick({ logger, ticksRepository, clock })
+    await tickProcessor.processNextDueTick()
 
     // Assert
     // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
@@ -279,8 +284,10 @@ describe("processTick", () => {
     const db = await createDbMock()
     const clock = new ControlledClock({ startDate: new Date(0) })
     const { api, authService, accountsRepository, logger } = await createApiStub({ db, clock })
-    const ticksRepository = new InvalidPlayerTicksRepository({ db, logger })
     using trpcClient = new TrpcClient({ api })
+
+    const ticksRepository = new InvalidPlayerTicksRepository({ db, logger, clock })
+    const { tickProcessor } = await createTickProcessorStub({ db, clock, ticksRepository })
 
     const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
     authService.account = account
@@ -292,7 +299,7 @@ describe("processTick", () => {
     Assert.isDefined(tickToProcess)
 
     // Act
-    await processTick({ logger, ticksRepository, clock })
+    await tickProcessor.processNextDueTick()
 
     // Assert
     expect(await ticksRepository.getNextTickToProcess({ since: clock.now() })).toEqual(Result.Success(tickToProcess))
@@ -311,11 +318,12 @@ class FailingTicksRepository extends TicksRepository {
   public constructor({
     db,
     logger,
+    clock,
     failingGameId,
   }: ConstructorParameters<typeof TicksRepository>[0] & {
     failingGameId: number
   }) {
-    super({ db, logger })
+    super({ db, logger, clock })
     this.failingGameId = failingGameId
   }
 

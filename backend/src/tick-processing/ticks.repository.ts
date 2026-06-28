@@ -2,6 +2,7 @@ import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import type { ResourceType } from "#lib/db/gameplay/gameResources.ts"
@@ -77,12 +78,17 @@ export type ProcessedTickModel = {
 
 export class TicksRepository extends PostgresRepository {
   private readonly logger: Logger
+  private readonly clock: Clock
 
-  public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
+  public constructor({ logger, clock, db }: { logger: Logger; clock: Clock; db: PostgresRepository["db"] }) {
     super({ db })
     this.logger = logger.child({ scope: "ticks-repository" })
+    this.clock = clock
   }
 
+  /**
+   * The next tick to process row will be locked during the transaction.
+   */
   public async getNextTickToProcess(
     { since }: { since: Date },
     db: PostgresRepository["db"] = this.db,
@@ -101,6 +107,7 @@ export class TicksRepository extends PostgresRepository {
         .where(and(isNull(ticksTable.processingEndedAt), isNull(gamesTable.endedAt), lte(ticksTable.scheduledFor, since)))
         .orderBy(asc(ticksTable.scheduledFor), asc(ticksTable.gameId), asc(ticksTable.tick))
         .limit(1)
+        .for("no key update")
 
       const tickToProcessRow = tickToProcessRows[0]
       if (tickToProcessRow === undefined) {
@@ -130,6 +137,31 @@ export class TicksRepository extends PostgresRepository {
     }
 
     return tickToProcessResult
+  }
+
+  public async startProcessingTick(
+    tick: { gameId: GameId; tick: number },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<{ started: true }, string>> {
+    const tickResult = await Result.tryCatch(
+      db
+        .update(ticksTable)
+        .set({ processingStartedAt: this.clock.now() })
+        .where(and(eq(ticksTable.gameId, tick.gameId), eq(ticksTable.tick, tick.tick), isNull(ticksTable.processingStartedAt)))
+        .returning(),
+    )
+    if (Result.isFailure(tickResult)) {
+      this.logger.error("Could not start processing tick", { tick, error: tickResult.error })
+      return Result.Failure(couldNot("start processing tick"))
+    }
+
+    Assert.isTrue(tickResult.value.length <= 1)
+    if (tickResult.value.length === 0) {
+      this.logger.error("No ticks found to start processing, is it already processing?", { tick })
+      return Result.Failure(couldNot("start processing tick"))
+    }
+
+    return Result.Success({ started: true })
   }
 
   public async saveProcessedTick(

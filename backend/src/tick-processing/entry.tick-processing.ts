@@ -2,9 +2,9 @@ import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
 import { type Logger } from "@guillaume-docquier/tools-ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
-import { createDb } from "#lib/db/createDb.ts"
+import { createCreateTransaction, createDb } from "#lib/db/createDb.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
-import { processTick } from "#tick-processing/processTick.ts"
+import { TickProcessor } from "#tick-processing/TickProcessor.ts"
 import { TicksRepository } from "#tick-processing/ticks.repository.ts"
 
 /**
@@ -14,15 +14,15 @@ import { TicksRepository } from "#tick-processing/ticks.repository.ts"
  */
 export function startTickProcessing({ logger }: { logger: Logger }): void {
   logger.info("Creating a single tick processing worker")
-  const tickProcessor = new Worker(new URL(import.meta.url), {
+  const tickProcessorWorker = new Worker(new URL(import.meta.url), {
     env: SHARE_ENV,
   })
 
-  tickProcessor.once("error", (error) => {
+  tickProcessorWorker.once("error", (error) => {
     logger.error("Tick processor worker errored unexpectedly", { error })
   })
 
-  tickProcessor.once("exit", (code) => {
+  tickProcessorWorker.once("exit", (code) => {
     logger.error("Tick processor worker exited unexpectedly, starting a new one", { code })
     startTickProcessing({ logger })
   })
@@ -42,13 +42,16 @@ if (!isMainThread) {
 
   logger.info("Creating services")
   const clock = Clock
-  const ticksRepository = new TicksRepository({ db, logger })
+  const ticksRepository = new TicksRepository({ db, logger, clock })
+  const createTransaction = createCreateTransaction(db)
 
-  logger.info("Processing ticks")
-  await processTicksForever({ logger, ticksRepository, clock }, 1000)
+  const tickProcessor = new TickProcessor({ logger, clock, createTransaction, ticksRepository })
+
+  logger.info("Processing ticks forever")
+  await processTicksForever(tickProcessor, 1000)
 }
 
-async function processTicksForever(services: Parameters<typeof processTick>[0], frequency: number): Promise<void> {
-  await processTick(services)
-  setTimeout(() => void processTicksForever(services, frequency), frequency)
+async function processTicksForever(tickProcessor: TickProcessor, frequency: number): Promise<void> {
+  await tickProcessor.processNextDueTick()
+  setTimeout(() => void processTicksForever(tickProcessor, frequency), frequency)
 }

@@ -1,5 +1,7 @@
 import { defineConfig } from "vitest/config"
 
+const integrationTestsInclude = ["src/**/*.router.test.ts", "src/**/TickProcessor.test.ts"]
+
 export default defineConfig({
   test: {
     coverage: {
@@ -12,22 +14,24 @@ export default defineConfig({
     environment: "node",
     globals: false,
     slowTestThreshold: 600,
-    // I would do something like .unit.test.ts and .e2e.test.ts
-    // However, this breaks WebStorm's "Go to test" and it cannot be configured...
     projects: [
       {
+        // unit tests are lightweight and fast
         extends: true,
         test: {
+          name: { label: "unit", color: "green" },
           include: ["src/**/*.test.ts"],
-          exclude: ["src/**/*.router.test.ts", "src/**/processTick.test.ts"],
-          name: "unit",
+          // I would do something like .unit.test.ts and .integration.test.ts without exclude
+          // However, this breaks WebStorm's "Go to test" and it cannot be configured...
+          exclude: integrationTestsInclude,
         },
       },
       {
+        // integration tests use in-memory db
         extends: true,
         test: {
-          include: ["src/**/*.router.test.ts", "src/**/processTick.test.ts"],
-          name: "e2e",
+          name: { label: "integration", color: "cyan" },
+          include: integrationTestsInclude,
           setupFiles: ["./src/tests/vitest.e2e.setup.ts"],
         },
       },
