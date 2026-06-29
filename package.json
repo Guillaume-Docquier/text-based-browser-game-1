@@ -31,11 +31,5 @@
       "oxfmt --no-error-on-unmatched-pattern"
     ]
   },
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "11.9.0",
-      "onFail": "download"
-    }
-  }
+  "packageManager": "pnpm@11.9.0"
 }
