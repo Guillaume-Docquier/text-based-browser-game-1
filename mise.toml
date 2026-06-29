@@ -1,0 +1,6 @@
+# I don't know if it's a bug, but devEngines.packageManager on Railway causes 3x-4x memory usage compared to packageManager.
+# They seem to support the engines and packageManager fields correctly, but not devEngines.
+# We chose mise.toml because it won't interact with other tools we use (we don't use mise, but Railway does) and we can leave comments.
+
+[tools]
+pnpm = "11.9.0"
