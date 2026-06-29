@@ -4,4 +4,4 @@
 # We'll have a husky precommit hook keep this file synced so we don't have to worry about it.
 
 [tools]
-pnpm = "11.9.0"
+pnpm = "11.8.0"

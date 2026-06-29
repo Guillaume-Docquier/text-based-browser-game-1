@@ -1,1 +1,2 @@
+sh .husky/sync-mise.sh
 pnpm lint-staged
