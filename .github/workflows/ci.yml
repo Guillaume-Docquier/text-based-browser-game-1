@@ -21,6 +21,12 @@ jobs:
       - name: Setting up pnpm
         uses: pnpm/action-setup@v6.0.9
 
+      - name: Setting up nodejs
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
       - name: Validate peer dependencies
         run: pnpm peers check
 
@@ -42,6 +48,12 @@ jobs:
 
       - name: Setting up pnpm
         uses: pnpm/action-setup@v6.0.9
+
+      - name: Setting up nodejs
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
 
       - name: Install packages
         run: pnpm ci
@@ -69,6 +81,12 @@ jobs:
 
       - name: Setting up pnpm
         uses: pnpm/action-setup@v6.0.9
+
+      - name: Setting up nodejs
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
 
       - name: Install packages
         run: pnpm ci
