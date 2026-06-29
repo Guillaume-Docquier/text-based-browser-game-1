@@ -1,7 +1,7 @@
-# I don't know if it's a bug, but devEngines.packageManager on Railway causes 3x-4x memory usage compared to packageManager.
+# I don't know yet if it's a bug or a misuse, but devEngines.packageManager on Railway causes 3x-4x memory usage compared to packageManager.
 # They seem to support the engines and packageManager fields correctly, but not devEngines.
-# We chose mise.toml because it won't interact with other tools we use (we don't use mise, but Railway does) and we can leave comments.
-# We'll have a husky precommit hook keep this file synced so we don't have to worry about it.
+# We chose mise.toml to tell Railway which pnpm version to use because it won't interact with other tools we use (we don't use mise, but Railway does) and we can leave comments.
+# We have a husky precommit hook keep this file synced so we don't have to worry about it.
 
 [tools]
 pnpm = "11.9.0"
