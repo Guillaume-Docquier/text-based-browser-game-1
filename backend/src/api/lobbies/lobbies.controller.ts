@@ -143,12 +143,15 @@ export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; p
     (status === GameStatus.WAITING_FOR_PLAYERS || status === GameStatus.READY_TO_START) &&
     lobbyModel.creator.id === playerId
 
+  const canOpen = playerId !== undefined && status === GameStatus.STARTED && lobbyModel.players.some((player) => player.id === playerId)
+
   return {
     ...lobbyModel,
     status,
     canJoin,
     canLeave,
     canStart,
+    canOpen,
   }
 }
 
@@ -251,6 +254,10 @@ export const LobbyDto = z.object({
    * Whether the current player can start the game.
    */
   canStart: z.boolean(),
+  /**
+   * Whether the current player can open the started game.
+   */
+  canOpen: z.boolean(),
 })
 
 function validateStarSystemGenerationSettings(settings: StarSystemGenerationSettingsDto): boolean {

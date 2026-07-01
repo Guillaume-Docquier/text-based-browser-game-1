@@ -111,7 +111,7 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
             Start game
           </Button>
         )}
-        {game.status === "STARTED" && (
+        {game.canOpen && (
           <Button
             variant="secondary"
             disabled={startGame.isPending}
