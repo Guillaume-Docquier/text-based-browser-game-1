@@ -22,7 +22,7 @@
     "typecheck": "tsgo"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.31",
+    "@clerk/express": "^2.1.32",
     "@guillaume-docquier/tools-ts": "catalog:",
     "@trpc/server": "^11.18.0",
     "drizzle-orm": "^0.45.2",
