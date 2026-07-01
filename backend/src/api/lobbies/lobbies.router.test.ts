@@ -67,6 +67,7 @@ describe("lobbies.router", () => {
         canJoin: false, // because already joined
         canLeave: false, // because creator
         canStart: true, // because creator
+        canOpen: false, // because not started
       })
     })
 
@@ -161,6 +162,7 @@ describe("lobbies.router", () => {
         canJoin: true,
         canLeave: false,
         canStart: false,
+        canOpen: false,
       })
     })
 
@@ -196,6 +198,40 @@ describe("lobbies.router", () => {
         canJoin: false,
         canLeave: false,
         canStart: false,
+        canOpen: false, // Because anonymous
+      })
+    })
+
+    it("should only allow joined players to open a started game", async () => {
+      // Arrange
+      const { api, authService, accountsRepository } = await createApiStub()
+      using trpcClient = new TrpcClient({ api })
+
+      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
+      const viewerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Viewer" })))
+      authService.account = creatorAccount
+
+      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      // Act
+      const playerLobby = await trpcClient.client.lobbies.getById.query({ gameId: createdGameId })
+
+      authService.account = viewerAccount
+      const nonPlayerLobby = await trpcClient.client.lobbies.getById.query({ gameId: createdGameId })
+
+      authService.account = undefined
+      const anonymousLobby = await trpcClient.client.lobbies.getById.query({ gameId: createdGameId })
+
+      // Assert
+      expect({
+        player: { status: playerLobby.status, canOpen: playerLobby.canOpen },
+        nonPlayer: { status: nonPlayerLobby.status, canOpen: nonPlayerLobby.canOpen },
+        anonymous: { status: anonymousLobby.status, canOpen: anonymousLobby.canOpen },
+      }).toEqual({
+        player: { status: GameStatus.STARTED, canOpen: true },
+        nonPlayer: { status: GameStatus.STARTED, canOpen: false },
+        anonymous: { status: GameStatus.STARTED, canOpen: false },
       })
     })
 
@@ -249,6 +285,7 @@ describe("lobbies.router", () => {
         canJoin: false,
         canLeave: true,
         canStart: false,
+        canOpen: false,
       })
     })
 
@@ -317,6 +354,7 @@ describe("lobbies.router", () => {
         canJoin: true, // Because left
         canLeave: false, // Because left
         canStart: false, // Because not creator
+        canOpen: false, // Because not joined
       })
     })
 
