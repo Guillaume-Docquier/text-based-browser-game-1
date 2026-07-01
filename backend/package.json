@@ -37,7 +37,7 @@
     "@inquirer/prompts": "^8.5.2",
     "@trpc/client": "^11.18.0",
     "@types/express": "^5.0.6",
-    "@types/node": "^25.9.4",
+    "@types/node": "^26.0.1",
     "@types/pg": "^8.20.0",
     "@typescript/native-preview": "catalog:",
     "@vitest/coverage-v8": "^4.1.9",
