@@ -1,4 +1,4 @@
-import { Assert, Datetime, type Logger, Profile, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -6,6 +6,7 @@ import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { rollbackOnFailure } from "#lib/errors.ts"
+import { ElapsedTimeContextProvider } from "#tick-processing/ElapsedTimeContextProvider.ts"
 import { type ProcessedTickModel, type TicksRepository, type TickToProcessModel } from "#tick-processing/ticks.repository.ts"
 
 export class TickProcessor {
@@ -36,47 +37,45 @@ export class TickProcessor {
    * This will resolve all player actions, update the game state and schedule the next tick.
    */
   public async processNextDueTick(): Promise<void> {
-    await Profile.executionTime(
-      "processNextDueTick",
-      async () => {
-        const tickToProcessResult = await this.createTransaction(async (tx) => {
-          const nextTickToProcessResult = await this.ticksRepository.getNextTickToProcess({ since: this.clock.now() }, tx)
-          rollbackOnFailure(nextTickToProcessResult, "Could not get next tick to process")
+    const processingLogger = this.logger.child({ scope: "processNextDueTick", contextProviders: [new ElapsedTimeContextProvider()] })
 
-          if (nextTickToProcessResult.value === undefined) {
-            return undefined
-          }
+    const tickToProcessResult = await this.createTransaction(async (tx) => {
+      const nextTickToProcessResult = await this.ticksRepository.getNextTickToProcess({ since: this.clock.now() }, tx)
+      rollbackOnFailure(nextTickToProcessResult, "Could not get next tick to process")
 
-          const started = await this.ticksRepository.startProcessingTick(nextTickToProcessResult.value, tx)
-          rollbackOnFailure(started, "Could not start to process next tick")
+      if (nextTickToProcessResult.value === undefined) {
+        return undefined
+      }
 
-          return nextTickToProcessResult.value
-        })
+      const started = await this.ticksRepository.startProcessingTick(nextTickToProcessResult.value, tx)
+      rollbackOnFailure(started, "Could not start to process next tick")
 
-        if (Result.isFailure(tickToProcessResult)) {
-          this.logger.error("Failed to acquire next tick to process", { error: tickToProcessResult.error })
-          return
-        }
+      return nextTickToProcessResult.value
+    })
 
-        const tickToProcess = tickToProcessResult.value
-        if (tickToProcess === undefined) {
-          this.logger.debug("No tick to process")
-          return
-        }
+    if (Result.isFailure(tickToProcessResult)) {
+      processingLogger.error("Failed to acquire next tick to process", { error: tickToProcessResult.error })
+      return
+    }
 
-        this.logger.info("Processing tick", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
-        const processedTick = this.processTick(tickToProcess)
-        const saveResult = await this.ticksRepository.saveProcessedTick(processedTick)
-        if (Result.isFailure(saveResult)) {
-          this.logger.error("Could not save processed tick", {
-            gameId: tickToProcess.gameId,
-            tick: tickToProcess.tick,
-            error: saveResult.error,
-          })
-        }
-      },
-      this.logger,
-    )
+    const tickToProcess = tickToProcessResult.value
+    if (tickToProcess === undefined) {
+      processingLogger.debug("No tick to process")
+      return
+    }
+
+    processingLogger.info("Processing tick", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
+    const processedTick = this.processTick(tickToProcess)
+    const saveResult = await this.ticksRepository.saveProcessedTick(processedTick)
+    if (Result.isFailure(saveResult)) {
+      processingLogger.error("Could not save processed tick", {
+        gameId: tickToProcess.gameId,
+        tick: tickToProcess.tick,
+        error: saveResult.error,
+      })
+    } else {
+      processingLogger.info("Tick processed", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
+    }
   }
 
   private processTick(tickToProcess: TickToProcessModel): ProcessedTickModel {
