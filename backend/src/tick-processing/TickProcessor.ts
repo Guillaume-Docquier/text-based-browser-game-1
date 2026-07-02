@@ -33,10 +33,22 @@ export class TickProcessor {
   }
 
   /**
+   * Processes due ticks until there is no more immediate work, then schedules the next check.
+   */
+  public async processTicksForever({ interval }: { interval: Time }): Promise<void> {
+    let tickProcessingOutcome = await this.processNextDueTick()
+    while (tickProcessingOutcome === "processed") {
+      tickProcessingOutcome = await this.processNextDueTick()
+    }
+
+    setTimeout(() => void this.processTicksForever({ interval }), Time.in(interval, UnitOfTime.MILLISECONDS))
+  }
+
+  /**
    * Processes the next tick that should advance at this point in time.
    * This will resolve all player actions, update the game state and schedule the next tick.
    */
-  public async processNextDueTick(): Promise<void> {
+  public async processNextDueTick(): Promise<"processed" | "idle" | "failed"> {
     const processingLogger = this.logger.child({ scope: "processNextDueTick", contextProviders: [new ElapsedTimeContextProvider()] })
 
     const tickToProcessResult = await this.createTransaction(async (tx) => {
@@ -55,13 +67,13 @@ export class TickProcessor {
 
     if (Result.isFailure(tickToProcessResult)) {
       processingLogger.error("Failed to acquire next tick to process", { error: tickToProcessResult.error })
-      return
+      return "failed"
     }
 
     const tickToProcess = tickToProcessResult.value
     if (tickToProcess === undefined) {
       processingLogger.debug("No tick to process")
-      return
+      return "idle"
     }
 
     processingLogger.info("Processing tick", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
@@ -73,8 +85,10 @@ export class TickProcessor {
         tick: tickToProcess.tick,
         error: saveResult.error,
       })
+      return "failed"
     } else {
       processingLogger.info("Tick processed", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
+      return "processed"
     }
   }
 
