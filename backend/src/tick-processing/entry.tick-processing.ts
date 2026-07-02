@@ -49,7 +49,7 @@ if (!isMainThread) {
   const tickProcessor = new TickProcessor({ logger, clock, createTransaction, ticksRepository })
 
   logger.info("Processing ticks forever")
-  await processTicksForever(tickProcessor, 1000)
+  await tickProcessor.processTicksForever(1000)
 
   // We'll capture the memory usage reported by node a few times to compare with what Railway says
   // There's always a spike at launch, which should settle after a minute or two
@@ -60,9 +60,4 @@ if (!isMainThread) {
       Profile.memoryUsage(logger)
     },
   })
-}
-
-async function processTicksForever(tickProcessor: TickProcessor, frequency: number): Promise<void> {
-  await tickProcessor.processNextDueTick()
-  setTimeout(() => void processTicksForever(tickProcessor, frequency), frequency)
 }
