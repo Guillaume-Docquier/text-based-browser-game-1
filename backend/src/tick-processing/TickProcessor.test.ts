@@ -145,19 +145,28 @@ describe("TickProcessor", () => {
       clock.increment({ time: tickInterval })
       await tickProcessor.processNextDueTick()
 
-      // Assert
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView).toEqual<typeof playerView>({
-        gameId: createdGameId,
-        playerId: player.account.id,
-        tick: 1,
-        nextTickAt: Datetime.increment({ date: clock.now(), time: tickInterval }).toISOString(),
-        starSystem: expect.any(Object),
-        resources: {
-          money: 6,
-        },
-      })
+    // Assert
+    const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+    expect(playerView).toEqual<typeof playerView>({
+      gameId: createdGameId,
+      playerId: player.account.id,
+      tick: 1,
+      nextTickAt: Datetime.increment({ date: clock.now(), time: tickInterval }).toISOString(),
+      starSystem: expect.any(Object),
+      resources: {
+        money: 6,
+      },
     })
+    await expect(
+      trpcClient.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        tick: 0,
+        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+      }),
+    ).rejects.toMatchObject({
+      data: { code: "BAD_REQUEST" },
+    })
+  })
 
     it("should not apply an action when the player cannot afford it", async () => {
       // Arrange
@@ -292,11 +301,21 @@ describe("TickProcessor", () => {
       await player.client.gameplay.startGame.mutate({ gameId: processingGameId })
       await ticksRepository.startProcessingTick({ gameId: processingGameId, tick: 0 })
 
-      const notProcessingTickInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: notProcessingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(notProcessingTickInterval, UnitOfTime.SECONDS) }),
-      })
-      await player.client.gameplay.startGame.mutate({ gameId: notProcessingGameId })
+    await expect(
+      trpcClient.client.gameplay.setCurrentAction.mutate({
+        gameId: processingGameId,
+        tick: 0,
+        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+      }),
+    ).rejects.toMatchObject({
+      data: { code: "BAD_REQUEST" },
+    })
+
+    const notProcessingTickInterval = Time.create(100, UnitOfTime.SECONDS)
+    const { createdGameId: notProcessingGameId } = await player.client.lobbies.create.mutate({
+      configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(notProcessingTickInterval, UnitOfTime.SECONDS) }),
+    })
+    await player.client.gameplay.startGame.mutate({ gameId: notProcessingGameId })
 
       // Act
       clock.increment({ time: notProcessingTickInterval })
@@ -475,13 +494,24 @@ describe("TickProcessor", () => {
         },
       })
 
-      const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(joinerView).toMatchObject({
-        resources: {
-          money: 3,
-        },
-      })
+
+    const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+    expect(joinerView).toMatchObject({
+      resources: {
+        money: 3,
+      },
     })
+
+    await expect(
+      trpcClient.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        tick: 0,
+        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+      }),
+    ).rejects.toMatchObject({
+      data: { code: "BAD_REQUEST" },
+    })
+  })
 
     it("should not do anything in case of failure", async () => {
       // Arrange

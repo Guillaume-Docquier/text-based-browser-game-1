@@ -1,15 +1,17 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
+import type { Transaction } from "#lib/db/createDb.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamesTable, gameStatesTable, ordersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
-import { couldNot } from "#lib/errors.ts"
+import { gamesTable, gameStatesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
+import { couldNot, TransactionRollback } from "#lib/errors.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type OrderRow = typeof ordersTable.$inferSelect
@@ -17,6 +19,11 @@ type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTickRow = typeof ticksTable.$inferInsert
 
 export type OrderModel = OrderRow
+
+export type PlayerActionContextModel = {
+  tick: number
+  money: number
+}
 
 export type PlayerViewModel = {
   gameId: number
@@ -55,10 +62,7 @@ export class GameplayRepository extends PostgresRepository {
     this.clock = clock
   }
 
-  public async startGame(
-    startGameModel: StartGameModel,
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<{ nextTickAt: Date }, string>> {
+  public async startGame(startGameModel: StartGameModel, db: Transaction): Promise<Result<{ nextTickAt: Date }, string>> {
     const gameState = {
       gameId: startGameModel.gameId,
       tick: 0,
@@ -80,15 +84,27 @@ export class GameplayRepository extends PostgresRepository {
       scheduledFor: startGameModel.nextTickAt,
     }
 
-    const startResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
-        await tx.update(gamesTable).set({ startedAt: startGameModel.startedAt }).where(eq(gamesTable.id, startGameModel.gameId))
-        await tx.insert(gameStatesTable).values(gameState)
-        await tx.insert(resourcesTable).values(playerResources)
-        await tx.insert(ticksTable).values(gameTick)
-        await StarSystemQueries.insertStarSystem({ gameId: startGameModel.gameId, starSystem: startGameModel.starSystem }, tx)
-      }),
-    )
+    const startResult = await Result.tryCatch(async () => {
+      const updatedGames = await db
+        .update(gamesTable)
+        .set({ startedAt: startGameModel.startedAt, status: GameStatus.COLLECTING_ORDERS })
+        .where(
+          and(
+            eq(gamesTable.id, startGameModel.gameId),
+            inArray(gamesTable.status, [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START]),
+          ),
+        )
+        .returning()
+
+      if (updatedGames.length !== 1) {
+        throw new TransactionRollback("Cannot start game in its current status")
+      }
+
+      await db.insert(gameStatesTable).values(gameState)
+      await db.insert(resourcesTable).values(playerResources)
+      await db.insert(ticksTable).values(gameTick)
+      await StarSystemQueries.insertStarSystem({ gameId: startGameModel.gameId, starSystem: startGameModel.starSystem }, db)
+    })
 
     if (Result.isFailure(startResult)) {
       this.logger.error("Could not start game", { startGameModel, error: startResult.error })
@@ -160,29 +176,88 @@ export class GameplayRepository extends PostgresRepository {
     return Result.Success(getResult.value[0] ?? null)
   }
 
+  public async getPlayerActionContext(
+    params: { gameId: GameId; playerId: PlayerId },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<PlayerActionContextModel, string>> {
+    const contextResult = await Result.tryCatch(
+      runInTransaction(db, async (tx) => {
+        await lockGameCollectingOrders({ gameId: params.gameId }, tx)
+
+        const joinedPlayers = await tx
+          .select({ playerId: playersTable.playerId })
+          .from(playersTable)
+          .where(and(eq(playersTable.gameId, params.gameId), eq(playersTable.playerId, params.playerId)))
+        if (joinedPlayers.length !== 1) {
+          throw new TransactionRollback("Player is not in this game.")
+        }
+
+        const gameStates = await tx
+          .select({ tick: gameStatesTable.tick })
+          .from(gameStatesTable)
+          .where(eq(gameStatesTable.gameId, params.gameId))
+        if (gameStates.length !== 1) {
+          throw new TransactionRollback("Game state does not exist.")
+        }
+        Assert.isDefined(gameStates[0])
+
+        const moneyRows = await tx
+          .select({ amount: resourcesTable.amount })
+          .from(resourcesTable)
+          .where(
+            and(
+              eq(resourcesTable.gameId, params.gameId),
+              eq(resourcesTable.playerId, params.playerId),
+              eq(resourcesTable.resourceType, ResourceType.MONEY),
+            ),
+          )
+        if (moneyRows.length !== 1) {
+          throw new TransactionRollback("Player money resource does not exist.")
+        }
+        Assert.isDefined(moneyRows[0])
+
+        return {
+          tick: gameStates[0].tick,
+          money: moneyRows[0].amount,
+        }
+      }),
+    )
+
+    if (Result.isFailure(contextResult)) {
+      this.logger.error("Could not get player action context", { ...params, error: contextResult.error })
+      return Result.Failure(couldNot("get player action context"))
+    }
+
+    return contextResult
+  }
+
   public async setCurrentAction(
     params: { gameId: GameId; playerId: PlayerId; tick: number; actionType: GamePlayerActionType },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<OrderModel, string>> {
-    const upsertResult = await Result.tryCatch(async () => {
-      const updatedAt = this.clock.now()
-      const gamePlayerActions = await db
-        .insert(ordersTable)
-        .values({ ...params, updatedAt })
-        .onConflictDoUpdate({
-          target: [ordersTable.gameId, ordersTable.playerId, ordersTable.tick],
-          set: {
-            actionType: params.actionType,
-            updatedAt,
-          },
-        })
-        .returning()
+    const upsertResult = await Result.tryCatch(
+      runInTransaction(db, async (tx) => {
+        await lockGameCollectingOrders({ gameId: params.gameId }, tx)
 
-      Assert.isTrue(gamePlayerActions.length === 1)
-      Assert.isDefined(gamePlayerActions[0])
+        const updatedAt = this.clock.now()
+        const gamePlayerActions = await tx
+          .insert(ordersTable)
+          .values({ ...params, updatedAt })
+          .onConflictDoUpdate({
+            target: [ordersTable.gameId, ordersTable.playerId, ordersTable.tick],
+            set: {
+              actionType: params.actionType,
+              updatedAt,
+            },
+          })
+          .returning()
 
-      return gamePlayerActions[0]
-    })
+        Assert.isTrue(gamePlayerActions.length === 1)
+        Assert.isDefined(gamePlayerActions[0])
+
+        return gamePlayerActions[0]
+      }),
+    )
 
     if (Result.isFailure(upsertResult)) {
       this.logger.error("Could not upsert game player action", { ...params, error: upsertResult.error })
@@ -197,9 +272,13 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(
-      db
-        .delete(ordersTable)
-        .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.tick, params.tick))),
+      runInTransaction(db, async (tx) => {
+        await lockGameCollectingOrders({ gameId: params.gameId }, tx)
+
+        await tx
+          .delete(ordersTable)
+          .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.tick, params.tick)))
+      }),
     )
 
     if (Result.isFailure(deleteResult)) {
@@ -209,4 +288,24 @@ export class GameplayRepository extends PostgresRepository {
 
     return Result.Success(true)
   }
+}
+
+async function lockGameCollectingOrders({ gameId }: { gameId: GameId }, db: PostgresRepository["db"]): Promise<void> {
+  const games = await db
+    .select({ id: gamesTable.id })
+    .from(gamesTable)
+    .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.COLLECTING_ORDERS)))
+    .for("no key update")
+
+  if (games.length !== 1) {
+    throw new TransactionRollback("Cannot submit orders in the current game status")
+  }
+}
+
+async function runInTransaction<T>(db: PostgresRepository["db"], operation: (tx: PostgresRepository["db"]) => Promise<T>): Promise<T> {
+  if ("transaction" in db) {
+    return await db.transaction(async (tx) => await operation(tx))
+  }
+
+  return await operation(db)
 }

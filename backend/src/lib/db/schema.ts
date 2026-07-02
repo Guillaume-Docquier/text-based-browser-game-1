@@ -16,6 +16,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 
@@ -29,6 +30,7 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 
 export const starSystemBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
 export const gamePlayerActionTypeEnum = pgEnum("action_type", pgEnumify(GamePlayerActionType))
+export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 
 const accountId = uuid
 const playerId = uuid
@@ -62,6 +64,7 @@ export const gamesTable = pgTable("games", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   endedAt: timestamp("ended_at"),
+  status: gameStatusEnum("status").notNull().default(GameStatus.WAITING_FOR_PLAYERS),
 
   // Game configuration
 

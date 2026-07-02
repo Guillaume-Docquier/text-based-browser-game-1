@@ -1,12 +1,13 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, eq } from "drizzle-orm"
+import { and, count, eq, inArray } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
-import { couldNot } from "#lib/errors.ts"
+import { couldNot, TransactionRollback } from "#lib/errors.ts"
 
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
@@ -29,6 +30,7 @@ export type LobbyModel = {
   startedAt: Date | null
   endedAt: Date | null
   winnerAccountId: AccountId | null
+  status: GameStatus
   configuration: LobbyConfigurationModel
   creator: LobbyPlayerModel
   players: LobbyPlayerModel[]
@@ -52,7 +54,7 @@ export class LobbiesRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ createdGameId: GameId }, string>> {
     const createLobbyResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
+      runInTransaction(db, async (tx) => {
         const games = await tx.insert(gamesTable).values(toCreateGameRow(createLobbyModel)).returning()
         Assert.isTrue(games.length === 1)
         Assert.isDefined(games[0])
@@ -75,8 +77,12 @@ export class LobbiesRepository extends PostgresRepository {
   public async getLobbyById(
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
+    { lockGame = false }: { lockGame?: boolean } = {},
   ): Promise<Result<LobbyModel | undefined, string>> {
-    const gameRowResult = await Result.tryCatch(db.select().from(gamesTable).where(eq(gamesTable.id, gameId)))
+    const gameRowResult = await Result.tryCatch(async () => {
+      const query = db.select().from(gamesTable).where(eq(gamesTable.id, gameId))
+      return lockGame ? await query.for("no key update") : await query
+    })
     if (Result.isFailure(gameRowResult)) {
       this.logger.error("Failed to get game", { gameId, error: gameRowResult.error })
       return Result.Failure(couldNot("get game"))
@@ -110,13 +116,46 @@ export class LobbiesRepository extends PostgresRepository {
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ playerId: PlayerId }, string>> {
-    const joinLobbyResult = await Result.tryCatch(async () => {
-      const gamePlayers = await db.insert(playersTable).values({ gameId, playerId: accountId }).returning()
-      Assert.isTrue(gamePlayers.length === 1)
-      Assert.isDefined(gamePlayers[0])
+    const joinLobbyResult = await Result.tryCatch(
+      runInTransaction(db, async (tx) => {
+        const games = await tx.select().from(gamesTable).where(eq(gamesTable.id, gameId)).for("no key update")
+        Assert.isTrue(games.length <= 1)
+        const game = games[0]
+        if (game === undefined || game.status !== GameStatus.WAITING_FOR_PLAYERS) {
+          throw new TransactionRollback("Cannot join game lobby in its current status")
+        }
 
-      return { playerId: gamePlayers[0].playerId }
-    })
+        const alreadyJoinedPlayers = await tx
+          .select({ playerId: playersTable.playerId })
+          .from(playersTable)
+          .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId)))
+        if (alreadyJoinedPlayers.length > 0) {
+          throw new TransactionRollback("Cannot join game lobby twice")
+        }
+
+        const gamePlayers = await tx.insert(playersTable).values({ gameId, playerId: accountId }).returning()
+        Assert.isTrue(gamePlayers.length === 1)
+        Assert.isDefined(gamePlayers[0])
+
+        const playerCounts = await tx
+          .select({ nbPlayers: count(playersTable.playerId) })
+          .from(playersTable)
+          .where(eq(playersTable.gameId, gameId))
+        Assert.isTrue(playerCounts.length === 1)
+        Assert.isDefined(playerCounts[0])
+
+        if (playerCounts[0].nbPlayers >= game.nbSeats) {
+          const updatedGames = await tx
+            .update(gamesTable)
+            .set({ status: GameStatus.READY_TO_START })
+            .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.WAITING_FOR_PLAYERS)))
+            .returning()
+          Assert.isTrue(updatedGames.length === 1)
+        }
+
+        return { playerId: gamePlayers[0].playerId }
+      }),
+    )
 
     if (Result.isFailure(joinLobbyResult)) {
       this.logger.error("Could not join game lobby", { gameId, accountId, error: joinLobbyResult.error })
@@ -130,12 +169,38 @@ export class LobbiesRepository extends PostgresRepository {
     { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
-    const deleteResult = await Result.tryCatch(
-      db.delete(playersTable).where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId))),
+    const leaveResult = await Result.tryCatch(
+      runInTransaction(db, async (tx) => {
+        const games = await tx.select().from(gamesTable).where(eq(gamesTable.id, gameId)).for("no key update")
+        Assert.isTrue(games.length <= 1)
+        const game = games[0]
+        if (game === undefined || (game.status !== GameStatus.WAITING_FOR_PLAYERS && game.status !== GameStatus.READY_TO_START)) {
+          throw new TransactionRollback("Cannot leave game lobby in its current status")
+        }
+
+        if (game.createdByAccountId === accountId) {
+          throw new TransactionRollback("Cannot leave game lobby as its creator")
+        }
+
+        const deletedPlayers = await tx
+          .delete(playersTable)
+          .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId)))
+          .returning()
+        if (deletedPlayers.length !== 1) {
+          throw new TransactionRollback("Cannot leave game lobby without being a player")
+        }
+
+        const updatedGames = await tx
+          .update(gamesTable)
+          .set({ status: GameStatus.WAITING_FOR_PLAYERS })
+          .where(and(eq(gamesTable.id, gameId), inArray(gamesTable.status, [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START])))
+          .returning()
+        Assert.isTrue(updatedGames.length === 1)
+      }),
     )
 
-    if (Result.isFailure(deleteResult)) {
-      this.logger.error("Could not leave game lobby", { gameId, accountId, error: deleteResult.error })
+    if (Result.isFailure(leaveResult)) {
+      this.logger.error("Could not leave game lobby", { gameId, accountId, error: leaveResult.error })
       return Result.Failure(couldNot("leave game lobby"))
     }
 
@@ -168,6 +233,7 @@ export class LobbiesRepository extends PostgresRepository {
 function toCreateGameRow(createLobbyModel: CreateLobbyModel): CreateGameRow {
   return {
     createdByAccountId: createLobbyModel.createdByAccountId,
+    status: createLobbyModel.configuration.nbSeats <= 1 ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS,
     ...createLobbyModel.configuration,
   }
 }
@@ -182,6 +248,7 @@ function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPl
     startedAt: gameRow.startedAt,
     endedAt: gameRow.endedAt,
     winnerAccountId: gameRow.winnerAccountId,
+    status: gameRow.status,
     configuration: {
       name: gameRow.name,
       nbSeats: gameRow.nbSeats,
@@ -191,4 +258,12 @@ function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPl
     creator,
     players,
   }
+}
+
+async function runInTransaction<T>(db: PostgresRepository["db"], operation: (tx: PostgresRepository["db"]) => Promise<T>): Promise<T> {
+  if ("transaction" in db) {
+    return await db.transaction(async (tx) => await operation(tx))
+  }
+
+  return await operation(db)
 }
