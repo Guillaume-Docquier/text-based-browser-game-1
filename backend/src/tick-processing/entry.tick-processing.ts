@@ -1,10 +1,10 @@
-import { SHARE_ENV, Worker, isMainThread } from "node:worker_threads"
-import { type Logger, Profile, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { isMainThread, SHARE_ENV, Worker } from "node:worker_threads"
+import { type Logger, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb } from "#lib/db/createDb.ts"
+import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
-import { repeat } from "#lib/repeat.ts"
 import { TickProcessor } from "#tick-processing/TickProcessor.ts"
 import { TicksRepository } from "#tick-processing/ticks.repository.ts"
 
@@ -49,15 +49,8 @@ if (!isMainThread) {
   const tickProcessor = new TickProcessor({ logger, clock, createTransaction, ticksRepository })
 
   logger.info("Processing ticks forever")
-  await tickProcessor.processTicksForever(1000)
+  // Fire and forget
+  void tickProcessor.processTicksForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
 
-  // We'll capture the memory usage reported by node a few times to compare with what Railway says
-  // There's always a spike at launch, which should settle after a minute or two
-  repeat({
-    times: 5,
-    delay: Time.create(1, UnitOfTime.MINUTES),
-    operation: () => {
-      Profile.memoryUsage(logger)
-    },
-  })
+  monitorMemoryUsage({ logger })
 }

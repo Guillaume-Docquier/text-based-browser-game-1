@@ -38,6 +38,18 @@ export class TickProcessor {
   }
 
   /**
+   * Processes due ticks until there is no more immediate work, then schedules the next check.
+   */
+  public async processTicksForever({ interval }: { interval: Time }): Promise<void> {
+    let tickProcessingOutcome = await this.processNextDueTick()
+    while (tickProcessingOutcome === "processed") {
+      tickProcessingOutcome = await this.processNextDueTick()
+    }
+
+    setTimeout(() => void this.processTicksForever({ interval }), Time.in(interval, UnitOfTime.MILLISECONDS))
+  }
+
+  /**
    * Processes the next tick that should advance at this point in time.
    * This will resolve all player actions, update the game state and schedule the next tick.
    *
@@ -85,18 +97,6 @@ export class TickProcessor {
       processingLogger.info("Tick processed", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
       return "processed"
     }
-  }
-
-  /**
-   * Processes due ticks until there is no more immediate work, then schedules the next check.
-   */
-  public async processTicksForever(frequency: number): Promise<void> {
-    let tickProcessingOutcome = await this.processNextDueTick()
-    while (tickProcessingOutcome === "processed") {
-      tickProcessingOutcome = await this.processNextDueTick()
-    }
-
-    setTimeout(() => void this.processTicksForever(frequency), frequency)
   }
 
   private processTick(tickToProcess: TickToProcessModel): ProcessedTickModel {

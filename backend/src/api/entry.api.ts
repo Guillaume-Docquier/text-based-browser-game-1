@@ -1,4 +1,4 @@
-import { Logger, Profile, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
@@ -9,8 +9,8 @@ import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
+import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
-import { repeat } from "#lib/repeat.ts"
 import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
 import { createApi } from "./createApi.ts"
 
@@ -63,15 +63,7 @@ async function main(): Promise<void> {
   logger.info("Starting tick processing")
   startTickProcessing({ logger })
 
-  // We'll capture the memory usage reported by node a few times to compare with what Railway says
-  // There's always a spike at launch, which should settle after a minute or two
-  repeat({
-    times: 5,
-    delay: Time.create(1, UnitOfTime.MINUTES),
-    operation: () => {
-      Profile.memoryUsage(logger)
-    },
-  })
+  monitorMemoryUsage({ logger })
 }
 
 /**

@@ -189,7 +189,7 @@ describe("TickProcessor", () => {
     // Act
     vi.useFakeTimers()
     clock.increment({ time: tickInterval })
-    await tickProcessor.processTicksForever(1000)
+    await tickProcessor.processTicksForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
 
     // Assert
     expect(vi.getTimerCount()).toBe(1)
@@ -233,7 +233,7 @@ describe("TickProcessor", () => {
     // Act
     vi.useFakeTimers()
     clock.increment({ time: tickInterval })
-    await tickProcessor.processTicksForever(1000)
+    await tickProcessor.processTicksForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
 
     // Assert
     expect(vi.getTimerCount()).toBe(1)
