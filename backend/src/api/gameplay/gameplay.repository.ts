@@ -119,7 +119,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<PlayerViewModel | undefined, string>> {
     const playerViewResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
+      this.runInTransaction(db, async (tx) => {
         const gameStates = await tx.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId))
         Assert.isTrue(gameStates.length === 1)
 
@@ -181,7 +181,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<PlayerActionContextModel, string>> {
     const contextResult = await Result.tryCatch(
-      runInTransaction(db, async (tx) => {
+      this.runInTransaction(db, async (tx) => {
         await lockGameCollectingOrders({ gameId: params.gameId }, tx)
 
         const joinedPlayers = await tx
@@ -236,7 +236,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<OrderModel, string>> {
     const upsertResult = await Result.tryCatch(
-      runInTransaction(db, async (tx) => {
+      this.runInTransaction(db, async (tx) => {
         await lockGameCollectingOrders({ gameId: params.gameId }, tx)
 
         const updatedAt = this.clock.now()
@@ -272,7 +272,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(
-      runInTransaction(db, async (tx) => {
+      this.runInTransaction(db, async (tx) => {
         await lockGameCollectingOrders({ gameId: params.gameId }, tx)
 
         await tx
@@ -300,12 +300,4 @@ async function lockGameCollectingOrders({ gameId }: { gameId: GameId }, db: Post
   if (games.length !== 1) {
     throw new TransactionRollback("Cannot submit orders in the current game status")
   }
-}
-
-async function runInTransaction<T>(db: PostgresRepository["db"], operation: (tx: PostgresRepository["db"]) => Promise<T>): Promise<T> {
-  if ("transaction" in db) {
-    return await db.transaction(async (tx) => await operation(tx))
-  }
-
-  return await operation(db)
 }

@@ -154,7 +154,7 @@ export class TicksRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ started: true }, string>> {
     const tickResult = await Result.tryCatch(
-      runInTransaction(db, async (tx) => {
+      this.runInTransaction(db, async (tx) => {
         const games = await tx
           .update(gamesTable)
           .set({ status: GameStatus.PROCESSING_TICK })
@@ -193,7 +193,7 @@ export class TicksRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ reset: true }, string>> {
     const tickResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
+      this.runInTransaction(db, async (tx) => {
         const ticks = await tx
           .update(ticksTable)
           .set({ processingStartedAt: null })
@@ -223,7 +223,7 @@ export class TicksRepository extends PostgresRepository {
   ): Promise<Result<{ saved: true }, string>> {
     const processedTickRows = toProcessedTickRows(processedTickModel)
     const saveResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
+      this.runInTransaction(db, async (tx) => {
         const completedTicks = await tx
           .update(ticksTable)
           .set(processedTickRows.completedTick)
@@ -383,12 +383,4 @@ async function transitionProcessingGame(
   if (games.length !== 1) {
     throw new TransactionRollback("Cannot transition processed tick in the current game status")
   }
-}
-
-async function runInTransaction<T>(db: PostgresRepository["db"], operation: (tx: PostgresRepository["db"]) => Promise<T>): Promise<T> {
-  if ("transaction" in db) {
-    return await db.transaction(async (tx) => await operation(tx))
-  }
-
-  return await operation(db)
 }

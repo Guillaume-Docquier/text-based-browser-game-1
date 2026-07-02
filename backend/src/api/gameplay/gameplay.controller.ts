@@ -1,8 +1,8 @@
 import { Datetime, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { generateStarSystem } from "#api/gameplay/star-systems/generateStarSystem.ts"
-import { toLobbyDto } from "#api/lobbies/lobbies.controller.ts"
 import type { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import { getLobbyCapabilities } from "#api/lobbies/LobbyCapabilities.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { GameStatus } from "#api/shared/GameStatus.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
@@ -58,10 +58,14 @@ export class GameplayController {
         throw new TransactionRollback("Cannot start missing game lobby")
       }
 
-      // I don't really like importing the lobbiesRepository and using toLobbyDto, but it is convenient
-      const lobbyDto = toLobbyDto({ lobbyModel, playerId })
-      if (!lobbyDto.canStart) {
-        this.logger.error("Cannot start game, this player is not allowed to start it at the moment", { gameId, playerId, lobbyDto })
+      const lobbyCapabilities = getLobbyCapabilities({ lobbyModel, playerId })
+      if (!lobbyCapabilities.canStart) {
+        this.logger.error("Cannot start game, this player is not allowed to start it at the moment", {
+          gameId,
+          playerId,
+          lobbyStatus: lobbyModel.status,
+          lobbyCapabilities,
+        })
         throw new TransactionRollback("Cannot start game in its current status")
       }
 
