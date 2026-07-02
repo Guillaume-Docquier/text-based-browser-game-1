@@ -9,11 +9,6 @@ import { rollbackOnFailure } from "#lib/errors.ts"
 import { ElapsedTimeContextProvider } from "#tick-processing/ElapsedTimeContextProvider.ts"
 import { type ProcessedTickModel, type TicksRepository, type TickToProcessModel } from "#tick-processing/ticks.repository.ts"
 
-/**
- * The result of trying to process one due tick.
- */
-export type ProcessNextDueTickOutcome = "processed" | "idle" | "failed"
-
 export class TickProcessor {
   private readonly logger: Logger
   private readonly ticksRepository: TicksRepository
@@ -52,10 +47,8 @@ export class TickProcessor {
   /**
    * Processes the next tick that should advance at this point in time.
    * This will resolve all player actions, update the game state and schedule the next tick.
-   *
-   * @returns Whether one tick was processed, no tick was due, or processing failed.
    */
-  public async processNextDueTick(): Promise<ProcessNextDueTickOutcome> {
+  public async processNextDueTick(): Promise<"processed" | "idle" | "failed"> {
     const processingLogger = this.logger.child({ scope: "processNextDueTick", contextProviders: [new ElapsedTimeContextProvider()] })
 
     const tickToProcessResult = await this.createTransaction(async (tx) => {
