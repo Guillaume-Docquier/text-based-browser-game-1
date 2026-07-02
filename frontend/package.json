@@ -38,11 +38,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
-    "@clerk/testing": "^2.1.6",
+    "@clerk/testing": "^2.2.0",
     "@playwright/test": "^1.61.1",
     "@rolldown/plugin-babel": "^0.2.3",
     "@storybook/react-vite": "^10.4.6",
-    "@tailwindcss/vite": "^4.3.1",
+    "@tailwindcss/vite": "^4.3.2",
     "@tanstack/router-plugin": "^1.168.18",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^25.9.4",
