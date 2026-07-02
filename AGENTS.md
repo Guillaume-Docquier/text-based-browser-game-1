@@ -181,6 +181,7 @@ Never change environment variable values yourself. Ask the user to do it, and su
 
 - Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw `new TransactionRollback(...)` from `backend/src/lib/errors.ts` instead.
 - Do not return results from transactions. Throw `TransactionRollback` to abort the transaction, or return the value directly.
+- Do not add `runInTransaction` helpers or otherwise flatten nested transaction calls. Drizzle supports transactions inside transactions. If a method must run inside an existing transaction, type its argument as a transaction; otherwise let the method create a transaction for its own unit of work.
 
 ## `@guillaume-docquier/tools-ts` Gotchas
 

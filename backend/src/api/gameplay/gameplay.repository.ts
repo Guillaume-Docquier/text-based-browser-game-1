@@ -119,7 +119,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<PlayerViewModel | undefined, string>> {
     const playerViewResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         const gameStates = await tx.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId))
         Assert.isTrue(gameStates.length === 1)
 
@@ -181,7 +181,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<PlayerActionContextModel, string>> {
     const contextResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         await lockGameCollectingOrders({ gameId: params.gameId }, tx)
 
         const joinedPlayers = await tx
@@ -236,7 +236,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<OrderModel, string>> {
     const upsertResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         await lockGameCollectingOrders({ gameId: params.gameId }, tx)
 
         const updatedAt = this.clock.now()
@@ -272,7 +272,7 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         await lockGameCollectingOrders({ gameId: params.gameId }, tx)
 
         await tx

@@ -54,7 +54,7 @@ export class LobbiesRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ createdGameId: GameId }, string>> {
     const createLobbyResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         const games = await tx.insert(gamesTable).values(toCreateGameRow(createLobbyModel)).returning()
         Assert.isTrue(games.length === 1)
         Assert.isDefined(games[0])
@@ -117,7 +117,7 @@ export class LobbiesRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ playerId: PlayerId }, string>> {
     const joinLobbyResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         const games = await tx.select().from(gamesTable).where(eq(gamesTable.id, gameId)).for("no key update")
         Assert.isTrue(games.length <= 1)
         const game = games[0]
@@ -170,7 +170,7 @@ export class LobbiesRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const leaveResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         const games = await tx.select().from(gamesTable).where(eq(gamesTable.id, gameId)).for("no key update")
         Assert.isTrue(games.length <= 1)
         const game = games[0]

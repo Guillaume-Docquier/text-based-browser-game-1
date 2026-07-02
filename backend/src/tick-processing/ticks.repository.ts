@@ -154,7 +154,7 @@ export class TicksRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ started: true }, string>> {
     const tickResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         const games = await tx
           .update(gamesTable)
           .set({ status: GameStatus.PROCESSING_TICK })
@@ -193,7 +193,7 @@ export class TicksRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ reset: true }, string>> {
     const tickResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         const ticks = await tx
           .update(ticksTable)
           .set({ processingStartedAt: null })
@@ -223,7 +223,7 @@ export class TicksRepository extends PostgresRepository {
   ): Promise<Result<{ saved: true }, string>> {
     const processedTickRows = toProcessedTickRows(processedTickModel)
     const saveResult = await Result.tryCatch(
-      this.runInTransaction(db, async (tx) => {
+      db.transaction(async (tx) => {
         const completedTicks = await tx
           .update(ticksTable)
           .set(processedTickRows.completedTick)
