@@ -37,7 +37,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.7",
+    "@babel/core": "^8.0.1",
     "@clerk/testing": "^2.1.6",
     "@playwright/test": "^1.61.1",
     "@rolldown/plugin-babel": "^0.2.3",
