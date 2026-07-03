@@ -1,5 +1,6 @@
 import { GameStatus } from "#api/shared/GameStatus.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import { canStartGame } from "#lib/db/games/GameLifecycle.ts"
 import type { LobbyModel } from "./lobbies.repository.ts"
 
 /**
@@ -32,7 +33,7 @@ export function getLobbyCapabilities({
       isJoinedPlayer &&
       !isCreator &&
       (lobbyModel.status === GameStatus.WAITING_FOR_PLAYERS || lobbyModel.status === GameStatus.READY_TO_START),
-    canStart: isCreator && (lobbyModel.status === GameStatus.WAITING_FOR_PLAYERS || lobbyModel.status === GameStatus.READY_TO_START),
+    canStart: canStartGame({ status: lobbyModel.status, createdByAccountId: lobbyModel.creator.id, playerId }),
     canOpen: isJoinedPlayer && (lobbyModel.status === GameStatus.COLLECTING_ORDERS || lobbyModel.status === GameStatus.PROCESSING_TICK),
   }
 }
