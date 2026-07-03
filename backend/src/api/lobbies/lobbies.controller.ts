@@ -10,7 +10,6 @@ import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { couldNot, rollbackOnFailure } from "#lib/errors.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
-import { getLobbyCapabilities } from "./LobbyCapabilities.ts"
 
 export class LobbiesController {
   private readonly logger: Logger
@@ -96,10 +95,34 @@ export class LobbiesController {
   }
 }
 export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; playerId: PlayerId | undefined }): LobbyDto {
+  const status = lobbyModel.status
+
+  const canJoin =
+    playerId !== undefined && status === GameStatus.WAITING_FOR_PLAYERS && lobbyModel.players.every((player) => player.id !== playerId)
+
+  const canLeave =
+    playerId !== undefined &&
+    (status === GameStatus.WAITING_FOR_PLAYERS || status === GameStatus.READY_TO_START) &&
+    lobbyModel.creator.id !== playerId &&
+    lobbyModel.players.some((player) => player.id === playerId)
+
+  const canStart =
+    playerId !== undefined &&
+    (status === GameStatus.WAITING_FOR_PLAYERS || status === GameStatus.READY_TO_START) &&
+    lobbyModel.creator.id === playerId
+
+  const canOpen =
+    playerId !== undefined &&
+    (status === GameStatus.COLLECTING_ORDERS || status === GameStatus.PROCESSING_TICK) &&
+    lobbyModel.players.some((player) => player.id === playerId)
+
   return {
     ...lobbyModel,
-    status: lobbyModel.status,
-    ...getLobbyCapabilities({ lobbyModel, playerId }),
+    status,
+    canJoin,
+    canLeave,
+    canStart,
+    canOpen,
   }
 }
 
