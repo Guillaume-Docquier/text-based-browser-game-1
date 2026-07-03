@@ -132,6 +132,7 @@ jobs:
                 title
                 fields(first: 100) {
                   nodes {
+                    __typename
                     ... on ProjectV2SingleSelectField {
                       id
                       name
@@ -159,6 +160,16 @@ jobs:
             echo "Could not find project number $PROJECT_NUMBER for $PROJECT_OWNER_TYPE '$PROJECT_OWNER'."
             exit 1
           fi
+
+          echo "Project fields returned by GitHub:"
+          jq --arg ownerField "$project_owner_field" \
+            '.data[$ownerField].projectV2.fields.nodes
+              | map({
+                  type: .__typename,
+                  name: (.name // null),
+                  options: ([.options[]?.name] // [])
+                })' \
+            <<< "$project_json"
 
           status_field_id=$(jq -r \
             --arg ownerField "$project_owner_field" \
