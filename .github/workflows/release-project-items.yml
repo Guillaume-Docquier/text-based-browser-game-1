@@ -1,0 +1,339 @@
+name: Release Project Items
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+  deployments: read
+
+env:
+  RELEASE_DEPLOYMENT_ENVIRONMENT: ${{ vars.RELEASE_DEPLOYMENT_ENVIRONMENT || 'production' }}
+  PROJECT_OWNER: ${{ vars.PROJECT_OWNER || github.repository_owner }}
+  PROJECT_OWNER_TYPE: ${{ vars.PROJECT_OWNER_TYPE || github.event.repository.owner.type }}
+  PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+  PROJECT_STATUS_FIELD: ${{ vars.PROJECT_STATUS_FIELD || 'Status' }}
+  PROJECT_DEV_DONE_STATUS: ${{ vars.PROJECT_DEV_DONE_STATUS || 'Dev Done' }}
+  PROJECT_RELEASED_STATUS: ${{ vars.PROJECT_RELEASED_STATUS || 'Released' }}
+
+jobs:
+  release-project-items:
+    name: Release linked project items
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Log deployment status event
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          DEPLOYMENT_ID: ${{ github.event.deployment.id }}
+          DEPLOYMENT_SHA: ${{ github.event.deployment.sha }}
+          DEPLOYMENT_REF: ${{ github.event.deployment.ref }}
+          DEPLOYMENT_TASK: ${{ github.event.deployment.task }}
+          DEPLOYMENT_ENVIRONMENT: ${{ github.event.deployment.environment }}
+          DEPLOYMENT_ORIGINAL_ENVIRONMENT: ${{ github.event.deployment.original_environment }}
+          DEPLOYMENT_STATUS_ID: ${{ github.event.deployment_status.id }}
+          DEPLOYMENT_STATUS_STATE: ${{ github.event.deployment_status.state }}
+          DEPLOYMENT_STATUS_ENVIRONMENT_URL: ${{ github.event.deployment_status.environment_url }}
+          DEPLOYMENT_STATUS_LOG_URL: ${{ github.event.deployment_status.log_url }}
+          DEPLOYMENT_STATUS_TARGET_URL: ${{ github.event.deployment_status.target_url }}
+          DEPLOYMENT_STATUS_DESCRIPTION: ${{ github.event.deployment_status.description }}
+          DEPLOYMENT_STATUS_CREATOR: ${{ github.event.deployment_status.creator.login }}
+        run: |
+          set -euo pipefail
+
+          echo "Event summary"
+          echo "  event_name=$EVENT_NAME"
+          echo "  repository=$REPOSITORY"
+          echo "  repository_owner=$REPOSITORY_OWNER"
+          echo "  deployment_id=$DEPLOYMENT_ID"
+          echo "  deployment_sha=$DEPLOYMENT_SHA"
+          echo "  deployment_ref=$DEPLOYMENT_REF"
+          echo "  deployment_task=$DEPLOYMENT_TASK"
+          echo "  deployment_environment=$DEPLOYMENT_ENVIRONMENT"
+          echo "  deployment_original_environment=$DEPLOYMENT_ORIGINAL_ENVIRONMENT"
+          echo "  deployment_status_id=$DEPLOYMENT_STATUS_ID"
+          echo "  deployment_status_state=$DEPLOYMENT_STATUS_STATE"
+          echo "  deployment_status_environment_url=$DEPLOYMENT_STATUS_ENVIRONMENT_URL"
+          echo "  deployment_status_log_url=$DEPLOYMENT_STATUS_LOG_URL"
+          echo "  deployment_status_target_url=$DEPLOYMENT_STATUS_TARGET_URL"
+          echo "  deployment_status_description=$DEPLOYMENT_STATUS_DESCRIPTION"
+          echo "  deployment_status_creator=$DEPLOYMENT_STATUS_CREATOR"
+
+          echo
+          echo "Release automation config"
+          echo "  release_deployment_environment=$RELEASE_DEPLOYMENT_ENVIRONMENT"
+          echo "  project_owner=$PROJECT_OWNER"
+          echo "  project_owner_type=$PROJECT_OWNER_TYPE"
+          echo "  project_number=${PROJECT_NUMBER:-<unset>}"
+          echo "  project_status_field=$PROJECT_STATUS_FIELD"
+          echo "  project_dev_done_status=$PROJECT_DEV_DONE_STATUS"
+          echo "  project_released_status=$PROJECT_RELEASED_STATUS"
+
+          echo
+          echo "Raw event payload from $GITHUB_EVENT_PATH"
+          jq . "$GITHUB_EVENT_PATH"
+
+      - name: Move linked issues from Dev Done to Released
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          DEPLOYMENT_SHA: ${{ github.event.deployment.sha }}
+          DEPLOYMENT_ENVIRONMENT: ${{ github.event.deployment.environment }}
+          DEPLOYMENT_STATUS_STATE: ${{ github.event.deployment_status.state }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$DEPLOYMENT_STATUS_STATE" != "success" ]]; then
+            echo "Skipping project update because deployment status is '$DEPLOYMENT_STATUS_STATE', not 'success'."
+            exit 0
+          fi
+
+          if [[ "$DEPLOYMENT_ENVIRONMENT" != "$RELEASE_DEPLOYMENT_ENVIRONMENT" ]]; then
+            echo "Skipping project update because deployment environment is '$DEPLOYMENT_ENVIRONMENT', not '$RELEASE_DEPLOYMENT_ENVIRONMENT'."
+            exit 0
+          fi
+
+          if [[ -z "${PROJECT_NUMBER:-}" ]]; then
+            echo "PROJECT_NUMBER repository variable is required."
+            exit 1
+          fi
+
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "PROJECT_TOKEN action secret is required."
+            exit 1
+          fi
+
+          repository_owner="${REPOSITORY%%/*}"
+          repository_name="${REPOSITORY#*/}"
+
+          case "$PROJECT_OWNER_TYPE" in
+            Organization)
+              project_owner_field="organization"
+              ;;
+            User)
+              project_owner_field="user"
+              ;;
+            *)
+              echo "PROJECT_OWNER_TYPE must be 'User' or 'Organization'. Got '$PROJECT_OWNER_TYPE'."
+              exit 1
+              ;;
+          esac
+
+          project_query=$(cat <<GRAPHQL
+          query GetProject(\$owner: String!, \$number: Int!) {
+            $project_owner_field(login: \$owner) {
+              projectV2(number: \$number) {
+                id
+                number
+                title
+                fields(first: 100) {
+                  nodes {
+                    ... on ProjectV2SingleSelectField {
+                      id
+                      name
+                      options {
+                        id
+                        name
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          GRAPHQL
+          )
+
+          project_json=$(gh api graphql \
+            -f query="$project_query" \
+            -f owner="$PROJECT_OWNER" \
+            -F number="$PROJECT_NUMBER")
+
+          project_id=$(jq -r --arg ownerField "$project_owner_field" '.data[$ownerField].projectV2.id // empty' <<< "$project_json")
+
+          if [[ -z "$project_id" ]]; then
+            echo "Could not find project number $PROJECT_NUMBER for $PROJECT_OWNER_TYPE '$PROJECT_OWNER'."
+            exit 1
+          fi
+
+          status_field_id=$(jq -r \
+            --arg ownerField "$project_owner_field" \
+            --arg fieldName "$PROJECT_STATUS_FIELD" \
+            '.data[$ownerField].projectV2.fields.nodes[]
+              | select(.__typename == "ProjectV2SingleSelectField" and .name == $fieldName)
+              | .id' \
+            <<< "$project_json")
+
+          released_option_id=$(jq -r \
+            --arg ownerField "$project_owner_field" \
+            --arg fieldName "$PROJECT_STATUS_FIELD" \
+            --arg optionName "$PROJECT_RELEASED_STATUS" \
+            '.data[$ownerField].projectV2.fields.nodes[]
+              | select(.__typename == "ProjectV2SingleSelectField" and .name == $fieldName)
+              | .options[]
+              | select(.name == $optionName)
+              | .id' \
+            <<< "$project_json")
+
+          if [[ -z "$status_field_id" ]]; then
+            echo "Could not find single-select field '$PROJECT_STATUS_FIELD' in project $PROJECT_NUMBER."
+            exit 1
+          fi
+
+          if [[ -z "$released_option_id" ]]; then
+            echo "Could not find '$PROJECT_RELEASED_STATUS' option in project field '$PROJECT_STATUS_FIELD'."
+            exit 1
+          fi
+
+          echo "Using project $(jq -r --arg ownerField "$project_owner_field" '.data[$ownerField].projectV2.title' <<< "$project_json")"
+          echo "Project id: $project_id"
+          echo "Status field id: $status_field_id"
+          echo "Released option id: $released_option_id"
+
+          pull_requests_query=$(cat <<'GRAPHQL'
+          query GetAssociatedPullRequests($owner: String!, $name: String!, $sha: GitObjectID!) {
+            repository(owner: $owner, name: $name) {
+              object(oid: $sha) {
+                ... on Commit {
+                  associatedPullRequests(first: 20) {
+                    nodes {
+                      number
+                      title
+                      url
+                      merged
+                      mergedAt
+                      closingIssuesReferences(first: 50) {
+                        nodes {
+                          id
+                          number
+                          title
+                          url
+                          state
+                          projectItems(first: 50) {
+                            nodes {
+                              id
+                              project {
+                                id
+                                number
+                                title
+                              }
+                              fieldValues(first: 50) {
+                                nodes {
+                                  ... on ProjectV2ItemFieldSingleSelectValue {
+                                    name
+                                    field {
+                                      ... on ProjectV2FieldCommon {
+                                        id
+                                        name
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          GRAPHQL
+          )
+
+          pull_requests_json=$(gh api graphql \
+            -f query="$pull_requests_query" \
+            -f owner="$repository_owner" \
+            -f name="$repository_name" \
+            -f sha="$DEPLOYMENT_SHA")
+
+          echo
+          echo "Pull requests associated with deployed commit:"
+          jq '.data.repository.object.associatedPullRequests.nodes
+            | map({
+                number,
+                title,
+                url,
+                merged,
+                mergedAt,
+                closingIssues: (.closingIssuesReferences.nodes | map({ number, title, url, state }))
+              })' \
+            <<< "$pull_requests_json"
+
+          mapfile -t issue_items < <(jq -c \
+            --arg projectId "$project_id" \
+            --arg fieldName "$PROJECT_STATUS_FIELD" \
+            '[.data.repository.object.associatedPullRequests.nodes[]? as $pullRequest
+              | $pullRequest.closingIssuesReferences.nodes[]? as $issue
+              | $issue.projectItems.nodes[]? as $item
+              | select($item.project.id == $projectId)
+              | {
+                  pullRequestNumber: $pullRequest.number,
+                  issueNumber: $issue.number,
+                  issueTitle: $issue.title,
+                  issueUrl: $issue.url,
+                  itemId: $item.id,
+                  currentStatus: ([$item.fieldValues.nodes[]? | select(.field.name == $fieldName) | .name][0] // "")
+                }]
+              | unique_by(.itemId)
+              | .[]' \
+            <<< "$pull_requests_json")
+
+          if [[ "${#issue_items[@]}" -eq 0 ]]; then
+            echo "No linked issue project items found for deployed commit $DEPLOYMENT_SHA."
+            exit 0
+          fi
+
+          update_mutation=$(cat <<'GRAPHQL'
+          mutation UpdateProjectItemStatus($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+            updateProjectV2ItemFieldValue(input: {
+              projectId: $projectId
+              itemId: $itemId
+              fieldId: $fieldId
+              value: {
+                singleSelectOptionId: $optionId
+              }
+            }) {
+              projectV2Item {
+                id
+              }
+            }
+          }
+          GRAPHQL
+          )
+
+          updated_count=0
+          skipped_count=0
+
+          for issue_item in "${issue_items[@]}"; do
+            item_id=$(jq -r '.itemId' <<< "$issue_item")
+            current_status=$(jq -r '.currentStatus' <<< "$issue_item")
+            issue_number=$(jq -r '.issueNumber' <<< "$issue_item")
+            issue_title=$(jq -r '.issueTitle' <<< "$issue_item")
+            pull_request_number=$(jq -r '.pullRequestNumber' <<< "$issue_item")
+
+            if [[ "$current_status" != "$PROJECT_DEV_DONE_STATUS" ]]; then
+              echo "Skipping #$issue_number from PR #$pull_request_number because current status is '${current_status:-<unset>}', not '$PROJECT_DEV_DONE_STATUS': $issue_title"
+              skipped_count=$((skipped_count + 1))
+              continue
+            fi
+
+            gh api graphql \
+              -f query="$update_mutation" \
+              -f projectId="$project_id" \
+              -f itemId="$item_id" \
+              -f fieldId="$status_field_id" \
+              -f optionId="$released_option_id" \
+              > /dev/null
+
+            echo "Moved #$issue_number from '$PROJECT_DEV_DONE_STATUS' to '$PROJECT_RELEASED_STATUS': $issue_title"
+            updated_count=$((updated_count + 1))
+          done
+
+          echo "Updated $updated_count issue project item(s); skipped $skipped_count issue project item(s)."
