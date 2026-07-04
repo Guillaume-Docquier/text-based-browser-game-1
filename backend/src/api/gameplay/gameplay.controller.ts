@@ -1,10 +1,11 @@
-import { Datetime, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Datetime, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { generateStarSystem } from "#api/gameplay/star-systems/generateStarSystem.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
 import type { Clock } from "#lib/Clock.ts"
+import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import {
   GAME_PLAYER_ACTION_RULES,
@@ -15,7 +16,7 @@ import {
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
-import { type GameplayRepository, type OrderModel, type PlayerViewModel, type StartGameModel } from "./gameplay.repository.ts"
+import { type GameplayRepository, type OrderModel, type PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
@@ -40,58 +41,35 @@ export class GameplayController {
     this.createTransaction = createTransaction
   }
 
-  public async startGame({ gameId, playerId }: StartGameDto): Promise<Result<StartedGameDto, string>> {
+  public async startGame({ gameId, requesterAccountId }: StartGameDto): Promise<Result<StartedGameDto, string>> {
     const startGameResult = await this.createTransaction(async (tx) => {
-      const contextResult = await this.gameplayRepository.getStartGameContext({ gameId, playerId }, tx)
-      rollbackOnFailure(contextResult, "Failed to get start game context")
-
-      const startGameContext = contextResult.value
-      if (startGameContext === undefined) {
-        throw new TransactionRollback("Game not found")
-      }
-
-      if (!startGameContext.canStart) {
-        throw new TransactionRollback("Cannot start game, this player is not allowed to start it at the moment", {
-          cause: { gameStatus: startGameContext.status },
-        })
-      }
+      const gameForStart = await this.gameplayRepository.getGameForStart({ gameId, requesterAccountId }, tx)
+      rollbackOnFailure(gameForStart, "Game cannot start")
 
       const startedAt = this.clock.now()
-      const nextTickAt = Datetime.increment({
-        date: startedAt,
-        time: Time.create(startGameContext.configuration.tickIntervalSeconds, UnitOfTime.SECONDS),
-      })
-      const starSystemResult = generateStarSystem({
-        settings: startGameContext.configuration.starSystemGenerationSettings,
-        clock: this.clock,
-      })
+      const nextTickAt = Datetime.increment({ date: startedAt, time: gameForStart.value.tickInterval })
+      const starSystemResult = generateStarSystem({ settings: gameForStart.value.starSystemGenerationSettings, clock: this.clock })
       rollbackOnFailure(starSystemResult, "Failed to generate Star System")
 
-      const startGameModel: StartGameModel = {
-        gameId,
-        startedAt,
-        nextTickAt,
-        starSystem: starSystemResult.value,
-        players: startGameContext.players.reduce<StartGameModel["players"]>((players, player) => {
-          players[player.id] = {
-            resources: Object.values(ResourceType).map((resourceType) => ({
-              resourceType,
-              amount: STARTING_RESOURCE_AMOUNTS[resourceType],
-            })),
-          }
+      await this.gameplayRepository.startGame(
+        {
+          game: gameForStart.value,
+          startedAt,
+          nextTickAt,
+          starSystem: starSystemResult.value,
+          startingResources: Object.values(ResourceType).map((resourceType) => ({
+            resourceType,
+            amount: STARTING_RESOURCE_AMOUNTS[resourceType],
+          })),
+        },
+        tx,
+      )
 
-          return players
-        }, {}),
-      }
-
-      const startResult = await this.gameplayRepository.startGame(startGameModel, tx)
-      rollbackOnFailure(startResult, "Failed to start game")
-
-      return startResult.value
+      return { nextTickAt }
     })
 
     if (Result.isFailure(startGameResult)) {
-      this.logger.error("Failed to start game", { gameId, playerId, error: startGameResult.error })
+      this.logger.error("Could not start game", { gameId, requesterAccountId, error: startGameResult.error })
       return Result.Failure(couldNot("start game"))
     }
 
@@ -221,7 +199,7 @@ function toGamePlayerAction(gamePlayerActionModel: OrderModel): GamePlayerAction
 export type StartGameDto = z.infer<typeof StartGameDto>
 export const StartGameDto = z.object({
   gameId: z.coerce.number(),
-  playerId: PlayerId,
+  requesterAccountId: AccountId,
 })
 
 export type StartedGameDto = z.infer<typeof StartedGameDto>

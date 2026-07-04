@@ -1,13 +1,15 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { and, eq, inArray } from "drizzle-orm"
 import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import { branded, type Branded } from "#lib/Brand.ts"
 import type { Clock } from "#lib/Clock.ts"
+import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import type { Transaction } from "#lib/db/createDb.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
-import { canStartGame } from "#lib/db/games/GameLifecycle.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gamesTable, gameStatesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
@@ -26,19 +28,6 @@ export type PlayerActionContextModel = {
   money: number
 }
 
-export type StartGameContextModel = {
-  readonly gameId: GameId
-  readonly status: GameStatus
-  readonly canStart: boolean
-  readonly configuration: {
-    readonly tickIntervalSeconds: number
-    readonly starSystemGenerationSettings: StarSystemGenerationSettings
-  }
-  readonly players: Array<{
-    readonly id: PlayerId
-  }>
-}
-
 export type PlayerViewModel = {
   gameId: number
   playerId: PlayerId
@@ -50,20 +39,24 @@ export type PlayerViewModel = {
   }
 }
 
+export type GameForStart = Branded<
+  {
+    readonly id: GameId
+    readonly starSystemGenerationSettings: StarSystemGenerationSettings
+    readonly tickInterval: Time
+  },
+  "GameForStart"
+>
+
 export type StartGameModel = {
-  gameId: GameId
-  startedAt: Date
-  nextTickAt: Date
-  starSystem: NewStarSystemModel
-  players: Record<
-    PlayerId,
-    {
-      resources: Array<{
-        resourceType: ResourceType
-        amount: number
-      }>
-    }
-  >
+  readonly game: GameForStart
+  readonly startedAt: Date
+  readonly nextTickAt: Date
+  readonly starSystem: NewStarSystemModel
+  readonly startingResources: ReadonlyArray<{
+    readonly resourceType: ResourceType
+    readonly amount: number
+  }>
 }
 
 export class GameplayRepository extends PostgresRepository {
@@ -74,41 +67,6 @@ export class GameplayRepository extends PostgresRepository {
     super({ db })
     this.logger = logger.child({ scope: "gameplay-repository" })
     this.clock = clock
-  }
-
-  public async getStartGameContext(
-    { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
-    db: PostgresRepository["db"],
-  ): Promise<Result<StartGameContextModel | undefined, string>> {
-    const contextResult = await Result.tryCatch(async () => {
-      const games = await db.select().from(gamesTable).where(eq(gamesTable.id, gameId)).for("no key update")
-      Assert.isTrue(games.length <= 1)
-
-      const game = games[0]
-      if (game === undefined) {
-        return undefined
-      }
-
-      const players = await db.select({ id: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
-
-      return {
-        gameId: game.id,
-        status: game.status,
-        canStart: canStartGame({ status: game.status, createdByAccountId: game.createdByAccountId, playerId }),
-        configuration: {
-          tickIntervalSeconds: game.tickIntervalSeconds,
-          starSystemGenerationSettings: game.starSystemGenerationSettings,
-        },
-        players,
-      }
-    })
-
-    if (Result.isFailure(contextResult)) {
-      this.logger.error("Could not get start game context", { gameId, playerId, error: contextResult.error })
-      return Result.Failure(couldNot("get start game context"))
-    }
-
-    return contextResult
   }
 
   public async hasPlayerJoinedGame(
@@ -133,56 +91,87 @@ export class GameplayRepository extends PostgresRepository {
     return joinedGameResult
   }
 
-  public async startGame(startGameModel: StartGameModel, db: PostgresRepository["db"]): Promise<Result<{ nextTickAt: Date }, string>> {
-    const gameState = {
-      gameId: startGameModel.gameId,
-      tick: 0,
-      nextTickAt: startGameModel.nextTickAt,
-    } as const satisfies NewGameStateRow
+  public async getGameForStart(
+    { gameId, requesterAccountId }: { gameId: GameId; requesterAccountId: AccountId },
+    tx: Transaction,
+  ): Promise<Result<GameForStart, string>> {
+    const gamesForStart = await tx
+      .select({
+        id: gamesTable.id,
+        starSystemGenerationSettings: gamesTable.starSystemGenerationSettings,
+        tickIntervalSeconds: gamesTable.tickIntervalSeconds,
+      })
+      .from(gamesTable)
+      .where(
+        and(
+          eq(gamesTable.id, gameId),
+          // This is business logic encoded in the repository.
+          // It seems efficient: single query, db level checks.
+          // But it breaches boundaries: not just data access layer.
+          // We'll see how it holds up.
+          eq(gamesTable.createdByAccountId, requesterAccountId),
+          inArray(gamesTable.status, [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START]),
+        ),
+      )
+      // Locks the game for the rest of the transaction
+      .for("no key update")
+    Assert.isTrue(gamesForStart.length <= 1)
 
-    const playerResources: NewResourceRow[] = Object.entries(startGameModel.players).flatMap(([playerId, { resources }]) =>
-      resources.map((resource) => ({
-        gameId: startGameModel.gameId,
+    const gameForStart = gamesForStart[0]
+    if (gameForStart === undefined) {
+      return Result.Failure("The game does not exist or this account cannot start it.")
+    }
+
+    return Result.Success(
+      branded<GameForStart>({
+        id: gameForStart.id,
+        starSystemGenerationSettings: gameForStart.starSystemGenerationSettings,
+        tickInterval: Time.create(gameForStart.tickIntervalSeconds, UnitOfTime.SECONDS),
+      }),
+    )
+  }
+
+  /**
+   * The only failure mode for this method is throwing to rollback the transaction.
+   */
+  public async startGame(startGameModel: StartGameModel, tx: Transaction): Promise<void> {
+    const playerIds = await tx
+      .select({ playerId: playersTable.playerId })
+      .from(playersTable)
+      .where(eq(playersTable.gameId, startGameModel.game.id))
+    Assert.isTrue(playerIds.length > 0)
+
+    const playerResources: NewResourceRow[] = playerIds.flatMap(({ playerId }) =>
+      startGameModel.startingResources.map((resource) => ({
+        gameId: startGameModel.game.id,
         playerId,
         ...resource,
       })),
     )
-    Assert.isTrue(playerResources.length > 0)
+
+    const gameState = {
+      gameId: startGameModel.game.id,
+      tick: 0,
+      nextTickAt: startGameModel.nextTickAt,
+    } as const satisfies NewGameStateRow
 
     const gameTick: NewTickRow = {
-      gameId: startGameModel.gameId,
+      gameId: startGameModel.game.id,
       tick: gameState.tick,
       scheduledFor: startGameModel.nextTickAt,
     }
 
-    const startResult = await Result.tryCatch(async () => {
-      const updatedGames = await db
-        .update(gamesTable)
-        .set({ startedAt: startGameModel.startedAt, status: GameStatus.COLLECTING_ORDERS })
-        .where(
-          and(
-            eq(gamesTable.id, startGameModel.gameId),
-            inArray(gamesTable.status, [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START]),
-          ),
-        )
-        .returning()
+    const updatedGames = await tx
+      .update(gamesTable)
+      .set({ startedAt: startGameModel.startedAt, status: GameStatus.COLLECTING_ORDERS })
+      .where(and(eq(gamesTable.id, startGameModel.game.id)))
+      .returning({ id: gamesTable.id })
+    Assert.isTrue(updatedGames.length === 1)
 
-      if (updatedGames.length !== 1) {
-        throw new TransactionRollback("Cannot start game in its current status")
-      }
-
-      await db.insert(gameStatesTable).values(gameState)
-      await db.insert(resourcesTable).values(playerResources)
-      await db.insert(ticksTable).values(gameTick)
-      await StarSystemQueries.insertStarSystem({ gameId: startGameModel.gameId, starSystem: startGameModel.starSystem }, db)
-    })
-
-    if (Result.isFailure(startResult)) {
-      this.logger.error("Could not start game", { startGameModel, error: startResult.error })
-      return Result.Failure(couldNot("start game"))
-    }
-
-    return Result.Success({ nextTickAt: gameState.nextTickAt })
+    await tx.insert(resourcesTable).values(playerResources)
+    await tx.insert(gameStatesTable).values(gameState)
+    await tx.insert(ticksTable).values(gameTick)
+    await StarSystemQueries.insertStarSystem({ gameId: startGameModel.game.id, starSystem: startGameModel.starSystem }, tx)
   }
 
   public async getPlayerView(

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm"
 import { toCoordinates } from "#api/gameplay/star-systems/Coordinates.ts"
 import type { NewSectorModel, NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import type { GameId } from "#api/shared/GameId.ts"
-import type { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import type { Transaction } from "#lib/db/createDb.ts"
 import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 
 type NewSectorRow = Omit<typeof sectorsTable.$inferInsert, "gameId">
@@ -25,10 +25,7 @@ type StarSystemAggregatedRows = {
  * To be used by the GameplayRepository only.
  */
 export const StarSystemQueries = {
-  insertStarSystem: async (
-    { gameId, starSystem }: { gameId: GameId; starSystem: NewStarSystemModel },
-    tx: PostgresRepository["db"],
-  ): Promise<void> => {
+  insertStarSystem: async ({ gameId, starSystem }: { gameId: GameId; starSystem: NewStarSystemModel }, tx: Transaction): Promise<void> => {
     const withGameId = createWithGameId(gameId)
 
     await tx.insert(starSystemsTable).values(withGameId({}))
@@ -59,7 +56,7 @@ export const StarSystemQueries = {
     }
   },
 
-  selectStarSystem: async (gameId: GameId, tx: PostgresRepository["db"]): Promise<StarSystemModel> => {
+  selectStarSystem: async (gameId: GameId, tx: Transaction): Promise<StarSystemModel> => {
     const starSystems = await tx.select().from(starSystemsTable).where(eq(starSystemsTable.gameId, gameId))
     Assert.isTrue(starSystems.length === 1)
     Assert.isDefined(starSystems[0])
