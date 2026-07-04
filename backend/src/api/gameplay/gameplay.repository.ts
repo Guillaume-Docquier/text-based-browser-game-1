@@ -119,7 +119,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const gameForStart = gamesForStart[0]
     if (gameForStart === undefined) {
-      return Result.Failure("The game does not exist or this account cannot start it.")
+      return Result.Failure("The game does not exist, cannot be started or this account cannot start it.")
     }
 
     return Result.Success(
