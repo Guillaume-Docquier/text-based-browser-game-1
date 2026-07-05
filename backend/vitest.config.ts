@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config"
 
 const integrationTestsInclude = ["src/**/*.router.test.ts", "src/**/TickProcessor.test.ts"]
+const loadTestsInclude = ["src/**/*.load.test.ts"]
 
 export default defineConfig({
   test: {
@@ -23,7 +24,7 @@ export default defineConfig({
           include: ["src/**/*.test.ts"],
           // I would do something like .unit.test.ts and .integration.test.ts without exclude
           // However, this breaks WebStorm's "Go to test" and it cannot be configured...
-          exclude: integrationTestsInclude,
+          exclude: [...integrationTestsInclude, ...loadTestsInclude],
         },
       },
       {
@@ -33,6 +34,15 @@ export default defineConfig({
           name: { label: "integration", color: "cyan" },
           include: integrationTestsInclude,
           setupFiles: ["./src/tests/vitest.e2e.setup.ts"],
+        },
+      },
+      {
+        // load tests use a real postgres database via testcontainers
+        extends: true,
+        test: {
+          name: { label: "load", color: "magenta" },
+          include: loadTestsInclude,
+          testTimeout: 30_000,
         },
       },
     ],
