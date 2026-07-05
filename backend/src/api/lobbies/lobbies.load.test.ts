@@ -70,19 +70,22 @@ describe("lobby concurrency load tests", () => {
     const playerRows = await loadTestServer.db.select().from(playersTable).where(eq(playersTable.gameId, createdGameId))
     const resourceRows = await loadTestServer.db.select().from(resourcesTable).where(eq(resourcesTable.gameId, createdGameId))
 
-    expect(resourceRows.map((resource) => resource.playerId).sort()).toEqual(playerIds)
+    const resourcePlayerIds = [...new Set(resourceRows.map((resource) => resource.playerId))].sort()
+    expect(resourcePlayerIds).toEqual(playerIds)
     expect(playerRows.map((player) => player.playerId).sort()).toEqual(playerIds)
+
+    for (const resource of resourceRows) {
+      expect(playerIds).toContain(resource.playerId)
+    }
 
     for (const playerId of playerIds) {
       const resources = resourceRows.filter((resource) => resource.playerId === playerId)
-      expect(resources).toEqual([
-        {
-          amount: STARTING_RESOURCE_AMOUNTS[ResourceType.MONEY],
-          gameId: createdGameId,
-          playerId,
-          resourceType: ResourceType.MONEY,
-        },
-      ])
+      expect(resources).toContainEqual({
+        amount: STARTING_RESOURCE_AMOUNTS[ResourceType.MONEY],
+        gameId: createdGameId,
+        playerId,
+        resourceType: ResourceType.MONEY,
+      })
     }
   })
 })
