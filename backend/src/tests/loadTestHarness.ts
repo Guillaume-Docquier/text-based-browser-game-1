@@ -1,23 +1,19 @@
 import { randomUUID } from "crypto"
-import { createServer, type Server } from "http"
-import type { AddressInfo } from "node:net"
+import { spawn, type ChildProcess } from "node:child_process"
+import { once } from "node:events"
+import { createServer, type Server } from "node:http"
 import { Result } from "@guillaume-docquier/tools-ts"
 import { createTRPCClient, httpBatchLink } from "@trpc/client"
-import { migrate } from "drizzle-orm/node-postgres/migrator"
-import type { RequestHandler } from "express"
 import { GenericContainer, type StartedTestContainer } from "testcontainers"
 import { AccountsRepository, type AccountModel } from "#api/accounts/accounts.repository.ts"
-import type { IAuthService } from "#api/accounts/auth.service.ts"
-import { createApi, type TrpcRouter } from "#api/createApi.ts"
-import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
-import { ListingsRepository } from "#api/listings/listings.repository.ts"
-import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
-import { Clock } from "#lib/Clock.ts"
+import type { TrpcRouter } from "#api/createApi.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
-import { createCreateTransaction, createDb } from "#lib/db/createDb.ts"
+import { createDb } from "#lib/db/createDb.ts"
 
 const ACCOUNT_ID_HEADER = "x-test-account-id"
-const ANY_UNUSED_PORT = 0
+const POSTGRES_PORT = 5432
+const API_START_TIMEOUT_MS = 30_000
+const API_HEALTH_CHECK_INTERVAL_MS = 100
 
 export type LoadTestServer = {
   readonly accountsRepository: AccountsRepository
@@ -30,28 +26,14 @@ const loadTestLogger = configureLogger({ scope: "load-test", nonBlocking: false 
 export async function createLoadTestServer(): Promise<LoadTestServer> {
   const logger = await loadTestLogger
   const postgres = await startPostgresContainer()
-  const db = createDb({ databaseUrl: getPostgresConnectionUri(postgres) })
-  await migrate(db, { migrationsFolder: "./drizzle/" })
+  const databaseUrl = getPostgresConnectionUri(postgres)
+  const apiPort = await getAvailablePort()
+  const apiProcess = startApiProcess({ databaseUrl, port: apiPort })
 
+  await waitForApi({ apiProcess, port: apiPort })
+
+  const db = createDb({ databaseUrl })
   const accountsRepository = new AccountsRepository({ db, logger })
-  const lobbiesRepository = new LobbiesRepository({ db, logger })
-  const gameplayRepository = new GameplayRepository({ db, logger, clock: Clock })
-  const authService = new HeaderAuthService()
-
-  const api = await createApi({
-    logger,
-    clock: Clock,
-    createTransaction: createCreateTransaction(db),
-    authService,
-    accountsRepository,
-    listingsRepository: new ListingsRepository({ db, logger }),
-    lobbiesRepository,
-    gameplayRepository,
-  })
-
-  const server = createServer(api)
-  await listen(server)
-  const address = server.address() as AddressInfo
 
   return {
     accountsRepository,
@@ -59,50 +41,16 @@ export async function createLoadTestServer(): Promise<LoadTestServer> {
       createTRPCClient<TrpcRouter>({
         links: [
           httpBatchLink({
-            url: `http://localhost:${address.port}/trpc`,
+            url: `http://localhost:${apiPort}/trpc`,
             headers: { [ACCOUNT_ID_HEADER]: account.id },
           }),
         ],
       }),
     close: async () => {
-      await close(server)
+      await stopApiProcess(apiProcess)
       await postgres.stop()
     },
   }
-}
-
-class HeaderAuthService implements IAuthService {
-  public authenticationMiddlewares(): RequestHandler[] {
-    return [
-      (req, _res, next): void => {
-        const accountId = req.header(ACCOUNT_ID_HEADER)
-        req.account = accountId === undefined ? undefined : { id: accountId, authId: accountId, email: null, alias: null }
-        next()
-      },
-    ]
-  }
-}
-
-async function listen(server: Server): Promise<void> {
-  await new Promise<void>((resolve) => {
-    server.listen(ANY_UNUSED_PORT, () => {
-      resolve()
-    })
-  })
-}
-
-async function close(server: Server): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    server.closeAllConnections()
-    server.close((error) => {
-      if (error === undefined) {
-        resolve()
-        return
-      }
-
-      reject(error)
-    })
-  })
 }
 
 export async function createAccounts({
@@ -145,10 +93,87 @@ async function startPostgresContainer(): Promise<StartedTestContainer> {
       POSTGRES_PASSWORD: "test",
       POSTGRES_USER: "test",
     })
-    .withExposedPorts(5432)
+    .withExposedPorts(POSTGRES_PORT)
     .start()
 }
 
 function getPostgresConnectionUri(postgres: StartedTestContainer): string {
-  return `postgres://test:test@${postgres.getHost()}:${postgres.getMappedPort(5432)}/test`
+  return `postgres://test:test@${postgres.getHost()}:${postgres.getMappedPort(POSTGRES_PORT)}/test`
+}
+
+async function getAvailablePort(): Promise<number> {
+  const server = createServer()
+  server.listen(0)
+  await once(server, "listening")
+  const address = server.address()
+  await closePortProbe(server)
+
+  if (address === null || typeof address === "string") {
+    throw new Error("Could not allocate API port for load test")
+  }
+
+  return address.port
+}
+
+async function closePortProbe(server: Server): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => {
+      if (error === undefined) {
+        resolve()
+        return
+      }
+
+      reject(error)
+    })
+  })
+}
+
+function startApiProcess({ databaseUrl, port }: { databaseUrl: string; port: number }): ChildProcess {
+  return spawn(process.execPath, ["src/api/entry.api.ts"], {
+    cwd: process.cwd(),
+    detached: true,
+    env: {
+      ...process.env,
+      AUTH_SERVICE: "test-header",
+      CLERK_PUBLISHABLE_KEY: "load-test-clerk-publishable-key",
+      CLERK_SECRET_KEY: "load-test-clerk-secret-key",
+      DATABASE_URL: databaseUrl,
+      PORT: port.toString(),
+    },
+    stdio: "ignore",
+  })
+}
+
+async function waitForApi({ apiProcess, port }: { apiProcess: ChildProcess; port: number }): Promise<void> {
+  const deadline = performance.now() + API_START_TIMEOUT_MS
+
+  while (performance.now() < deadline) {
+    if (apiProcess.exitCode !== null) {
+      throw new Error(`API process exited before startup with code ${apiProcess.exitCode}`)
+    }
+
+    const healthResult = await Result.tryCatch(fetch(`http://localhost:${port}/health`))
+    if (Result.isSuccess(healthResult) && healthResult.value.ok) {
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, API_HEALTH_CHECK_INTERVAL_MS))
+  }
+
+  throw new Error("API process did not become healthy before the startup timeout")
+}
+
+async function stopApiProcess(apiProcess: ChildProcess): Promise<void> {
+  if (apiProcess.exitCode !== null) {
+    return
+  }
+
+  const exitPromise = once(apiProcess, "exit")
+  if (apiProcess.pid === undefined) {
+    apiProcess.kill("SIGTERM")
+  } else {
+    process.kill(-apiProcess.pid, "SIGTERM")
+  }
+
+  await exitPromise
 }

@@ -2,7 +2,8 @@ import { Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { AuthService } from "#api/accounts/auth.service.ts"
+import { AuthService, type IAuthService } from "#api/accounts/auth.service.ts"
+import { TestHeaderAuthService } from "#api/accounts/test-header-auth.service.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
@@ -44,7 +45,7 @@ async function main(): Promise<void> {
     gameplayRepository: new GameplayRepository({ db, logger, clock }),
   }
 
-  const authService = new AuthService({ logger })
+  const authService = createAuthService({ authService: env.AUTH_SERVICE, logger })
 
   logger.info("Creating the API")
   const app = await createApi({
@@ -83,4 +84,13 @@ async function migrateDatabase(db: Database, { migrationsFolder, logger }: { mig
       },
     },
   )
+}
+
+function createAuthService({ authService, logger }: { authService: "clerk" | "test-header"; logger: Logger }): IAuthService {
+  switch (authService) {
+    case "clerk":
+      return new AuthService({ logger })
+    case "test-header":
+      return new TestHeaderAuthService()
+  }
 }
