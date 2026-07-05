@@ -14,16 +14,13 @@ import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
-import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
+import { createCreateTransaction, createDb } from "#lib/db/createDb.ts"
 
 const ACCOUNT_ID_HEADER = "x-test-account-id"
 const ANY_UNUSED_PORT = 0
 
 export type LoadTestServer = {
-  readonly db: Database
   readonly accountsRepository: AccountsRepository
-  readonly lobbiesRepository: LobbiesRepository
-  readonly gameplayRepository: GameplayRepository
   readonly createClient: (account: AccountModel) => ReturnType<typeof createTRPCClient<TrpcRouter>>
   readonly close: () => Promise<void>
 }
@@ -57,10 +54,7 @@ export async function createLoadTestServer(): Promise<LoadTestServer> {
   const address = server.address() as AddressInfo
 
   return {
-    db,
     accountsRepository,
-    lobbiesRepository,
-    gameplayRepository,
     createClient: (account) =>
       createTRPCClient<TrpcRouter>({
         links: [

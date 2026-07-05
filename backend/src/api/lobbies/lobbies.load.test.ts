@@ -1,10 +1,8 @@
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
-import { eq } from "drizzle-orm"
 import { afterEach, describe, expect, it } from "vitest"
 import type { AccountModel } from "#api/accounts/accounts.repository.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
-import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
-import { playersTable, resourcesTable } from "#lib/db/schema.ts"
+import { STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import {
   createAccounts,
   createLoadTestServer,
@@ -66,26 +64,14 @@ describe("lobby concurrency load tests", () => {
     ])
 
     const lobby = await creatorClient.lobbies.getById.query({ gameId: createdGameId })
-    const playerIds = lobby.players.map((player) => player.id).sort()
-    const playerRows = await loadTestServer.db.select().from(playersTable).where(eq(playersTable.gameId, createdGameId))
-    const resourceRows = await loadTestServer.db.select().from(resourcesTable).where(eq(resourcesTable.gameId, createdGameId))
+    const players = lobby.players.toSorted((left, right) => left.id.localeCompare(right.id))
 
-    const resourcePlayerIds = [...new Set(resourceRows.map((resource) => resource.playerId))].sort()
-    expect(resourcePlayerIds).toEqual(playerIds)
-    expect(playerRows.map((player) => player.playerId).sort()).toEqual(playerIds)
+    for (const player of players) {
+      const account = accounts.find((candidate) => candidate.id === player.id)
+      Assert.isDefined(account)
 
-    for (const resource of resourceRows) {
-      expect(playerIds).toContain(resource.playerId)
-    }
-
-    for (const playerId of playerIds) {
-      const resources = resourceRows.filter((resource) => resource.playerId === playerId)
-      expect(resources).toContainEqual({
-        amount: STARTING_RESOURCE_AMOUNTS[ResourceType.MONEY],
-        gameId: createdGameId,
-        playerId,
-        resourceType: ResourceType.MONEY,
-      })
+      const playerView = await loadTestServer.createClient(account).gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(playerView.resources).toEqual({ money: STARTING_RESOURCE_AMOUNTS.MONEY })
     }
   })
 })
