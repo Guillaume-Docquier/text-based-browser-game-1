@@ -51,6 +51,25 @@ export class AccountsRepository extends PostgresRepository {
     return createAccountResult
   }
 
+  public async getAccountById(
+    { accountId }: { accountId: AccountId },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<AccountModel | undefined, string>> {
+    const findByIdResult = await Result.tryCatch(async () => {
+      const accounts = await db.select().from(accountsTable).where(eq(accountsTable.id, accountId))
+      Assert.isTrue(accounts.length <= 1)
+
+      return accounts[0]
+    })
+
+    if (Result.isFailure(findByIdResult)) {
+      this.logger.error("Could not get account by id", { accountId, error: findByIdResult.error })
+      return Result.Failure(couldNot("get account by id"))
+    }
+
+    return findByIdResult
+  }
+
   /**
    * Gets an account by the auth id.
    * Returns undefined when no matching account was found.

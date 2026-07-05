@@ -25,13 +25,19 @@ export class TrpcClient {
   public readonly client
   private readonly server
 
-  public constructor({ api }: { api: Express }) {
+  public constructor({ api, headers }: { api: Express; headers?: () => Record<string, string> }) {
     this.server = createServer(api)
     this.server.listen(ANY_UNUSED_PORT)
     const address = this.server.address() as AddressInfo
 
     this.client = createTRPCClient<TrpcRouter>({
-      links: [httpBatchLink({ url: `http://localhost:${address.port}/trpc` })],
+      links: [
+        httpBatchLink(
+          headers === undefined
+            ? { url: `http://localhost:${address.port}/trpc` }
+            : { url: `http://localhost:${address.port}/trpc`, headers },
+        ),
+      ],
     })
   }
 

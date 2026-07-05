@@ -7,6 +7,13 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { resourcesTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
+export type ResourceModel = {
+  gameId: GameId
+  playerId: PlayerId
+  resourceType: ResourceType
+  amount: number
+}
+
 export type ResourceUpdateModel = {
   gameId: GameId
   playerId: PlayerId
@@ -23,6 +30,20 @@ export class ResourcesRepository extends PostgresRepository {
   public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
     this.logger = logger.child({ scope: "game-player-resources-repository" })
+  }
+
+  public async getResourcesByGameId(
+    { gameId }: { gameId: GameId },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<ResourceModel[], string>> {
+    const getResourcesResult = await Result.tryCatch(db.select().from(resourcesTable).where(eq(resourcesTable.gameId, gameId)))
+
+    if (Result.isFailure(getResourcesResult)) {
+      this.logger.error("Could not get resources for game", { gameId, error: getResourcesResult.error })
+      return Result.Failure(couldNot("get resources for game"))
+    }
+
+    return Result.Success(getResourcesResult.value as ResourceModel[])
   }
 
   public async updateResource(resourceUpdate: ResourceUpdateModel, db: PostgresRepository["db"] = this.db): Promise<Result<true, string>> {
