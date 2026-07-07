@@ -1,10 +1,10 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler, Request } from "express"
-import type { AuthAdapter, AuthStatus, User } from "#api/accounts/AuthAdapter.ts"
+import type { AuthProvider, AuthStatus, User } from "#api/accounts/AuthProvider.ts"
 
-const AUTH_ID_HEADER = "x-test-authId-id"
+export const AUTH_ID_HEADER = "x-test-auth-id"
 
-export class TestHeaderAuthAdapter implements AuthAdapter {
+export class TestHeaderAuthProvider implements AuthProvider {
   public parseTokenMiddleware(): RequestHandler {
     return (_req, _res, next): void => {
       next()

@@ -1,12 +1,12 @@
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler } from "express"
 import type { AccountDto } from "#api/accounts/accounts.controller.ts"
-import type { AuthAdapter, AuthStatus, User } from "#api/accounts/AuthAdapter.ts"
+import type { AuthProvider, AuthStatus, User } from "#api/accounts/AuthProvider.ts"
 
 /**
- * A test auth service where you can set the auth for the next request(s) by setting the account directly
+ * A test auth provider where you can set the auth for the next request(s) by setting the account directly
  */
-export class ControlledAuthAdapter implements AuthAdapter {
+export class ControlledAuthProvider implements AuthProvider {
   public account: AccountDto | undefined
 
   public constructor({ account }: { account?: AccountDto } = {}) {

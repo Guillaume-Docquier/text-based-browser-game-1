@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler } from "express"
 import type { AccountDto, AccountsController } from "#api/accounts/accounts.controller.ts"
-import type { AuthAdapter } from "#api/accounts/AuthAdapter.ts"
+import type { AuthProvider } from "#api/accounts/AuthProvider.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
 // I just don't really know how to adapt clerk to trpc yet. For now this does the job.
@@ -22,11 +22,11 @@ declare global {
  */
 export class AuthService {
   private readonly logger: Logger
-  private readonly authAdapter: AuthAdapter
+  private readonly authProvider: AuthProvider
 
-  public constructor({ logger, authAdapter }: { logger: Logger; authAdapter: AuthAdapter }) {
+  public constructor({ logger, authProvider }: { logger: Logger; authProvider: AuthProvider }) {
     this.logger = logger.child({ scope: "auth-service" })
-    this.authAdapter = authAdapter
+    this.authProvider = authProvider
   }
 
   /**
@@ -34,7 +34,7 @@ export class AuthService {
    * The trpc procedures will consume this information.
    */
   public authenticationMiddlewares({ accountsController }: { accountsController: AccountsController }): RequestHandler[] {
-    return [this.authAdapter.parseTokenMiddleware(), this.recordAccountMiddleware({ accountsController })]
+    return [this.authProvider.parseTokenMiddleware(), this.recordAccountMiddleware({ accountsController })]
   }
 
   /**
@@ -44,7 +44,7 @@ export class AuthService {
    */
   private recordAccountMiddleware({ accountsController }: { accountsController: AccountsController }): RequestHandler {
     return async (req, res, next) => {
-      const authStatus = this.authAdapter.parseAuthStatus({ req })
+      const authStatus = this.authProvider.parseAuthStatus({ req })
       if (!authStatus.isAuthenticated) {
         next()
         return
@@ -60,7 +60,7 @@ export class AuthService {
 
       let account = getAccountResult.value
       if (account === undefined) {
-        const userResult = await this.authAdapter.fetchUser({ authId })
+        const userResult = await this.authProvider.fetchUser({ authId })
         if (Result.isFailure(userResult)) {
           next()
           return

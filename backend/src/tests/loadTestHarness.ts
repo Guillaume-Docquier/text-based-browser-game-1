@@ -6,11 +6,11 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import { GenericContainer, type StartedTestContainer } from "testcontainers"
 import { AccountsRepository, type AccountModel } from "#api/accounts/accounts.repository.ts"
+import { AUTH_ID_HEADER } from "#api/accounts/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
 
-const ACCOUNT_ID_HEADER = "x-test-account-id"
 const POSTGRES_PORT = 5432
 const API_START_TIMEOUT_MS = 30_000
 const API_HEALTH_CHECK_INTERVAL_MS = 100
@@ -42,7 +42,7 @@ export async function createLoadTestServer(): Promise<LoadTestServer> {
         links: [
           httpBatchLink({
             url: `http://localhost:${apiPort}/trpc`,
-            headers: { [ACCOUNT_ID_HEADER]: account.id },
+            headers: { [AUTH_ID_HEADER]: account.id },
           }),
         ],
       }),

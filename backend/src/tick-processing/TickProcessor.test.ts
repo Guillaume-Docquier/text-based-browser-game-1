@@ -25,10 +25,10 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
-      authAdapter.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authProvider.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const tickInterval = Time.create(100, UnitOfTime.SECONDS)
       const { createdGameId: firstGameId } = await trpcClient.client.lobbies.create.mutate({
@@ -70,10 +70,10 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository, logger } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository, logger } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
-      authAdapter.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authProvider.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const tickInterval = Time.create(100, UnitOfTime.SECONDS)
       const { createdGameId: failingGameId } = await trpcClient.client.lobbies.create.mutate({
@@ -117,11 +117,11 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository, logger } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository, logger } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authAdapter.account = account
+      authProvider.account = account
 
       const tickInterval = Time.create(1000, UnitOfTime.SECONDS)
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
@@ -168,11 +168,11 @@ describe("TickProcessor", () => {
     it("should not apply an action when the player cannot afford it", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, authAdapter, accountsRepository, logger, clock } = await createApiStub({ db })
+      const { api, authProvider, accountsRepository, logger, clock } = await createApiStub({ db })
       using trpcClient = new TrpcClient({ api })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authAdapter.account = account
+      authProvider.account = account
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
       })
@@ -220,10 +220,10 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
-      authAdapter.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authProvider.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       // later game
       const laterTickInterval = Time.create(100, UnitOfTime.SECONDS)
@@ -261,10 +261,10 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
-      authAdapter.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authProvider.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const tickInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: gameId } = await trpcClient.client.lobbies.create.mutate({
@@ -292,10 +292,10 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
-      authAdapter.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authProvider.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const { tickProcessor, ticksRepository } = await createTickProcessorStub({ db, clock })
 
@@ -332,10 +332,10 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository, logger } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository, logger } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
-      authAdapter.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authProvider.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const failingTickInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: failingGameId } = await trpcClient.client.lobbies.create.mutate({
@@ -372,10 +372,10 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
-      authAdapter.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authProvider.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const earlierTickInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: earlierGameId } = await trpcClient.client.lobbies.create.mutate({
@@ -413,10 +413,10 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
-      authAdapter.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authProvider.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const tickInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: gameId } = await trpcClient.client.lobbies.create.mutate({
@@ -441,20 +441,20 @@ describe("TickProcessor", () => {
     it("should fully process every player and select at most one deterministic winner", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, authAdapter, accountsRepository, logger, clock } = await createApiStub({ db })
+      const { api, authProvider, accountsRepository, logger, clock } = await createApiStub({ db })
       using trpcClient = new TrpcClient({ api })
 
       const creator = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authAdapter.account = creator
+      authProvider.account = creator
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
       })
 
       const joiner = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authAdapter.account = joiner
+      authProvider.account = joiner
       await trpcClient.client.lobbies.join.mutate({ gameId: createdGameId })
 
-      authAdapter.account = creator
+      authProvider.account = creator
       await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       const { tickProcessor } = await createTickProcessorStub({ db, clock })
@@ -472,7 +472,7 @@ describe("TickProcessor", () => {
         })
         Assert.isSuccess(updateResourceResult)
 
-        authAdapter.account = player
+        authProvider.account = player
         await trpcClient.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           tick: 0,
@@ -493,7 +493,7 @@ describe("TickProcessor", () => {
         endedAt: expect.any(String),
       })
 
-      authAdapter.account = creator
+      authProvider.account = creator
       const creatorView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(creatorView).toMatchObject({
         resources: {
@@ -501,7 +501,7 @@ describe("TickProcessor", () => {
         },
       })
 
-      authAdapter.account = joiner
+      authProvider.account = joiner
       const joinerView = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(joinerView).toMatchObject({
         resources: {
@@ -514,10 +514,10 @@ describe("TickProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
-      const { api, authAdapter, accountsRepository, logger } = await createApiStub({ db, clock })
+      const { api, authProvider, accountsRepository, logger } = await createApiStub({ db, clock })
       using trpcClient = new TrpcClient({ api })
 
-      authAdapter.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+      authProvider.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
 
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
         configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),

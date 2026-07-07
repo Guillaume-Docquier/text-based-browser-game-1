@@ -15,7 +15,7 @@ export type User = {
   alias: string | null | undefined
 }
 
-export interface AuthAdapter {
+export interface AuthProvider {
   /**
    * Middlewares to integrate with Express.
    * They mostly setup for parseAuth after.

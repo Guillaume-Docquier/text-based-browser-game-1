@@ -2,7 +2,7 @@ import { Logger } from "@guillaume-docquier/tools-ts"
 import type { Express } from "express"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AuthService } from "#api/accounts/auth.service.ts"
-import { ControlledAuthAdapter } from "#api/accounts/ControlledAuthAdapter.ts"
+import { ControlledAuthProvider } from "#api/accounts/ControlledAuthProvider.ts"
 import { createApi } from "#api/createApi.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
@@ -11,7 +11,7 @@ import { Clock } from "#lib/Clock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
 
-type AllServices = Omit<Parameters<typeof createApi>[0], "authService"> & { authAdapter: ControlledAuthAdapter }
+type AllServices = Omit<Parameters<typeof createApi>[0], "authService"> & { authProvider: ControlledAuthProvider }
 
 /**
  * Creates a real api with test dependencies.
@@ -22,11 +22,11 @@ export async function createApiStub({ db, clock = Clock }: { db?: Database; cloc
   const logger = Logger.get()
   db ??= await createDbMock()
 
-  const authAdapter = new ControlledAuthAdapter()
+  const authProvider = new ControlledAuthProvider()
   const apiServices = {
     logger,
     clock,
-    authService: new AuthService({ logger, authAdapter }),
+    authService: new AuthService({ logger, authProvider }),
     createTransaction: createCreateTransaction(db),
     accountsRepository: new AccountsRepository({ db, logger }),
     listingsRepository: new ListingsRepository({ db, logger }),
@@ -38,7 +38,7 @@ export async function createApiStub({ db, clock = Clock }: { db?: Database; cloc
 
   return {
     ...apiServices,
-    authAdapter,
+    authProvider,
     api,
   }
 }

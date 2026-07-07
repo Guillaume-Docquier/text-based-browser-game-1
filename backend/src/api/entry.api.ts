@@ -3,8 +3,8 @@ import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AuthService } from "#api/accounts/auth.service.ts"
-import { ClerkAuthAdapter } from "#api/accounts/ClerkAuthAdapter.ts"
-import { TestHeaderAuthAdapter } from "#api/accounts/TestHeaderAuthAdapter.ts"
+import { ClerkAuthProvider } from "#api/accounts/ClerkAuthProvider.ts"
+import { TestHeaderAuthProvider } from "#api/accounts/TestHeaderAuthProvider.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
@@ -90,8 +90,8 @@ async function migrateDatabase(db: Database, { migrationsFolder, logger }: { mig
 function createAuthService({ authService, logger }: { authService: "clerk" | "test-header"; logger: Logger }): AuthService {
   switch (authService) {
     case "clerk":
-      return new AuthService({ logger, authAdapter: new ClerkAuthAdapter({ logger }) })
+      return new AuthService({ logger, authProvider: new ClerkAuthProvider({ logger }) })
     case "test-header":
-      return new AuthService({ logger, authAdapter: new TestHeaderAuthAdapter() })
+      return new AuthService({ logger, authProvider: new TestHeaderAuthProvider() })
   }
 }
