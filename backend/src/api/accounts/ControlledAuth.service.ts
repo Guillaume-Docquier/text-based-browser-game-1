@@ -1,8 +1,11 @@
 import type { RequestHandler } from "express"
 import type { AccountDto } from "#api/accounts/accounts.controller.ts"
-import { type IAuthService } from "./auth.service.ts"
+import type { AuthService } from "#api/accounts/AuthService.ts"
 
-export class AuthServiceMock implements IAuthService {
+/**
+ * A test auth service where you can set the auth for the next request(s) by setting the account directly
+ */
+export class ControlledAuthService implements AuthService {
   public account: AccountDto | undefined
 
   public constructor({ account }: { account?: AccountDto } = {}) {

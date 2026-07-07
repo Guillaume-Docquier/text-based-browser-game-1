@@ -2,6 +2,7 @@ import { clerkClient, clerkMiddleware, getAuth, type User } from "@clerk/express
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler } from "express"
 import type { AccountDto, AccountsController } from "#api/accounts/accounts.controller.ts"
+import type { AuthService } from "#api/accounts/AuthService.ts"
 import { couldNot } from "#lib/errors.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
@@ -15,17 +16,13 @@ declare global {
   }
 }
 
-export interface IAuthService {
-  authenticationMiddlewares: ({ accountsController }: { accountsController: AccountsController }) => RequestHandler[]
-}
-
 /**
  * Encapsulates Clerk.
  * This should be the only place we use Clerk directly.
  *
  * It'll make tests easier, and if Clerk turns out to be a problem, we can change it.
  */
-export class AuthService implements IAuthService {
+export class ClerkAuthService implements AuthService {
   private readonly logger: Logger
 
   public constructor({ logger }: { logger: Logger }) {
