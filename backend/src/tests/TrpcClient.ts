@@ -2,6 +2,8 @@ import { createServer } from "http"
 import type { AddressInfo } from "node:net"
 import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import type { Express } from "express"
+import type { AccountModel } from "#api/accounts/accounts.repository.ts"
+import { AUTH_ID_HEADER } from "#api/accounts/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
 
 /**
@@ -17,21 +19,22 @@ const ANY_UNUSED_PORT = 0
  *
  * @example
  * ```ts
- * const api = await createApiStub()
- * using trcpClient = new TrpcClient({ api })
+ * const { api, accountsRepository } = await createApiStub()
+ * const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
+ * using trcpClient = new TrpcClient({ api, account: creatorAccount })
  * ```
  */
 export class TrpcClient {
   public readonly client
   private readonly server
 
-  public constructor({ api }: { api: Express }) {
+  public constructor({ api, account }: { api: Express; account?: AccountModel }) {
     this.server = createServer(api)
     this.server.listen(ANY_UNUSED_PORT)
     const address = this.server.address() as AddressInfo
 
     this.client = createTRPCClient<TrpcRouter>({
-      links: [httpBatchLink({ url: `http://localhost:${address.port}/trpc` })],
+      links: [httpBatchLink({ url: `http://localhost:${address.port}/trpc`, headers: { [AUTH_ID_HEADER]: account?.id } })],
     })
   }
 

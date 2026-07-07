@@ -10,19 +10,16 @@ describe("listings.router", () => {
   describe("getListings", () => {
     it("should get listings when anonymous", async () => {
       // Arrange
-      const { api, authProvider, accountsRepository } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
-
+      const { api, accountsRepository } = await createApiStub()
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authProvider.account = creatorAccount
+      using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
+      using anonymousTrpcClient = new TrpcClient({ api, account: creatorAccount })
 
       const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
-
-      authProvider.account = undefined
+      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const getListingsResult = await trpcClient.client.listings.getListings.query()
+      const getListingsResult = await anonymousTrpcClient.client.listings.getListings.query()
 
       // Assert
       expect(getListingsResult).toEqual<typeof getListingsResult>([
@@ -41,19 +38,15 @@ describe("listings.router", () => {
 
     it("should get listings when authenticated", async () => {
       // Arrange
-      const { api, authProvider, accountsRepository } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
-
+      const { api, accountsRepository } = await createApiStub()
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      authProvider.account = creatorAccount
+      using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
 
       const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
-
-      authProvider.account = creatorAccount
+      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const getListingsResult = await trpcClient.client.listings.getListings.query()
+      const getListingsResult = await creatorTrpcClient.client.listings.getListings.query()
 
       // Assert
       expect(getListingsResult).toEqual<typeof getListingsResult>([
