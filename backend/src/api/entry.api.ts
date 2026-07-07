@@ -2,9 +2,9 @@ import { Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import type { AuthService } from "#api/accounts/AuthService.ts"
-import { ClerkAuthService } from "#api/accounts/ClerkAuth.service.ts"
-import { TestHeaderAuthService } from "#api/accounts/TestHeaderAuth.service.ts"
+import { AuthService } from "#api/accounts/auth.service.ts"
+import { ClerkAuthAdapter } from "#api/accounts/ClerkAuthAdapter.ts"
+import { TestHeaderAuthAdapter } from "#api/accounts/TestHeaderAuthAdapter.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
@@ -90,8 +90,8 @@ async function migrateDatabase(db: Database, { migrationsFolder, logger }: { mig
 function createAuthService({ authService, logger }: { authService: "clerk" | "test-header"; logger: Logger }): AuthService {
   switch (authService) {
     case "clerk":
-      return new ClerkAuthService({ logger })
+      return new AuthService({ logger, authAdapter: new ClerkAuthAdapter({ logger }) })
     case "test-header":
-      return new TestHeaderAuthService({ logger })
+      return new AuthService({ logger, authAdapter: new TestHeaderAuthAdapter() })
   }
 }

@@ -10,16 +10,16 @@ describe("listings.router", () => {
   describe("getListings", () => {
     it("should get listings when anonymous", async () => {
       // Arrange
-      const { api, authService, accountsRepository } = await createApiStub()
+      const { api, authAdapter, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      authService.account = creatorAccount
+      authAdapter.account = creatorAccount
 
       const newGameSettings = createGameConfigurationDtoStub()
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
-      authService.account = undefined
+      authAdapter.account = undefined
 
       // Act
       const getListingsResult = await trpcClient.client.listings.getListings.query()
@@ -41,16 +41,16 @@ describe("listings.router", () => {
 
     it("should get listings when authenticated", async () => {
       // Arrange
-      const { api, authService, accountsRepository } = await createApiStub()
+      const { api, authAdapter, accountsRepository } = await createApiStub()
       using trpcClient = new TrpcClient({ api })
 
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      authService.account = creatorAccount
+      authAdapter.account = creatorAccount
 
       const newGameSettings = createGameConfigurationDtoStub()
       const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
 
-      authService.account = creatorAccount
+      authAdapter.account = creatorAccount
 
       // Act
       const getListingsResult = await trpcClient.client.listings.getListings.query()

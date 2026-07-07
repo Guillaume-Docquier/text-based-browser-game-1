@@ -12,7 +12,7 @@ So far, they've been good, but we don't want to couple our code too much with th
 
 ## Decision
 
-Only the dedicated ClerkAuthService should use Clerk directly.
+Only the dedicated AuthService should use Clerk directly.
 
 Only the dedicated Repository classes should use Drizzle directly.
 

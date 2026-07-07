@@ -31,8 +31,8 @@ export class AccountsController {
 export type NewAccountDto = z.infer<typeof NewAccountDto>
 export const NewAccountDto = z.object({
   authId: z.string(),
-  email: z.string().optional(),
-  alias: z.string().optional(),
+  email: z.string().nullish(),
+  alias: z.string().nullish(),
 })
 
 export type AccountDto = z.infer<typeof AccountDto>
