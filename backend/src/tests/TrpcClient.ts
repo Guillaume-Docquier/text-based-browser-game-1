@@ -34,7 +34,14 @@ export class TrpcClient {
     const address = this.server.address() as AddressInfo
 
     this.client = createTRPCClient<TrpcRouter>({
-      links: [httpBatchLink({ url: `http://localhost:${address.port}/trpc`, headers: { [AUTH_ID_HEADER]: account?.id } })],
+      links: [
+        httpBatchLink({
+          url: `http://localhost:${address.port}/trpc`,
+          // The AUTH_ID_HEADER is serialized as "undefined" if the value is undefined
+          // We have to avoid setting it when there is no account
+          ...(account === undefined ? {} : { headers: { [AUTH_ID_HEADER]: account.authId } }),
+        }),
+      ],
     })
   }
 

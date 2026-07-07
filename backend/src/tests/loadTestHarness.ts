@@ -42,7 +42,7 @@ export async function createLoadTestServer(): Promise<LoadTestServer> {
         links: [
           httpBatchLink({
             url: `http://localhost:${apiPort}/trpc`,
-            headers: { [AUTH_ID_HEADER]: account.id },
+            headers: { [AUTH_ID_HEADER]: account.authId },
           }),
         ],
       }),

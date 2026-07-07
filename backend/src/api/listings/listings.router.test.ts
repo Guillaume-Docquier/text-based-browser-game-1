@@ -13,7 +13,7 @@ describe("listings.router", () => {
       const { api, accountsRepository } = await createApiStub()
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
       using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
-      using anonymousTrpcClient = new TrpcClient({ api, account: creatorAccount })
+      using anonymousTrpcClient = new TrpcClient({ api })
 
       const newGameSettings = createGameConfigurationDtoStub()
       const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
