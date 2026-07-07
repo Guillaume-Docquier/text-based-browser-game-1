@@ -51,22 +51,22 @@ export class AuthService {
       }
 
       const authId = authStatus.authId
-      const findAccountResult = await accountsController.getAccountByAuthId({ authId })
-      if (Result.isFailure(findAccountResult)) {
-        this.logger.error("Could not get account from the clerk id", { authId, error: findAccountResult.error })
+      const getAccountResult = await accountsController.getAccountByAuthId({ authId })
+      if (Result.isFailure(getAccountResult)) {
+        this.logger.error("Could not get account from the clerk id", { authId, error: getAccountResult.error })
         next()
         return
       }
 
-      let account = findAccountResult.value
+      let account = getAccountResult.value
       if (account === undefined) {
-        const clerkUser = await this.authAdapter.fetchUser({ authId })
-        if (Result.isFailure(clerkUser)) {
+        const userResult = await this.authAdapter.fetchUser({ authId })
+        if (Result.isFailure(userResult)) {
           next()
           return
         }
 
-        const createAccountResult = await accountsController.createAccount({ ...clerkUser.value, authId })
+        const createAccountResult = await accountsController.createAccount({ ...userResult.value, authId })
         if (Result.isFailure(createAccountResult)) {
           this.logger.error("Could not record new account", { authId, error: createAccountResult.error })
           next()
