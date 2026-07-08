@@ -33,7 +33,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.3",
+    "@electric-sql/pglite": "^0.5.4",
     "@inquirer/prompts": "^8.5.2",
     "@trpc/client": "^11.18.0",
     "@types/express": "^5.0.6",
