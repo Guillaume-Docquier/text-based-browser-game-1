@@ -3,7 +3,7 @@ packages:
   - frontend
 
 catalog:
-  "@guillaume-docquier/tools-ts": ^6.2.0
+  "@guillaume-docquier/tools-ts": ^6.3.1
   "@typescript/native-preview": 7.0.0-dev.20260629.1
 
 minimumReleaseAgeExclude:
