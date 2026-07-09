@@ -2,6 +2,7 @@
   <dictionary name="project">
     <words>
       <w>tanstack</w>
+      <w>trpc</w>
     </words>
   </dictionary>
 </component>

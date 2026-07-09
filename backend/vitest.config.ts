@@ -33,7 +33,7 @@ export default defineConfig({
         test: {
           name: { label: "integration", color: "cyan" },
           include: integrationTestsInclude,
-          setupFiles: ["./src/tests/vitest.e2e.setup.ts"],
+          setupFiles: ["./src/tests/vitest.integration.setup.ts"],
         },
       },
       {
@@ -42,6 +42,7 @@ export default defineConfig({
         test: {
           name: { label: "load", color: "magenta" },
           include: loadTestsInclude,
+          setupFiles: ["./src/tests/vitest.load.setup.ts"],
           testTimeout: 30_000,
         },
       },

@@ -11,7 +11,7 @@ import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/Sta
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { createResourceUpdateModelStub } from "#tests/resources/ResourceUpdateModel.stub.ts"
-import { TrpcClient } from "#tests/TrpcClient.ts"
+import { TrpcServer } from "#tests/TrpcServer.ts"
 
 describe("gameplay.router", () => {
   it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
@@ -19,20 +19,20 @@ describe("gameplay.router", () => {
     const { api, accountsRepository } = await createApiStub()
 
     const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-    using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
+    using creatorTrpcServer = new TrpcServer({ api, account: creatorAccount })
 
     const nonPlayerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-    using nonPlayerTrpcClient = new TrpcClient({ api, account: nonPlayerAccount })
+    using nonPlayerTrpcServer = new TrpcServer({ api, account: nonPlayerAccount })
 
-    const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+    const { createdGameId } = await creatorTrpcServer.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
 
     // Act & Assert
     const expectedError = { data: { code: "FORBIDDEN" } }
-    await expect(nonPlayerTrpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
-    await expect(nonPlayerTrpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
-    await expect(nonPlayerTrpcClient.client.gameplay.getCurrentAction.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(nonPlayerTrpcServer.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(nonPlayerTrpcServer.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(nonPlayerTrpcServer.client.gameplay.getCurrentAction.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(
-      nonPlayerTrpcClient.client.gameplay.setCurrentAction.mutate({
+      nonPlayerTrpcServer.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
@@ -46,13 +46,13 @@ describe("gameplay.router", () => {
       const { api, accountsRepository } = await createApiStub()
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
       const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
+      const { createdGameId } = await trpcServer.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const startGameResult = await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const startGameResult = await trpcServer.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Assert
       expect(startGameResult).toEqual<typeof startGameResult>({ nextTickAt: expect.any(String) }) // trpc serializes the date to string
@@ -64,16 +64,16 @@ describe("gameplay.router", () => {
       const { api, accountsRepository } = await createApiStub()
 
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
+      using creatorTrpcServer = new TrpcServer({ api, account: creatorAccount })
 
       const joinerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using joinerTrpcClient = new TrpcClient({ api, account: joinerAccount })
+      using joinerTrpcServer = new TrpcServer({ api, account: joinerAccount })
 
-      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-      await joinerTrpcClient.client.lobbies.join.mutate({ gameId: createdGameId })
+      const { createdGameId } = await creatorTrpcServer.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await joinerTrpcServer.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Act & Assert
-      await expect(joinerTrpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+      await expect(joinerTrpcServer.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -84,31 +84,31 @@ describe("gameplay.router", () => {
       const { api, accountsRepository } = await createApiStub({ clock })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
       const gameConfiguration = createGameConfigurationDtoStub({
         starSystemGenerationSettings: createStarSystemGenerationSettingsStub({ seed: 42 }),
       })
-      const firstGame = await trpcClient.client.lobbies.create.mutate({ configuration: gameConfiguration })
-      const secondGame = await trpcClient.client.lobbies.create.mutate({ configuration: gameConfiguration })
+      const firstGame = await trpcServer.client.lobbies.create.mutate({ configuration: gameConfiguration })
+      const secondGame = await trpcServer.client.lobbies.create.mutate({ configuration: gameConfiguration })
 
       // Act
-      await trpcClient.client.gameplay.startGame.mutate({ gameId: firstGame.createdGameId })
-      await trpcClient.client.gameplay.startGame.mutate({ gameId: secondGame.createdGameId })
+      await trpcServer.client.gameplay.startGame.mutate({ gameId: firstGame.createdGameId })
+      await trpcServer.client.gameplay.startGame.mutate({ gameId: secondGame.createdGameId })
 
       // Assert
-      const game1View = await trpcClient.client.gameplay.getPlayerView.query({ gameId: firstGame.createdGameId })
-      const game2View = await trpcClient.client.gameplay.getPlayerView.query({ gameId: secondGame.createdGameId })
+      const game1View = await trpcServer.client.gameplay.getPlayerView.query({ gameId: firstGame.createdGameId })
+      const game2View = await trpcServer.client.gameplay.getPlayerView.query({ gameId: secondGame.createdGameId })
       expect(game1View.starSystem).toEqual(game2View.starSystem)
     })
 
     it("should reject anonymous game start", async () => {
       // Arrange
       const { api } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
+      using trpcServer = new TrpcServer({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.gameplay.startGame.mutate({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcServer.client.gameplay.startGame.mutate({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
@@ -121,7 +121,7 @@ describe("gameplay.router", () => {
       const { api, accountsRepository } = await createApiStub({ clock })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
       const gameConfiguration = createGameConfigurationDtoStub({
         starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
@@ -133,12 +133,12 @@ describe("gameplay.router", () => {
           seed: 42,
         }),
       })
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: gameConfiguration })
+      const { createdGameId } = await trpcServer.client.lobbies.create.mutate({ configuration: gameConfiguration })
 
-      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await trpcServer.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act
-      const getByIdResult = await trpcClient.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const getByIdResult = await trpcServer.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
       // This is basically a snapshot test since we've tested the star systems extensively already in unit tests
@@ -313,11 +313,11 @@ describe("gameplay.router", () => {
       const { api, accountsRepository } = await createApiStub()
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
       // Act & Assert
       // @ts-expect-error Testing runtime input parsing with an invalid game id
-      await expect(trpcClient.client.gameplay.getPlayerView.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
+      await expect(trpcServer.client.gameplay.getPlayerView.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -325,10 +325,10 @@ describe("gameplay.router", () => {
     it("should reject anonymous game state reads", async () => {
       // Arrange
       const { api } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
+      using trpcServer = new TrpcServer({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.gameplay.getPlayerView.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcServer.client.gameplay.getPlayerView.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
@@ -342,21 +342,21 @@ describe("gameplay.router", () => {
       const resourcesRepository = new ResourcesRepository({ db, logger })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await trpcServer.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await trpcServer.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await resourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
-      const setCurrentActionResult = await trpcClient.client.gameplay.setCurrentAction.mutate({
+      const setCurrentActionResult = await trpcServer.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
       })
-      const getCurrentActionResult = await trpcClient.client.gameplay.getCurrentAction.query({
+      const getCurrentActionResult = await trpcServer.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,
       })
 
@@ -378,14 +378,14 @@ describe("gameplay.router", () => {
       const { api, accountsRepository } = await createApiStub()
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await trpcServer.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await trpcServer.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act & Assert
       await expect(
-        trpcClient.client.gameplay.setCurrentAction.mutate({
+        trpcServer.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           tick: 1,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
@@ -404,18 +404,18 @@ describe("gameplay.router", () => {
       const resourcesRepository = new ResourcesRepository({ db, logger })
 
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({
+      const { createdGameId } = await trpcServer.client.lobbies.create.mutate({
         configuration: createGameConfigurationDtoStub(),
       })
-      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await trpcServer.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await resourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
       )
 
       // Act
-      const getCurrentActionResult = await trpcClient.client.gameplay.getCurrentAction.query({
+      const getCurrentActionResult = await trpcServer.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,
       })
 
@@ -426,10 +426,10 @@ describe("gameplay.router", () => {
     it("should reject anonymous action reads", async () => {
       // Arrange
       const { api } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
+      using trpcServer = new TrpcServer({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.gameplay.getCurrentAction.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcServer.client.gameplay.getCurrentAction.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })

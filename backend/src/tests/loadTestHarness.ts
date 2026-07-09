@@ -2,14 +2,13 @@ import { randomUUID } from "crypto"
 import { spawn, type ChildProcess } from "node:child_process"
 import { once } from "node:events"
 import { createServer, type Server } from "node:http"
-import { Result } from "@guillaume-docquier/tools-ts"
-import { createTRPCClient, httpBatchLink } from "@trpc/client"
+import { Logger, Result } from "@guillaume-docquier/tools-ts"
+import { type createTRPCClient } from "@trpc/client"
 import { GenericContainer, type StartedTestContainer } from "testcontainers"
 import { AccountsRepository, type AccountModel } from "#api/accounts/accounts.repository.ts"
-import { AUTH_ID_HEADER } from "#api/accounts/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
-import { configureLogger } from "#lib/configureLogger.ts"
 import { createDb } from "#lib/db/createDb.ts"
+import { TrpcClient } from "#tests/TrpcClient.ts"
 
 const POSTGRES_PORT = 5432
 const API_START_TIMEOUT_MS = 30_000
@@ -21,10 +20,8 @@ export type LoadTestServer = {
   readonly close: () => Promise<void>
 }
 
-const loadTestLogger = configureLogger({ scope: "load-test", nonBlocking: false })
-
 export async function createLoadTestServer(): Promise<LoadTestServer> {
-  const logger = await loadTestLogger
+  const logger = Logger.get()
   const postgres = await startPostgresContainer()
   const databaseUrl = getPostgresConnectionUri(postgres)
   const apiPort = await getAvailablePort()
@@ -37,15 +34,7 @@ export async function createLoadTestServer(): Promise<LoadTestServer> {
 
   return {
     accountsRepository,
-    createClient: (account) =>
-      createTRPCClient<TrpcRouter>({
-        links: [
-          httpBatchLink({
-            url: `http://localhost:${apiPort}/trpc`,
-            headers: { [AUTH_ID_HEADER]: account.authId },
-          }),
-        ],
-      }),
+    createClient: (account) => TrpcClient.create({ port: apiPort, authId: account.authId }),
     close: async () => {
       await stopApiProcess(apiProcess)
       await postgres.stop()

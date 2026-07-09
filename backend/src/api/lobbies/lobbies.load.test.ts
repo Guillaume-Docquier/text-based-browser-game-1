@@ -13,14 +13,14 @@ import {
 
 const NB_LOAD_TEST_ACCOUNTS = 20
 
-let server: LoadTestServer | undefined
-
-afterEach(async () => {
-  await server?.close()
-  server = undefined
-})
-
 describe("lobby concurrency load tests", () => {
+  let server: LoadTestServer | undefined
+
+  afterEach(async () => {
+    await server?.close()
+    server = undefined
+  })
+
   it("should enforce the seat count when multiple accounts join the same game concurrently", async () => {
     const loadTestServer = await createLoadTestServer()
     server = loadTestServer

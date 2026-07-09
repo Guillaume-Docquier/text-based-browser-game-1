@@ -9,7 +9,7 @@ import { type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#api/shared/GameStatus.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { TrpcClient } from "#tests/TrpcClient.ts"
+import { TrpcServer } from "#tests/TrpcServer.ts"
 
 describe("lobbies.router", () => {
   describe("getCreationSettings", () => {
@@ -17,10 +17,10 @@ describe("lobbies.router", () => {
       // Arrange
       const { api, accountsRepository } = await createApiStub()
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
       // Act
-      const creationSettings = await trpcClient.client.lobbies.getCreationSettings.query()
+      const creationSettings = await trpcServer.client.lobbies.getCreationSettings.query()
 
       // Assert
       expect(creationSettings).toEqual<typeof creationSettings>({
@@ -38,17 +38,17 @@ describe("lobbies.router", () => {
       // Arrange
       const { api, accountsRepository } = await createApiStub()
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account: creatorAccount })
+      using trpcServer = new TrpcServer({ api, account: creatorAccount })
 
       const newGameSettings = createGameConfigurationDtoStub()
 
       // Act
-      const createLobbyResult = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
+      const createLobbyResult = await trpcServer.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Assert
       expect(createLobbyResult).toEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
 
-      const createdGame = await trpcClient.client.lobbies.getById.query({ gameId: createLobbyResult.createdGameId })
+      const createdGame = await trpcServer.client.lobbies.getById.query({ gameId: createLobbyResult.createdGameId })
       const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
 
       expect(createdGame).toEqual<typeof createdGame>({
@@ -71,11 +71,11 @@ describe("lobbies.router", () => {
     it("should reject anonymous game creation", async () => {
       // Arrange
       const { api } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
+      using trpcServer = new TrpcServer({ api })
 
       // Act & Assert
       await expect(
-        trpcClient.client.lobbies.create.mutate({
+        trpcServer.client.lobbies.create.mutate({
           configuration: createGameConfigurationDtoStub(),
         }),
       ).rejects.toMatchObject({
@@ -87,11 +87,11 @@ describe("lobbies.router", () => {
       // Arrange
       const { api, accountsRepository } = await createApiStub()
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
       // Act & Assert
       await expect(
-        trpcClient.client.lobbies.create.mutate({
+        trpcServer.client.lobbies.create.mutate({
           configuration: createGameConfigurationDtoStub({
             starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
               planetDensity: Range.float({ min: 0.5, max: 1.1 }),
@@ -107,11 +107,11 @@ describe("lobbies.router", () => {
       // Arrange
       const { api, accountsRepository } = await createApiStub()
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
       // Act & Assert
       await expect(
-        trpcClient.client.lobbies.create.mutate({
+        trpcServer.client.lobbies.create.mutate({
           configuration: createGameConfigurationDtoStub({
             starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
               seed: 1.5,
@@ -130,14 +130,14 @@ describe("lobbies.router", () => {
       const { api, accountsRepository } = await createApiStub()
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
       const viewerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
-      using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
-      using viewerTrpcClient = new TrpcClient({ api, account: viewerAccount })
+      using creatorTrpcServer = new TrpcServer({ api, account: creatorAccount })
+      using viewerTrpcServer = new TrpcServer({ api, account: viewerAccount })
 
       const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
+      const { createdGameId } = await creatorTrpcServer.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const lobby = await viewerTrpcClient.client.lobbies.getById.query({ gameId: createdGameId })
+      const lobby = await viewerTrpcServer.client.lobbies.getById.query({ gameId: createdGameId })
 
       // Assert
       const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
@@ -163,14 +163,14 @@ describe("lobbies.router", () => {
 
       const { api, accountsRepository } = await createApiStub()
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
-      using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
-      using anonymousTrpcClient = new TrpcClient({ api })
+      using creatorTrpcServer = new TrpcServer({ api, account: creatorAccount })
+      using anonymousTrpcServer = new TrpcServer({ api })
 
       const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
+      const { createdGameId } = await creatorTrpcServer.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const lobby = await anonymousTrpcClient.client.lobbies.getById.query({ gameId: createdGameId })
+      const lobby = await anonymousTrpcServer.client.lobbies.getById.query({ gameId: createdGameId })
 
       // Assert
       const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
@@ -196,17 +196,17 @@ describe("lobbies.router", () => {
       const { api, accountsRepository } = await createApiStub()
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
       const viewerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Viewer" })))
-      using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
-      using viewerTrpcClient = new TrpcClient({ api, account: viewerAccount })
-      using anonymousTrpcClient = new TrpcClient({ api })
+      using creatorTrpcServer = new TrpcServer({ api, account: creatorAccount })
+      using viewerTrpcServer = new TrpcServer({ api, account: viewerAccount })
+      using anonymousTrpcServer = new TrpcServer({ api })
 
-      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-      await creatorTrpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await creatorTrpcServer.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await creatorTrpcServer.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act
-      const playerLobby = await creatorTrpcClient.client.lobbies.getById.query({ gameId: createdGameId })
-      const nonPlayerLobby = await viewerTrpcClient.client.lobbies.getById.query({ gameId: createdGameId })
-      const anonymousLobby = await anonymousTrpcClient.client.lobbies.getById.query({ gameId: createdGameId })
+      const playerLobby = await creatorTrpcServer.client.lobbies.getById.query({ gameId: createdGameId })
+      const nonPlayerLobby = await viewerTrpcServer.client.lobbies.getById.query({ gameId: createdGameId })
+      const anonymousLobby = await anonymousTrpcServer.client.lobbies.getById.query({ gameId: createdGameId })
 
       // Assert
       expect({
@@ -223,10 +223,10 @@ describe("lobbies.router", () => {
     it("should return not found when getting a missing lobby by id", async () => {
       // Arrange
       const { api } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
+      using trpcServer = new TrpcServer({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.lobbies.getById.query({ gameId: 404 })).rejects.toMatchObject({
+      await expect(trpcServer.client.lobbies.getById.query({ gameId: 404 })).rejects.toMatchObject({
         data: { code: "NOT_FOUND" },
       })
     })
@@ -238,19 +238,19 @@ describe("lobbies.router", () => {
       const { api, accountsRepository } = await createApiStub()
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
       const joinerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
-      using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
-      using joinerTrpcClient = new TrpcClient({ api, account: joinerAccount })
+      using creatorTrpcServer = new TrpcServer({ api, account: creatorAccount })
+      using joinerTrpcServer = new TrpcServer({ api, account: joinerAccount })
 
       const newGameSettings = createGameConfigurationDtoStub({ nbSeats: 2 })
-      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
+      const { createdGameId } = await creatorTrpcServer.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const joinGameResult = await joinerTrpcClient.client.lobbies.join.mutate({ gameId: createdGameId })
+      const joinGameResult = await joinerTrpcServer.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Assert
       expect(joinGameResult).toEqual<typeof joinGameResult>({ playerId: joinerAccount.id })
 
-      const joinedLobby = await joinerTrpcClient.client.lobbies.getById.query({ gameId: createdGameId })
+      const joinedLobby = await joinerTrpcServer.client.lobbies.getById.query({ gameId: createdGameId })
       const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
       const joiner: LobbyPlayerDto = { id: joinerAccount.id, alias: joinerAccount.alias }
 
@@ -275,12 +275,12 @@ describe("lobbies.router", () => {
       // Arrange
       const { api, accountsRepository } = await createApiStub()
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const { createdGameId } = await trpcServer.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
 
       // Act & Assert
-      await expect(trpcClient.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+      await expect(trpcServer.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -288,10 +288,10 @@ describe("lobbies.router", () => {
     it("should reject anonymous game join", async () => {
       // Arrange
       const { api } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
+      using trpcServer = new TrpcServer({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.lobbies.join.mutate({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcServer.client.lobbies.join.mutate({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
@@ -303,21 +303,21 @@ describe("lobbies.router", () => {
       const { api, accountsRepository } = await createApiStub()
       const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Creator" })))
       const leaverAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ alias: "Player 2" })))
-      using creatorTrpcClient = new TrpcClient({ api, account: creatorAccount })
-      using leaverTrpcClient = new TrpcClient({ api, account: leaverAccount })
+      using creatorTrpcServer = new TrpcServer({ api, account: creatorAccount })
+      using leaverTrpcServer = new TrpcServer({ api, account: leaverAccount })
 
       const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
+      const { createdGameId } = await creatorTrpcServer.client.lobbies.create.mutate({ configuration: newGameSettings })
 
-      await leaverTrpcClient.client.lobbies.join.mutate({ gameId: createdGameId })
+      await leaverTrpcServer.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Act
-      const leaveGameResult = await leaverTrpcClient.client.lobbies.leave.mutate({ gameId: createdGameId })
+      const leaveGameResult = await leaverTrpcServer.client.lobbies.leave.mutate({ gameId: createdGameId })
 
       // Assert
       expect(leaveGameResult).toEqual<typeof leaveGameResult>(true)
 
-      const leftLobby = await leaverTrpcClient.client.lobbies.getById.query({ gameId: createdGameId })
+      const leftLobby = await leaverTrpcServer.client.lobbies.getById.query({ gameId: createdGameId })
       const creator: LobbyPlayerDto = { id: creatorAccount.id, alias: creatorAccount.alias }
 
       expect(leftLobby).toEqual<typeof leftLobby>({
@@ -341,12 +341,12 @@ describe("lobbies.router", () => {
       // Arrange
       const { api, accountsRepository } = await createApiStub()
       const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using trpcClient = new TrpcClient({ api, account })
+      using trpcServer = new TrpcServer({ api, account })
 
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const { createdGameId } = await trpcServer.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
 
       // Act & Assert
-      await expect(trpcClient.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+      await expect(trpcServer.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -354,10 +354,10 @@ describe("lobbies.router", () => {
     it("should reject anonymous game leave", async () => {
       // Arrange
       const { api } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
+      using trpcServer = new TrpcServer({ api })
 
       // Act & Assert
-      await expect(trpcClient.client.lobbies.leave.mutate({ gameId: 1 })).rejects.toMatchObject({
+      await expect(trpcServer.client.lobbies.leave.mutate({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
