@@ -119,7 +119,7 @@ export class GameplayRepository extends PostgresRepository {
           .from(resourcesTable)
           .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
         const money = playerResources.find((resource) => resource.resourceType === ResourceType.MONEY)
-        Assert.isDefined(money)
+        Assert.isDefined(money, "money")
 
         return {
           ...gameState,

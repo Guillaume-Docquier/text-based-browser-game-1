@@ -2,15 +2,20 @@ import { randomUUID } from "crypto"
 import { spawn, type ChildProcess } from "node:child_process"
 import { once } from "node:events"
 import { createServer, type Server } from "node:http"
-import { Logger, Result } from "@guillaume-docquier/tools-ts"
+import { isNodeJSError, Logger, Result } from "@guillaume-docquier/tools-ts"
+import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { type createTRPCClient } from "@trpc/client"
-import { GenericContainer, type StartedTestContainer } from "testcontainers"
 import { AccountsRepository, type AccountModel } from "#api/accounts/accounts.repository.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
-const POSTGRES_PORT = 5432
+// The image is the same we use to dev locally, keep it this way.
+// See infra/docker-compose.yaml
+const POSTGRES_IMAGE = "postgres:18.4"
+
+const API_LOGS = "ignore" // set to inherit to see api logs
+
 const API_START_TIMEOUT_MS = 30_000
 const API_HEALTH_CHECK_INTERVAL_MS = 100
 
@@ -22,8 +27,8 @@ export type LoadTestServer = {
 
 export async function createLoadTestServer(): Promise<LoadTestServer> {
   const logger = Logger.get()
-  const postgres = await startPostgresContainer()
-  const databaseUrl = getPostgresConnectionUri(postgres)
+  const postgresContainer = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
+  const databaseUrl = postgresContainer.getConnectionUri()
   const apiPort = await getAvailablePort()
   const apiProcess = startApiProcess({ databaseUrl, port: apiPort })
 
@@ -37,7 +42,7 @@ export async function createLoadTestServer(): Promise<LoadTestServer> {
     createClient: (account) => TrpcClient.create({ port: apiPort, authId: account.authId }),
     close: async () => {
       await stopApiProcess(apiProcess)
-      await postgres.stop()
+      await postgresContainer.stop()
     },
   }
 }
@@ -73,21 +78,6 @@ export async function ignoreExpectedRequestFailures(requests: Array<Promise<unkn
 
 export async function randomDelay(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * 20)))
-}
-
-async function startPostgresContainer(): Promise<StartedTestContainer> {
-  return await new GenericContainer("postgres:18-alpine")
-    .withEnvironment({
-      POSTGRES_DB: "test",
-      POSTGRES_PASSWORD: "test",
-      POSTGRES_USER: "test",
-    })
-    .withExposedPorts(POSTGRES_PORT)
-    .start()
-}
-
-function getPostgresConnectionUri(postgres: StartedTestContainer): string {
-  return `postgres://test:test@${postgres.getHost()}:${postgres.getMappedPort(POSTGRES_PORT)}/test`
 }
 
 async function getAvailablePort(): Promise<number> {
@@ -129,7 +119,7 @@ function startApiProcess({ databaseUrl, port }: { databaseUrl: string; port: num
       DATABASE_URL: databaseUrl,
       PORT: port.toString(),
     },
-    stdio: "ignore",
+    stdio: API_LOGS,
   })
 }
 
@@ -157,12 +147,19 @@ async function stopApiProcess(apiProcess: ChildProcess): Promise<void> {
     return
   }
 
-  const exitPromise = once(apiProcess, "exit")
-  if (apiProcess.pid === undefined) {
-    apiProcess.kill("SIGTERM")
-  } else {
-    process.kill(-apiProcess.pid, "SIGTERM")
-  }
+  try {
+    const exitPromise = once(apiProcess, "exit")
+    if (apiProcess.pid === undefined) {
+      apiProcess.kill("SIGTERM")
+    } else {
+      process.kill(-apiProcess.pid, "SIGTERM")
+    }
 
-  await exitPromise
+    await exitPromise
+  } catch (error) {
+    // If the api crashed because of the test, process.kill with throw ESRCH
+    if (!isNodeJSError(error) || error.code !== "ESRCH") {
+      throw error
+    }
+  }
 }
