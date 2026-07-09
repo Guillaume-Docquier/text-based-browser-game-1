@@ -1,4 +1,5 @@
-import { Logger } from "@guillaume-docquier/tools-ts"
+import type { AddressInfo } from "node:net"
+import { Assert, Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
@@ -58,8 +59,14 @@ async function main(): Promise<void> {
   })
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
-  app.listen(env.PORT, "::", () => {
-    logger.info(`API listening on port ${env.PORT}`)
+  const server = app.listen(env.PORT, "::", () => {
+    // If env.PORT is 0, a random port will be attributed, so we log the server port instead of env.PORT
+    const serverAddress = server.address() as AddressInfo
+    Assert.isDefined(serverAddress?.port)
+
+    logger.info(`API listening on port ${serverAddress.port}`)
+    // This is currently only used for load tests to know which port the api is using
+    process.send?.({ type: "listening", port: serverAddress.port })
   })
 
   logger.info("Starting tick processing")

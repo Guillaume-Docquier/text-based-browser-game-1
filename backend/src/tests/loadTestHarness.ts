@@ -1,10 +1,11 @@
 import { randomUUID } from "crypto"
-import { spawn, type ChildProcess } from "node:child_process"
+import { fork } from "node:child_process"
 import { once } from "node:events"
-import { createServer, type Server } from "node:http"
-import { isNodeJSError, Logger, Result } from "@guillaume-docquier/tools-ts"
+import { setTimeout } from "node:timers/promises"
+import { Assert, FatalError, Logger, Result } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { type createTRPCClient } from "@trpc/client"
+import { z } from "zod"
 import { AccountsRepository, type AccountModel } from "#api/accounts/accounts.repository.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
 import { createDb } from "#lib/db/createDb.ts"
@@ -17,7 +18,6 @@ const POSTGRES_IMAGE = "postgres:18.4"
 const API_LOGS = "ignore" // set to inherit to see api logs
 
 const API_START_TIMEOUT_MS = 30_000
-const API_HEALTH_CHECK_INTERVAL_MS = 100
 
 export type LoadTestServer = {
   readonly accountsRepository: AccountsRepository
@@ -29,19 +29,16 @@ export async function createLoadTestServer(): Promise<LoadTestServer> {
   const logger = Logger.get()
   const postgresContainer = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
   const databaseUrl = postgresContainer.getConnectionUri()
-  const apiPort = await getAvailablePort()
-  const apiProcess = startApiProcess({ databaseUrl, port: apiPort })
-
-  await waitForApi({ apiProcess, port: apiPort })
+  const api = await startApi({ databaseUrl })
 
   const db = createDb({ databaseUrl })
   const accountsRepository = new AccountsRepository({ db, logger })
 
   return {
     accountsRepository,
-    createClient: (account) => TrpcClient.create({ port: apiPort, authId: account.authId }),
+    createClient: (account) => TrpcClient.create({ port: api.port, authId: account.authId }),
     close: async () => {
-      await stopApiProcess(apiProcess)
+      await api.stop()
       await postgresContainer.stop()
     },
   }
@@ -77,38 +74,16 @@ export async function ignoreExpectedRequestFailures(requests: Array<Promise<unkn
 }
 
 export async function randomDelay(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * 20)))
+  await setTimeout(Math.floor(Math.random() * 20))
 }
 
-async function getAvailablePort(): Promise<number> {
-  const server = createServer()
-  server.listen(0)
-  await once(server, "listening")
-  const address = server.address()
-  await closePortProbe(server)
+const PortListeningMessage = z.object({
+  type: z.literal("listening"),
+  port: z.coerce.number(),
+})
 
-  if (address === null || typeof address === "string") {
-    throw new Error("Could not allocate API port for load test")
-  }
-
-  return address.port
-}
-
-async function closePortProbe(server: Server): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error === undefined) {
-        resolve()
-        return
-      }
-
-      reject(error)
-    })
-  })
-}
-
-function startApiProcess({ databaseUrl, port }: { databaseUrl: string; port: number }): ChildProcess {
-  return spawn(process.execPath, ["src/api/entry.api.ts"], {
+async function startApi({ databaseUrl }: { databaseUrl: string }): Promise<{ port: number; stop: () => Promise<void> }> {
+  const apiProcess = fork("src/api/entry.api.ts", {
     cwd: process.cwd(),
     detached: true,
     env: {
@@ -117,49 +92,41 @@ function startApiProcess({ databaseUrl, port }: { databaseUrl: string; port: num
       CLERK_PUBLISHABLE_KEY: "load-test-clerk-publishable-key",
       CLERK_SECRET_KEY: "load-test-clerk-secret-key",
       DATABASE_URL: databaseUrl,
-      PORT: port.toString(),
+      PORT: "0",
     },
     stdio: API_LOGS,
   })
+  Assert.isDefined(apiProcess.pid)
+
+  const apiReady = Promise.withResolvers<number>()
+  apiProcess.on("message", (message) => {
+    const parsedMessage = PortListeningMessage.parse(message)
+    apiReady.resolve(parsedMessage.port)
+  })
+
+  let died = false
+  apiProcess.on("close", () => {
+    died = true
+  })
+
+  const port = await Promise.race([apiReady.promise, timeout(API_START_TIMEOUT_MS)])
+  if (Error.isError(port)) {
+    throw port
+  }
+
+  return {
+    port,
+    stop: async () => {
+      if (!died) {
+        const closePromise = once(apiProcess, "close")
+        apiProcess.kill("SIGTERM")
+        await closePromise
+      }
+    },
+  }
 }
 
-async function waitForApi({ apiProcess, port }: { apiProcess: ChildProcess; port: number }): Promise<void> {
-  const deadline = performance.now() + API_START_TIMEOUT_MS
-
-  while (performance.now() < deadline) {
-    if (apiProcess.exitCode !== null) {
-      throw new Error(`API process exited before startup with code ${apiProcess.exitCode}`)
-    }
-
-    const healthResult = await Result.tryCatch(fetch(`http://localhost:${port}/health`))
-    if (Result.isSuccess(healthResult) && healthResult.value.ok) {
-      return
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, API_HEALTH_CHECK_INTERVAL_MS))
-  }
-
-  throw new Error("API process did not become healthy before the startup timeout")
-}
-
-async function stopApiProcess(apiProcess: ChildProcess): Promise<void> {
-  if (apiProcess.exitCode !== null) {
-    return
-  }
-
-  try {
-    const exitPromise = once(apiProcess, "exit")
-    if (apiProcess.pid === undefined) {
-      apiProcess.kill("SIGTERM")
-    } else {
-      process.kill(-apiProcess.pid, "SIGTERM")
-    }
-
-    await exitPromise
-  } catch (error) {
-    // If the api crashed because of the test, process.kill with throw ESRCH
-    if (!isNodeJSError(error) || error.code !== "ESRCH") {
-      throw error
-    }
-  }
+async function timeout(timeoutMs: number): Promise<FatalError<{ timeoutMs: number }>> {
+  await setTimeout(timeoutMs)
+  return new FatalError("API process did not start in time", { timeoutMs })
 }
