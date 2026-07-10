@@ -1,7 +1,9 @@
 import { createServer } from "http"
 import type { AddressInfo } from "node:net"
+import type { TRPCClient } from "@trpc/client"
 import type { Express } from "express"
 import type { AccountModel } from "#api/accounts/accounts.repository.ts"
+import type { TrpcRouter } from "#api/createApi.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
 /**
@@ -18,20 +20,24 @@ const ANY_UNUSED_PORT = 0
  * @example
  * ```ts
  * const { api, accountsRepository } = await createApiStub()
+ * using apiServer = new ApiServer({ api, account: creatorAccount })
+ *
  * const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
- * using trcpServer = new TrpcClient({ api, account: creatorAccount })
+ * const trpcClient = apiServer.createClient({ account: creatorAccount })
  * ```
  */
-export class TrpcServer {
-  public readonly client
+export class ApiServer {
   private readonly server
+  private readonly port: number
 
-  public constructor({ api, account }: { api: Express; account?: AccountModel }) {
+  public constructor({ api }: { api: Express }) {
     this.server = createServer(api)
     this.server.listen(ANY_UNUSED_PORT)
+    this.port = (this.server.address() as AddressInfo).port
+  }
 
-    const serverAddress = this.server.address() as AddressInfo
-    this.client = TrpcClient.create({ port: serverAddress.port, authId: account?.authId })
+  public createClient({ account }: { account?: AccountModel } = {}): TRPCClient<TrpcRouter> {
+    return TrpcClient.create({ port: this.port, authId: account?.authId })
   }
 
   public [Symbol.dispose](): void {
