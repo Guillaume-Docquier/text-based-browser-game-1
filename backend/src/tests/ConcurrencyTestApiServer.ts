@@ -25,19 +25,19 @@ const API_START_TIMEOUT_MS = 30_000
  */
 const ANY_UNUSED_PORT = 0
 
-export class LoadTestApiServer {
+export class ConcurrencyTestApiServer {
   private readonly postgresContainer: StartedPostgreSqlContainer
   private readonly server: ForkedServer
   private readonly db: Database
   private readonly accountsRepository: AccountsRepository
 
-  public static async create(): Promise<LoadTestApiServer> {
+  public static async create(): Promise<ConcurrencyTestApiServer> {
     const postgresContainer = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
     const databaseUrl = postgresContainer.getConnectionUri()
     const server = await forkApiServer({ databaseUrl })
     const db = createDb({ databaseUrl })
 
-    return new LoadTestApiServer({ postgresContainer, server, db })
+    return new ConcurrencyTestApiServer({ postgresContainer, server, db })
   }
 
   private constructor({

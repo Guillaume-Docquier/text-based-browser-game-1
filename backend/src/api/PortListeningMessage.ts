@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 /**
- * Message sent from the forked api to the load tests to tell it which port the api is on.
+ * Message sent from the forked api to the concurrency tests to tell it which port the api is on.
  */
 export type PortListeningMessage = z.infer<typeof PortListeningMessage>
 export const PortListeningMessage = z.object({

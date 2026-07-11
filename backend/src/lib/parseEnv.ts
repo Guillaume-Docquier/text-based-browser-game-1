@@ -28,7 +28,7 @@ export const envSchema = z.object({
   CLERK_SECRET_KEY: z.string(),
 
   /**
-   * Allows load tests to exercise the real API entry point without Clerk test credentials.
+   * Allows tests to exercise the real API entry point without Clerk test credentials.
    */
   AUTH_SERVICE: z.enum(["clerk", "test-header"]).default("clerk"),
 })

@@ -66,7 +66,7 @@ async function main(): Promise<void> {
     Assert.isDefined(serverAddress?.port)
 
     logger.info(`API listening on port ${serverAddress.port}`)
-    // This is currently only used for load tests to know which port the api is using
+    // This is currently only used for concurrency tests to know which port the api is using
     process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
   })
 
