@@ -10,7 +10,7 @@ import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient }
 
 // The image is the same we use to dev locally, keep it this way.
 // See infra/docker-compose.yaml
-const POSTGRES_IMAGE = "postgres:18.4"
+export const POSTGRES_IMAGE = "postgres:18.4"
 /**
  * Set to "ignore" to lower the noise
  * Set to "inherit" to debug what's going on inside the apiServer
