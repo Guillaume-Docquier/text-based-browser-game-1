@@ -206,7 +206,7 @@ jobs:
           echo "Released option id: $released_option_id"
 
           pull_requests_query=$(cat <<'GRAPHQL'
-          query GetAssociatedPullRequests($owner: String!, $name: String!, $sha: GitObjectID!) {
+          query GetAssociatedPullRequests($owner: String!, $name: String!, $sha: GitObjectID!, $statusFieldName: String!) {
             repository(owner: $owner, name: $name) {
               object(oid: $sha) {
                 ... on Commit {
@@ -232,17 +232,9 @@ jobs:
                                 number
                                 title
                               }
-                              fieldValues(first: 50) {
-                                nodes {
-                                  ... on ProjectV2ItemFieldSingleSelectValue {
-                                    name
-                                    field {
-                                      ... on ProjectV2FieldCommon {
-                                        id
-                                        name
-                                      }
-                                    }
-                                  }
+                              status: fieldValueByName(name: $statusFieldName) {
+                                ... on ProjectV2ItemFieldSingleSelectValue {
+                                  name
                                 }
                               }
                             }
@@ -262,7 +254,8 @@ jobs:
             -f query="$pull_requests_query" \
             -f owner="$repository_owner" \
             -f name="$repository_name" \
-            -f sha="$DEPLOYMENT_SHA")
+            -f sha="$DEPLOYMENT_SHA" \
+            -f statusFieldName="$PROJECT_STATUS_FIELD")
 
           echo
           echo "Pull requests associated with deployed commit:"
@@ -279,7 +272,6 @@ jobs:
 
           mapfile -t issue_items < <(jq -c \
             --arg projectId "$project_id" \
-            --arg fieldName "$PROJECT_STATUS_FIELD" \
             '[.data.repository.object.associatedPullRequests.nodes[]? as $pullRequest
               | $pullRequest.closingIssuesReferences.nodes[]? as $issue
               | $issue.projectItems.nodes[]? as $item
@@ -290,7 +282,7 @@ jobs:
                   issueTitle: $issue.title,
                   issueUrl: $issue.url,
                   itemId: $item.id,
-                  currentStatus: ([$item.fieldValues.nodes[]? | select(.field.name == $fieldName) | .name][0] // "")
+                  currentStatus: ($item.status.name // "")
                 }]
               | unique_by(.itemId)
               | .[]' \
