@@ -2,7 +2,7 @@
 <project version="4">
   <component name="TypeScriptCompiler">
     <option name="memoryLimit" value="4096" />
-    <option name="typeScriptServiceDirectory" value="$PROJECT_DIR$/frontend/node_modules/@typescript/native-preview" />
+    <option name="typeScriptServiceDirectory" value="$PROJECT_DIR$/backend/node_modules/typescript" />
     <option name="versionType" value="SERVICE_DIRECTORY" />
   </component>
 </project>
