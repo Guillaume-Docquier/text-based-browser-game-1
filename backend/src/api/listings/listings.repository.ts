@@ -26,10 +26,10 @@ export class ListingsRepository extends PostgresRepository {
   }
 
   /**
-   * Gets ALL the game listings. This only makes sense until we have real traffic.
+   * Gets ALL the game listings. This only makes sense until we have real traffic, at which point we'll need pagination, queries, etc.
    */
   public async getListings(db: PostgresRepository["db"] = this.db): Promise<Result<ListingModel[], string>> {
-    const listingsResults = await Result.tryCatch(
+    const listingsResults: Result<ListingModel[], Error> = await Result.tryCatch(
       db
         .select({
           id: gamesTable.id,
