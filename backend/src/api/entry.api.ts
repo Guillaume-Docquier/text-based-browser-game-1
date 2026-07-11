@@ -61,10 +61,10 @@ async function main(): Promise<void> {
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
   const server = app.listen(env.PORT, "::", () => {
-    // If env.PORT is 0, a random port will be attributed, so we log the server port instead of env.PORT
     const serverAddress = server.address() as AddressInfo
     Assert.isDefined(serverAddress?.port)
 
+    // If env.PORT is 0, a random port will be attributed, so we log the server port instead of env.PORT
     logger.info(`API listening on port ${serverAddress.port}`)
     // This is currently only used for concurrency tests to know which port the api is using
     process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
