@@ -26,6 +26,11 @@ export const envSchema = z.object({
    * Fetch the dev key from clerk and keep put it in your .env file.
    */
   CLERK_SECRET_KEY: z.string(),
+
+  /**
+   * Allows tests to exercise the real API entry point without Clerk test credentials.
+   */
+  AUTH_SERVICE: z.enum(["clerk", "test-header"]).default("clerk"),
 })
 
 /**

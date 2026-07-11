@@ -4,7 +4,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import express, { type Express } from "express"
 import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import type { IAuthService } from "#api/accounts/auth.service.ts"
+import type { AuthService } from "#api/accounts/auth.service.ts"
 import { GameplayController } from "#api/gameplay/gameplay.controller.ts"
 import { type GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
@@ -35,7 +35,7 @@ export async function createApi({
    * Only controllers should use `createTransaction`.
    */
   createTransaction: CreateTransaction
-  authService: IAuthService
+  authService: AuthService
   logger: Logger
   clock: Clock
   accountsRepository: AccountsRepository

@@ -1,11 +1,15 @@
-import { Logger } from "@guillaume-docquier/tools-ts"
+import type { AddressInfo } from "node:net"
+import { Assert, Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AuthService } from "#api/accounts/auth.service.ts"
+import { ClerkAuthProvider } from "#api/accounts/ClerkAuthProvider.ts"
+import { TestHeaderAuthProvider } from "#api/accounts/TestHeaderAuthProvider.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import type { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
@@ -44,7 +48,7 @@ async function main(): Promise<void> {
     gameplayRepository: new GameplayRepository({ db, logger, clock }),
   }
 
-  const authService = new AuthService({ logger })
+  const authService = createAuthService({ authService: env.AUTH_SERVICE, logger })
 
   logger.info("Creating the API")
   const app = await createApi({
@@ -56,8 +60,14 @@ async function main(): Promise<void> {
   })
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
-  app.listen(env.PORT, "::", () => {
-    logger.info(`API listening on port ${env.PORT}`)
+  const server = app.listen(env.PORT, "::", () => {
+    const serverAddress = server.address() as AddressInfo
+    Assert.isDefined(serverAddress?.port)
+
+    // If env.PORT is 0, a random port will be attributed, so we log the server port instead of env.PORT
+    logger.info(`API listening on port ${serverAddress.port}`)
+    // This is currently only used for concurrency tests to know which port the api is using
+    process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
   })
 
   logger.info("Starting tick processing")
@@ -83,4 +93,13 @@ async function migrateDatabase(db: Database, { migrationsFolder, logger }: { mig
       },
     },
   )
+}
+
+function createAuthService({ authService, logger }: { authService: "clerk" | "test-header"; logger: Logger }): AuthService {
+  switch (authService) {
+    case "clerk":
+      return new AuthService({ logger, authProvider: new ClerkAuthProvider({ logger }) })
+    case "test-header":
+      return new AuthService({ logger, authProvider: new TestHeaderAuthProvider() })
+  }
 }

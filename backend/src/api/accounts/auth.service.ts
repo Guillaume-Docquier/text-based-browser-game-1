@@ -1,8 +1,7 @@
-import { clerkClient, clerkMiddleware, getAuth, type User } from "@clerk/express"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler } from "express"
 import type { AccountDto, AccountsController } from "#api/accounts/accounts.controller.ts"
-import { couldNot } from "#lib/errors.ts"
+import type { AuthProvider } from "#api/accounts/AuthProvider.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
 // I just don't really know how to adapt clerk to trpc yet. For now this does the job.
@@ -15,21 +14,19 @@ declare global {
   }
 }
 
-export interface IAuthService {
-  authenticationMiddlewares: ({ accountsController }: { accountsController: AccountsController }) => RequestHandler[]
-}
-
 /**
  * Encapsulates Clerk.
  * This should be the only place we use Clerk directly.
  *
  * It'll make tests easier, and if Clerk turns out to be a problem, we can change it.
  */
-export class AuthService implements IAuthService {
+export class AuthService {
   private readonly logger: Logger
+  private readonly authProvider: AuthProvider
 
-  public constructor({ logger }: { logger: Logger }) {
+  public constructor({ logger, authProvider }: { logger: Logger; authProvider: AuthProvider }) {
     this.logger = logger.child({ scope: "auth-service" })
+    this.authProvider = authProvider
   }
 
   /**
@@ -37,21 +34,7 @@ export class AuthService implements IAuthService {
    * The trpc procedures will consume this information.
    */
   public authenticationMiddlewares({ accountsController }: { accountsController: AccountsController }): RequestHandler[] {
-    return [clerkMiddleware(), this.recordAccountMiddleware({ accountsController })]
-  }
-
-  /**
-   * Gets complete authentication information for a given authenticated user.
-   * This returns richer data than {@link getAuth}.
-   */
-  private async getUser({ authId }: { authId: string }): Promise<Result<User, string>> {
-    const getUserResult = await Result.tryCatch(clerkClient.users.getUser(authId))
-    if (Result.isFailure(getUserResult)) {
-      this.logger.error("Could not get user data from clerk", { authId, error: getUserResult.error })
-      return Result.Failure(couldNot("get user data from clerk"))
-    }
-
-    return getUserResult
+    return [this.authProvider.parseTokenMiddleware(), this.recordAccountMiddleware({ accountsController })]
   }
 
   /**
@@ -61,33 +44,29 @@ export class AuthService implements IAuthService {
    */
   private recordAccountMiddleware({ accountsController }: { accountsController: AccountsController }): RequestHandler {
     return async (req, res, next) => {
-      const auth = getAuth(req)
-      if (!auth.isAuthenticated) {
+      const authStatus = this.authProvider.parseAuthStatus({ req })
+      if (!authStatus.isAuthenticated) {
         next()
         return
       }
 
-      const authId = auth.userId
-      const findAccountResult = await accountsController.getAccountByAuthId({ authId })
-      if (Result.isFailure(findAccountResult)) {
-        this.logger.error("Could not get account from the clerk id", { authId, error: findAccountResult.error })
+      const authId = authStatus.authId
+      const getAccountResult = await accountsController.getAccountByAuthId({ authId })
+      if (Result.isFailure(getAccountResult)) {
+        this.logger.error("Could not get account from the clerk id", { authId, error: getAccountResult.error })
         next()
         return
       }
 
-      let account = findAccountResult.value
+      let account = getAccountResult.value
       if (account === undefined) {
-        const clerkUser = await this.getUser({ authId })
-        if (Result.isFailure(clerkUser)) {
+        const userResult = await this.authProvider.fetchUser({ authId })
+        if (Result.isFailure(userResult)) {
           next()
           return
         }
 
-        const createAccountResult = await accountsController.createAccount({
-          authId,
-          email: clerkUser.value.primaryEmailAddress?.emailAddress,
-          alias: clerkUser.value.fullName ?? undefined,
-        })
+        const createAccountResult = await accountsController.createAccount({ ...userResult.value, authId })
         if (Result.isFailure(createAccountResult)) {
           this.logger.error("Could not record new account", { authId, error: createAccountResult.error })
           next()

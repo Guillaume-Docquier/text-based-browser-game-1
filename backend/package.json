@@ -35,6 +35,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",
     "@inquirer/prompts": "^8.5.2",
+    "@testcontainers/postgresql": "^12.0.4",
     "@trpc/client": "^11.18.0",
     "@types/express": "^5.0.6",
     "@types/node": "^26.0.1",
@@ -42,6 +43,7 @@
     "@typescript/native-preview": "catalog:",
     "@vitest/coverage-v8": "^4.1.9",
     "drizzle-kit": "^0.31.10",
+    "testcontainers": "^12.0.4",
     "vitest": "^4.1.9"
   }
 }

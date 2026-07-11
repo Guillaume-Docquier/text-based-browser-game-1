@@ -50,7 +50,7 @@ it("should do something when other is equal to 1", () => {
 Mock are alternate implementations of production dependencies. This is rarely used because we prefer testing production code. Use them only when a test must control or observe dependency behavior that cannot be exercised reliably with the real implementation.
 
 ```ts
-// auth.service.mock.ts
+// this is not actual code from the codebase, just an example
 export class AuthServiceMock implements IAuthService {
   /**
    * public Player so tests can easily control it

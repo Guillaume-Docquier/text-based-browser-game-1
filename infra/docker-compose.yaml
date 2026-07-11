@@ -1,7 +1,8 @@
 # this is only used for dev, don't deploy this rofl
 services:
   db:
-    image: postgres:18.3
+    # Needs to be in sync with the concurrency test image in ConcurrencyTestApiServer.ts
+    image: postgres:18.4
     restart: always
     environment:
       POSTGRES_USER: user

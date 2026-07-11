@@ -9,8 +9,8 @@ type NewAccountRow = typeof accountsTable.$inferInsert
 
 export type NewAccountModel = {
   authId: string
-  email?: string | undefined
-  alias?: string | undefined
+  email?: string | null | undefined
+  alias?: string | null | undefined
 }
 export type AccountModel = {
   id: AccountId

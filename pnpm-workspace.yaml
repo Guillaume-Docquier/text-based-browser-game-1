@@ -13,8 +13,11 @@ allowBuilds:
   "@clerk/shared": true
   bufferutil: true
   core-js: true
+  cpu-features: false
   esbuild: true
   msw: true
+  protobufjs: false
+  ssh2: false
   utf-8-validate: true
 
 peerDependencyRules:
