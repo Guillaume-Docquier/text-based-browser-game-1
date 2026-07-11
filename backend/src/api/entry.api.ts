@@ -9,6 +9,7 @@ import { TestHeaderAuthProvider } from "#api/accounts/TestHeaderAuthProvider.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import type { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
@@ -66,7 +67,7 @@ async function main(): Promise<void> {
 
     logger.info(`API listening on port ${serverAddress.port}`)
     // This is currently only used for load tests to know which port the api is using
-    process.send?.({ type: "listening", port: serverAddress.port })
+    process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
   })
 
   logger.info("Starting tick processing")

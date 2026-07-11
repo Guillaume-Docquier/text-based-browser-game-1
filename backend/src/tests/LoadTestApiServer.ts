@@ -4,10 +4,10 @@ import { setTimeout } from "node:timers/promises"
 import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
 import { type TRPCClient } from "@trpc/client"
-import { z } from "zod"
 import { AccountsRepository, type AccountModel } from "#api/accounts/accounts.repository.ts"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
+import { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { createDb } from "#lib/db/createDb.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
@@ -47,7 +47,7 @@ export class LoadTestApiServer {
   public static async create(): Promise<LoadTestApiServer> {
     const postgresContainer = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
     const databaseUrl = postgresContainer.getConnectionUri()
-    const apiServer = await startApiServer({ databaseUrl })
+    const apiServer = await forkApiServer({ databaseUrl })
     const accountsRepository = new AccountsRepository({ db: createDb({ databaseUrl }), logger: Logger.get() })
 
     return new LoadTestApiServer({ postgresContainer, apiServer, accountsRepository })
@@ -91,22 +91,23 @@ export class LoadTestApiServer {
   }
 }
 
-const PortListeningMessage = z.object({
-  type: z.literal("listening"),
-  port: z.coerce.number(),
-})
+type ApiServer = {
+  port: number
+  stop: () => Promise<void>
+}
 
-type ApiServer = { port: number; stop: () => Promise<void> }
-
-async function startApiServer({ databaseUrl }: { databaseUrl: string }): Promise<ApiServer> {
+/**
+ * Starts a real api in a forked process.
+ * The goal of this is to use an unadulterated api server running on its own thread.
+ */
+async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<ApiServer> {
   const apiProcess = fork("src/api/entry.api.ts", {
     cwd: process.cwd(),
     detached: true,
     env: {
-      ...process.env,
       AUTH_SERVICE: "test-header",
-      CLERK_PUBLISHABLE_KEY: "load-test-clerk-publishable-key",
-      CLERK_SECRET_KEY: "load-test-clerk-secret-key",
+      CLERK_PUBLISHABLE_KEY: "does not matter with test-header auth",
+      CLERK_SECRET_KEY: "does not matter with test-header auth",
       DATABASE_URL: databaseUrl,
       PORT: ANY_UNUSED_PORT.toString(),
     },
@@ -115,13 +116,12 @@ async function startApiServer({ databaseUrl }: { databaseUrl: string }): Promise
   Assert.isDefined(apiProcess.pid)
 
   const apiReady = Promise.withResolvers<number>()
-  apiProcess.on("message", (message) => {
-    const parsedMessage = PortListeningMessage.parse(message)
-    apiReady.resolve(parsedMessage.port)
+  apiProcess.once("message", (message) => {
+    apiReady.resolve(PortListeningMessage.parse(message).port)
   })
 
   let died = false
-  apiProcess.on("close", () => {
+  apiProcess.once("close", () => {
     died = true
   })
 
