@@ -1,10 +1,8 @@
 import { createServer, type Server } from "node:http"
 import type { AddressInfo } from "node:net"
-import type { TRPCClient } from "@trpc/client"
 import type { Express } from "express"
-import type { AccountModel, AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import type { TrpcRouter } from "#api/createApi.ts"
-import { createApiClient } from "#tests/ApiClient.ts"
+import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
 
 /**
  * I can't find the documentation, but server.listen(0) gets assigned an unused port.
@@ -12,20 +10,9 @@ import { createApiClient } from "#tests/ApiClient.ts"
  */
 const ANY_UNUSED_PORT = 0
 
-type AuthenticatedApiClient = {
-  readonly client: TRPCClient<TrpcRouter>
-  readonly account: AccountModel
-}
-
-type AnonymousApiClient = {
-  readonly client: TRPCClient<TrpcRouter>
-  readonly account: undefined
-}
-
 /**
- * Creates a Trpc server with a client for testing.
- * This method will bootstrap the api as well and clean it up after the test.
- * Must be used with `using`
+ * An api server that lets you create trpc clients for testing.
+ * Handles cleanups via `using`
  *
  * @example
  * ```ts
@@ -59,5 +46,6 @@ export class ApiServer {
 
   public [Symbol.dispose](): void {
     this.server.closeAllConnections()
+    this.server.close()
   }
 }

@@ -5,12 +5,12 @@ import { AUTH_ID_HEADER } from "#api/accounts/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
-type AuthenticatedApiClient = {
+export type AuthenticatedApiClient = {
   readonly client: TRPCClient<TrpcRouter>
   readonly account: AccountModel
 }
 
-type AnonymousApiClient = {
+export type AnonymousApiClient = {
   readonly client: TRPCClient<TrpcRouter>
   readonly account: undefined
 }

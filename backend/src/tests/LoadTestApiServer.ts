@@ -3,12 +3,10 @@ import { once } from "node:events"
 import { setTimeout } from "node:timers/promises"
 import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
-import { type TRPCClient } from "@trpc/client"
-import { AccountsRepository, type AccountModel } from "#api/accounts/accounts.repository.ts"
-import type { TrpcRouter } from "#api/createApi.ts"
+import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
-import { createApiClient } from "#tests/ApiClient.ts"
+import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
 
 // The image is the same we use to dev locally, keep it this way.
 // See infra/docker-compose.yaml
@@ -26,16 +24,6 @@ const API_START_TIMEOUT_MS = 30_000
  * Great for testing.
  */
 const ANY_UNUSED_PORT = 0
-
-type AuthenticatedApiClient = {
-  readonly client: TRPCClient<TrpcRouter>
-  readonly account: AccountModel
-}
-
-type AnonymousApiClient = {
-  readonly client: TRPCClient<TrpcRouter>
-  readonly account: undefined
-}
 
 export class LoadTestApiServer {
   private readonly postgresContainer: StartedPostgreSqlContainer
