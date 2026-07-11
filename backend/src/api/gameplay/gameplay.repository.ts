@@ -1,4 +1,4 @@
-import { type Branded, branded, Assert, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { type Branded, Assert, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { and, eq, inArray } from "drizzle-orm"
 import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
@@ -43,6 +43,7 @@ export type GameForStart = Branded<
     readonly id: GameId
     readonly starSystemGenerationSettings: StarSystemGenerationSettings
     readonly tickInterval: Time
+    readonly playerIds: readonly PlayerId[]
   },
   "GameForStart"
 >
@@ -52,7 +53,8 @@ export type StartGameModel = {
   readonly startedAt: Date
   readonly nextTickAt: Date
   readonly starSystem: NewStarSystemModel
-  readonly startingResources: ReadonlyArray<{
+  readonly playerResources: ReadonlyArray<{
+    readonly playerId: PlayerId
     readonly resourceType: ResourceType
     readonly amount: number
   }>
@@ -121,33 +123,27 @@ export class GameplayRepository extends PostgresRepository {
       return Result.Failure("The game does not exist, cannot be started or this account cannot start it.")
     }
 
-    return Result.Success(
-      branded<GameForStart>({
-        id: gameForStart.id,
-        starSystemGenerationSettings: gameForStart.starSystemGenerationSettings,
-        tickInterval: Time.create(gameForStart.tickIntervalSeconds, UnitOfTime.SECONDS),
-      }),
-    )
+    const playerIdRows = await tx
+      .select({ playerId: playersTable.playerId })
+      .from(playersTable)
+      .where(eq(playersTable.gameId, gameForStart.id))
+    Assert.isTrue(playerIdRows.length > 0)
+
+    const playerIds: readonly PlayerId[] = playerIdRows.map(({ playerId }) => playerId)
+
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- Branded
+    return Result.Success({
+      id: gameForStart.id,
+      starSystemGenerationSettings: gameForStart.starSystemGenerationSettings,
+      tickInterval: Time.create(gameForStart.tickIntervalSeconds, UnitOfTime.SECONDS),
+      playerIds,
+    } as GameForStart)
   }
 
   /**
    * The only failure mode for this method is throwing to rollback the transaction.
    */
   public async startGame(startGameModel: StartGameModel, tx: Transaction): Promise<void> {
-    const playerIds = await tx
-      .select({ playerId: playersTable.playerId })
-      .from(playersTable)
-      .where(eq(playersTable.gameId, startGameModel.game.id))
-    Assert.isTrue(playerIds.length > 0)
-
-    const playerResources: NewResourceRow[] = playerIds.flatMap(({ playerId }) =>
-      startGameModel.startingResources.map((resource) => ({
-        gameId: startGameModel.game.id,
-        playerId,
-        ...resource,
-      })),
-    )
-
     const gameState = {
       gameId: startGameModel.game.id,
       tick: 0,
@@ -160,6 +156,11 @@ export class GameplayRepository extends PostgresRepository {
       scheduledFor: startGameModel.nextTickAt,
     }
 
+    const resources: NewResourceRow[] = startGameModel.playerResources.map((playerResource) => ({
+      ...playerResource,
+      gameId: startGameModel.game.id,
+    }))
+
     const updatedGames = await tx
       .update(gamesTable)
       .set({ startedAt: startGameModel.startedAt, status: GameStatus.COLLECTING_ORDERS })
@@ -167,7 +168,7 @@ export class GameplayRepository extends PostgresRepository {
       .returning({ id: gamesTable.id })
     Assert.isTrue(updatedGames.length === 1)
 
-    await tx.insert(resourcesTable).values(playerResources)
+    await tx.insert(resourcesTable).values(resources)
     await tx.insert(gameStatesTable).values(gameState)
     await tx.insert(ticksTable).values(gameTick)
     await StarSystemQueries.insertStarSystem({ gameId: startGameModel.game.id, starSystem: startGameModel.starSystem }, tx)

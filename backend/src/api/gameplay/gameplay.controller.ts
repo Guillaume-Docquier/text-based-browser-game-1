@@ -51,16 +51,21 @@ export class GameplayController {
       const starSystemResult = generateStarSystem({ settings: gameForStart.value.starSystemGenerationSettings, clock: this.clock })
       rollbackOnFailure(starSystemResult, "Failed to generate Star System")
 
+      const startingResources = Object.values(ResourceType).map((resourceType) => ({
+        resourceType,
+        amount: STARTING_RESOURCE_AMOUNTS[resourceType],
+      }))
+      const playerResources = gameForStart.value.playerIds.flatMap((playerId) =>
+        startingResources.map((resource) => ({ playerId, ...resource })),
+      )
+
       await this.gameplayRepository.startGame(
         {
           game: gameForStart.value,
           startedAt,
           nextTickAt,
           starSystem: starSystemResult.value,
-          startingResources: Object.values(ResourceType).map((resourceType) => ({
-            resourceType,
-            amount: STARTING_RESOURCE_AMOUNTS[resourceType],
-          })),
+          playerResources,
         },
         tx,
       )
