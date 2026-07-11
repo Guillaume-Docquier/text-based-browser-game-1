@@ -7,14 +7,14 @@
     "checks": "pnpm lint:fix && pnpm format:fix && pnpm -r checks",
     "db:clean": "docker compose -f infra/docker-compose.yaml down --volumes && docker compose -f infra/docker-compose.yaml up --wait db && pnpm --filter backend db:migrate && pnpm --filter backend db:seed",
     "db:nuke": "rm -rf backend/drizzle && pnpm --filter backend db:generate --name init && pnpm db:clean",
-    "e2e": "pnpm --filter frontend e2e",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
-    "integration": "pnpm --filter backend test",
     "lint": "oxlint --max-warnings 0",
     "lint:fix": "pnpm lint --fix",
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
+    "test:backend": "pnpm --filter backend test",
+    "test:e2e": "pnpm --filter frontend e2e",
     "wts": "pnpm ci && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
   },
   "devDependencies": {

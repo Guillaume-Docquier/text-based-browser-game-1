@@ -51,94 +51,6 @@ describe("gameplay.router", () => {
       expect(new Date(startGameResult.nextTickAt).toString()).not.toBe("Invalid Date")
     })
 
-    // This test doesn't work with PGLite, requests are done sequentially
-    // We need a much bigger setup to test this correctly, probably some stress testing or something
-    it.skip("should prevent the game from starting twice when requested in quick succession", async () => {
-      // Arrange
-      const { api, authService, accountsRepository } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
-
-      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-
-      const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
-
-      // Act
-      const startGameResult = await Promise.allSettled([
-        trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId }),
-        trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId }),
-      ])
-
-      // Assert
-      expect(startGameResult).toEqual<typeof startGameResult>([
-        { status: "fulfilled", value: { nextTickAt: expect.any(String) } },
-        { status: "rejected", reason: expect.objectContaining({ message: expect.stringContaining("Could not start") }) },
-      ])
-    })
-
-    // This test doesn't work with PGLite, requests are done sequentially
-    // We need a much bigger setup to test this correctly, probably some stress testing or something
-    it.skip("should prevent joining a game while it is being started", async () => {
-      // Arrange -- We need 2 api clients to avoid race conditions setting the authService account for the concurrent requests
-      const db = await createDbMock()
-
-      const { api: creatorApi, authService: creatorAuthService, accountsRepository } = await createApiStub({ db })
-      using creatorTrpcClient = new TrpcClient({ api: creatorApi })
-
-      const { api: joinerApi, authService: joinerAuthService } = await createApiStub({ db })
-      using joinerTrpcClient = new TrpcClient({ api: joinerApi })
-
-      creatorAuthService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      joinerAuthService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-
-      const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
-
-      // Act
-      const startGameResult = await Promise.allSettled([
-        creatorTrpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId }),
-        joinerTrpcClient.client.lobbies.join.mutate({ gameId: createdGameId }),
-      ])
-
-      // Assert
-      expect(startGameResult).toEqual<typeof startGameResult>([
-        { status: "fulfilled", value: { nextTickAt: expect.any(String) } },
-        { status: "rejected", reason: expect.objectContaining({ message: expect.stringContaining("Could not join") }) },
-      ])
-    })
-
-    // This test doesn't work with PGLite, requests are done sequentially
-    // We need a much bigger setup to test this correctly, probably some stress testing or something
-    it.skip("should prevent leaving a game while it is being started", async () => {
-      // Arrange -- We need 2 api clients to avoid race conditions setting the authService account for the concurrent requests
-      const db = await createDbMock()
-
-      const { api: creatorApi, authService: creatorAuthService, accountsRepository } = await createApiStub({ db })
-      using creatorTrpcClient = new TrpcClient({ api: creatorApi })
-
-      const { api: leaverApi, authService: leaverAuthService } = await createApiStub({ db })
-      using leaverTrpcClient = new TrpcClient({ api: leaverApi })
-
-      creatorAuthService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      leaverAuthService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-
-      const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await creatorTrpcClient.client.lobbies.create.mutate({ configuration: newGameSettings })
-      await leaverTrpcClient.client.lobbies.join.mutate({ gameId: createdGameId })
-
-      // Act
-      const startGameResult = await Promise.allSettled([
-        creatorTrpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId }),
-        leaverTrpcClient.client.lobbies.leave.mutate({ gameId: createdGameId }),
-      ])
-
-      // Assert
-      expect(startGameResult).toEqual<typeof startGameResult>([
-        { status: "fulfilled", value: { nextTickAt: expect.any(String) } },
-        { status: "rejected", reason: expect.objectContaining({ message: expect.stringContaining("Could not leave") }) },
-      ])
-    })
-
     it("should reject starting a game as a non-creator", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
@@ -156,15 +68,14 @@ describe("gameplay.router", () => {
 
     it("should reject starting a game that has already started", async () => {
       // Arrange
-      const { api, authService, accountsRepository } = await createApiStub()
-      using trpcClient = new TrpcClient({ api })
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
 
-      authService.account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      const { createdGameId } = await trpcClient.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-      await trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act & Assert
-      await expect(trpcClient.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+      await expect(creator.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
