@@ -1,6 +1,5 @@
 import { Datetime, Range, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
@@ -9,31 +8,25 @@ import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import { extractSuccess } from "#tests/extractSuccess.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { createResourceUpdateModelStub } from "#tests/resources/ResourceUpdateModel.stub.ts"
 
 describe("gameplay.router", () => {
   it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
     // Arrange
-    const { api, accountsRepository } = await createApiStub()
+    using apiServer = new ApiServer(await createApiStub())
+    const creator = await apiServer.createClient({ authenticated: true })
+    const nonPlayer = await apiServer.createClient({ authenticated: true })
 
-    const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-    using apiServer = new ApiServer({ api })
-    const creatorClient = apiServer.createClient({ account: creatorAccount })
-
-    const nonPlayerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-    const nonPlayerClient = apiServer.createClient({ account: nonPlayerAccount })
-
-    const { createdGameId } = await creatorClient.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+    const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
 
     // Act & Assert
     const expectedError = { data: { code: "FORBIDDEN" } }
-    await expect(nonPlayerClient.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
-    await expect(nonPlayerClient.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
-    await expect(nonPlayerClient.gameplay.getCurrentAction.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(nonPlayer.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(nonPlayer.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(nonPlayer.client.gameplay.getCurrentAction.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(
-      nonPlayerClient.gameplay.setCurrentAction.mutate({
+      nonPlayer.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
@@ -44,17 +37,14 @@ describe("gameplay.router", () => {
   describe("start", () => {
     it("should start a game", async () => {
       // Arrange
-      const { api, accountsRepository } = await createApiStub()
-
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient({ account })
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
 
       const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await client.lobbies.create.mutate({ configuration: newGameSettings })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const startGameResult = await client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const startGameResult = await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Assert
       expect(startGameResult).toEqual<typeof startGameResult>({ nextTickAt: expect.any(String) }) // trpc serializes the date to string
@@ -63,20 +53,15 @@ describe("gameplay.router", () => {
 
     it("should reject starting a game as a non-creator", async () => {
       // Arrange
-      const { api, accountsRepository } = await createApiStub()
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
 
-      const creatorAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using apiServer = new ApiServer({ api })
-      const creatorClient = apiServer.createClient({ account: creatorAccount })
-
-      const joinerAccount = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      const joinerClient = apiServer.createClient({ account: joinerAccount })
-
-      const { createdGameId } = await creatorClient.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-      await joinerClient.lobbies.join.mutate({ gameId: createdGameId })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Act & Assert
-      await expect(joinerClient.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+      await expect(joiner.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
@@ -84,36 +69,32 @@ describe("gameplay.router", () => {
     it("should start two games with identical deterministic Star Systems", async () => {
       // Arrange
       const clock = new ControlledClock()
-      const { api, accountsRepository } = await createApiStub({ clock })
-
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient({ account })
+      using apiServer = new ApiServer(await createApiStub({ clock }))
+      const player = await apiServer.createClient({ authenticated: true })
 
       const gameConfiguration = createGameConfigurationDtoStub({
         starSystemGenerationSettings: createStarSystemGenerationSettingsStub({ seed: 42 }),
       })
-      const firstGame = await client.lobbies.create.mutate({ configuration: gameConfiguration })
-      const secondGame = await client.lobbies.create.mutate({ configuration: gameConfiguration })
+      const firstGame = await player.client.lobbies.create.mutate({ configuration: gameConfiguration })
+      const secondGame = await player.client.lobbies.create.mutate({ configuration: gameConfiguration })
 
       // Act
-      await client.gameplay.startGame.mutate({ gameId: firstGame.createdGameId })
-      await client.gameplay.startGame.mutate({ gameId: secondGame.createdGameId })
+      await player.client.gameplay.startGame.mutate({ gameId: firstGame.createdGameId })
+      await player.client.gameplay.startGame.mutate({ gameId: secondGame.createdGameId })
 
       // Assert
-      const game1View = await client.gameplay.getPlayerView.query({ gameId: firstGame.createdGameId })
-      const game2View = await client.gameplay.getPlayerView.query({ gameId: secondGame.createdGameId })
+      const game1View = await player.client.gameplay.getPlayerView.query({ gameId: firstGame.createdGameId })
+      const game2View = await player.client.gameplay.getPlayerView.query({ gameId: secondGame.createdGameId })
       expect(game1View.starSystem).toEqual(game2View.starSystem)
     })
 
     it("should reject anonymous game start", async () => {
       // Arrange
-      const { api } = await createApiStub()
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient()
+      using apiServer = new ApiServer(await createApiStub())
+      const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act & Assert
-      await expect(client.gameplay.startGame.mutate({ gameId: 1 })).rejects.toMatchObject({
+      await expect(anonymous.client.gameplay.startGame.mutate({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
@@ -123,11 +104,8 @@ describe("gameplay.router", () => {
     it("should get the authenticated player's state for a started game", async () => {
       // Arrange
       const clock = new ControlledClock()
-      const { api, accountsRepository } = await createApiStub({ clock })
-
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient({ account })
+      using apiServer = new ApiServer(await createApiStub({ clock }))
+      const player = await apiServer.createClient({ authenticated: true })
 
       const gameConfiguration = createGameConfigurationDtoStub({
         starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
@@ -139,18 +117,18 @@ describe("gameplay.router", () => {
           seed: 42,
         }),
       })
-      const { createdGameId } = await client.lobbies.create.mutate({ configuration: gameConfiguration })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: gameConfiguration })
 
-      await client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act
-      const getByIdResult = await client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const getByIdResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
       // This is basically a snapshot test since we've tested the star systems extensively already in unit tests
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameId: createdGameId,
-        playerId: account.id,
+        playerId: player.account.id,
         tick: 0,
         nextTickAt: Datetime.increment({
           date: clock.now(),
@@ -315,28 +293,23 @@ describe("gameplay.router", () => {
 
     it("should reject invalid game ids", async () => {
       // Arrange
-
-      const { api, accountsRepository } = await createApiStub()
-
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient({ account })
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
 
       // Act & Assert
       // @ts-expect-error Testing runtime input parsing with an invalid game id
-      await expect(client.gameplay.getPlayerView.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
+      await expect(player.client.gameplay.getPlayerView.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })
 
     it("should reject anonymous game state reads", async () => {
       // Arrange
-      const { api } = await createApiStub()
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient()
+      using apiServer = new ApiServer(await createApiStub())
+      const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act & Assert
-      await expect(client.gameplay.getPlayerView.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(anonymous.client.gameplay.getPlayerView.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
@@ -348,24 +321,22 @@ describe("gameplay.router", () => {
       const db = await createDbMock()
       const { api, logger, accountsRepository } = await createApiStub({ db })
       const resourcesRepository = new ResourcesRepository({ db, logger })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
 
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient({ account })
-
-      const { createdGameId } = await client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-      await client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await resourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 2 }),
       )
 
       // Act
-      const setCurrentActionResult = await client.gameplay.setCurrentAction.mutate({
+      const setCurrentActionResult = await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
       })
-      const getCurrentActionResult = await client.gameplay.getCurrentAction.query({
+      const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,
       })
 
@@ -373,7 +344,7 @@ describe("gameplay.router", () => {
       expect(setCurrentActionResult).toEqual<typeof setCurrentActionResult>({
         action: {
           gameId: createdGameId,
-          playerId: account.id,
+          playerId: player.account.id,
           tick: 0,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
           updatedAt: expect.any(String),
@@ -384,18 +355,15 @@ describe("gameplay.router", () => {
 
     it("should reject setting an action for a stale tick", async () => {
       // Arrange
-      const { api, accountsRepository } = await createApiStub()
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
 
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient({ account })
-
-      const { createdGameId } = await client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-      await client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act & Assert
       await expect(
-        client.gameplay.setCurrentAction.mutate({
+        player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           tick: 1,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
@@ -412,21 +380,19 @@ describe("gameplay.router", () => {
       const db = await createDbMock()
       const { api, logger, accountsRepository } = await createApiStub({ db })
       const resourcesRepository = new ResourcesRepository({ db, logger })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
 
-      const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub()))
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient({ account })
-
-      const { createdGameId } = await client.lobbies.create.mutate({
+      const { createdGameId } = await player.client.lobbies.create.mutate({
         configuration: createGameConfigurationDtoStub(),
       })
-      await client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await resourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createdGameId, playerId: account.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 2 }),
       )
 
       // Act
-      const getCurrentActionResult = await client.gameplay.getCurrentAction.query({
+      const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,
       })
 
@@ -436,12 +402,11 @@ describe("gameplay.router", () => {
 
     it("should reject anonymous action reads", async () => {
       // Arrange
-      const { api } = await createApiStub()
-      using apiServer = new ApiServer({ api })
-      const client = apiServer.createClient()
+      using apiServer = new ApiServer(await createApiStub())
+      const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act & Assert
-      await expect(client.gameplay.getCurrentAction.query({ gameId: 1 })).rejects.toMatchObject({
+      await expect(anonymous.client.gameplay.getCurrentAction.query({ gameId: 1 })).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
       })
     })
