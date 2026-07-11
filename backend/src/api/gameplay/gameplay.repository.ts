@@ -22,6 +22,9 @@ type NewTickRow = typeof ticksTable.$inferInsert
 
 export type OrderModel = OrderRow
 
+/**
+ * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+ */
 export type PlayerActionContextModel = {
   tick: number
   money: number
@@ -368,6 +371,9 @@ export class GameplayRepository extends PostgresRepository {
   }
 }
 
+/**
+ * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+ */
 async function lockGameCollectingOrders({ gameId }: { gameId: GameId }, db: PostgresRepository["db"]): Promise<void> {
   const games = await db
     .select({ id: gamesTable.id })
