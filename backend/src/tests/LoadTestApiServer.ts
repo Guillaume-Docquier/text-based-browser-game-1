@@ -8,7 +8,7 @@ import { AccountsRepository, type AccountModel } from "#api/accounts/accounts.re
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
 import { PortListeningMessage } from "#api/PortListeningMessage.ts"
-import { createDb } from "#lib/db/createDb.ts"
+import { createDb, type Database } from "#lib/db/createDb.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { TrpcClient } from "#tests/TrpcClient.ts"
 
@@ -42,29 +42,31 @@ type AnonymousApiClient = {
 export class LoadTestApiServer {
   private readonly postgresContainer: StartedPostgreSqlContainer
   private readonly apiServer: ApiServer
+  private readonly db: Database
   private readonly accountsRepository: AccountsRepository
 
   public static async create(): Promise<LoadTestApiServer> {
     const postgresContainer = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
     const databaseUrl = postgresContainer.getConnectionUri()
     const apiServer = await forkApiServer({ databaseUrl })
-    const accountsRepository = new AccountsRepository({ db: createDb({ databaseUrl }), logger: Logger.get() })
+    const db = createDb({ databaseUrl })
 
-    return new LoadTestApiServer({ postgresContainer, apiServer, accountsRepository })
+    return new LoadTestApiServer({ postgresContainer, apiServer, db })
   }
 
   private constructor({
     postgresContainer,
     apiServer,
-    accountsRepository,
+    db,
   }: {
     postgresContainer: StartedPostgreSqlContainer
     apiServer: ApiServer
-    accountsRepository: AccountsRepository
+    db: Database
   }) {
     this.postgresContainer = postgresContainer
     this.apiServer = apiServer
-    this.accountsRepository = accountsRepository
+    this.db = db
+    this.accountsRepository = new AccountsRepository({ db, logger: Logger.get() })
   }
 
   public async createClient(args: { authenticated: true }): Promise<AuthenticatedApiClient>
@@ -86,7 +88,7 @@ export class LoadTestApiServer {
   }
 
   public async [Symbol.asyncDispose](): Promise<void> {
-    await this.apiServer.stop()
+    await Promise.all([this.apiServer.stop(), this.db.$client.end()])
     await this.postgresContainer.stop()
   }
 }
