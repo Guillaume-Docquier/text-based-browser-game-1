@@ -222,6 +222,9 @@ export class GameplayRepository extends PostgresRepository {
     return playerViewResult
   }
 
+  /**
+   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+   */
   public async getCurrentAction(
     params: { gameId: GameId; playerId: PlayerId; tick: number },
     db: PostgresRepository["db"] = this.db,
@@ -242,6 +245,9 @@ export class GameplayRepository extends PostgresRepository {
     return Result.Success(getResult.value[0] ?? null)
   }
 
+  /**
+   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+   */
   public async getPlayerActionContext(
     params: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
@@ -297,6 +303,9 @@ export class GameplayRepository extends PostgresRepository {
     return contextResult
   }
 
+  /**
+   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+   */
   public async setCurrentAction(
     params: { gameId: GameId; playerId: PlayerId; tick: number; actionType: GamePlayerActionType },
     db: PostgresRepository["db"] = this.db,
@@ -333,6 +342,9 @@ export class GameplayRepository extends PostgresRepository {
     return upsertResult
   }
 
+  /**
+   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+   */
   public async clearCurrentAction(
     params: { gameId: GameId; playerId: PlayerId; tick: number },
     db: PostgresRepository["db"] = this.db,

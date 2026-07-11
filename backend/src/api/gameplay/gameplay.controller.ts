@@ -99,7 +99,7 @@ export class GameplayController {
   }
 
   /**
-   * @deprecated Temporary POC implementation
+   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
   public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<GamePlayerAction | null, string>> {
     const getCurrentActionResult = await this.createTransaction(async (tx) => {
@@ -128,7 +128,7 @@ export class GameplayController {
   }
 
   /**
-   * @deprecated Temporary POC implementation
+   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
   public async setCurrentAction({
     gameId,
