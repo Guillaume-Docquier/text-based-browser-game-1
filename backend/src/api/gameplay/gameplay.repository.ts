@@ -38,6 +38,9 @@ export type PlayerViewModel = {
   }
 }
 
+/**
+ * Owning a GameForStart within a transaction guarantees that the game is locked and can be started at this time.
+ */
 export type GameForStart = Branded<
   {
     readonly id: GameId
@@ -49,6 +52,9 @@ export type GameForStart = Branded<
 >
 
 export type StartGameModel = {
+  /**
+   * The GameForStart must be acquired in the same transaction
+   */
   readonly game: GameForStart
   readonly startedAt: Date
   readonly nextTickAt: Date
