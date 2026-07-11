@@ -19,7 +19,7 @@ const POSTGRES_IMAGE = "postgres:18.4"
  * Set to "ignore" to lower the noise
  * Set to "inherit" to debug what's going on inside the apiServer
  */
-const API_LOGS = "ignore"
+const API_LOGS: "ignore" | "inherit" = "inherit"
 
 const API_START_TIMEOUT_MS = 30_000
 
@@ -88,6 +88,11 @@ export class LoadTestApiServer {
   }
 
   public async [Symbol.asyncDispose](): Promise<void> {
+    if (API_LOGS === "inherit") {
+      // Let the api logs flush
+      await setTimeout(100)
+    }
+
     await Promise.all([this.apiServer.stop(), this.db.$client.end()])
     await this.postgresContainer.stop()
   }
