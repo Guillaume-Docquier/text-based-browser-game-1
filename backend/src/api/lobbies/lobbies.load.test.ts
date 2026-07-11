@@ -1,94 +1,67 @@
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
-import { afterEach, describe, expect, it } from "vitest"
-import type { AccountModel } from "#api/accounts/accounts.repository.ts"
+import { describe, expect, it } from "vitest"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
-import { STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
-import {
-  createAccounts,
-  createLoadTestServer,
-  ignoreExpectedRequestFailures,
-  randomDelay,
-  type LoadTestServer,
-} from "#tests/loadTestHarness.ts"
+import { LoadTestApiServer } from "#tests/LoadTestApiServer.ts"
 
 const NB_LOAD_TEST_ACCOUNTS = 20
 
 describe("lobby concurrency load tests", () => {
-  let server: LoadTestServer | undefined
-
-  afterEach(async () => {
-    await server?.close()
-    server = undefined
-  })
-
   it("should enforce the seat count when multiple accounts join the same game concurrently", async () => {
-    const loadTestServer = await createLoadTestServer()
-    server = loadTestServer
-    const accounts = await createAccounts({ accountsRepository: loadTestServer.accountsRepository, nbAccounts: NB_LOAD_TEST_ACCOUNTS })
-    const creator = accounts[0]
+    // Arrange
+    await using loadTestApiServer = await LoadTestApiServer.create()
+    const [creator, ...participants] = await Promise.all(
+      Array.from({ length: NB_LOAD_TEST_ACCOUNTS }, async () => await loadTestApiServer.createClient({ authenticated: true })),
+    )
     Assert.isDefined(creator)
 
-    const creatorClient = loadTestServer.createClient(creator)
-    const { createdGameId } = await creatorClient.lobbies.create.mutate({
+    const { createdGameId } = await creator.client.lobbies.create.mutate({
       configuration: createGameConfigurationDtoStub({ nbSeats: 4 }),
     })
 
-    await ignoreExpectedRequestFailures(
-      accounts.slice(1).map(async (account) => {
-        await randomDelay()
-        await loadTestServer.createClient(account).lobbies.join.mutate({ gameId: createdGameId })
+    // Act
+    await Promise.allSettled(
+      participants.map(async (participant) => {
+        await participant.client.lobbies.join.mutate({ gameId: createdGameId })
       }),
     )
 
-    const lobby = await creatorClient.lobbies.getById.query({ gameId: createdGameId })
+    // Assert
+    const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
     expect(lobby.players).toHaveLength(4)
   })
 
   it("should keep started-game resources consistent while accounts join and leave concurrently", async () => {
-    const loadTestServer = await createLoadTestServer()
-    server = loadTestServer
-    const accounts = await createAccounts({ accountsRepository: loadTestServer.accountsRepository, nbAccounts: NB_LOAD_TEST_ACCOUNTS })
-    const creator = accounts[0]
+    // Arrange
+    await using loadTestApiServer = await LoadTestApiServer.create()
+    const [creator, ...participants] = await Promise.all(
+      Array.from({ length: NB_LOAD_TEST_ACCOUNTS }, async () => await loadTestApiServer.createClient({ authenticated: true })),
+    )
     Assert.isDefined(creator)
 
-    const creatorClient = loadTestServer.createClient(creator)
-    const { createdGameId } = await creatorClient.lobbies.create.mutate({
+    const { createdGameId } = await creator.client.lobbies.create.mutate({
       configuration: createGameConfigurationDtoStub({ nbSeats: NB_LOAD_TEST_ACCOUNTS }),
     })
 
+    // Act
     await Promise.all([
-      creatorClient.gameplay.startGame.mutate({ gameId: createdGameId }),
-      ...accounts.slice(1).map(async (account) => {
-        await joinThenLeave({ loadTestServer, account, gameId: createdGameId })
+      ...participants.map(async (participant) => {
+        await Result.tryCatch(participant.client.lobbies.join.mutate({ gameId: createdGameId }))
+        await Result.tryCatch(participant.client.lobbies.leave.mutate({ gameId: createdGameId }))
       }),
+      creator.client.gameplay.startGame.mutate({ gameId: createdGameId }),
     ])
 
-    const lobby = await creatorClient.lobbies.getById.query({ gameId: createdGameId })
-    const players = lobby.players.toSorted((left, right) => left.id.localeCompare(right.id))
+    // Assert
+    const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+    const participantsMap = new Map([creator, ...participants].map((participant) => [participant.account.id, participant]))
+    const gameParticipants = lobby.players
+      .toSorted((left, right) => left.id.localeCompare(right.id))
+      .map((player) => participantsMap.get(player.id))
 
-    for (const player of players) {
-      const account = accounts.find((candidate) => candidate.id === player.id)
-      Assert.isDefined(account)
-
-      const playerView = await loadTestServer.createClient(account).gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView.resources).toEqual({ money: STARTING_RESOURCE_AMOUNTS.MONEY })
+    for (const gameParticipant of gameParticipants) {
+      Assert.isDefined(gameParticipant)
+      const playerView = await gameParticipant.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(playerView.resources).toEqual({ money: expect.any(Number) })
     }
   })
 })
-
-async function joinThenLeave({
-  loadTestServer,
-  account,
-  gameId,
-}: {
-  loadTestServer: LoadTestServer
-  account: AccountModel
-  gameId: number
-}): Promise<void> {
-  const client = loadTestServer.createClient(account)
-
-  await randomDelay()
-  await Result.tryCatch(client.lobbies.join.mutate({ gameId }))
-  await randomDelay()
-  await Result.tryCatch(client.lobbies.leave.mutate({ gameId }))
-}

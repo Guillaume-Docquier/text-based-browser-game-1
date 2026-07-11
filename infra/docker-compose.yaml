@@ -1,7 +1,7 @@
 # this is only used for dev, don't deploy this rofl
 services:
   db:
-    # Needs to be in sync with the load test image in loadTestHarness.ts
+    # Needs to be in sync with the load test image in LoadTestApiServer.ts
     image: postgres:18.4
     restart: always
     environment:
