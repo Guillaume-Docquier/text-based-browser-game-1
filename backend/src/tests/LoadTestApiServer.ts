@@ -5,12 +5,10 @@ import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
 import { type TRPCClient } from "@trpc/client"
 import { AccountsRepository, type AccountModel } from "#api/accounts/accounts.repository.ts"
-import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
 import { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
-import { extractSuccess } from "#tests/extractSuccess.ts"
-import { TrpcClient } from "#tests/TrpcClient.ts"
+import { createApiClient } from "#tests/ApiClient.ts"
 
 // The image is the same we use to dev locally, keep it this way.
 // See infra/docker-compose.yaml
@@ -41,7 +39,7 @@ type AnonymousApiClient = {
 
 export class LoadTestApiServer {
   private readonly postgresContainer: StartedPostgreSqlContainer
-  private readonly server: Server
+  private readonly server: ForkedServer
   private readonly db: Database
   private readonly accountsRepository: AccountsRepository
 
@@ -54,7 +52,15 @@ export class LoadTestApiServer {
     return new LoadTestApiServer({ postgresContainer, server, db })
   }
 
-  private constructor({ postgresContainer, server, db }: { postgresContainer: StartedPostgreSqlContainer; server: Server; db: Database }) {
+  private constructor({
+    postgresContainer,
+    server,
+    db,
+  }: {
+    postgresContainer: StartedPostgreSqlContainer
+    server: ForkedServer
+    db: Database
+  }) {
     this.postgresContainer = postgresContainer
     this.server = server
     this.db = db
@@ -64,19 +70,7 @@ export class LoadTestApiServer {
   public async createClient(args: { authenticated: true }): Promise<AuthenticatedApiClient>
   public async createClient(args: { authenticated: false }): Promise<AnonymousApiClient>
   public async createClient({ authenticated }: { authenticated: boolean }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
-    if (!authenticated) {
-      return {
-        client: TrpcClient.create({ port: this.server.port, authId: undefined }),
-        account: undefined,
-      }
-    }
-
-    const account = extractSuccess(await this.accountsRepository.createAccount(createNewAccountModelStub()))
-
-    return {
-      client: TrpcClient.create({ port: this.server.port, authId: account.authId }),
-      account,
-    }
+    return await createApiClient({ port: this.server.port, accountsRepository: this.accountsRepository, authenticated })
   }
 
   public async [Symbol.asyncDispose](): Promise<void> {
@@ -90,7 +84,7 @@ export class LoadTestApiServer {
   }
 }
 
-type Server = {
+type ForkedServer = {
   port: number
   stop: () => Promise<void>
 }
@@ -99,7 +93,7 @@ type Server = {
  * Starts a real api in a forked process.
  * The goal of this is to use an unadulterated api server running on its own thread.
  */
-async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<Server> {
+async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<ForkedServer> {
   const apiProcess = fork("src/api/entry.api.ts", {
     cwd: process.cwd(),
     detached: true,

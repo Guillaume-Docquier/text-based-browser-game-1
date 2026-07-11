@@ -3,10 +3,8 @@ import type { AddressInfo } from "node:net"
 import type { TRPCClient } from "@trpc/client"
 import type { Express } from "express"
 import type { AccountModel, AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
-import { extractSuccess } from "#tests/extractSuccess.ts"
-import { TrpcClient } from "#tests/TrpcClient.ts"
+import { createApiClient } from "#tests/ApiClient.ts"
 
 /**
  * I can't find the documentation, but server.listen(0) gets assigned an unused port.
@@ -56,19 +54,7 @@ export class ApiServer {
   public async createClient(args: { authenticated: true }): Promise<AuthenticatedApiClient>
   public async createClient(args: { authenticated: false }): Promise<AnonymousApiClient>
   public async createClient({ authenticated }: { authenticated: boolean }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
-    if (!authenticated) {
-      return {
-        client: TrpcClient.create({ port: this.port, authId: undefined }),
-        account: undefined,
-      }
-    }
-
-    const account = extractSuccess(await this.accountsRepository.createAccount(createNewAccountModelStub()))
-
-    return {
-      client: TrpcClient.create({ port: this.port, authId: account.authId }),
-      account,
-    }
+    return await createApiClient({ port: this.port, accountsRepository: this.accountsRepository, authenticated })
   }
 
   public [Symbol.dispose](): void {
