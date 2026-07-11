@@ -41,30 +41,22 @@ type AnonymousApiClient = {
 
 export class LoadTestApiServer {
   private readonly postgresContainer: StartedPostgreSqlContainer
-  private readonly apiServer: ApiServer
+  private readonly server: Server
   private readonly db: Database
   private readonly accountsRepository: AccountsRepository
 
   public static async create(): Promise<LoadTestApiServer> {
     const postgresContainer = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
     const databaseUrl = postgresContainer.getConnectionUri()
-    const apiServer = await forkApiServer({ databaseUrl })
+    const server = await forkApiServer({ databaseUrl })
     const db = createDb({ databaseUrl })
 
-    return new LoadTestApiServer({ postgresContainer, apiServer, db })
+    return new LoadTestApiServer({ postgresContainer, server, db })
   }
 
-  private constructor({
-    postgresContainer,
-    apiServer,
-    db,
-  }: {
-    postgresContainer: StartedPostgreSqlContainer
-    apiServer: ApiServer
-    db: Database
-  }) {
+  private constructor({ postgresContainer, server, db }: { postgresContainer: StartedPostgreSqlContainer; server: Server; db: Database }) {
     this.postgresContainer = postgresContainer
-    this.apiServer = apiServer
+    this.server = server
     this.db = db
     this.accountsRepository = new AccountsRepository({ db, logger: Logger.get() })
   }
@@ -74,7 +66,7 @@ export class LoadTestApiServer {
   public async createClient({ authenticated }: { authenticated: boolean }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
     if (!authenticated) {
       return {
-        client: TrpcClient.create({ port: this.apiServer.port, authId: undefined }),
+        client: TrpcClient.create({ port: this.server.port, authId: undefined }),
         account: undefined,
       }
     }
@@ -82,7 +74,7 @@ export class LoadTestApiServer {
     const account = extractSuccess(await this.accountsRepository.createAccount(createNewAccountModelStub()))
 
     return {
-      client: TrpcClient.create({ port: this.apiServer.port, authId: account.authId }),
+      client: TrpcClient.create({ port: this.server.port, authId: account.authId }),
       account,
     }
   }
@@ -93,12 +85,12 @@ export class LoadTestApiServer {
       await setTimeout(100)
     }
 
-    await Promise.all([this.apiServer.stop(), this.db.$client.end()])
+    await Promise.all([this.server.stop(), this.db.$client.end()])
     await this.postgresContainer.stop()
   }
 }
 
-type ApiServer = {
+type Server = {
   port: number
   stop: () => Promise<void>
 }
@@ -107,7 +99,7 @@ type ApiServer = {
  * Starts a real api in a forked process.
  * The goal of this is to use an unadulterated api server running on its own thread.
  */
-async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<ApiServer> {
+async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<Server> {
   const apiProcess = fork("src/api/entry.api.ts", {
     cwd: process.cwd(),
     detached: true,
