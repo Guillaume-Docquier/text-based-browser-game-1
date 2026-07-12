@@ -27,6 +27,7 @@ This index summarizes all accepted ADRs. When applying the concepts, you should 
 | 023-storybook-for-design-system-inspection        | Add Storybook stories for all components in `frontend/src/components`. This is used for manual inspection only for now.                                                                               | You're adding new components to the design system.                               |
 | 024-playwright-for-frontend-end-to-end-tests      | Write frontend E2E tests using Playwright with role-based selectors, POMs, Clerk auth, etc.                                                                                                           | You're writing e2e tests.                                                        |
 | 025-backend-initiated-db-migrations               | The backend migrates the database on boot.                                                                                                                                                            | You're changing the database schema.                                             |
+| 026-use-game-rows-as-concurrency-locks            | Operations that need atomic game state updates use the `gamesTable` row as their shared row-level lock.                                                                                               | You add or change an operation that writes game state.                           |
 
 ## Deprecated / Superseded ADRs
 
