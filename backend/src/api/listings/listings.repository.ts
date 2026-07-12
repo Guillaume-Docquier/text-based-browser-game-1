@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { count, eq } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
-import type { GameStatus } from "#api/shared/GameStatus.ts"
+import type { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gamesTable, playersTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"

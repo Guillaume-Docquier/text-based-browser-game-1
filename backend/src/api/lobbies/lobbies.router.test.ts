@@ -5,7 +5,7 @@ import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-s
 import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
-import { GameStatus } from "#api/shared/GameStatus.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 
