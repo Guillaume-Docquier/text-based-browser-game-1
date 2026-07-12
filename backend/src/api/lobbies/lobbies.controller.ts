@@ -65,13 +65,17 @@ export class LobbiesController {
     return toLobbyDto({ lobbyModel, playerId })
   }
 
+  /**
+   * This method is idempotent, joining an already joined game will return a success.
+   */
   public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
     const joinGameResult = await this.createTransaction(async (tx) => {
       const lobbyForJoin = await this.lobbiesRepository.getLobbyForJoin({ gameId }, tx)
       rollbackOnFailure(lobbyForJoin, "Failed to get lobby.")
 
       if (lobbyForJoin.value.playerIds.includes(accountId)) {
-        throw new TransactionRollback("Cannot join a lobby you are already part of.")
+        // Already part of the game, return a success for idempotency
+        return { playerId: accountId }
       }
 
       if (lobbyForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
@@ -92,13 +96,17 @@ export class LobbiesController {
     return joinGameResult
   }
 
+  /**
+   * This method is idempotent, leaving an already left game will return a success.
+   */
   public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
     const leaveGameResult = await this.createTransaction(async (tx) => {
       const lobbyForLeave = await this.lobbiesRepository.getLobbyForLeave({ gameId }, tx)
       rollbackOnFailure(lobbyForLeave, "Failed to get lobby.")
 
       if (!lobbyForLeave.value.playerIds.includes(accountId)) {
-        throw new TransactionRollback("Cannot leave a lobby you are not part of.")
+        // Already not in the game, return a success for idempotency
+        return
       }
 
       if (lobbyForLeave.value.status !== GameStatus.WAITING_FOR_PLAYERS && lobbyForLeave.value.status !== GameStatus.READY_TO_START) {

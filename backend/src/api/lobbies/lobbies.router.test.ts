@@ -298,20 +298,25 @@ describe("lobbies.router", () => {
       expect(lobby.players).toHaveLength(1)
     })
 
-    it("should reject joining a game the player is already in", async () => {
+    it("should successfully join a game the player is already in without joining twice", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-
-      // Act & Assert
-      await expect(creator.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 3 }),
       })
+      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
+      // Act
+      const joinResult = await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      // Assert
+      expect(joinResult).toEqual({ playerId: joiner.account.id })
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
-      expect(lobby.players).toHaveLength(1)
+      expect(lobby.players).toHaveLength(2)
+      expect(lobby.status).toBe(GameStatus.WAITING_FOR_PLAYERS)
     })
 
     it("should reject anonymous game join", async () => {
@@ -393,7 +398,7 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should reject leaving a game the player has not joined", async () => {
+    it("should successfully leave a game the player has not joined", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
@@ -401,10 +406,13 @@ describe("lobbies.router", () => {
 
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
 
-      // Act & Assert
-      await expect(nonPlayer.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      // Act
+      const leaveResult = await nonPlayer.client.lobbies.leave.mutate({ gameId: createdGameId })
+
+      // Assert
+      expect(leaveResult).toBe(true)
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.players).toHaveLength(1)
     })
 
     it("should reject anonymous game leave", async () => {
