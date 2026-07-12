@@ -333,7 +333,7 @@ describe("lobbies.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createGameConfigurationDtoStub()
+      const newGameSettings = createGameConfigurationDtoStub({ nbSeats: 2 })
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       await leaver.client.lobbies.join.mutate({ gameId: createdGameId })
@@ -389,6 +389,20 @@ describe("lobbies.router", () => {
 
       // Act & Assert
       await expect(player.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
+    })
+
+    it("should reject leaving a game the player has not joined", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const nonPlayer = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+
+      // Act & Assert
+      await expect(nonPlayer.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })

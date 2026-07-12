@@ -1,5 +1,5 @@
 import { Assert, type Branded, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
@@ -8,7 +8,7 @@ import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
-import { couldNot, TransactionRollback } from "#lib/errors.ts"
+import { couldNot } from "#lib/errors.ts"
 
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
@@ -50,6 +50,16 @@ export type LobbyForJoin = Branded<
     readonly playerIds: readonly PlayerId[]
   },
   "LobbyForJoin"
+>
+
+export type LobbyForLeave = Branded<
+  {
+    readonly id: GameId
+    readonly status: GameStatus
+    readonly createdByAccountId: AccountId
+    readonly playerIds: readonly PlayerId[]
+  },
+  "LobbyForLeave"
 >
 
 export class LobbiesRepository extends PostgresRepository {
@@ -169,68 +179,46 @@ export class LobbiesRepository extends PostgresRepository {
     return { playerId: gamePlayers[0].playerId }
   }
 
-  public async leaveLobby(
-    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    const leaveResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
-        const games = await tx.select().from(gamesTable).where(eq(gamesTable.id, gameId)).for("no key update")
-        Assert.isTrue(games.length <= 1)
-        const game = games[0]
-        if (game === undefined || (game.status !== GameStatus.WAITING_FOR_PLAYERS && game.status !== GameStatus.READY_TO_START)) {
-          throw new TransactionRollback("Cannot leave game lobby in its current status")
-        }
+  public async getLobbyForLeave({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyForLeave, string>> {
+    const games = await tx
+      .select({ id: gamesTable.id, status: gamesTable.status, createdByAccountId: gamesTable.createdByAccountId })
+      .from(gamesTable)
+      .where(eq(gamesTable.id, gameId))
+      .for("no key update")
+    Assert.isTrue(games.length <= 1)
 
-        if (game.createdByAccountId === accountId) {
-          throw new TransactionRollback("Cannot leave game lobby as its creator")
-        }
+    const game = games[0]
+    if (game === undefined) {
+      return Result.Failure("The lobby does not exist.")
+    }
 
-        const deletedPlayers = await tx
-          .delete(playersTable)
-          .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId)))
-          .returning()
-        if (deletedPlayers.length !== 1) {
-          throw new TransactionRollback("Cannot leave game lobby without being a player")
-        }
+    const playerRows = await tx.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
 
-        const updatedGames = await tx
-          .update(gamesTable)
-          .set({ status: GameStatus.WAITING_FOR_PLAYERS })
-          .where(and(eq(gamesTable.id, gameId), inArray(gamesTable.status, [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START])))
-          .returning()
-        Assert.isTrue(updatedGames.length === 1)
+    return Result.Success(
+      branded<LobbyForLeave>({
+        ...game,
+        playerIds: playerRows.map(({ playerId }) => playerId),
       }),
     )
-
-    if (Result.isFailure(leaveResult)) {
-      this.logger.error("Could not leave game lobby", { gameId, accountId, error: leaveResult.error })
-      return Result.Failure(couldNot("leave game lobby"))
-    }
-
-    return Result.Success(true)
   }
 
-  public async hasAccountJoinedLobby(
-    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<boolean, string>> {
-    const joinedGameResult = await Result.tryCatch(async () => {
-      const rows = await db
-        .select({ playerId: playersTable.playerId })
-        .from(playersTable)
-        .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId)))
-      Assert.isTrue(rows.length <= 1)
+  /**
+   * The only failure mode for this method is throwing to rollback the transaction.
+   */
+  public async leaveLobby(
+    { lobby, accountId, status }: { lobby: LobbyForLeave; accountId: AccountId; status: typeof GameStatus.WAITING_FOR_PLAYERS },
+    tx: Transaction,
+  ): Promise<void> {
+    const deletedPlayers = await tx
+      .delete(playersTable)
+      .where(and(eq(playersTable.gameId, lobby.id), eq(playersTable.playerId, accountId)))
+      .returning()
+    Assert.isTrue(deletedPlayers.length === 1)
 
-      return rows.length === 1
-    })
-
-    if (Result.isFailure(joinedGameResult)) {
-      this.logger.error("Could not check if player joined game", { gameId, accountId, error: joinedGameResult.error })
-      return Result.Failure(couldNot("check if player joined game"))
+    if (status !== lobby.status) {
+      const updatedGames = await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, lobby.id)).returning()
+      Assert.isTrue(updatedGames.length === 1)
     }
-
-    return joinedGameResult
   }
 }
 

@@ -91,10 +91,25 @@ export class LobbiesController {
 
     return joinGameResult
   }
+
   public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
     const leaveGameResult = await this.createTransaction(async (tx) => {
-      const leaveResult = await this.lobbiesRepository.leaveLobby({ gameId, accountId }, tx)
-      rollbackOnFailure(leaveResult, "Failed to leave game lobby")
+      const lobbyForLeave = await this.lobbiesRepository.getLobbyForLeave({ gameId }, tx)
+      rollbackOnFailure(lobbyForLeave, "Failed to get lobby.")
+
+      if (!lobbyForLeave.value.playerIds.includes(accountId)) {
+        throw new TransactionRollback("Cannot leave a lobby you are not part of.")
+      }
+
+      if (lobbyForLeave.value.status !== GameStatus.WAITING_FOR_PLAYERS && lobbyForLeave.value.status !== GameStatus.READY_TO_START) {
+        throw new TransactionRollback("Cannot leave a lobby that has started.")
+      }
+
+      if (lobbyForLeave.value.createdByAccountId === accountId) {
+        throw new TransactionRollback("Cannot leave a lobby as its creator.")
+      }
+
+      await this.lobbiesRepository.leaveLobby({ lobby: lobbyForLeave.value, accountId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
     })
 
     if (Result.isFailure(leaveGameResult)) {
@@ -105,6 +120,7 @@ export class LobbiesController {
     return Result.Success(true)
   }
 }
+
 export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; playerId: PlayerId | undefined }): LobbyDto {
   const status = lobbyModel.status
 
