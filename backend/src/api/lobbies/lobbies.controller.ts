@@ -35,7 +35,8 @@ export class LobbiesController {
       return Result.Failure("Star System generation settings must be within the accepted limits")
     }
 
-    const createLobbyResult = await this.lobbiesRepository.createLobby(createLobbyDto)
+    const status = createLobbyDto.configuration.nbSeats <= 1 ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
+    const createLobbyResult = await this.lobbiesRepository.createLobby({ ...createLobbyDto, status })
     if (Result.isFailure(createLobbyResult)) {
       return createLobbyResult
     }

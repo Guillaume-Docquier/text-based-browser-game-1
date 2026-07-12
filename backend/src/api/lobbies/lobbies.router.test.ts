@@ -64,6 +64,21 @@ describe("lobbies.router", () => {
       })
     })
 
+    it("should create a one-seat game ready to start", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      // Act
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 1 }),
+      })
+
+      // Assert
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.status).toBe(GameStatus.READY_TO_START)
+    })
+
     it("should reject anonymous game creation", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())

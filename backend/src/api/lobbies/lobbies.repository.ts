@@ -4,7 +4,7 @@ import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import { type GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
@@ -22,6 +22,7 @@ export type LobbyConfigurationModel = {
 
 export type CreateLobbyModel = {
   createdByAccountId: AccountId
+  status: GameStatus
   configuration: LobbyConfigurationModel
 }
 
@@ -237,7 +238,7 @@ export class LobbiesRepository extends PostgresRepository {
 function toCreateGameRow(createLobbyModel: CreateLobbyModel): CreateGameRow {
   return {
     createdByAccountId: createLobbyModel.createdByAccountId,
-    status: createLobbyModel.configuration.nbSeats <= 1 ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS,
+    status: createLobbyModel.status,
     ...createLobbyModel.configuration,
   }
 }
