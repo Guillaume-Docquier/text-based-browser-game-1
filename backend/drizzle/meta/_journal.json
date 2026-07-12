@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1780875478559,
+      "when": 1783817482816,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1780890056108,
-      "tag": "0001_players",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1781137505596,
-      "tag": "0002_remove-game-settings",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1781408669712,
-      "tag": "0003_remove-game-prefix",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1781442605180,
-      "tag": "0004_deterministic-star-system-ids",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1783000931731,
-      "tag": "0005_persist-game-status",
       "breakpoints": true
     }
   ]
