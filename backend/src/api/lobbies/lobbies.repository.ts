@@ -124,12 +124,8 @@ export class LobbiesRepository extends PostgresRepository {
   public async getLobbyById(
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
-    { lockGame = false }: { lockGame?: boolean } = {},
   ): Promise<Result<LobbyModel | undefined, string>> {
-    const gameRowResult = await Result.tryCatch(async () => {
-      const query = db.select().from(gamesTable).where(eq(gamesTable.id, gameId))
-      return lockGame ? await query.for("no key update") : await query
-    })
+    const gameRowResult = await Result.tryCatch(db.select().from(gamesTable).where(eq(gamesTable.id, gameId)))
     if (Result.isFailure(gameRowResult)) {
       this.logger.error("Failed to get game", { gameId, error: gameRowResult.error })
       return Result.Failure(couldNot("get game"))
