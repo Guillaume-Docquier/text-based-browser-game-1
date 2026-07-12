@@ -42,6 +42,10 @@ export type LobbyPlayerModel = {
   alias: string | null
 }
 
+/**
+ * Owning a LobbyForJoin within a transaction guarantees that the game is locked and exists at this time.
+ * It does not mean it can be joined, you have to check the state and decide.
+ */
 export type LobbyForJoin = Branded<
   {
     readonly id: GameId
@@ -52,6 +56,19 @@ export type LobbyForJoin = Branded<
   "LobbyForJoin"
 >
 
+export type JoinLobbyModel = {
+  /**
+   * The LobbyForJoin must be acquired in the same transaction.
+   */
+  readonly lobby: LobbyForJoin
+  readonly accountId: AccountId
+  readonly status: typeof GameStatus.WAITING_FOR_PLAYERS | typeof GameStatus.READY_TO_START
+}
+
+/**
+ * Owning a LobbyForLeave within a transaction guarantees that the game is locked and exists at this time.
+ * It does not mean it can be left, you have to check the state and decide.
+ */
 export type LobbyForLeave = Branded<
   {
     readonly id: GameId
@@ -61,6 +78,15 @@ export type LobbyForLeave = Branded<
   },
   "LobbyForLeave"
 >
+
+export type LeaveLobbyModel = {
+  /**
+   * The LobbyForLeave must be acquired in the same transaction.
+   */
+  readonly lobby: LobbyForLeave
+  readonly accountId: AccountId
+  readonly status: typeof GameStatus.WAITING_FOR_PLAYERS
+}
 
 export class LobbiesRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -159,14 +185,7 @@ export class LobbiesRepository extends PostgresRepository {
   /**
    * The only failure mode for this method is throwing to rollback the transaction.
    */
-  public async joinLobby(
-    {
-      lobby,
-      accountId,
-      status,
-    }: { lobby: LobbyForJoin; accountId: AccountId; status: typeof GameStatus.WAITING_FOR_PLAYERS | typeof GameStatus.READY_TO_START },
-    tx: Transaction,
-  ): Promise<{ playerId: PlayerId }> {
+  public async joinLobby({ lobby, accountId, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
     const gamePlayers = await tx.insert(playersTable).values({ gameId: lobby.id, playerId: accountId }).returning()
     Assert.isTrue(gamePlayers.length === 1)
     Assert.isDefined(gamePlayers[0])
@@ -205,10 +224,7 @@ export class LobbiesRepository extends PostgresRepository {
   /**
    * The only failure mode for this method is throwing to rollback the transaction.
    */
-  public async leaveLobby(
-    { lobby, accountId, status }: { lobby: LobbyForLeave; accountId: AccountId; status: typeof GameStatus.WAITING_FOR_PLAYERS },
-    tx: Transaction,
-  ): Promise<void> {
+  public async leaveLobby({ lobby, accountId, status }: LeaveLobbyModel, tx: Transaction): Promise<void> {
     const deletedPlayers = await tx
       .delete(playersTable)
       .where(and(eq(playersTable.gameId, lobby.id), eq(playersTable.playerId, accountId)))
