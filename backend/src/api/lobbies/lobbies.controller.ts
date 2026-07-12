@@ -8,7 +8,7 @@ import { PlayerId } from "#api/shared/PlayerId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { couldNot, rollbackOnFailure } from "#lib/errors.ts"
+import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
 
 export class LobbiesController {
@@ -67,10 +67,21 @@ export class LobbiesController {
 
   public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
     const joinGameResult = await this.createTransaction(async (tx) => {
-      const joinResult = await this.lobbiesRepository.joinLobby({ gameId, accountId }, tx)
-      rollbackOnFailure(joinResult, "Failed to join game")
+      const lobbyForJoin = await this.lobbiesRepository.getLobbyForJoin({ gameId }, tx)
+      rollbackOnFailure(lobbyForJoin, "Failed to get lobby.")
 
-      return joinResult.value
+      if (lobbyForJoin.value.playerIds.includes(accountId)) {
+        throw new TransactionRollback("Cannot join a lobby you are already part of.")
+      }
+
+      if (lobbyForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
+        throw new TransactionRollback("Cannot join lobby, it is full.")
+      }
+
+      const status =
+        lobbyForJoin.value.playerIds.length + 1 >= lobbyForJoin.value.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
+
+      return await this.lobbiesRepository.joinLobby({ lobby: lobbyForJoin.value, accountId, status }, tx)
     })
 
     if (Result.isFailure(joinGameResult)) {
@@ -78,7 +89,7 @@ export class LobbiesController {
       return Result.Failure(couldNot("join game lobby"))
     }
 
-    return Result.Success(joinGameResult.value)
+    return joinGameResult
   }
   public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
     const leaveGameResult = await this.createTransaction(async (tx) => {

@@ -1,4 +1,4 @@
-import { type Branded, Assert, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { type Branded, Assert, type Logger, Result, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { and, eq, inArray } from "drizzle-orm"
 import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
@@ -140,13 +140,14 @@ export class GameplayRepository extends PostgresRepository {
 
     const playerIds: readonly PlayerId[] = playerIdRows.map(({ playerId }) => playerId)
 
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- Branded
-    return Result.Success({
-      id: gameForStart.id,
-      starSystemGenerationSettings: gameForStart.starSystemGenerationSettings,
-      tickInterval: Time.create(gameForStart.tickIntervalSeconds, UnitOfTime.SECONDS),
-      playerIds,
-    } as GameForStart)
+    return Result.Success(
+      branded<GameForStart>({
+        id: gameForStart.id,
+        starSystemGenerationSettings: gameForStart.starSystemGenerationSettings,
+        tickInterval: Time.create(gameForStart.tickIntervalSeconds, UnitOfTime.SECONDS),
+        playerIds,
+      }),
+    )
   }
 
   /**

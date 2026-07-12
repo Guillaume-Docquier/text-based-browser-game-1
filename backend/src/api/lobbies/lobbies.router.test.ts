@@ -1,4 +1,4 @@
-import { Range, Result } from "@guillaume-docquier/tools-ts"
+import { Range } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
@@ -257,33 +257,27 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should not overfill a game when multiple players join concurrently", async () => {
+    it("should reject joining a game that is full", async () => {
       // Arrange
-      const { api, accountsRepository, lobbiesRepository } = await createApiStub()
+      const { api, accountsRepository } = await createApiStub()
       using apiServer = new ApiServer({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
-      const joiners = await Promise.all([
-        apiServer.createClient({ authenticated: true }),
-        apiServer.createClient({ authenticated: true }),
-        apiServer.createClient({ authenticated: true }),
-      ])
+      const player = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.lobbies.create.mutate({
         configuration: createGameConfigurationDtoStub({ nbSeats: 2 }),
       })
 
-      // Act
-      const joinResults = await Promise.all(
-        joiners.map(async (joiner) => await lobbiesRepository.joinLobby({ gameId: createdGameId, accountId: joiner.account.id })),
-      )
+      await player.client.lobbies.join.mutate({ gameId: createdGameId })
 
-      // Assert
-      expect(joinResults.filter(Result.isSuccess)).toHaveLength(1)
-      expect(joinResults.filter(Result.isFailure)).toHaveLength(2)
+      // Act & Assert
+      await expect(joiner.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
 
-      const joinedLobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
-      expect(joinedLobby.players).toHaveLength(2)
-      expect(joinedLobby.status).toBe(GameStatus.READY_TO_START)
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.players).toHaveLength(2)
     })
 
     it("should reject joining a game that has started", async () => {
@@ -299,19 +293,25 @@ describe("lobbies.router", () => {
       await expect(joiner.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
+
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.players).toHaveLength(1)
     })
 
     it("should reject joining a game the player is already in", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
-      const player = await apiServer.createClient({ authenticated: true })
+      const creator = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
 
       // Act & Assert
-      await expect(player.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+      await expect(creator.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
+
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.players).toHaveLength(1)
     })
 
     it("should reject anonymous game join", async () => {

@@ -1,8 +1,9 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { and, count, eq, inArray } from "drizzle-orm"
+import { Assert, type Branded, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { and, eq, inArray } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import type { Transaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
@@ -40,6 +41,16 @@ export type LobbyPlayerModel = {
   id: PlayerId
   alias: string | null
 }
+
+export type LobbyForJoin = Branded<
+  {
+    readonly id: GameId
+    readonly status: GameStatus
+    readonly nbSeats: number
+    readonly playerIds: readonly PlayerId[]
+  },
+  "LobbyForJoin"
+>
 
 export class LobbiesRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -112,57 +123,50 @@ export class LobbiesRepository extends PostgresRepository {
     return Result.Success(toLobbyModel({ gameRow, players: playersResult.value }))
   }
 
-  public async joinLobby(
-    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<{ playerId: PlayerId }, string>> {
-    const joinLobbyResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
-        const games = await tx.select().from(gamesTable).where(eq(gamesTable.id, gameId)).for("no key update")
-        Assert.isTrue(games.length <= 1)
-        const game = games[0]
-        if (game === undefined || game.status !== GameStatus.WAITING_FOR_PLAYERS) {
-          throw new TransactionRollback("Cannot join game lobby in its current status")
-        }
+  public async getLobbyForJoin({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyForJoin, string>> {
+    const games = await tx
+      .select({ id: gamesTable.id, status: gamesTable.status, nbSeats: gamesTable.nbSeats })
+      .from(gamesTable)
+      .where(eq(gamesTable.id, gameId))
+      .for("no key update")
+    Assert.isTrue(games.length <= 1)
 
-        const alreadyJoinedPlayers = await tx
-          .select({ playerId: playersTable.playerId })
-          .from(playersTable)
-          .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId)))
-        if (alreadyJoinedPlayers.length > 0) {
-          throw new TransactionRollback("Cannot join game lobby twice")
-        }
-
-        const gamePlayers = await tx.insert(playersTable).values({ gameId, playerId: accountId }).returning()
-        Assert.isTrue(gamePlayers.length === 1)
-        Assert.isDefined(gamePlayers[0])
-
-        const playerCounts = await tx
-          .select({ nbPlayers: count(playersTable.playerId) })
-          .from(playersTable)
-          .where(eq(playersTable.gameId, gameId))
-        Assert.isTrue(playerCounts.length === 1)
-        Assert.isDefined(playerCounts[0])
-
-        if (playerCounts[0].nbPlayers >= game.nbSeats) {
-          const updatedGames = await tx
-            .update(gamesTable)
-            .set({ status: GameStatus.READY_TO_START })
-            .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.WAITING_FOR_PLAYERS)))
-            .returning()
-          Assert.isTrue(updatedGames.length === 1)
-        }
-
-        return { playerId: gamePlayers[0].playerId }
-      }),
-    )
-
-    if (Result.isFailure(joinLobbyResult)) {
-      this.logger.error("Could not join game lobby", { gameId, accountId, error: joinLobbyResult.error })
-      return Result.Failure(couldNot("join game lobby"))
+    const game = games[0]
+    if (game === undefined) {
+      return Result.Failure("The lobby does not exist.")
     }
 
-    return joinLobbyResult
+    const playerRows = await tx.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
+
+    return Result.Success(
+      branded<LobbyForJoin>({
+        ...game,
+        playerIds: playerRows.map(({ playerId }) => playerId),
+      }),
+    )
+  }
+
+  /**
+   * The only failure mode for this method is throwing to rollback the transaction.
+   */
+  public async joinLobby(
+    {
+      lobby,
+      accountId,
+      status,
+    }: { lobby: LobbyForJoin; accountId: AccountId; status: typeof GameStatus.WAITING_FOR_PLAYERS | typeof GameStatus.READY_TO_START },
+    tx: Transaction,
+  ): Promise<{ playerId: PlayerId }> {
+    const gamePlayers = await tx.insert(playersTable).values({ gameId: lobby.id, playerId: accountId }).returning()
+    Assert.isTrue(gamePlayers.length === 1)
+    Assert.isDefined(gamePlayers[0])
+
+    if (status !== lobby.status) {
+      const updatedGames = await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, lobby.id)).returning()
+      Assert.isTrue(updatedGames.length === 1)
+    }
+
+    return { playerId: gamePlayers[0].playerId }
   }
 
   public async leaveLobby(
