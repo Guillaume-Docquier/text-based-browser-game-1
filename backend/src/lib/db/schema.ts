@@ -16,7 +16,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
-import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 

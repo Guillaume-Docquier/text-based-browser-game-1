@@ -7,7 +7,7 @@ import { PlayerId } from "#api/shared/PlayerId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
 

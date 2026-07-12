@@ -14,7 +14,7 @@ import {
   GamePlayerActionTypeSchema,
 } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
-import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { type GameplayRepository, type OrderModel, type PlayerViewModel } from "./gameplay.repository.ts"
