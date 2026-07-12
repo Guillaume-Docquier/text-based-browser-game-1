@@ -1,5 +1,5 @@
 import { type Branded, Assert, type Logger, Result, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
 import type { GameId } from "#api/shared/GameId.ts"
@@ -42,11 +42,14 @@ export type PlayerViewModel = {
 }
 
 /**
- * Owning a GameForStart within a transaction guarantees that the game is locked and can be started at this time.
+ * Owning a GameForStart within a transaction guarantees that the game is locked and exists at this time.
+ * It does not mean it can be started, you have to check the state and decide.
  */
 export type GameForStart = Branded<
   {
     readonly id: GameId
+    readonly createdByAccountId: AccountId
+    readonly status: GameStatus
     readonly starSystemGenerationSettings: StarSystemGenerationSettings
     readonly tickInterval: Time
     readonly playerIds: readonly PlayerId[]
@@ -59,6 +62,7 @@ export type StartGameModel = {
    * The GameForStart must be acquired in the same transaction
    */
   readonly game: GameForStart
+  readonly status: GameStatus
   readonly startedAt: Date
   readonly nextTickAt: Date
   readonly starSystem: NewStarSystemModel
@@ -101,35 +105,23 @@ export class GameplayRepository extends PostgresRepository {
     return joinedGameResult
   }
 
-  public async getGameForStart(
-    { gameId, requesterAccountId }: { gameId: GameId; requesterAccountId: AccountId },
-    tx: Transaction,
-  ): Promise<Result<GameForStart, string>> {
+  public async getGameForStart({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<GameForStart, string>> {
     const gamesForStart = await tx
       .select({
         id: gamesTable.id,
+        createdByAccountId: gamesTable.createdByAccountId,
+        status: gamesTable.status,
         starSystemGenerationSettings: gamesTable.starSystemGenerationSettings,
         tickIntervalSeconds: gamesTable.tickIntervalSeconds,
       })
       .from(gamesTable)
-      .where(
-        and(
-          eq(gamesTable.id, gameId),
-          // This is business logic encoded in the repository.
-          // It seems efficient: single query, db level checks.
-          // But it breaches boundaries: not just data access layer.
-          // We'll see how it holds up.
-          eq(gamesTable.createdByAccountId, requesterAccountId),
-          inArray(gamesTable.status, [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START]),
-        ),
-      )
-      // Locks the game for the rest of the transaction
+      .where(eq(gamesTable.id, gameId))
       .for("no key update")
     Assert.isTrue(gamesForStart.length <= 1)
 
     const gameForStart = gamesForStart[0]
     if (gameForStart === undefined) {
-      return Result.Failure("The game does not exist, cannot be started or this account cannot start it.")
+      return Result.Failure("The game does not exist.")
     }
 
     const playerIdRows = await tx
@@ -143,6 +135,8 @@ export class GameplayRepository extends PostgresRepository {
     return Result.Success(
       branded<GameForStart>({
         id: gameForStart.id,
+        createdByAccountId: gameForStart.createdByAccountId,
+        status: gameForStart.status,
         starSystemGenerationSettings: gameForStart.starSystemGenerationSettings,
         tickInterval: Time.create(gameForStart.tickIntervalSeconds, UnitOfTime.SECONDS),
         playerIds,
@@ -173,7 +167,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const updatedGames = await tx
       .update(gamesTable)
-      .set({ startedAt: startGameModel.startedAt, status: GameStatus.COLLECTING_ORDERS })
+      .set({ startedAt: startGameModel.startedAt, status: startGameModel.status })
       .where(and(eq(gamesTable.id, startGameModel.game.id)))
       .returning({ id: gamesTable.id })
     Assert.isTrue(updatedGames.length === 1)

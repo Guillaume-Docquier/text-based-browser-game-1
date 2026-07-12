@@ -2,6 +2,7 @@ import { Datetime, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { generateStarSystem } from "#api/gameplay/star-systems/generateStarSystem.ts"
 import { GameId } from "#api/shared/GameId.ts"
+import { GameStatus } from "#api/shared/GameStatus.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { RangeDto } from "#api/shared/RangeDto.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -43,8 +44,18 @@ export class GameplayController {
 
   public async startGame({ gameId, requesterAccountId }: StartGameDto): Promise<Result<StartedGameDto, string>> {
     const startGameResult = await this.createTransaction(async (tx) => {
-      const gameForStart = await this.gameplayRepository.getGameForStart({ gameId, requesterAccountId }, tx)
+      const gameForStart = await this.gameplayRepository.getGameForStart({ gameId }, tx)
       rollbackOnFailure(gameForStart, "Game cannot start")
+
+      if (gameForStart.value.createdByAccountId !== requesterAccountId) {
+        throw new TransactionRollback("Only the game creator can start it.")
+      }
+
+      if (gameForStart.value.status !== GameStatus.WAITING_FOR_PLAYERS && gameForStart.value.status !== GameStatus.READY_TO_START) {
+        throw new TransactionRollback("The game cannot start in its current status.", {
+          cause: { status: gameForStart.value.status, expected: [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START] },
+        })
+      }
 
       const startedAt = this.clock.now()
       const nextTickAt = Datetime.increment({ date: startedAt, time: gameForStart.value.tickInterval })
@@ -62,6 +73,7 @@ export class GameplayController {
       await this.gameplayRepository.startGame(
         {
           game: gameForStart.value,
+          status: GameStatus.COLLECTING_ORDERS,
           startedAt,
           nextTickAt,
           starSystem: starSystemResult.value,
