@@ -7,10 +7,9 @@ import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import { extractSuccess } from "#tests/extractSuccess.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { createTickProcessorStub } from "#tick-processing/TickProcessor.stub.ts"
-import { type ProcessedTickModel, type TickForProcessing, TicksRepository } from "#tick-processing/ticks.repository.ts"
+import { type ProcessedTickModel, TicksRepository } from "#tick-processing/ticks.repository.ts"
 
 describe("TickProcessor", () => {
   describe("processTicksForever", () => {
@@ -504,33 +503,28 @@ describe("TickProcessor", () => {
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       const ticksRepository = new FailingTicksRepository({ db, logger, clock, failingGameId: createdGameId })
-      const { tickProcessor, createTransaction } = await createTickProcessorStub({ db, clock, ticksRepository })
-
-      // This is meh, I'd rather use the API instead of the repo
-      // But right now errored ticks stay in error forever
-      const getNextTickToProcess = async (): Promise<Result<TickForProcessing | undefined, string>> => {
-        const result = await createTransaction(async (tx) => await ticksRepository.getNextTickForProcessing({ since: clock.now() }, tx))
-
-        if (Result.isFailure(result)) {
-          return Result.Failure(result.error.message)
-        }
-
-        return result.value
-      }
-
-      const tickToProcess = extractSuccess(await getNextTickToProcess())
-      Assert.isDefined(tickToProcess)
+      const { tickProcessor } = await createTickProcessorStub({ db, clock, ticksRepository })
+      const tickToProcess = { gameId: createdGameId, tick: 0 }
 
       // Act
       await tickProcessor.processNextDueTick()
 
       // Assert
-      await ticksRepository.resetProcessingAttempt(tickToProcess) // This enables getNextTickToProcess to find the tick
-      expect(await getNextTickToProcess()).toEqual(Result.Success(tickToProcess))
       expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
         tick: 0,
         resources: {
           money: 0,
+        },
+      })
+
+      ticksRepository.shouldFail = false
+      await ticksRepository.resetProcessingAttempt(tickToProcess)
+      await tickProcessor.processNextDueTick()
+
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+        tick: 1,
+        resources: {
+          money: 1,
         },
       })
     })
@@ -539,6 +533,8 @@ describe("TickProcessor", () => {
 
 class FailingTicksRepository extends TicksRepository {
   private readonly failingGameId: number
+
+  public shouldFail = true
 
   public constructor({
     db,
@@ -553,7 +549,7 @@ class FailingTicksRepository extends TicksRepository {
   }
 
   public override async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<{ saved: true }, string>> {
-    if (processedTick.gameId === this.failingGameId) {
+    if (processedTick.gameId === this.failingGameId && this.shouldFail) {
       return Result.Failure("Expected tick save failure")
     }
 
