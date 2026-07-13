@@ -1,5 +1,4 @@
 import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { v4 } from "uuid"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
@@ -8,7 +7,6 @@ import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import { extractSuccess } from "#tests/extractSuccess.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { createTickProcessorStub } from "#tick-processing/TickProcessor.stub.ts"
 import { type ProcessedTickModel, TicksRepository } from "#tick-processing/ticks.repository.ts"
@@ -283,32 +281,21 @@ describe("TickProcessor", () => {
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { tickProcessor, ticksRepository } = await createTickProcessorStub({ db, clock })
+      const { tickProcessor } = await createTickProcessorStub({ db, clock })
 
       const processingTickInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: processingGameId } = await player.client.lobbies.create.mutate({
         configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(processingTickInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: processingGameId })
-      await ticksRepository.startProcessingTick({ gameId: processingGameId, tick: 0 })
-
-      const notProcessingTickInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: notProcessingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(notProcessingTickInterval, UnitOfTime.SECONDS) }),
-      })
-      await player.client.gameplay.startGame.mutate({ gameId: notProcessingGameId })
 
       // Act
-      clock.increment({ time: notProcessingTickInterval })
-      await tickProcessor.processNextDueTick()
+      clock.increment({ time: processingTickInterval })
+      const processingResults = await Promise.all([tickProcessor.processNextDueTick(), tickProcessor.processNextDueTick()])
 
       // Assert
+      expect(processingResults).toEqual<typeof processingResults>(["processed", "idle"])
       expect(await player.client.gameplay.getPlayerView.query({ gameId: processingGameId })).toMatchObject({
-        tick: 0,
-        resources: { money: 0 },
-      })
-
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: notProcessingGameId })).toMatchObject({
         tick: 1,
         resources: { money: 1 },
       })
@@ -496,22 +483,29 @@ describe("TickProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      const ticksRepository = new InvalidPlayerTicksRepository({ db, logger, clock })
+      const ticksRepository = new FailingTicksRepository({ db, logger, clock, failingGameId: createdGameId })
       const { tickProcessor } = await createTickProcessorStub({ db, clock, ticksRepository })
-
-      const tickToProcess = extractSuccess(await ticksRepository.getNextTickToProcess({ since: clock.now() }))
-      Assert.isDefined(tickToProcess)
+      const tickToProcess = { gameId: createdGameId, tick: 0 }
 
       // Act
       await tickProcessor.processNextDueTick()
 
       // Assert
-      await ticksRepository.resetProcessingAttempt(tickToProcess) // This enables getNextTickToProcess to find the tick
-      expect(await ticksRepository.getNextTickToProcess({ since: clock.now() })).toEqual(Result.Success(tickToProcess))
       expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
         tick: 0,
         resources: {
           money: 0,
+        },
+      })
+
+      ticksRepository.shouldFail = false
+      await ticksRepository.resetProcessingAttempt(tickToProcess)
+      await tickProcessor.processNextDueTick()
+
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+        tick: 1,
+        resources: {
+          money: 1,
         },
       })
     })
@@ -520,6 +514,8 @@ describe("TickProcessor", () => {
 
 class FailingTicksRepository extends TicksRepository {
   private readonly failingGameId: number
+
+  public shouldFail = true
 
   public constructor({
     db,
@@ -534,25 +530,10 @@ class FailingTicksRepository extends TicksRepository {
   }
 
   public override async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<{ saved: true }, string>> {
-    if (processedTick.gameId === this.failingGameId) {
+    if (processedTick.gameId === this.failingGameId && this.shouldFail) {
       return Result.Failure("Expected tick save failure")
     }
 
     return await super.saveProcessedTick(processedTick)
-  }
-}
-
-class InvalidPlayerTicksRepository extends TicksRepository {
-  public override async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<{ saved: true }, string>> {
-    return await super.saveProcessedTick({
-      ...processedTick,
-      players: {
-        ...processedTick.players,
-        // Unknown player will fail to insert
-        [v4()]: {
-          resources: [{ resourceType: ResourceType.MONEY, amount: 1 }],
-        },
-      },
-    })
   }
 }

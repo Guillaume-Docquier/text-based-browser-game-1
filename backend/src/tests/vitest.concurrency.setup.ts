@@ -5,7 +5,8 @@ import { POSTGRES_IMAGE } from "#tests/ConcurrencyTestApiServer.ts"
 
 beforeAll(async () => {
   await Promise.all([setupLogging(), preloadPostgres()])
-})
+  // Downloading the postgres image in CI can take some time
+}, 60_000)
 
 async function setupLogging(): Promise<void> {
   // nonBlocking otherwise the logs might not be flushed when the test finishes, making it hard to debug.

@@ -44,7 +44,7 @@ export function createGameplayRouter({
 
   return trpc.router({
     startGame: inGameProcedure.output(StartedGameDto).mutation(async ({ input, ctx: { account } }) => {
-      const startResult = await gameplayController.startGame({ ...input, playerId: account.id })
+      const startResult = await gameplayController.startGame({ ...input, requesterAccountId: account.id })
       if (Result.isFailure(startResult)) {
         throw new TRPCError({
           code: "BAD_REQUEST",

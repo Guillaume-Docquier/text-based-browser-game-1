@@ -66,6 +66,20 @@ describe("gameplay.router", () => {
       })
     })
 
+    it("should reject starting a game that has already started", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      // Act & Assert
+      await expect(creator.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
+    })
+
     it("should start two games with identical deterministic Star Systems", async () => {
       // Arrange
       const clock = new ControlledClock()

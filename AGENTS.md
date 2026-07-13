@@ -131,11 +131,11 @@ To propose or create a new ADR, follow `docs/adr/how-to.md`
 Always use pnpm, never use npm.
 
 - `pnpm i`: install node_modules for all packages.
-- `pnpm checks`: runs all quality checks (lint, format, typecheck, test) on all packages.
-- `pnpm integration`: run local backend integration tests.
-- `pnpm e2e`: run local E2E tests.
-- `pnpm --filter frontend checks`: run all frontend quality checks (typecheck, build, e2e).
-- `pnpm --filter backend checks`: run all backend quality checks (typecheck, integration).
+- `pnpm checks`: runs all quality checks (lint, format, typecheck, build, tests, etc) on all packages.
+- `pnpm test:backend`: run local backend integration tests.
+- `pnpm test:e2e`: run local E2E tests.
+- `pnpm --filter frontend checks`: run all frontend quality checks.
+- `pnpm --filter backend checks`: run all backend quality checks.
 - `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
 
 When formatting the code, always run oxfmt with write. oxfmt is deterministic, there's no point in checking before applying formatting.
@@ -181,6 +181,7 @@ Never change environment variable values yourself. Ask the user to do it, and su
 
 - Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw `new TransactionRollback(...)` from `backend/src/lib/errors.ts` instead.
 - Do not return results from transactions. Throw `TransactionRollback` to abort the transaction, or return the value directly.
+- Do not add `runInTransaction` helpers or otherwise flatten nested transaction calls. Drizzle supports transactions inside transactions. If a method must run inside an existing transaction, type its argument as a transaction; otherwise let the method create a transaction for its own unit of work.
 
 ## `@guillaume-docquier/tools-ts` Gotchas
 

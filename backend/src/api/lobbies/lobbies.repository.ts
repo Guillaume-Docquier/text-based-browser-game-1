@@ -1,8 +1,10 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Branded, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import type { Transaction } from "#lib/db/createDb.ts"
+import { type GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
@@ -20,6 +22,7 @@ export type LobbyConfigurationModel = {
 
 export type CreateLobbyModel = {
   createdByAccountId: AccountId
+  status: GameStatus
   configuration: LobbyConfigurationModel
 }
 
@@ -29,6 +32,7 @@ export type LobbyModel = {
   startedAt: Date | null
   endedAt: Date | null
   winnerAccountId: AccountId | null
+  status: GameStatus
   configuration: LobbyConfigurationModel
   creator: LobbyPlayerModel
   players: LobbyPlayerModel[]
@@ -37,6 +41,52 @@ export type LobbyModel = {
 export type LobbyPlayerModel = {
   id: PlayerId
   alias: string | null
+}
+
+/**
+ * Owning a LobbyForJoin within a transaction guarantees that the game is locked and exists at this time.
+ * It does not mean it can be joined, you have to check the state and decide.
+ */
+export type LobbyForJoin = Branded<
+  {
+    readonly id: GameId
+    readonly status: GameStatus
+    readonly nbSeats: number
+    readonly playerIds: readonly PlayerId[]
+  },
+  "LobbyForJoin"
+>
+
+export type JoinLobbyModel = {
+  /**
+   * The LobbyForJoin must be acquired in the same transaction.
+   */
+  readonly lobby: LobbyForJoin
+  readonly accountId: AccountId
+  readonly status: typeof GameStatus.WAITING_FOR_PLAYERS | typeof GameStatus.READY_TO_START
+}
+
+/**
+ * Owning a LobbyForLeave within a transaction guarantees that the game is locked and exists at this time.
+ * It does not mean it can be left, you have to check the state and decide.
+ */
+export type LobbyForLeave = Branded<
+  {
+    readonly id: GameId
+    readonly status: GameStatus
+    readonly createdByAccountId: AccountId
+    readonly playerIds: readonly PlayerId[]
+  },
+  "LobbyForLeave"
+>
+
+export type LeaveLobbyModel = {
+  /**
+   * The LobbyForLeave must be acquired in the same transaction.
+   */
+  readonly lobby: LobbyForLeave
+  readonly accountId: AccountId
+  readonly status: typeof GameStatus.WAITING_FOR_PLAYERS
 }
 
 export class LobbiesRepository extends PostgresRepository {
@@ -106,68 +156,89 @@ export class LobbiesRepository extends PostgresRepository {
     return Result.Success(toLobbyModel({ gameRow, players: playersResult.value }))
   }
 
-  public async joinLobby(
-    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<{ playerId: PlayerId }, string>> {
-    const joinLobbyResult = await Result.tryCatch(async () => {
-      const gamePlayers = await db.insert(playersTable).values({ gameId, playerId: accountId }).returning()
-      Assert.isTrue(gamePlayers.length === 1)
-      Assert.isDefined(gamePlayers[0])
+  public async getLobbyForJoin({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyForJoin, string>> {
+    const games = await tx
+      .select({ id: gamesTable.id, status: gamesTable.status, nbSeats: gamesTable.nbSeats })
+      .from(gamesTable)
+      .where(eq(gamesTable.id, gameId))
+      .for("no key update")
+    Assert.isTrue(games.length <= 1)
 
-      return { playerId: gamePlayers[0].playerId }
-    })
-
-    if (Result.isFailure(joinLobbyResult)) {
-      this.logger.error("Could not join game lobby", { gameId, accountId, error: joinLobbyResult.error })
-      return Result.Failure(couldNot("join game lobby"))
+    const game = games[0]
+    if (game === undefined) {
+      return Result.Failure("The lobby does not exist.")
     }
 
-    return joinLobbyResult
-  }
+    const playerRows = await tx.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
 
-  public async leaveLobby(
-    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    const deleteResult = await Result.tryCatch(
-      db.delete(playersTable).where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId))),
+    return Result.Success(
+      branded<LobbyForJoin>({
+        ...game,
+        playerIds: playerRows.map(({ playerId }) => playerId),
+      }),
     )
-
-    if (Result.isFailure(deleteResult)) {
-      this.logger.error("Could not leave game lobby", { gameId, accountId, error: deleteResult.error })
-      return Result.Failure(couldNot("leave game lobby"))
-    }
-
-    return Result.Success(true)
   }
 
-  public async hasAccountJoinedLobby(
-    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<boolean, string>> {
-    const joinedGameResult = await Result.tryCatch(async () => {
-      const rows = await db
-        .select({ playerId: playersTable.playerId })
-        .from(playersTable)
-        .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, accountId)))
-      Assert.isTrue(rows.length <= 1)
+  /**
+   * The only failure mode for this method is throwing to rollback the transaction.
+   */
+  public async joinLobby({ lobby, accountId, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
+    const gamePlayers = await tx.insert(playersTable).values({ gameId: lobby.id, playerId: accountId }).returning()
+    Assert.isTrue(gamePlayers.length === 1)
+    Assert.isDefined(gamePlayers[0])
 
-      return rows.length === 1
-    })
-
-    if (Result.isFailure(joinedGameResult)) {
-      this.logger.error("Could not check if player joined game", { gameId, accountId, error: joinedGameResult.error })
-      return Result.Failure(couldNot("check if player joined game"))
+    if (status !== lobby.status) {
+      const updatedGames = await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, lobby.id)).returning()
+      Assert.isTrue(updatedGames.length === 1)
     }
 
-    return joinedGameResult
+    return { playerId: gamePlayers[0].playerId }
+  }
+
+  public async getLobbyForLeave({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyForLeave, string>> {
+    const games = await tx
+      .select({ id: gamesTable.id, status: gamesTable.status, createdByAccountId: gamesTable.createdByAccountId })
+      .from(gamesTable)
+      .where(eq(gamesTable.id, gameId))
+      .for("no key update")
+    Assert.isTrue(games.length <= 1)
+
+    const game = games[0]
+    if (game === undefined) {
+      return Result.Failure("The lobby does not exist.")
+    }
+
+    const playerRows = await tx.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
+
+    return Result.Success(
+      branded<LobbyForLeave>({
+        ...game,
+        playerIds: playerRows.map(({ playerId }) => playerId),
+      }),
+    )
+  }
+
+  /**
+   * The only failure mode for this method is throwing to rollback the transaction.
+   */
+  public async leaveLobby({ lobby, accountId, status }: LeaveLobbyModel, tx: Transaction): Promise<void> {
+    const deletedPlayers = await tx
+      .delete(playersTable)
+      .where(and(eq(playersTable.gameId, lobby.id), eq(playersTable.playerId, accountId)))
+      .returning()
+    Assert.isTrue(deletedPlayers.length === 1)
+
+    if (status !== lobby.status) {
+      const updatedGames = await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, lobby.id)).returning()
+      Assert.isTrue(updatedGames.length === 1)
+    }
   }
 }
 
 function toCreateGameRow(createLobbyModel: CreateLobbyModel): CreateGameRow {
   return {
     createdByAccountId: createLobbyModel.createdByAccountId,
+    status: createLobbyModel.status,
     ...createLobbyModel.configuration,
   }
 }
@@ -182,6 +253,7 @@ function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPl
     startedAt: gameRow.startedAt,
     endedAt: gameRow.endedAt,
     winnerAccountId: gameRow.winnerAccountId,
+    status: gameRow.status,
     configuration: {
       name: gameRow.name,
       nbSeats: gameRow.nbSeats,

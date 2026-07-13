@@ -5,7 +5,7 @@ import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-s
 import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
-import { GameStatus } from "#api/shared/GameStatus.ts"
+import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 
@@ -62,6 +62,21 @@ describe("lobbies.router", () => {
         canStart: true, // because creator
         canOpen: false, // because not started
       })
+    })
+
+    it("should create a one-seat game ready to start", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      // Act
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 1 }),
+      })
+
+      // Assert
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.status).toBe(GameStatus.READY_TO_START)
     })
 
     it("should reject anonymous game creation", async () => {
@@ -202,9 +217,9 @@ describe("lobbies.router", () => {
         nonPlayer: { status: nonPlayerLobby.status, canOpen: nonPlayerLobby.canOpen },
         anonymous: { status: anonymousLobby.status, canOpen: anonymousLobby.canOpen },
       }).toEqual({
-        player: { status: GameStatus.STARTED, canOpen: true },
-        nonPlayer: { status: GameStatus.STARTED, canOpen: false },
-        anonymous: { status: GameStatus.STARTED, canOpen: false },
+        player: { status: GameStatus.COLLECTING_ORDERS, canOpen: true },
+        nonPlayer: { status: GameStatus.COLLECTING_ORDERS, canOpen: false },
+        anonymous: { status: GameStatus.COLLECTING_ORDERS, canOpen: false },
       })
     })
 
@@ -257,17 +272,66 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should reject joining a game the player is already in", async () => {
+    it("should reject joining a game that is full", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      const { api, accountsRepository } = await createApiStub()
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 2 }),
+      })
+
+      await player.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Act & Assert
-      await expect(player.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+      await expect(joiner.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
+
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.players).toHaveLength(2)
+    })
+
+    it("should reject joining a game that has started", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      // Act & Assert
+      await expect(joiner.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
+
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.players).toHaveLength(1)
+    })
+
+    it("should successfully join a game the player is already in without joining twice", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 3 }),
+      })
+      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      // Act
+      const joinResult = await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      // Assert
+      expect(joinResult).toEqual({ playerId: joiner.account.id })
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.players).toHaveLength(2)
+      expect(lobby.status).toBe(GameStatus.WAITING_FOR_PLAYERS)
     })
 
     it("should reject anonymous game join", async () => {
@@ -289,7 +353,7 @@ describe("lobbies.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createGameConfigurationDtoStub()
+      const newGameSettings = createGameConfigurationDtoStub({ nbSeats: 2 })
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       await leaver.client.lobbies.join.mutate({ gameId: createdGameId })
@@ -320,6 +384,22 @@ describe("lobbies.router", () => {
       })
     })
 
+    it("should reject leaving a game that has started", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const leaver = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await leaver.client.lobbies.join.mutate({ gameId: createdGameId })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      // Act & Assert
+      await expect(leaver.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
+    })
+
     it("should reject leaving a game as its creator", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
@@ -331,6 +411,23 @@ describe("lobbies.router", () => {
       await expect(player.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
+    })
+
+    it("should successfully leave a game the player has not joined", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const nonPlayer = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+
+      // Act
+      const leaveResult = await nonPlayer.client.lobbies.leave.mutate({ gameId: createdGameId })
+
+      // Assert
+      expect(leaveResult).toBe(true)
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.players).toHaveLength(1)
     })
 
     it("should reject anonymous game leave", async () => {

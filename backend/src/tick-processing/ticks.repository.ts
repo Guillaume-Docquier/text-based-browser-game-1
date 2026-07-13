@@ -1,42 +1,42 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, type Branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import type { Transaction } from "#lib/db/createDb.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import type { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gameStatesTable, gamesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
-import { couldNot, TransactionRollback } from "#lib/errors.ts"
+import { couldNot } from "#lib/errors.ts"
 
-type DueTickRow = Pick<typeof ticksTable.$inferSelect, "gameId" | "tick" | "scheduledFor"> & {
-  tickIntervalSeconds: (typeof gamesTable.$inferSelect)["tickIntervalSeconds"]
-}
 type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
 type OrderRow = typeof ordersTable.$inferSelect
-type NewResourceRow = typeof resourcesTable.$inferInsert
-type NewTickRow = typeof ticksTable.$inferInsert
-type CompletedTickRow = Pick<typeof ticksTable.$inferInsert, "processingStartedAt" | "processingEndedAt">
-type EndedGameRow = Pick<typeof gamesTable.$inferInsert, "winnerAccountId" | "endedAt">
-type NextGameStateRow = Pick<typeof gameStatesTable.$inferInsert, "tick" | "nextTickAt">
 
-type ProcessedTickRows =
-  | {
-      result: "continue"
-      completedTick: CompletedTickRow
-      resources: NewResourceRow[]
-      nextGameState: NextGameStateRow
-      nextTick: NewTickRow
-    }
-  | {
-      result: "end"
-      completedTick: CompletedTickRow
-      resources: NewResourceRow[]
-      endedGame: EndedGameRow
-    }
+/**
+ * Owning a TickForProcessing within a transaction guarantees that the tick and the game are locked, exist and need processing at this time.
+ */
+export type TickForProcessing = Branded<
+  {
+    gameId: GameId
+    tick: number
+    gameStatus: GameStatus
+  },
+  "TickForProcessing"
+>
 
+export type StartTickProcessingModel = {
+  tick: TickForProcessing
+  processingStartedAt: Date
+  gameStatus: GameStatus
+}
+
+/**
+ * The full game data for tick processing.
+ */
 export type TickToProcessModel = {
   gameId: GameId
   tick: number
@@ -58,22 +58,18 @@ export type ProcessedTickModel = {
   gameId: GameId
   tick: number
   processedAt: Date
-  players: Record<
-    PlayerId,
-    {
-      resources: Array<{
-        resourceType: ResourceType
-        amount: number
-      }>
-    }
-  >
-  winnerAccountId: AccountId | undefined
-  nextTick:
-    | {
-        tick: number
-        scheduledFor: Date
-      }
-    | undefined
+  playerResources: Array<{
+    playerId: PlayerId
+    resourceType: ResourceType
+    amount: number
+  }>
+  gameStatus: GameStatus
+  winnerAccountId?: AccountId
+  endedAt?: Date
+  nextTick?: {
+    tick: number
+    scheduledFor: Date
+  }
 }
 
 export class TicksRepository extends PostgresRepository {
@@ -89,46 +85,41 @@ export class TicksRepository extends PostgresRepository {
   /**
    * The next tick to process row will be locked during the transaction.
    */
-  public async getNextTickToProcess(
+  public async getNextTickForProcessing(
     { since }: { since: Date },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<TickToProcessModel | undefined, string>> {
+    tx: Transaction,
+  ): Promise<Result<TickForProcessing | undefined, string>> {
     const tickToProcessResult = await Result.tryCatch(async () => {
-      const tickToProcessRows = await db
+      // Find and lock the tick
+      const tickToProcessRows = await tx
         .select({
           gameId: ticksTable.gameId,
           tick: ticksTable.tick,
-          scheduledFor: ticksTable.scheduledFor,
-          tickIntervalSeconds: gamesTable.tickIntervalSeconds,
         })
         .from(ticksTable)
-        .innerJoin(gamesTable, eq(gamesTable.id, ticksTable.gameId))
-        .innerJoin(gameStatesTable, and(eq(gameStatesTable.gameId, ticksTable.gameId), eq(gameStatesTable.tick, ticksTable.tick)))
         .where(and(lte(ticksTable.scheduledFor, since), isNull(ticksTable.processingStartedAt)))
         .orderBy(asc(ticksTable.scheduledFor))
         .limit(1)
         .for("no key update", { skipLocked: true })
 
-      const tickToProcessRow = tickToProcessRows[0]
-      if (tickToProcessRow === undefined) {
-        return undefined
+      const tickToProcess = tickToProcessRows[0]
+      if (tickToProcess === undefined) {
+        return tickToProcess
       }
 
-      const [players, resources, orders] = await Promise.all([
-        db.select().from(playersTable).where(eq(playersTable.gameId, tickToProcessRow.gameId)).orderBy(asc(playersTable.playerId)),
-        db
-          .select()
-          .from(resourcesTable)
-          .where(eq(resourcesTable.gameId, tickToProcessRow.gameId))
-          .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
-        db
-          .select()
-          .from(ordersTable)
-          .where(and(eq(ordersTable.gameId, tickToProcessRow.gameId), eq(ordersTable.tick, tickToProcessRow.tick)))
-          .orderBy(asc(ordersTable.playerId)),
-      ])
+      // Lock the game, it is expected to exist
+      const gameToProcessRows = await tx
+        .select({ status: gamesTable.status })
+        .from(gamesTable)
+        .where(eq(gamesTable.id, tickToProcess.gameId))
+        .for("no key update")
+      Assert.isDefined(gameToProcessRows[0])
 
-      return toTickToProcessModel({ dueTick: tickToProcessRow, players, resources, orders })
+      return branded<TickForProcessing>({
+        gameId: tickToProcess.gameId,
+        tick: tickToProcess.tick,
+        gameStatus: gameToProcessRows[0].status,
+      })
     })
 
     if (Result.isFailure(tickToProcessResult)) {
@@ -140,31 +131,65 @@ export class TicksRepository extends PostgresRepository {
   }
 
   /**
-   * Trying to start processing a tick that doesn't exist or that is already processing will result in an Failure.
+   * Moves the game and tick to processing before reading the state used to process the tick.
    */
-  public async startProcessingTick(
-    tick: { gameId: GameId; tick: number },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<{ started: true }, string>> {
-    const tickResult = await Result.tryCatch(
-      db
+  public async startTickProcessing(
+    startTickProcessingModel: StartTickProcessingModel,
+    tx: Transaction,
+  ): Promise<Result<TickToProcessModel, string>> {
+    const tickResult = await Result.tryCatch(async () => {
+      const ticks = await tx
         .update(ticksTable)
-        .set({ processingStartedAt: this.clock.now() })
-        .where(and(eq(ticksTable.gameId, tick.gameId), eq(ticksTable.tick, tick.tick), isNull(ticksTable.processingStartedAt)))
-        .returning(),
-    )
+        .set({ processingStartedAt: startTickProcessingModel.processingStartedAt })
+        .where(and(eq(ticksTable.gameId, startTickProcessingModel.tick.gameId), eq(ticksTable.tick, startTickProcessingModel.tick.tick)))
+        .returning({ scheduledFor: ticksTable.scheduledFor })
+      Assert.isTrue(ticks.length === 1)
+      Assert.isDefined(ticks[0])
+
+      const games = await tx
+        .update(gamesTable)
+        .set({ status: startTickProcessingModel.gameStatus })
+        .where(eq(gamesTable.id, startTickProcessingModel.tick.gameId))
+        .returning({ tickIntervalSeconds: gamesTable.tickIntervalSeconds })
+      Assert.isTrue(games.length === 1)
+      Assert.isDefined(games[0])
+
+      const [players, resources, orders] = await Promise.all([
+        tx
+          .select()
+          .from(playersTable)
+          .where(eq(playersTable.gameId, startTickProcessingModel.tick.gameId))
+          .orderBy(asc(playersTable.playerId)),
+        tx
+          .select()
+          .from(resourcesTable)
+          .where(eq(resourcesTable.gameId, startTickProcessingModel.tick.gameId))
+          .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
+        tx
+          .select()
+          .from(ordersTable)
+          .where(
+            and(eq(ordersTable.gameId, startTickProcessingModel.tick.gameId), eq(ordersTable.tick, startTickProcessingModel.tick.tick)),
+          )
+          .orderBy(asc(ordersTable.playerId)),
+      ])
+
+      return toTickToProcessModel({
+        tickForProcessing: startTickProcessingModel.tick,
+        scheduledFor: ticks[0].scheduledFor,
+        tickIntervalSeconds: games[0].tickIntervalSeconds,
+        players,
+        resources,
+        orders,
+      })
+    })
+
     if (Result.isFailure(tickResult)) {
-      this.logger.error("Could not start processing tick", { tick, error: tickResult.error })
+      this.logger.error("Could not start processing tick", { startTickProcessingModel, error: tickResult.error })
       return Result.Failure(couldNot("start processing tick"))
     }
 
-    Assert.isTrue(tickResult.value.length <= 1)
-    if (tickResult.value.length === 0) {
-      this.logger.error("No ticks found to start processing, is it already processing?", { tick })
-      return Result.Failure(couldNot("start processing tick"))
-    }
-
-    return Result.Success({ started: true })
+    return tickResult
   }
 
   /**
@@ -176,17 +201,26 @@ export class TicksRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ reset: true }, string>> {
     const tickResult = await Result.tryCatch(
-      db
-        .update(ticksTable)
-        .set({ processingStartedAt: null })
-        .where(and(eq(ticksTable.gameId, tick.gameId), eq(ticksTable.tick, tick.tick), isNull(ticksTable.processingEndedAt)))
-        .returning(),
+      db.transaction(async (tx) => {
+        const ticks = await tx
+          .update(ticksTable)
+          .set({ processingStartedAt: null })
+          .where(and(eq(ticksTable.gameId, tick.gameId), eq(ticksTable.tick, tick.tick), isNull(ticksTable.processingEndedAt)))
+          .returning()
+        Assert.isTrue(ticks.length === 1)
+
+        const games = await tx
+          .update(gamesTable)
+          .set({ status: GameStatus.COLLECTING_ORDERS })
+          .where(and(eq(gamesTable.id, tick.gameId), eq(gamesTable.status, GameStatus.PROCESSING_TICK)))
+          .returning()
+        Assert.isTrue(games.length === 1)
+      }),
     )
     if (Result.isFailure(tickResult)) {
       this.logger.error("Could not reset tick processing", { tick, error: tickResult.error })
       return Result.Failure(couldNot("reset tick processing"))
     }
-    Assert.isTrue(tickResult.value.length === 1)
 
     return Result.Success({ reset: true })
   }
@@ -195,37 +229,32 @@ export class TicksRepository extends PostgresRepository {
     processedTickModel: ProcessedTickModel,
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<{ saved: true }, string>> {
-    const processedTickRows = toProcessedTickRows(processedTickModel)
     const saveResult = await Result.tryCatch(
       db.transaction(async (tx) => {
-        const completedTicks = await tx
+        const updatedTicks = await tx
           .update(ticksTable)
-          .set(processedTickRows.completedTick)
-          .where(
-            and(
-              eq(ticksTable.gameId, processedTickModel.gameId),
-              eq(ticksTable.tick, processedTickModel.tick),
-              isNull(ticksTable.processingEndedAt),
-            ),
-          )
+          .set({ processingEndedAt: processedTickModel.processedAt })
+          .where(and(eq(ticksTable.gameId, processedTickModel.gameId), eq(ticksTable.tick, processedTickModel.tick)))
           .returning()
+        Assert.isTrue(updatedTicks.length === 1)
 
-        if (completedTicks.length !== 1) {
-          throw new TransactionRollback("Cannot save an already processed or missing tick")
-        }
+        const updatedGames = await tx
+          .update(gamesTable)
+          .set({
+            status: processedTickModel.gameStatus,
+            winnerAccountId: processedTickModel.winnerAccountId,
+            endedAt: processedTickModel.endedAt,
+          })
+          .where(eq(gamesTable.id, processedTickModel.gameId))
+          .returning()
+        Assert.isTrue(updatedGames.length === 1)
 
-        const currentGameStates = await tx
-          .select({ tick: gameStatesTable.tick })
-          .from(gameStatesTable)
-          .where(and(eq(gameStatesTable.gameId, processedTickModel.gameId), eq(gameStatesTable.tick, processedTickModel.tick)))
-
-        if (currentGameStates.length !== 1) {
-          throw new TransactionRollback("Cannot save a stale tick")
-        }
-
+        // Poor man's batch update using upsert
+        // Drizzle doesn't handle this, the alternative is raw SQL... maybe if this is a performance bottleneck
+        const resources = processedTickModel.playerResources.map((resource) => ({ ...resource, gameId: processedTickModel.gameId }))
         await tx
           .insert(resourcesTable)
-          .values(processedTickRows.resources)
+          .values(resources)
           .onConflictDoUpdate({
             target: [resourcesTable.gameId, resourcesTable.playerId, resourcesTable.resourceType],
             set: {
@@ -233,17 +262,23 @@ export class TicksRepository extends PostgresRepository {
             },
           })
 
-        switch (processedTickRows.result) {
-          case "continue":
-            await tx
-              .update(gameStatesTable)
-              .set(processedTickRows.nextGameState)
-              .where(eq(gameStatesTable.gameId, processedTickModel.gameId))
-            await tx.insert(ticksTable).values(processedTickRows.nextTick)
-            break
-          case "end":
-            await tx.update(gamesTable).set(processedTickRows.endedGame).where(eq(gamesTable.id, processedTickModel.gameId))
-            break
+        if (processedTickModel.nextTick !== undefined) {
+          const insertedTicks = await tx
+            .insert(ticksTable)
+            .values({
+              gameId: processedTickModel.gameId,
+              tick: processedTickModel.nextTick.tick,
+              scheduledFor: processedTickModel.nextTick.scheduledFor,
+            })
+            .returning()
+          Assert.isTrue(insertedTicks.length === 1)
+
+          const updateGameStates = await tx
+            .update(gameStatesTable)
+            .set({ tick: processedTickModel.nextTick.tick, nextTickAt: processedTickModel.nextTick.scheduledFor })
+            .where(and(eq(gameStatesTable.gameId, processedTickModel.gameId), eq(gameStatesTable.tick, processedTickModel.tick)))
+            .returning()
+          Assert.isTrue(updateGameStates.length === 1)
         }
       }),
     )
@@ -258,76 +293,39 @@ export class TicksRepository extends PostgresRepository {
 }
 
 function toTickToProcessModel({
-  dueTick,
+  tickForProcessing,
+  scheduledFor,
+  tickIntervalSeconds,
   players,
   resources,
   orders,
 }: {
-  dueTick: DueTickRow
+  tickForProcessing: TickForProcessing
+  scheduledFor: Date
+  tickIntervalSeconds: number
   players: PlayerRow[]
   resources: ResourceRow[]
   orders: OrderRow[]
 }): TickToProcessModel {
-  return {
-    ...dueTick,
-    players: players
-      .filter(({ gameId }) => gameId === dueTick.gameId)
-      .reduce<TickToProcessModel["players"]>((playersById, { playerId }) => {
-        playersById[playerId] = {
-          resources: resources
-            .filter((resource) => resource.gameId === dueTick.gameId && resource.playerId === playerId)
-            .map(({ resourceType, amount }) => ({
-              resourceType: resourceType as ResourceType,
-              amount,
-            })),
-          actionType: orders.find((order) => order.gameId === dueTick.gameId && order.playerId === playerId && order.tick === dueTick.tick)
-            ?.actionType,
-        }
-        return playersById
-      }, {}),
-  }
-}
-
-function toProcessedTickRows(processedTick: ProcessedTickModel): ProcessedTickRows {
-  const resources: NewResourceRow[] = Object.entries(processedTick.players).flatMap(([playerId, { resources: playerResources }]) =>
-    playerResources.map((resource) => ({
-      gameId: processedTick.gameId,
-      playerId,
-      ...resource,
-    })),
-  )
-  Assert.isTrue(resources.length > 0)
-
-  const completedTick: CompletedTickRow = {
-    processingStartedAt: processedTick.processedAt,
-    processingEndedAt: processedTick.processedAt,
-  }
-
-  if (processedTick.winnerAccountId !== undefined) {
-    return {
-      result: "end",
-      completedTick,
-      resources,
-      endedGame: {
-        winnerAccountId: processedTick.winnerAccountId,
-        endedAt: processedTick.processedAt,
-      },
-    }
-  }
-  Assert.isDefined(processedTick.nextTick)
+  const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
+  const ordersByPlayerId = Map.groupBy(orders, (order) => order.playerId)
 
   return {
-    result: "continue",
-    completedTick,
-    resources,
-    nextGameState: {
-      tick: processedTick.nextTick.tick,
-      nextTickAt: processedTick.nextTick.scheduledFor,
-    },
-    nextTick: {
-      gameId: processedTick.gameId,
-      tick: processedTick.nextTick.tick,
-      scheduledFor: processedTick.nextTick.scheduledFor,
-    },
+    ...tickForProcessing,
+    scheduledFor,
+    tickIntervalSeconds,
+    players: players.reduce<TickToProcessModel["players"]>((playersById, { playerId }) => {
+      const resourcesForPlayer = resourcesByPlayerId.get(playerId)
+      Assert.isDefined(resourcesForPlayer)
+
+      playersById[playerId] = {
+        resources: resourcesForPlayer.map((resource) => ({
+          resourceType: resource.resourceType as ResourceType,
+          amount: resource.amount,
+        })),
+        actionType: ordersByPlayerId.get(playerId)?.[0]?.actionType,
+      }
+      return playersById
+    }, {}),
   }
 }

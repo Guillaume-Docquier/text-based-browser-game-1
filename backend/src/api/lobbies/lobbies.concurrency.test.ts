@@ -6,8 +6,7 @@ import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 const NB_CONCURRENCY_TEST_ACCOUNTS = 20
 
 describe("lobby concurrency", () => {
-  // Skipped because it fails and we wrote it before the fix!
-  it.skip("should enforce the seat count when multiple accounts join the same game concurrently", async () => {
+  it("should enforce the seat count when multiple accounts join the same game concurrently", async () => {
     // Arrange
     await using concurrencyTestApiServer = await ConcurrencyTestApiServer.create()
     const [creator, ...participants] = await Promise.all(
@@ -34,8 +33,7 @@ describe("lobby concurrency", () => {
     expect(lobby.players).toHaveLength(4)
   })
 
-  // Skipped because it fails and we wrote it before the fix!
-  it.skip("should keep started-game resources consistent while accounts join and leave concurrently", async () => {
+  it("should keep started-game resources consistent while accounts join and leave concurrently", async () => {
     // Arrange
     await using concurrencyTestApiServer = await ConcurrencyTestApiServer.create()
     const [creator, ...participants] = await Promise.all(

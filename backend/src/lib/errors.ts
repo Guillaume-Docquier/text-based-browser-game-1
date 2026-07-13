@@ -42,6 +42,6 @@ export class TransactionRollback extends Error {}
  */
 export function rollbackOnFailure<TSuccess>(result: Result<TSuccess, unknown>, message: string): asserts result is Success<TSuccess> {
   if (Result.isFailure(result)) {
-    throw new TransactionRollback(message)
+    throw new TransactionRollback(message, { cause: result.error })
   }
 }

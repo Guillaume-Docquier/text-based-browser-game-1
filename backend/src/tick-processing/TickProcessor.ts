@@ -1,11 +1,13 @@
 import { Assert, Datetime, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
-import { rollbackOnFailure } from "#lib/errors.ts"
+import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import { rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { ElapsedTimeContextProvider } from "#tick-processing/ElapsedTimeContextProvider.ts"
 import { type ProcessedTickModel, type TicksRepository, type TickToProcessModel } from "#tick-processing/ticks.repository.ts"
 
@@ -52,17 +54,30 @@ export class TickProcessor {
     const processingLogger = this.logger.child({ scope: "processNextDueTick", contextProviders: [new ElapsedTimeContextProvider()] })
 
     const tickToProcessResult = await this.createTransaction(async (tx) => {
-      const nextTickToProcessResult = await this.ticksRepository.getNextTickToProcess({ since: this.clock.now() }, tx)
+      const nextTickToProcessResult = await this.ticksRepository.getNextTickForProcessing({ since: this.clock.now() }, tx)
       rollbackOnFailure(nextTickToProcessResult, "Could not get next tick to process")
 
       if (nextTickToProcessResult.value === undefined) {
         return undefined
       }
 
-      const started = await this.ticksRepository.startProcessingTick(nextTickToProcessResult.value, tx)
-      rollbackOnFailure(started, "Could not start to process next tick")
+      if (nextTickToProcessResult.value.gameStatus !== GameStatus.COLLECTING_ORDERS) {
+        throw new TransactionRollback("Game cannot be processed in its current status", {
+          cause: { status: nextTickToProcessResult.value.gameStatus, expected: GameStatus.COLLECTING_ORDERS },
+        })
+      }
 
-      return nextTickToProcessResult.value
+      const tickToProcess = await this.ticksRepository.startTickProcessing(
+        {
+          tick: nextTickToProcessResult.value,
+          processingStartedAt: this.clock.now(),
+          gameStatus: GameStatus.PROCESSING_TICK,
+        },
+        tx,
+      )
+      rollbackOnFailure(tickToProcess, "Could not start to process next tick")
+
+      return tickToProcess.value
     })
 
     if (Result.isFailure(tickToProcessResult)) {
@@ -86,61 +101,71 @@ export class TickProcessor {
         error: saveResult.error,
       })
       return "failed"
-    } else {
-      processingLogger.info("Tick processed", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
-      return "processed"
     }
+
+    processingLogger.info("Tick processed", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
+    return "processed"
   }
 
+  /**
+   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+   */
   private processTick(tickToProcess: TickToProcessModel): ProcessedTickModel {
     let winnerAccountId: AccountId | undefined
 
-    const players = Object.entries(tickToProcess.players).reduce<ProcessedTickModel["players"]>(
-      (processedPlayers, [playerId, { resources, actionType }]) => {
-        const updatedResources = resources.map((resource) => ({ ...resource }))
-        const money = updatedResources.find((resource) => resource.resourceType === ResourceType.MONEY)
-        Assert.isDefined(money)
+    const playerStates = Object.entries(tickToProcess.players).reduce<
+      Record<PlayerId, Array<{ resourceType: ResourceType; amount: number }>>
+    >((processedPlayers, [playerId, { resources, actionType }]) => {
+      const updatedResources = resources.map((resource) => ({ ...resource }))
+      const money = updatedResources.find((resource) => resource.resourceType === ResourceType.MONEY)
+      Assert.isDefined(money)
 
-        money.amount += 1
+      money.amount += 1
 
-        if (actionType !== undefined) {
-          const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
-          if (actionRule.costMoney <= money.amount) {
-            money.amount -= actionRule.costMoney
-            money.amount += actionRule.rewardMoney
+      if (actionType !== undefined) {
+        const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
+        if (actionRule.costMoney <= money.amount) {
+          money.amount -= actionRule.costMoney
+          money.amount += actionRule.rewardMoney
 
-            if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
-              winnerAccountId = playerId
-            }
+          if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
+            winnerAccountId = playerId
           }
         }
+      }
 
-        processedPlayers[playerId] = {
-          resources: updatedResources,
-        }
-        return processedPlayers
-      },
-      {},
-    )
+      processedPlayers[playerId] = updatedResources
+      return processedPlayers
+    }, {})
 
-    const nextTick =
-      winnerAccountId === undefined
-        ? {
-            tick: tickToProcess.tick + 1,
-            scheduledFor: Datetime.increment({
-              date: tickToProcess.scheduledFor,
-              time: Time.create(tickToProcess.tickIntervalSeconds, UnitOfTime.SECONDS),
-            }),
-          }
-        : undefined
-
-    return {
+    const tickResult: Omit<ProcessedTickModel, "gameStatus"> = {
       gameId: tickToProcess.gameId,
       tick: tickToProcess.tick,
       processedAt: this.clock.now(),
-      players,
+      playerResources: Object.entries(playerStates).flatMap(([playerId, playerResources]) =>
+        playerResources.map((resource) => ({ ...resource, playerId })),
+      ),
+    }
+
+    if (winnerAccountId === undefined) {
+      return {
+        ...tickResult,
+        gameStatus: GameStatus.COLLECTING_ORDERS,
+        nextTick: {
+          tick: tickToProcess.tick + 1,
+          scheduledFor: Datetime.increment({
+            date: tickToProcess.scheduledFor,
+            time: Time.create(tickToProcess.tickIntervalSeconds, UnitOfTime.SECONDS),
+          }),
+        },
+      }
+    }
+
+    return {
+      ...tickResult,
+      gameStatus: GameStatus.ENDED,
       winnerAccountId,
-      nextTick,
+      endedAt: this.clock.now(),
     }
   }
 }
