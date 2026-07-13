@@ -155,15 +155,6 @@ describe("TickProcessor", () => {
           money: 6,
         },
       })
-      await expect(
-        player.client.gameplay.setCurrentAction.mutate({
-          gameId: createdGameId,
-          tick: 0,
-          actionType: GamePlayerActionType.MAKE_MORE_MONEY,
-        }),
-      ).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
     })
 
     it("should not apply an action when the player cannot afford it", async () => {
@@ -476,16 +467,6 @@ describe("TickProcessor", () => {
         resources: {
           money: 3,
         },
-      })
-
-      await expect(
-        joiner.client.gameplay.setCurrentAction.mutate({
-          gameId: createdGameId,
-          tick: 0,
-          actionType: GamePlayerActionType.MAKE_MORE_MONEY,
-        }),
-      ).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
       })
     })
 

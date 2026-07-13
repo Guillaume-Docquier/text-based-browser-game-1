@@ -107,6 +107,9 @@ export class TickProcessor {
     return "processed"
   }
 
+  /**
+   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+   */
   private processTick(tickToProcess: TickToProcessModel): ProcessedTickModel {
     let winnerAccountId: AccountId | undefined
 
