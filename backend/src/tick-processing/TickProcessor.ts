@@ -6,7 +6,7 @@ import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
-import { rollbackOnFailure } from "#lib/errors.ts"
+import { rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { ElapsedTimeContextProvider } from "#tick-processing/ElapsedTimeContextProvider.ts"
 import { type ProcessedTickModel, type TicksRepository, type TickToProcessModel } from "#tick-processing/ticks.repository.ts"
 
@@ -58,6 +58,12 @@ export class TickProcessor {
 
       if (nextTickToProcessResult.value === undefined) {
         return undefined
+      }
+
+      if (nextTickToProcessResult.value.gameStatus !== GameStatus.COLLECTING_ORDERS) {
+        throw new TransactionRollback("Game cannot be processed in its current status", {
+          cause: { status: nextTickToProcessResult.value.gameStatus, expected: GameStatus.COLLECTING_ORDERS },
+        })
       }
 
       const tickToProcess = await this.ticksRepository.startTickProcessing(
