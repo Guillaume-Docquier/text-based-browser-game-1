@@ -1,5 +1,4 @@
 import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { v4 } from "uuid"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
@@ -11,7 +10,7 @@ import { ApiServer } from "#tests/ApiServer.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { createTickProcessorStub } from "#tick-processing/TickProcessor.stub.ts"
-import { type ProcessedTickModel, TicksRepository } from "#tick-processing/ticks.repository.ts"
+import { type ProcessedTickModel, type TickForProcessing, TicksRepository } from "#tick-processing/ticks.repository.ts"
 
 describe("TickProcessor", () => {
   describe("processTicksForever", () => {
@@ -292,42 +291,21 @@ describe("TickProcessor", () => {
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { tickProcessor, ticksRepository } = await createTickProcessorStub({ db, clock })
+      const { tickProcessor } = await createTickProcessorStub({ db, clock })
 
       const processingTickInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: processingGameId } = await player.client.lobbies.create.mutate({
         configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(processingTickInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: processingGameId })
-      await ticksRepository.startProcessingTick({ gameId: processingGameId, tick: 0 })
-
-      await expect(
-        player.client.gameplay.setCurrentAction.mutate({
-          gameId: processingGameId,
-          tick: 0,
-          actionType: GamePlayerActionType.MAKE_MORE_MONEY,
-        }),
-      ).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
-
-      const notProcessingTickInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: notProcessingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(notProcessingTickInterval, UnitOfTime.SECONDS) }),
-      })
-      await player.client.gameplay.startGame.mutate({ gameId: notProcessingGameId })
 
       // Act
-      clock.increment({ time: notProcessingTickInterval })
-      await tickProcessor.processNextDueTick()
+      clock.increment({ time: processingTickInterval })
+      const processingResults = await Promise.all([tickProcessor.processNextDueTick(), tickProcessor.processNextDueTick()])
 
       // Assert
+      expect(processingResults).toEqual<typeof processingResults>(["processed", "idle"])
       expect(await player.client.gameplay.getPlayerView.query({ gameId: processingGameId })).toMatchObject({
-        tick: 0,
-        resources: { money: 0 },
-      })
-
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: notProcessingGameId })).toMatchObject({
         tick: 1,
         resources: { money: 1 },
       })
@@ -525,10 +503,22 @@ describe("TickProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      const ticksRepository = new InvalidPlayerTicksRepository({ db, logger, clock })
-      const { tickProcessor } = await createTickProcessorStub({ db, clock, ticksRepository })
+      const ticksRepository = new FailingTicksRepository({ db, logger, clock, failingGameId: createdGameId })
+      const { tickProcessor, createTransaction } = await createTickProcessorStub({ db, clock, ticksRepository })
 
-      const tickToProcess = extractSuccess(await ticksRepository.getNextTickToProcess({ since: clock.now() }))
+      // This is meh, I'd rather use the API instead of the repo
+      // But right now errored ticks stay in error forever
+      const getNextTickToProcess = async (): Promise<Result<TickForProcessing | undefined, string>> => {
+        const result = await createTransaction(async (tx) => await ticksRepository.getNextTickForProcessing({ since: clock.now() }, tx))
+
+        if (Result.isFailure(result)) {
+          return Result.Failure(result.error.message)
+        }
+
+        return result.value
+      }
+
+      const tickToProcess = extractSuccess(await getNextTickToProcess())
       Assert.isDefined(tickToProcess)
 
       // Act
@@ -536,7 +526,7 @@ describe("TickProcessor", () => {
 
       // Assert
       await ticksRepository.resetProcessingAttempt(tickToProcess) // This enables getNextTickToProcess to find the tick
-      expect(await ticksRepository.getNextTickToProcess({ since: clock.now() })).toEqual(Result.Success(tickToProcess))
+      expect(await getNextTickToProcess()).toEqual(Result.Success(tickToProcess))
       expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
         tick: 0,
         resources: {
@@ -568,20 +558,5 @@ class FailingTicksRepository extends TicksRepository {
     }
 
     return await super.saveProcessedTick(processedTick)
-  }
-}
-
-class InvalidPlayerTicksRepository extends TicksRepository {
-  public override async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<{ saved: true }, string>> {
-    return await super.saveProcessedTick({
-      ...processedTick,
-      players: {
-        ...processedTick.players,
-        // Unknown player will fail to insert
-        [v4()]: {
-          resources: [{ resourceType: ResourceType.MONEY, amount: 1 }],
-        },
-      },
-    })
   }
 }

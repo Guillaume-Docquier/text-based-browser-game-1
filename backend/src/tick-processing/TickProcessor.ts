@@ -5,6 +5,7 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { rollbackOnFailure } from "#lib/errors.ts"
 import { ElapsedTimeContextProvider } from "#tick-processing/ElapsedTimeContextProvider.ts"
 import { type ProcessedTickModel, type TicksRepository, type TickToProcessModel } from "#tick-processing/ticks.repository.ts"
@@ -52,17 +53,24 @@ export class TickProcessor {
     const processingLogger = this.logger.child({ scope: "processNextDueTick", contextProviders: [new ElapsedTimeContextProvider()] })
 
     const tickToProcessResult = await this.createTransaction(async (tx) => {
-      const nextTickToProcessResult = await this.ticksRepository.getNextTickToProcess({ since: this.clock.now() }, tx)
+      const nextTickToProcessResult = await this.ticksRepository.getNextTickForProcessing({ since: this.clock.now() }, tx)
       rollbackOnFailure(nextTickToProcessResult, "Could not get next tick to process")
 
       if (nextTickToProcessResult.value === undefined) {
         return undefined
       }
 
-      const started = await this.ticksRepository.startProcessingTick(nextTickToProcessResult.value, tx)
-      rollbackOnFailure(started, "Could not start to process next tick")
+      const tickToProcess = await this.ticksRepository.startTickProcessing(
+        {
+          tick: nextTickToProcessResult.value,
+          processingStartedAt: this.clock.now(),
+          gameStatus: GameStatus.PROCESSING_TICK,
+        },
+        tx,
+      )
+      rollbackOnFailure(tickToProcess, "Could not start to process next tick")
 
-      return nextTickToProcessResult.value
+      return tickToProcess.value
     })
 
     if (Result.isFailure(tickToProcessResult)) {
@@ -86,10 +94,10 @@ export class TickProcessor {
         error: saveResult.error,
       })
       return "failed"
-    } else {
-      processingLogger.info("Tick processed", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
-      return "processed"
     }
+
+    processingLogger.info("Tick processed", { gameId: tickToProcess.gameId, tick: tickToProcess.tick })
+    return "processed"
   }
 
   private processTick(tickToProcess: TickToProcessModel): ProcessedTickModel {
