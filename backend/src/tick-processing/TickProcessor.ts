@@ -1,4 +1,5 @@
 import { Assert, Datetime, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -109,52 +110,59 @@ export class TickProcessor {
   private processTick(tickToProcess: TickToProcessModel): ProcessedTickModel {
     let winnerAccountId: AccountId | undefined
 
-    const players = Object.entries(tickToProcess.players).reduce<ProcessedTickModel["players"]>(
-      (processedPlayers, [playerId, { resources, actionType }]) => {
-        const updatedResources = resources.map((resource) => ({ ...resource }))
-        const money = updatedResources.find((resource) => resource.resourceType === ResourceType.MONEY)
-        Assert.isDefined(money)
+    const playerStates = Object.entries(tickToProcess.players).reduce<
+      Record<PlayerId, Array<{ resourceType: ResourceType; amount: number }>>
+    >((processedPlayers, [playerId, { resources, actionType }]) => {
+      const updatedResources = resources.map((resource) => ({ ...resource }))
+      const money = updatedResources.find((resource) => resource.resourceType === ResourceType.MONEY)
+      Assert.isDefined(money)
 
-        money.amount += 1
+      money.amount += 1
 
-        if (actionType !== undefined) {
-          const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
-          if (actionRule.costMoney <= money.amount) {
-            money.amount -= actionRule.costMoney
-            money.amount += actionRule.rewardMoney
+      if (actionType !== undefined) {
+        const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
+        if (actionRule.costMoney <= money.amount) {
+          money.amount -= actionRule.costMoney
+          money.amount += actionRule.rewardMoney
 
-            if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
-              winnerAccountId = playerId
-            }
+          if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
+            winnerAccountId = playerId
           }
         }
+      }
 
-        processedPlayers[playerId] = {
-          resources: updatedResources,
-        }
-        return processedPlayers
-      },
-      {},
-    )
+      processedPlayers[playerId] = updatedResources
+      return processedPlayers
+    }, {})
 
-    const nextTick =
-      winnerAccountId === undefined
-        ? {
-            tick: tickToProcess.tick + 1,
-            scheduledFor: Datetime.increment({
-              date: tickToProcess.scheduledFor,
-              time: Time.create(tickToProcess.tickIntervalSeconds, UnitOfTime.SECONDS),
-            }),
-          }
-        : undefined
-
-    return {
+    const tickResult: Omit<ProcessedTickModel, "gameStatus"> = {
       gameId: tickToProcess.gameId,
       tick: tickToProcess.tick,
       processedAt: this.clock.now(),
-      players,
+      playerResources: Object.entries(playerStates).flatMap(([playerId, playerResources]) =>
+        playerResources.map((resource) => ({ ...resource, playerId })),
+      ),
+    }
+
+    if (winnerAccountId === undefined) {
+      return {
+        ...tickResult,
+        gameStatus: GameStatus.COLLECTING_ORDERS,
+        nextTick: {
+          tick: tickToProcess.tick + 1,
+          scheduledFor: Datetime.increment({
+            date: tickToProcess.scheduledFor,
+            time: Time.create(tickToProcess.tickIntervalSeconds, UnitOfTime.SECONDS),
+          }),
+        },
+      }
+    }
+
+    return {
+      ...tickResult,
+      gameStatus: GameStatus.ENDED,
       winnerAccountId,
-      nextTick,
+      endedAt: this.clock.now(),
     }
   }
 }
