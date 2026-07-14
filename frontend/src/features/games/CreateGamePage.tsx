@@ -45,7 +45,7 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
   const [tickIntervalUnit, setTickIntervalUnit] = useState<TickIntervalUnit>(TickIntervalUnit.days)
   const [starSystemGenerationSettings, setStarSystemGenerationSettings] = useState(creationSettings.defaultStarSystemGenerationSettings)
   const createGame = useCreateGameMutation()
-  const isCreateDisabled = name === "" || nbSeats < 2
+  const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > creationSettings.maxNbSeats
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
@@ -73,6 +73,8 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
             <Input
               id="nb-seats"
               type="number"
+              min={2}
+              max={creationSettings.maxNbSeats}
               value={nbSeats}
               onChange={(event) => {
                 setNbSeats(parseInt(event.target.value))

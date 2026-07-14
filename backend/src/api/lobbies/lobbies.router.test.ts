@@ -4,7 +4,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
 import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
-import { type LobbyPlayerDto } from "#api/lobbies/lobbies.controller.ts"
+import { type LobbyPlayerDto, MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
@@ -21,6 +21,7 @@ describe("lobbies.router", () => {
 
       // Assert
       expect(creationSettings).toEqual<typeof creationSettings>({
+        maxNbSeats: MAX_NB_SEATS,
         defaultStarSystemGenerationSettings: {
           ...createStarSystemGenerationSettingsDefaults(),
           seed: expect.any(Number),
@@ -77,6 +78,36 @@ describe("lobbies.router", () => {
       // Assert
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
       expect(lobby.status).toBe(GameStatus.READY_TO_START)
+    })
+
+    it("should create a game with MAX_NB_SEATS seats", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      // Act
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: MAX_NB_SEATS }),
+      })
+
+      // Assert
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(lobby.configuration.nbSeats).toBe(16)
+    })
+
+    it("should reject a game with MAX_NB_SEATS + 1 seats", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      // Act & Assert
+      await expect(
+        creator.client.lobbies.create.mutate({
+          configuration: createGameConfigurationDtoStub({ nbSeats: MAX_NB_SEATS + 1 }),
+        }),
+      ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
     })
 
     it("should reject anonymous game creation", async () => {

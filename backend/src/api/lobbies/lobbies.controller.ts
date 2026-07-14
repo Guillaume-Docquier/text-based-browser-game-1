@@ -11,6 +11,8 @@ import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
 
+export const MAX_NB_SEATS = 16
+
 export class LobbiesController {
   private readonly logger: Logger
   private readonly createTransaction: CreateTransaction
@@ -31,6 +33,10 @@ export class LobbiesController {
   }
 
   public async createLobby(createLobbyDto: CreateLobbyDto): Promise<Result<CreatedLobbyDto, string>> {
+    if (createLobbyDto.configuration.nbSeats > MAX_NB_SEATS) {
+      return Result.Failure(`Games cannot have more than ${MAX_NB_SEATS} seats`)
+    }
+
     if (!validateStarSystemGenerationSettings(createLobbyDto.configuration.starSystemGenerationSettings)) {
       return Result.Failure("Star System generation settings must be within the accepted limits")
     }
@@ -46,6 +52,7 @@ export class LobbiesController {
 
   public getCreationSettings(): LobbyCreationSettingsDto {
     return {
+      maxNbSeats: MAX_NB_SEATS,
       defaultStarSystemGenerationSettings: createStarSystemGenerationSettingsDefaults(),
       starSystemGenerationSettingsLimits: StarSystemGenerationSettingsLimits,
     }
@@ -220,6 +227,7 @@ export const StarSystemGenerationSettingsLimitsDto = z.object({
 
 export type LobbyCreationSettingsDto = z.infer<typeof LobbyCreationSettingsDto>
 export const LobbyCreationSettingsDto = z.object({
+  maxNbSeats: z.number(),
   defaultStarSystemGenerationSettings: StarSystemGenerationSettingsDto,
   starSystemGenerationSettingsLimits: StarSystemGenerationSettingsLimitsDto,
 })

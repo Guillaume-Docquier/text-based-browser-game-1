@@ -1,9 +1,10 @@
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
+import { MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 
-const NB_CONCURRENCY_TEST_ACCOUNTS = 20
+const NB_CONCURRENCY_TEST_ACCOUNTS = MAX_NB_SEATS
 
 describe("lobby concurrency", () => {
   it("should enforce the seat count when multiple accounts join the same game concurrently", async () => {
