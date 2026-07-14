@@ -20,6 +20,7 @@ import { Route as SiteGamesGameIdRouteImport } from './routes/_site.games.$gameI
 import { Route as GameGamesGameIdPlayRouteImport } from './routes/_game.games.$gameId.play'
 import { Route as GameGamesGameIdPlayIndexRouteImport } from './routes/_game.games.$gameId.play.index'
 import { Route as GameGamesGameIdPlayStarSystemRouteImport } from './routes/_game.games.$gameId.play.star-system'
+import { Route as GameGamesGameIdPlayPlayersRouteImport } from './routes/_game.games.$gameId.play.players'
 import { Route as GameGamesGameIdPlayActionsRouteImport } from './routes/_game.games.$gameId.play.actions'
 
 const SiteRoute = SiteRouteImport.update({
@@ -77,6 +78,12 @@ const GameGamesGameIdPlayStarSystemRoute =
     path: '/star-system',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
+const GameGamesGameIdPlayPlayersRoute =
+  GameGamesGameIdPlayPlayersRouteImport.update({
+    id: '/players',
+    path: '/players',
+    getParentRoute: () => GameGamesGameIdPlayRoute,
+  } as any)
 const GameGamesGameIdPlayActionsRoute =
   GameGamesGameIdPlayActionsRouteImport.update({
     id: '/actions',
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/games/': typeof SiteGamesIndexRoute
   '/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
   '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
+  '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
   '/games/$gameId/play/star-system': typeof GameGamesGameIdPlayStarSystemRoute
   '/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
 }
@@ -104,6 +112,7 @@ export interface FileRoutesByTo {
   '/games/create': typeof SiteGamesCreateRoute
   '/games': typeof SiteGamesIndexRoute
   '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
+  '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
   '/games/$gameId/play/star-system': typeof GameGamesGameIdPlayStarSystemRoute
   '/games/$gameId/play': typeof GameGamesGameIdPlayIndexRoute
 }
@@ -119,6 +128,7 @@ export interface FileRoutesById {
   '/_site/games/': typeof SiteGamesIndexRoute
   '/_game/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
   '/_game/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
+  '/_game/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
   '/_game/games/$gameId/play/star-system': typeof GameGamesGameIdPlayStarSystemRoute
   '/_game/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
 }
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/games/'
     | '/games/$gameId/play'
     | '/games/$gameId/play/actions'
+    | '/games/$gameId/play/players'
     | '/games/$gameId/play/star-system'
     | '/games/$gameId/play/'
   fileRoutesByTo: FileRoutesByTo
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/games/create'
     | '/games'
     | '/games/$gameId/play/actions'
+    | '/games/$gameId/play/players'
     | '/games/$gameId/play/star-system'
     | '/games/$gameId/play'
   id:
@@ -158,6 +170,7 @@ export interface FileRouteTypes {
     | '/_site/games/'
     | '/_game/games/$gameId/play'
     | '/_game/games/$gameId/play/actions'
+    | '/_game/games/$gameId/play/players'
     | '/_game/games/$gameId/play/star-system'
     | '/_game/games/$gameId/play/'
   fileRoutesById: FileRoutesById
@@ -246,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameGamesGameIdPlayStarSystemRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
+    '/_game/games/$gameId/play/players': {
+      id: '/_game/games/$gameId/play/players'
+      path: '/players'
+      fullPath: '/games/$gameId/play/players'
+      preLoaderRoute: typeof GameGamesGameIdPlayPlayersRouteImport
+      parentRoute: typeof GameGamesGameIdPlayRoute
+    }
     '/_game/games/$gameId/play/actions': {
       id: '/_game/games/$gameId/play/actions'
       path: '/actions'
@@ -258,12 +278,14 @@ declare module '@tanstack/react-router' {
 
 interface GameGamesGameIdPlayRouteChildren {
   GameGamesGameIdPlayActionsRoute: typeof GameGamesGameIdPlayActionsRoute
+  GameGamesGameIdPlayPlayersRoute: typeof GameGamesGameIdPlayPlayersRoute
   GameGamesGameIdPlayStarSystemRoute: typeof GameGamesGameIdPlayStarSystemRoute
   GameGamesGameIdPlayIndexRoute: typeof GameGamesGameIdPlayIndexRoute
 }
 
 const GameGamesGameIdPlayRouteChildren: GameGamesGameIdPlayRouteChildren = {
   GameGamesGameIdPlayActionsRoute: GameGamesGameIdPlayActionsRoute,
+  GameGamesGameIdPlayPlayersRoute: GameGamesGameIdPlayPlayersRoute,
   GameGamesGameIdPlayStarSystemRoute: GameGamesGameIdPlayStarSystemRoute,
   GameGamesGameIdPlayIndexRoute: GameGamesGameIdPlayIndexRoute,
 }
