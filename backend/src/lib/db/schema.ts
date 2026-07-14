@@ -17,6 +17,7 @@ import {
 } from "drizzle-orm/pg-core"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 
@@ -31,6 +32,7 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 export const starSystemBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
 export const gamePlayerActionTypeEnum = pgEnum("action_type", pgEnumify(GamePlayerActionType))
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
+export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
 
 const accountId = uuid
 const playerId = uuid
@@ -90,12 +92,14 @@ export const playersTable = pgTable(
     playerId: playerId("player_id")
       .notNull()
       .references(() => accountsTable.id, { onDelete: "cascade" }),
+    color: playerColorEnum("color").notNull(),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
   (table) => [
     primaryKey({
       columns: [table.gameId, table.playerId],
     }),
+    unique("players_game_id_color_unique").on(table.gameId, table.color),
   ],
 )
 

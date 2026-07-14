@@ -1,4 +1,4 @@
-import { type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
 import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
@@ -8,6 +8,7 @@ import { RangeDto } from "#api/shared/RangeDto.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
 
@@ -42,7 +43,11 @@ export class LobbiesController {
     }
 
     const status = createLobbyDto.configuration.nbSeats <= 1 ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
-    const createLobbyResult = await this.lobbiesRepository.createLobby({ ...createLobbyDto, status })
+    const createLobbyResult = await this.lobbiesRepository.createLobby({
+      ...createLobbyDto,
+      status,
+      creatorPlayerColor: PlayerColor.WHITE,
+    })
     if (Result.isFailure(createLobbyResult)) {
       return createLobbyResult
     }
@@ -81,7 +86,7 @@ export class LobbiesController {
       const lobbyForJoin = await this.lobbiesRepository.getLobbyForJoin({ gameId }, tx)
       rollbackOnFailure(lobbyForJoin, "Failed to get lobby.")
 
-      if (lobbyForJoin.value.playerIds.includes(accountId)) {
+      if (lobbyForJoin.value.players.find((player) => player.id === accountId) !== undefined) {
         // Already part of the game, return a success for idempotency
         return { playerId: accountId }
       }
@@ -91,9 +96,13 @@ export class LobbiesController {
       }
 
       const status =
-        lobbyForJoin.value.playerIds.length + 1 >= lobbyForJoin.value.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
+        lobbyForJoin.value.players.length + 1 >= lobbyForJoin.value.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
 
-      return await this.lobbiesRepository.joinLobby({ lobby: lobbyForJoin.value, accountId, status }, tx)
+      const usedColors = new Set(lobbyForJoin.value.players.map((player) => player.color))
+      const color = Object.values(PlayerColor).find((candidateColor) => !usedColors.has(candidateColor))
+      Assert.isDefined(color)
+
+      return await this.lobbiesRepository.joinLobby({ lobby: lobbyForJoin.value, accountId, color, status }, tx)
     })
 
     if (Result.isFailure(joinGameResult)) {
@@ -244,6 +253,7 @@ export type LobbyPlayerDto = z.infer<typeof LobbyPlayerDto>
 export const LobbyPlayerDto = z.object({
   id: PlayerId,
   alias: z.string().nullable(),
+  color: z.enum(PlayerColor),
 })
 
 export type LobbyDto = z.infer<typeof LobbyDto>

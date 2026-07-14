@@ -6,6 +6,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { createTickProcessorStub } from "#tick-processing/TickProcessor.stub.ts"
@@ -147,7 +148,8 @@ describe("TickProcessor", () => {
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toEqual<typeof playerView>({
         gameId: createdGameId,
-        playerId: player.account.id,
+        player: { id: player.account.id, color: PlayerColor.WHITE },
+        opponents: {},
         tick: 1,
         nextTickAt: Datetime.increment({ date: clock.now(), time: tickInterval }).toISOString(),
         starSystem: expect.any(Object),

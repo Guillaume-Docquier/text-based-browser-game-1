@@ -10,6 +10,7 @@ import type { Transaction } from "#lib/db/createDb.ts"
 import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gamesTable, gameStatesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
@@ -30,9 +31,15 @@ export type PlayerActionContextModel = {
   money: number
 }
 
+type PlayerViewPlayerModel = {
+  id: PlayerId
+  color: PlayerColor
+}
+
 export type PlayerViewModel = {
   gameId: number
-  playerId: PlayerId
+  player: PlayerViewPlayerModel
+  opponents: Record<PlayerId, PlayerViewPlayerModel>
   tick: number
   nextTickAt: Date
   starSystem: StarSystemModel
@@ -194,6 +201,14 @@ export class GameplayRepository extends PostgresRepository {
 
         const starSystem = await StarSystemQueries.selectStarSystem(gameId, tx)
 
+        const players = await tx
+          .select({ id: playersTable.playerId, color: playersTable.color })
+          .from(playersTable)
+          .where(eq(playersTable.gameId, gameId))
+        const player = players.find(({ id }) => id === playerId)
+        Assert.isDefined(player)
+        const opponents = Object.fromEntries(players.filter(({ id }) => id !== playerId).map((opponent) => [opponent.id, opponent]))
+
         const playerResources = await tx
           .select()
           .from(resourcesTable)
@@ -203,7 +218,8 @@ export class GameplayRepository extends PostgresRepository {
 
         return {
           ...gameState,
-          playerId,
+          player,
+          opponents,
           starSystem,
           resources: {
             money: money.amount,
