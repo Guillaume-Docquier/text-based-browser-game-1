@@ -20,6 +20,17 @@ test.describe("anonymous user", () => {
 test.describe("authenticated user", () => {
   test.use(authenticatedUser)
 
+  test("enforces the maximum number of players", async ({ page }) => {
+    const createGamePage = await CreateGamePage.goto(page)
+    await createGamePage.setGameName(`Playwright game ${Date.now()}`)
+
+    await createGamePage.setMaxPlayers(17)
+    await expect(createGamePage.createButton).toBeDisabled()
+
+    await createGamePage.setMaxPlayers(16)
+    await expect(createGamePage.createButton).toBeEnabled()
+  })
+
   test("creates and starts a game with a deterministic star system", async ({ page }) => {
     const createGamePage = await CreateGamePage.goto(page)
     const gameName = `Playwright game ${Date.now()}`
