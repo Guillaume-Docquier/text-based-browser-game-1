@@ -13,7 +13,7 @@ import { useLeaveGameMutation } from "@/lib/api/useLeaveGameMutation.ts"
 import { useLobbyQuery } from "@/lib/api/useLobbyQuery.ts"
 import { useStartGameMutation } from "@/lib/api/useStartGameMutation.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
-import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
+import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 import { timeAgo } from "@/lib/timeAgo.ts"
 
 export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
@@ -223,12 +223,4 @@ function formatRange(value: ApiTypes.StarSystemGenerationSettings[ApiTypes.Range
 
 function formatTickInterval(tickIntervalSeconds: number): string {
   return Temporal.Duration.from({ seconds: tickIntervalSeconds }).round({ largestUnit: "days" }).toLocaleString()
-}
-
-function formatPlayerColor(color: ApiTypes.PlayerColor): string {
-  return color
-    .toLowerCase()
-    .split("_")
-    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-    .join(" ")
 }

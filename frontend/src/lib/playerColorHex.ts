@@ -19,3 +19,12 @@ export const PLAYER_COLOR_HEX = {
   DARK_GREY: "#232323",
   PINK: "#E55BB0",
 } as const satisfies Record<PlayerColor, `#${string}`>
+
+/** Formats a player color token for display. */
+export function formatPlayerColor(color: PlayerColor): string {
+  return color
+    .toLowerCase()
+    .split("_")
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(" ")
+}
