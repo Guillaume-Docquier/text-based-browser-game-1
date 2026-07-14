@@ -1,4 +1,4 @@
-import type { Lobby, PlayerView } from "@api-types"
+import type { Lobby, PlayerId, PlayerView } from "@api-types"
 import { Clock3, Crown, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
@@ -101,7 +101,7 @@ function getWinnerLabel(game: Lobby): string {
   return winner.alias ?? `Player ${winner.id}`
 }
 
-function getPlayerLabel(game: Lobby, playerId: PlayerView["player"]["id"]): string {
+function getPlayerLabel(game: Lobby, playerId: PlayerId): string {
   const player = game.players.find(({ id }) => id === playerId)
   return player?.alias ?? `Player ${playerId}`
 }
