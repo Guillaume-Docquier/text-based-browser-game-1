@@ -12,8 +12,8 @@ import { useJoinGameMutation } from "@/lib/api/useJoinGameMutation.ts"
 import { useLeaveGameMutation } from "@/lib/api/useLeaveGameMutation.ts"
 import { useLobbyQuery } from "@/lib/api/useLobbyQuery.ts"
 import { useStartGameMutation } from "@/lib/api/useStartGameMutation.ts"
-import { formatLobbyStatus } from "@/lib/formatLobbyStatus.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
+import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 import { timeAgo } from "@/lib/timeAgo.ts"
 
 export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
@@ -44,11 +44,7 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title={game.configuration.name}
-        description={`Game #${game.id} created ${timeAgo(game.createdAt)}.`}
-        actions={<GameStatusBadge status={game.status} />}
-      />
+      <PageHeader title={game.configuration.name} actions={<GameStatusBadge status={game.status} />} />
       <Card className="border border-border/60">
         <CardHeader>
           <CardTitle>Lobby details</CardTitle>
@@ -56,12 +52,7 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <DetailBlock label="Status" value={formatLobbyStatus(game.status)} />
-            <DetailBlock label="Seats" value={`${game.players.length}/${game.configuration.nbSeats} players`} />
-            <div className="space-y-1">
-              <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Creator</div>
-              <Player player={game.creator} />
-            </div>
+            <DetailBlock label="Creator" value={game.creator.alias ?? `Player ${game.creator.id}`} />
             <DetailBlock label="Created" value={timeAgo(game.createdAt)} />
             {game.winnerAccountId !== null ? <DetailBlock label="Winner" value={getWinnerLabel(game)} /> : null}
           </div>
@@ -174,9 +165,17 @@ function DetailBlock({ label, value }: { label: string; value: string }): ReactE
 }
 
 function Player({ player }: { player: ApiTypes.LobbyPlayer }): ReactElement {
+  const colorLabel = formatPlayerColor(player.color)
+
   return (
-    <div className="rounded-3xl border border-border/60 bg-muted/20 px-4 py-3">
-      <div className="font-medium text-foreground">{player.alias ?? `Player ${player.id}`}</div>
+    <div className="flex items-center gap-3 rounded-3xl border border-border/60 bg-muted/20 px-4 py-3">
+      <span
+        aria-label={`${colorLabel} player color`}
+        className="size-3 shrink-0 rounded-full border border-foreground/20"
+        style={{ backgroundColor: PLAYER_COLOR_HEX[player.color] }}
+      />
+      <div className="min-w-0 flex-1 font-medium text-foreground">{player.alias ?? `Player ${player.id}`}</div>
+      <div className="text-xs text-muted-foreground">{colorLabel}</div>
     </div>
   )
 }

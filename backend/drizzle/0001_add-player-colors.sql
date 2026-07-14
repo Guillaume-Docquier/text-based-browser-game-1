@@ -1,0 +1,3 @@
+CREATE TYPE "public"."player_color" AS ENUM('WHITE', 'RED', 'BLUE', 'TEAL', 'PURPLE', 'YELLOW', 'ORANGE', 'GREEN', 'LIGHT_PINK', 'VIOLET', 'LIGHT_GREY', 'DARK_GREEN', 'BROWN', 'LIGHT_GREEN', 'DARK_GREY', 'PINK');--> statement-breakpoint
+ALTER TABLE "players" ADD COLUMN "color" "player_color" NOT NULL;--> statement-breakpoint
+ALTER TABLE "players" ADD CONSTRAINT "players_game_id_color_unique" UNIQUE("game_id","color");

@@ -6,6 +6,7 @@ import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/S
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { type LobbyPlayerDto, MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 
@@ -46,7 +47,7 @@ describe("lobbies.router", () => {
       expect(createLobbyResult).toEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
 
       const createdGame = await creator.client.lobbies.getById.query({ gameId: createLobbyResult.createdGameId })
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias }
+      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
 
       expect(createdGame).toEqual<typeof createdGame>({
         id: createLobbyResult.createdGameId,
@@ -178,7 +179,7 @@ describe("lobbies.router", () => {
       const lobby = await viewer.client.lobbies.getById.query({ gameId: createdGameId })
 
       // Assert
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias }
+      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
       expect(lobby).toEqual<typeof lobby>({
         id: createdGameId,
         createdAt: expect.any(String),
@@ -209,7 +210,7 @@ describe("lobbies.router", () => {
       const lobby = await anonymous.client.lobbies.getById.query({ gameId: createdGameId })
 
       // Assert
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias }
+      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
       expect(lobby).toEqual<typeof lobby>({
         id: createdGameId,
         createdAt: expect.any(String),
@@ -267,6 +268,50 @@ describe("lobbies.router", () => {
   })
 
   describe("join", () => {
+    it("should assign every player color in a maximum sized lobby", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joiners = await Promise.all(
+        Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
+      )
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: MAX_NB_SEATS }),
+      })
+
+      // Act
+      await Promise.all(joiners.map(async (joiner) => await joiner.client.lobbies.join.mutate({ gameId: createdGameId })))
+
+      // Assert
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(new Set(lobby.players.map(({ color }) => color))).toEqual(new Set(Object.values(PlayerColor)))
+    })
+
+    it("should assign every player color in a maximum sized lobby as players leave and rejoin", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joiners = await Promise.all(
+        Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
+      )
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: MAX_NB_SEATS }),
+      })
+
+      await Promise.all(joiners.map(async (joiner) => await joiner.client.lobbies.join.mutate({ gameId: createdGameId })))
+
+      // Act
+      const leavers = joiners.slice(joiners.length / 2)
+
+      await Promise.all(leavers.map(async (leaver) => await leaver.client.lobbies.leave.mutate({ gameId: createdGameId })))
+
+      await Promise.all(leavers.map(async (rejoiner) => await rejoiner.client.lobbies.join.mutate({ gameId: createdGameId })))
+
+      // Assert
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      expect(new Set(lobby.players.map(({ color }) => color))).toEqual(new Set(Object.values(PlayerColor)))
+    })
+
     it("should join a game", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
@@ -283,8 +328,8 @@ describe("lobbies.router", () => {
       expect(joinGameResult).toEqual<typeof joinGameResult>({ playerId: joiner.account.id })
 
       const joinedLobby = await joiner.client.lobbies.getById.query({ gameId: createdGameId })
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias }
-      const expectedJoiner: LobbyPlayerDto = { id: joiner.account.id, alias: joiner.account.alias }
+      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
+      const expectedJoiner: LobbyPlayerDto = { id: joiner.account.id, alias: joiner.account.alias, color: PlayerColor.RED }
 
       expect(joinedLobby).toEqual<typeof joinedLobby>({
         id: createdGameId,
@@ -396,7 +441,7 @@ describe("lobbies.router", () => {
       expect(leaveGameResult).toEqual<typeof leaveGameResult>(true)
 
       const leftLobby = await leaver.client.lobbies.getById.query({ gameId: createdGameId })
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias }
+      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
 
       expect(leftLobby).toEqual<typeof leftLobby>({
         id: createdGameId,

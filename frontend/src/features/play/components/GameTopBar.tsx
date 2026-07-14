@@ -1,7 +1,8 @@
-import type { Lobby, PlayerView } from "@api-types"
+import type { Lobby, PlayerId, PlayerView } from "@api-types"
 import { Clock3, Crown, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
+import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function GameTopBar({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
   return (
@@ -15,6 +16,17 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <TopBarFact
+            icon={
+              <span
+                aria-hidden="true"
+                className="size-4 rounded-full border border-foreground/30"
+                style={{ backgroundColor: PLAYER_COLOR_HEX[playerView.player.color] }}
+              />
+            }
+            label={formatPlayerColor(playerView.player.color)}
+            value={getPlayerLabel(game, playerView.player.id)}
+          />
           <TopBarFact icon={<TimerReset className="size-4" />} label="Tick" value={playerView.tick.toString()} />
           <NextTickFact targetTimestamp={playerView.nextTickAt} />
         </div>
@@ -87,6 +99,11 @@ function getWinnerLabel(game: Lobby): string {
   }
 
   return winner.alias ?? `Player ${winner.id}`
+}
+
+function getPlayerLabel(game: Lobby, playerId: PlayerId): string {
+  const player = game.players.find(({ id }) => id === playerId)
+  return player?.alias ?? `Player ${playerId}`
 }
 
 type TimeLeft = {

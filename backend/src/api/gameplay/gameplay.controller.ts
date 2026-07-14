@@ -15,6 +15,7 @@ import {
 } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { type GameplayRepository, type OrderModel, type PlayerViewModel } from "./gameplay.repository.ts"
@@ -195,7 +196,8 @@ export class GameplayController {
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
   return {
     gameId: playerViewModel.gameId,
-    playerId: playerViewModel.playerId,
+    player: playerViewModel.player,
+    opponents: playerViewModel.opponents,
     tick: playerViewModel.tick,
     nextTickAt: playerViewModel.nextTickAt,
     starSystem: playerViewModel.starSystem,
@@ -267,10 +269,14 @@ export const GetPlayerViewDto = z.object({
   playerId: PlayerId,
 })
 
+export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
+export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
+
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
 export const PlayerViewDto = z.object({
   gameId: GameId,
-  playerId: PlayerId,
+  player: PlayerViewPlayerDto,
+  opponents: z.record(PlayerId, PlayerViewPlayerDto),
   tick: z.number(),
   nextTickAt: z.date(),
   starSystem: StarSystemDto,

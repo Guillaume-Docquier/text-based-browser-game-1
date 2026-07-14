@@ -5,6 +5,7 @@ import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDt
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
@@ -142,7 +143,8 @@ describe("gameplay.router", () => {
       // This is basically a snapshot test since we've tested the star systems extensively already in unit tests
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameId: createdGameId,
-        playerId: player.account.id,
+        player: { id: player.account.id, color: PlayerColor.WHITE },
+        opponents: {},
         tick: 0,
         nextTickAt: Datetime.increment({
           date: clock.now(),
@@ -302,6 +304,32 @@ describe("gameplay.router", () => {
         resources: {
           money: 0,
         },
+      })
+    })
+
+    it("should expose the current player and every opponent with their colors", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const firstOpponent = await apiServer.createClient({ authenticated: true })
+      const secondOpponent = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 3 }),
+      })
+      await firstOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
+      await secondOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      // Act
+      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Assert
+      expect(playerView.player).toEqual({ id: creator.account.id, color: PlayerColor.WHITE })
+      expect(playerView.opponents).toEqual({
+        [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.RED },
+        [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.BLUE },
       })
     })
 

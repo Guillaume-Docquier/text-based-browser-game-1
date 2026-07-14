@@ -5,6 +5,7 @@ import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { type GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import { type PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
@@ -24,6 +25,7 @@ export type CreateLobbyModel = {
   createdByAccountId: AccountId
   status: GameStatus
   configuration: LobbyConfigurationModel
+  creatorPlayerColor: PlayerColor
 }
 
 export type LobbyModel = {
@@ -41,6 +43,12 @@ export type LobbyModel = {
 export type LobbyPlayerModel = {
   id: PlayerId
   alias: string | null
+  color: PlayerColor
+}
+
+type PlayerForJoin = {
+  id: PlayerId
+  color: PlayerColor
 }
 
 /**
@@ -52,7 +60,7 @@ export type LobbyForJoin = Branded<
     readonly id: GameId
     readonly status: GameStatus
     readonly nbSeats: number
-    readonly playerIds: readonly PlayerId[]
+    readonly players: readonly PlayerForJoin[]
   },
   "LobbyForJoin"
 >
@@ -63,6 +71,7 @@ export type JoinLobbyModel = {
    */
   readonly lobby: LobbyForJoin
   readonly accountId: AccountId
+  readonly color: PlayerColor
   readonly status: typeof GameStatus.WAITING_FOR_PLAYERS | typeof GameStatus.READY_TO_START
 }
 
@@ -108,7 +117,11 @@ export class LobbiesRepository extends PostgresRepository {
         Assert.isDefined(games[0])
         const game = games[0]
 
-        await tx.insert(playersTable).values({ gameId: game.id, playerId: game.createdByAccountId })
+        await tx.insert(playersTable).values({
+          gameId: game.id,
+          playerId: createLobbyModel.createdByAccountId,
+          color: createLobbyModel.creatorPlayerColor,
+        })
 
         return { createdGameId: game.id }
       }),
@@ -143,6 +156,7 @@ export class LobbiesRepository extends PostgresRepository {
         .select({
           id: playersTable.playerId,
           alias: accountsTable.alias,
+          color: playersTable.color,
         })
         .from(playersTable)
         .innerJoin(accountsTable, eq(accountsTable.id, playersTable.playerId))
@@ -169,12 +183,18 @@ export class LobbiesRepository extends PostgresRepository {
       return Result.Failure("The lobby does not exist.")
     }
 
-    const playerRows = await tx.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
+    const playerRows: readonly PlayerForJoin[] = await tx
+      .select({
+        id: playersTable.playerId,
+        color: playersTable.color,
+      })
+      .from(playersTable)
+      .where(eq(playersTable.gameId, gameId))
 
     return Result.Success(
       branded<LobbyForJoin>({
         ...game,
-        playerIds: playerRows.map(({ playerId }) => playerId),
+        players: playerRows,
       }),
     )
   }
@@ -182,8 +202,8 @@ export class LobbiesRepository extends PostgresRepository {
   /**
    * The only failure mode for this method is throwing to rollback the transaction.
    */
-  public async joinLobby({ lobby, accountId, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
-    const gamePlayers = await tx.insert(playersTable).values({ gameId: lobby.id, playerId: accountId }).returning()
+  public async joinLobby({ lobby, accountId, color, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
+    const gamePlayers = await tx.insert(playersTable).values({ gameId: lobby.id, playerId: accountId, color }).returning()
     Assert.isTrue(gamePlayers.length === 1)
     Assert.isDefined(gamePlayers[0])
 
