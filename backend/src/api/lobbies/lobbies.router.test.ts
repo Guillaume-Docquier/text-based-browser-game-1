@@ -92,7 +92,7 @@ describe("lobbies.router", () => {
 
       // Assert
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
-      expect(lobby.configuration.nbSeats).toBe(16)
+      expect(lobby.configuration.nbSeats).toBe(MAX_NB_SEATS)
     })
 
     it("should reject a game with MAX_NB_SEATS + 1 seats", async () => {
