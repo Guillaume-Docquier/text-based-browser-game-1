@@ -318,9 +318,10 @@ function Unit({ renderedUnit }: { renderedUnit: RenderedUnit }): ReactElement {
   return (
     <polygon
       aria-label={label}
-      className="stroke-black/70 stroke-1 outline-none [paint-order:stroke] focus-visible:stroke-white"
+      className="stroke-1 outline-none [paint-order:stroke] focus-visible:stroke-white"
       fill={renderedUnit.color}
       points={points}
+      stroke={`color-mix(in srgb, ${renderedUnit.color}, white 40%)`}
       tabIndex={0}
     >
       <title>{label}</title>
