@@ -15,8 +15,8 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@clerk/react": "^6.11.4",
-    "@clerk/ui": "^1.24.2",
+    "@clerk/react": "^6.12.2",
+    "@clerk/ui": "^1.25.2",
     "@fontsource-variable/oxanium": "^5.2.8",
     "@guillaume-docquier/tools-ts": "catalog:",
     "@tanstack/react-query": "^5.101.2",
@@ -26,7 +26,7 @@
     "@trpc/tanstack-react-query": "^11.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.21.0",
+    "lucide-react": "^1.24.0",
     "radix-ui": "^1.6.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
