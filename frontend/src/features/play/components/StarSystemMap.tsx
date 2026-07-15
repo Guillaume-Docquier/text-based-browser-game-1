@@ -34,6 +34,7 @@ type RenderedUnit = {
   unit: PlayerViewUnit
   position: Point
   stackIndex: number
+  stackSize: number
   color: string
   locationLabel: string
 }
@@ -203,7 +204,7 @@ function createStarSystemRendering(playerView: PlayerView): StarSystemRendering 
         path: geometry.path,
       })
       renderedTargets.set(`SECTOR:${sector.id}`, {
-        position: geometry.unitPosition,
+        position: geometry.unitClusterPosition,
         locationLabel: `Sector ${sector.coordinates}`,
       })
 
@@ -214,7 +215,7 @@ function createStarSystemRendering(playerView: PlayerView): StarSystemRendering 
 
       rendering.bodies.push({ body: centralBody, position: geometry.center })
       renderedTargets.set(`BODY:${centralBody.id}`, {
-        position: { x: geometry.center.x + 18, y: geometry.center.y },
+        position: getBodyUnitClusterPosition(centralBody, geometry.center),
         locationLabel: `${centralBody.name}, ${centralBody.coordinates}`,
       })
       if (centralBody.type === "PLANET" && satellites.length > 0) {
@@ -234,32 +235,67 @@ function createStarSystemRendering(playerView: PlayerView): StarSystemRendering 
         })
         rendering.bodies.push({ body, position })
         renderedTargets.set(`BODY:${body.id}`, {
-          position: { x: position.x + 18, y: position.y },
+          position: getBodyUnitClusterPosition(body, position),
           locationLabel: `${body.name}, ${body.coordinates}`,
         })
       }
     }
   }
 
+  const playerOrder = new Map<string, number>([[playerView.player.id, 0]])
+  for (const [index, playerId] of Object.keys(playerView.opponents).sort().entries()) {
+    playerOrder.set(playerId, index + 1)
+  }
+
+  const unitsGroupedByPlayer = Object.values(playerView.units).toSorted((left, right) => {
+    const leftPlayerOrder = playerOrder.get(left.playerId)
+    const rightPlayerOrder = playerOrder.get(right.playerId)
+    Assert.isDefined(leftPlayerOrder)
+    Assert.isDefined(rightPlayerOrder)
+
+    const playerComparison = leftPlayerOrder - rightPlayerOrder
+
+    return playerComparison === 0 ? left.id.localeCompare(right.id) : playerComparison
+  })
+
   const unitCountByTarget = new Map<string, number>()
-  for (const unit of Object.values(playerView.units)) {
-    const targetKey = unit.location.targetType === "SECTOR" ? `SECTOR:${unit.location.sectorId}` : `BODY:${unit.location.bodyId}`
+  for (const unit of unitsGroupedByPlayer) {
+    const targetKey = getUnitTargetKey(unit)
+    unitCountByTarget.set(targetKey, (unitCountByTarget.get(targetKey) ?? 0) + 1)
+  }
+
+  const unitIndexByTarget = new Map<string, number>()
+  for (const unit of unitsGroupedByPlayer) {
+    const targetKey = getUnitTargetKey(unit)
     const renderedTarget = renderedTargets.get(targetKey)
     Assert.isDefined(renderedTarget)
     const owner = unit.playerId === playerView.player.id ? playerView.player : playerView.opponents[unit.playerId]
     Assert.isDefined(owner)
-    const stackIndex = unitCountByTarget.get(targetKey) ?? 0
-    unitCountByTarget.set(targetKey, stackIndex + 1)
+    const stackIndex = unitIndexByTarget.get(targetKey) ?? 0
+    const stackSize = unitCountByTarget.get(targetKey)
+    Assert.isDefined(stackSize)
+    unitIndexByTarget.set(targetKey, stackIndex + 1)
     rendering.units.push({
       unit,
       position: renderedTarget.position,
       stackIndex,
+      stackSize,
       color: PLAYER_COLOR_HEX[owner.color],
       locationLabel: renderedTarget.locationLabel,
     })
   }
 
   return rendering
+}
+
+function getUnitTargetKey(unit: PlayerViewUnit): string {
+  return unit.location.targetType === "SECTOR" ? `SECTOR:${unit.location.sectorId}` : `BODY:${unit.location.bodyId}`
+}
+
+function getBodyUnitClusterPosition(body: StarSystemBody, position: Point): Point {
+  const bodyRadius = body.type === "PLANET" ? 13 : body.type === "MOON" ? 7 : 9
+
+  return { x: position.x, y: position.y + bodyRadius + 9 }
 }
 
 function Units({ units }: { units: RenderedUnit[] }): ReactElement {
@@ -273,10 +309,10 @@ function Units({ units }: { units: RenderedUnit[] }): ReactElement {
 }
 
 function Unit({ renderedUnit }: { renderedUnit: RenderedUnit }): ReactElement {
-  const offset = renderedUnit.stackIndex * 4
+  const offset = (renderedUnit.stackIndex - (renderedUnit.stackSize - 1) / 2) * 8
   const x = renderedUnit.position.x + offset
-  const y = renderedUnit.position.y - offset
-  const points = `${x},${y - 5} ${x + 5},${y + 4} ${x - 5},${y + 4}`
+  const y = renderedUnit.position.y
+  const points = `${x - 5},${y} ${x + 4},${y - 5} ${x + 4},${y + 5}`
   const label = `Unit ${renderedUnit.unit.id}, owner ${renderedUnit.unit.playerId}, ${renderedUnit.locationLabel}`
 
   return (

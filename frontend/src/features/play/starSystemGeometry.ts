@@ -10,7 +10,7 @@ export type OrbitRadii = {
 
 export type SectorGeometry = OrbitRadii & {
   center: Point
-  unitPosition: Point
+  unitClusterPosition: Point
   path: string
   satelliteOrbitRadius: number
 }
@@ -46,6 +46,7 @@ export function getSectorGeometry({
   const { innerRadius, outerRadius } = orbitRadii
   const middleRadius = (innerRadius + outerRadius) / 2
   const middleAngle = (minAngle + maxAngle) / 2
+  const unitClusterAngle = minAngle + (maxAngle - minAngle) * 0.2
   // Cap the half-angle because sectors wider than a semicircle have the same limiting chord at 90 degrees.
   const halfAngleRadians = degreesToRadians(Math.min((maxAngle - minAngle) / 2, 90))
   const availableTangentialRadius = middleRadius * Math.sin(halfAngleRadians)
@@ -55,7 +56,7 @@ export function getSectorGeometry({
     innerRadius,
     outerRadius,
     center: polarPoint(middleAngle, middleRadius),
-    unitPosition: polarPoint(middleAngle, outerRadius - 12),
+    unitClusterPosition: polarPoint(unitClusterAngle, middleRadius),
     path: annularSectorPath({ innerRadius, outerRadius, minAngle, maxAngle }),
     // Fit satellites inside both the Orbit band and the Sector wedge, with a cap that prevents sparse sectors from looking oversized.
     satelliteOrbitRadius: Math.min(32, availableRadialRadius * 0.58, availableTangentialRadius * 0.55),
