@@ -1,4 +1,4 @@
-import { createRng, mulberry32Prng, Range, Result, type Rng, Sort } from "@guillaume-docquier/tools-ts"
+import { branded, createRng, mulberry32Prng, Range, Result, type Rng, Sort } from "@guillaume-docquier/tools-ts"
 import { v7 } from "uuid"
 import { FIRST_ORBIT_SECTOR_COUNT, MAX_ORBIT_COUNT } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import type {
@@ -9,6 +9,7 @@ import type {
   NewStarSystemModel,
 } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import type { Clock } from "#lib/Clock.ts"
+import { type MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 
@@ -185,7 +186,7 @@ function generateSectors({
       const maxAngle = sectorNumber === orbit.sectorCount ? 360 : angleSpan * sectorNumber
 
       return {
-        id: uuidFactory(),
+        id: branded<MovementTargetId>(uuidFactory()),
         orbitId: orbit.id,
         orbitNumber: orbit.orbitNumber,
         sectorNumber,
@@ -246,7 +247,7 @@ function generateBody({
   bodyType: BodyType
 }): NewBodyModel {
   return {
-    id: uuidFactory(),
+    id: branded<MovementTargetId>(uuidFactory()),
     sectorId: sector.id,
     bodyNumber,
     // We'll do better in the future
@@ -331,7 +332,7 @@ function areSectorsAdjacent(firstSector: GeneratedSector, secondSector: Generate
   )
 }
 
-export function generateMovementEdge(fromTargetId: string, toTargetId: string): NewMovementEdgeModel {
+export function generateMovementEdge(fromTargetId: MovementTargetId, toTargetId: MovementTargetId): NewMovementEdgeModel {
   return {
     fromTargetId,
     toTargetId,

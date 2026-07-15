@@ -1,14 +1,14 @@
 import { Assert, Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { MAX_ORBIT_COUNT } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
-import type { NewMovementEdgeModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { Clock } from "#lib/Clock.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
+import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 import { toCoordinates } from "./Coordinates.ts"
-import { generateMovementEdge, generateStarSystem } from "./generateStarSystem.ts"
+import { generateStarSystem } from "./generateStarSystem.ts"
 
 describe("generateStarSystem", () => {
   it("should generate identical Star Systems from identical settings", () => {
@@ -237,7 +237,7 @@ describe("generateStarSystem", () => {
 
     // Assert
     // We'll map movement target ids to coordinates to make it easier to debug
-    const coordinatesByMovementTargetId = new Map<string, string>()
+    const coordinatesByMovementTargetId = new Map<MovementTargetId, string>()
     for (const orbit of system.orbits) {
       for (const sector of system.sectors.filter((s) => s.orbitId === orbit.id)) {
         coordinatesByMovementTargetId.set(sector.id, toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }))
@@ -251,13 +251,18 @@ describe("generateStarSystem", () => {
       }
     }
 
-    function getCoordinates(movementTargetId: string): string {
+    function getCoordinates(movementTargetId: MovementTargetId): string {
       const coordinates = coordinatesByMovementTargetId.get(movementTargetId)
       Assert.isDefined(coordinates)
       return coordinates
     }
 
-    function compareMovementEdges(firstEdge: NewMovementEdgeModel, secondEdge: NewMovementEdgeModel): number {
+    type CoordinateMovementEdge = { fromTargetId: string; toTargetId: string; weight: number }
+    function createCoordinateMovementEdge(fromTargetId: string, toTargetId: string): CoordinateMovementEdge {
+      return { fromTargetId, toTargetId, weight: 1 }
+    }
+
+    function compareMovementEdges(firstEdge: CoordinateMovementEdge, secondEdge: CoordinateMovementEdge): number {
       const firstComparison = firstEdge.fromTargetId.localeCompare(secondEdge.fromTargetId)
       if (firstComparison !== 0) {
         return firstComparison
@@ -267,7 +272,7 @@ describe("generateStarSystem", () => {
     }
 
     const movementEdgesByCoordinates = system.movementEdges
-      .map(({ fromTargetId, toTargetId }) => generateMovementEdge(getCoordinates(fromTargetId), getCoordinates(toTargetId)))
+      .map(({ fromTargetId, toTargetId }) => createCoordinateMovementEdge(getCoordinates(fromTargetId), getCoordinates(toTargetId)))
       // oxlint-disable-next-line unicorn/no-array-sort -- We're already working off of a copy, we don't need another one
       .sort(compareMovementEdges)
 
@@ -292,60 +297,60 @@ describe("generateStarSystem", () => {
     expect(movementEdgesByCoordinates).toEqual(
       [
         // o1s1
-        generateMovementEdge(o1s1, o1s2),
-        generateMovementEdge(o1s1, o2s1),
-        generateMovementEdge(o1s1, o2s2),
+        createCoordinateMovementEdge(o1s1, o1s2),
+        createCoordinateMovementEdge(o1s1, o2s1),
+        createCoordinateMovementEdge(o1s1, o2s2),
 
         // o1s2
-        generateMovementEdge(o1s2, o1s1),
-        generateMovementEdge(o1s2, o2s3),
-        generateMovementEdge(o1s2, o2s4),
-        generateMovementEdge(o1s2, o1s2p1),
-        generateMovementEdge(o1s2, o1s2m2),
+        createCoordinateMovementEdge(o1s2, o1s1),
+        createCoordinateMovementEdge(o1s2, o2s3),
+        createCoordinateMovementEdge(o1s2, o2s4),
+        createCoordinateMovementEdge(o1s2, o1s2p1),
+        createCoordinateMovementEdge(o1s2, o1s2m2),
 
         // o1s2b1
-        generateMovementEdge(o1s2p1, o1s2),
-        generateMovementEdge(o1s2p1, o1s2m2),
+        createCoordinateMovementEdge(o1s2p1, o1s2),
+        createCoordinateMovementEdge(o1s2p1, o1s2m2),
 
         // o1s2b2
-        generateMovementEdge(o1s2m2, o1s2),
-        generateMovementEdge(o1s2m2, o1s2p1),
+        createCoordinateMovementEdge(o1s2m2, o1s2),
+        createCoordinateMovementEdge(o1s2m2, o1s2p1),
 
         // o2s1
-        generateMovementEdge(o2s1, o1s1),
-        generateMovementEdge(o2s1, o2s4),
-        generateMovementEdge(o2s1, o2s2),
-        generateMovementEdge(o2s1, o2s1a1),
+        createCoordinateMovementEdge(o2s1, o1s1),
+        createCoordinateMovementEdge(o2s1, o2s4),
+        createCoordinateMovementEdge(o2s1, o2s2),
+        createCoordinateMovementEdge(o2s1, o2s1a1),
 
         // o2s1b1
-        generateMovementEdge(o2s1a1, o2s1),
+        createCoordinateMovementEdge(o2s1a1, o2s1),
 
         // o2s2
-        generateMovementEdge(o2s2, o1s1),
-        generateMovementEdge(o2s2, o2s1),
-        generateMovementEdge(o2s2, o2s3),
-        generateMovementEdge(o2s2, o2s2a1),
+        createCoordinateMovementEdge(o2s2, o1s1),
+        createCoordinateMovementEdge(o2s2, o2s1),
+        createCoordinateMovementEdge(o2s2, o2s3),
+        createCoordinateMovementEdge(o2s2, o2s2a1),
 
         // o2s2b1
-        generateMovementEdge(o2s2a1, o2s2),
+        createCoordinateMovementEdge(o2s2a1, o2s2),
 
         // o2s3
-        generateMovementEdge(o2s3, o1s2),
-        generateMovementEdge(o2s3, o2s2),
-        generateMovementEdge(o2s3, o2s4),
-        generateMovementEdge(o2s3, o2s3a1),
+        createCoordinateMovementEdge(o2s3, o1s2),
+        createCoordinateMovementEdge(o2s3, o2s2),
+        createCoordinateMovementEdge(o2s3, o2s4),
+        createCoordinateMovementEdge(o2s3, o2s3a1),
 
         // o2s3b1
-        generateMovementEdge(o2s3a1, o2s3),
+        createCoordinateMovementEdge(o2s3a1, o2s3),
 
         // o2s4
-        generateMovementEdge(o2s4, o1s2),
-        generateMovementEdge(o2s4, o2s3),
-        generateMovementEdge(o2s4, o2s1),
-        generateMovementEdge(o2s4, o2s4a1),
+        createCoordinateMovementEdge(o2s4, o1s2),
+        createCoordinateMovementEdge(o2s4, o2s3),
+        createCoordinateMovementEdge(o2s4, o2s1),
+        createCoordinateMovementEdge(o2s4, o2s4a1),
 
         // o2s4b1
-        generateMovementEdge(o2s4a1, o2s4),
+        createCoordinateMovementEdge(o2s4a1, o2s4),
         // oxlint-disable-next-line unicorn/no-array-sort -- We're working on a controlled copy, we don't need another one
       ].sort(compareMovementEdges),
     )

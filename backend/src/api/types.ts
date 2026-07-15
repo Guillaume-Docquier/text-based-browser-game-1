@@ -12,6 +12,7 @@ export type { TrpcRouter }
 export type { GameId } from "#api/shared/GameId.ts"
 export type { PlayerId } from "#api/shared/PlayerId.ts"
 export type { AccountId } from "#lib/db/accounts/AccountId.ts"
+export type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
 export type { PlayerColor } from "#lib/db/PlayerColor.ts"
 
 // Lobbies

@@ -1,4 +1,5 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
+import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
 
 /**
  * The concrete Star System entity represented by a movement target.
@@ -14,5 +15,5 @@ export const MovementTargetType = {
  */
 export type MovementTarget = {
   readonly targetType: MovementTargetType
-  readonly targetId: string
+  readonly targetId: MovementTargetId
 }

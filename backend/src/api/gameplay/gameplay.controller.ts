@@ -11,6 +11,7 @@ import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { type MovementTarget, MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
+import { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
 import { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
@@ -224,7 +225,7 @@ export const StartedGameDto = z.object({
 })
 
 const StarSystemBodyDto = z.object({
-  id: z.string(),
+  id: MovementTargetId,
   number: z.number(),
   coordinates: z.string(),
   name: z.string(),
@@ -232,7 +233,7 @@ const StarSystemBodyDto = z.object({
 })
 
 const StarSystemSectorDto = z.object({
-  id: z.string(),
+  id: MovementTargetId,
   number: z.number(),
   coordinates: z.string(),
   angleRange: RangeDto,
@@ -247,15 +248,15 @@ const StarSystemOrbitDto = z.object({
 })
 
 const MovementEdgeDto = z.object({
-  fromTargetId: z.string(),
-  toTargetId: z.string(),
+  fromTargetId: MovementTargetId,
+  toTargetId: MovementTargetId,
   weight: z.number(),
 })
 
 type StarSystemDto = z.infer<typeof StarSystemDto>
 const StarSystemDto = z.object({
   orbits: z.array(StarSystemOrbitDto),
-  movementEdges: z.record(z.string(), z.array(MovementEdgeDto)),
+  movementEdges: z.record(MovementTargetId, z.array(MovementEdgeDto)),
 })
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
@@ -270,7 +271,7 @@ export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(Player
 export type MovementTargetDto = z.infer<typeof MovementTargetDto>
 export const MovementTargetDto = z.object({
   targetType: z.enum(MovementTargetType),
-  targetId: z.string(),
+  targetId: MovementTargetId,
 }) satisfies z.ZodType<MovementTarget>
 
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>

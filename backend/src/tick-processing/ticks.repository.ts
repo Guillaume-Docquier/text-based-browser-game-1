@@ -9,6 +9,7 @@ import type { GamePlayerAction } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import type { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import type { MovementTarget, MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
+import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
 import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
@@ -416,7 +417,7 @@ function toTickUnitModel(unitRow: UnitWithTargetTypeRow): TickUnitModel {
   }
 }
 
-function toMovementTarget(targetId: string | null, targetType: MovementTargetType | null): MovementTarget {
+function toMovementTarget(targetId: MovementTargetId | null, targetType: MovementTargetType | null): MovementTarget {
   Assert.isDefined(targetId)
   Assert.isDefined(targetType)
   return { targetId, targetType }

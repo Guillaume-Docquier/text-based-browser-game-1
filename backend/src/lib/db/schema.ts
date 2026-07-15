@@ -17,6 +17,7 @@ import {
 } from "drizzle-orm/pg-core"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
+import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
 import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
@@ -153,7 +154,7 @@ export const ordersTable = pgTable(
     playerId: playerId("player_id").notNull(),
     tick: integer("tick").notNull(),
     actionType: gamePlayerActionTypeEnum("action_type").notNull(),
-    destinationTargetId: uuid("destination_target_id"),
+    destinationTargetId: uuid("destination_target_id").$type<MovementTargetId>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -241,7 +242,7 @@ export const orbitsTable = pgTable(
 export const sectorsTable = pgTable(
   "sectors",
   {
-    id: uuid("id").notNull(),
+    id: uuid("id").$type<MovementTargetId>().notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
@@ -283,11 +284,11 @@ export const sectorsTable = pgTable(
 export const bodiesTable = pgTable(
   "bodies",
   {
-    id: uuid("id").notNull(),
+    id: uuid("id").$type<MovementTargetId>().notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
-    sectorId: uuid("sector_id").notNull(),
+    sectorId: uuid("sector_id").$type<MovementTargetId>().notNull(),
     bodyNumber: integer("body_number").notNull(),
     bodyType: starSystemBodyTypeEnum("body_type").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
@@ -320,7 +321,7 @@ export const unitsTable = pgTable(
     id: uuid("id").$type<UnitId>().primaryKey().defaultRandom(),
     gameId: gameId("game_id").notNull(),
     playerId: playerId("player_id").notNull(),
-    locationTargetId: uuid("location_target_id").notNull(),
+    locationTargetId: uuid("location_target_id").$type<MovementTargetId>().notNull(),
   },
   (table) => [
     foreignKey({
@@ -343,7 +344,7 @@ export const unitsTable = pgTable(
 export const movementTargetsTable = pgTable(
   "movement_targets",
   {
-    id: uuid("id").notNull(),
+    id: uuid("id").$type<MovementTargetId>().notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
@@ -365,8 +366,8 @@ export const movementEdgesTable = pgTable(
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
-    fromTargetId: uuid("from_target_id").notNull(),
-    toTargetId: uuid("to_target_id").notNull(),
+    fromTargetId: uuid("from_target_id").$type<MovementTargetId>().notNull(),
+    toTargetId: uuid("to_target_id").$type<MovementTargetId>().notNull(),
     weight: integer("weight").notNull(),
   },
   (table) => [

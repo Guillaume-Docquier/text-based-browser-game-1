@@ -1,4 +1,5 @@
 import type { Range } from "@guillaume-docquier/tools-ts"
+import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
 import type { BodyType } from "#lib/db/star-systems/BodyType.ts"
 
 export type NewStarSystemModel = {
@@ -14,23 +15,23 @@ export type NewOrbitModel = {
 }
 
 export type NewSectorModel = {
-  id: string
+  id: MovementTargetId
   orbitId: string
   sectorNumber: number
   angleRange: Range
 }
 
 export type NewBodyModel = {
-  id: string
-  sectorId: string
+  id: MovementTargetId
+  sectorId: MovementTargetId
   bodyNumber: number
   bodyType: BodyType
   name: string
 }
 
 export type NewMovementEdgeModel = {
-  fromTargetId: string
-  toTargetId: string
+  fromTargetId: MovementTargetId
+  toTargetId: MovementTargetId
   weight: number
 }
 
@@ -42,7 +43,7 @@ export type StarSystemModel = {
   /**
    * Movement edges by movement target id
    */
-  movementEdges: Record<string, MovementEdgeModel[]>
+  movementEdges: Record<MovementTargetId, MovementEdgeModel[]>
 }
 
 export type OrbitModel = {
@@ -53,7 +54,7 @@ export type OrbitModel = {
 }
 
 export type SectorModel = {
-  id: string
+  id: MovementTargetId
   number: number
   coordinates: string
   angleRange: Range
@@ -61,7 +62,7 @@ export type SectorModel = {
 }
 
 export type BodyModel = {
-  id: string
+  id: MovementTargetId
   number: number
   coordinates: string
   name: string
@@ -69,7 +70,7 @@ export type BodyModel = {
 }
 
 export type MovementEdgeModel = {
-  fromTargetId: string
-  toTargetId: string
+  fromTargetId: MovementTargetId
+  toTargetId: MovementTargetId
   weight: number
 }

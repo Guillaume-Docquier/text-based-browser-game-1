@@ -11,6 +11,7 @@ import type { GamePlayerAction } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import type { MovementTarget, MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
+import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
 import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
@@ -509,7 +510,7 @@ function toUnitModel(unitRow: UnitWithTargetTypeRow): UnitModel {
   }
 }
 
-function toMovementTarget(targetId: string | null, targetType: MovementTargetType | null): MovementTarget {
+function toMovementTarget(targetId: MovementTargetId | null, targetType: MovementTargetType | null): MovementTarget {
   Assert.isDefined(targetId)
   Assert.isDefined(targetType)
   return { targetId, targetType }
@@ -518,7 +519,7 @@ function toMovementTarget(targetId: string | null, targetType: MovementTargetTyp
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
-function toDestinationColumns(action: GamePlayerAction): { destinationTargetId: string | null } {
+function toDestinationColumns(action: GamePlayerAction): { destinationTargetId: MovementTargetId | null } {
   return { destinationTargetId: action.actionType === GamePlayerActionType.BUILD_UNIT ? action.destination.targetId : null }
 }
 
