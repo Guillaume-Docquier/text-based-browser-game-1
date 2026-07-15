@@ -1,5 +1,6 @@
 import { authenticatedUser } from "../authenticatedUser.ts"
 import { expect, test } from "../fixtures.ts"
+import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
@@ -73,6 +74,31 @@ test.describe("authenticated user", () => {
       const starSystemPage = new StarSystemPage(page)
       await expect(page).toHaveURL(StarSystemPage.urlPattern)
       await expect(starSystemPage.summary).toHaveText("2 orbits · 6 sectors · 6 bodies")
+    })
+
+    await test.step("Verify the Actions and map-derived Build destinations", async () => {
+      await page.getByRole("link", { name: "Actions" }).click()
+      const actionsPage = new ActionsPage(page)
+      await expect(page).toHaveURL(ActionsPage.urlPattern)
+      await expect(actionsPage.actionHeading("Make More Money")).toBeVisible()
+      await expect(actionsPage.actionHeading("Win The Game")).toBeVisible()
+      await expect(actionsPage.actionHeading("Build Unit")).toBeVisible()
+
+      await actionsPage.openBuildDestination()
+      await expect(actionsPage.buildOptions).toHaveText([
+        "01:01 — Sector",
+        "01:02 — Sector",
+        "01:02:01 — Planet 01",
+        "01:02:02 — Moon 02",
+        "02:01 — Sector",
+        "02:01:01 — Asteroid 01",
+        "02:02 — Sector",
+        "02:02:01 — Asteroid 01",
+        "02:03 — Sector",
+        "02:03:01 — Asteroid 01",
+        "02:04 — Sector",
+        "02:04:01 — Asteroid 01",
+      ])
     })
   })
 })

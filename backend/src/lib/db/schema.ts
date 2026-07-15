@@ -16,6 +16,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
@@ -150,6 +151,10 @@ export const ordersTable = pgTable(
     playerId: playerId("player_id").notNull(),
     tick: integer("tick").notNull(),
     actionType: gamePlayerActionTypeEnum("action_type").notNull(),
+    // We'll probably end up storing json in here, this is gonna suck long term as we add more orders
+    destinationSectorId: uuid("destination_sector_id"),
+    // We'll probably end up storing json in here, this is gonna suck long term as we add more orders
+    destinationBodyId: uuid("destination_body_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -162,6 +167,30 @@ export const ordersTable = pgTable(
       foreignColumns: [playersTable.gameId, playersTable.playerId],
       name: "orders_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
+    // We'll probably end up storing json in here, this is gonna suck long term as we add more orders
+    foreignKey({
+      columns: [table.gameId, table.destinationSectorId],
+      foreignColumns: [sectorsTable.gameId, sectorsTable.id],
+      name: "orders_game_id_destination_sector_id_sectors_fk",
+    }).onDelete("cascade"),
+    // We'll probably end up storing json in here, this is gonna suck long term as we add more orders
+    foreignKey({
+      columns: [table.gameId, table.destinationBodyId],
+      foreignColumns: [bodiesTable.gameId, bodiesTable.id],
+      name: "orders_game_id_destination_body_id_bodies_fk",
+    }).onDelete("cascade"),
+    // We'll probably end up storing json in here, this is gonna suck long term as we add more orders
+    check(
+      "orders_action_destination_check",
+      sql`(
+        ${table.actionType}::text = 'BUILD_UNIT'
+        and ((${table.destinationSectorId} is not null) <> (${table.destinationBodyId} is not null))
+      ) or (
+        ${table.actionType}::text in ('MAKE_MORE_MONEY', 'WIN_THE_GAME')
+        and ${table.destinationSectorId} is null
+        and ${table.destinationBodyId} is null
+      )`,
+    ),
   ],
 )
 
@@ -288,6 +317,40 @@ export const bodiesTable = pgTable(
       name: "bodies_game_id_movement_node_id_movement_nodes_fk",
     }).onDelete("no action"),
     index("bodies_game_id_sector_id_idx").on(table.gameId, table.sectorId),
+  ],
+)
+
+/**
+ * Generic player-owned Units located at concrete Star System targets.
+ */
+export const unitsTable = pgTable(
+  "units",
+  {
+    id: uuid("id").$type<UnitId>().primaryKey().defaultRandom(),
+    gameId: gameId("game_id").notNull(),
+    playerId: playerId("player_id").notNull(),
+    sectorId: uuid("sector_id"),
+    bodyId: uuid("body_id"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.gameId, table.playerId],
+      foreignColumns: [playersTable.gameId, playersTable.playerId],
+      name: "units_game_id_player_id_players_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.sectorId],
+      foreignColumns: [sectorsTable.gameId, sectorsTable.id],
+      name: "units_game_id_sector_id_sectors_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.bodyId],
+      foreignColumns: [bodiesTable.gameId, bodiesTable.id],
+      name: "units_game_id_body_id_bodies_fk",
+    }).onDelete("cascade"),
+    // That's like... yikes. Surely there's a cleaner way
+    check("units_location_check", sql`(${table.sectorId} is not null) <> (${table.bodyId} is not null)`),
+    index("units_game_id_idx").on(table.gameId),
   ],
 )
 

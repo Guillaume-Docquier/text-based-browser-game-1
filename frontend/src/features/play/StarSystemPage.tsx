@@ -26,7 +26,7 @@ export function StarSystemPage(): ReactElement {
               This Star System has no orbits.
             </div>
           ) : (
-            <StarSystemMap starSystem={starSystem} resetSignal={resetSignal} />
+            <StarSystemMap playerView={playerView} resetSignal={resetSignal} />
           )}
         </div>
         <Button

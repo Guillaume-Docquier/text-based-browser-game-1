@@ -1,4 +1,4 @@
-import { Datetime, Range, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, Range, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
@@ -30,7 +30,7 @@ describe("gameplay.router", () => {
       nonPlayer.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
-        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+        action: { actionType: GamePlayerActionType.MAKE_MORE_MONEY },
       }),
     ).rejects.toMatchObject(expectedError)
   })
@@ -301,6 +301,7 @@ describe("gameplay.router", () => {
             ],
           },
         },
+        units: {},
         resources: {
           money: 0,
         },
@@ -358,7 +359,7 @@ describe("gameplay.router", () => {
   })
 
   describe("setCurrentAction", () => {
-    it("should set the current action for the authenticated player", async () => {
+    it("should round-trip every action variant for the authenticated player", async () => {
       // Arrange
       const db = await createDbMock()
       const { api, logger, accountsRepository } = await createApiStub({ db })
@@ -369,30 +370,137 @@ describe("gameplay.router", () => {
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       await resourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 2 }),
+        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 10 }),
       )
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const sector = playerView.starSystem.orbits[0]?.sectors[0]
+      Assert.isDefined(sector)
+
+      for (const action of [
+        { actionType: GamePlayerActionType.MAKE_MORE_MONEY },
+        { actionType: GamePlayerActionType.WIN_THE_GAME },
+        {
+          actionType: GamePlayerActionType.BUILD_UNIT,
+          destination: { targetType: "SECTOR", sectorId: sector.id },
+        },
+      ] as const) {
+        // Act
+        const setCurrentActionResult = await player.client.gameplay.setCurrentAction.mutate({
+          gameId: createdGameId,
+          tick: 0,
+          action,
+        })
+        const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
+          gameId: createdGameId,
+        })
+
+        // Assert
+        expect(setCurrentActionResult).toEqual<typeof setCurrentActionResult>({
+          action: {
+            ...action,
+            gameId: createdGameId,
+            playerId: player.account.id,
+            tick: 0,
+            updatedAt: expect.any(String),
+          },
+        })
+        expect(getCurrentActionResult).toEqual<typeof getCurrentActionResult>(setCurrentActionResult)
+      }
+    })
+
+    it("should set a Build action targeting a Body", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const { api, logger, accountsRepository } = await createApiStub({ db })
+      const resourcesRepository = new ResourcesRepository({ db, logger })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await resourcesRepository.updateResource(
+        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 1 }),
+      )
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const body = playerView.starSystem.orbits.flatMap((orbit) => orbit.sectors.flatMap((sector) => sector.bodies))[0]
+      Assert.isDefined(body)
 
       // Act
-      const setCurrentActionResult = await player.client.gameplay.setCurrentAction.mutate({
+      const result = await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
-        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
-      })
-      const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
-        gameId: createdGameId,
+        action: {
+          actionType: GamePlayerActionType.BUILD_UNIT,
+          destination: { targetType: "BODY", bodyId: body.id },
+        },
       })
 
       // Assert
-      expect(setCurrentActionResult).toEqual<typeof setCurrentActionResult>({
+      expect(result).toEqual<typeof result>({
         action: {
           gameId: createdGameId,
           playerId: player.account.id,
           tick: 0,
-          actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+          actionType: GamePlayerActionType.BUILD_UNIT,
+          destination: { targetType: "BODY", bodyId: body.id },
           updatedAt: expect.any(String),
         },
       })
-      expect(getCurrentActionResult).toEqual<typeof getCurrentActionResult>(setCurrentActionResult)
+    })
+
+    it("should reject Build when the player has no money", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const sector = playerView.starSystem.orbits[0]?.sectors[0]
+      Assert.isDefined(sector)
+
+      // Act & Assert
+      await expect(
+        player.client.gameplay.setCurrentAction.mutate({
+          gameId: createdGameId,
+          tick: 0,
+          action: {
+            actionType: GamePlayerActionType.BUILD_UNIT,
+            destination: { targetType: "SECTOR", sectorId: sector.id },
+          },
+        }),
+      ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+    })
+
+    it("should reject Build targets that do not belong to the game", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const { api, logger, accountsRepository } = await createApiStub({ db })
+      const resourcesRepository = new ResourcesRepository({ db, logger })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
+      const firstGame = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const secondGame = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: firstGame.createdGameId })
+      await player.client.gameplay.startGame.mutate({ gameId: secondGame.createdGameId })
+      await resourcesRepository.updateResource(
+        createResourceUpdateModelStub({ gameId: firstGame.createdGameId, playerId: player.account.id, amountDelta: 1 }),
+      )
+      const secondGameView = await player.client.gameplay.getPlayerView.query({ gameId: secondGame.createdGameId })
+      const foreignSector = secondGameView.starSystem.orbits[0]?.sectors[0]
+      Assert.isDefined(foreignSector)
+
+      for (const sectorId of [foreignSector.id, "00000000-0000-4000-8000-000000000000"]) {
+        // Act & Assert
+        await expect(
+          player.client.gameplay.setCurrentAction.mutate({
+            gameId: firstGame.createdGameId,
+            tick: 0,
+            action: {
+              actionType: GamePlayerActionType.BUILD_UNIT,
+              destination: { targetType: "SECTOR", sectorId },
+            },
+          }),
+        ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      }
     })
 
     it("should reject setting an action for a stale tick", async () => {
@@ -408,7 +516,7 @@ describe("gameplay.router", () => {
         player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           tick: 1,
-          actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+          action: { actionType: GamePlayerActionType.MAKE_MORE_MONEY },
         }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },

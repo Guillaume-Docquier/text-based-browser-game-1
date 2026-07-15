@@ -7,12 +7,25 @@ import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import type { GamePlayerAction } from "#lib/db/gameplay/gamePlayerActions.ts"
+import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import type { MovementTarget } from "#lib/db/gameplay/MovementTarget.ts"
+import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamesTable, gameStatesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
+import {
+  bodiesTable,
+  gamesTable,
+  gameStatesTable,
+  ordersTable,
+  playersTable,
+  resourcesTable,
+  sectorsTable,
+  ticksTable,
+  unitsTable,
+} from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 
@@ -20,8 +33,20 @@ type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type OrderRow = typeof ordersTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTickRow = typeof ticksTable.$inferInsert
+type UnitRow = typeof unitsTable.$inferSelect
 
-export type OrderModel = OrderRow
+export type OrderModel = {
+  readonly gameId: GameId
+  readonly playerId: PlayerId
+  readonly tick: number
+  readonly updatedAt: Date
+} & GamePlayerAction
+
+export type UnitModel = {
+  readonly id: UnitId
+  readonly playerId: PlayerId
+  readonly location: MovementTarget
+}
 
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
@@ -43,6 +68,7 @@ export type PlayerViewModel = {
   tick: number
   nextTickAt: Date
   starSystem: StarSystemModel
+  units: Record<UnitId, UnitModel>
   resources: {
     money: number
   }
@@ -201,6 +227,12 @@ export class GameplayRepository extends PostgresRepository {
 
         const starSystem = await StarSystemQueries.selectStarSystem(gameId, tx)
 
+        const unitRows = await tx.select().from(unitsTable).where(eq(unitsTable.gameId, gameId))
+        const units = unitRows.reduce<Record<UnitId, UnitModel>>((unitsById, unitRow) => {
+          unitsById[unitRow.id] = toUnitModel(unitRow)
+          return unitsById
+        }, {})
+
         const players = await tx
           .select({ id: playersTable.playerId, color: playersTable.color })
           .from(playersTable)
@@ -221,6 +253,7 @@ export class GameplayRepository extends PostgresRepository {
           player,
           opponents,
           starSystem,
+          units,
           resources: {
             money: money.amount,
           },
@@ -256,7 +289,11 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     Assert.isTrue(getResult.value.length <= 1)
-    return Result.Success(getResult.value[0] ?? null)
+    if (getResult.value[0] === undefined) {
+      return Result.Success(null)
+    }
+
+    return Result.Success(toOrderModel(getResult.value[0]))
   }
 
   /**
@@ -321,7 +358,7 @@ export class GameplayRepository extends PostgresRepository {
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
   public async setCurrentAction(
-    params: { gameId: GameId; playerId: PlayerId; tick: number; actionType: GamePlayerActionType },
+    params: { gameId: GameId; playerId: PlayerId; tick: number; action: GamePlayerAction },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<OrderModel, string>> {
     const upsertResult = await Result.tryCatch(
@@ -329,13 +366,22 @@ export class GameplayRepository extends PostgresRepository {
         await lockGameCollectingOrders({ gameId: params.gameId }, tx)
 
         const updatedAt = this.clock.now()
+        const destinationColumns = toDestinationColumns(params.action)
         const gamePlayerActions = await tx
           .insert(ordersTable)
-          .values({ ...params, updatedAt })
+          .values({
+            gameId: params.gameId,
+            playerId: params.playerId,
+            tick: params.tick,
+            actionType: params.action.actionType,
+            ...destinationColumns,
+            updatedAt,
+          })
           .onConflictDoUpdate({
             target: [ordersTable.gameId, ordersTable.playerId, ordersTable.tick],
             set: {
-              actionType: params.actionType,
+              actionType: params.action.actionType,
+              ...destinationColumns,
               updatedAt,
             },
           })
@@ -344,7 +390,7 @@ export class GameplayRepository extends PostgresRepository {
         Assert.isTrue(gamePlayerActions.length === 1)
         Assert.isDefined(gamePlayerActions[0])
 
-        return gamePlayerActions[0]
+        return toOrderModel(gamePlayerActions[0])
       }),
     )
 
@@ -354,6 +400,42 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return upsertResult
+  }
+
+  /**
+   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+   */
+  public async movementTargetExists(
+    { gameId, target }: { gameId: GameId; target: MovementTarget },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<boolean, string>> {
+    const targetResult = await Result.tryCatch(async () => {
+      switch (target.targetType) {
+        case "SECTOR": {
+          const rows = await db
+            .select({ id: sectorsTable.id })
+            .from(sectorsTable)
+            .where(and(eq(sectorsTable.gameId, gameId), eq(sectorsTable.id, target.sectorId)))
+          Assert.isTrue(rows.length <= 1)
+          return rows.length === 1
+        }
+        case "BODY": {
+          const rows = await db
+            .select({ id: bodiesTable.id })
+            .from(bodiesTable)
+            .where(and(eq(bodiesTable.gameId, gameId), eq(bodiesTable.id, target.bodyId)))
+          Assert.isTrue(rows.length <= 1)
+          return rows.length === 1
+        }
+      }
+    })
+
+    if (Result.isFailure(targetResult)) {
+      this.logger.error("Could not check movement target", { gameId, target, error: targetResult.error })
+      return Result.Failure(couldNot("check movement target"))
+    }
+
+    return targetResult
   }
 
   /**
@@ -380,6 +462,68 @@ export class GameplayRepository extends PostgresRepository {
 
     return Result.Success(true)
   }
+}
+
+/**
+ * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+ */
+function toOrderModel(orderRow: OrderRow): OrderModel {
+  const common = {
+    gameId: orderRow.gameId,
+    playerId: orderRow.playerId,
+    tick: orderRow.tick,
+    updatedAt: orderRow.updatedAt,
+  }
+
+  switch (orderRow.actionType) {
+    case GamePlayerActionType.MAKE_MORE_MONEY:
+    case GamePlayerActionType.WIN_THE_GAME:
+      Assert.isTrue(orderRow.destinationSectorId === null && orderRow.destinationBodyId === null)
+      return { ...common, actionType: orderRow.actionType }
+    case GamePlayerActionType.BUILD_UNIT:
+      return {
+        ...common,
+        actionType: orderRow.actionType,
+        destination: toMovementTarget({ sectorId: orderRow.destinationSectorId, bodyId: orderRow.destinationBodyId }),
+      }
+    default:
+      Assert.isExhausted(orderRow.actionType)
+      return orderRow.actionType
+  }
+}
+
+function toUnitModel(unitRow: UnitRow): UnitModel {
+  return {
+    id: unitRow.id,
+    playerId: unitRow.playerId,
+    location: toMovementTarget(unitRow),
+  }
+}
+
+function toMovementTarget({ sectorId, bodyId }: { sectorId: string | null; bodyId: string | null }): MovementTarget {
+  if (sectorId !== null) {
+    Assert.isTrue(bodyId === null)
+    return { targetType: "SECTOR", sectorId }
+  }
+
+  Assert.isDefined(bodyId)
+  return { targetType: "BODY", bodyId }
+}
+
+/**
+ * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+ */
+function toDestinationColumns(action: GamePlayerAction): {
+  destinationSectorId: string | null
+  destinationBodyId: string | null
+} {
+  if (action.actionType !== GamePlayerActionType.BUILD_UNIT) {
+    return { destinationSectorId: null, destinationBodyId: null }
+  }
+
+  return action.destination.targetType === "SECTOR"
+    ? { destinationSectorId: action.destination.sectorId, destinationBodyId: null }
+    : { destinationSectorId: null, destinationBodyId: action.destination.bodyId }
 }
 
 /**

@@ -137,7 +137,7 @@ describe("TickProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
-        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+        action: { actionType: GamePlayerActionType.MAKE_MORE_MONEY },
       })
 
       // Act
@@ -153,6 +153,7 @@ describe("TickProcessor", () => {
         tick: 1,
         nextTickAt: Datetime.increment({ date: clock.now(), time: tickInterval }).toISOString(),
         starSystem: expect.any(Object),
+        units: {},
         resources: {
           money: 6,
         },
@@ -184,7 +185,7 @@ describe("TickProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         tick: 0,
-        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+        action: { actionType: GamePlayerActionType.MAKE_MORE_MONEY },
       })
       Assert.isSuccess(
         await resourcesRepository.updateResource({
@@ -206,6 +207,107 @@ describe("TickProcessor", () => {
           money: 1,
         },
       })
+    })
+
+    it.each(["SECTOR", "BODY"] as const)("should build a Unit on a %s and preserve it on later ticks", async (targetType) => {
+      // Arrange
+      const db = await createDbMock()
+      const { api, accountsRepository, logger, clock } = await createApiStub({ db })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
+      })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const sector = initialView.starSystem.orbits[0]?.sectors[0]
+      Assert.isDefined(sector)
+      const body = initialView.starSystem.orbits.flatMap((orbit) => orbit.sectors.flatMap((currentSector) => currentSector.bodies))[0]
+      Assert.isDefined(body)
+      const destination =
+        targetType === "SECTOR" ? ({ targetType, sectorId: sector.id } as const) : ({ targetType, bodyId: body.id } as const)
+
+      const resourcesRepository = new ResourcesRepository({ db, logger })
+      Assert.isSuccess(
+        await resourcesRepository.updateResource({
+          gameId: createdGameId,
+          playerId: player.account.id,
+          resourceType: ResourceType.MONEY,
+          amountDelta: 1,
+        }),
+      )
+      await player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        tick: 0,
+        action: { actionType: GamePlayerActionType.BUILD_UNIT, destination },
+      })
+      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+
+      // Act
+      await tickProcessor.processNextDueTick()
+
+      // Assert
+      const firstProcessedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const builtUnits = Object.values(firstProcessedView.units)
+      expect(builtUnits).toEqual([
+        {
+          id: expect.any(String),
+          playerId: player.account.id,
+          location: destination,
+        },
+      ])
+      expect(firstProcessedView.resources.money).toBe(1)
+
+      await tickProcessor.processNextDueTick()
+
+      const secondProcessedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(secondProcessedView.units).toEqual(firstProcessedView.units)
+      expect(secondProcessedView.resources.money).toBe(2)
+    })
+
+    it("should expose built Units to every player", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const { api, accountsRepository, logger, clock } = await createApiStub({ db })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const creator = await apiServer.createClient({ authenticated: true })
+      const opponent = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 2, tickIntervalSeconds: 0 }),
+      })
+      await opponent.client.lobbies.join.mutate({ gameId: createdGameId })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const sector = creatorView.starSystem.orbits[0]?.sectors[0]
+      Assert.isDefined(sector)
+
+      const resourcesRepository = new ResourcesRepository({ db, logger })
+      Assert.isSuccess(
+        await resourcesRepository.updateResource({
+          gameId: createdGameId,
+          playerId: creator.account.id,
+          resourceType: ResourceType.MONEY,
+          amountDelta: 1,
+        }),
+      )
+      await creator.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        tick: 0,
+        action: {
+          actionType: GamePlayerActionType.BUILD_UNIT,
+          destination: { targetType: "SECTOR", sectorId: sector.id },
+        },
+      })
+      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+
+      // Act
+      await tickProcessor.processNextDueTick()
+
+      // Assert
+      const processedCreatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const opponentView = await opponent.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(opponentView.units).toEqual(processedCreatorView.units)
+      expect(Object.values(opponentView.units)).toMatchObject([{ playerId: creator.account.id }])
     })
 
     it("should process only the earliest scheduled tick in one invocation", async () => {
@@ -440,7 +542,7 @@ describe("TickProcessor", () => {
         await player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           tick: 0,
-          actionType: GamePlayerActionType.WIN_THE_GAME,
+          action: { actionType: GamePlayerActionType.WIN_THE_GAME },
         })
       }
 
@@ -496,6 +598,7 @@ describe("TickProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
         tick: 0,
+        units: {},
         resources: {
           money: 0,
         },
@@ -507,6 +610,7 @@ describe("TickProcessor", () => {
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
         tick: 1,
+        units: {},
         resources: {
           money: 1,
         },

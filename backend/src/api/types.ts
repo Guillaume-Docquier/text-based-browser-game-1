@@ -29,7 +29,9 @@ export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 // Gameplay router
 type GamePlayerActionsOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
+export type MovementTarget = Extract<GamePlayerAction, { actionType: "BUILD_UNIT" }>["destination"]
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
+export type PlayerViewUnit = PlayerView["units"][keyof PlayerView["units"]]
 export type StarSystem = PlayerView["starSystem"]
 export type StarSystemOrbit = StarSystem["orbits"][number]
 export type StarSystemSector = StarSystemOrbit["sectors"][number]

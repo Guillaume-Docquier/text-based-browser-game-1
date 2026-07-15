@@ -1,13 +1,18 @@
-import z from "zod"
-import { GameId } from "#api/shared/GameId.ts"
-import { PlayerId } from "#api/shared/PlayerId.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import type { MovementTarget } from "#lib/db/gameplay/MovementTarget.ts"
 
+/**
+ * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+ */
 type PlayerActionRule = {
   costMoney: number
   rewardMoney: number
   endsGame: boolean
 }
+
+/**
+ * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+ */
 export const GAME_PLAYER_ACTION_RULES = {
   [GamePlayerActionType.MAKE_MORE_MONEY]: {
     costMoney: 2,
@@ -19,15 +24,20 @@ export const GAME_PLAYER_ACTION_RULES = {
     rewardMoney: 0,
     endsGame: true,
   },
+  [GamePlayerActionType.BUILD_UNIT]: {
+    costMoney: 1,
+    rewardMoney: 0,
+    endsGame: false,
+  },
 } as const satisfies Record<GamePlayerActionType, PlayerActionRule>
 
-export const GamePlayerActionTypeSchema = z.enum(GamePlayerActionType)
-
-export type GamePlayerAction = z.infer<typeof GamePlayerActionSchema>
-export const GamePlayerActionSchema = z.object({
-  gameId: GameId,
-  playerId: PlayerId,
-  tick: z.number(),
-  actionType: GamePlayerActionTypeSchema,
-  updatedAt: z.date(),
-})
+/**
+ * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+ */
+export type GamePlayerAction =
+  | { readonly actionType: typeof GamePlayerActionType.MAKE_MORE_MONEY }
+  | { readonly actionType: typeof GamePlayerActionType.WIN_THE_GAME }
+  | {
+      readonly actionType: typeof GamePlayerActionType.BUILD_UNIT
+      readonly destination: MovementTarget
+    }

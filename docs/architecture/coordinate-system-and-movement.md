@@ -83,6 +83,14 @@ Sectors and Bodies provide hover and keyboard-focus feedback. The map can be pan
 
 These presentation rules do not affect movement.
 
+## Units
+
+Units are generic player-owned entities. Every Unit has one concrete location: either a Sector or a Body. Units store that concrete target identity rather than a movement-node identity, and multiple Units from any combination of players may share the same location.
+
+Players can submit a Build Unit order for a Sector or Body in their game. Build costs one money. During tick processing, the player first receives the normal income and then pays the Build cost and receives one Unit at the selected destination.
+
+Units are public game information. Every player receives every Unit and its owner through the player view. The map renders Units as small triangles using the owning player's color, with overlapping diagonal stacks when multiple Units share a location.
+
 ## Star System generation
 
 The Star System is generated when the game starts. Generation is deterministic for a given set of settings and seed.
@@ -166,6 +174,7 @@ The generated Star System is stored relationally as:
 - Bodies owned by Sectors;
 - movement nodes owned by the game;
 - movement edges connecting those nodes.
+- Units owned by players and located on exactly one concrete Sector or Body.
 
 Repositories own all database access and reconstruct the persisted rows into the Star System read model.
 
@@ -179,11 +188,14 @@ The gameplay player view is the public read boundary for the Star System. It exp
 - ordered Sectors with coordinates and angular ranges;
 - ordered Bodies with coordinates, names, and types;
 - movement edges indexed by movement-node identity.
+- Units indexed by Unit identity, including their owner and concrete location.
 
-The Star System is public game information. Every player in the game receives the same static Star System data through their player view.
+The Star System and Units are public game information. Every player in the game receives the same static Star System data and current Unit state through their player view.
 
 ### Frontend
 
 The frontend renders the persisted Star System from the player view. It does not regenerate Sector geometry or maintain a separate Star System data source.
 
-The SVG map uses each Sector's stored angular range, renders Bodies within their parent Sector, and transforms one inner content group for pan and zoom. React remains responsible for the rendered map content and fixed controls.
+The Actions tab derives Build destinations from the player-view Star System and orders all Sector and Body choices by coordinate.
+
+The SVG map uses each Sector's stored angular range, renders Bodies within their parent Sector, and renders owner-colored Unit stacks at their resolved locations. It transforms one inner content group for pan and zoom. React remains responsible for the rendered map content and fixed controls.

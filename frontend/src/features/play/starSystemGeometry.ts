@@ -10,6 +10,7 @@ export type OrbitRadii = {
 
 export type SectorGeometry = OrbitRadii & {
   center: Point
+  unitPosition: Point
   path: string
   satelliteOrbitRadius: number
 }
@@ -54,6 +55,7 @@ export function getSectorGeometry({
     innerRadius,
     outerRadius,
     center: polarPoint(middleAngle, middleRadius),
+    unitPosition: polarPoint(middleAngle, outerRadius - 12),
     path: annularSectorPath({ innerRadius, outerRadius, minAngle, maxAngle }),
     // Fit satellites inside both the Orbit band and the Sector wedge, with a cap that prevents sparse sectors from looking oversized.
     satelliteOrbitRadius: Math.min(32, availableRadialRadius * 0.58, availableTangentialRadius * 0.55),

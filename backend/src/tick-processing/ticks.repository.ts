@@ -5,16 +5,26 @@ import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import type { GamePlayerAction } from "#lib/db/gameplay/gamePlayerActions.ts"
+import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import type { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import type { MovementTarget } from "#lib/db/gameplay/MovementTarget.ts"
+import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gameStatesTable, gamesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
+import { gameStatesTable, gamesTable, ordersTable, playersTable, resourcesTable, ticksTable, unitsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
 type OrderRow = typeof ordersTable.$inferSelect
+type UnitRow = typeof unitsTable.$inferSelect
+
+export type TickUnitModel = {
+  readonly id: UnitId
+  readonly playerId: PlayerId
+  readonly location: MovementTarget
+}
 
 /**
  * Owning a TickForProcessing within a transaction guarantees that the tick and the game are locked, exist and need processing at this time.
@@ -49,9 +59,10 @@ export type TickToProcessModel = {
         resourceType: ResourceType
         amount: number
       }>
-      actionType: GamePlayerActionType | undefined
+      action: GamePlayerAction | undefined
     }
   >
+  units: Record<UnitId, TickUnitModel>
 }
 
 export type ProcessedTickModel = {
@@ -63,6 +74,7 @@ export type ProcessedTickModel = {
     resourceType: ResourceType
     amount: number
   }>
+  units: Record<UnitId, TickUnitModel>
   gameStatus: GameStatus
   winnerAccountId?: AccountId
   endedAt?: Date
@@ -154,7 +166,7 @@ export class TicksRepository extends PostgresRepository {
       Assert.isTrue(games.length === 1)
       Assert.isDefined(games[0])
 
-      const [players, resources, orders] = await Promise.all([
+      const [players, resources, orders, units] = await Promise.all([
         tx
           .select()
           .from(playersTable)
@@ -172,6 +184,7 @@ export class TicksRepository extends PostgresRepository {
             and(eq(ordersTable.gameId, startTickProcessingModel.tick.gameId), eq(ordersTable.tick, startTickProcessingModel.tick.tick)),
           )
           .orderBy(asc(ordersTable.playerId)),
+        tx.select().from(unitsTable).where(eq(unitsTable.gameId, startTickProcessingModel.tick.gameId)).orderBy(asc(unitsTable.id)),
       ])
 
       return toTickToProcessModel({
@@ -181,6 +194,7 @@ export class TicksRepository extends PostgresRepository {
         players,
         resources,
         orders,
+        units,
       })
     })
 
@@ -262,6 +276,16 @@ export class TicksRepository extends PostgresRepository {
             },
           })
 
+        const units = Object.values(processedTickModel.units).map((unit) => ({
+          id: unit.id,
+          gameId: processedTickModel.gameId,
+          playerId: unit.playerId,
+          ...toLocationColumns(unit.location),
+        }))
+        if (units.length > 0) {
+          await tx.insert(unitsTable).values(units).onConflictDoNothing()
+        }
+
         if (processedTickModel.nextTick !== undefined) {
           const insertedTicks = await tx
             .insert(ticksTable)
@@ -299,6 +323,7 @@ function toTickToProcessModel({
   players,
   resources,
   orders,
+  units,
 }: {
   tickForProcessing: TickForProcessing
   scheduledFor: Date
@@ -306,6 +331,7 @@ function toTickToProcessModel({
   players: PlayerRow[]
   resources: ResourceRow[]
   orders: OrderRow[]
+  units: UnitRow[]
 }): TickToProcessModel {
   const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
   const ordersByPlayerId = Map.groupBy(orders, (order) => order.playerId)
@@ -314,6 +340,10 @@ function toTickToProcessModel({
     ...tickForProcessing,
     scheduledFor,
     tickIntervalSeconds,
+    units: units.reduce<TickToProcessModel["units"]>((unitsById, unitRow) => {
+      unitsById[unitRow.id] = toTickUnitModel(unitRow)
+      return unitsById
+    }, {}),
     players: players.reduce<TickToProcessModel["players"]>((playersById, { playerId }) => {
       const resourcesForPlayer = resourcesByPlayerId.get(playerId)
       Assert.isDefined(resourcesForPlayer)
@@ -324,9 +354,55 @@ function toTickToProcessModel({
           resourceType: resource.resourceType as ResourceType,
           amount: resource.amount,
         })),
-        actionType: ordersByPlayerId.get(playerId)?.[0]?.actionType,
+        action: toGamePlayerAction(ordersByPlayerId.get(playerId)?.[0]),
       }
       return playersById
     }, {}),
   }
+}
+
+/**
+ * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+ */
+function toGamePlayerAction(orderRow: OrderRow | undefined): GamePlayerAction | undefined {
+  if (orderRow === undefined) {
+    return undefined
+  }
+
+  switch (orderRow.actionType) {
+    case GamePlayerActionType.MAKE_MORE_MONEY:
+    case GamePlayerActionType.WIN_THE_GAME:
+      Assert.isTrue(orderRow.destinationSectorId === null && orderRow.destinationBodyId === null)
+      return { actionType: orderRow.actionType }
+    case GamePlayerActionType.BUILD_UNIT:
+      return {
+        actionType: orderRow.actionType,
+        destination: toMovementTarget({ sectorId: orderRow.destinationSectorId, bodyId: orderRow.destinationBodyId }),
+      }
+    default:
+      Assert.isExhausted(orderRow.actionType)
+      return orderRow.actionType
+  }
+}
+
+function toTickUnitModel(unitRow: UnitRow): TickUnitModel {
+  return {
+    id: unitRow.id,
+    playerId: unitRow.playerId,
+    location: toMovementTarget(unitRow),
+  }
+}
+
+function toMovementTarget({ sectorId, bodyId }: { sectorId: string | null; bodyId: string | null }): MovementTarget {
+  if (sectorId !== null) {
+    Assert.isTrue(bodyId === null)
+    return { targetType: "SECTOR", sectorId }
+  }
+
+  Assert.isDefined(bodyId)
+  return { targetType: "BODY", bodyId }
+}
+
+function toLocationColumns(location: MovementTarget): { sectorId: string | null; bodyId: string | null } {
+  return location.targetType === "SECTOR" ? { sectorId: location.sectorId, bodyId: null } : { sectorId: null, bodyId: location.bodyId }
 }

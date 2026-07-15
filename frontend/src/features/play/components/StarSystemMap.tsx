@@ -1,4 +1,5 @@
-import type { StarSystem, StarSystemBody } from "@api-types"
+import type { PlayerView, PlayerViewUnit, StarSystemBody } from "@api-types"
+import { Assert } from "@guillaume-docquier/tools-ts"
 import { type ReactElement } from "react"
 import {
   getOrbitRadii,
@@ -9,6 +10,7 @@ import {
   type Point,
 } from "@/features/play/starSystemGeometry.ts"
 import { useStarSystemPanZoom } from "@/features/play/useStarSystemPanZoom.ts"
+import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 type RenderedSector = {
   id: string
@@ -28,16 +30,26 @@ type RenderedSatelliteOrbit = {
   radius: number
 }
 
+type RenderedUnit = {
+  unit: PlayerViewUnit
+  position: Point
+  stackIndex: number
+  color: string
+  locationLabel: string
+}
+
 type StarSystemRendering = {
   orbitOuterRadii: number[]
   sectors: RenderedSector[]
   bodies: RenderedBody[]
   satelliteOrbits: RenderedSatelliteOrbit[]
+  units: RenderedUnit[]
 }
 
-export function StarSystemMap({ starSystem, resetSignal }: { starSystem: StarSystem; resetSignal: number }): ReactElement {
+export function StarSystemMap({ playerView, resetSignal }: { playerView: PlayerView; resetSignal: number }): ReactElement {
+  const { starSystem } = playerView
   const orbitCount = starSystem.orbits.length
-  const rendering = createStarSystemRendering(starSystem)
+  const rendering = createStarSystemRendering(playerView)
   const panZoom = useStarSystemPanZoom({ resetSignal })
 
   return (
@@ -59,6 +71,7 @@ export function StarSystemMap({ starSystem, resetSignal }: { starSystem: StarSys
         <Orbits outerRadii={rendering.orbitOuterRadii} />
         <Sectors sectors={rendering.sectors} />
         <Bodies bodies={rendering.bodies} satelliteOrbits={rendering.satelliteOrbits} />
+        <Units units={rendering.units} />
       </g>
     </svg>
   )
@@ -161,13 +174,16 @@ function Star(): ReactElement {
   )
 }
 
-function createStarSystemRendering(starSystem: StarSystem): StarSystemRendering {
+function createStarSystemRendering(playerView: PlayerView): StarSystemRendering {
+  const { starSystem } = playerView
   const orbitCount = starSystem.orbits.length
+  const renderedTargets = new Map<string, { position: Point; locationLabel: string }>()
   const rendering: StarSystemRendering = {
     orbitOuterRadii: [],
     sectors: [],
     bodies: [],
     satelliteOrbits: [],
+    units: [],
   }
 
   for (const [orbitIndex, orbit] of starSystem.orbits.entries()) {
@@ -186,6 +202,10 @@ function createStarSystemRendering(starSystem: StarSystem): StarSystemRendering 
         bodyCount: sector.bodies.length,
         path: geometry.path,
       })
+      renderedTargets.set(`SECTOR:${sector.id}`, {
+        position: geometry.unitPosition,
+        locationLabel: `Sector ${sector.coordinates}`,
+      })
 
       const [centralBody, ...satellites] = sector.bodies
       if (centralBody === undefined) {
@@ -193,6 +213,10 @@ function createStarSystemRendering(starSystem: StarSystem): StarSystemRendering 
       }
 
       rendering.bodies.push({ body: centralBody, position: geometry.center })
+      renderedTargets.set(`BODY:${centralBody.id}`, {
+        position: { x: geometry.center.x + 18, y: geometry.center.y },
+        locationLabel: `${centralBody.name}, ${centralBody.coordinates}`,
+      })
       if (centralBody.type === "PLANET" && satellites.length > 0) {
         rendering.satelliteOrbits.push({
           sectorId: sector.id,
@@ -202,20 +226,70 @@ function createStarSystemRendering(starSystem: StarSystem): StarSystemRendering 
       }
 
       for (const [satelliteIndex, body] of satellites.entries()) {
-        rendering.bodies.push({
-          body,
-          position: getSatellitePosition({
-            center: geometry.center,
-            satelliteIndex,
-            satelliteCount: satellites.length,
-            orbitRadius: geometry.satelliteOrbitRadius,
-          }),
+        const position = getSatellitePosition({
+          center: geometry.center,
+          satelliteIndex,
+          satelliteCount: satellites.length,
+          orbitRadius: geometry.satelliteOrbitRadius,
+        })
+        rendering.bodies.push({ body, position })
+        renderedTargets.set(`BODY:${body.id}`, {
+          position: { x: position.x + 18, y: position.y },
+          locationLabel: `${body.name}, ${body.coordinates}`,
         })
       }
     }
   }
 
+  const unitCountByTarget = new Map<string, number>()
+  for (const unit of Object.values(playerView.units)) {
+    const targetKey = unit.location.targetType === "SECTOR" ? `SECTOR:${unit.location.sectorId}` : `BODY:${unit.location.bodyId}`
+    const renderedTarget = renderedTargets.get(targetKey)
+    Assert.isDefined(renderedTarget)
+    const owner = unit.playerId === playerView.player.id ? playerView.player : playerView.opponents[unit.playerId]
+    Assert.isDefined(owner)
+    const stackIndex = unitCountByTarget.get(targetKey) ?? 0
+    unitCountByTarget.set(targetKey, stackIndex + 1)
+    rendering.units.push({
+      unit,
+      position: renderedTarget.position,
+      stackIndex,
+      color: PLAYER_COLOR_HEX[owner.color],
+      locationLabel: renderedTarget.locationLabel,
+    })
+  }
+
   return rendering
+}
+
+function Units({ units }: { units: RenderedUnit[] }): ReactElement {
+  return (
+    <g aria-label="Units">
+      {units.map((unit) => (
+        <Unit key={unit.unit.id} renderedUnit={unit} />
+      ))}
+    </g>
+  )
+}
+
+function Unit({ renderedUnit }: { renderedUnit: RenderedUnit }): ReactElement {
+  const offset = renderedUnit.stackIndex * 4
+  const x = renderedUnit.position.x + offset
+  const y = renderedUnit.position.y - offset
+  const points = `${x},${y - 5} ${x + 5},${y + 4} ${x - 5},${y + 4}`
+  const label = `Unit ${renderedUnit.unit.id}, owner ${renderedUnit.unit.playerId}, ${renderedUnit.locationLabel}`
+
+  return (
+    <polygon
+      aria-label={label}
+      className="stroke-black/70 stroke-1 outline-none [paint-order:stroke] focus-visible:stroke-white"
+      fill={renderedUnit.color}
+      points={points}
+      tabIndex={0}
+    >
+      <title>{label}</title>
+    </polygon>
+  )
 }
 
 type BodyProps = {

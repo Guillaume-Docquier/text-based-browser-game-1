@@ -13,3 +13,4 @@ These are terms and their meaning in the context of this app.
 | Order    | Game actions submitted by players for a turn that will be applied during tick processing.                                                                                                          |
 | Turn     | Period of time during which players decide which orders they want to submit.                                                                                                                       |
 | Tick     | The computation of the next game state by applying this turn's orders.                                                                                                                             |
+| Unit     | A generic player-owned entity located on exactly one Sector or Body.                                                                                                                               |

@@ -7,18 +7,16 @@ import { RangeDto } from "#api/shared/RangeDto.ts"
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import {
-  GAME_PLAYER_ACTION_RULES,
-  type GamePlayerAction,
-  GamePlayerActionSchema,
-  GamePlayerActionTypeSchema,
-} from "#lib/db/gameplay/gamePlayerActions.ts"
+import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
+import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
+import type { MovementTarget } from "#lib/db/gameplay/MovementTarget.ts"
+import { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
-import { type GameplayRepository, type OrderModel, type PlayerViewModel } from "./gameplay.repository.ts"
+import { type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
@@ -114,7 +112,7 @@ export class GameplayController {
   /**
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
-  public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<GamePlayerAction | null, string>> {
+  public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<GamePlayerActionDto | null, string>> {
     const getCurrentActionResult = await this.createTransaction(async (tx) => {
       const activeGameResult = await this.gameplayRepository.getPlayerActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
@@ -129,7 +127,7 @@ export class GameplayController {
       )
       rollbackOnFailure(currentActionResult, "Failed to get current action")
 
-      return currentActionResult.value === null ? null : toGamePlayerAction(currentActionResult.value)
+      return currentActionResult.value
     })
 
     if (Result.isFailure(getCurrentActionResult)) {
@@ -147,8 +145,8 @@ export class GameplayController {
     gameId,
     tick,
     playerId,
-    actionType,
-  }: SetCurrentActionDto): Promise<Result<GamePlayerAction | null, string>> {
+    action,
+  }: SetCurrentActionDto): Promise<Result<GamePlayerActionDto | null, string>> {
     const setActionResult = await this.createTransaction(async (tx) => {
       const activeGameResult = await this.gameplayRepository.getPlayerActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
@@ -159,33 +157,41 @@ export class GameplayController {
         )
       }
 
-      if (actionType === null) {
+      if (action === null) {
         const deleteResult = await this.gameplayRepository.clearCurrentAction({ gameId, playerId, tick }, tx)
         rollbackOnFailure(deleteResult, "Failed to clear game player action")
 
         return null
       }
 
-      const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
+      const actionRule = GAME_PLAYER_ACTION_RULES[action.actionType]
       if (activeGameResult.value.money < actionRule.costMoney) {
         this.logger.error("Player cannot afford selected game player action", {
           gameId,
           playerId,
-          actionType,
+          actionType: action.actionType,
           money: activeGameResult.value.money,
           costMoney: actionRule.costMoney,
         })
         throw new TransactionRollback(`You need ${actionRule.costMoney} money to select this action.`)
       }
 
-      const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, playerId, tick, actionType }, tx)
+      if (action.actionType === GamePlayerActionType.BUILD_UNIT) {
+        const targetExistsResult = await this.gameplayRepository.movementTargetExists({ gameId, target: action.destination }, tx)
+        rollbackOnFailure(targetExistsResult, "Failed to validate Build destination")
+        if (!targetExistsResult.value) {
+          throw new TransactionRollback("The Build destination does not belong to this game.")
+        }
+      }
+
+      const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, playerId, tick, action }, tx)
       rollbackOnFailure(upsertResult, "Failed to upsert game player action")
 
-      return toGamePlayerAction(upsertResult.value)
+      return upsertResult.value
     })
 
     if (Result.isFailure(setActionResult)) {
-      this.logger.error("Failed to set current action", { gameId, tick, playerId, actionType, error: setActionResult.error })
+      this.logger.error("Failed to set current action", { gameId, tick, playerId, action, error: setActionResult.error })
       return Result.Failure(setActionResult.error.message)
     }
 
@@ -201,17 +207,8 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     tick: playerViewModel.tick,
     nextTickAt: playerViewModel.nextTickAt,
     starSystem: playerViewModel.starSystem,
+    units: playerViewModel.units,
     resources: playerViewModel.resources,
-  }
-}
-
-function toGamePlayerAction(gamePlayerActionModel: OrderModel): GamePlayerAction {
-  return {
-    gameId: gamePlayerActionModel.gameId,
-    playerId: gamePlayerActionModel.playerId,
-    tick: gamePlayerActionModel.tick,
-    actionType: gamePlayerActionModel.actionType,
-    updatedAt: gamePlayerActionModel.updatedAt,
   }
 }
 
@@ -272,6 +269,12 @@ export const GetPlayerViewDto = z.object({
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
 export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
 
+export type MovementTargetDto = z.infer<typeof MovementTargetDto>
+export const MovementTargetDto = z.discriminatedUnion("targetType", [
+  z.object({ targetType: z.literal("SECTOR"), sectorId: z.string() }),
+  z.object({ targetType: z.literal("BODY"), bodyId: z.string() }),
+]) satisfies z.ZodType<MovementTarget>
+
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
 export const PlayerViewDto = z.object({
   gameId: GameId,
@@ -280,6 +283,14 @@ export const PlayerViewDto = z.object({
   tick: z.number(),
   nextTickAt: z.date(),
   starSystem: StarSystemDto,
+  units: z.record(
+    UnitId,
+    z.object({
+      id: UnitId,
+      playerId: PlayerId,
+      location: MovementTargetDto,
+    }),
+  ),
   resources: z.object({
     money: z.number(),
   }),
@@ -296,9 +307,35 @@ export const SetCurrentActionDto = z.object({
   gameId: z.coerce.number(),
   playerId: PlayerId,
   tick: z.coerce.number(),
-  actionType: GamePlayerActionTypeSchema.nullable(),
+  action: z
+    .discriminatedUnion("actionType", [
+      z.object({ actionType: z.literal(GamePlayerActionType.MAKE_MORE_MONEY) }),
+      z.object({ actionType: z.literal(GamePlayerActionType.WIN_THE_GAME) }),
+      z.object({
+        actionType: z.literal(GamePlayerActionType.BUILD_UNIT),
+        destination: MovementTargetDto,
+      }),
+    ])
+    .nullable(),
 })
 
+const GamePlayerActionCommonDto = z.object({
+  gameId: GameId,
+  playerId: PlayerId,
+  tick: z.number(),
+  updatedAt: z.date(),
+})
+
+export type GamePlayerActionDto = z.infer<typeof GamePlayerActionDto>
+export const GamePlayerActionDto = z.discriminatedUnion("actionType", [
+  GamePlayerActionCommonDto.extend({ actionType: z.literal(GamePlayerActionType.MAKE_MORE_MONEY) }),
+  GamePlayerActionCommonDto.extend({ actionType: z.literal(GamePlayerActionType.WIN_THE_GAME) }),
+  GamePlayerActionCommonDto.extend({
+    actionType: z.literal(GamePlayerActionType.BUILD_UNIT),
+    destination: MovementTargetDto,
+  }),
+])
+
 export const CurrentActionDto = z.object({
-  action: GamePlayerActionSchema.nullable(),
+  action: GamePlayerActionDto.nullable(),
 })
