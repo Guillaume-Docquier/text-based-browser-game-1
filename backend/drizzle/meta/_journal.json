@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1783817482816,
+      "when": 1784085981064,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1783999708940,
-      "tag": "0001_add-player-colors",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1784004167392,
-      "tag": "0002_add-units-and-build-orders",
       "breakpoints": true
     }
   ]

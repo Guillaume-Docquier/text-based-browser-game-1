@@ -225,7 +225,7 @@ describe("TickProcessor", () => {
       const body = initialView.starSystem.orbits.flatMap((orbit) => orbit.sectors.flatMap((currentSector) => currentSector.bodies))[0]
       Assert.isDefined(body)
       const destination =
-        targetType === "SECTOR" ? ({ targetType, sectorId: sector.id } as const) : ({ targetType, bodyId: body.id } as const)
+        targetType === "SECTOR" ? ({ targetType, targetId: sector.id } as const) : ({ targetType, targetId: body.id } as const)
 
       const resourcesRepository = new ResourcesRepository({ db, logger })
       Assert.isSuccess(
@@ -295,7 +295,7 @@ describe("TickProcessor", () => {
         tick: 0,
         action: {
           actionType: GamePlayerActionType.BUILD_UNIT,
-          destination: { targetType: "SECTOR", sectorId: sector.id },
+          destination: { targetType: "SECTOR", targetId: sector.id },
         },
       })
       const { tickProcessor } = await createTickProcessorStub({ db, clock })

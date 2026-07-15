@@ -10,7 +10,7 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
-import type { MovementTarget } from "#lib/db/gameplay/MovementTarget.ts"
+import { type MovementTarget, MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
 import { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
@@ -229,7 +229,6 @@ const StarSystemBodyDto = z.object({
   coordinates: z.string(),
   name: z.string(),
   type: z.enum(BodyType),
-  movementNodeId: z.string(),
 })
 
 const StarSystemSectorDto = z.object({
@@ -238,7 +237,6 @@ const StarSystemSectorDto = z.object({
   coordinates: z.string(),
   angleRange: RangeDto,
   bodies: z.array(StarSystemBodyDto),
-  movementNodeId: z.string(),
 })
 
 const StarSystemOrbitDto = z.object({
@@ -249,8 +247,8 @@ const StarSystemOrbitDto = z.object({
 })
 
 const MovementEdgeDto = z.object({
-  fromNodeId: z.string(),
-  toNodeId: z.string(),
+  fromTargetId: z.string(),
+  toTargetId: z.string(),
   weight: z.number(),
 })
 
@@ -270,10 +268,10 @@ export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
 export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
 
 export type MovementTargetDto = z.infer<typeof MovementTargetDto>
-export const MovementTargetDto = z.discriminatedUnion("targetType", [
-  z.object({ targetType: z.literal("SECTOR"), sectorId: z.string() }),
-  z.object({ targetType: z.literal("BODY"), bodyId: z.string() }),
-]) satisfies z.ZodType<MovementTarget>
+export const MovementTargetDto = z.object({
+  targetType: z.enum(MovementTargetType),
+  targetId: z.string(),
+}) satisfies z.ZodType<MovementTarget>
 
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
 export const PlayerViewDto = z.object({

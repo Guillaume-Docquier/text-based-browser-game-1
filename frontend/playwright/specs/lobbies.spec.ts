@@ -87,9 +87,9 @@ test.describe("authenticated user", () => {
       await actionsPage.openBuildDestination()
       await expect(actionsPage.buildOptions).toHaveText([
         "01:01 — Sector",
+        "01:01:01 — Planet 01",
+        "01:01:02 — Moon 02",
         "01:02 — Sector",
-        "01:02:01 — Planet 01",
-        "01:02:02 — Moon 02",
         "02:01 — Sector",
         "02:01:01 — Asteroid 01",
         "02:02 — Sector",

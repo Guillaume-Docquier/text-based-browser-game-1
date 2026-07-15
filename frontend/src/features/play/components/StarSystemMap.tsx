@@ -289,7 +289,7 @@ function createStarSystemRendering(playerView: PlayerView): StarSystemRendering 
 }
 
 function getUnitTargetKey(unit: PlayerViewUnit): string {
-  return unit.location.targetType === "SECTOR" ? `SECTOR:${unit.location.sectorId}` : `BODY:${unit.location.bodyId}`
+  return `${unit.location.targetType}:${unit.location.targetId}`
 }
 
 function getBodyUnitClusterPosition(body: StarSystemBody, position: Point): Point {

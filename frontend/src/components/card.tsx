@@ -32,8 +32,8 @@ export function CardHeader({ className, ...props }: React.ComponentProps<"div">)
   )
 }
 
-export function CardTitle({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {
-  return <div data-slot="card-title" className={cn("font-heading text-base font-medium", className)} {...props} />
+export function CardTitle({ className, ...props }: React.ComponentProps<"h3">): React.JSX.Element {
+  return <h3 data-slot="card-title" className={cn("font-heading text-base font-medium", className)} {...props} />
 }
 
 export function CardDescription({ className, ...props }: React.ComponentProps<"div">): React.JSX.Element {

@@ -246,7 +246,7 @@ function createBuildOptions(playerView: PlayerView): BuildOption[] {
         value: `SECTOR:${sector.id}`,
         coordinates: sector.coordinates,
         label: `${sector.coordinates} — Sector`,
-        destination: { targetType: "SECTOR", sectorId: sector.id },
+        destination: { targetType: "SECTOR", targetId: sector.id },
       })
 
       for (const body of sector.bodies) {
@@ -254,7 +254,7 @@ function createBuildOptions(playerView: PlayerView): BuildOption[] {
           value: `BODY:${body.id}`,
           coordinates: body.coordinates,
           label: `${body.coordinates} — ${body.name}`,
-          destination: { targetType: "BODY", bodyId: body.id },
+          destination: { targetType: "BODY", targetId: body.id },
         })
       }
     }
@@ -264,11 +264,7 @@ function createBuildOptions(playerView: PlayerView): BuildOption[] {
 }
 
 function movementTargetsAreEqual(left: MovementTarget, right: MovementTarget): boolean {
-  if (left.targetType === "SECTOR") {
-    return right.targetType === "SECTOR" && left.sectorId === right.sectorId
-  }
-
-  return right.targetType === "BODY" && left.bodyId === right.bodyId
+  return left.targetType === right.targetType && left.targetId === right.targetId
 }
 
 export function GameActionSelectorSkeleton(): ReactElement {

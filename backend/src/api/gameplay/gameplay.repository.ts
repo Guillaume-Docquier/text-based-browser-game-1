@@ -1,5 +1,5 @@
 import { type Branded, Assert, type Logger, Result, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
-import { and, eq } from "drizzle-orm"
+import { and, eq, getTableColumns } from "drizzle-orm"
 import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
 import type { GameId } from "#api/shared/GameId.ts"
@@ -10,19 +10,18 @@ import type { Transaction } from "#lib/db/createDb.ts"
 import type { GamePlayerAction } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
-import type { MovementTarget } from "#lib/db/gameplay/MovementTarget.ts"
+import type { MovementTarget, MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
 import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
-  bodiesTable,
   gamesTable,
   gameStatesTable,
+  movementTargetsTable,
   ordersTable,
   playersTable,
   resourcesTable,
-  sectorsTable,
   ticksTable,
   unitsTable,
 } from "#lib/db/schema.ts"
@@ -34,6 +33,8 @@ type OrderRow = typeof ordersTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTickRow = typeof ticksTable.$inferInsert
 type UnitRow = typeof unitsTable.$inferSelect
+type OrderWithTargetTypeRow = OrderRow & { destinationTargetType: MovementTargetType | null }
+type UnitWithTargetTypeRow = UnitRow & { locationTargetType: MovementTargetType }
 
 export type OrderModel = {
   readonly gameId: GameId
@@ -227,7 +228,14 @@ export class GameplayRepository extends PostgresRepository {
 
         const starSystem = await StarSystemQueries.selectStarSystem(gameId, tx)
 
-        const unitRows = await tx.select().from(unitsTable).where(eq(unitsTable.gameId, gameId))
+        const unitRows = await tx
+          .select({ ...getTableColumns(unitsTable), locationTargetType: movementTargetsTable.targetType })
+          .from(unitsTable)
+          .innerJoin(
+            movementTargetsTable,
+            and(eq(unitsTable.gameId, movementTargetsTable.gameId), eq(unitsTable.locationTargetId, movementTargetsTable.id)),
+          )
+          .where(eq(unitsTable.gameId, gameId))
         const units = unitRows.reduce<Record<UnitId, UnitModel>>((unitsById, unitRow) => {
           unitsById[unitRow.id] = toUnitModel(unitRow)
           return unitsById
@@ -278,8 +286,12 @@ export class GameplayRepository extends PostgresRepository {
   ): Promise<Result<OrderModel | null, string>> {
     const getResult = await Result.tryCatch(
       db
-        .select()
+        .select({ ...getTableColumns(ordersTable), destinationTargetType: movementTargetsTable.targetType })
         .from(ordersTable)
+        .leftJoin(
+          movementTargetsTable,
+          and(eq(ordersTable.gameId, movementTargetsTable.gameId), eq(ordersTable.destinationTargetId, movementTargetsTable.id)),
+        )
         .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.tick, params.tick))),
     )
 
@@ -390,7 +402,10 @@ export class GameplayRepository extends PostgresRepository {
         Assert.isTrue(gamePlayerActions.length === 1)
         Assert.isDefined(gamePlayerActions[0])
 
-        return toOrderModel(gamePlayerActions[0])
+        return toOrderModel({
+          ...gamePlayerActions[0],
+          destinationTargetType: params.action.actionType === GamePlayerActionType.BUILD_UNIT ? params.action.destination.targetType : null,
+        })
       }),
     )
 
@@ -410,24 +425,18 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<boolean, string>> {
     const targetResult = await Result.tryCatch(async () => {
-      switch (target.targetType) {
-        case "SECTOR": {
-          const rows = await db
-            .select({ id: sectorsTable.id })
-            .from(sectorsTable)
-            .where(and(eq(sectorsTable.gameId, gameId), eq(sectorsTable.id, target.sectorId)))
-          Assert.isTrue(rows.length <= 1)
-          return rows.length === 1
-        }
-        case "BODY": {
-          const rows = await db
-            .select({ id: bodiesTable.id })
-            .from(bodiesTable)
-            .where(and(eq(bodiesTable.gameId, gameId), eq(bodiesTable.id, target.bodyId)))
-          Assert.isTrue(rows.length <= 1)
-          return rows.length === 1
-        }
-      }
+      const rows = await db
+        .select({ id: movementTargetsTable.id })
+        .from(movementTargetsTable)
+        .where(
+          and(
+            eq(movementTargetsTable.gameId, gameId),
+            eq(movementTargetsTable.id, target.targetId),
+            eq(movementTargetsTable.targetType, target.targetType),
+          ),
+        )
+      Assert.isTrue(rows.length <= 1)
+      return rows.length === 1
     })
 
     if (Result.isFailure(targetResult)) {
@@ -467,7 +476,7 @@ export class GameplayRepository extends PostgresRepository {
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
-function toOrderModel(orderRow: OrderRow): OrderModel {
+function toOrderModel(orderRow: OrderWithTargetTypeRow): OrderModel {
   const common = {
     gameId: orderRow.gameId,
     playerId: orderRow.playerId,
@@ -478,13 +487,13 @@ function toOrderModel(orderRow: OrderRow): OrderModel {
   switch (orderRow.actionType) {
     case GamePlayerActionType.MAKE_MORE_MONEY:
     case GamePlayerActionType.WIN_THE_GAME:
-      Assert.isTrue(orderRow.destinationSectorId === null && orderRow.destinationBodyId === null)
+      Assert.isTrue(orderRow.destinationTargetId === null && orderRow.destinationTargetType === null)
       return { ...common, actionType: orderRow.actionType }
     case GamePlayerActionType.BUILD_UNIT:
       return {
         ...common,
         actionType: orderRow.actionType,
-        destination: toMovementTarget({ sectorId: orderRow.destinationSectorId, bodyId: orderRow.destinationBodyId }),
+        destination: toMovementTarget(orderRow.destinationTargetId, orderRow.destinationTargetType),
       }
     default:
       Assert.isExhausted(orderRow.actionType)
@@ -492,38 +501,25 @@ function toOrderModel(orderRow: OrderRow): OrderModel {
   }
 }
 
-function toUnitModel(unitRow: UnitRow): UnitModel {
+function toUnitModel(unitRow: UnitWithTargetTypeRow): UnitModel {
   return {
     id: unitRow.id,
     playerId: unitRow.playerId,
-    location: toMovementTarget(unitRow),
+    location: toMovementTarget(unitRow.locationTargetId, unitRow.locationTargetType),
   }
 }
 
-function toMovementTarget({ sectorId, bodyId }: { sectorId: string | null; bodyId: string | null }): MovementTarget {
-  if (sectorId !== null) {
-    Assert.isTrue(bodyId === null)
-    return { targetType: "SECTOR", sectorId }
-  }
-
-  Assert.isDefined(bodyId)
-  return { targetType: "BODY", bodyId }
+function toMovementTarget(targetId: string | null, targetType: MovementTargetType | null): MovementTarget {
+  Assert.isDefined(targetId)
+  Assert.isDefined(targetType)
+  return { targetId, targetType }
 }
 
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
-function toDestinationColumns(action: GamePlayerAction): {
-  destinationSectorId: string | null
-  destinationBodyId: string | null
-} {
-  if (action.actionType !== GamePlayerActionType.BUILD_UNIT) {
-    return { destinationSectorId: null, destinationBodyId: null }
-  }
-
-  return action.destination.targetType === "SECTOR"
-    ? { destinationSectorId: action.destination.sectorId, destinationBodyId: null }
-    : { destinationSectorId: null, destinationBodyId: action.destination.bodyId }
+function toDestinationColumns(action: GamePlayerAction): { destinationTargetId: string | null } {
+  return { destinationTargetId: action.actionType === GamePlayerActionType.BUILD_UNIT ? action.destination.targetId : null }
 }
 
 /**

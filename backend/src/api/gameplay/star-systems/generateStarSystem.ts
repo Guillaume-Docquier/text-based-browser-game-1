@@ -4,7 +4,6 @@ import { FIRST_ORBIT_SECTOR_COUNT, MAX_ORBIT_COUNT } from "#api/gameplay/star-sy
 import type {
   NewBodyModel,
   NewMovementEdgeModel,
-  NewMovementNodeModel,
   NewOrbitModel,
   NewSectorModel,
   NewStarSystemModel,
@@ -56,10 +55,6 @@ export function generateStarSystem({
   const bodies = generateBodies({ sectors, nbPlanets, rng, uuidFactory, settings })
 
   // Compute movements graph
-  const movementNodes: NewMovementNodeModel[] = [
-    ...sectors.map((sector) => ({ id: sector.movementNodeId })),
-    ...bodies.map((sector) => ({ id: sector.movementNodeId })),
-  ]
   const movementEdges = generateMovementEdges({ sectors, bodies })
 
   // Tadaa!
@@ -67,7 +62,6 @@ export function generateStarSystem({
     orbits,
     sectors,
     bodies,
-    movementNodes,
     movementEdges,
   })
 }
@@ -198,7 +192,6 @@ function generateSectors({
         angleRange: Range.float({ min: minAngle, max: maxAngle }),
         bodyCount: orbit.isAsteroidBelt ? rng.random(settings.nbAsteroidsPerSector) : 1,
         isAsteroidSector: orbit.isAsteroidBelt,
-        movementNodeId: uuidFactory(),
       }
     }),
   )
@@ -259,7 +252,6 @@ function generateBody({
     // We'll do better in the future
     name: `${toTitleCase(bodyType)} ${bodyNumber.toString().padStart(2, "0")}`,
     bodyType,
-    movementNodeId: uuidFactory(),
   }
 }
 
@@ -293,20 +285,20 @@ function generateMovementEdges({ sectors, bodies }: { sectors: GeneratedSector[]
   for (const sector of sectors) {
     const adjacentSectors = sectors.filter((otherSector) => areSectorsAdjacent(sector, otherSector))
     for (const adjacentSector of adjacentSectors) {
-      movementEdges.push(generateMovementEdge(sector.movementNodeId, adjacentSector.movementNodeId))
+      movementEdges.push(generateMovementEdge(sector.id, adjacentSector.id))
     }
 
     // Some sectors don't have bodies
     const bodiesInSector = bodiesBySectorId.get(sector.id) ?? []
 
     for (const body of bodiesInSector) {
-      movementEdges.push(generateMovementEdge(body.movementNodeId, sector.movementNodeId))
-      movementEdges.push(generateMovementEdge(sector.movementNodeId, body.movementNodeId))
+      movementEdges.push(generateMovementEdge(body.id, sector.id))
+      movementEdges.push(generateMovementEdge(sector.id, body.id))
 
       for (const otherBody of bodiesInSector) {
         // Don't count yourself
         if (body.id !== otherBody.id) {
-          movementEdges.push(generateMovementEdge(body.movementNodeId, otherBody.movementNodeId))
+          movementEdges.push(generateMovementEdge(body.id, otherBody.id))
         }
       }
     }
@@ -339,10 +331,10 @@ function areSectorsAdjacent(firstSector: GeneratedSector, secondSector: Generate
   )
 }
 
-export function generateMovementEdge(fromNodeId: string, toNodeId: string): NewMovementEdgeModel {
+export function generateMovementEdge(fromTargetId: string, toTargetId: string): NewMovementEdgeModel {
   return {
-    fromNodeId,
-    toNodeId,
+    fromTargetId,
+    toTargetId,
     // Maybe that'll change
     weight: 1,
   }

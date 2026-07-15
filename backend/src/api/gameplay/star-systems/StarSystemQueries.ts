@@ -4,7 +4,8 @@ import { toCoordinates } from "#api/gameplay/star-systems/Coordinates.ts"
 import type { NewSectorModel, NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
+import { MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
+import { bodiesTable, movementEdgesTable, movementTargetsTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 
 type NewSectorRow = Omit<typeof sectorsTable.$inferInsert, "gameId">
 type StarSystemRow = typeof starSystemsTable.$inferSelect
@@ -30,14 +31,12 @@ export const StarSystemQueries = {
 
     await tx.insert(starSystemsTable).values(withGameId({}))
 
-    const movementNodes = starSystem.movementNodes.map(withGameId)
-    if (movementNodes.length > 0) {
-      await tx.insert(movementNodesTable).values(movementNodes)
-    }
-
-    const movementEdges = starSystem.movementEdges.map(withGameId)
-    if (movementEdges.length > 0) {
-      await tx.insert(movementEdgesTable).values(movementEdges)
+    const movementTargets = [
+      ...starSystem.sectors.map(({ id }) => ({ id, targetType: MovementTargetType.SECTOR })),
+      ...starSystem.bodies.map(({ id }) => ({ id, targetType: MovementTargetType.BODY })),
+    ].map(withGameId)
+    if (movementTargets.length > 0) {
+      await tx.insert(movementTargetsTable).values(movementTargets)
     }
 
     const orbits = starSystem.orbits.map(withGameId)
@@ -53,6 +52,11 @@ export const StarSystemQueries = {
     const bodies = starSystem.bodies.map(withGameId)
     if (bodies.length > 0) {
       await tx.insert(bodiesTable).values(bodies)
+    }
+
+    const movementEdges = starSystem.movementEdges.map(withGameId)
+    if (movementEdges.length > 0) {
+      await tx.insert(movementEdgesTable).values(movementEdges)
     }
   },
 
@@ -80,7 +84,6 @@ function toNewSectorRow(newSector: NewSectorModel): NewSectorRow {
     angleMaxBoundType: newSector.angleRange.maxBoundType,
     startAngleDegrees: newSector.angleRange.min,
     endAngleDegrees: newSector.angleRange.max,
-    movementNodeId: newSector.movementNodeId,
   }
 }
 
@@ -103,18 +106,16 @@ export function toStarSystemModel(starSystemRows: StarSystemAggregatedRows): Sta
         number: sector.sectorNumber,
         coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }),
         angleRange: toSectorAngleRange(sector),
-        movementNodeId: sector.movementNodeId,
         bodies: (bodiesBySectorId.get(sector.id) ?? []).map((body) => ({
           id: body.id,
           number: body.bodyNumber,
           coordinates: toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber, bodyNumber: body.bodyNumber }),
           name: body.name,
           type: body.bodyType,
-          movementNodeId: body.movementNodeId,
         })),
       })),
     })),
-    movementEdges: toMovementEdgesByFromNodeId(starSystemRows.movementEdges),
+    movementEdges: toMovementEdgesByFromTargetId(starSystemRows.movementEdges),
   }
 }
 
@@ -132,9 +133,9 @@ function toSectorAngleRange(sector: SectorRow): Range {
   })
 }
 
-function toMovementEdgesByFromNodeId(edges: MovementEdgeRow[]): StarSystemModel["movementEdges"] {
+function toMovementEdgesByFromTargetId(edges: MovementEdgeRow[]): StarSystemModel["movementEdges"] {
   // We cast because Object.groupBy returns a Partial<Record<string, T>>, which makes TypeScript think
   // That T could be undefined because of Partial
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Kinda strange
-  return Object.groupBy(edges, ({ fromNodeId }) => fromNodeId) as StarSystemModel["movementEdges"]
+  return Object.groupBy(edges, ({ fromTargetId }) => fromTargetId) as StarSystemModel["movementEdges"]
 }

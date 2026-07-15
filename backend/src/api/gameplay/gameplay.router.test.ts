@@ -151,161 +151,52 @@ describe("gameplay.router", () => {
           time: Time.create(gameConfiguration.tickIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
         starSystem: {
-          orbits: [
-            {
-              coordinates: "01",
-              id: "00000000-0000-7000-8000-0280af9c0078",
-              number: 1,
-              sectors: [
-                {
-                  angleRange: Range.float({ min: 0, max: 180 }),
-                  bodies: [
-                    {
-                      coordinates: "01:01:01",
-                      id: "00000000-0000-7000-8000-38544e258144",
-                      movementNodeId: "00000000-0000-7000-8000-3e8019d20e5e",
-                      name: "Asteroid 01",
-                      number: 1,
-                      type: BodyType.ASTEROID,
-                    },
-                  ],
-                  coordinates: "01:01",
-                  id: "00000000-0000-7000-8000-0a34484b13a8",
-                  movementNodeId: "00000000-0000-7000-8000-0f9ce613b8ef",
-                  number: 1,
-                },
-                {
-                  angleRange: Range.float({ min: 180, max: 360 }),
-                  bodies: [
-                    {
-                      coordinates: "01:02:01",
-                      id: "00000000-0000-7000-8000-422d13180f43",
-                      movementNodeId: "00000000-0000-7000-8000-44f1f34484dc",
-                      name: "Asteroid 01",
-                      number: 1,
-                      type: BodyType.ASTEROID,
-                    },
-                  ],
-                  coordinates: "01:02",
-                  id: "00000000-0000-7000-8000-10569852ba4b",
-                  movementNodeId: "00000000-0000-7000-8000-15e71779d221",
-                  number: 2,
-                },
-              ],
-            },
-            {
-              coordinates: "02",
-              id: "00000000-0000-7000-8000-04d77ccf5173",
-              number: 2,
-              sectors: [
-                {
-                  angleRange: Range.float({ min: 0, max: 90 }),
-                  bodies: [
-                    {
-                      coordinates: "02:01:01",
-                      id: "00000000-0000-7000-8000-4ba1aadd63e0",
-                      movementNodeId: "00000000-0000-7000-8000-4df67c46a1c5",
-                      name: "Planet 01",
-                      number: 1,
-                      type: BodyType.PLANET,
-                    },
-                    {
-                      coordinates: "02:01:02",
-                      id: "00000000-0000-7000-8000-506b719db784",
-                      movementNodeId: "00000000-0000-7000-8000-55b345dba0e8",
-                      name: "Moon 02",
-                      number: 2,
-                      type: BodyType.MOON,
-                    },
-                  ],
-                  coordinates: "02:01",
-                  id: "00000000-0000-7000-8000-18e353ca6421",
-                  movementNodeId: "00000000-0000-7000-8000-1f0cb4b54a46",
-                  number: 1,
-                },
-                {
-                  angleRange: Range.float({ min: 90, max: 180 }),
-                  bodies: [],
-                  coordinates: "02:02",
-                  id: "00000000-0000-7000-8000-216f6baf6656",
-                  movementNodeId: "00000000-0000-7000-8000-27382bb1501f",
-                  number: 2,
-                },
-                {
-                  angleRange: Range.float({ min: 180, max: 270 }),
-                  bodies: [],
-                  coordinates: "02:03",
-                  id: "00000000-0000-7000-8000-2bde86d7e473",
-                  movementNodeId: "00000000-0000-7000-8000-2e0d112b81ad",
-                  number: 3,
-                },
-                {
-                  angleRange: Range.float({ min: 270, max: 360 }),
-                  bodies: [],
-                  coordinates: "02:04",
-                  id: "00000000-0000-7000-8000-3259f0a054d8",
-                  movementNodeId: "00000000-0000-7000-8000-3545230c4a70",
-                  number: 4,
-                },
-              ],
-            },
-          ],
-          movementEdges: {
-            "00000000-0000-7000-8000-0f9ce613b8ef": [
-              { fromNodeId: "00000000-0000-7000-8000-0f9ce613b8ef", toNodeId: "00000000-0000-7000-8000-15e71779d221", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-0f9ce613b8ef", toNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-0f9ce613b8ef", toNodeId: "00000000-0000-7000-8000-27382bb1501f", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-0f9ce613b8ef", toNodeId: "00000000-0000-7000-8000-3e8019d20e5e", weight: 1 },
-            ],
-            "00000000-0000-7000-8000-15e71779d221": [
-              { fromNodeId: "00000000-0000-7000-8000-15e71779d221", toNodeId: "00000000-0000-7000-8000-0f9ce613b8ef", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-15e71779d221", toNodeId: "00000000-0000-7000-8000-2e0d112b81ad", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-15e71779d221", toNodeId: "00000000-0000-7000-8000-3545230c4a70", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-15e71779d221", toNodeId: "00000000-0000-7000-8000-44f1f34484dc", weight: 1 },
-            ],
-            "00000000-0000-7000-8000-1f0cb4b54a46": [
-              { fromNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", toNodeId: "00000000-0000-7000-8000-0f9ce613b8ef", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", toNodeId: "00000000-0000-7000-8000-27382bb1501f", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", toNodeId: "00000000-0000-7000-8000-3545230c4a70", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", toNodeId: "00000000-0000-7000-8000-4df67c46a1c5", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", toNodeId: "00000000-0000-7000-8000-55b345dba0e8", weight: 1 },
-            ],
-            "00000000-0000-7000-8000-27382bb1501f": [
-              { fromNodeId: "00000000-0000-7000-8000-27382bb1501f", toNodeId: "00000000-0000-7000-8000-0f9ce613b8ef", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-27382bb1501f", toNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-27382bb1501f", toNodeId: "00000000-0000-7000-8000-2e0d112b81ad", weight: 1 },
-            ],
-            "00000000-0000-7000-8000-2e0d112b81ad": [
-              { fromNodeId: "00000000-0000-7000-8000-2e0d112b81ad", toNodeId: "00000000-0000-7000-8000-15e71779d221", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-2e0d112b81ad", toNodeId: "00000000-0000-7000-8000-27382bb1501f", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-2e0d112b81ad", toNodeId: "00000000-0000-7000-8000-3545230c4a70", weight: 1 },
-            ],
-            "00000000-0000-7000-8000-3545230c4a70": [
-              { fromNodeId: "00000000-0000-7000-8000-3545230c4a70", toNodeId: "00000000-0000-7000-8000-15e71779d221", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-3545230c4a70", toNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-3545230c4a70", toNodeId: "00000000-0000-7000-8000-2e0d112b81ad", weight: 1 },
-            ],
-            "00000000-0000-7000-8000-3e8019d20e5e": [
-              { fromNodeId: "00000000-0000-7000-8000-3e8019d20e5e", toNodeId: "00000000-0000-7000-8000-0f9ce613b8ef", weight: 1 },
-            ],
-            "00000000-0000-7000-8000-44f1f34484dc": [
-              { fromNodeId: "00000000-0000-7000-8000-44f1f34484dc", toNodeId: "00000000-0000-7000-8000-15e71779d221", weight: 1 },
-            ],
-            "00000000-0000-7000-8000-4df67c46a1c5": [
-              { fromNodeId: "00000000-0000-7000-8000-4df67c46a1c5", toNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-4df67c46a1c5", toNodeId: "00000000-0000-7000-8000-55b345dba0e8", weight: 1 },
-            ],
-            "00000000-0000-7000-8000-55b345dba0e8": [
-              { fromNodeId: "00000000-0000-7000-8000-55b345dba0e8", toNodeId: "00000000-0000-7000-8000-1f0cb4b54a46", weight: 1 },
-              { fromNodeId: "00000000-0000-7000-8000-55b345dba0e8", toNodeId: "00000000-0000-7000-8000-4df67c46a1c5", weight: 1 },
-            ],
-          },
+          orbits: expect.any(Array),
+          movementEdges: expect.any(Object),
         },
         units: {},
         resources: {
           money: 0,
         },
       })
+
+      expect(
+        getByIdResult.starSystem.orbits.map((orbit) => ({
+          coordinates: orbit.coordinates,
+          sectors: orbit.sectors.map((sector) => ({
+            coordinates: sector.coordinates,
+            bodies: sector.bodies.map((body) => ({ coordinates: body.coordinates, name: body.name, type: body.type })),
+          })),
+        })),
+      ).toEqual([
+        {
+          coordinates: "01",
+          sectors: [
+            { coordinates: "01:01", bodies: [{ coordinates: "01:01:01", name: "Asteroid 01", type: BodyType.ASTEROID }] },
+            { coordinates: "01:02", bodies: [{ coordinates: "01:02:01", name: "Asteroid 01", type: BodyType.ASTEROID }] },
+          ],
+        },
+        {
+          coordinates: "02",
+          sectors: [
+            { coordinates: "02:01", bodies: [] },
+            { coordinates: "02:02", bodies: [] },
+            {
+              coordinates: "02:03",
+              bodies: [
+                { coordinates: "02:03:01", name: "Planet 01", type: BodyType.PLANET },
+                { coordinates: "02:03:02", name: "Moon 02", type: BodyType.MOON },
+              ],
+            },
+            { coordinates: "02:04", bodies: [] },
+          ],
+        },
+      ])
+
+      const movementTargetIds = getByIdResult.starSystem.orbits.flatMap((orbit) =>
+        orbit.sectors.flatMap((sector) => [sector.id, ...sector.bodies.map((body) => body.id)]),
+      )
+      expect(new Set(Object.keys(getByIdResult.starSystem.movementEdges))).toEqual(new Set(movementTargetIds))
     })
 
     it("should expose the current player and every opponent with their colors", async () => {
@@ -381,7 +272,7 @@ describe("gameplay.router", () => {
         { actionType: GamePlayerActionType.WIN_THE_GAME },
         {
           actionType: GamePlayerActionType.BUILD_UNIT,
-          destination: { targetType: "SECTOR", sectorId: sector.id },
+          destination: { targetType: "SECTOR", targetId: sector.id },
         },
       ] as const) {
         // Act
@@ -430,7 +321,7 @@ describe("gameplay.router", () => {
         tick: 0,
         action: {
           actionType: GamePlayerActionType.BUILD_UNIT,
-          destination: { targetType: "BODY", bodyId: body.id },
+          destination: { targetType: "BODY", targetId: body.id },
         },
       })
 
@@ -441,7 +332,7 @@ describe("gameplay.router", () => {
           playerId: player.account.id,
           tick: 0,
           actionType: GamePlayerActionType.BUILD_UNIT,
-          destination: { targetType: "BODY", bodyId: body.id },
+          destination: { targetType: "BODY", targetId: body.id },
           updatedAt: expect.any(String),
         },
       })
@@ -464,13 +355,13 @@ describe("gameplay.router", () => {
           tick: 0,
           action: {
             actionType: GamePlayerActionType.BUILD_UNIT,
-            destination: { targetType: "SECTOR", sectorId: sector.id },
+            destination: { targetType: "SECTOR", targetId: sector.id },
           },
         }),
       ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject Build targets that do not belong to the game", async () => {
+    it("should reject Build targets with an invalid identity or type", async () => {
       // Arrange
       const db = await createDbMock()
       const { api, logger, accountsRepository } = await createApiStub({ db })
@@ -484,11 +375,18 @@ describe("gameplay.router", () => {
       await resourcesRepository.updateResource(
         createResourceUpdateModelStub({ gameId: firstGame.createdGameId, playerId: player.account.id, amountDelta: 1 }),
       )
+      const firstGameView = await player.client.gameplay.getPlayerView.query({ gameId: firstGame.createdGameId })
       const secondGameView = await player.client.gameplay.getPlayerView.query({ gameId: secondGame.createdGameId })
+      const localSector = firstGameView.starSystem.orbits[0]?.sectors[0]
       const foreignSector = secondGameView.starSystem.orbits[0]?.sectors[0]
+      Assert.isDefined(localSector)
       Assert.isDefined(foreignSector)
 
-      for (const sectorId of [foreignSector.id, "00000000-0000-4000-8000-000000000000"]) {
+      for (const destination of [
+        { targetType: "SECTOR", targetId: foreignSector.id },
+        { targetType: "SECTOR", targetId: "00000000-0000-4000-8000-000000000000" },
+        { targetType: "BODY", targetId: localSector.id },
+      ] as const) {
         // Act & Assert
         await expect(
           player.client.gameplay.setCurrentAction.mutate({
@@ -496,7 +394,7 @@ describe("gameplay.router", () => {
             tick: 0,
             action: {
               actionType: GamePlayerActionType.BUILD_UNIT,
-              destination: { targetType: "SECTOR", sectorId },
+              destination,
             },
           }),
         ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })

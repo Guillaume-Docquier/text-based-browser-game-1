@@ -85,7 +85,7 @@ These presentation rules do not affect movement.
 
 ## Units
 
-Units are generic player-owned entities. Every Unit has one concrete location: either a Sector or a Body. Units store that concrete target identity rather than a movement-node identity, and multiple Units from any combination of players may share the same location.
+Units are generic player-owned entities. Every Unit has one concrete location: either a Sector or a Body. Sectors and Bodies share a common Movement Target identity. Units store that target identity, and multiple Units from any combination of players may share the same location.
 
 Players can submit a Build Unit order for a Sector or Body in their game. Build costs one money. During tick processing, the player first receives the normal income and then pays the Build cost and receives one Unit at the selected destination.
 
@@ -114,7 +114,7 @@ At a high level, generation:
 4. Populates asteroid-belt Sectors with Asteroids.
 5. Selects normal Sectors for Planets.
 6. Adds the generated Moons to their Planet's Sector.
-7. Creates movement nodes and edges for all movement targets.
+7. Creates the movement edges between the generated targets.
 
 The generated Star System is static. Orbits, Sectors, Bodies, and their movement topology do not change during the game.
 
@@ -143,14 +143,14 @@ Sectors separated by more than one Orbit are not directly connected.
 
 Movement is represented as a graph:
 
-- each Sector has one movement node;
-- each Body has one movement node;
-- the star and Orbits do not have movement nodes;
-- connections are stored as directed edges;
+- each Sector and Body is a Movement Target;
+- the Movement Target identity is also the Sector or Body identity;
+- the star and Orbits are not Movement Targets;
+- connections are stored as directed edges between Movement Targets;
 - an undirected gameplay connection is represented by reciprocal directed edges;
 - movement edges currently have a weight of 1.
 
-Units and buildings refer to their concrete Sector or Body destination rather than directly owning movement-node identities. The movement graph exists to answer connectivity and pathfinding questions.
+Units, buildings, orders, and movement edges all refer to the same Movement Target identities. The target's discriminator identifies whether its type-specific information lives in the Sectors or Bodies relation.
 
 ## High-level architecture
 
@@ -170,11 +170,11 @@ The generated Star System is stored relationally as:
 
 - one Star System owned by a game;
 - Orbits owned by the Star System;
-- Sectors owned by Orbits;
-- Bodies owned by Sectors;
-- movement nodes owned by the game;
-- movement edges connecting those nodes.
-- Units owned by players and located on exactly one concrete Sector or Body.
+- Movement Targets owned by the Star System, providing one shared identity and discriminator for every movable location;
+- Sectors owned by Orbits and using their Movement Target identity as their own identity;
+- Bodies owned by Sectors and using their Movement Target identity as their own identity;
+- movement edges connecting Movement Targets;
+- Units owned by players and located on exactly one Movement Target.
 
 Repositories own all database access and reconstruct the persisted rows into the Star System read model.
 
@@ -187,8 +187,8 @@ The gameplay player view is the public read boundary for the Star System. It exp
 - ordered Orbits;
 - ordered Sectors with coordinates and angular ranges;
 - ordered Bodies with coordinates, names, and types;
-- movement edges indexed by movement-node identity.
-- Units indexed by Unit identity, including their owner and concrete location.
+- movement edges indexed by Movement Target identity;
+- Units indexed by Unit identity, including their owner and Movement Target location.
 
 The Star System and Units are public game information. Every player in the game receives the same static Star System data and current Unit state through their player view.
 
