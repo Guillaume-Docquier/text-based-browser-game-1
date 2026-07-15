@@ -1,7 +1,10 @@
 import type { Lobby, PlayerId, PlayerView } from "@api-types"
-import { Clock3, Crown, TimerReset } from "lucide-react"
+import { Clock3, Crown, RefreshCw, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
+import { Button } from "@/components/button.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
+import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
+import { useLogger } from "@/lib/LoggerContext.tsx"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function GameTopBar({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
@@ -43,6 +46,9 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
 
 function NextTickFact({ targetTimestamp }: { targetTimestamp: string | Date }): ReactElement {
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft({ past: new Date(), future: new Date(targetTimestamp) }))
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const refreshClientData = useRefreshClientData()
+  const logger = useLogger()
   const nextTickAt = new Date(targetTimestamp)
   const nextTickAtLabel = new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -53,9 +59,12 @@ function NextTickFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
 
   useEffect(() => {
     const future = new Date(targetTimestamp)
-    const interval = setInterval(() => {
+    function updateTimeLeft(): void {
       setTimeLeft(calculateTimeLeft({ past: new Date(), future }))
-    }, 1000)
+    }
+
+    updateTimeLeft()
+    const interval = setInterval(updateTimeLeft, 1000)
 
     return (): void => {
       clearInterval(interval)
@@ -63,7 +72,38 @@ function NextTickFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
   }, [targetTimestamp])
 
   if (timeLeft.noTimeLeft) {
-    return <TopBarFact icon={<Clock3 className="size-4" />} label="Next tick" value="ready" detail={nextTickAtLabel} />
+    async function refreshForNextTick(): Promise<void> {
+      setIsRefreshing(true)
+      try {
+        await refreshClientData()
+      } catch (error: unknown) {
+        logger.error("Could not refresh game state for the next tick", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      } finally {
+        setIsRefreshing(false)
+      }
+    }
+
+    return (
+      <Button
+        aria-label="Refresh game data to view the next tick"
+        className="relative min-h-11 justify-start overflow-hidden rounded-md border-primary/60 bg-primary/10 px-3 text-left shadow-[0_0_18px_-8px_var(--color-primary)] hover:border-primary hover:bg-primary/20"
+        disabled={isRefreshing}
+        title={`Next tick was computed on ${nextTickAtLabel}`}
+        variant="outline"
+        onClick={() => {
+          void refreshForNextTick()
+        }}
+      >
+        <span aria-hidden="true" className="absolute inset-0 animate-pulse bg-linear-to-r from-transparent via-primary/20 to-transparent" />
+        <RefreshCw className={`relative size-4 text-primary ${isRefreshing ? "animate-spin" : ""}`} />
+        <span className="relative min-w-0">
+          <span className="block text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Next tick ready</span>
+          <span className="block truncate text-sm font-medium text-foreground">{isRefreshing ? "Refreshing..." : "Refresh"}</span>
+        </span>
+      </Button>
+    )
   }
 
   return (
