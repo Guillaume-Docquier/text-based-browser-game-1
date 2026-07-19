@@ -117,6 +117,7 @@ function generateOrbits({
   const orbits = [
     ...asteroidOrbitNumbers.map((orbitNumber) => generateOrbit({ orbitNumber, isAsteroidBelt: true, uuidFactory })),
     ...orbitNumbers.map((orbitNumber) => generateOrbit({ orbitNumber, isAsteroidBelt: false, uuidFactory })),
+    // oxlint-disable-next-line unicorn/no-array-sort -- We're working on a controlled copy, we don't need another one
   ].sort(Sort.byAscendingProperty("orbitNumber"))
 
   // And we trim the orbits to avoid the overshoot

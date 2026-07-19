@@ -1,5 +1,5 @@
 import type { AddressInfo } from "node:net"
-import { Assert, Logger } from "@guillaume-docquier/tools-ts"
+import { Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
@@ -61,8 +61,8 @@ async function main(): Promise<void> {
 
   // Listen to all interfaces (::) for railway's IPv6 internal network
   const server = app.listen(env.PORT, "::", () => {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
     const serverAddress = server.address() as AddressInfo
-    Assert.isDefined(serverAddress?.port)
 
     // If env.PORT is 0, a random port will be attributed, so we log the server port instead of env.PORT
     logger.info(`API listening on port ${serverAddress.port}`)
