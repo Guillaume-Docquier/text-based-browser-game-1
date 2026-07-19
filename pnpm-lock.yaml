@@ -18,11 +18,11 @@ importers:
   .:
     devDependencies:
       '@guillaume-docquier/oxfmt':
-        specifier: ^1.0.1
-        version: 1.0.1(oxfmt@0.57.0)
+        specifier: ^1.0.2
+        version: 1.0.2(oxfmt@0.57.0)
       '@guillaume-docquier/oxlint':
-        specifier: ^1.1.1
-        version: 1.1.1(oxlint-tsgolint@0.24.0)(oxlint@1.74.0(oxlint-tsgolint@0.24.0))
+        specifier: ^1.2.1
+        version: 1.2.1(oxlint-tsgolint@0.24.0)(oxlint@1.74.0(oxlint-tsgolint@0.24.0))
       husky:
         specifier: 9.1.7
         version: 9.1.7
@@ -1043,13 +1043,13 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  '@guillaume-docquier/oxfmt@1.0.1':
-    resolution: {integrity: sha512-oBnhll2Ve9diCjEK30I5oZuYtzhy0gOXHGmZnrYPTkBnNuXyX/JUepgmcF8Uu3v2f7qt8Cv2oJYWJCw6ugfm9Q==}
+  '@guillaume-docquier/oxfmt@1.0.2':
+    resolution: {integrity: sha512-Pt8WMhPHcqlLhXlAywcwTiBq+tKEgiraKxA/amoSeH8qeoSsNxHq9RHUyaFVGMpvg3HiDKFam4JnaA/uxlMHXg==}
     peerDependencies:
       oxfmt: ^0.57.0
 
-  '@guillaume-docquier/oxlint@1.1.1':
-    resolution: {integrity: sha512-IzVdE9QOnXsVebD8CCGZvm+p82ujw3kDlc6ume/M3CLoW+eBhppfeWyAhywMUzwgVjUowitQUPhrG8/OvCq1kw==}
+  '@guillaume-docquier/oxlint@1.2.1':
+    resolution: {integrity: sha512-LoUu530acrwo6Wp3imwEi9LzHVsWosN2B3gxg+nYMW+tcEbDYIAa/a6tjt1af1U40BAuQDGgOnRhGRX3PODL+Q==}
     peerDependencies:
       oxlint: ^1.71.0
       oxlint-tsgolint: ^0.24.0
@@ -7827,11 +7827,11 @@ snapshots:
       protobufjs: 7.6.5
       yargs: 17.7.3
 
-  '@guillaume-docquier/oxfmt@1.0.1(oxfmt@0.57.0)':
+  '@guillaume-docquier/oxfmt@1.0.2(oxfmt@0.57.0)':
     dependencies:
       oxfmt: 0.57.0
 
-  '@guillaume-docquier/oxlint@1.1.1(oxlint-tsgolint@0.24.0)(oxlint@1.74.0(oxlint-tsgolint@0.24.0))':
+  '@guillaume-docquier/oxlint@1.2.1(oxlint-tsgolint@0.24.0)(oxlint@1.74.0(oxlint-tsgolint@0.24.0))':
     dependencies:
       oxlint: 1.74.0(oxlint-tsgolint@0.24.0)
       oxlint-tsgolint: 0.24.0
