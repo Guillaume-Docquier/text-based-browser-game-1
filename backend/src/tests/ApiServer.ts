@@ -35,6 +35,7 @@ export class ApiServer {
   public constructor({ api, accountsRepository }: { api: Express; accountsRepository: AccountsRepository }) {
     this.accountsRepository = accountsRepository
     this.server = createServer(api).listen(ANY_UNUSED_PORT)
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
     this.port = (this.server.address() as AddressInfo).port
   }
 

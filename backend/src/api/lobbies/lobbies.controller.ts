@@ -285,19 +285,19 @@ export const LobbyDto = z.object({
   canOpen: z.boolean(),
 })
 
+function isRangeWithinLimit(range: Range, limit: Range): boolean {
+  return range.numericType === limit.numericType && Range.isWithin(limit, range)
+}
+
 function validateStarSystemGenerationSettings(settings: StarSystemGenerationSettingsDto): boolean {
   const limits = StarSystemGenerationSettingsLimits
 
-  function validate(range: Range, limit: Range): boolean {
-    return range.numericType === limit.numericType && Range.isWithin(limit, range)
-  }
-
   return (
-    validate(settings.planetDensity, limits.planetDensity) &&
-    validate(settings.nbPlanets, limits.nbPlanets) &&
-    validate(settings.nbMoonsPerPlanet, limits.nbMoonsPerPlanet) &&
-    validate(settings.nbAsteroidBelts, limits.nbAsteroidBelts) &&
-    validate(settings.nbAsteroidsPerSector, limits.nbAsteroidsPerSector) &&
+    isRangeWithinLimit(settings.planetDensity, limits.planetDensity) &&
+    isRangeWithinLimit(settings.nbPlanets, limits.nbPlanets) &&
+    isRangeWithinLimit(settings.nbMoonsPerPlanet, limits.nbMoonsPerPlanet) &&
+    isRangeWithinLimit(settings.nbAsteroidBelts, limits.nbAsteroidBelts) &&
+    isRangeWithinLimit(settings.nbAsteroidsPerSector, limits.nbAsteroidsPerSector) &&
     Number.isInteger(settings.seed) &&
     Range.isWithin(limits.seed, settings.seed)
   )

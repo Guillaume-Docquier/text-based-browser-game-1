@@ -320,6 +320,7 @@ function toTickToProcessModel({
 
       playersById[playerId] = {
         resources: resourcesForPlayer.map((resource) => ({
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- resourceType uses varchar instead of enum, should probably fix this
           resourceType: resource.resourceType as ResourceType,
           amount: resource.amount,
         })),

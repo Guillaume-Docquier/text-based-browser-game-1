@@ -135,6 +135,6 @@ function toSectorAngleRange(sector: SectorRow): Range {
 function toMovementEdgesByFromNodeId(edges: MovementEdgeRow[]): StarSystemModel["movementEdges"] {
   // We cast because Object.groupBy returns a Partial<Record<string, T>>, which makes TypeScript think
   // That T could be undefined because of Partial
-  // Kinda strange
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Kinda strange
   return Object.groupBy(edges, ({ fromNodeId }) => fromNodeId) as StarSystemModel["movementEdges"]
 }

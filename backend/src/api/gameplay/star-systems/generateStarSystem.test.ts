@@ -277,6 +277,7 @@ describe("generateStarSystem", () => {
 
     const movementEdgesByCoordinates = system.movementEdges
       .map(({ fromNodeId, toNodeId }) => generateMovementEdge(getCoordinates(fromNodeId), getCoordinates(toNodeId)))
+      // oxlint-disable-next-line unicorn/no-array-sort -- We're already working off of a copy, we don't need another one
       .sort(compareMovementEdges)
 
     const o1s1 = toCoordinates({ orbitNumber: 1, sectorNumber: 1 })
@@ -354,6 +355,7 @@ describe("generateStarSystem", () => {
 
         // o2s4b1
         generateMovementEdge(o2s4a1, o2s4),
+        // oxlint-disable-next-line unicorn/no-array-sort -- We're working on a controlled copy, we don't need another one
       ].sort(compareMovementEdges),
     )
   })

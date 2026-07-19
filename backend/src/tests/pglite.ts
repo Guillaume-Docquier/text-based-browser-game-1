@@ -21,5 +21,6 @@ export const pglite = new PGlite()
  * ```
  */
 export async function getPGLiteInstanceWithSchemas(): Promise<PGlite> {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- clone returns the same PGlite implementation, but the library's clone type omits part of the public instance type
   return (await pglite.clone()) as PGlite
 }

@@ -26,6 +26,7 @@ import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSyst
  * This is just type gymnastics
  */
 function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>): [TEnumLike, ...TEnumLike[]] {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- This is trusted code
   return Object.values(enumLike) as [TEnumLike, ...TEnumLike[]]
 }
 

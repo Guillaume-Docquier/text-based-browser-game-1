@@ -10,6 +10,7 @@ it("should return an empty successful health check", async () => {
   server.listen(0)
 
   try {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
     const address = server.address() as AddressInfo
 
     // Act
