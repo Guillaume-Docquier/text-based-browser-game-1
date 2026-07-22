@@ -1,8 +1,14 @@
 # Design Principles
 
-This document describes design problems and their solutions. These established principles  will guide game design as they'll become design constraints.
+This document describes design problems and their solutions. These established principles will guide game design as they'll become design constraints.
 
 This is the equivalent of ADRs, for the game design space.
+
+## Space Setting
+
+Problem: I like space games
+
+Solution: It'll be a space game
 
 ## Turn Based & Independant Play
 
@@ -19,4 +25,3 @@ Problem: Given Turn Based & Independent Play, we still want interactions such as
 Solution: Players offering trades cannot decide who they trade with. They offer the trading (or contract) terms which can then be accepted by anyone. This necessarily happens over 3 turns or more (1 turn to offer, 1+ turns to accept, 1 turn to observe the accepted trade)
 
 Explanation: We could allow the players to target who they offer the trade to, but this indirectly entails timely player coordination... not really. It's just a choice that plays nicely with other design choices.
-
