@@ -10,8 +10,8 @@ import type { Transaction } from "#lib/db/createDb.ts"
 import type { GamePlayerAction } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
-import type { MovementTarget, MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
-import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
+import type { MovementNode, MovementNodeType } from "#lib/db/gameplay/MovementNode.ts"
+import type { MovementNodeId } from "#lib/db/gameplay/MovementNodeId.ts"
 import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
@@ -19,7 +19,7 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   gamesTable,
   gameStatesTable,
-  movementTargetsTable,
+  movementNodesTable,
   ordersTable,
   playersTable,
   resourcesTable,
@@ -34,8 +34,8 @@ type OrderRow = typeof ordersTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTickRow = typeof ticksTable.$inferInsert
 type UnitRow = typeof unitsTable.$inferSelect
-type OrderWithTargetTypeRow = OrderRow & { destinationTargetType: MovementTargetType | null }
-type UnitWithTargetTypeRow = UnitRow & { locationTargetType: MovementTargetType }
+type OrderWithNodeTypeRow = OrderRow & { destinationNodeType: MovementNodeType | null }
+type UnitWithNodeTypeRow = UnitRow & { locationNodeType: MovementNodeType }
 
 export type OrderModel = {
   readonly gameId: GameId
@@ -47,7 +47,7 @@ export type OrderModel = {
 export type UnitModel = {
   readonly id: UnitId
   readonly playerId: PlayerId
-  readonly location: MovementTarget
+  readonly location: MovementNode
 }
 
 /**
@@ -230,11 +230,11 @@ export class GameplayRepository extends PostgresRepository {
         const starSystem = await StarSystemQueries.selectStarSystem(gameId, tx)
 
         const unitRows = await tx
-          .select({ ...getTableColumns(unitsTable), locationTargetType: movementTargetsTable.targetType })
+          .select({ ...getTableColumns(unitsTable), locationNodeType: movementNodesTable.nodeType })
           .from(unitsTable)
           .innerJoin(
-            movementTargetsTable,
-            and(eq(unitsTable.gameId, movementTargetsTable.gameId), eq(unitsTable.locationTargetId, movementTargetsTable.id)),
+            movementNodesTable,
+            and(eq(unitsTable.gameId, movementNodesTable.gameId), eq(unitsTable.locationNodeId, movementNodesTable.id)),
           )
           .where(eq(unitsTable.gameId, gameId))
         const units = unitRows.reduce<Record<UnitId, UnitModel>>((unitsById, unitRow) => {
@@ -287,11 +287,11 @@ export class GameplayRepository extends PostgresRepository {
   ): Promise<Result<OrderModel | null, string>> {
     const getResult = await Result.tryCatch(
       db
-        .select({ ...getTableColumns(ordersTable), destinationTargetType: movementTargetsTable.targetType })
+        .select({ ...getTableColumns(ordersTable), destinationNodeType: movementNodesTable.nodeType })
         .from(ordersTable)
         .leftJoin(
-          movementTargetsTable,
-          and(eq(ordersTable.gameId, movementTargetsTable.gameId), eq(ordersTable.destinationTargetId, movementTargetsTable.id)),
+          movementNodesTable,
+          and(eq(ordersTable.gameId, movementNodesTable.gameId), eq(ordersTable.destinationNodeId, movementNodesTable.id)),
         )
         .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.tick, params.tick))),
     )
@@ -405,7 +405,7 @@ export class GameplayRepository extends PostgresRepository {
 
         return toOrderModel({
           ...gamePlayerActions[0],
-          destinationTargetType: params.action.actionType === GamePlayerActionType.BUILD_UNIT ? params.action.destination.targetType : null,
+          destinationNodeType: params.action.actionType === GamePlayerActionType.BUILD_UNIT ? params.action.destination.nodeType : null,
         })
       }),
     )
@@ -421,31 +421,31 @@ export class GameplayRepository extends PostgresRepository {
   /**
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
-  public async movementTargetExists(
-    { gameId, target }: { gameId: GameId; target: MovementTarget },
+  public async movementNodeExists(
+    { gameId, node }: { gameId: GameId; node: MovementNode },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<boolean, string>> {
-    const targetResult = await Result.tryCatch(async () => {
+    const nodeResult = await Result.tryCatch(async () => {
       const rows = await db
-        .select({ id: movementTargetsTable.id })
-        .from(movementTargetsTable)
+        .select({ id: movementNodesTable.id })
+        .from(movementNodesTable)
         .where(
           and(
-            eq(movementTargetsTable.gameId, gameId),
-            eq(movementTargetsTable.id, target.targetId),
-            eq(movementTargetsTable.targetType, target.targetType),
+            eq(movementNodesTable.gameId, gameId),
+            eq(movementNodesTable.id, node.nodeId),
+            eq(movementNodesTable.nodeType, node.nodeType),
           ),
         )
       Assert.isTrue(rows.length <= 1)
       return rows.length === 1
     })
 
-    if (Result.isFailure(targetResult)) {
-      this.logger.error("Could not check movement target", { gameId, target, error: targetResult.error })
-      return Result.Failure(couldNot("check movement target"))
+    if (Result.isFailure(nodeResult)) {
+      this.logger.error("Could not check movement node", { gameId, node, error: nodeResult.error })
+      return Result.Failure(couldNot("check movement node"))
     }
 
-    return targetResult
+    return nodeResult
   }
 
   /**
@@ -477,7 +477,7 @@ export class GameplayRepository extends PostgresRepository {
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
-function toOrderModel(orderRow: OrderWithTargetTypeRow): OrderModel {
+function toOrderModel(orderRow: OrderWithNodeTypeRow): OrderModel {
   const common = {
     gameId: orderRow.gameId,
     playerId: orderRow.playerId,
@@ -488,13 +488,13 @@ function toOrderModel(orderRow: OrderWithTargetTypeRow): OrderModel {
   switch (orderRow.actionType) {
     case GamePlayerActionType.MAKE_MORE_MONEY:
     case GamePlayerActionType.WIN_THE_GAME:
-      Assert.isTrue(orderRow.destinationTargetId === null && orderRow.destinationTargetType === null)
+      Assert.isTrue(orderRow.destinationNodeId === null && orderRow.destinationNodeType === null)
       return { ...common, actionType: orderRow.actionType }
     case GamePlayerActionType.BUILD_UNIT:
       return {
         ...common,
         actionType: orderRow.actionType,
-        destination: toMovementTarget(orderRow.destinationTargetId, orderRow.destinationTargetType),
+        destination: toMovementNode(orderRow.destinationNodeId, orderRow.destinationNodeType),
       }
     default:
       Assert.isExhausted(orderRow.actionType)
@@ -502,25 +502,25 @@ function toOrderModel(orderRow: OrderWithTargetTypeRow): OrderModel {
   }
 }
 
-function toUnitModel(unitRow: UnitWithTargetTypeRow): UnitModel {
+function toUnitModel(unitRow: UnitWithNodeTypeRow): UnitModel {
   return {
     id: unitRow.id,
     playerId: unitRow.playerId,
-    location: toMovementTarget(unitRow.locationTargetId, unitRow.locationTargetType),
+    location: toMovementNode(unitRow.locationNodeId, unitRow.locationNodeType),
   }
 }
 
-function toMovementTarget(targetId: MovementTargetId | null, targetType: MovementTargetType | null): MovementTarget {
-  Assert.isDefined(targetId)
-  Assert.isDefined(targetType)
-  return { targetId, targetType }
+function toMovementNode(nodeId: MovementNodeId | null, nodeType: MovementNodeType | null): MovementNode {
+  Assert.isDefined(nodeId)
+  Assert.isDefined(nodeType)
+  return { nodeId, nodeType }
 }
 
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
-function toDestinationColumns(action: GamePlayerAction): { destinationTargetId: MovementTargetId | null } {
-  return { destinationTargetId: action.actionType === GamePlayerActionType.BUILD_UNIT ? action.destination.targetId : null }
+function toDestinationColumns(action: GamePlayerAction): { destinationNodeId: MovementNodeId | null } {
+  return { destinationNodeId: action.actionType === GamePlayerActionType.BUILD_UNIT ? action.destination.nodeId : null }
 }
 
 /**

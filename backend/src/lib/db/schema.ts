@@ -16,8 +16,8 @@ import {
   varchar,
 } from "drizzle-orm/pg-core"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
-import { MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
-import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
+import { MovementNodeType } from "#lib/db/gameplay/MovementNode.ts"
+import type { MovementNodeId } from "#lib/db/gameplay/MovementNodeId.ts"
 import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
@@ -37,7 +37,7 @@ export const starSystemBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
 export const gamePlayerActionTypeEnum = pgEnum("action_type", pgEnumify(GamePlayerActionType))
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
-export const movementTargetTypeEnum = pgEnum("movement_target_type", pgEnumify(MovementTargetType))
+export const movementNodeTypeEnum = pgEnum("movement_node_type", pgEnumify(MovementNodeType))
 
 const accountId = uuid
 const playerId = uuid
@@ -154,7 +154,7 @@ export const ordersTable = pgTable(
     playerId: playerId("player_id").notNull(),
     tick: integer("tick").notNull(),
     actionType: gamePlayerActionTypeEnum("action_type").notNull(),
-    destinationTargetId: uuid("destination_target_id").$type<MovementTargetId>(),
+    destinationNodeId: uuid("destination_node_id").$type<MovementNodeId>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -168,18 +168,18 @@ export const ordersTable = pgTable(
       name: "orders_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [table.gameId, table.destinationTargetId],
-      foreignColumns: [movementTargetsTable.gameId, movementTargetsTable.id],
-      name: "orders_game_id_destination_target_id_movement_targets_fk",
+      columns: [table.gameId, table.destinationNodeId],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id],
+      name: "orders_game_id_destination_node_id_movement_nodes_fk",
     }).onDelete("cascade"),
     check(
       "orders_action_destination_check",
       sql`(
         ${table.actionType}::text = 'BUILD_UNIT'
-        and ${table.destinationTargetId} is not null
+        and ${table.destinationNodeId} is not null
       ) or (
         ${table.actionType}::text in ('MAKE_MORE_MONEY', 'WIN_THE_GAME')
-        and ${table.destinationTargetId} is null
+        and ${table.destinationNodeId} is null
       )`,
     ),
   ],
@@ -237,12 +237,12 @@ export const orbitsTable = pgTable(
 )
 
 /**
- * Sectors inside orbits. Sectors are movement targets.
+ * Sectors inside orbits. Sectors are movement nodes.
  */
 export const sectorsTable = pgTable(
   "sectors",
   {
-    id: uuid("id").$type<MovementTargetId>().notNull(),
+    id: uuid("id").$type<MovementNodeId>().notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
@@ -252,7 +252,7 @@ export const sectorsTable = pgTable(
     angleMaxBoundType: varchar("angle_max_bound_type", { length: 16 }).notNull(),
     startAngleDegrees: doublePrecision("start_angle_degrees").notNull(),
     endAngleDegrees: doublePrecision("end_angle_degrees").notNull(),
-    targetType: movementTargetTypeEnum("target_type").notNull().default(MovementTargetType.SECTOR),
+    nodeType: movementNodeTypeEnum("node_type").notNull().default(MovementNodeType.SECTOR),
   },
   (table) => [
     primaryKey({ columns: [table.gameId, table.id] }),
@@ -264,11 +264,11 @@ export const sectorsTable = pgTable(
       name: "sectors_game_id_orbit_id_orbits_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [table.gameId, table.id, table.targetType],
-      foreignColumns: [movementTargetsTable.gameId, movementTargetsTable.id, movementTargetsTable.targetType],
-      name: "sectors_game_id_id_target_type_movement_targets_fk",
+      columns: [table.gameId, table.id, table.nodeType],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id, movementNodesTable.nodeType],
+      name: "sectors_game_id_id_node_type_movement_nodes_fk",
     }).onDelete("cascade"),
-    check("sectors_target_type_check", sql`${table.targetType} = 'SECTOR'`),
+    check("sectors_node_type_check", sql`${table.nodeType} = 'SECTOR'`),
     check("sectors_angle_numeric_type_check", sql`${table.angleNumericType} in ('float', 'integer')`),
     check("sectors_angle_max_bound_type_check", sql`${table.angleMaxBoundType} in ('inclusive', 'exclusive')`),
     check("sectors_start_angle_degrees_check", sql`${table.startAngleDegrees} >= 0`),
@@ -279,20 +279,20 @@ export const sectorsTable = pgTable(
 )
 
 /**
- * Bodies inside sectors. Bodies are movement targets.
+ * Bodies inside sectors. Bodies are movement nodes.
  */
 export const bodiesTable = pgTable(
   "bodies",
   {
-    id: uuid("id").$type<MovementTargetId>().notNull(),
+    id: uuid("id").$type<MovementNodeId>().notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
-    sectorId: uuid("sector_id").$type<MovementTargetId>().notNull(),
+    sectorId: uuid("sector_id").$type<MovementNodeId>().notNull(),
     bodyNumber: integer("body_number").notNull(),
     bodyType: starSystemBodyTypeEnum("body_type").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
-    targetType: movementTargetTypeEnum("target_type").notNull().default(MovementTargetType.BODY),
+    nodeType: movementNodeTypeEnum("node_type").notNull().default(MovementNodeType.BODY),
   },
   (table) => [
     primaryKey({ columns: [table.gameId, table.id] }),
@@ -303,11 +303,11 @@ export const bodiesTable = pgTable(
       name: "bodies_game_id_sector_id_sectors_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [table.gameId, table.id, table.targetType],
-      foreignColumns: [movementTargetsTable.gameId, movementTargetsTable.id, movementTargetsTable.targetType],
-      name: "bodies_game_id_id_target_type_movement_targets_fk",
+      columns: [table.gameId, table.id, table.nodeType],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id, movementNodesTable.nodeType],
+      name: "bodies_game_id_id_node_type_movement_nodes_fk",
     }).onDelete("cascade"),
-    check("bodies_target_type_check", sql`${table.targetType} = 'BODY'`),
+    check("bodies_node_type_check", sql`${table.nodeType} = 'BODY'`),
     index("bodies_game_id_sector_id_idx").on(table.gameId, table.sectorId),
   ],
 )
@@ -321,7 +321,7 @@ export const unitsTable = pgTable(
     id: uuid("id").$type<UnitId>().primaryKey().defaultRandom(),
     gameId: gameId("game_id").notNull(),
     playerId: playerId("player_id").notNull(),
-    locationTargetId: uuid("location_target_id").$type<MovementTargetId>().notNull(),
+    locationNodeId: uuid("location_node_id").$type<MovementNodeId>().notNull(),
   },
   (table) => [
     foreignKey({
@@ -330,30 +330,30 @@ export const unitsTable = pgTable(
       name: "units_game_id_player_id_players_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [table.gameId, table.locationTargetId],
-      foreignColumns: [movementTargetsTable.gameId, movementTargetsTable.id],
-      name: "units_game_id_location_target_id_movement_targets_fk",
+      columns: [table.gameId, table.locationNodeId],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id],
+      name: "units_game_id_location_node_id_movement_nodes_fk",
     }).onDelete("cascade"),
     index("units_game_id_idx").on(table.gameId),
   ],
 )
 
 /**
- * Shared identities for all concrete movement targets in a Star System.
+ * Shared identities for all concrete movement nodes in a Star System.
  */
-export const movementTargetsTable = pgTable(
-  "movement_targets",
+export const movementNodesTable = pgTable(
+  "movement_nodes",
   {
-    id: uuid("id").$type<MovementTargetId>().notNull(),
+    id: uuid("id").$type<MovementNodeId>().notNull(),
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
-    targetType: movementTargetTypeEnum("target_type").notNull(),
+    nodeType: movementNodeTypeEnum("node_type").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.gameId, table.id] }),
-    unique("movement_targets_game_id_id_target_type_unique").on(table.gameId, table.id, table.targetType),
-    index("movement_targets_game_id_idx").on(table.gameId),
+    unique("movement_nodes_game_id_id_node_type_unique").on(table.gameId, table.id, table.nodeType),
+    index("movement_nodes_game_id_idx").on(table.gameId),
   ],
 )
 
@@ -366,24 +366,24 @@ export const movementEdgesTable = pgTable(
     gameId: gameId("game_id")
       .notNull()
       .references(() => starSystemsTable.gameId, { onDelete: "cascade" }),
-    fromTargetId: uuid("from_target_id").$type<MovementTargetId>().notNull(),
-    toTargetId: uuid("to_target_id").$type<MovementTargetId>().notNull(),
+    fromNodeId: uuid("from_node_id").$type<MovementNodeId>().notNull(),
+    toNodeId: uuid("to_node_id").$type<MovementNodeId>().notNull(),
     weight: integer("weight").notNull(),
   },
   (table) => [
     primaryKey({
-      columns: [table.gameId, table.fromTargetId, table.toTargetId],
+      columns: [table.gameId, table.fromNodeId, table.toNodeId],
     }),
     foreignKey({
-      columns: [table.gameId, table.fromTargetId],
-      foreignColumns: [movementTargetsTable.gameId, movementTargetsTable.id],
-      name: "movement_edges_game_id_from_target_id_movement_targets_fk",
+      columns: [table.gameId, table.fromNodeId],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id],
+      name: "movement_edges_game_id_from_node_id_movement_nodes_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [table.gameId, table.toTargetId],
-      foreignColumns: [movementTargetsTable.gameId, movementTargetsTable.id],
-      name: "movement_edges_game_id_to_target_id_movement_targets_fk",
+      columns: [table.gameId, table.toNodeId],
+      foreignColumns: [movementNodesTable.gameId, movementNodesTable.id],
+      name: "movement_edges_game_id_to_node_id_movement_nodes_fk",
     }).onDelete("cascade"),
-    index("movement_edges_game_id_from_target_id_idx").on(table.gameId, table.fromTargetId),
+    index("movement_edges_game_id_from_node_id_idx").on(table.gameId, table.fromNodeId),
   ],
 )

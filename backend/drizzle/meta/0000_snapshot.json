@@ -99,9 +99,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "target_type": {
-          "name": "target_type",
-          "type": "movement_target_type",
+        "node_type": {
+          "name": "node_type",
+          "type": "movement_node_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -150,12 +150,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "bodies_game_id_id_target_type_movement_targets_fk": {
-          "name": "bodies_game_id_id_target_type_movement_targets_fk",
+        "bodies_game_id_id_node_type_movement_nodes_fk": {
+          "name": "bodies_game_id_id_node_type_movement_nodes_fk",
           "tableFrom": "bodies",
-          "tableTo": "movement_targets",
-          "columnsFrom": ["game_id", "id", "target_type"],
-          "columnsTo": ["game_id", "id", "target_type"],
+          "tableTo": "movement_nodes",
+          "columnsFrom": ["game_id", "id", "node_type"],
+          "columnsTo": ["game_id", "id", "node_type"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -175,9 +175,9 @@
       },
       "policies": {},
       "checkConstraints": {
-        "bodies_target_type_check": {
-          "name": "bodies_target_type_check",
-          "value": "\"bodies\".\"target_type\" = 'BODY'"
+        "bodies_node_type_check": {
+          "name": "bodies_node_type_check",
+          "value": "\"bodies\".\"node_type\" = 'BODY'"
         }
       },
       "isRLSEnabled": false
@@ -346,14 +346,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "from_target_id": {
-          "name": "from_target_id",
+        "from_node_id": {
+          "name": "from_node_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "to_target_id": {
-          "name": "to_target_id",
+        "to_node_id": {
+          "name": "to_node_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -366,8 +366,8 @@
         }
       },
       "indexes": {
-        "movement_edges_game_id_from_target_id_idx": {
-          "name": "movement_edges_game_id_from_target_id_idx",
+        "movement_edges_game_id_from_node_id_idx": {
+          "name": "movement_edges_game_id_from_node_id_idx",
           "columns": [
             {
               "expression": "game_id",
@@ -376,7 +376,7 @@
               "nulls": "last"
             },
             {
-              "expression": "from_target_id",
+              "expression": "from_node_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -398,29 +398,29 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "movement_edges_game_id_from_target_id_movement_targets_fk": {
-          "name": "movement_edges_game_id_from_target_id_movement_targets_fk",
+        "movement_edges_game_id_from_node_id_movement_nodes_fk": {
+          "name": "movement_edges_game_id_from_node_id_movement_nodes_fk",
           "tableFrom": "movement_edges",
-          "tableTo": "movement_targets",
-          "columnsFrom": ["game_id", "from_target_id"],
+          "tableTo": "movement_nodes",
+          "columnsFrom": ["game_id", "from_node_id"],
           "columnsTo": ["game_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "movement_edges_game_id_to_target_id_movement_targets_fk": {
-          "name": "movement_edges_game_id_to_target_id_movement_targets_fk",
+        "movement_edges_game_id_to_node_id_movement_nodes_fk": {
+          "name": "movement_edges_game_id_to_node_id_movement_nodes_fk",
           "tableFrom": "movement_edges",
-          "tableTo": "movement_targets",
-          "columnsFrom": ["game_id", "to_target_id"],
+          "tableTo": "movement_nodes",
+          "columnsFrom": ["game_id", "to_node_id"],
           "columnsTo": ["game_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "movement_edges_game_id_from_target_id_to_target_id_pk": {
-          "name": "movement_edges_game_id_from_target_id_to_target_id_pk",
-          "columns": ["game_id", "from_target_id", "to_target_id"]
+        "movement_edges_game_id_from_node_id_to_node_id_pk": {
+          "name": "movement_edges_game_id_from_node_id_to_node_id_pk",
+          "columns": ["game_id", "from_node_id", "to_node_id"]
         }
       },
       "uniqueConstraints": {},
@@ -428,8 +428,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.movement_targets": {
-      "name": "movement_targets",
+    "public.movement_nodes": {
+      "name": "movement_nodes",
       "schema": "",
       "columns": {
         "id": {
@@ -444,17 +444,17 @@
           "primaryKey": false,
           "notNull": true
         },
-        "target_type": {
-          "name": "target_type",
-          "type": "movement_target_type",
+        "node_type": {
+          "name": "node_type",
+          "type": "movement_node_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         }
       },
       "indexes": {
-        "movement_targets_game_id_idx": {
-          "name": "movement_targets_game_id_idx",
+        "movement_nodes_game_id_idx": {
+          "name": "movement_nodes_game_id_idx",
           "columns": [
             {
               "expression": "game_id",
@@ -470,9 +470,9 @@
         }
       },
       "foreignKeys": {
-        "movement_targets_game_id_star_systems_game_id_fk": {
-          "name": "movement_targets_game_id_star_systems_game_id_fk",
-          "tableFrom": "movement_targets",
+        "movement_nodes_game_id_star_systems_game_id_fk": {
+          "name": "movement_nodes_game_id_star_systems_game_id_fk",
+          "tableFrom": "movement_nodes",
           "tableTo": "star_systems",
           "columnsFrom": ["game_id"],
           "columnsTo": ["game_id"],
@@ -481,16 +481,16 @@
         }
       },
       "compositePrimaryKeys": {
-        "movement_targets_game_id_id_pk": {
-          "name": "movement_targets_game_id_id_pk",
+        "movement_nodes_game_id_id_pk": {
+          "name": "movement_nodes_game_id_id_pk",
           "columns": ["game_id", "id"]
         }
       },
       "uniqueConstraints": {
-        "movement_targets_game_id_id_target_type_unique": {
-          "name": "movement_targets_game_id_id_target_type_unique",
+        "movement_nodes_game_id_id_node_type_unique": {
+          "name": "movement_nodes_game_id_id_node_type_unique",
           "nullsNotDistinct": false,
-          "columns": ["game_id", "id", "target_type"]
+          "columns": ["game_id", "id", "node_type"]
         }
       },
       "policies": {},
@@ -594,8 +594,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "destination_target_id": {
-          "name": "destination_target_id",
+        "destination_node_id": {
+          "name": "destination_node_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -626,11 +626,11 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "orders_game_id_destination_target_id_movement_targets_fk": {
-          "name": "orders_game_id_destination_target_id_movement_targets_fk",
+        "orders_game_id_destination_node_id_movement_nodes_fk": {
+          "name": "orders_game_id_destination_node_id_movement_nodes_fk",
           "tableFrom": "orders",
-          "tableTo": "movement_targets",
-          "columnsFrom": ["game_id", "destination_target_id"],
+          "tableTo": "movement_nodes",
+          "columnsFrom": ["game_id", "destination_node_id"],
           "columnsTo": ["game_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -647,7 +647,7 @@
       "checkConstraints": {
         "orders_action_destination_check": {
           "name": "orders_action_destination_check",
-          "value": "(\n        \"orders\".\"action_type\"::text = 'BUILD_UNIT'\n        and \"orders\".\"destination_target_id\" is not null\n      ) or (\n        \"orders\".\"action_type\"::text in ('MAKE_MORE_MONEY', 'WIN_THE_GAME')\n        and \"orders\".\"destination_target_id\" is null\n      )"
+          "value": "(\n        \"orders\".\"action_type\"::text = 'BUILD_UNIT'\n        and \"orders\".\"destination_node_id\" is not null\n      ) or (\n        \"orders\".\"action_type\"::text in ('MAKE_MORE_MONEY', 'WIN_THE_GAME')\n        and \"orders\".\"destination_node_id\" is null\n      )"
         }
       },
       "isRLSEnabled": false
@@ -826,9 +826,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "target_type": {
-          "name": "target_type",
-          "type": "movement_target_type",
+        "node_type": {
+          "name": "node_type",
+          "type": "movement_node_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -877,12 +877,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "sectors_game_id_id_target_type_movement_targets_fk": {
-          "name": "sectors_game_id_id_target_type_movement_targets_fk",
+        "sectors_game_id_id_node_type_movement_nodes_fk": {
+          "name": "sectors_game_id_id_node_type_movement_nodes_fk",
           "tableFrom": "sectors",
-          "tableTo": "movement_targets",
-          "columnsFrom": ["game_id", "id", "target_type"],
-          "columnsTo": ["game_id", "id", "target_type"],
+          "tableTo": "movement_nodes",
+          "columnsFrom": ["game_id", "id", "node_type"],
+          "columnsTo": ["game_id", "id", "node_type"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -902,9 +902,9 @@
       },
       "policies": {},
       "checkConstraints": {
-        "sectors_target_type_check": {
-          "name": "sectors_target_type_check",
-          "value": "\"sectors\".\"target_type\" = 'SECTOR'"
+        "sectors_node_type_check": {
+          "name": "sectors_node_type_check",
+          "value": "\"sectors\".\"node_type\" = 'SECTOR'"
         },
         "sectors_angle_numeric_type_check": {
           "name": "sectors_angle_numeric_type_check",
@@ -1062,8 +1062,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "location_target_id": {
-          "name": "location_target_id",
+        "location_node_id": {
+          "name": "location_node_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -1096,11 +1096,11 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "units_game_id_location_target_id_movement_targets_fk": {
-          "name": "units_game_id_location_target_id_movement_targets_fk",
+        "units_game_id_location_node_id_movement_nodes_fk": {
+          "name": "units_game_id_location_node_id_movement_nodes_fk",
           "tableFrom": "units",
-          "tableTo": "movement_targets",
-          "columnsFrom": ["game_id", "location_target_id"],
+          "tableTo": "movement_nodes",
+          "columnsFrom": ["game_id", "location_node_id"],
           "columnsTo": ["game_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1124,8 +1124,8 @@
       "schema": "public",
       "values": ["WAITING_FOR_PLAYERS", "READY_TO_START", "COLLECTING_ORDERS", "PROCESSING_TICK", "ENDED"]
     },
-    "public.movement_target_type": {
-      "name": "movement_target_type",
+    "public.movement_node_type": {
+      "name": "movement_node_type",
       "schema": "public",
       "values": ["SECTOR", "BODY"]
     },

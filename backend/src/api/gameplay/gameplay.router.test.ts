@@ -193,10 +193,10 @@ describe("gameplay.router", () => {
         },
       ])
 
-      const movementTargetIds = getByIdResult.starSystem.orbits.flatMap((orbit) =>
+      const movementNodeIds = getByIdResult.starSystem.orbits.flatMap((orbit) =>
         orbit.sectors.flatMap((sector) => [sector.id, ...sector.bodies.map((body) => body.id)]),
       )
-      expect(new Set(Object.keys(getByIdResult.starSystem.movementEdges))).toEqual(new Set(movementTargetIds))
+      expect(new Set(Object.keys(getByIdResult.starSystem.movementEdges))).toEqual(new Set(movementNodeIds))
     })
 
     it("should expose the current player and every opponent with their colors", async () => {
@@ -272,7 +272,7 @@ describe("gameplay.router", () => {
         { actionType: GamePlayerActionType.WIN_THE_GAME },
         {
           actionType: GamePlayerActionType.BUILD_UNIT,
-          destination: { targetType: "SECTOR", targetId: sector.id },
+          destination: { nodeType: "SECTOR", nodeId: sector.id },
         },
       ] as const) {
         // Act
@@ -321,7 +321,7 @@ describe("gameplay.router", () => {
         tick: 0,
         action: {
           actionType: GamePlayerActionType.BUILD_UNIT,
-          destination: { targetType: "BODY", targetId: body.id },
+          destination: { nodeType: "BODY", nodeId: body.id },
         },
       })
 
@@ -332,7 +332,7 @@ describe("gameplay.router", () => {
           playerId: player.account.id,
           tick: 0,
           actionType: GamePlayerActionType.BUILD_UNIT,
-          destination: { targetType: "BODY", targetId: body.id },
+          destination: { nodeType: "BODY", nodeId: body.id },
           updatedAt: expect.any(String),
         },
       })
@@ -355,7 +355,7 @@ describe("gameplay.router", () => {
           tick: 0,
           action: {
             actionType: GamePlayerActionType.BUILD_UNIT,
-            destination: { targetType: "SECTOR", targetId: sector.id },
+            destination: { nodeType: "SECTOR", nodeId: sector.id },
           },
         }),
       ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
@@ -383,9 +383,9 @@ describe("gameplay.router", () => {
       Assert.isDefined(foreignSector)
 
       for (const destination of [
-        { targetType: "SECTOR", targetId: foreignSector.id },
-        { targetType: "SECTOR", targetId: "00000000-0000-4000-8000-000000000000" },
-        { targetType: "BODY", targetId: localSector.id },
+        { nodeType: "SECTOR", nodeId: foreignSector.id },
+        { nodeType: "SECTOR", nodeId: "00000000-0000-4000-8000-000000000000" },
+        { nodeType: "BODY", nodeId: localSector.id },
       ] as const) {
         // Act & Assert
         await expect(

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { MAX_ORBIT_COUNT } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { Clock } from "#lib/Clock.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
-import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
+import type { MovementNodeId } from "#lib/db/gameplay/MovementNodeId.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
@@ -203,7 +203,7 @@ describe("generateStarSystem", () => {
     expect(allBodyTypes).toEqual(new Set([BodyType.ASTEROID, BodyType.PLANET, BodyType.MOON]))
   })
 
-  it("should contain only valid movement target ids", () => {
+  it("should contain only valid movement node ids", () => {
     // Arrange
     const clock = new ControlledClock()
     const settings = createStarSystemGenerationSettingsStub({ seed: 1 })
@@ -212,12 +212,10 @@ describe("generateStarSystem", () => {
     const system = extractSuccess(generateStarSystem({ settings, clock }))
 
     // Assert
-    const movementTargetIds = new Set([...system.sectors.map((sector) => sector.id), ...system.bodies.map((body) => body.id)])
-    const movementEdgesTargetIds = new Set(
-      system.movementEdges.flatMap((movementEdge) => [movementEdge.fromTargetId, movementEdge.toTargetId]),
-    )
+    const movementNodeIds = new Set([...system.sectors.map((sector) => sector.id), ...system.bodies.map((body) => body.id)])
+    const movementEdgesNodeIds = new Set(system.movementEdges.flatMap((movementEdge) => [movementEdge.fromNodeId, movementEdge.toNodeId]))
 
-    expect(movementEdgesTargetIds).toEqual(movementTargetIds)
+    expect(movementEdgesNodeIds).toEqual(movementNodeIds)
   })
 
   it("should connect bodies and sectors correctly", () => {
@@ -236,14 +234,14 @@ describe("generateStarSystem", () => {
     const system = extractSuccess(generateStarSystem({ settings, clock }))
 
     // Assert
-    // We'll map movement target ids to coordinates to make it easier to debug
-    const coordinatesByMovementTargetId = new Map<MovementTargetId, string>()
+    // We'll map movement node ids to coordinates to make it easier to debug
+    const coordinatesByMovementNodeId = new Map<MovementNodeId, string>()
     for (const orbit of system.orbits) {
       for (const sector of system.sectors.filter((s) => s.orbitId === orbit.id)) {
-        coordinatesByMovementTargetId.set(sector.id, toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }))
+        coordinatesByMovementNodeId.set(sector.id, toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber }))
 
         for (const body of system.bodies.filter((b) => b.sectorId === sector.id)) {
-          coordinatesByMovementTargetId.set(
+          coordinatesByMovementNodeId.set(
             body.id,
             toCoordinates({ orbitNumber: orbit.orbitNumber, sectorNumber: sector.sectorNumber, bodyNumber: body.bodyNumber }),
           )
@@ -251,28 +249,28 @@ describe("generateStarSystem", () => {
       }
     }
 
-    function getCoordinates(movementTargetId: MovementTargetId): string {
-      const coordinates = coordinatesByMovementTargetId.get(movementTargetId)
+    function getCoordinates(movementNodeId: MovementNodeId): string {
+      const coordinates = coordinatesByMovementNodeId.get(movementNodeId)
       Assert.isDefined(coordinates)
       return coordinates
     }
 
-    type CoordinateMovementEdge = { fromTargetId: string; toTargetId: string; weight: number }
-    function createCoordinateMovementEdge(fromTargetId: string, toTargetId: string): CoordinateMovementEdge {
-      return { fromTargetId, toTargetId, weight: 1 }
+    type CoordinateMovementEdge = { fromNodeId: string; toNodeId: string; weight: number }
+    function createCoordinateMovementEdge(fromNodeId: string, toNodeId: string): CoordinateMovementEdge {
+      return { fromNodeId, toNodeId, weight: 1 }
     }
 
     function compareMovementEdges(firstEdge: CoordinateMovementEdge, secondEdge: CoordinateMovementEdge): number {
-      const firstComparison = firstEdge.fromTargetId.localeCompare(secondEdge.fromTargetId)
+      const firstComparison = firstEdge.fromNodeId.localeCompare(secondEdge.fromNodeId)
       if (firstComparison !== 0) {
         return firstComparison
       }
 
-      return firstEdge.toTargetId.localeCompare(secondEdge.toTargetId)
+      return firstEdge.toNodeId.localeCompare(secondEdge.toNodeId)
     }
 
     const movementEdgesByCoordinates = system.movementEdges
-      .map(({ fromTargetId, toTargetId }) => createCoordinateMovementEdge(getCoordinates(fromTargetId), getCoordinates(toTargetId)))
+      .map(({ fromNodeId, toNodeId }) => createCoordinateMovementEdge(getCoordinates(fromNodeId), getCoordinates(toNodeId)))
       // oxlint-disable-next-line unicorn/no-array-sort -- We're already working off of a copy, we don't need another one
       .sort(compareMovementEdges)
 

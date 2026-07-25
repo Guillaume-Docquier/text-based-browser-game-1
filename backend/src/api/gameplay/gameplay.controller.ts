@@ -10,8 +10,8 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
-import { type MovementTarget, MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
-import { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
+import { type MovementNode, MovementNodeType } from "#lib/db/gameplay/MovementNode.ts"
+import { MovementNodeId } from "#lib/db/gameplay/MovementNodeId.ts"
 import { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
@@ -178,9 +178,9 @@ export class GameplayController {
       }
 
       if (action.actionType === GamePlayerActionType.BUILD_UNIT) {
-        const targetExistsResult = await this.gameplayRepository.movementTargetExists({ gameId, target: action.destination }, tx)
-        rollbackOnFailure(targetExistsResult, "Failed to validate Build destination")
-        if (!targetExistsResult.value) {
+        const nodeExistsResult = await this.gameplayRepository.movementNodeExists({ gameId, node: action.destination }, tx)
+        rollbackOnFailure(nodeExistsResult, "Failed to validate Build destination")
+        if (!nodeExistsResult.value) {
           throw new TransactionRollback("The Build destination does not belong to this game.")
         }
       }
@@ -225,7 +225,7 @@ export const StartedGameDto = z.object({
 })
 
 const StarSystemBodyDto = z.object({
-  id: MovementTargetId,
+  id: MovementNodeId,
   number: z.number(),
   coordinates: z.string(),
   name: z.string(),
@@ -233,7 +233,7 @@ const StarSystemBodyDto = z.object({
 })
 
 const StarSystemSectorDto = z.object({
-  id: MovementTargetId,
+  id: MovementNodeId,
   number: z.number(),
   coordinates: z.string(),
   angleRange: RangeDto,
@@ -248,15 +248,15 @@ const StarSystemOrbitDto = z.object({
 })
 
 const MovementEdgeDto = z.object({
-  fromTargetId: MovementTargetId,
-  toTargetId: MovementTargetId,
+  fromNodeId: MovementNodeId,
+  toNodeId: MovementNodeId,
   weight: z.number(),
 })
 
 type StarSystemDto = z.infer<typeof StarSystemDto>
 const StarSystemDto = z.object({
   orbits: z.array(StarSystemOrbitDto),
-  movementEdges: z.record(MovementTargetId, z.array(MovementEdgeDto)),
+  movementEdges: z.record(MovementNodeId, z.array(MovementEdgeDto)),
 })
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
@@ -268,11 +268,11 @@ export const GetPlayerViewDto = z.object({
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
 export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
 
-export type MovementTargetDto = z.infer<typeof MovementTargetDto>
-export const MovementTargetDto = z.object({
-  targetType: z.enum(MovementTargetType),
-  targetId: MovementTargetId,
-}) satisfies z.ZodType<MovementTarget>
+export type MovementNodeDto = z.infer<typeof MovementNodeDto>
+export const MovementNodeDto = z.object({
+  nodeType: z.enum(MovementNodeType),
+  nodeId: MovementNodeId,
+}) satisfies z.ZodType<MovementNode>
 
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
 export const PlayerViewDto = z.object({
@@ -287,7 +287,7 @@ export const PlayerViewDto = z.object({
     z.object({
       id: UnitId,
       playerId: PlayerId,
-      location: MovementTargetDto,
+      location: MovementNodeDto,
     }),
   ),
   resources: z.object({
@@ -312,7 +312,7 @@ export const SetCurrentActionDto = z.object({
       z.object({ actionType: z.literal(GamePlayerActionType.WIN_THE_GAME) }),
       z.object({
         actionType: z.literal(GamePlayerActionType.BUILD_UNIT),
-        destination: MovementTargetDto,
+        destination: MovementNodeDto,
       }),
     ])
     .nullable(),
@@ -331,7 +331,7 @@ export const GamePlayerActionDto = z.discriminatedUnion("actionType", [
   GamePlayerActionCommonDto.extend({ actionType: z.literal(GamePlayerActionType.WIN_THE_GAME) }),
   GamePlayerActionCommonDto.extend({
     actionType: z.literal(GamePlayerActionType.BUILD_UNIT),
-    destination: MovementTargetDto,
+    destination: MovementNodeDto,
   }),
 ])
 

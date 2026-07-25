@@ -8,15 +8,15 @@ import type { Transaction } from "#lib/db/createDb.ts"
 import type { GamePlayerAction } from "#lib/db/gameplay/gamePlayerActions.ts"
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
 import type { ResourceType } from "#lib/db/gameplay/gameResources.ts"
-import type { MovementTarget, MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
-import type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
+import type { MovementNode, MovementNodeType } from "#lib/db/gameplay/MovementNode.ts"
+import type { MovementNodeId } from "#lib/db/gameplay/MovementNodeId.ts"
 import type { UnitId } from "#lib/db/gameplay/UnitId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   gameStatesTable,
   gamesTable,
-  movementTargetsTable,
+  movementNodesTable,
   ordersTable,
   playersTable,
   resourcesTable,
@@ -29,13 +29,13 @@ type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
 type OrderRow = typeof ordersTable.$inferSelect
 type UnitRow = typeof unitsTable.$inferSelect
-type OrderWithTargetTypeRow = OrderRow & { destinationTargetType: MovementTargetType | null }
-type UnitWithTargetTypeRow = UnitRow & { locationTargetType: MovementTargetType }
+type OrderWithNodeTypeRow = OrderRow & { destinationNodeType: MovementNodeType | null }
+type UnitWithNodeTypeRow = UnitRow & { locationNodeType: MovementNodeType }
 
 export type TickUnitModel = {
   readonly id: UnitId
   readonly playerId: PlayerId
-  readonly location: MovementTarget
+  readonly location: MovementNode
 }
 
 /**
@@ -190,22 +190,22 @@ export class TicksRepository extends PostgresRepository {
           .where(eq(resourcesTable.gameId, startTickProcessingModel.tick.gameId))
           .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
         tx
-          .select({ ...getTableColumns(ordersTable), destinationTargetType: movementTargetsTable.targetType })
+          .select({ ...getTableColumns(ordersTable), destinationNodeType: movementNodesTable.nodeType })
           .from(ordersTable)
           .leftJoin(
-            movementTargetsTable,
-            and(eq(ordersTable.gameId, movementTargetsTable.gameId), eq(ordersTable.destinationTargetId, movementTargetsTable.id)),
+            movementNodesTable,
+            and(eq(ordersTable.gameId, movementNodesTable.gameId), eq(ordersTable.destinationNodeId, movementNodesTable.id)),
           )
           .where(
             and(eq(ordersTable.gameId, startTickProcessingModel.tick.gameId), eq(ordersTable.tick, startTickProcessingModel.tick.tick)),
           )
           .orderBy(asc(ordersTable.playerId)),
         tx
-          .select({ ...getTableColumns(unitsTable), locationTargetType: movementTargetsTable.targetType })
+          .select({ ...getTableColumns(unitsTable), locationNodeType: movementNodesTable.nodeType })
           .from(unitsTable)
           .innerJoin(
-            movementTargetsTable,
-            and(eq(unitsTable.gameId, movementTargetsTable.gameId), eq(unitsTable.locationTargetId, movementTargetsTable.id)),
+            movementNodesTable,
+            and(eq(unitsTable.gameId, movementNodesTable.gameId), eq(unitsTable.locationNodeId, movementNodesTable.id)),
           )
           .where(eq(unitsTable.gameId, startTickProcessingModel.tick.gameId))
           .orderBy(asc(unitsTable.id)),
@@ -304,7 +304,7 @@ export class TicksRepository extends PostgresRepository {
           id: unit.id,
           gameId: processedTickModel.gameId,
           playerId: unit.playerId,
-          locationTargetId: unit.location.targetId,
+          locationNodeId: unit.location.nodeId,
         }))
         if (units.length > 0) {
           await tx.insert(unitsTable).values(units).onConflictDoNothing()
@@ -354,8 +354,8 @@ function toTickToProcessModel({
   tickIntervalSeconds: number
   players: PlayerRow[]
   resources: ResourceRow[]
-  orders: OrderWithTargetTypeRow[]
-  units: UnitWithTargetTypeRow[]
+  orders: OrderWithNodeTypeRow[]
+  units: UnitWithNodeTypeRow[]
 }): TickToProcessModel {
   const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
   const ordersByPlayerId = Map.groupBy(orders, (order) => order.playerId)
@@ -388,7 +388,7 @@ function toTickToProcessModel({
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
-function toGamePlayerAction(orderRow: OrderWithTargetTypeRow | undefined): GamePlayerAction | undefined {
+function toGamePlayerAction(orderRow: OrderWithNodeTypeRow | undefined): GamePlayerAction | undefined {
   if (orderRow === undefined) {
     return undefined
   }
@@ -396,12 +396,12 @@ function toGamePlayerAction(orderRow: OrderWithTargetTypeRow | undefined): GameP
   switch (orderRow.actionType) {
     case GamePlayerActionType.MAKE_MORE_MONEY:
     case GamePlayerActionType.WIN_THE_GAME:
-      Assert.isTrue(orderRow.destinationTargetId === null && orderRow.destinationTargetType === null)
+      Assert.isTrue(orderRow.destinationNodeId === null && orderRow.destinationNodeType === null)
       return { actionType: orderRow.actionType }
     case GamePlayerActionType.BUILD_UNIT:
       return {
         actionType: orderRow.actionType,
-        destination: toMovementTarget(orderRow.destinationTargetId, orderRow.destinationTargetType),
+        destination: toMovementNode(orderRow.destinationNodeId, orderRow.destinationNodeType),
       }
     default:
       Assert.isExhausted(orderRow.actionType)
@@ -409,16 +409,16 @@ function toGamePlayerAction(orderRow: OrderWithTargetTypeRow | undefined): GameP
   }
 }
 
-function toTickUnitModel(unitRow: UnitWithTargetTypeRow): TickUnitModel {
+function toTickUnitModel(unitRow: UnitWithNodeTypeRow): TickUnitModel {
   return {
     id: unitRow.id,
     playerId: unitRow.playerId,
-    location: toMovementTarget(unitRow.locationTargetId, unitRow.locationTargetType),
+    location: toMovementNode(unitRow.locationNodeId, unitRow.locationNodeType),
   }
 }
 
-function toMovementTarget(targetId: MovementTargetId | null, targetType: MovementTargetType | null): MovementTarget {
-  Assert.isDefined(targetId)
-  Assert.isDefined(targetType)
-  return { targetId, targetType }
+function toMovementNode(nodeId: MovementNodeId | null, nodeType: MovementNodeType | null): MovementNode {
+  Assert.isDefined(nodeId)
+  Assert.isDefined(nodeType)
+  return { nodeId, nodeType }
 }

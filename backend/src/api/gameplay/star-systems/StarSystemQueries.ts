@@ -4,8 +4,8 @@ import { toCoordinates } from "#api/gameplay/star-systems/Coordinates.ts"
 import type { NewSectorModel, NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import { MovementTargetType } from "#lib/db/gameplay/MovementTarget.ts"
-import { bodiesTable, movementEdgesTable, movementTargetsTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
+import { MovementNodeType } from "#lib/db/gameplay/MovementNode.ts"
+import { bodiesTable, movementEdgesTable, movementNodesTable, orbitsTable, sectorsTable, starSystemsTable } from "#lib/db/schema.ts"
 
 type NewSectorRow = Omit<typeof sectorsTable.$inferInsert, "gameId">
 type StarSystemRow = typeof starSystemsTable.$inferSelect
@@ -31,12 +31,12 @@ export const StarSystemQueries = {
 
     await tx.insert(starSystemsTable).values(withGameId({}))
 
-    const movementTargets = [
-      ...starSystem.sectors.map(({ id }) => ({ id, targetType: MovementTargetType.SECTOR })),
-      ...starSystem.bodies.map(({ id }) => ({ id, targetType: MovementTargetType.BODY })),
+    const movementNodes = [
+      ...starSystem.sectors.map(({ id }) => ({ id, nodeType: MovementNodeType.SECTOR })),
+      ...starSystem.bodies.map(({ id }) => ({ id, nodeType: MovementNodeType.BODY })),
     ].map(withGameId)
-    if (movementTargets.length > 0) {
-      await tx.insert(movementTargetsTable).values(movementTargets)
+    if (movementNodes.length > 0) {
+      await tx.insert(movementNodesTable).values(movementNodes)
     }
 
     const orbits = starSystem.orbits.map(withGameId)
@@ -115,7 +115,7 @@ export function toStarSystemModel(starSystemRows: StarSystemAggregatedRows): Sta
         })),
       })),
     })),
-    movementEdges: toMovementEdgesByFromTargetId(starSystemRows.movementEdges),
+    movementEdges: toMovementEdgesByFromNodeId(starSystemRows.movementEdges),
   }
 }
 
@@ -133,9 +133,9 @@ function toSectorAngleRange(sector: SectorRow): Range {
   })
 }
 
-function toMovementEdgesByFromTargetId(edges: MovementEdgeRow[]): StarSystemModel["movementEdges"] {
+function toMovementEdgesByFromNodeId(edges: MovementEdgeRow[]): StarSystemModel["movementEdges"] {
   // We cast because Object.groupBy returns a Partial<Record<string, T>>, which makes TypeScript think
   // That T could be undefined because of Partial
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Kinda strange
-  return Object.groupBy(edges, ({ fromTargetId }) => fromTargetId) as StarSystemModel["movementEdges"]
+  return Object.groupBy(edges, ({ fromNodeId }) => fromNodeId) as StarSystemModel["movementEdges"]
 }

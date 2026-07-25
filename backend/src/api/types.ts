@@ -12,7 +12,7 @@ export type { TrpcRouter }
 export type { GameId } from "#api/shared/GameId.ts"
 export type { PlayerId } from "#api/shared/PlayerId.ts"
 export type { AccountId } from "#lib/db/accounts/AccountId.ts"
-export type { MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
+export type { MovementNodeId } from "#lib/db/gameplay/MovementNodeId.ts"
 export type { PlayerColor } from "#lib/db/PlayerColor.ts"
 
 // Lobbies
@@ -30,7 +30,7 @@ export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 // Gameplay router
 type GamePlayerActionsOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
 export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
-export type MovementTarget = Extract<GamePlayerAction, { actionType: "BUILD_UNIT" }>["destination"]
+export type MovementNode = Extract<GamePlayerAction, { actionType: "BUILD_UNIT" }>["destination"]
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
 export type PlayerViewUnit = PlayerView["units"][keyof PlayerView["units"]]
 export type StarSystem = PlayerView["starSystem"]

@@ -1,5 +1,5 @@
 import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
-import type { MovementTarget } from "#lib/db/gameplay/MovementTarget.ts"
+import type { MovementNode } from "#lib/db/gameplay/MovementNode.ts"
 
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
@@ -39,5 +39,5 @@ export type GamePlayerAction =
   | { readonly actionType: typeof GamePlayerActionType.WIN_THE_GAME }
   | {
       readonly actionType: typeof GamePlayerActionType.BUILD_UNIT
-      readonly destination: MovementTarget
+      readonly destination: MovementNode
     }

@@ -178,7 +178,7 @@ function Star(): ReactElement {
 function createStarSystemRendering(playerView: PlayerView): StarSystemRendering {
   const { starSystem } = playerView
   const orbitCount = starSystem.orbits.length
-  const renderedTargets = new Map<string, { position: Point; locationLabel: string }>()
+  const renderedNodes = new Map<string, { position: Point; locationLabel: string }>()
   const rendering: StarSystemRendering = {
     orbitOuterRadii: [],
     sectors: [],
@@ -203,7 +203,7 @@ function createStarSystemRendering(playerView: PlayerView): StarSystemRendering 
         bodyCount: sector.bodies.length,
         path: geometry.path,
       })
-      renderedTargets.set(`SECTOR:${sector.id}`, {
+      renderedNodes.set(`SECTOR:${sector.id}`, {
         position: geometry.unitClusterPosition,
         locationLabel: `Sector ${sector.coordinates}`,
       })
@@ -214,7 +214,7 @@ function createStarSystemRendering(playerView: PlayerView): StarSystemRendering 
       }
 
       rendering.bodies.push({ body: centralBody, position: geometry.center })
-      renderedTargets.set(`BODY:${centralBody.id}`, {
+      renderedNodes.set(`BODY:${centralBody.id}`, {
         position: getBodyUnitClusterPosition(centralBody, geometry.center),
         locationLabel: `${centralBody.name}, ${centralBody.coordinates}`,
       })
@@ -234,7 +234,7 @@ function createStarSystemRendering(playerView: PlayerView): StarSystemRendering 
           orbitRadius: geometry.satelliteOrbitRadius,
         })
         rendering.bodies.push({ body, position })
-        renderedTargets.set(`BODY:${body.id}`, {
+        renderedNodes.set(`BODY:${body.id}`, {
           position: getBodyUnitClusterPosition(body, position),
           locationLabel: `${body.name}, ${body.coordinates}`,
         })
@@ -243,6 +243,7 @@ function createStarSystemRendering(playerView: PlayerView): StarSystemRendering 
   }
 
   const playerOrder = new Map<string, number>([[playerView.player.id, 0]])
+  // oxlint-disable-next-line unicorn/no-array-sort -- We're working on a controlled copy, we don't need another one
   for (const [index, playerId] of Object.keys(playerView.opponents).sort().entries()) {
     playerOrder.set(playerId, index + 1)
   }
@@ -258,38 +259,38 @@ function createStarSystemRendering(playerView: PlayerView): StarSystemRendering 
     return playerComparison === 0 ? left.id.localeCompare(right.id) : playerComparison
   })
 
-  const unitCountByTarget = new Map<string, number>()
+  const unitCountByNode = new Map<string, number>()
   for (const unit of unitsGroupedByPlayer) {
-    const targetKey = getUnitTargetKey(unit)
-    unitCountByTarget.set(targetKey, (unitCountByTarget.get(targetKey) ?? 0) + 1)
+    const nodeKey = getUnitNodeKey(unit)
+    unitCountByNode.set(nodeKey, (unitCountByNode.get(nodeKey) ?? 0) + 1)
   }
 
-  const unitIndexByTarget = new Map<string, number>()
+  const unitIndexByNode = new Map<string, number>()
   for (const unit of unitsGroupedByPlayer) {
-    const targetKey = getUnitTargetKey(unit)
-    const renderedTarget = renderedTargets.get(targetKey)
-    Assert.isDefined(renderedTarget)
+    const nodeKey = getUnitNodeKey(unit)
+    const renderedNode = renderedNodes.get(nodeKey)
+    Assert.isDefined(renderedNode)
     const owner = unit.playerId === playerView.player.id ? playerView.player : playerView.opponents[unit.playerId]
     Assert.isDefined(owner)
-    const stackIndex = unitIndexByTarget.get(targetKey) ?? 0
-    const stackSize = unitCountByTarget.get(targetKey)
+    const stackIndex = unitIndexByNode.get(nodeKey) ?? 0
+    const stackSize = unitCountByNode.get(nodeKey)
     Assert.isDefined(stackSize)
-    unitIndexByTarget.set(targetKey, stackIndex + 1)
+    unitIndexByNode.set(nodeKey, stackIndex + 1)
     rendering.units.push({
       unit,
-      position: renderedTarget.position,
+      position: renderedNode.position,
       stackIndex,
       stackSize,
       color: PLAYER_COLOR_HEX[owner.color],
-      locationLabel: renderedTarget.locationLabel,
+      locationLabel: renderedNode.locationLabel,
     })
   }
 
   return rendering
 }
 
-function getUnitTargetKey(unit: PlayerViewUnit): string {
-  return `${unit.location.targetType}:${unit.location.targetId}`
+function getUnitNodeKey(unit: PlayerViewUnit): string {
+  return `${unit.location.nodeType}:${unit.location.nodeId}`
 }
 
 function getBodyUnitClusterPosition(body: StarSystemBody, position: Point): Point {

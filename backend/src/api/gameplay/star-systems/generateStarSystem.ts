@@ -9,7 +9,7 @@ import type {
   NewStarSystemModel,
 } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import type { Clock } from "#lib/Clock.ts"
-import { type MovementTargetId } from "#lib/db/gameplay/MovementTargetId.ts"
+import { type MovementNodeId } from "#lib/db/gameplay/MovementNodeId.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 
@@ -186,7 +186,7 @@ function generateSectors({
       const maxAngle = sectorNumber === orbit.sectorCount ? 360 : angleSpan * sectorNumber
 
       return {
-        id: branded<MovementTargetId>(uuidFactory()),
+        id: branded<MovementNodeId>(uuidFactory()),
         orbitId: orbit.id,
         orbitNumber: orbit.orbitNumber,
         sectorNumber,
@@ -247,7 +247,7 @@ function generateBody({
   bodyType: BodyType
 }): NewBodyModel {
   return {
-    id: branded<MovementTargetId>(uuidFactory()),
+    id: branded<MovementNodeId>(uuidFactory()),
     sectorId: sector.id,
     bodyNumber,
     // We'll do better in the future
@@ -332,10 +332,10 @@ function areSectorsAdjacent(firstSector: GeneratedSector, secondSector: Generate
   )
 }
 
-export function generateMovementEdge(fromTargetId: MovementTargetId, toTargetId: MovementTargetId): NewMovementEdgeModel {
+export function generateMovementEdge(fromNodeId: MovementNodeId, toNodeId: MovementNodeId): NewMovementEdgeModel {
   return {
-    fromTargetId,
-    toTargetId,
+    fromNodeId,
+    toNodeId,
     // Maybe that'll change
     weight: 1,
   }

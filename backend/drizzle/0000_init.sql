@@ -1,6 +1,6 @@
 CREATE TYPE "public"."action_type" AS ENUM('MAKE_MORE_MONEY', 'WIN_THE_GAME', 'BUILD_UNIT');--> statement-breakpoint
 CREATE TYPE "public"."game_status" AS ENUM('WAITING_FOR_PLAYERS', 'READY_TO_START', 'COLLECTING_ORDERS', 'PROCESSING_TICK', 'ENDED');--> statement-breakpoint
-CREATE TYPE "public"."movement_target_type" AS ENUM('SECTOR', 'BODY');--> statement-breakpoint
+CREATE TYPE "public"."movement_node_type" AS ENUM('SECTOR', 'BODY');--> statement-breakpoint
 CREATE TYPE "public"."player_color" AS ENUM('WHITE', 'RED', 'BLUE', 'TEAL', 'PURPLE', 'YELLOW', 'ORANGE', 'GREEN', 'LIGHT_PINK', 'VIOLET', 'LIGHT_GREY', 'DARK_GREEN', 'BROWN', 'LIGHT_GREEN', 'DARK_GREY', 'PINK');--> statement-breakpoint
 CREATE TYPE "public"."body_type" AS ENUM('PLANET', 'MOON', 'ASTEROID');--> statement-breakpoint
 CREATE TABLE "accounts" (
@@ -17,10 +17,10 @@ CREATE TABLE "bodies" (
 	"body_number" integer NOT NULL,
 	"body_type" "body_type" NOT NULL,
 	"name" varchar(255) NOT NULL,
-	"target_type" "movement_target_type" DEFAULT 'BODY' NOT NULL,
+	"node_type" "movement_node_type" DEFAULT 'BODY' NOT NULL,
 	CONSTRAINT "bodies_game_id_id_pk" PRIMARY KEY("game_id","id"),
 	CONSTRAINT "bodies_game_id_sector_id_body_number_unique" UNIQUE("game_id","sector_id","body_number"),
-	CONSTRAINT "bodies_target_type_check" CHECK ("bodies"."target_type" = 'BODY')
+	CONSTRAINT "bodies_node_type_check" CHECK ("bodies"."node_type" = 'BODY')
 );
 --> statement-breakpoint
 CREATE TABLE "game_states" (
@@ -45,18 +45,18 @@ CREATE TABLE "games" (
 --> statement-breakpoint
 CREATE TABLE "movement_edges" (
 	"game_id" integer NOT NULL,
-	"from_target_id" uuid NOT NULL,
-	"to_target_id" uuid NOT NULL,
+	"from_node_id" uuid NOT NULL,
+	"to_node_id" uuid NOT NULL,
 	"weight" integer NOT NULL,
-	CONSTRAINT "movement_edges_game_id_from_target_id_to_target_id_pk" PRIMARY KEY("game_id","from_target_id","to_target_id")
+	CONSTRAINT "movement_edges_game_id_from_node_id_to_node_id_pk" PRIMARY KEY("game_id","from_node_id","to_node_id")
 );
 --> statement-breakpoint
-CREATE TABLE "movement_targets" (
+CREATE TABLE "movement_nodes" (
 	"id" uuid NOT NULL,
 	"game_id" integer NOT NULL,
-	"target_type" "movement_target_type" NOT NULL,
-	CONSTRAINT "movement_targets_game_id_id_pk" PRIMARY KEY("game_id","id"),
-	CONSTRAINT "movement_targets_game_id_id_target_type_unique" UNIQUE("game_id","id","target_type")
+	"node_type" "movement_node_type" NOT NULL,
+	CONSTRAINT "movement_nodes_game_id_id_pk" PRIMARY KEY("game_id","id"),
+	CONSTRAINT "movement_nodes_game_id_id_node_type_unique" UNIQUE("game_id","id","node_type")
 );
 --> statement-breakpoint
 CREATE TABLE "orbits" (
@@ -72,16 +72,16 @@ CREATE TABLE "orders" (
 	"player_id" uuid NOT NULL,
 	"tick" integer NOT NULL,
 	"action_type" "action_type" NOT NULL,
-	"destination_target_id" uuid,
+	"destination_node_id" uuid,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "orders_game_id_player_id_tick_pk" PRIMARY KEY("game_id","player_id","tick"),
 	CONSTRAINT "orders_action_destination_check" CHECK ((
         "orders"."action_type"::text = 'BUILD_UNIT'
-        and "orders"."destination_target_id" is not null
+        and "orders"."destination_node_id" is not null
       ) or (
         "orders"."action_type"::text in ('MAKE_MORE_MONEY', 'WIN_THE_GAME')
-        and "orders"."destination_target_id" is null
+        and "orders"."destination_node_id" is null
       ))
 );
 --> statement-breakpoint
@@ -111,10 +111,10 @@ CREATE TABLE "sectors" (
 	"angle_max_bound_type" varchar(16) NOT NULL,
 	"start_angle_degrees" double precision NOT NULL,
 	"end_angle_degrees" double precision NOT NULL,
-	"target_type" "movement_target_type" DEFAULT 'SECTOR' NOT NULL,
+	"node_type" "movement_node_type" DEFAULT 'SECTOR' NOT NULL,
 	CONSTRAINT "sectors_game_id_id_pk" PRIMARY KEY("game_id","id"),
 	CONSTRAINT "sectors_game_id_orbit_id_sector_number_unique" UNIQUE("game_id","orbit_id","sector_number"),
-	CONSTRAINT "sectors_target_type_check" CHECK ("sectors"."target_type" = 'SECTOR'),
+	CONSTRAINT "sectors_node_type_check" CHECK ("sectors"."node_type" = 'SECTOR'),
 	CONSTRAINT "sectors_angle_numeric_type_check" CHECK ("sectors"."angle_numeric_type" in ('float', 'integer')),
 	CONSTRAINT "sectors_angle_max_bound_type_check" CHECK ("sectors"."angle_max_bound_type" in ('inclusive', 'exclusive')),
 	CONSTRAINT "sectors_start_angle_degrees_check" CHECK ("sectors"."start_angle_degrees" >= 0),
@@ -140,36 +140,36 @@ CREATE TABLE "units" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"game_id" integer NOT NULL,
 	"player_id" uuid NOT NULL,
-	"location_target_id" uuid NOT NULL
+	"location_node_id" uuid NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "bodies" ADD CONSTRAINT "bodies_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bodies" ADD CONSTRAINT "bodies_game_id_sector_id_sectors_fk" FOREIGN KEY ("game_id","sector_id") REFERENCES "public"."sectors"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "bodies" ADD CONSTRAINT "bodies_game_id_id_target_type_movement_targets_fk" FOREIGN KEY ("game_id","id","target_type") REFERENCES "public"."movement_targets"("game_id","id","target_type") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "bodies" ADD CONSTRAINT "bodies_game_id_id_node_type_movement_nodes_fk" FOREIGN KEY ("game_id","id","node_type") REFERENCES "public"."movement_nodes"("game_id","id","node_type") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "game_states" ADD CONSTRAINT "game_states_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_created_by_account_id_accounts_id_fk" FOREIGN KEY ("created_by_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_winner_account_id_accounts_id_fk" FOREIGN KEY ("winner_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "movement_edges" ADD CONSTRAINT "movement_edges_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "movement_edges" ADD CONSTRAINT "movement_edges_game_id_from_target_id_movement_targets_fk" FOREIGN KEY ("game_id","from_target_id") REFERENCES "public"."movement_targets"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "movement_edges" ADD CONSTRAINT "movement_edges_game_id_to_target_id_movement_targets_fk" FOREIGN KEY ("game_id","to_target_id") REFERENCES "public"."movement_targets"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "movement_targets" ADD CONSTRAINT "movement_targets_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "movement_edges" ADD CONSTRAINT "movement_edges_game_id_from_node_id_movement_nodes_fk" FOREIGN KEY ("game_id","from_node_id") REFERENCES "public"."movement_nodes"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "movement_edges" ADD CONSTRAINT "movement_edges_game_id_to_node_id_movement_nodes_fk" FOREIGN KEY ("game_id","to_node_id") REFERENCES "public"."movement_nodes"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "movement_nodes" ADD CONSTRAINT "movement_nodes_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "orbits" ADD CONSTRAINT "orbits_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "orders" ADD CONSTRAINT "orders_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "orders" ADD CONSTRAINT "orders_game_id_destination_target_id_movement_targets_fk" FOREIGN KEY ("game_id","destination_target_id") REFERENCES "public"."movement_targets"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "orders" ADD CONSTRAINT "orders_game_id_destination_node_id_movement_nodes_fk" FOREIGN KEY ("game_id","destination_node_id") REFERENCES "public"."movement_nodes"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "players" ADD CONSTRAINT "players_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "players" ADD CONSTRAINT "players_player_id_accounts_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "resources" ADD CONSTRAINT "resources_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_star_systems_game_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."star_systems"("game_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_orbit_id_orbits_fk" FOREIGN KEY ("game_id","orbit_id") REFERENCES "public"."orbits"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_id_target_type_movement_targets_fk" FOREIGN KEY ("game_id","id","target_type") REFERENCES "public"."movement_targets"("game_id","id","target_type") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "sectors" ADD CONSTRAINT "sectors_game_id_id_node_type_movement_nodes_fk" FOREIGN KEY ("game_id","id","node_type") REFERENCES "public"."movement_nodes"("game_id","id","node_type") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "star_systems" ADD CONSTRAINT "star_systems_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ticks" ADD CONSTRAINT "ticks_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "units" ADD CONSTRAINT "units_game_id_player_id_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "units" ADD CONSTRAINT "units_game_id_location_target_id_movement_targets_fk" FOREIGN KEY ("game_id","location_target_id") REFERENCES "public"."movement_targets"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "units" ADD CONSTRAINT "units_game_id_location_node_id_movement_nodes_fk" FOREIGN KEY ("game_id","location_node_id") REFERENCES "public"."movement_nodes"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "auth_id_idx" ON "accounts" USING btree ("auth_id");--> statement-breakpoint
 CREATE INDEX "bodies_game_id_sector_id_idx" ON "bodies" USING btree ("game_id","sector_id");--> statement-breakpoint
-CREATE INDEX "movement_edges_game_id_from_target_id_idx" ON "movement_edges" USING btree ("game_id","from_target_id");--> statement-breakpoint
-CREATE INDEX "movement_targets_game_id_idx" ON "movement_targets" USING btree ("game_id");--> statement-breakpoint
+CREATE INDEX "movement_edges_game_id_from_node_id_idx" ON "movement_edges" USING btree ("game_id","from_node_id");--> statement-breakpoint
+CREATE INDEX "movement_nodes_game_id_idx" ON "movement_nodes" USING btree ("game_id");--> statement-breakpoint
 CREATE INDEX "orbits_game_id_idx" ON "orbits" USING btree ("game_id");--> statement-breakpoint
 CREATE INDEX "sectors_game_id_orbit_id_idx" ON "sectors" USING btree ("game_id","orbit_id");--> statement-breakpoint
 CREATE INDEX "ticks_scheduled_for_index" ON "ticks" USING btree ("scheduled_for");--> statement-breakpoint

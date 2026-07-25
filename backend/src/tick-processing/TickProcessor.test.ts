@@ -209,7 +209,7 @@ describe("TickProcessor", () => {
       })
     })
 
-    it.each(["SECTOR", "BODY"] as const)("should build a Unit on a %s and preserve it on later ticks", async (targetType) => {
+    it.each(["SECTOR", "BODY"] as const)("should build a Unit on a %s and preserve it on later ticks", async (nodeType) => {
       // Arrange
       const db = await createDbMock()
       const { api, accountsRepository, logger, clock } = await createApiStub({ db })
@@ -224,8 +224,7 @@ describe("TickProcessor", () => {
       Assert.isDefined(sector)
       const body = initialView.starSystem.orbits.flatMap((orbit) => orbit.sectors.flatMap((currentSector) => currentSector.bodies))[0]
       Assert.isDefined(body)
-      const destination =
-        targetType === "SECTOR" ? ({ targetType, targetId: sector.id } as const) : ({ targetType, targetId: body.id } as const)
+      const destination = nodeType === "SECTOR" ? ({ nodeType, nodeId: sector.id } as const) : ({ nodeType, nodeId: body.id } as const)
 
       const resourcesRepository = new ResourcesRepository({ db, logger })
       Assert.isSuccess(
@@ -295,7 +294,7 @@ describe("TickProcessor", () => {
         tick: 0,
         action: {
           actionType: GamePlayerActionType.BUILD_UNIT,
-          destination: { targetType: "SECTOR", targetId: sector.id },
+          destination: { nodeType: "SECTOR", nodeId: sector.id },
         },
       })
       const { tickProcessor } = await createTickProcessorStub({ db, clock })

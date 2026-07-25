@@ -1,5 +1,5 @@
 import type * as ApiTypes from "@api-types"
-import type { MovementTarget, PlayerView } from "@api-types"
+import type { MovementNode, PlayerView } from "@api-types"
 import { AlertTriangle, CheckCircle2, Coins } from "lucide-react"
 import { type ReactElement, type ReactNode, useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
@@ -38,7 +38,7 @@ type BuildOption = {
   readonly value: string
   readonly coordinates: string
   readonly label: string
-  readonly destination: MovementTarget
+  readonly destination: MovementNode
 }
 
 export function GameActionSelector({
@@ -54,7 +54,7 @@ export function GameActionSelector({
   const buildOptions = createBuildOptions(playerView)
   const [selectedBuildOptionValue, setSelectedBuildOptionValue] = useState(() =>
     currentAction?.actionType === "BUILD_UNIT"
-      ? buildOptions.find((option) => movementTargetsAreEqual(option.destination, currentAction.destination))?.value
+      ? buildOptions.find((option) => movementNodesAreEqual(option.destination, currentAction.destination))?.value
       : undefined,
   )
   const selectedBuildOption = buildOptions.find((option) => option.value === selectedBuildOptionValue)
@@ -246,7 +246,7 @@ function createBuildOptions(playerView: PlayerView): BuildOption[] {
         value: `SECTOR:${sector.id}`,
         coordinates: sector.coordinates,
         label: `${sector.coordinates} — Sector`,
-        destination: { targetType: "SECTOR", targetId: sector.id },
+        destination: { nodeType: "SECTOR", nodeId: sector.id },
       })
 
       for (const body of sector.bodies) {
@@ -254,17 +254,18 @@ function createBuildOptions(playerView: PlayerView): BuildOption[] {
           value: `BODY:${body.id}`,
           coordinates: body.coordinates,
           label: `${body.coordinates} — ${body.name}`,
-          destination: { targetType: "BODY", targetId: body.id },
+          destination: { nodeType: "BODY", nodeId: body.id },
         })
       }
     }
   }
 
+  // oxlint-disable-next-line unicorn/no-array-sort -- We're working on a controlled copy, we don't need another one
   return options.sort((left, right) => left.coordinates.localeCompare(right.coordinates))
 }
 
-function movementTargetsAreEqual(left: MovementTarget, right: MovementTarget): boolean {
-  return left.targetType === right.targetType && left.targetId === right.targetId
+function movementNodesAreEqual(left: MovementNode, right: MovementNode): boolean {
+  return left.nodeType === right.nodeType && left.nodeId === right.nodeId
 }
 
 export function GameActionSelectorSkeleton(): ReactElement {
