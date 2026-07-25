@@ -18,13 +18,13 @@
     "wts": "pnpm ci && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
   },
   "devDependencies": {
-    "@guillaume-docquier/oxfmt": "^1.0.3",
-    "@guillaume-docquier/oxlint": "^1.2.1",
+    "@guillaume-docquier/oxfmt": "^1.0.4",
+    "@guillaume-docquier/oxlint": "^1.2.2",
     "husky": "9.1.7",
     "lint-staged": "17.0.8",
-    "oxfmt": ">=0.59.0",
-    "oxlint": "^1.74.0",
-    "oxlint-tsgolint": "^0.24.0"
+    "oxfmt": ">=0.60.0",
+    "oxlint": "^1.75.0",
+    "oxlint-tsgolint": "^7.0.2001"
   },
   "lint-staged": {
     "*.{md,json,yml,yaml,css,scss}": "oxfmt --no-error-on-unmatched-pattern",
@@ -36,7 +36,7 @@
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "26.4.0",
+      "version": "26.5.0",
       "onFail": "download"
     }
   },
