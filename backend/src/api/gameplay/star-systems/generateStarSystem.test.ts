@@ -1,14 +1,15 @@
-import { Assert, Range, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Range, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { MAX_ORBIT_COUNT } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
+import type { NewMovementEdgeModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
 import { Clock } from "#lib/Clock.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import type { MovementNodeId } from "#lib/db/gameplay/MovementNodeId.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { toCoordinates } from "./Coordinates.ts"
-import { generateStarSystem } from "./generateStarSystem.ts"
+import { type StarSystemEntities, toCoordinates } from "./Coordinates.ts"
+import { generateMovementEdge, generateStarSystem } from "./generateStarSystem.ts"
 
 describe("generateStarSystem", () => {
   it("should generate identical Star Systems from identical settings", () => {
@@ -249,18 +250,26 @@ describe("generateStarSystem", () => {
       }
     }
 
-    function getCoordinates(movementNodeId: MovementNodeId): string {
+    /**
+     * Gets the coordinates for a movement node, and force casts it as a MovementNodeId to satisfy the types.
+     * We do this just because in this test we remap node ids to their coordinates to make it easier to debug.
+     */
+    function getCoordinatesAsId(movementNodeId: MovementNodeId): MovementNodeId {
       const coordinates = coordinatesByMovementNodeId.get(movementNodeId)
       Assert.isDefined(coordinates)
-      return coordinates
+      return branded<MovementNodeId>(coordinates)
     }
 
-    type CoordinateMovementEdge = { fromNodeId: string; toNodeId: string; weight: number }
-    function createCoordinateMovementEdge(fromNodeId: string, toNodeId: string): CoordinateMovementEdge {
-      return { fromNodeId, toNodeId, weight: 1 }
+    /**
+     * Creates coordinates for a movement node, and force casts it as a MovementNodeId to satisfy the types.
+     * We do this just because in this test we remap node ids to their coordinates to make it easier to debug.
+     */
+    function toCoordinatesAsId(starSystemEntities: StarSystemEntities): MovementNodeId {
+      const coordinates = toCoordinates(starSystemEntities)
+      return branded<MovementNodeId>(coordinates)
     }
 
-    function compareMovementEdges(firstEdge: CoordinateMovementEdge, secondEdge: CoordinateMovementEdge): number {
+    function compareMovementEdges(firstEdge: NewMovementEdgeModel, secondEdge: NewMovementEdgeModel): number {
       const firstComparison = firstEdge.fromNodeId.localeCompare(secondEdge.fromNodeId)
       if (firstComparison !== 0) {
         return firstComparison
@@ -270,85 +279,85 @@ describe("generateStarSystem", () => {
     }
 
     const movementEdgesByCoordinates = system.movementEdges
-      .map(({ fromNodeId, toNodeId }) => createCoordinateMovementEdge(getCoordinates(fromNodeId), getCoordinates(toNodeId)))
+      .map(({ fromNodeId, toNodeId }) => generateMovementEdge(getCoordinatesAsId(fromNodeId), getCoordinatesAsId(toNodeId)))
       // oxlint-disable-next-line unicorn/no-array-sort -- We're already working off of a copy, we don't need another one
       .sort(compareMovementEdges)
 
-    const o1s1 = toCoordinates({ orbitNumber: 1, sectorNumber: 1 })
+    const o1s1 = toCoordinatesAsId({ orbitNumber: 1, sectorNumber: 1 })
 
-    const o1s2 = toCoordinates({ orbitNumber: 1, sectorNumber: 2 })
-    const o1s2p1 = toCoordinates({ orbitNumber: 1, sectorNumber: 2, bodyNumber: 1 })
-    const o1s2m2 = toCoordinates({ orbitNumber: 1, sectorNumber: 2, bodyNumber: 2 })
+    const o1s2 = toCoordinatesAsId({ orbitNumber: 1, sectorNumber: 2 })
+    const o1s2p1 = toCoordinatesAsId({ orbitNumber: 1, sectorNumber: 2, bodyNumber: 1 })
+    const o1s2m2 = toCoordinatesAsId({ orbitNumber: 1, sectorNumber: 2, bodyNumber: 2 })
 
-    const o2s1 = toCoordinates({ orbitNumber: 2, sectorNumber: 1 })
-    const o2s1a1 = toCoordinates({ orbitNumber: 2, sectorNumber: 1, bodyNumber: 1 })
+    const o2s1 = toCoordinatesAsId({ orbitNumber: 2, sectorNumber: 1 })
+    const o2s1a1 = toCoordinatesAsId({ orbitNumber: 2, sectorNumber: 1, bodyNumber: 1 })
 
-    const o2s2 = toCoordinates({ orbitNumber: 2, sectorNumber: 2 })
-    const o2s2a1 = toCoordinates({ orbitNumber: 2, sectorNumber: 2, bodyNumber: 1 })
+    const o2s2 = toCoordinatesAsId({ orbitNumber: 2, sectorNumber: 2 })
+    const o2s2a1 = toCoordinatesAsId({ orbitNumber: 2, sectorNumber: 2, bodyNumber: 1 })
 
-    const o2s3 = toCoordinates({ orbitNumber: 2, sectorNumber: 3 })
-    const o2s3a1 = toCoordinates({ orbitNumber: 2, sectorNumber: 3, bodyNumber: 1 })
+    const o2s3 = toCoordinatesAsId({ orbitNumber: 2, sectorNumber: 3 })
+    const o2s3a1 = toCoordinatesAsId({ orbitNumber: 2, sectorNumber: 3, bodyNumber: 1 })
 
-    const o2s4 = toCoordinates({ orbitNumber: 2, sectorNumber: 4 })
-    const o2s4a1 = toCoordinates({ orbitNumber: 2, sectorNumber: 4, bodyNumber: 1 })
+    const o2s4 = toCoordinatesAsId({ orbitNumber: 2, sectorNumber: 4 })
+    const o2s4a1 = toCoordinatesAsId({ orbitNumber: 2, sectorNumber: 4, bodyNumber: 1 })
 
     expect(movementEdgesByCoordinates).toEqual(
       [
         // o1s1
-        createCoordinateMovementEdge(o1s1, o1s2),
-        createCoordinateMovementEdge(o1s1, o2s1),
-        createCoordinateMovementEdge(o1s1, o2s2),
+        generateMovementEdge(o1s1, o1s2),
+        generateMovementEdge(o1s1, o2s1),
+        generateMovementEdge(o1s1, o2s2),
 
         // o1s2
-        createCoordinateMovementEdge(o1s2, o1s1),
-        createCoordinateMovementEdge(o1s2, o2s3),
-        createCoordinateMovementEdge(o1s2, o2s4),
-        createCoordinateMovementEdge(o1s2, o1s2p1),
-        createCoordinateMovementEdge(o1s2, o1s2m2),
+        generateMovementEdge(o1s2, o1s1),
+        generateMovementEdge(o1s2, o2s3),
+        generateMovementEdge(o1s2, o2s4),
+        generateMovementEdge(o1s2, o1s2p1),
+        generateMovementEdge(o1s2, o1s2m2),
 
         // o1s2b1
-        createCoordinateMovementEdge(o1s2p1, o1s2),
-        createCoordinateMovementEdge(o1s2p1, o1s2m2),
+        generateMovementEdge(o1s2p1, o1s2),
+        generateMovementEdge(o1s2p1, o1s2m2),
 
         // o1s2b2
-        createCoordinateMovementEdge(o1s2m2, o1s2),
-        createCoordinateMovementEdge(o1s2m2, o1s2p1),
+        generateMovementEdge(o1s2m2, o1s2),
+        generateMovementEdge(o1s2m2, o1s2p1),
 
         // o2s1
-        createCoordinateMovementEdge(o2s1, o1s1),
-        createCoordinateMovementEdge(o2s1, o2s4),
-        createCoordinateMovementEdge(o2s1, o2s2),
-        createCoordinateMovementEdge(o2s1, o2s1a1),
+        generateMovementEdge(o2s1, o1s1),
+        generateMovementEdge(o2s1, o2s4),
+        generateMovementEdge(o2s1, o2s2),
+        generateMovementEdge(o2s1, o2s1a1),
 
         // o2s1b1
-        createCoordinateMovementEdge(o2s1a1, o2s1),
+        generateMovementEdge(o2s1a1, o2s1),
 
         // o2s2
-        createCoordinateMovementEdge(o2s2, o1s1),
-        createCoordinateMovementEdge(o2s2, o2s1),
-        createCoordinateMovementEdge(o2s2, o2s3),
-        createCoordinateMovementEdge(o2s2, o2s2a1),
+        generateMovementEdge(o2s2, o1s1),
+        generateMovementEdge(o2s2, o2s1),
+        generateMovementEdge(o2s2, o2s3),
+        generateMovementEdge(o2s2, o2s2a1),
 
         // o2s2b1
-        createCoordinateMovementEdge(o2s2a1, o2s2),
+        generateMovementEdge(o2s2a1, o2s2),
 
         // o2s3
-        createCoordinateMovementEdge(o2s3, o1s2),
-        createCoordinateMovementEdge(o2s3, o2s2),
-        createCoordinateMovementEdge(o2s3, o2s4),
-        createCoordinateMovementEdge(o2s3, o2s3a1),
+        generateMovementEdge(o2s3, o1s2),
+        generateMovementEdge(o2s3, o2s2),
+        generateMovementEdge(o2s3, o2s4),
+        generateMovementEdge(o2s3, o2s3a1),
 
         // o2s3b1
-        createCoordinateMovementEdge(o2s3a1, o2s3),
+        generateMovementEdge(o2s3a1, o2s3),
 
         // o2s4
-        createCoordinateMovementEdge(o2s4, o1s2),
-        createCoordinateMovementEdge(o2s4, o2s3),
-        createCoordinateMovementEdge(o2s4, o2s1),
-        createCoordinateMovementEdge(o2s4, o2s4a1),
+        generateMovementEdge(o2s4, o1s2),
+        generateMovementEdge(o2s4, o2s3),
+        generateMovementEdge(o2s4, o2s1),
+        generateMovementEdge(o2s4, o2s4a1),
 
         // o2s4b1
-        createCoordinateMovementEdge(o2s4a1, o2s4),
+        generateMovementEdge(o2s4a1, o2s4),
         // oxlint-disable-next-line unicorn/no-array-sort -- We're working on a controlled copy, we don't need another one
       ].sort(compareMovementEdges),
     )

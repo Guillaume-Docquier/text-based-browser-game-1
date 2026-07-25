@@ -15,7 +15,7 @@ export type Coordinates = string
  *
  * This signature uses optional + never to make it easier to implement
  */
-type StarSystemEntities =
+export type StarSystemEntities =
   | { orbitNumber: number; sectorNumber?: never; bodyNumber?: never }
   | { orbitNumber: number; sectorNumber: number; bodyNumber?: never }
   | { orbitNumber: number; sectorNumber: number; bodyNumber: number }
