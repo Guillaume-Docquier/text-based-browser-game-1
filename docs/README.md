@@ -11,8 +11,8 @@ Use this map to find the smallest useful documentation set for a change. Do not 
 | Agent workflow and commands   | [../AGENTS.md](../AGENTS.md)                                       |
 | Common domain vocabulary      | [glossary.md](./glossary.md)                                       |
 | TypeScript coding standards   | [typescript-coding-standards.md](./typescript-coding-standards.md) |
-| Architecture decisions index  | [adr/README.md](./adr/README.md)                                   |
-| New or changed ADR workflow   | [adr/how-to.md](./adr/how-to.md)                                   |
+| Architecture decisions index  | [adr/README.md](./architecture/decisions/README.md)                |
+| New or changed ADR workflow   | [adr/how-to.md](./architecture/decisions/how-to.md)                |
 | Product direction             | `game-design/`                                                     |
 | Product brainstorm            | `game-design/brainstorm`                                           |
 | Current architecture overview | [architecture/overview.md](./architecture/overview.md)             |
@@ -28,5 +28,5 @@ Use this map to find the smallest useful documentation set for a change. Do not 
 
 - Keep docs concise and chunked. Prefer adding a routing pointer over duplicating a rule.
 - Update [glossary.md](./glossary.md) when adding project vocabulary with a specific meaning.
-- Update [adr/README.md](./adr/README.md) when an ADR is accepted, deprecated, superseded, or becomes relevant to a new task category.
+- Update [architecture/decisions/README.md](./architecture/decisions/README.md) when an ADR is accepted, deprecated, superseded, or becomes relevant to a new task category.
 - If code and docs disagree, inspect the live code and call out the mismatch before rewriting behavior or policy.

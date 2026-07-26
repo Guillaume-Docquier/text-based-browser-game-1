@@ -45,8 +45,8 @@ Every ADR goes through four phases. Do not skip phases.
 
 Before asking questions, gather repo context:
 
-1. Read `docs/adr/README.md` and any relevant accepted ADRs.
-2. Read `docs/adr/000-adr-template.md`.
+1. Read `docs/architecture/decisions/README.md` and any relevant accepted ADRs.
+2. Read `docs/architecture/decisions/000-adr-template.md`.
 3. Check the relevant package and project files, such as `package.json`, route definitions, API types, schemas, tests, or infrastructure files.
 4. Find related code patterns that the decision would affect.
 5. Note conflicts with existing ADRs or conventions before drafting.
@@ -94,7 +94,7 @@ Do not proceed to Phase 2 until the human confirms the summary.
 
 ### Phase 2: Draft the ADR
 
-1. Copy `docs/adr/000-adr-template.md`.
+1. Copy `docs/architecture/decisions/000-adr-template.md`.
 2. Choose the next numeric filename, using the existing `NNN-slug.md` convention.
 3. Use a title that names the decision, not just the problem.
 4. Fill the template sections:
@@ -107,7 +107,7 @@ Do not proceed to Phase 2 until the human confirms the summary.
 
 ### Phase 3: Review the Draft
 
-Review the draft against `docs/adr/review-checklist.md`.
+Review the draft against `docs/architecture/decisions/review-checklist.md`.
 
 Present the review as a concise summary, not a raw checklist dump:
 
@@ -139,7 +139,7 @@ Agents should read existing ADRs before implementing changes that touch architec
 
 ### How to Consult ADRs
 
-1. Read `docs/adr/README.md`.
+1. Read `docs/architecture/decisions/README.md`.
 2. Scan the relevant titles and summaries.
 3. Read the relevant ADRs fully.
 4. Follow accepted ADRs unless the work is explicitly to supersede or revise them.
@@ -154,4 +154,4 @@ Do not rewrite history unless the ADR is still a draft. For accepted ADRs:
 - To supersede an ADR, create a new ADR and link both ways.
 - To add later learning, add a dated note or amendment inside the relevant template section.
 
-Update `docs/adr/README.md` when an ADR is accepted, deprecated, superseded, or otherwise changes how contributors should use the index.
+Update `docs/architecture/decisions/README.md` when an ADR is accepted, deprecated, superseded, or otherwise changes how contributors should use the index.

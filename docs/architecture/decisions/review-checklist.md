@@ -2,7 +2,7 @@
 
 Use this checklist in Phase 3 to validate an ADR before finalizing it.
 
-The checklist reviews ADRs written from `docs/adr/000-adr-template.md`. Do not add new top-level template sections just to satisfy a checklist item.
+The checklist reviews ADRs written from `docs/architecture/decisions/000-adr-template.md`. Do not add new top-level template sections just to satisfy a checklist item.
 
 ## Template Fit
 
@@ -44,7 +44,7 @@ The checklist reviews ADRs written from `docs/adr/000-adr-template.md`. Do not a
 
 ## Index
 
-- [ ] `docs/adr/README.md` is updated if the ADR is accepted, deprecated, superseded, or changes how contributors should find decisions.
+- [ ] `docs/architecture/decisions/README.md` is updated if the ADR is accepted, deprecated, superseded, or changes how contributors should find decisions.
 - [ ] The index entry summarizes the decision, not the whole ADR.
 - [ ] The "Use when" guidance points contributors to the ADR at the right time.
 
