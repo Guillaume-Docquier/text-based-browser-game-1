@@ -3,11 +3,12 @@
 ## Philosophy
 
 - GDDRs capture durable decisions about the game's philosophy and mechanics.
-- They are usually written before implementation, so they can support brainstorming and deliberate design choices.
+- They are usually written before implementation, as a result of brainstorming and deliberate design choices.
 - A GDDR may also capture a decision discovered while implementing when that decision affects the future game.
 - The template is intentionally small: `Title`, `Status`, `Context`, `Decision`, and `Consequences`.
-- A GDDR must explain the game problem, how the decision relates to other mechanics, what it enables, how it affects game depth, and how it could be implemented incrementally.
+- A GDDR explains why the game is the way it is, not how it works in minute details. How the game works will be detailed in `docs/game-design/systems/`.
 - GDDRs are human-initiated. Agents can identify a candidate and help explore it, but must ask the human before creating one.
+- GDDRs will in general close the design space as each GDDR represents additional constraints for future choices.
 
 ## When to write a GDDR
 
@@ -21,6 +22,7 @@ Write a GDDR when a decision:
 Do not write a GDDR for:
 
 - A narrow implementation detail that does not change the intended game experience.
+- Game balance.
 - A temporary experiment with no durable design lesson.
 - A decision already captured in an existing GDDR. Amend that record instead.
 
@@ -75,7 +77,7 @@ Before drafting, summarize the intended title, status, problem, design, conseque
 3. Use `Planned` for an intended decision and `Implemented` once the game follows it. Add other statuses only when they become useful.
 4. Explain the game problem and relevant mechanics in `Context`.
 5. State the chosen game rule or design direction in `Decision`.
-6. In `Consequences`, cover what the decision enables, its effect on depth, tradeoffs, and an incremental implementation path where useful.
+6. In `Consequences`, cover what the decision enables & prevents, its effect on depth, tradeoffs, and an incremental implementation path where useful.
 7. Do not leave placeholders or add top-level template sections merely for extra detail.
 
 ### Phase 3: Review the draft
