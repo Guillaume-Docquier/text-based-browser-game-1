@@ -6,9 +6,10 @@ This index summarizes the game's durable design decisions. Read the related reco
 
 These decisions describe intended game philosophy and mechanics that are not yet implemented. They guide brainstorming, refinement, and future implementation work.
 
-| GDDR                                                  | Summary                                                                                                | Use when                                                                      |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| [002-bounded-game-length](002-bounded-game-length.md) | Every game has an advertised end date with conclusive hard win conditions that can end the game early. | You design victory conditions, game duration, or an early-ending achievement. |
+| GDDR                                                          | Summary                                                                                                | Use when                                                                      |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| [002-bounded-game-length](002-bounded-game-length.md)         | Every game has an advertised end date with conclusive hard win conditions that can end the game early. | You design victory conditions, game duration, or an early-ending achievement. |
+| [004-legacy-as-win-condition](004-legacy-as-win-condition.md) | The goal of the game is to build a Legacy via galactic impact and Legacy Projects, not conquest.       | You design victory conditions.                                                |
 
 ## Partially Implemented decisions
 
