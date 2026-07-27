@@ -12,4 +12,6 @@ Every single System in the game should be described in a Systems document. Someo
 
 ## Creating a Systems document
 
-TBD. There will probably be a template as we figure this out.
+Copy the template and fill it. The sections in the template are mandatory, but each document will probably have additional sections tailored to the system being described
+
+Make sure that relevant GDDRs and Systems are referenced in the Systems document.
