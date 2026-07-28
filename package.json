@@ -18,11 +18,11 @@
     "wts": "pnpm ci && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
   },
   "devDependencies": {
-    "@guillaume-docquier/oxfmt": "^1.0.4",
-    "@guillaume-docquier/oxlint": "^1.2.2",
+    "@guillaume-docquier/oxfmt": "^1.0.5",
+    "@guillaume-docquier/oxlint": "^1.2.3",
     "@guillaume-docquier/show-me": "^1.1.0",
-    "husky": "9.1.7",
-    "lint-staged": "17.0.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.2.0",
     "oxfmt": ">=0.60.0",
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "^7.0.2001"
