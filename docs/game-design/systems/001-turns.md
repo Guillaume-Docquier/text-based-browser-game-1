@@ -34,3 +34,7 @@ All players play simultaneously. They all submit secret Actions that are resolve
 During their Turn, players can declare themselves as Ready. This is public information. When all players are Ready, the turn ends. This is the only way that a Turn can take less time than the Turn duration determined before the game starts.
 
 When the Turn ends, all Actions are locked-in and processed deterministically.
+
+## Potential Flaws
+
+Because turns are coarse grained, in some cases a player might not have the time to react to what their opponents are doing.
