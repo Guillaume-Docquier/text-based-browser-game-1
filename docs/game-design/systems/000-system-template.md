@@ -14,3 +14,7 @@ What are key concepts for this system
 ## Rules
 
 How does the system work
+
+## Potential Flaws
+
+What do we already know might not be fun, balanced, implementable, etc
