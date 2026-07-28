@@ -3,7 +3,7 @@ packages:
   - frontend
 
 catalog:
-  "@guillaume-docquier/tools-ts": ^6.3.4
+  "@guillaume-docquier/tools-ts": ^6.3.5
   "typescript": ~7.0.2
 
 minimumReleaseAgeStrict: true
@@ -11,6 +11,7 @@ minimumReleaseAgeExclude:
   - "@guillaume-docquier/tools-ts"
   - "@guillaume-docquier/oxfmt"
   - "@guillaume-docquier/oxlint"
+  - "@guillaume-docquier/show-me"
 
 allowBuilds:
   "@clerk/shared": true
