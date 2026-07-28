@@ -1,772 +1,814 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Empire Identity Rulebook</title>
-  <style>
-    :root {
-      --bg: #0b1020;
-      --panel: #121a2f;
-      --panel-2: #18223b;
-      --text: #e8edf7;
-      --muted: #aeb9cc;
-      --line: #2a3654;
-      --accent: #f3a33c;
-      --accent-2: #66c2a5;
-      --danger: #ef6f6c;
-      --radius: 16px;
-      --shadow: 0 18px 50px rgba(0,0,0,.28);
-    }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Empire Identity Rulebook</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #121a2f;
+        --panel-2: #18223b;
+        --text: #e8edf7;
+        --muted: #aeb9cc;
+        --line: #2a3654;
+        --accent: #f3a33c;
+        --accent-2: #66c2a5;
+        --danger: #ef6f6c;
+        --radius: 16px;
+        --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+      }
 
-    * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
-    html { scroll-behavior: smooth; }
+      html {
+        scroll-behavior: smooth;
+      }
 
-    body {
-      margin: 0;
-      background:
-        radial-gradient(circle at top right, rgba(102,194,165,.10), transparent 30%),
-        radial-gradient(circle at top left, rgba(243,163,60,.10), transparent 28%),
-        var(--bg);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.6;
-    }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top right, rgba(102, 194, 165, 0.1), transparent 30%),
+          radial-gradient(circle at top left, rgba(243, 163, 60, 0.1), transparent 28%), var(--bg);
+        color: var(--text);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.6;
+      }
 
-    a { color: inherit; }
+      a {
+        color: inherit;
+      }
 
-    .layout {
-      display: grid;
-      grid-template-columns: 270px minmax(0, 1fr);
-      min-height: 100vh;
-    }
+      .layout {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        min-height: 100vh;
+      }
 
-    aside {
-      position: sticky;
-      top: 0;
-      align-self: start;
-      height: 100vh;
-      padding: 28px 22px;
-      border-right: 1px solid var(--line);
-      background: rgba(8, 13, 27, .88);
-      backdrop-filter: blur(18px);
-    }
-
-    .brand {
-      margin-bottom: 28px;
-    }
-
-    .brand-kicker {
-      color: var(--accent);
-      font-size: .78rem;
-      text-transform: uppercase;
-      letter-spacing: .14em;
-      font-weight: 800;
-    }
-
-    .brand h1 {
-      margin: 6px 0 0;
-      font-size: 1.35rem;
-      line-height: 1.2;
-    }
-
-    nav {
-      display: grid;
-      gap: 8px;
-    }
-
-    nav a {
-      display: block;
-      padding: 9px 11px;
-      color: var(--muted);
-      text-decoration: none;
-      border-radius: 10px;
-      font-size: .93rem;
-    }
-
-    nav a:hover {
-      color: var(--text);
-      background: var(--panel);
-    }
-
-    main {
-      width: min(1100px, 100%);
-      margin: 0 auto;
-      padding: 54px 42px 90px;
-    }
-
-    .hero {
-      padding: 42px;
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      background:
-        linear-gradient(135deg, rgba(243,163,60,.13), rgba(102,194,165,.08)),
-        var(--panel);
-      box-shadow: var(--shadow);
-      margin-bottom: 34px;
-    }
-
-    .eyebrow {
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      font-weight: 800;
-      font-size: .8rem;
-    }
-
-    h1, h2, h3 {
-      line-height: 1.2;
-      margin-top: 0;
-    }
-
-    .hero h2 {
-      font-size: clamp(2.1rem, 5vw, 4.3rem);
-      margin: 10px 0 18px;
-      max-width: 850px;
-    }
-
-    .hero p {
-      max-width: 800px;
-      color: var(--muted);
-      font-size: 1.08rem;
-      margin: 0;
-    }
-
-    section {
-      margin: 28px 0;
-      padding: 30px;
-      background: rgba(18,26,47,.90);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-
-    section h2 {
-      font-size: 1.75rem;
-      margin-bottom: 12px;
-    }
-
-    section > p:first-of-type {
-      color: var(--muted);
-    }
-
-    .grid {
-      display: grid;
-      gap: 18px;
-    }
-
-    .grid.two {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .grid.three {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .card {
-      padding: 20px;
-      border-radius: 14px;
-      background: var(--panel-2);
-      border: 1px solid var(--line);
-    }
-
-    .card h3 {
-      margin-bottom: 8px;
-      font-size: 1.05rem;
-    }
-
-    .card p {
-      margin: 0;
-      color: var(--muted);
-      font-size: .95rem;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(243,163,60,.12);
-      border: 1px solid rgba(243,163,60,.3);
-      color: #ffd39a;
-      font-size: .82rem;
-      font-weight: 700;
-      margin: 4px 6px 4px 0;
-    }
-
-    .definition {
-      display: grid;
-      grid-template-columns: 170px 1fr;
-      gap: 18px;
-      padding: 15px 0;
-      border-top: 1px solid var(--line);
-    }
-
-    .definition:first-child {
-      border-top: 0;
-      padding-top: 0;
-    }
-
-    .definition strong {
-      color: var(--accent);
-    }
-
-    .axis {
-      margin: 18px 0 4px;
-    }
-
-    .axis-labels {
-      display: flex;
-      justify-content: space-between;
-      font-weight: 700;
-      font-size: .9rem;
-      margin-bottom: 7px;
-    }
-
-    .axis-track {
-      position: relative;
-      height: 12px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #7257d4, #444d66 50%, #58b49a);
-      border: 1px solid rgba(255,255,255,.08);
-    }
-
-    .axis-track::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      top: -4px;
-      width: 2px;
-      height: 20px;
-      background: rgba(255,255,255,.45);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 14px;
-      overflow: hidden;
-      border-radius: 12px;
-    }
-
-    th, td {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      vertical-align: top;
-    }
-
-    th {
-      background: var(--panel-2);
-      color: var(--text);
-      font-size: .86rem;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-    }
-
-    td {
-      color: var(--muted);
-    }
-
-    .callout {
-      margin-top: 18px;
-      padding: 18px 20px;
-      border-left: 4px solid var(--accent);
-      background: rgba(243,163,60,.08);
-      border-radius: 10px;
-    }
-
-    .visual-wrap {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr);
-      gap: 26px;
-      align-items: center;
-    }
-
-    .chart {
-      width: 100%;
-      max-width: 560px;
-      margin: 0 auto;
-      display: block;
-    }
-
-    .legend {
-      display: grid;
-      gap: 10px;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      padding: 10px 12px;
-      background: var(--panel-2);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-    }
-
-    .legend-item span:last-child {
-      color: var(--accent-2);
-      font-weight: 800;
-    }
-
-    ul {
-      margin: 10px 0 0 1.2rem;
-      padding: 0;
-    }
-
-    li + li { margin-top: 6px; }
-
-    .footer {
-      text-align: center;
-      color: var(--muted);
-      padding-top: 20px;
-      font-size: .88rem;
-    }
-
-    @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; }
       aside {
-        position: relative;
-        height: auto;
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        padding: 28px 22px;
+        border-right: 1px solid var(--line);
+        background: rgba(8, 13, 27, 0.88);
+        backdrop-filter: blur(18px);
       }
+
+      .brand {
+        margin-bottom: 28px;
+      }
+
+      .brand-kicker {
+        color: var(--accent);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-weight: 800;
+      }
+
+      .brand h1 {
+        margin: 6px 0 0;
+        font-size: 1.35rem;
+        line-height: 1.2;
+      }
+
       nav {
-        grid-template-columns: repeat(2, minmax(0,1fr));
+        display: grid;
+        gap: 8px;
       }
-      main { padding: 30px 18px 70px; }
-      .grid.two, .grid.three, .visual-wrap {
-        grid-template-columns: 1fr;
+
+      nav a {
+        display: block;
+        padding: 9px 11px;
+        color: var(--muted);
+        text-decoration: none;
+        border-radius: 10px;
+        font-size: 0.93rem;
       }
-      .definition { grid-template-columns: 1fr; gap: 4px; }
-    }
 
-    @media print {
-      body { background: white; color: black; }
-      aside { display: none; }
-      .layout { display: block; }
-      main { width: 100%; padding: 0; }
-      section, .hero {
-        box-shadow: none;
-        background: white;
-        border-color: #bbb;
-        break-inside: avoid;
+      nav a:hover {
+        color: var(--text);
+        background: var(--panel);
       }
-      .card, th { background: #f5f5f5; }
-      p, td, .hero p, section > p:first-of-type { color: #333; }
-    }
-  </style>
-</head>
-<body>
-  <div class="layout">
-    <aside>
-      <div class="brand">
-        <div class="brand-kicker">Rulebook</div>
-        <h1>Empire Identity & Political Action</h1>
-      </div>
-      <nav>
-        <a href="#overview">Overview</a>
-        <a href="#terms">Core Terms</a>
-        <a href="#regimes">Regimes</a>
-        <a href="#axes">Ideological Axes</a>
-        <a href="#stances">Stances</a>
-        <a href="#actions">Agendas & Directives</a>
-        <a href="#requirements">Action Requirements</a>
-        <a href="#relations">Inter-Empire Relations</a>
-        <a href="#alliances">Alliance</a>
-        <a href="#example">Example Empire</a>
-      </nav>
-    </aside>
 
-    <main>
-      <header class="hero" id="overview">
-        <div class="eyebrow">Political Strategy System</div>
-        <h2>Shape what your empire believes—and what it is capable of doing.</h2>
-        <p>
-          Every empire develops through the interaction of its regime, ideological stances,
-          political agendas, operational directives, and relationships with other powers.
-          Players do not select a fixed faction identity. They create one through repeated decisions.
-        </p>
-      </header>
+      main {
+        width: min(1100px, 100%);
+        margin: 0 auto;
+        padding: 54px 42px 90px;
+      }
 
-      <section id="terms">
-        <h2>Core Terms</h2>
-        <div class="definition">
-          <strong>Regime</strong>
-          <span>The structure through which political power is organized and exercised.</span>
-        </div>
-        <div class="definition">
-          <strong>Ideological Axes</strong>
-          <span>The major philosophical dimensions along which every empire is measured.</span>
-        </div>
-        <div class="definition">
-          <strong>Stances</strong>
-          <span>An empire’s current positions on the ideological axes, each measured from −10 to +10.</span>
-        </div>
-        <div class="definition">
-          <strong>Agendas</strong>
-          <span>High-level political efforts that gradually shape the empire’s identity and move its stances.</span>
-        </div>
-        <div class="definition">
-          <strong>Directives</strong>
-          <span>Concrete actions that produce immediate effects without directly changing ideological stances.</span>
-        </div>
-      </section>
+      .hero {
+        padding: 42px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: linear-gradient(135deg, rgba(243, 163, 60, 0.13), rgba(102, 194, 165, 0.08)), var(--panel);
+        box-shadow: var(--shadow);
+        margin-bottom: 34px;
+      }
 
-      <section id="regimes">
-        <h2>Regimes</h2>
-        <p>
-          A regime describes <em>how</em> an empire governs, not what it believes. It influences the
-          balance between Agenda Points and Directive Points, action efficiency, and other global rules.
-          Regimes may change during play, but such a transition is expected to be rare and significant.
-        </p>
+      .eyebrow {
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 800;
+        font-size: 0.8rem;
+      }
 
-        <div class="grid three">
-          <div class="card">
-            <h3>Democracy</h3>
-            <p>Political authority is distributed through representation, participation, and public legitimacy.</p>
+      h1,
+      h2,
+      h3 {
+        line-height: 1.2;
+        margin-top: 0;
+      }
+
+      .hero h2 {
+        font-size: clamp(2.1rem, 5vw, 4.3rem);
+        margin: 10px 0 18px;
+        max-width: 850px;
+      }
+
+      .hero p {
+        max-width: 800px;
+        color: var(--muted);
+        font-size: 1.08rem;
+        margin: 0;
+      }
+
+      section {
+        margin: 28px 0;
+        padding: 30px;
+        background: rgba(18, 26, 47, 0.9);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      section h2 {
+        font-size: 1.75rem;
+        margin-bottom: 12px;
+      }
+
+      section > p:first-of-type {
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid.three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .card {
+        padding: 20px;
+        border-radius: 14px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+      }
+
+      .card h3 {
+        margin-bottom: 8px;
+        font-size: 1.05rem;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(243, 163, 60, 0.12);
+        border: 1px solid rgba(243, 163, 60, 0.3);
+        color: #ffd39a;
+        font-size: 0.82rem;
+        font-weight: 700;
+        margin: 4px 6px 4px 0;
+      }
+
+      .definition {
+        display: grid;
+        grid-template-columns: 170px 1fr;
+        gap: 18px;
+        padding: 15px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .definition:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .definition strong {
+        color: var(--accent);
+      }
+
+      .axis {
+        margin: 18px 0 4px;
+      }
+
+      .axis-labels {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-bottom: 7px;
+      }
+
+      .axis-track {
+        position: relative;
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #7257d4, #444d66 50%, #58b49a);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .axis-track::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -4px;
+        width: 2px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.45);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 14px;
+        overflow: hidden;
+        border-radius: 12px;
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--panel-2);
+        color: var(--text);
+        font-size: 0.86rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      td {
+        color: var(--muted);
+      }
+
+      .callout {
+        margin-top: 18px;
+        padding: 18px 20px;
+        border-left: 4px solid var(--accent);
+        background: rgba(243, 163, 60, 0.08);
+        border-radius: 10px;
+      }
+
+      .visual-wrap {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+        gap: 26px;
+        align-items: center;
+      }
+
+      .chart {
+        width: 100%;
+        max-width: 560px;
+        margin: 0 auto;
+        display: block;
+      }
+
+      .legend {
+        display: grid;
+        gap: 10px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 10px 12px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+
+      .legend-item span:last-child {
+        color: var(--accent-2);
+        font-weight: 800;
+      }
+
+      ul {
+        margin: 10px 0 0 1.2rem;
+        padding: 0;
+      }
+
+      li + li {
+        margin-top: 6px;
+      }
+
+      .footer {
+        text-align: center;
+        color: var(--muted);
+        padding-top: 20px;
+        font-size: 0.88rem;
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        aside {
+          position: relative;
+          height: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        nav {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        main {
+          padding: 30px 18px 70px;
+        }
+        .grid.two,
+        .grid.three,
+        .visual-wrap {
+          grid-template-columns: 1fr;
+        }
+        .definition {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+          color: black;
+        }
+        aside {
+          display: none;
+        }
+        .layout {
+          display: block;
+        }
+        main {
+          width: 100%;
+          padding: 0;
+        }
+        section,
+        .hero {
+          box-shadow: none;
+          background: white;
+          border-color: #bbb;
+          break-inside: avoid;
+        }
+        .card,
+        th {
+          background: #f5f5f5;
+        }
+        p,
+        td,
+        .hero p,
+        section > p:first-of-type {
+          color: #333;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <aside>
+        <div class="brand">
+          <div class="brand-kicker">Rulebook</div>
+          <h1>Empire Identity & Political Action</h1>
+        </div>
+        <nav>
+          <a href="#overview">Overview</a>
+          <a href="#terms">Core Terms</a>
+          <a href="#regimes">Regimes</a>
+          <a href="#axes">Ideological Axes</a>
+          <a href="#stances">Stances</a>
+          <a href="#actions">Agendas & Directives</a>
+          <a href="#requirements">Action Requirements</a>
+          <a href="#relations">Inter-Empire Relations</a>
+          <a href="#alliances">Alliance</a>
+          <a href="#example">Example Empire</a>
+        </nav>
+      </aside>
+
+      <main>
+        <header class="hero" id="overview">
+          <div class="eyebrow">Political Strategy System</div>
+          <h2>Shape what your empire believes—and what it is capable of doing.</h2>
+          <p>
+            Every empire develops through the interaction of its regime, ideological stances, political agendas, operational directives, and
+            relationships with other powers. Players do not select a fixed faction identity. They create one through repeated decisions.
+          </p>
+        </header>
+
+        <section id="terms">
+          <h2>Core Terms</h2>
+          <div class="definition">
+            <strong>Regime</strong>
+            <span>The structure through which political power is organized and exercised.</span>
           </div>
-          <div class="card">
-            <h3>Confederation</h3>
-            <p>Power is shared among semi-autonomous members that cooperate while preserving local authority.</p>
+          <div class="definition">
+            <strong>Ideological Axes</strong>
+            <span>The major philosophical dimensions along which every empire is measured.</span>
           </div>
-          <div class="card">
-            <h3>Monarchy</h3>
-            <p>Political continuity is concentrated in a sovereign, dynasty, or hereditary institution.</p>
+          <div class="definition">
+            <strong>Stances</strong>
+            <span>An empire’s current positions on the ideological axes, each measured from −10 to +10.</span>
           </div>
-          <div class="card">
-            <h3>Communism</h3>
-            <p>Political and economic coordination is organized around collective ownership and central planning.</p>
+          <div class="definition">
+            <strong>Agendas</strong>
+            <span>High-level political efforts that gradually shape the empire’s identity and move its stances.</span>
           </div>
-          <div class="card">
-            <h3>Anarchy</h3>
-            <p>Central authority is weak or absent, with action emerging from local groups, networks, or voluntary organization.</p>
+          <div class="definition">
+            <strong>Directives</strong>
+            <span>Concrete actions that produce immediate effects without directly changing ideological stances.</span>
           </div>
-        </div>
+        </section>
 
-        <div class="callout">
-          Regimes should change the empire’s overall operating model rather than granting narrow bonuses to a single resource, unit, or action category.
-        </div>
-      </section>
+        <section id="regimes">
+          <h2>Regimes</h2>
+          <p>
+            A regime describes <em>how</em> an empire governs, not what it believes. It influences the balance between Agenda Points and
+            Directive Points, action efficiency, and other global rules. Regimes may change during play, but such a transition is expected
+            to be rare and significant.
+          </p>
 
-      <section id="axes">
-        <h2>Ideological Axes</h2>
-        <p>
-          Each axis runs from −10 to +10. The labels at each end represent ideological extremes;
-          values near 0 represent moderation, compromise, or unresolved direction.
-        </p>
-
-        <div class="axis">
-          <div class="axis-labels"><span>Libertarian</span><span>Authoritarian</span></div>
-          <div class="axis-track"></div>
-        </div>
-        <p><strong>Political Freedom:</strong> the balance between individual liberty and centralized authority.</p>
-
-        <div class="axis">
-          <div class="axis-labels"><span>Isolationist</span><span>Cooperative</span></div>
-          <div class="axis-track"></div>
-        </div>
-        <p><strong>Diplomacy:</strong> the empire’s willingness to engage, coordinate, and depend on foreign powers.</p>
-
-        <div class="axis">
-          <div class="axis-labels"><span>Spiritual</span><span>Scientific</span></div>
-          <div class="axis-track"></div>
-        </div>
-        <p><strong>Science:</strong> whether society privileges faith, tradition, intuition, and meaning, or evidence, research, and technological progress.</p>
-
-        <div class="axis">
-          <div class="axis-labels"><span>Industrial</span><span>Ecologist</span></div>
-          <div class="axis-track"></div>
-        </div>
-        <p><strong>Environment:</strong> the balance between extracting material value and preserving ecological systems.</p>
-
-        <div class="axis">
-          <div class="axis-labels"><span>Pacifist</span><span>Militarist</span></div>
-          <div class="axis-track"></div>
-        </div>
-        <p><strong>Military:</strong> the importance placed on armed strength and the willingness to use force.</p>
-      </section>
-
-      <section id="stances">
-        <h2>Stances and Ideological Access</h2>
-        <p>
-          A stance is an empire’s current value on an ideological axis. Stances do more than describe identity:
-          they determine which Agendas and Directives the player may access.
-        </p>
-
-        <h3>Ideological Window</h3>
-        <p>
-          Each stance grants access to actions whose ideological requirements fall within a range around the current value.
-          Under the default rule, most stances provide a five-value access window.
-        </p>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Current Stance</th>
-              <th>Accessible Values</th>
-              <th>Strategic Character</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>0</td>
-              <td>−2 to +2</td>
-              <td>Broad access to moderate and balanced actions.</td>
-            </tr>
-            <tr>
-              <td>+4</td>
-              <td>+2 to +6</td>
-              <td>Committed, while retaining some moderate options.</td>
-            </tr>
-            <tr>
-              <td>−6</td>
-              <td>−8 to −4</td>
-              <td>Strong specialization with reduced flexibility.</td>
-            </tr>
-            <tr>
-              <td>+10</td>
-              <td>+7 to +10</td>
-              <td>Maximum ideological power, but only a four-value window.</td>
-            </tr>
-            <tr>
-              <td>−10</td>
-              <td>−10 to −7</td>
-              <td>Maximum commitment at the opposite extreme.</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="callout">
-          Moderation provides breadth. Extremism provides stronger and more distinctive actions, but removes access to moderate, balanced, and opposing actions.
-        </div>
-      </section>
-
-      <section id="actions">
-        <h2>Agendas and Directives</h2>
-        <div class="grid two">
-          <div class="card">
-            <h3>Agendas</h3>
-            <p>
-              Agendas are sustained political efforts. They represent what the government is actively promoting,
-              reinforcing, or normalizing. Spending Agenda Points gradually moves one or more stances.
-            </p>
-            <ul>
-              <li>Promote Scientific Education</li>
-              <li>Accelerate Industrialization</li>
-              <li>Expand Civil Liberties</li>
-              <li>Encourage International Cooperation</li>
-              <li>Increase Military Prestige</li>
-            </ul>
+          <div class="grid three">
+            <div class="card">
+              <h3>Democracy</h3>
+              <p>Political authority is distributed through representation, participation, and public legitimacy.</p>
+            </div>
+            <div class="card">
+              <h3>Confederation</h3>
+              <p>Power is shared among semi-autonomous members that cooperate while preserving local authority.</p>
+            </div>
+            <div class="card">
+              <h3>Monarchy</h3>
+              <p>Political continuity is concentrated in a sovereign, dynasty, or hereditary institution.</p>
+            </div>
+            <div class="card">
+              <h3>Communism</h3>
+              <p>Political and economic coordination is organized around collective ownership and central planning.</p>
+            </div>
+            <div class="card">
+              <h3>Anarchy</h3>
+              <p>Central authority is weak or absent, with action emerging from local groups, networks, or voluntary organization.</p>
+            </div>
           </div>
 
-          <div class="card">
-            <h3>Directives</h3>
-            <p>
-              Directives are immediate executive actions. They consume Directive Points and produce concrete outcomes,
-              but they do not directly change ideological stances.
-            </p>
-            <ul>
-              <li>Construct Infrastructure</li>
-              <li>Recruit Military Forces</li>
-              <li>Launch a Research Expedition</li>
-              <li>Establish a Trade Route</li>
-              <li>Negotiate a Treaty</li>
-            </ul>
+          <div class="callout">
+            Regimes should change the empire’s overall operating model rather than granting narrow bonuses to a single resource, unit, or
+            action category.
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section id="requirements">
-        <h2>Action Requirements</h2>
-        <p>
-          Actions may depend on one, two, or three ideological stances. This creates emergent political identities
-          without forcing players into predefined factions.
-        </p>
+        <section id="axes">
+          <h2>Ideological Axes</h2>
+          <p>
+            Each axis runs from −10 to +10. The labels at each end represent ideological extremes; values near 0 represent moderation,
+            compromise, or unresolved direction.
+          </p>
 
-        <div class="grid three">
-          <div class="card">
-            <h3>Single-Stance Actions</h3>
-            <p>The majority of actions depend on one axis and define the core identity of that ideology.</p>
+          <div class="axis">
+            <div class="axis-labels"><span>Libertarian</span><span>Authoritarian</span></div>
+            <div class="axis-track"></div>
+          </div>
+          <p><strong>Political Freedom:</strong> the balance between individual liberty and centralized authority.</p>
+
+          <div class="axis">
+            <div class="axis-labels"><span>Isolationist</span><span>Cooperative</span></div>
+            <div class="axis-track"></div>
+          </div>
+          <p><strong>Diplomacy:</strong> the empire’s willingness to engage, coordinate, and depend on foreign powers.</p>
+
+          <div class="axis">
+            <div class="axis-labels"><span>Spiritual</span><span>Scientific</span></div>
+            <div class="axis-track"></div>
+          </div>
+          <p>
+            <strong>Science:</strong> whether society privileges faith, tradition, intuition, and meaning, or evidence, research, and
+            technological progress.
+          </p>
+
+          <div class="axis">
+            <div class="axis-labels"><span>Industrial</span><span>Ecologist</span></div>
+            <div class="axis-track"></div>
+          </div>
+          <p><strong>Environment:</strong> the balance between extracting material value and preserving ecological systems.</p>
+
+          <div class="axis">
+            <div class="axis-labels"><span>Pacifist</span><span>Militarist</span></div>
+            <div class="axis-track"></div>
+          </div>
+          <p><strong>Military:</strong> the importance placed on armed strength and the willingness to use force.</p>
+        </section>
+
+        <section id="stances">
+          <h2>Stances and Ideological Access</h2>
+          <p>
+            A stance is an empire’s current value on an ideological axis. Stances do more than describe identity: they determine which
+            Agendas and Directives the player may access.
+          </p>
+
+          <h3>Ideological Window</h3>
+          <p>
+            Each stance grants access to actions whose ideological requirements fall within a range around the current value. Under the
+            default rule, most stances provide a five-value access window.
+          </p>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Current Stance</th>
+                <th>Accessible Values</th>
+                <th>Strategic Character</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>0</td>
+                <td>−2 to +2</td>
+                <td>Broad access to moderate and balanced actions.</td>
+              </tr>
+              <tr>
+                <td>+4</td>
+                <td>+2 to +6</td>
+                <td>Committed, while retaining some moderate options.</td>
+              </tr>
+              <tr>
+                <td>−6</td>
+                <td>−8 to −4</td>
+                <td>Strong specialization with reduced flexibility.</td>
+              </tr>
+              <tr>
+                <td>+10</td>
+                <td>+7 to +10</td>
+                <td>Maximum ideological power, but only a four-value window.</td>
+              </tr>
+              <tr>
+                <td>−10</td>
+                <td>−10 to −7</td>
+                <td>Maximum commitment at the opposite extreme.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout">
+            Moderation provides breadth. Extremism provides stronger and more distinctive actions, but removes access to moderate, balanced,
+            and opposing actions.
+          </div>
+        </section>
+
+        <section id="actions">
+          <h2>Agendas and Directives</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>Agendas</h3>
+              <p>
+                Agendas are sustained political efforts. They represent what the government is actively promoting, reinforcing, or
+                normalizing. Spending Agenda Points gradually moves one or more stances.
+              </p>
+              <ul>
+                <li>Promote Scientific Education</li>
+                <li>Accelerate Industrialization</li>
+                <li>Expand Civil Liberties</li>
+                <li>Encourage International Cooperation</li>
+                <li>Increase Military Prestige</li>
+              </ul>
+            </div>
+
+            <div class="card">
+              <h3>Directives</h3>
+              <p>
+                Directives are immediate executive actions. They consume Directive Points and produce concrete outcomes, but they do not
+                directly change ideological stances.
+              </p>
+              <ul>
+                <li>Construct Infrastructure</li>
+                <li>Recruit Military Forces</li>
+                <li>Launch a Research Expedition</li>
+                <li>Establish a Trade Route</li>
+                <li>Negotiate a Treaty</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="requirements">
+          <h2>Action Requirements</h2>
+          <p>
+            Actions may depend on one, two, or three ideological stances. This creates emergent political identities without forcing players
+            into predefined factions.
+          </p>
+
+          <div class="grid three">
+            <div class="card">
+              <h3>Single-Stance Actions</h3>
+              <p>The majority of actions depend on one axis and define the core identity of that ideology.</p>
+              <div>
+                <span class="pill">Industrial Expansion</span>
+                <span class="pill">Religious Revival</span>
+                <span class="pill">Military Recruitment</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Dual-Stance Actions</h3>
+              <p>A moderate number of actions emerge from the interaction of two ideological commitments.</p>
+              <div>
+                <span class="pill">Cooperative + Ecologist</span>
+                <span class="pill">Scientific + Cooperative</span>
+                <span class="pill">Militarist + Authoritarian</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Triple-Stance Actions</h3>
+              <p>A small number of rare or defining actions require three compatible stances.</p>
+              <div>
+                <span class="pill">Scientific + Cooperative + Ecologist</span>
+                <span class="pill">Authoritarian + Militarist + Industrial</span>
+              </div>
+            </div>
+          </div>
+
+          <p>
+            No action requires four or more stances. This keeps the system legible while still enabling highly distinctive empire builds.
+          </p>
+        </section>
+
+        <section id="relations">
+          <h2>Inter-Empire Relations</h2>
+          <p>
+            Empires may interact through trade, contracts, and alliances. Players cannot manually blacklist specific empires from trade or
+            contract participation. Instead, ideological compatibility determines whether interaction is possible and how effective it will
+            be.
+          </p>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Trade</h3>
+              <p>
+                Empires may exchange resources and technology. Compatible stances improve access and outcomes. Severe ideological divergence
+                may block interaction entirely—for example, a fully Libertarian empire may be unable to trade with a fully Authoritarian
+                empire.
+              </p>
+            </div>
+
+            <div class="card">
+              <h3>Contracts</h3>
+              <p>
+                An empire may post a contract by committing the required resources. Another player spends their own Directive Points to
+                execute it, and both parties share the resulting benefits.
+              </p>
+            </div>
+          </div>
+
+          <h3>Strategic Consequences</h3>
+          <ul>
+            <li>Moderate stances make it easier to cooperate with a broad range of empires.</li>
+            <li>Extreme stances unlock stronger actions but may isolate the empire diplomatically.</li>
+            <li>Players may steer toward compatible partners to gain more from cooperation.</li>
+            <li>Players may deliberately diverge from rivals to prevent them from benefiting from interaction.</li>
+            <li>Successful cooperation is always mutually beneficial, even when the gains are asymmetric.</li>
+          </ul>
+        </section>
+
+        <section id="alliances">
+          <h2>Alliance Gauge</h2>
+          <p>
+            Cooperative actions increase an Alliance Gauge shared by the participating empires. The amount gained depends on the action and
+            on ideological compatibility.
+          </p>
+
+          <div class="grid two">
+            <div class="card">
+              <h3>Building Alliance</h3>
+              <p>
+                Trade, completed contracts, joint projects, and other cooperative actions increase the gauge. Similar empires build trust
+                more quickly; opposed empires progress more slowly.
+              </p>
+            </div>
+
+            <div class="card">
+              <h3>Becoming Allies</h3>
+              <p>
+                Once the gauge crosses a defined threshold, the empires become Allies and unlock additional mechanics. Those
+                alliance-specific mechanics remain to be designed.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="example">
+          <h2>Example Empire</h2>
+          <p>
+            The following display shows how a player might see their current stances in game. Positive values point toward the right-hand
+            labels used in this rulebook.
+          </p>
+
+          <div class="visual-wrap">
+            <svg class="chart" viewBox="0 0 520 520" role="img" aria-label="Spider chart showing example empire stances">
+              <defs>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="4" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <g transform="translate(260,260)">
+                <polygon points="0,-190 181,-59 112,154 -112,154 -181,-59" fill="none" stroke="#2a3654" stroke-width="2" />
+                <polygon points="0,-152 145,-47 90,123 -90,123 -145,-47" fill="none" stroke="#2a3654" stroke-width="1.5" />
+                <polygon points="0,-114 109,-35 67,92 -67,92 -109,-35" fill="none" stroke="#2a3654" stroke-width="1.5" />
+                <polygon points="0,-76 72,-24 45,62 -45,62 -72,-24" fill="none" stroke="#2a3654" stroke-width="1.5" />
+                <polygon points="0,-38 36,-12 22,31 -22,31 -36,-12" fill="none" stroke="#2a3654" stroke-width="1.5" />
+
+                <line x1="0" y1="0" x2="0" y2="-190" stroke="#2a3654" />
+                <line x1="0" y1="0" x2="181" y2="-59" stroke="#2a3654" />
+                <line x1="0" y1="0" x2="112" y2="154" stroke="#2a3654" />
+                <line x1="0" y1="0" x2="-112" y2="154" stroke="#2a3654" />
+                <line x1="0" y1="0" x2="-181" y2="-59" stroke="#2a3654" />
+
+                <polygon
+                  points="0,-152 127,-41 56,77 -34,46 -145,-47"
+                  fill="rgba(102,194,165,.28)"
+                  stroke="#66c2a5"
+                  stroke-width="4"
+                  filter="url(#glow)"
+                />
+
+                <circle cx="0" cy="-152" r="7" fill="#f3a33c" />
+                <circle cx="127" cy="-41" r="7" fill="#f3a33c" />
+                <circle cx="56" cy="77" r="7" fill="#f3a33c" />
+                <circle cx="-34" cy="46" r="7" fill="#f3a33c" />
+                <circle cx="-145" cy="-47" r="7" fill="#f3a33c" />
+              </g>
+
+              <g fill="#e8edf7" font-size="15" font-weight="700" text-anchor="middle">
+                <text x="260" y="28">Scientific</text>
+                <text x="475" y="184">Cooperative</text>
+                <text x="395" y="476">Ecologist</text>
+                <text x="125" y="476">Militarist</text>
+                <text x="45" y="184">Authoritarian</text>
+              </g>
+            </svg>
+
             <div>
-              <span class="pill">Industrial Expansion</span>
-              <span class="pill">Religious Revival</span>
-              <span class="pill">Military Recruitment</span>
+              <div class="legend">
+                <div class="legend-item"><span>Political Freedom</span><span>+8 Authoritarian</span></div>
+                <div class="legend-item"><span>Diplomacy</span><span>+7 Cooperative</span></div>
+                <div class="legend-item"><span>Science</span><span>+8 Scientific</span></div>
+                <div class="legend-item"><span>Environment</span><span>+5 Ecologist</span></div>
+                <div class="legend-item"><span>Military</span><span>+3 Militarist</span></div>
+              </div>
+
+              <div class="callout">
+                This empire could access powerful Scientific and Authoritarian actions, a good range of Cooperative and Ecologist actions,
+                and only moderate Militarist options.
+              </div>
             </div>
           </div>
+        </section>
 
-          <div class="card">
-            <h3>Dual-Stance Actions</h3>
-            <p>A moderate number of actions emerge from the interaction of two ideological commitments.</p>
-            <div>
-              <span class="pill">Cooperative + Ecologist</span>
-              <span class="pill">Scientific + Cooperative</span>
-              <span class="pill">Militarist + Authoritarian</span>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Triple-Stance Actions</h3>
-            <p>A small number of rare or defining actions require three compatible stances.</p>
-            <div>
-              <span class="pill">Scientific + Cooperative + Ecologist</span>
-              <span class="pill">Authoritarian + Militarist + Industrial</span>
-            </div>
-          </div>
-        </div>
-
-        <p>
-          No action requires four or more stances. This keeps the system legible while still enabling highly distinctive empire builds.
-        </p>
-      </section>
-
-      <section id="relations">
-        <h2>Inter-Empire Relations</h2>
-        <p>
-          Empires may interact through trade, contracts, and alliances. Players cannot manually blacklist specific empires
-          from trade or contract participation. Instead, ideological compatibility determines whether interaction is possible
-          and how effective it will be.
-        </p>
-
-        <div class="grid two">
-          <div class="card">
-            <h3>Trade</h3>
-            <p>
-              Empires may exchange resources and technology. Compatible stances improve access and outcomes.
-              Severe ideological divergence may block interaction entirely—for example, a fully Libertarian empire
-              may be unable to trade with a fully Authoritarian empire.
-            </p>
-          </div>
-
-          <div class="card">
-            <h3>Contracts</h3>
-            <p>
-              An empire may post a contract by committing the required resources. Another player spends their own
-              Directive Points to execute it, and both parties share the resulting benefits.
-            </p>
-          </div>
-        </div>
-
-        <h3>Strategic Consequences</h3>
-        <ul>
-          <li>Moderate stances make it easier to cooperate with a broad range of empires.</li>
-          <li>Extreme stances unlock stronger actions but may isolate the empire diplomatically.</li>
-          <li>Players may steer toward compatible partners to gain more from cooperation.</li>
-          <li>Players may deliberately diverge from rivals to prevent them from benefiting from interaction.</li>
-          <li>Successful cooperation is always mutually beneficial, even when the gains are asymmetric.</li>
-        </ul>
-      </section>
-
-      <section id="alliances">
-        <h2>Alliance Gauge</h2>
-        <p>
-          Cooperative actions increase an Alliance Gauge shared by the participating empires. The amount gained depends on
-          the action and on ideological compatibility.
-        </p>
-
-        <div class="grid two">
-          <div class="card">
-            <h3>Building Alliance</h3>
-            <p>
-              Trade, completed contracts, joint projects, and other cooperative actions increase the gauge.
-              Similar empires build trust more quickly; opposed empires progress more slowly.
-            </p>
-          </div>
-
-          <div class="card">
-            <h3>Becoming Allies</h3>
-            <p>
-              Once the gauge crosses a defined threshold, the empires become Allies and unlock additional mechanics.
-              Those alliance-specific mechanics remain to be designed.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section id="example">
-        <h2>Example Empire</h2>
-        <p>
-          The following display shows how a player might see their current stances in game.
-          Positive values point toward the right-hand labels used in this rulebook.
-        </p>
-
-        <div class="visual-wrap">
-          <svg class="chart" viewBox="0 0 520 520" role="img" aria-label="Spider chart showing example empire stances">
-            <defs>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="4" result="blur"/>
-                <feMerge>
-                  <feMergeNode in="blur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
-
-            <g transform="translate(260,260)">
-              <polygon points="0,-190 181,-59 112,154 -112,154 -181,-59"
-                       fill="none" stroke="#2a3654" stroke-width="2"/>
-              <polygon points="0,-152 145,-47 90,123 -90,123 -145,-47"
-                       fill="none" stroke="#2a3654" stroke-width="1.5"/>
-              <polygon points="0,-114 109,-35 67,92 -67,92 -109,-35"
-                       fill="none" stroke="#2a3654" stroke-width="1.5"/>
-              <polygon points="0,-76 72,-24 45,62 -45,62 -72,-24"
-                       fill="none" stroke="#2a3654" stroke-width="1.5"/>
-              <polygon points="0,-38 36,-12 22,31 -22,31 -36,-12"
-                       fill="none" stroke="#2a3654" stroke-width="1.5"/>
-
-              <line x1="0" y1="0" x2="0" y2="-190" stroke="#2a3654"/>
-              <line x1="0" y1="0" x2="181" y2="-59" stroke="#2a3654"/>
-              <line x1="0" y1="0" x2="112" y2="154" stroke="#2a3654"/>
-              <line x1="0" y1="0" x2="-112" y2="154" stroke="#2a3654"/>
-              <line x1="0" y1="0" x2="-181" y2="-59" stroke="#2a3654"/>
-
-              <polygon points="0,-152 127,-41 56,77 -34,46 -145,-47"
-                       fill="rgba(102,194,165,.28)"
-                       stroke="#66c2a5"
-                       stroke-width="4"
-                       filter="url(#glow)"/>
-
-              <circle cx="0" cy="-152" r="7" fill="#f3a33c"/>
-              <circle cx="127" cy="-41" r="7" fill="#f3a33c"/>
-              <circle cx="56" cy="77" r="7" fill="#f3a33c"/>
-              <circle cx="-34" cy="46" r="7" fill="#f3a33c"/>
-              <circle cx="-145" cy="-47" r="7" fill="#f3a33c"/>
-            </g>
-
-            <g fill="#e8edf7" font-size="15" font-weight="700" text-anchor="middle">
-              <text x="260" y="28">Scientific</text>
-              <text x="475" y="184">Cooperative</text>
-              <text x="395" y="476">Ecologist</text>
-              <text x="125" y="476">Militarist</text>
-              <text x="45" y="184">Authoritarian</text>
-            </g>
-          </svg>
-
-          <div>
-            <div class="legend">
-              <div class="legend-item"><span>Political Freedom</span><span>+8 Authoritarian</span></div>
-              <div class="legend-item"><span>Diplomacy</span><span>+7 Cooperative</span></div>
-              <div class="legend-item"><span>Science</span><span>+8 Scientific</span></div>
-              <div class="legend-item"><span>Environment</span><span>+5 Ecologist</span></div>
-              <div class="legend-item"><span>Military</span><span>+3 Militarist</span></div>
-            </div>
-
-            <div class="callout">
-              This empire could access powerful Scientific and Authoritarian actions, a good range of Cooperative and Ecologist actions,
-              and only moderate Militarist options.
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="footer">
-        Draft rulebook — Empire Identity, Political Action, and Inter-Empire Relations
-      </div>
-    </main>
-  </div>
-</body>
+        <div class="footer">Draft rulebook — Empire Identity, Political Action, and Inter-Empire Relations</div>
+      </main>
+    </div>
+  </body>
 </html>
