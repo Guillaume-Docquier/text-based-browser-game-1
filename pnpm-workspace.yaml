@@ -11,6 +11,7 @@ minimumReleaseAgeExclude:
   - "@guillaume-docquier/tools-ts"
   - "@guillaume-docquier/oxfmt"
   - "@guillaume-docquier/oxlint"
+  - "@guillaume-docquier/show-me"
 
 allowBuilds:
   "@clerk/shared": true

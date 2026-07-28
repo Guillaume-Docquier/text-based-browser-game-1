@@ -20,6 +20,7 @@
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.4",
     "@guillaume-docquier/oxlint": "^1.2.2",
+    "@guillaume-docquier/show-me": "^1.1.0",
     "husky": "9.1.7",
     "lint-staged": "17.0.8",
     "oxfmt": ">=0.60.0",
