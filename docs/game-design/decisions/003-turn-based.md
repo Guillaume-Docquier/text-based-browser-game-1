@@ -31,16 +31,6 @@ The game will be leaning towards auto-battler style, where a simulation advances
 
 If a player fails to submit orders, the game will still advance. The turn will not be delayed.
 
-## Consequences
-
-Players can complete a turn in one session and do not need to coordinate their availability with other players. Unanimous readiness can shorten a quiet turn without making any player permanently commit before resolution.
-
-Ongoing simulation means the game does not need to delay a turn when a player submits no orders. Missing a turn is a manageable setback rather than an immediate collapse of that empire, while active play remains the stronger choice.
-
-Private orders and fog-of-war-limited information preserve simultaneous decision-making and prevent players from reacting to orders already submitted in the same window. This makes intelligence, anticipation, and long-term planning valuable.
-
-The game must provide deterministic resolution rules for competing valid orders and clear feedback after resolution. Those rules, along with the detailed visibility of resolved events, are separate design work.
-
 ## Pros
 
 - The game will require minimal time investment.

@@ -5,7 +5,7 @@
 - GDDRs capture durable decisions about the game's philosophy and mechanics.
 - They are usually written before implementation, as a result of brainstorming and deliberate design choices.
 - A GDDR may also capture a decision discovered while implementing when that decision affects the future game.
-- The template is intentionally small: `Title`, `Status`, `Context`, `Decision`, and `Consequences`.
+- The template is intentionally small: `Title`, `Status`, `Context`, `Decision`, `Pros`, and `Cons`.
 - A GDDR explains why the game is the way it is, not how it works in minute details. How the game works will be detailed in `docs/game-design/systems/`.
 - GDDRs are human-initiated. Agents can identify a candidate and help explore it, but must ask the human before creating one.
 - GDDRs will in general close the design space as each GDDR represents additional constraints for future choices.
@@ -34,7 +34,7 @@ When an agent encounters a possible game-design decision, it should tell the hum
 
 Useful signals include:
 
-- Choosing between mechanics with different player experiences or strategic consequences.
+- Choosing between mechanics with different player experiences or strategic tradeoffs.
 - Introducing a rule that shapes what players can do.
 - Resolving a conflict between two desired game qualities.
 - Discovering that a planned mechanic changes the meaning or balance of another mechanic.
@@ -68,7 +68,7 @@ Explore, as relevant:
 7. What is the smallest useful implementation step, and what can come later?
 8. What is explicitly out of scope for now?
 
-Before drafting, summarize the intended title, status, problem, design, consequences, relationships, and incremental path. Ask the human to confirm or correct it.
+Before drafting, summarize the intended title, status, problem, design, pros, cons, relationships, and incremental path. Ask the human to confirm or correct it.
 
 ### Phase 2: Draft the GDDR
 
@@ -77,7 +77,7 @@ Before drafting, summarize the intended title, status, problem, design, conseque
 3. Use `Planned` for an intended decision and `Implemented` once the game follows it. Add other statuses only when they become useful.
 4. Explain the game problem and relevant mechanics in `Context`.
 5. State the chosen game rule or design direction in `Decision`.
-6. In `Consequences`, cover what the decision enables & prevents, its effect on depth, tradeoffs, and an incremental implementation path where useful.
+6. Use `Pros` to cover what the decision enables and its effect on depth. Use `Cons` to cover tradeoffs, constraints and risks.
 7. Do not leave placeholders or add top-level template sections merely for extra detail.
 
 ### Phase 3: Review the draft

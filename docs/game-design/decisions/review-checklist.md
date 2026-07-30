@@ -4,7 +4,7 @@ Use this checklist in Phase 3 to validate a GDDR before finalizing it. It review
 
 ## Template fit
 
-- [ ] The GDDR uses `Status`, `Context`, `Decision`, and `Consequences`.
+- [ ] The GDDR uses `Status`, `Context`, `Decision`, `Pros`, and `Cons`.
 - [ ] There are no placeholder questions left from the template.
 - [ ] The filename follows the `NNN-slug.md` convention.
 - [ ] Important alternatives, boundaries, risks, and follow-up work fit inside the existing sections.
@@ -30,13 +30,16 @@ Use this checklist in Phase 3 to validate a GDDR before finalizing it. It review
 - [ ] Scope boundaries and non-goals are clear when needed.
 - [ ] The decision fits with related mechanics, or explicitly changes their relationship.
 
-## Consequences
+## Pros
 
-- [ ] The effect on game depth is explained.
-- [ ] Benefits, constraints, and risks are concrete.
-- [ ] The record identifies what becomes easier, harder, or less desirable.
-- [ ] An incremental implementation path is described when implementation will be staged.
-- [ ] Consequences do not merely repeat the decision.
+- [ ] The positive effect on game depth is explained.
+- [ ] The record identifies what becomes easier or more desirable.
+- [ ] Pros are concrete and do not merely repeat the decision.
+
+## Cons
+
+- [ ] Constraints, risks, and harder or less desirable outcomes are concrete.
+- [ ] Accepted risks and required follow-up work are clear.
 
 ## Index
 
@@ -58,6 +61,6 @@ Count unchecked items. This is a conversation tool, not a mechanical gate.
 | -------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------ |
 | The record describes code but not the game problem | Implementation led the discussion  | Explain the intended player experience and mechanic first    |
 | The decision is isolated from other mechanics      | Missing game context               | Name the mechanics it affects or depends on                  |
-| Benefits are stated without depth or tradeoffs     | Design is not yet refined          | Ask what strategic choices, constraints, or risks it creates |
+| Pros are stated without depth or tradeoffs         | Design is not yet refined          | Ask what strategic choices, constraints, or risks it creates |
 | The planned design has no implementation path      | Scope is too broad                 | Identify the smallest useful first step and later work       |
 | An agent created the record unprompted             | Human decision process was skipped | Ask the human whether the candidate deserves a GDDR          |
