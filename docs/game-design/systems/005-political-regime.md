@@ -1,4 +1,4 @@
-# Ideological Alignment
+# Political Regime
 
 ## Purpose
 
@@ -6,13 +6,13 @@ What the system brings to the game, which game design decisions it supports and 
 
 Supports:
 
-- [GDDR 005-ideological-axes](../decisions/005-ideological-axes.md)
 - [GDDR 006-card-like-actions](../decisions/006-card-like-actions.md)
+- [GDDR 007-asymmetric-play](../decisions/007-asymmetric-play.md)
 
 Relates to:
 
 - [System 003-actions](./003-actions.md)
-- [System 005-political-regime](./005-political-regime.md)
+- [System 004-ideological-alignment](./004-ideological-alignment.md)
 
 ## Core Concepts
 

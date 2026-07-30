@@ -4,7 +4,7 @@
 
 Planned
 
-- [ ] Card-like system
+- [ ] Card-like action system
 
 ## Context
 
