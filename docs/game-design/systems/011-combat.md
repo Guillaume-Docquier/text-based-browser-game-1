@@ -8,6 +8,7 @@ Relates to:
 
 - [System 003-actions](./003-actions.md)
 - [System 010-fleets](./010-fleets.md)
+- [System 001-turns](./001-turns.md)
 
 ## Core Concepts
 
@@ -18,6 +19,8 @@ Relates to:
 | Surprise Assault | An Assault in which the attacking side deals damage before the defending side retaliates. |
 
 ## Rules
+
+Combat resolves after all Travel and arrival-dependent events have completed for Turn Resolution. It uses the final Fleet positions, so every Fleet that arrived during the Turn is present before combat begins.
 
 An Assault at a Planet has an attacking Fleet and a defending side made up of all Enemy Fleets at that Planet. Each side's Strength is its Combined Force.
 

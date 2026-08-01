@@ -12,6 +12,7 @@ Relates to:
 
 - [System 003-actions](./003-actions.md)
 - [System 012-travel](./012-travel.md)
+- [System 001-turns](./001-turns.md)
 
 ## Core Concepts
 
@@ -25,7 +26,7 @@ Relates to:
 
 A Colonization Attempt requires an Unclaimed Planet, an arriving Fleet, and a Colony resource. On success, the Planet becomes owned by the colonizing empire and the Fleet is consumed.
 
-If multiple valid Colonization Attempts reach the same Unclaimed Planet in one turn resolution, one is selected randomly to succeed. The Fleets and Colony resources used by unsuccessful attempts return to their empires.
+Colonization resolves after Combat. A Colonization Attempt is valid only if its Fleet survives the encounter and remains at the Unclaimed Planet after Combat. Combat can therefore deny colonization by destroying a would-be colonizing Fleet. Valid Attempts are considered in the arrival order established by Travel Ticks, so an earlier arrival has priority over later arrivals. If multiple valid Attempts arrive on the same Travel Tick, one is selected randomly to succeed. The Fleets and Colony resources used by unsuccessful attempts return to their empires.
 
 ### Planet Attributes
 
