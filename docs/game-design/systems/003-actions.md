@@ -33,6 +33,8 @@ Relates to:
 
 Actions are submitted each turn by players.
 
+Every player-caused change to the game is made by playing an Action. Players cannot take a game-impacting action outside this system.
+
 There are 3 types of Actions:
 
 - Agendas
