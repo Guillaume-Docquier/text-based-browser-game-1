@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Fleets provide a simple mobile military presence for movement, combat, colonization, and other fleet-based actions.
+Fleets are simple mobile military units. They provide an empire's presence beyond its Planets and participate in travel, combat, colonization, and other fleet-related systems.
 
 Relates to:
 
@@ -14,16 +14,16 @@ Relates to:
 
 | Concept  | Definition                                                        |
 | -------- | ----------------------------------------------------------------- |
-| Fleet    | A mobile unit with one stat: Strength.                            |
+| Fleet    | A mobile unit owned by one empire, with one stat: Strength.       |
 | Strength | A positive whole number representing a Fleet's military capacity. |
 
 ## Rules
 
-A Fleet whose Strength reaches 0 disappears.
+A Fleet whose Strength reaches 0 disappears. Fleet Strength has no maximum.
 
-Build Fleet creates a Fleet with the listed Strength at an Owned Planet. Build Fleet must target a Planet owned by the empire receiving the Action's effects.
+New Fleets are created at Planets owned by their empire.
 
-Merge Fleets requires two Fleets owned by the same empire at the same Planet. Fleet A is consumed and its full Strength is added to Fleet B. Fleet Strength has no maximum.
+Two Fleets owned by the same empire and located at the same Planet may merge. One Fleet is removed and its full Strength is added to the other Fleet.
 
 ## Potential Flaws
 
