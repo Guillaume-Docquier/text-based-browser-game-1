@@ -23,7 +23,7 @@ What are key concepts for this system
 
 ## Rules
 
-How does the system work
+100 influence with rare possibilities of increasing it?
 
 ## Potential Flaws
 

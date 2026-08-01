@@ -41,8 +41,8 @@ There are 3 types of Actions:
 
 The different Action types only differ in scope and flavor. Aside from that, all actions have the same card-like shape:
 
-- They have a type
-- They have a tier
+- They have a type (Agenda/Directive/Legacy)
+- They have a tier (Basic/Standard/Improved/Advanced/Exceptional)
 - They may have pre-condition(s)
 - They have source(s)
 - They have target(s)
@@ -61,25 +61,70 @@ The costs are spent only when the turn ends, but the player will not be allowed 
 
 Agendas are broad Actions, generally Empire or Planet wide, that have a noticeable impact on the player Ideologies. They aim to steer how the Empire as a whole functions over multiple turns.
 
-| Agenda | Type | Tier | Conditions | Source | Target | Costs | Effects |
-| ------ | ---- | ---- | ---------- | ------ | ------ | ----- | ------- |
-| ...    | ...  | ...  | ...        | ...    | ...    | ...   | ...     |
+| Agenda | Tier | Conditions | Source | Target | Costs | Effects |
+| ------ | ---- | ---------- | ------ | ------ | ----- | ------- |
+| ...    | ...  | ...        | ...    | ...    | ...   | ...     |
 
 ### Directives
 
 Directives are targeted Actions, generally affecting a Planet or a Unit, that have little to no impact on the player Ideologies. They aim to have concrete, immediate effects.
 
-| Directive | Type | Tier | Conditions | Source | Target | Costs | Effects |
-| --------- | ---- | ---- | ---------- | ------ | ------ | ----- | ------- |
-| ...       | ...  | ...  | ...        | ...    | ...    | ...   | ...     |
+| Directive            | Tier        | Conditions | Source | Target           | Costs                             | Effects                                                                                                        |
+| -------------------- | ----------- | ---------- | ------ | ---------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Attack Move          | Standard    | N/A        | Fleet  | Planet           | 5 Influence, 1 fuel               | Travel at Speed 1, Range 5. Assault on arrival.                                                                |
+| Attack Move          | Exceptional | N/A        | Fleet  | Planet           | 5 Influence, 5 fuel, 5 energy     | Travel at Speed 5, Range 25. Surprise Assault on arrival.                                                      |
+| Stealth Move         | Standard    | N/A        | Fleet  | Planet           | 3 Influence, 1 fuel, 5 energy     | Travel at Speed 1, Range 3. Cloaked in transit.                                                                |
+| Stealth Move         | Exceptional | N/A        | Fleet  | Planet           | 3 Influence, 3 fuel, 10 energy    | Travel at Speed 3, Range 9. Cloaked in transit and for 1 turn after arrival.                                   |
+| Post Trade           | Standard    | N/A        | Self   | Trade Board      | 5 Influence, Trade Offering       | Post a trade for 5 turns on the trade board with a 15% tax.                                                    |
+| Post Trade           | Exceptional | N/A        | Self   | Trade Board      | 3 Influence, Trade Offering       | Post a trade for 10 turns on the trade board with a 0% tax.                                                    |
+| Bid on Trade         | Standard    | N/A        | Self   | Open Trade       | 5 Influence, Offered Bid          | Bid on an open trade at a 100% rate.                                                                           |
+| Bid on Trade         | Exceptional | N/A        | Self   | Open Trade       | 3 Influence, Offered Bid          | Bid on an open trade at a 150% rate.                                                                           |
+| Post Contract        | Standard    | N/A        | Self   | Contract Board   | 0 Influence, Offered Reward       | Post a contract for 3 turns on the contracts board. Contractor gains 100% of the offered reward.               |
+| Post Contract        | Exceptional | N/A        | Self   | Contract Board   | 0 Influence, Offered Reward       | Post a contract for 6 turns on the contracts board. Contractor gains 200% of the offered reward.               |
+| Bid on Contract      | Standard    | N/A        | Self   | Open Contract    | 0 Influence                       | Bid on an open contract. You earn 100% of your bid.                                                            |
+| Bid on Contract      | Exceptional | N/A        | Self   | Open Contract    | 0 Influence                       | Bid on an open contract. You earn 200% of your bid.                                                            |
+| Colonize Planet      | Standard    | N/A        | Fleet  | Unclaimed Planet | 25 Influence, 1 colony            | Travel at Speed 1, Range 5. Colonize on arrival.                                                               |
+| Colonize Planet      | Exceptional | N/A        | Fleet  | Unclaimed Planet | 25 Influence, 1 colony, 20 energy | Travel at Speed 5, Range 5. Colonize on arrival. The planet develops at 200% efficiency for the next 10 turns. |
+| Build Infrastructure | Standard    | N/A        | Self   | Planet           | 10 Influence, Infrastructure cost | Build basic infrastructure                                                                                     |
+| Build Infrastructure | Exceptional | N/A        | Self   | Planet           | 10 Influence, Infrastructure cost | Build exceptional infrastructure                                                                               |
+| Build Fleet          | Standard    | N/A        | Self   | Planet           | 10 Influence, 5 Metal             | Build a fleet of strength 5                                                                                    |
+| Build Fleet          | Exceptional | N/A        | Self   | Planet           | 10 Influence, 20 Metal            | Build a fleet of strength 20                                                                                   |
+| ...                  | ...         | ...        | ...    | ...              | ...                               | ...                                                                                                            |
 
 ### Legacies
 
 Legacies are big undertakings that span multiple turns. They reward a lot of Legacy points when they complete their Legacy Project.
 
-| Legacy | Type | Tier | Conditions | Source | Target | Costs | Effects |
-| ------ | ---- | ---- | ---------- | ------ | ------ | ----- | ------- |
-| ...    | ...  | ...  | ...        | ...    | ...    | ...   | ...     |
+| Legacy | Tier | Conditions | Source | Target | Costs | Effects |
+| ------ | ---- | ---------- | ------ | ------ | ----- | ------- |
+| ...    | ...  | ...        | ...    | ...    | ...   | ...     |
+
+### Mechanics and Keywords
+
+Action effects use keywords and defined game terms as shorthand for the complete rules below.
+
+#### Travel
+
+**Travel at Speed X, Range Y** means the action may target a Planet whose travel distance from the fleet is no greater than Y light-years. The fleet travels toward that Planet by up to X light-years each turn until it arrives.
+
+- **Speed X** is the maximum number of light-years the fleet travels per turn.
+- **Range Y** is the maximum travel distance allowed between the fleet and the target Planet. A Planet beyond that distance is not a valid target.
+- A fleet is **in transit** from the moment it departs until immediately before it arrives.
+- A fleet **arrives** when it reaches the target Planet. It is no longer in transit before any arrival effects resolve.
+
+#### Assault
+
+A fleet with **Assault on arrival** will attack all fleets present at the destination.
+
+#### Surprise Assault
+
+A fleet with **Surprise Assault on arrival** will attack all fleets present at the destination, dealing a first round of damage before the enemy can retaliate.
+
+#### Cloaked
+
+A **Cloaked** fleet and all information about it are hidden from Enemy players. Enemy players cannot target it.
+
+An effect that keeps a fleet Cloaked for 1 turn after arrival ends at the end of the first turn after the fleet arrives.
 
 ## Potential Flaws
 
