@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Colonization lets empires claim Unclaimed Planets and expand their presence in the galaxy.
+Colonization is how empires claim Unclaimed Planets and expand their presence in the galaxy.
 
 Supports:
 
@@ -15,20 +15,25 @@ Relates to:
 
 ## Core Concepts
 
-| Concept          | Definition                                    |
-| ---------------- | --------------------------------------------- |
-| Unclaimed Planet | A Planet with no owner that may be colonized. |
-| Colony           | A resource required to attempt colonization.  |
+| Concept              | Definition                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------ |
+| Unclaimed Planet     | A Planet with no owner that may be claimed through colonization.                                       |
+| Colony               | A resource required to attempt colonization.                                                           |
+| Colonization Attempt | An empire's attempt to establish ownership of an Unclaimed Planet with a Fleet that has arrived there. |
 
 ## Rules
 
-Colonize Planet requires a Fleet to travel to an Unclaimed Planet. When the Fleet arrives, the Planet becomes owned by the empire receiving the Action's effects and the Fleet is consumed.
+A Colonization Attempt requires an Unclaimed Planet, an arriving Fleet, and a Colony resource. On success, the Planet becomes owned by the colonizing empire and the Fleet is consumed.
 
-If multiple valid Colonize actions arrive at the same Unclaimed Planet during one turn resolution, one is selected randomly to succeed. All other attempts fail: their Fleets remain intact and non-Influence resources return. Influence is still spent.
+If multiple valid Colonization Attempts reach the same Unclaimed Planet in one turn resolution, one is selected randomly to succeed. The Fleets and Colony resources used by unsuccessful attempts return to their empires.
 
-An Exceptional Colonize Planet action can make the new Planet develop at 200% of its normal development rate for 10 turns.
+### Planet Attributes
 
-The initial state of a newly colonized Planet and the details of Planet development are not yet defined.
+TBD
+
+### Planet Development
+
+TBD
 
 ## Potential Flaws
 
