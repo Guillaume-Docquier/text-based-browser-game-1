@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Trade lets empires exchange resources without requiring them to coordinate during a turn. It creates public opportunities while keeping bids private until simultaneous resolution.
+Trade is the market through which empires exchange fixed quantities of resources. It creates public opportunities to acquire resources without requiring negotiation or a response during the current turn.
 
 Supports:
 
@@ -15,27 +15,31 @@ Relates to:
 
 ## Core Concepts
 
-| Concept        | Definition                                                                                               |
-| -------------- | -------------------------------------------------------------------------------------------------------- |
-| Seller         | The empire that creates a Trade Offering.                                                                |
-| Buyer          | The empire that wins a bid and receives the Trade Offering.                                              |
-| Trade Offering | A fixed resource and amount offered by the Seller, plus a fixed resource and amount requested in return. |
-| Open Trade     | A Trade Offering listed on the Trade Board until it settles, is cancelled, or expires.                   |
-| Bid Payment    | The requested resource and amount that a Buyer places in escrow for a bid.                               |
-| Rate           | The multiplier that determines the Seller's gross return.                                                |
-| Tax            | The percentage removed from the Seller's gross return.                                                   |
+| Concept        | Definition                                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Seller         | The empire that lists a Trade Offering.                                                                                 |
+| Buyer          | The empire whose bid settles a Trade Offering and receives it.                                                          |
+| Trade Offering | A fixed resource and amount supplied by the Seller, in exchange for a fixed resource and amount requested from a Buyer. |
+| Open Trade     | A Trade Offering listed on the Trade Board until it settles, is withdrawn, or expires.                                  |
+| Bid Payment    | The requested resource and amount a Buyer locks for a bid.                                                              |
+| Rate           | A multiplier that determines the Seller's gross return from a winning bid.                                              |
+| Tax            | The percentage removed from the Seller's gross return.                                                                  |
+
+## Trade Board
+
+The game provides a dedicated Trade Board view for browsing Open Trades. It shows each available offering, its requested resource and amount, its remaining duration, and the information needed to place a bid. It does not reveal private bids before settlement.
 
 ## Rules
 
-The Seller escrows its Trade Offering when it posts a Trade. An Open Trade remains available for its listed duration. If it expires or is cancelled without settlement, the Trade Offering returns to the Seller in full.
+A Seller lists a Trade Offering by placing the offered resource in escrow. An Open Trade remains on the Trade Board for its listed duration. If it expires or is withdrawn without settlement, its offering returns to the Seller in full.
 
-Buyers submit private bids. A bid uses the Trade's requested resource and amount as its Bid Payment. Bids remain hidden until turn resolution.
+Buyers may place private bids on an Open Trade. Each bid locks the Trade's requested resource and amount as its Bid Payment. The Buyer always pays that fixed requested amount; the Rate changes the Seller's return, not the Buyer's payment. Bids remain hidden until the turn resolves.
 
-At turn resolution, the highest valid bid wins. Tied highest rates select one winner randomly. The winning Buyer receives the Trade Offering. The Seller receives the requested amount multiplied by the winning rate, minus Tax. The system creates any amount above the requested amount created by a Rate above 100%. Tax is removed from the game.
+Players can view and accept trades from all players. There is no vision or location requirements to make trades. Resources are transferred instantaneously.
 
-When bidding alone, the Buyer pays the requested amount. Overbidding alone does not cost more. Losing Bid Payments return in full, but spent Influence is never refunded.
+At turn resolution, the highest valid Rate wins. Tied highest Rates select one winner randomly. The winning Buyer receives the Trade Offering. The Seller receives the requested amount multiplied by the winning Rate, minus Tax. The system supplies any amount above the requested amount created by a Rate above 100%. Tax is removed from the game.
 
-A Seller can cancel its own Open Trade. A valid Bid that settles during the same resolution takes priority over cancellation.
+Bid Payments from losing bids are released in full. A settlement takes priority over a withdrawal requested during the same resolution.
 
 ## Potential Flaws
 

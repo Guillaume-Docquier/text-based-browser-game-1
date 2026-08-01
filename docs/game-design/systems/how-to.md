@@ -14,3 +14,5 @@ Every single System in the game should be described in a Systems document. Someo
 Copy the template and fill it. The sections in the template are mandatory, but each document will probably have additional sections tailored to the system being described
 
 Make sure that relevant GDDRs and Systems are referenced in the Systems document.
+
+System relationships are bidirectional. Every System referenced under **Relates to** must link back to this document, including the Actions system when it uses this system's keywords or rules.
