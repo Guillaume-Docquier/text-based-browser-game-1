@@ -9,18 +9,22 @@ Relates to:
 - [System 003-actions](./003-actions.md)
 - [System 010-fleets](./010-fleets.md)
 - [System 012-travel](./012-travel.md)
+- [System 011-combat](./011-combat.md)
 
 ## Core Concepts
 
-| Concept       | Definition                                             |
-| ------------- | ------------------------------------------------------ |
-| Cloaked Fleet | A Fleet and its information hidden from Enemy players. |
+| Concept           | Definition                                                             |
+| ----------------- | ---------------------------------------------------------------------- |
+| Cloaked Fleet     | A Fleet whose existence and information are hidden from Enemy players. |
+| Cloaking Duration | The period for which a Fleet remains Cloaked.                          |
 
 ## Rules
 
-Enemy players cannot see or target a Cloaked Fleet.
+Enemy players cannot see or target a Cloaked Fleet. They therefore cannot know the Fleet's Strength or location.
 
-An effect that keeps a Fleet Cloaked for one turn after arrival ends at the end of the first turn after the Fleet arrives.
+Cloaking does not prevent a Fleet from participating in Combat. A Cloaked Fleet at a Planet contributes its full Strength to its side's Combined Force when Combat happens. A Cloaked Fleet can both Attack or Defend.
+
+A Cloaked Fleet remains Cloaked for its Cloaking Duration, but is uncloaked if involved in Combat.
 
 ## Potential Flaws
 

@@ -9,6 +9,7 @@ Relates to:
 - [System 003-actions](./003-actions.md)
 - [System 010-fleets](./010-fleets.md)
 - [System 001-turns](./001-turns.md)
+- [System 013-cloaking](./013-cloaking.md)
 
 ## Core Concepts
 
