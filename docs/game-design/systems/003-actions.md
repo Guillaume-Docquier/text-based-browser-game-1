@@ -102,94 +102,20 @@ Legacies are big undertakings that span multiple turns. They reward a lot of Leg
 | ------ | ---- | ---------- | ------ | ------ | ----- | ------- |
 | ...    | ...  | ...        | ...    | ...    | ...   | ...     |
 
-### Mechanics and Keywords
+### Detailed Mechanics
 
-Action effects use keywords and defined game terms as shorthand for the complete rules below.
+The action table uses compact effect text. Detailed definitions live in the related system documents:
 
-#### Trade
-
-A **Trade Offering** specifies a fixed resource and amount offered by its **Seller**, and a fixed resource and amount requested in return. The offered resource is immediately placed in escrow when the Trade is posted.
-
-**Post a Trade Offering for X turns with Y% Tax** creates an **Open Trade** on the Trade Board. It remains open until it settles, is cancelled, or its duration ends. If it expires without settling, its Trade Offering is returned to the Seller in full.
-
-**Bid at an X% Rate on an Open Trade** submits a private bid for that Trade. The minimum bid is the Trade's requested amount. The Buyer places the Trade's requested resource and amount in escrow as its **Bid Payment**. Bids are not visible to other players before turn resolution.
-
-At turn resolution, the highest valid bid wins. If several bids tie for the highest rate, one is selected randomly. The winning Buyer receives the Trade Offering. The Seller receives the requested amount multiplied by the winning rate, minus the Trade's Tax. The system creates any amount above the requested amount that the Seller receives because of a Rate above 100%. The Taxed amount is removed from the game.
-
-When bidding alone, the Trade's requested amount bid is paid. Overbidding alone does not cost you more.
-
-All losing Bid Payments are returned in full. The Influence spent to submit a Bid is not refunded.
-
-**Cancel the Trade** cancels the Seller's own Open Trade and returns its Trade Offering in full. If a valid Bid settles that Trade in the same turn resolution, settlement takes priority and the cancellation has no effect. Its Influence cost is still spent.
-
-#### Contract
-
-A **Contract** is a public request for another empire to perform a specified Action on behalf of its **Client**. The Client fixes the Action and its target. The winning contractor chooses an eligible source it owns.
-
-A **Contract Reward** is a fixed resource and amount held in the Client's escrow when the Contract is posted. **Post a Contract for X turns with a Y% Reward Rate** creates an **Open Contract** on the Contract Board with a visible reward equal to the Contract Reward multiplied by Y%. It remains open until it settles, is cancelled, or its duration ends. Any unspent escrow is returned to the Client when an Open Contract is cancelled or expires.
-
-A contractor submits a private **Bid Reward** when it **Bids to complete an Open Contract for X% of its Bid Reward**. The bidder must have the requested Action available, choose an eligible source, and be able to pay all normal costs for that Action. The Bid reserves and submits that Action, so it cannot be used again that turn.
-
-At turn resolution, the lowest valid Bid Reward wins. If several bids tie for the lowest reward, one is selected randomly. Only the winner performs the requested Action and pays its non-Influence action costs. Losing bidders recover their action-specific escrowed resources. Influence is never refunded.
-
-The Client receives the requested Action's effects and attribution. The contractor retains its source unless the Action destroys or consumes it. For example, a contracted Colonize Planet action uses the contractor's fleet but grants the Planet to the Client; a contracted attack affects diplomatic relationships on the Client's behalf.
-
-The contractor's payout is the lower of the Contract's visible reward and its Bid Reward multiplied by the Bid's payout rate. A Standard Post Contract's visible reward equals the Client's escrow. An Exceptional Post Contract displays a visible reward equal to twice the Client's escrow; the system matches a payout only when it exceeds that escrow. The system never pays more than the visible reward.
-
-**Cancel the Contract** cancels the Client's own Open Contract. If a valid Bid settles that Contract in the same turn resolution, settlement takes priority and the cancellation has no effect. Its Influence cost is still spent.
-
-#### Colonize
-
-**Colonize on arrival** means that, when the fleet arrives at an Unclaimed Planet, the Planet becomes owned by the Action's empire and the fleet is consumed.
-
-If multiple valid Colonize actions arrive at the same Unclaimed Planet during one turn resolution, one is selected randomly to succeed. The other actions fail: their fleets remain intact and their non-Influence resources are returned. Influence is still spent.
-
-**Develop at X% for Y turns** means that a successfully colonized Planet uses X% of its normal development rate for Y turns. The initial state of a newly colonized Planet and the details of Planet development are not yet defined.
-
-#### Infrastructure
-
-**Build X or lower Infrastructure** means the Action may build one Infrastructure whose tier is X or lower on a Planet owned by the empire receiving the Action's effects. The Action pays that Infrastructure's listed **Infrastructure Cost**.
-
-The Infrastructure catalogue, its individual effects, and its construction prerequisites are not yet defined.
-
-#### Fleet
-
-A **Fleet** has one stat: a positive whole-number **Strength**. A Fleet whose Strength reaches 0 disappears.
-
-**Build a Fleet with Strength X** creates a new Fleet with Strength X at the target Owned Planet.
-
-**Merge Fleet A onto Fleet B** requires two Fleets owned by the same empire at the same Planet. Fleet A is consumed and its full Strength is added to Fleet B. Fleet Strength has no maximum.
-
-#### Fleet Combat
-
-When a Fleet assaults a Planet, the attacking Fleet fights all Enemy Fleets at that Planet as one combined defending force. In normal combat, each side loses Strength equal to the other side's total Strength, capped at its own total Strength.
-
-If a side contains multiple Fleets, its total Strength loss is distributed proportionally across those Fleets. Losses always use whole numbers. Some rounding might be required but the total losses are always respected.
-
-**Surprise Assault on arrival** resolves in two steps. First, the attacking Fleet deals its Strength as loss to the combined defending force. Then, only the surviving defending Strength deals loss to the attacker. If no defending Strength remains, there is no retaliation.
-
-#### Travel
-
-**Travel at Speed X, Range Y** means the action may target a Planet whose travel distance from the fleet is no greater than Y light-years. The fleet travels toward that Planet by up to X light-years each turn until it arrives.
-
-- **Speed X** is the maximum number of light-years the fleet travels per turn.
-- **Range Y** is the maximum travel distance allowed between the fleet and the target Planet. A Planet beyond that distance is not a valid target.
-- A fleet is **in transit** from the moment it departs until immediately before it arrives.
-- A fleet **arrives** when it reaches the target Planet. It is no longer in transit before any arrival effects resolve.
-
-#### Assault
-
-A fleet with **Assault on arrival** will attack all Enemy Fleets present at the destination.
-
-#### Surprise Assault
-
-A fleet with **Surprise Assault on arrival** resolves its attack under the Surprise Assault rule in Fleet Combat.
-
-#### Cloaked
-
-A **Cloaked** fleet and all information about it are hidden from Enemy players. Enemy players cannot target it.
-
-An effect that keeps a fleet Cloaked for 1 turn after arrival ends at the end of the first turn after the fleet arrives.
+| Mechanic       | System                                        |
+| -------------- | --------------------------------------------- |
+| Trade          | [006-trade](./006-trade.md)                   |
+| Contracts      | [007-contracts](./007-contracts.md)           |
+| Colonization   | [008-colonization](./008-colonization.md)     |
+| Infrastructure | [009-infrastructure](./009-infrastructure.md) |
+| Fleets         | [010-fleets](./010-fleets.md)                 |
+| Assault        | [011-combat](./011-combat.md)                 |
+| Travel         | [012-travel](./012-travel.md)                 |
+| Cloaking       | [013-cloaking](./013-cloaking.md)             |
 
 ## Potential Flaws
 

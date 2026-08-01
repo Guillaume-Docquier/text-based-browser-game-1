@@ -11,3 +11,11 @@ This index summarizes the game's systems. Read the related entries when a mechan
 | [003-actions](./003-actions.md)                             | How players use card-like Agendas, Directives, and Legacy Projects to affect the game each turn. |
 | [004-ideological-alignment](./004-ideological-alignment.md) | How an empire's ideological position shapes its available actions.                               |
 | [005-political-regime](./005-political-regime.md)           | How an empire's Political Regime changes the cost and efficiency of its actions.                 |
+| [006-trade](./006-trade.md)                                 | How Sellers and Buyers exchange resources through private bids.                                  |
+| [007-contracts](./007-contracts.md)                         | How Clients hire Contractors to perform Actions on their behalf.                                 |
+| [008-colonization](./008-colonization.md)                   | How empires claim Unclaimed Planets.                                                             |
+| [009-infrastructure](./009-infrastructure.md)               | How empires improve their owned Planets.                                                         |
+| [010-fleets](./010-fleets.md)                               | How Fleets are created, represented, and merged.                                                 |
+| [011-combat](./011-combat.md)                               | How Fleet assaults and Surprise Assaults resolve.                                                |
+| [012-travel](./012-travel.md)                               | How Fleets travel between Planets.                                                               |
+| [013-cloaking](./013-cloaking.md)                           | How Fleets are hidden from Enemy players.                                                        |
