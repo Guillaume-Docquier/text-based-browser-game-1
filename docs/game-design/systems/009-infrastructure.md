@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Infrastructure lets an empire develop the capabilities of its owned Planets.
+Infrastructure is the set of persistent Planet-level improvements through which an empire develops the capabilities of its owned Planets.
 
 Relates to:
 
@@ -10,16 +10,36 @@ Relates to:
 
 ## Core Concepts
 
-| Concept             | Definition                                                                             |
-| ------------------- | -------------------------------------------------------------------------------------- |
-| Infrastructure      | A Planet-level improvement with a tier, construction cost, effects, and prerequisites. |
-| Infrastructure Cost | The resources required to build a specific Infrastructure.                             |
+| Concept                   | Definition                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| Infrastructure            | A persistent Planet-level improvement with a tier, construction cost, effects, and prerequisites. |
+| Infrastructure Tier       | The relative level of an Infrastructure, used to determine its availability.                      |
+| Infrastructure Cost       | The resources required to construct a specific Infrastructure.                                    |
+| Construction Prerequisite | A condition that must be met before a specific Infrastructure may be constructed.                 |
 
 ## Rules
 
-Build Infrastructure targets a Planet owned by the empire receiving the Action's effects. An Action can build one Infrastructure at its own tier or lower, and pays that Infrastructure's listed cost.
+Infrastructure may only be constructed on a Planet owned by the empire that will own it. Its construction requires payment of its listed cost and satisfaction of its Construction Prerequisites.
 
-The Infrastructure catalogue, individual effects, construction prerequisites, and interactions with Planet attributes are not yet defined.
+### Basic Infrastructure
+
+TBD
+
+### Standard Infrastructure
+
+TBD
+
+### Improved Infrastructure
+
+TBD
+
+### Advanced Infrastructure
+
+TBD
+
+### Exceptional Infrastructure
+
+TBD
 
 ## Potential Flaws
 
