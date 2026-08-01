@@ -18,6 +18,7 @@ Relates to:
 - [System 002-legacy](./002-legacy.md)
 - [System 004-ideological-alignment](./004-ideological-alignment.md)
 - [System 005-political-regime](./005-political-regime.md)
+- [System 014-resources](./014-resources.md)
 
 ## Core Concepts
 

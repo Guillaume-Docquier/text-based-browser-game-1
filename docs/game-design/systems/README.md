@@ -19,3 +19,4 @@ This index summarizes the game's systems. Read the related entries when a mechan
 | [011-combat](./011-combat.md)                               | How Fleet assaults and Surprise Assaults resolve.                                                |
 | [012-travel](./012-travel.md)                               | How Fleets travel between Planets.                                                               |
 | [013-cloaking](./013-cloaking.md)                           | How Fleets are hidden from Enemy players.                                                        |
+| [014-resources](./014-resources.md)                         | How distinct thematic resources are acquired, held, spent, and made scarce.                      |
