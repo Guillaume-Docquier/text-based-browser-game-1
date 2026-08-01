@@ -13,6 +13,7 @@ These decisions describe intended game philosophy and mechanics that are not yet
 | [005-ideological-axes](005-ideological-axes.md)               | An empire's position on ideological axes determines its available actions and strategic specialization.       | You design ideological alignment, action availability, specialization, or strategic paths. |
 | [006-card-like-actions](006-card-like-actions.md)             | Actions share a card-like model and form a per-turn pool constrained by prerequisites and costs.              | You design actions, action pools, prerequisites, costs, tiers, or the action codex.        |
 | [007-asymmetric-play](007-asymmetric-play.md)                 | A chosen, changeable Political Regime modifies action costs and efficiency to create asymmetric play.         | You design Political Regimes, asymmetric strategies, or action balance.                    |
+| [008-thematic-resources](008-thematic-resources.md)           | Multiple thematic resources create economic specialization, scarcity, and inter-empire exchange.              | You design resources, production, scarcity, trade, contracts, or specialization.           |
 
 ## Partially Implemented decisions
 
