@@ -117,7 +117,7 @@ The action table uses compact effect text. Detailed definitions live in the rela
 | Fleets         | [010-fleets](./010-fleets.md)                 |
 | Assault        | [011-combat](./011-combat.md)                 |
 | Travel         | [012-travel](./012-travel.md)                 |
-| Cloaking       | [013-cloaking](./013-cloaking.md)             |
+| Cloaking       | [010-fleets](./010-fleets.md)                 |
 
 ## Potential Flaws
 

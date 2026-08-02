@@ -10,16 +10,16 @@ Relates to:
 - [System 012-travel](./012-travel.md)
 - [System 011-combat](./011-combat.md)
 - [System 008-planets](./008-planets.md)
-- [System 013-cloaking](./013-cloaking.md)
 
 ## Core Concepts
 
-| Concept          | Definition                                                                  |
-| ---------------- | --------------------------------------------------------------------------- |
-| Fleet            | An empire's combined mobile force at one location, represented by Strength. |
-| Visible Strength | A positive whole number representing a Fleet's visbile military capacity.   |
-| Cloaked Strength | A positive whole number representing a Fleet's hidden military capacity.    |
-| Total Strength   | A positive whole number representing a Fleet's total military capacity.     |
+| Concept           | Definition                                                                  |
+| ----------------- | --------------------------------------------------------------------------- |
+| Fleet             | An empire's combined mobile force at one location, represented by Strength. |
+| Visible Strength  | A positive whole number representing a Fleet's visbile military capacity.   |
+| Cloaked Strength  | A positive whole number representing a Fleet's hidden military capacity.    |
+| Total Strength    | A positive whole number representing a Fleet's total military capacity.     |
+| Cloaking Duration | The period for which a Fleet's Strength remains Cloaked.                    |
 
 ## Rules
 
@@ -29,8 +29,16 @@ To move a Fleet, the player selects a positive amount of its Strength. That Stre
 
 New Fleets can only be built at Planets owned by their empire. A new fleet can appear anywhere as a result of a split.
 
-When a Cloaked Fleet merges with a another Fleet, it adds its Strength to the Cloaked Strength. Other players only see the Visible Strength. If there is 0 Visible Strength, other players don't see the Fleet at all.
+### Cloaking
+
+Cloaking creates hidden Fleet movement and information asymmetry. Enemy players cannot see or target Cloaked Strength. When a Fleet has 0 Visible Strength, Enemy players cannot see the Fleet or know its location.
+
+When a Cloaked Fleet merges with another Fleet, its Strength remains Cloaked in the resulting Fleet. The owning player sees both Visible Strength and Cloaked Strength; Enemy players see only Visible Strength.
+
+Cloaked Strength participates fully in Combat. A Fleet can attack or defend while Cloaked, but all its Cloaked Strength becomes Visible if it is involved in Combat. Cloaked Strength otherwise remains Cloaked for its Cloaking Duration.
 
 ## Potential Flaws
 
 A single-stat unit model may not provide enough tactical variety once fleet gameplay expands.
+
+Cloaking may create frustrating attacks without enough detection, warning, or counterplay systems.
