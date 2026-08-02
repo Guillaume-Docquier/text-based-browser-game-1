@@ -7,7 +7,7 @@ export function createGameConfigurationDtoStub(overrides?: Partial<GameConfigura
     name: "game configuration",
     nbSeats: 5,
     starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
-    tickIntervalSeconds: Time.in(Time.create(24, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+    turnIntervalSeconds: Time.in(Time.create(24, UnitOfTime.HOURS), UnitOfTime.SECONDS),
     ...overrides,
   }
 }

@@ -27,7 +27,7 @@ export type GamePlayerAction = z.infer<typeof GamePlayerActionSchema>
 export const GamePlayerActionSchema = z.object({
   gameId: GameId,
   playerId: PlayerId,
-  tick: z.number(),
+  turn: z.number(),
   actionType: GamePlayerActionTypeSchema,
   updatedAt: z.date(),
 })

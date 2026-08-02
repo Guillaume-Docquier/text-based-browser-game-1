@@ -29,7 +29,7 @@ describe("gameplay.router", () => {
     await expect(
       nonPlayer.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
-        tick: 0,
+        turn: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
       }),
     ).rejects.toMatchObject(expectedError)
@@ -48,8 +48,8 @@ describe("gameplay.router", () => {
       const startGameResult = await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(startGameResult).toEqual<typeof startGameResult>({ nextTickAt: expect.any(String) }) // trpc serializes the date to string
-      expect(new Date(startGameResult.nextTickAt).toString()).not.toBe("Invalid Date")
+      expect(startGameResult).toEqual<typeof startGameResult>({ nextTurnAt: expect.any(String) }) // trpc serializes the date to string
+      expect(new Date(startGameResult.nextTurnAt).toString()).not.toBe("Invalid Date")
     })
 
     it("should reject starting a game as a non-creator", async () => {
@@ -145,10 +145,10 @@ describe("gameplay.router", () => {
         gameId: createdGameId,
         player: { id: player.account.id, color: PlayerColor.WHITE },
         opponents: {},
-        tick: 0,
-        nextTickAt: Datetime.increment({
+        turn: 0,
+        nextTurnAt: Datetime.increment({
           date: clock.now(),
-          time: Time.create(gameConfiguration.tickIntervalSeconds, UnitOfTime.SECONDS),
+          time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
         starSystem: {
           orbits: [
@@ -375,7 +375,7 @@ describe("gameplay.router", () => {
       // Act
       const setCurrentActionResult = await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
-        tick: 0,
+        turn: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
       })
       const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
@@ -387,7 +387,7 @@ describe("gameplay.router", () => {
         action: {
           gameId: createdGameId,
           playerId: player.account.id,
-          tick: 0,
+          turn: 0,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
           updatedAt: expect.any(String),
         },
@@ -395,7 +395,7 @@ describe("gameplay.router", () => {
       expect(getCurrentActionResult).toEqual<typeof getCurrentActionResult>(setCurrentActionResult)
     })
 
-    it("should reject setting an action for a stale tick", async () => {
+    it("should reject setting an action for a stale turn", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
       const player = await apiServer.createClient({ authenticated: true })
@@ -407,7 +407,7 @@ describe("gameplay.router", () => {
       await expect(
         player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
-          tick: 1,
+          turn: 1,
           actionType: GamePlayerActionType.MAKE_MORE_MONEY,
         }),
       ).rejects.toMatchObject({

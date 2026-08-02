@@ -1,4 +1,4 @@
-# Tick Processing in Worker Threads
+# Turn Processing in Worker Threads
 
 ## Status
 
@@ -6,19 +6,19 @@ Accepted
 
 ## Context
 
-We'll need workers to process game ticks.
+We'll need workers to process game turns.
 
-Each game will queue a next tick when the game starts.
+Each game will queue a next turn when the game starts.
 
-Workers will pick ticks to process, and queue the next tick when they're done.
+Workers will pick turns to process, and queue the next turn when they're done.
 
-We'll need a way to scale the number of workers so that pending ticks don't accumulate.
+We'll need a way to scale the number of workers so that pending turns don't accumulate.
 
-Processing a tick is CPU bound. There's going to be mostly no IO. Read from DB, do the work, write to DB.
+Processing a turn is CPU bound. There's going to be mostly no IO. Read from DB, do the work, write to DB.
 
-Ticks won't be too frequent. A typical tick interval would be 1 day, so games would have 1 tick to process per day.
+Turns won't be too frequent. A typical turn interval would be 1 day, so games would have 1 turn to process per day.
 
-However, there might be games configured with more frequent ticks, or games with active players that ready-up to pass ticks quickly.
+However, there might be games configured with more frequent turns, or games with active players that ready-up to pass turns quickly.
 
 And of course, there's the number of games in parallel.
 

@@ -12,14 +12,14 @@ import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamesTable, gameStatesTable, ordersTable, playersTable, resourcesTable, ticksTable } from "#lib/db/schema.ts"
+import { gamesTable, gameStatesTable, ordersTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type OrderRow = typeof ordersTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
-type NewTickRow = typeof ticksTable.$inferInsert
+type NewTurnRow = typeof turnsTable.$inferInsert
 
 export type OrderModel = OrderRow
 
@@ -27,7 +27,7 @@ export type OrderModel = OrderRow
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
 export type PlayerActionContextModel = {
-  tick: number
+  turn: number
   money: number
 }
 
@@ -40,8 +40,8 @@ export type PlayerViewModel = {
   gameId: number
   player: PlayerViewPlayerModel
   opponents: Record<PlayerId, PlayerViewPlayerModel>
-  tick: number
-  nextTickAt: Date
+  turn: number
+  nextTurnAt: Date
   starSystem: StarSystemModel
   resources: {
     money: number
@@ -58,7 +58,7 @@ export type GameForStart = Branded<
     readonly createdByAccountId: AccountId
     readonly status: GameStatus
     readonly starSystemGenerationSettings: StarSystemGenerationSettings
-    readonly tickInterval: Time
+    readonly turnInterval: Time
     readonly playerIds: readonly PlayerId[]
   },
   "GameForStart"
@@ -71,7 +71,7 @@ export type StartGameModel = {
   readonly game: GameForStart
   readonly status: GameStatus
   readonly startedAt: Date
-  readonly nextTickAt: Date
+  readonly nextTurnAt: Date
   readonly starSystem: NewStarSystemModel
   readonly playerResources: ReadonlyArray<{
     readonly playerId: PlayerId
@@ -119,7 +119,7 @@ export class GameplayRepository extends PostgresRepository {
         createdByAccountId: gamesTable.createdByAccountId,
         status: gamesTable.status,
         starSystemGenerationSettings: gamesTable.starSystemGenerationSettings,
-        tickIntervalSeconds: gamesTable.tickIntervalSeconds,
+        turnIntervalSeconds: gamesTable.turnIntervalSeconds,
       })
       .from(gamesTable)
       .where(eq(gamesTable.id, gameId))
@@ -145,7 +145,7 @@ export class GameplayRepository extends PostgresRepository {
         createdByAccountId: gameForStart.createdByAccountId,
         status: gameForStart.status,
         starSystemGenerationSettings: gameForStart.starSystemGenerationSettings,
-        tickInterval: Time.create(gameForStart.tickIntervalSeconds, UnitOfTime.SECONDS),
+        turnInterval: Time.create(gameForStart.turnIntervalSeconds, UnitOfTime.SECONDS),
         playerIds,
       }),
     )
@@ -157,14 +157,14 @@ export class GameplayRepository extends PostgresRepository {
   public async startGame(startGameModel: StartGameModel, tx: Transaction): Promise<void> {
     const gameState = {
       gameId: startGameModel.game.id,
-      tick: 0,
-      nextTickAt: startGameModel.nextTickAt,
+      turn: 0,
+      nextTurnAt: startGameModel.nextTurnAt,
     } as const satisfies NewGameStateRow
 
-    const gameTick: NewTickRow = {
+    const gameTurn: NewTurnRow = {
       gameId: startGameModel.game.id,
-      tick: gameState.tick,
-      scheduledFor: startGameModel.nextTickAt,
+      turn: gameState.turn,
+      scheduledFor: startGameModel.nextTurnAt,
     }
 
     const resources: NewResourceRow[] = startGameModel.playerResources.map((playerResource) => ({
@@ -181,7 +181,7 @@ export class GameplayRepository extends PostgresRepository {
 
     await tx.insert(resourcesTable).values(resources)
     await tx.insert(gameStatesTable).values(gameState)
-    await tx.insert(ticksTable).values(gameTick)
+    await tx.insert(turnsTable).values(gameTurn)
     await StarSystemQueries.insertStarSystem({ gameId: startGameModel.game.id, starSystem: startGameModel.starSystem }, tx)
   }
 
@@ -240,14 +240,14 @@ export class GameplayRepository extends PostgresRepository {
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
   public async getCurrentAction(
-    params: { gameId: GameId; playerId: PlayerId; tick: number },
+    params: { gameId: GameId; playerId: PlayerId; turn: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<OrderModel | null, string>> {
     const getResult = await Result.tryCatch(
       db
         .select()
         .from(ordersTable)
-        .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.tick, params.tick))),
+        .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.turn, params.turn))),
     )
 
     if (Result.isFailure(getResult)) {
@@ -279,7 +279,7 @@ export class GameplayRepository extends PostgresRepository {
         }
 
         const gameStates = await tx
-          .select({ tick: gameStatesTable.tick })
+          .select({ turn: gameStatesTable.turn })
           .from(gameStatesTable)
           .where(eq(gameStatesTable.gameId, params.gameId))
         if (gameStates.length !== 1) {
@@ -303,7 +303,7 @@ export class GameplayRepository extends PostgresRepository {
         Assert.isDefined(moneyRows[0])
 
         return {
-          tick: gameStates[0].tick,
+          turn: gameStates[0].turn,
           money: moneyRows[0].amount,
         }
       }),
@@ -321,7 +321,7 @@ export class GameplayRepository extends PostgresRepository {
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
   public async setCurrentAction(
-    params: { gameId: GameId; playerId: PlayerId; tick: number; actionType: GamePlayerActionType },
+    params: { gameId: GameId; playerId: PlayerId; turn: number; actionType: GamePlayerActionType },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<OrderModel, string>> {
     const upsertResult = await Result.tryCatch(
@@ -333,7 +333,7 @@ export class GameplayRepository extends PostgresRepository {
           .insert(ordersTable)
           .values({ ...params, updatedAt })
           .onConflictDoUpdate({
-            target: [ordersTable.gameId, ordersTable.playerId, ordersTable.tick],
+            target: [ordersTable.gameId, ordersTable.playerId, ordersTable.turn],
             set: {
               actionType: params.actionType,
               updatedAt,
@@ -360,7 +360,7 @@ export class GameplayRepository extends PostgresRepository {
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
   public async clearCurrentAction(
-    params: { gameId: GameId; playerId: PlayerId; tick: number },
+    params: { gameId: GameId; playerId: PlayerId; turn: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(
@@ -369,7 +369,7 @@ export class GameplayRepository extends PostgresRepository {
 
         await tx
           .delete(ordersTable)
-          .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.tick, params.tick)))
+          .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.turn, params.turn)))
       }),
     )
 

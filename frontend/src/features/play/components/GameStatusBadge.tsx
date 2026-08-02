@@ -12,7 +12,7 @@ export function GameStatusBadge({ status }: { status: LobbyStatus }): ReactEleme
     return <Badge className="border-sky-400/30 bg-sky-500/15 text-sky-200">{formatLobbyStatus(status)}</Badge>
   }
 
-  if (status === "PROCESSING_TICK") {
+  if (status === "PROCESSING_TURN") {
     return <Badge className="border-violet-400/30 bg-violet-500/15 text-violet-100">{formatLobbyStatus(status)}</Badge>
   }
 

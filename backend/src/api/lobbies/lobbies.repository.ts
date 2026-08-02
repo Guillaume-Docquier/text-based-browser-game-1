@@ -17,7 +17,7 @@ type GameRow = typeof gamesTable.$inferSelect
 export type LobbyConfigurationModel = {
   name: string
   nbSeats: number
-  tickIntervalSeconds: number
+  turnIntervalSeconds: number
   starSystemGenerationSettings: StarSystemGenerationSettings
 }
 
@@ -277,7 +277,7 @@ function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPl
     configuration: {
       name: gameRow.name,
       nbSeats: gameRow.nbSeats,
-      tickIntervalSeconds: gameRow.tickIntervalSeconds,
+      turnIntervalSeconds: gameRow.turnIntervalSeconds,
       starSystemGenerationSettings: gameRow.starSystemGenerationSettings,
     },
     creator,

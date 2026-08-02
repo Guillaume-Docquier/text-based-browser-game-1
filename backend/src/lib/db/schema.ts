@@ -74,7 +74,7 @@ export const gamesTable = pgTable("games", {
   name: varchar("name", { length: 255 }).notNull(),
   nbSeats: integer("nb_seats").notNull(),
   starSystemGenerationSettings: jsonb("star_system_generation_settings").$type<StarSystemGenerationSettings>().notNull(),
-  tickIntervalSeconds: integer("tick_interval_seconds").notNull(),
+  turnIntervalSeconds: integer("turn_interval_seconds").notNull(),
 })
 
 /**
@@ -135,27 +135,27 @@ export const gameStatesTable = pgTable("game_states", {
   gameId: gameId("game_id")
     .primaryKey()
     .references(() => gamesTable.id, { onDelete: "cascade" }),
-  tick: integer("tick").notNull().default(0),
-  nextTickAt: timestamp("next_tick_at").notNull(),
+  turn: integer("turn").notNull().default(0),
+  nextTurnAt: timestamp("next_turn_at").notNull(),
 })
 
 /**
- * Orders submitted for a specific game tick.
- * Rows are kept as append-only history across ticks.
+ * Orders submitted for a specific game turn.
+ * Rows are kept as append-only history across turns.
  */
 export const ordersTable = pgTable(
   "orders",
   {
     gameId: gameId("game_id").notNull(),
     playerId: playerId("player_id").notNull(),
-    tick: integer("tick").notNull(),
+    turn: integer("turn").notNull(),
     actionType: gamePlayerActionTypeEnum("action_type").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
     primaryKey({
-      columns: [table.gameId, table.playerId, table.tick],
+      columns: [table.gameId, table.playerId, table.turn],
     }),
     foreignKey({
       columns: [table.gameId, table.playerId],
@@ -166,22 +166,22 @@ export const ordersTable = pgTable(
 )
 
 /**
- * The state of tick computation
+ * The state of turn computation
  */
-export const ticksTable = pgTable(
-  "ticks",
+export const turnsTable = pgTable(
+  "turns",
   {
     gameId: gameId("game_id")
       .notNull()
       .references(() => gamesTable.id, { onDelete: "cascade" }),
-    tick: integer("tick").notNull(),
+    turn: integer("turn").notNull(),
     scheduledFor: timestamp("scheduled_for").notNull(),
     processingStartedAt: timestamp("processing_started_at"),
     processingEndedAt: timestamp("processing_ended_at"),
   },
   (table) => [
     primaryKey({
-      columns: [table.gameId, table.tick],
+      columns: [table.gameId, table.turn],
     }),
     index().on(table.scheduledFor),
   ],

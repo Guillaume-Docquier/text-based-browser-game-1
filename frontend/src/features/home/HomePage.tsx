@@ -51,7 +51,7 @@ export function HomePage(): ReactElement {
           <FeatureCard
             icon={<TimerReset className="size-5" />}
             title="Persistent turns"
-            description="Plan around the next tick, not twitch mechanics. Decisions compound even when you are offline."
+            description="Plan around the next turn, not twitch mechanics. Decisions compound even when you are offline."
           />
         </div>
       </div>
