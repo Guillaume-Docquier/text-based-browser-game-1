@@ -249,9 +249,9 @@ describe("lobbies.router", () => {
         nonPlayer: { status: nonPlayerLobby.status, canOpen: nonPlayerLobby.canOpen },
         anonymous: { status: anonymousLobby.status, canOpen: anonymousLobby.canOpen },
       }).toEqual({
-        player: { status: GameStatus.COLLECTING_ORDERS, canOpen: true },
-        nonPlayer: { status: GameStatus.COLLECTING_ORDERS, canOpen: false },
-        anonymous: { status: GameStatus.COLLECTING_ORDERS, canOpen: false },
+        player: { status: GameStatus.COLLECTING_ACTIONS, canOpen: true },
+        nonPlayer: { status: GameStatus.COLLECTING_ACTIONS, canOpen: false },
+        anonymous: { status: GameStatus.COLLECTING_ACTIONS, canOpen: false },
       })
     })
 

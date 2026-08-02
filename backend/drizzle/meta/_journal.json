@@ -22,6 +22,20 @@
       "when": 1785701520222,
       "tag": "0002_standardize-turn-nomenclature",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785707582999,
+      "tag": "0003_standardize-actions-nomenclature",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785710253789,
+      "tag": "0004_rename-actions-table",
+      "breakpoints": true
     }
   ]
 }

@@ -24,21 +24,21 @@ const PLAYER_ACTIONS = [
     rewardMoney: 0,
   },
 ] as const satisfies Array<{
-  actionType: ApiTypes.GamePlayerAction["actionType"]
+  actionType: ApiTypes.ActionDto["actionType"]
   label: string
   description: string
   costMoney: number
   rewardMoney: number
 }>
 
-export function GameActionSelector({
+export function ActionSelector({
   gameId,
   playerView,
   currentAction,
 }: {
   gameId: ApiTypes.GameId
   playerView: PlayerView
-  currentAction: ApiTypes.GamePlayerAction | null
+  currentAction: ApiTypes.ActionDto | null
 }): ReactElement {
   const setCurrentAction = useSetCurrentActionMutation()
 
@@ -143,7 +143,7 @@ export function GameActionSelector({
   )
 }
 
-export function GameActionSelectorSkeleton(): ReactElement {
+export function ActionSelectorSkeleton(): ReactElement {
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

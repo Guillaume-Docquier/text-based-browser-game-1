@@ -29,12 +29,12 @@ This is a TypeScript monorepo using pnpm workspaces.
 ### Dependencies
 
 ```
-frontend/ ───api-types───▶ backend/src/api/ ───orders-validation───▶ backend/src/turn-processing/
+frontend/ ───api-types───▶ backend/src/api/ ───actions-validation───▶ backend/src/turn-processing/
 ```
 
 There are no other allowed dependencies.
 
-Note: The orders validation code doesn't yet exist, but soon will.
+Note: The actions validation code doesn't yet exist, but soon will.
 
 ### CI/CD
 

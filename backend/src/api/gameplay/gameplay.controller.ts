@@ -7,18 +7,13 @@ import { RangeDto } from "#api/shared/RangeDto.ts"
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import {
-  GAME_PLAYER_ACTION_RULES,
-  type GamePlayerAction,
-  GamePlayerActionSchema,
-  GamePlayerActionTypeSchema,
-} from "#lib/db/gameplay/gamePlayerActions.ts"
+import { ACTION_RULES, ActionDto, ActionTypeSchema } from "#lib/db/gameplay/actions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
-import { type GameplayRepository, type OrderModel, type PlayerViewModel } from "./gameplay.repository.ts"
+import { type ActionModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
@@ -74,7 +69,7 @@ export class GameplayController {
       await this.gameplayRepository.startGame(
         {
           game: gameForStart.value,
-          status: GameStatus.COLLECTING_ORDERS,
+          status: GameStatus.COLLECTING_ACTIONS,
           startedAt,
           nextTurnAt,
           starSystem: starSystemResult.value,
@@ -114,9 +109,9 @@ export class GameplayController {
   /**
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
-  public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<GamePlayerAction | null, string>> {
+  public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<ActionDto | null, string>> {
     const getCurrentActionResult = await this.createTransaction(async (tx) => {
-      const activeGameResult = await this.gameplayRepository.getPlayerActionContext({ gameId, playerId }, tx)
+      const activeGameResult = await this.gameplayRepository.getActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
 
       const currentActionResult = await this.gameplayRepository.getCurrentAction(
@@ -129,7 +124,7 @@ export class GameplayController {
       )
       rollbackOnFailure(currentActionResult, "Failed to get current action")
 
-      return currentActionResult.value === null ? null : toGamePlayerAction(currentActionResult.value)
+      return currentActionResult.value === null ? null : toActionDto(currentActionResult.value)
     })
 
     if (Result.isFailure(getCurrentActionResult)) {
@@ -143,14 +138,9 @@ export class GameplayController {
   /**
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
-  public async setCurrentAction({
-    gameId,
-    turn,
-    playerId,
-    actionType,
-  }: SetCurrentActionDto): Promise<Result<GamePlayerAction | null, string>> {
+  public async setCurrentAction({ gameId, turn, playerId, actionType }: SetCurrentActionDto): Promise<Result<ActionDto | null, string>> {
     const setActionResult = await this.createTransaction(async (tx) => {
-      const activeGameResult = await this.gameplayRepository.getPlayerActionContext({ gameId, playerId }, tx)
+      const activeGameResult = await this.gameplayRepository.getActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
 
       if (activeGameResult.value.turn !== turn) {
@@ -161,14 +151,14 @@ export class GameplayController {
 
       if (actionType === null) {
         const deleteResult = await this.gameplayRepository.clearCurrentAction({ gameId, playerId, turn }, tx)
-        rollbackOnFailure(deleteResult, "Failed to clear game player action")
+        rollbackOnFailure(deleteResult, "Failed to clear action")
 
         return null
       }
 
-      const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
+      const actionRule = ACTION_RULES[actionType]
       if (activeGameResult.value.money < actionRule.costMoney) {
-        this.logger.error("Player cannot afford selected game player action", {
+        this.logger.error("Player cannot afford selected action", {
           gameId,
           playerId,
           actionType,
@@ -179,9 +169,9 @@ export class GameplayController {
       }
 
       const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, playerId, turn, actionType }, tx)
-      rollbackOnFailure(upsertResult, "Failed to upsert game player action")
+      rollbackOnFailure(upsertResult, "Failed to upsert action")
 
-      return toGamePlayerAction(upsertResult.value)
+      return toActionDto(upsertResult.value)
     })
 
     if (Result.isFailure(setActionResult)) {
@@ -205,13 +195,13 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
   }
 }
 
-function toGamePlayerAction(gamePlayerActionModel: OrderModel): GamePlayerAction {
+function toActionDto(actionModel: ActionModel): ActionDto {
   return {
-    gameId: gamePlayerActionModel.gameId,
-    playerId: gamePlayerActionModel.playerId,
-    turn: gamePlayerActionModel.turn,
-    actionType: gamePlayerActionModel.actionType,
-    updatedAt: gamePlayerActionModel.updatedAt,
+    gameId: actionModel.gameId,
+    playerId: actionModel.playerId,
+    turn: actionModel.turn,
+    actionType: actionModel.actionType,
+    updatedAt: actionModel.updatedAt,
   }
 }
 
@@ -296,9 +286,9 @@ export const SetCurrentActionDto = z.object({
   gameId: z.coerce.number(),
   playerId: PlayerId,
   turn: z.coerce.number(),
-  actionType: GamePlayerActionTypeSchema.nullable(),
+  actionType: ActionTypeSchema.nullable(),
 })
 
 export const CurrentActionDto = z.object({
-  action: GamePlayerActionSchema.nullable(),
+  action: ActionDto.nullable(),
 })

@@ -15,7 +15,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core"
-import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
@@ -31,7 +31,7 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 }
 
 export const starSystemBodyTypeEnum = pgEnum("body_type", pgEnumify(BodyType))
-export const gamePlayerActionTypeEnum = pgEnum("action_type", pgEnumify(GamePlayerActionType))
+export const actionTypeEnum = pgEnum("action_type", pgEnumify(ActionType))
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
 
@@ -140,16 +140,16 @@ export const gameStatesTable = pgTable("game_states", {
 })
 
 /**
- * Orders submitted for a specific game turn.
+ * Actions submitted for a specific game turn.
  * Rows are kept as append-only history across turns.
  */
-export const ordersTable = pgTable(
-  "orders",
+export const actionsTable = pgTable(
+  "actions",
   {
     gameId: gameId("game_id").notNull(),
     playerId: playerId("player_id").notNull(),
     turn: integer("turn").notNull(),
-    actionType: gamePlayerActionTypeEnum("action_type").notNull(),
+    actionType: actionTypeEnum("action_type").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -160,7 +160,7 @@ export const ordersTable = pgTable(
     foreignKey({
       columns: [table.gameId, table.playerId],
       foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "orders_gameId_playerId_game_players_fk",
+      name: "actions_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
   ],
 )

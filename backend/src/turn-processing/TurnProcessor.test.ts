@@ -4,7 +4,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
@@ -137,7 +137,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+        actionType: ActionType.MAKE_MORE_MONEY,
       })
 
       // Act
@@ -184,7 +184,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+        actionType: ActionType.MAKE_MORE_MONEY,
       })
       Assert.isSuccess(
         await resourcesRepository.updateResource({
@@ -440,7 +440,7 @@ describe("TurnProcessor", () => {
         await player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           turn: 0,
-          actionType: GamePlayerActionType.WIN_THE_GAME,
+          actionType: ActionType.WIN_THE_GAME,
         })
       }
 

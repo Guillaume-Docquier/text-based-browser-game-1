@@ -8,7 +8,7 @@ export function GameStatusBadge({ status }: { status: LobbyStatus }): ReactEleme
     return <Badge className="border-emerald-400/30 bg-emerald-500/15 text-emerald-200">{formatLobbyStatus(status)}</Badge>
   }
 
-  if (status === "COLLECTING_ORDERS") {
+  if (status === "COLLECTING_ACTIONS") {
     return <Badge className="border-sky-400/30 bg-sky-500/15 text-sky-200">{formatLobbyStatus(status)}</Badge>
   }
 

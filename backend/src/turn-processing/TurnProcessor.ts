@@ -3,8 +3,8 @@ import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { GAME_PLAYER_ACTION_RULES } from "#lib/db/gameplay/gamePlayerActions.ts"
-import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { ACTION_RULES } from "#lib/db/gameplay/actions.ts"
+import { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
@@ -61,9 +61,9 @@ export class TurnProcessor {
         return undefined
       }
 
-      if (nextTurnToProcessResult.value.gameStatus !== GameStatus.COLLECTING_ORDERS) {
+      if (nextTurnToProcessResult.value.gameStatus !== GameStatus.COLLECTING_ACTIONS) {
         throw new TransactionRollback("Game cannot be processed in its current status", {
-          cause: { status: nextTurnToProcessResult.value.gameStatus, expected: GameStatus.COLLECTING_ORDERS },
+          cause: { status: nextTurnToProcessResult.value.gameStatus, expected: GameStatus.COLLECTING_ACTIONS },
         })
       }
 
@@ -123,12 +123,12 @@ export class TurnProcessor {
       money.amount += 1
 
       if (actionType !== undefined) {
-        const actionRule = GAME_PLAYER_ACTION_RULES[actionType]
+        const actionRule = ACTION_RULES[actionType]
         if (actionRule.costMoney <= money.amount) {
           money.amount -= actionRule.costMoney
           money.amount += actionRule.rewardMoney
 
-          if (actionType === GamePlayerActionType.WIN_THE_GAME && winnerAccountId === undefined) {
+          if (actionType === ActionType.WIN_THE_GAME && winnerAccountId === undefined) {
             winnerAccountId = playerId
           }
         }
@@ -150,7 +150,7 @@ export class TurnProcessor {
     if (winnerAccountId === undefined) {
       return {
         ...turnResult,
-        gameStatus: GameStatus.COLLECTING_ORDERS,
+        gameStatus: GameStatus.COLLECTING_ACTIONS,
         nextTurn: {
           turn: turnToProcess.turn + 1,
           scheduledFor: Datetime.increment({
