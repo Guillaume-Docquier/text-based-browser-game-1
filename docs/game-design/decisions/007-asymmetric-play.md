@@ -5,6 +5,7 @@
 Planned
 
 - [ ] Political Regimes
+- [ ] Regimes Changes
 
 ## Context
 

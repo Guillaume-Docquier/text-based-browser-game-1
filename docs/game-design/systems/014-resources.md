@@ -12,6 +12,7 @@ Relates to:
 
 - [System 003-actions](./003-actions.md)
 - [System 008-planets](./008-planets.md)
+- [System 005-political-regime](./005-political-regime.md)
 
 ## Core Concepts
 
@@ -25,13 +26,13 @@ Relates to:
 
 ## Resource Catalogue
 
-| Resource  | Current role                                                                                                        |
-| --------- | ------------------------------------------------------------------------------------------------------------------- |
-| Influence | The resource required to play every Action. Every player receives a flat base amount, modified by Political Regime. |
-| Metal     | Supports construction, including Fleets and Infrastructure.                                                         |
-| Fuel      | Supports Fleet movement.                                                                                            |
-| Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.                 |
-| Colony    | Supports colonizing additional Planets. It is fractional and produced in low amounts.                               |
+| Resource  | Current role                                                                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------- |
+| Influence | The resource required to play every Action. Each Turn, it resets to the fixed amount set by Political Regime. |
+| Metal     | Supports construction, including Fleets and Infrastructure.                                                   |
+| Fuel      | Supports Fleet movement.                                                                                      |
+| Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.           |
+| Colony    | Supports colonizing additional Planets. It is fractional and produced in low amounts.                         |
 
 ## Rules
 
