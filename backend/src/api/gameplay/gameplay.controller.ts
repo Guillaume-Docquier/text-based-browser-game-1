@@ -111,7 +111,7 @@ export class GameplayController {
    */
   public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<ActionDto | null, string>> {
     const getCurrentActionResult = await this.createTransaction(async (tx) => {
-      const activeGameResult = await this.gameplayRepository.getPlayerActionContext({ gameId, playerId }, tx)
+      const activeGameResult = await this.gameplayRepository.getActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
 
       const currentActionResult = await this.gameplayRepository.getCurrentAction(
@@ -140,7 +140,7 @@ export class GameplayController {
    */
   public async setCurrentAction({ gameId, turn, playerId, actionType }: SetCurrentActionDto): Promise<Result<ActionDto | null, string>> {
     const setActionResult = await this.createTransaction(async (tx) => {
-      const activeGameResult = await this.gameplayRepository.getPlayerActionContext({ gameId, playerId }, tx)
+      const activeGameResult = await this.gameplayRepository.getActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
 
       if (activeGameResult.value.turn !== turn) {

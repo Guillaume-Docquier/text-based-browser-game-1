@@ -9,26 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SiteRouteImport } from './routes/_site'
 import { Route as GameRouteImport } from './routes/_game'
+import { Route as SiteRouteImport } from './routes/_site'
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
-import { Route as SiteSignUpRouteImport } from './routes/_site.sign-up'
 import { Route as SiteSignInRouteImport } from './routes/_site.sign-in'
+import { Route as SiteSignUpRouteImport } from './routes/_site.sign-up'
 import { Route as SiteGamesIndexRouteImport } from './routes/_site.games.index'
-import { Route as SiteGamesCreateRouteImport } from './routes/_site.games.create'
 import { Route as SiteGamesGameIdRouteImport } from './routes/_site.games.$gameId'
+import { Route as SiteGamesCreateRouteImport } from './routes/_site.games.create'
 import { Route as GameGamesGameIdPlayRouteImport } from './routes/_game.games.$gameId.play'
 import { Route as GameGamesGameIdPlayIndexRouteImport } from './routes/_game.games.$gameId.play.index'
-import { Route as GameGamesGameIdPlayStarSystemRouteImport } from './routes/_game.games.$gameId.play.star-system'
-import { Route as GameGamesGameIdPlayPlayersRouteImport } from './routes/_game.games.$gameId.play.players'
 import { Route as GameGamesGameIdPlayActionsRouteImport } from './routes/_game.games.$gameId.play.actions'
+import { Route as GameGamesGameIdPlayPlayersRouteImport } from './routes/_game.games.$gameId.play.players'
+import { Route as GameGamesGameIdPlayStarSystemRouteImport } from './routes/_game.games.$gameId.play.star-system'
 
-const SiteRoute = SiteRouteImport.update({
-  id: '/_site',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const GameRoute = GameRouteImport.update({
   id: '/_game',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SiteRoute = SiteRouteImport.update({
+  id: '/_site',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SiteIndexRoute = SiteIndexRouteImport.update({
@@ -36,14 +36,14 @@ const SiteIndexRoute = SiteIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SiteRoute,
 } as any)
-const SiteSignUpRoute = SiteSignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
-  getParentRoute: () => SiteRoute,
-} as any)
 const SiteSignInRoute = SiteSignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteSignUpRoute = SiteSignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
   getParentRoute: () => SiteRoute,
 } as any)
 const SiteGamesIndexRoute = SiteGamesIndexRouteImport.update({
@@ -51,14 +51,14 @@ const SiteGamesIndexRoute = SiteGamesIndexRouteImport.update({
   path: '/games/',
   getParentRoute: () => SiteRoute,
 } as any)
-const SiteGamesCreateRoute = SiteGamesCreateRouteImport.update({
-  id: '/games/create',
-  path: '/games/create',
-  getParentRoute: () => SiteRoute,
-} as any)
 const SiteGamesGameIdRoute = SiteGamesGameIdRouteImport.update({
   id: '/games/$gameId',
   path: '/games/$gameId',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteGamesCreateRoute = SiteGamesCreateRouteImport.update({
+  id: '/games/create',
+  path: '/games/create',
   getParentRoute: () => SiteRoute,
 } as any)
 const GameGamesGameIdPlayRoute = GameGamesGameIdPlayRouteImport.update({
@@ -72,10 +72,10 @@ const GameGamesGameIdPlayIndexRoute =
     path: '/',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
-const GameGamesGameIdPlayStarSystemRoute =
-  GameGamesGameIdPlayStarSystemRouteImport.update({
-    id: '/star-system',
-    path: '/star-system',
+const GameGamesGameIdPlayActionsRoute =
+  GameGamesGameIdPlayActionsRouteImport.update({
+    id: '/actions',
+    path: '/actions',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
 const GameGamesGameIdPlayPlayersRoute =
@@ -84,10 +84,10 @@ const GameGamesGameIdPlayPlayersRoute =
     path: '/players',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
-const GameGamesGameIdPlayActionsRoute =
-  GameGamesGameIdPlayActionsRouteImport.update({
-    id: '/actions',
-    path: '/actions',
+const GameGamesGameIdPlayStarSystemRoute =
+  GameGamesGameIdPlayStarSystemRouteImport.update({
+    id: '/star-system',
+    path: '/star-system',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
 
@@ -182,18 +182,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_site': {
-      id: '/_site'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof SiteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_game': {
       id: '/_game'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof GameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_site': {
+      id: '/_site'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof SiteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_site/': {
@@ -203,18 +203,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteIndexRouteImport
       parentRoute: typeof SiteRoute
     }
-    '/_site/sign-up': {
-      id: '/_site/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof SiteSignUpRouteImport
-      parentRoute: typeof SiteRoute
-    }
     '/_site/sign-in': {
       id: '/_site/sign-in'
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SiteSignInRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/sign-up': {
+      id: '/_site/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SiteSignUpRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/games/': {
@@ -224,18 +224,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteGamesIndexRouteImport
       parentRoute: typeof SiteRoute
     }
-    '/_site/games/create': {
-      id: '/_site/games/create'
-      path: '/games/create'
-      fullPath: '/games/create'
-      preLoaderRoute: typeof SiteGamesCreateRouteImport
-      parentRoute: typeof SiteRoute
-    }
     '/_site/games/$gameId': {
       id: '/_site/games/$gameId'
       path: '/games/$gameId'
       fullPath: '/games/$gameId'
       preLoaderRoute: typeof SiteGamesGameIdRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/games/create': {
+      id: '/_site/games/create'
+      path: '/games/create'
+      fullPath: '/games/create'
+      preLoaderRoute: typeof SiteGamesCreateRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_game/games/$gameId/play': {
@@ -252,11 +252,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameGamesGameIdPlayIndexRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
-    '/_game/games/$gameId/play/star-system': {
-      id: '/_game/games/$gameId/play/star-system'
-      path: '/star-system'
-      fullPath: '/games/$gameId/play/star-system'
-      preLoaderRoute: typeof GameGamesGameIdPlayStarSystemRouteImport
+    '/_game/games/$gameId/play/actions': {
+      id: '/_game/games/$gameId/play/actions'
+      path: '/actions'
+      fullPath: '/games/$gameId/play/actions'
+      preLoaderRoute: typeof GameGamesGameIdPlayActionsRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
     '/_game/games/$gameId/play/players': {
@@ -266,11 +266,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameGamesGameIdPlayPlayersRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
-    '/_game/games/$gameId/play/actions': {
-      id: '/_game/games/$gameId/play/actions'
-      path: '/actions'
-      fullPath: '/games/$gameId/play/actions'
-      preLoaderRoute: typeof GameGamesGameIdPlayActionsRouteImport
+    '/_game/games/$gameId/play/star-system': {
+      id: '/_game/games/$gameId/play/star-system'
+      path: '/star-system'
+      fullPath: '/games/$gameId/play/star-system'
+      preLoaderRoute: typeof GameGamesGameIdPlayStarSystemRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
   }

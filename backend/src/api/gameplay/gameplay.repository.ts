@@ -26,7 +26,7 @@ export type ActionModel = ActionRow
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
-export type PlayerActionContextModel = {
+export type ActionContextModel = {
   turn: number
   money: number
 }
@@ -262,10 +262,10 @@ export class GameplayRepository extends PostgresRepository {
   /**
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
-  public async getPlayerActionContext(
+  public async getActionContext(
     params: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerActionContextModel, string>> {
+  ): Promise<Result<ActionContextModel, string>> {
     const contextResult = await Result.tryCatch(
       db.transaction(async (tx) => {
         await lockGameCollectingActions({ gameId: params.gameId }, tx)

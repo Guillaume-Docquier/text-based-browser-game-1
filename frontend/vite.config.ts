@@ -3,7 +3,7 @@ import tailwindcss from "@tailwindcss/vite"
 import tanstackRouter from "@tanstack/router-plugin/vite"
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import { defineConfig, loadEnv } from "vite"
-import { parseEnv } from "./src/parseEnv"
+import { parseEnv } from "./src/parseEnv.ts"
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {

@@ -31,7 +31,7 @@ const PLAYER_ACTIONS = [
   rewardMoney: number
 }>
 
-export function GameActionSelector({
+export function ActionSelector({
   gameId,
   playerView,
   currentAction,
@@ -143,7 +143,7 @@ export function GameActionSelector({
   )
 }
 
-export function GameActionSelectorSkeleton(): ReactElement {
+export function ActionSelectorSkeleton(): ReactElement {
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
