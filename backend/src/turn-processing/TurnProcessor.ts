@@ -12,7 +12,7 @@ import { ElapsedTimeContextProvider } from "#turn-processing/ElapsedTimeContextP
 import { type ProcessedTurnModel, type TurnsRepository, type TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 
 const SCHEDULE_DRIFT_RATIO = 0.15
-const MAX_SCHEDULE_DRIFT_MILLISECONDS = 2 * 60 * 1000
+const MAX_SCHEDULE_DRIFT = Time.create(2 * 60 * 1000, UnitOfTime.MILLISECONDS)
 
 export class TurnProcessor {
   private readonly logger: Logger
@@ -160,7 +160,7 @@ export class TurnProcessor {
           scheduledFor: getNextTurnScheduledFor({
             scheduledFor: turnToProcess.scheduledFor,
             processedAt,
-            turnIntervalSeconds: turnToProcess.turnIntervalSeconds,
+            turnInterval: turnToProcess.turnInterval,
           }),
         },
       }
@@ -178,19 +178,22 @@ export class TurnProcessor {
 function getNextTurnScheduledFor({
   scheduledFor,
   processedAt,
-  turnIntervalSeconds,
+  turnInterval,
 }: {
   scheduledFor: Date
   processedAt: Date
-  turnIntervalSeconds: number
+  turnInterval: Time
 }): Date {
-  const turnIntervalMilliseconds = turnIntervalSeconds * 1000
+  const turnIntervalMilliseconds = Time.in(turnInterval, UnitOfTime.MILLISECONDS)
   const scheduleDriftMilliseconds = processedAt.getTime() - scheduledFor.getTime()
-  const scheduleDriftThresholdMilliseconds = Math.min(turnIntervalMilliseconds * SCHEDULE_DRIFT_RATIO, MAX_SCHEDULE_DRIFT_MILLISECONDS)
-  const scheduleFrom = scheduleDriftMilliseconds > scheduleDriftThresholdMilliseconds ? processedAt : scheduledFor
+  const scheduleDriftThreshold = Math.min(
+    turnIntervalMilliseconds * SCHEDULE_DRIFT_RATIO,
+    Time.in(MAX_SCHEDULE_DRIFT, UnitOfTime.MILLISECONDS),
+  )
+  const scheduleFrom = scheduleDriftMilliseconds > scheduleDriftThreshold ? processedAt : scheduledFor
 
   return Datetime.increment({
     date: scheduleFrom,
-    time: Time.create(turnIntervalSeconds, UnitOfTime.SECONDS),
+    time: turnInterval,
   })
 }
