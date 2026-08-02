@@ -165,7 +165,7 @@ export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; p
 
   const canOpen =
     playerId !== undefined &&
-    (status === GameStatus.COLLECTING_ORDERS || status === GameStatus.PROCESSING_TICK) &&
+    (status === GameStatus.COLLECTING_ORDERS || status === GameStatus.PROCESSING_TURN) &&
     lobbyModel.players.some((player) => player.id === playerId)
 
   return {
@@ -194,7 +194,7 @@ export const CreateLobbyDto = z.object({
   configuration: z.object({
     name: z.string(),
     nbSeats: z.number(),
-    tickIntervalSeconds: z.number(),
+    turnIntervalSeconds: z.number(),
     starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   }),
 })
@@ -246,7 +246,7 @@ export const GameConfigurationDto = z.object({
   name: z.string(),
   starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   nbSeats: z.number(),
-  tickIntervalSeconds: z.number(),
+  turnIntervalSeconds: z.number(),
 })
 
 export type LobbyPlayerDto = z.infer<typeof LobbyPlayerDto>

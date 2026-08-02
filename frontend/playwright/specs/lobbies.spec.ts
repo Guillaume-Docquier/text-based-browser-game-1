@@ -55,7 +55,7 @@ test.describe("authenticated user", () => {
     await test.step("Verify the lobby configuration", async () => {
       await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
       await expect(lobbyPage.configurationValue("Number of seats")).toHaveText("3 players")
-      await expect(lobbyPage.configurationValue("Time per tick")).toHaveText("2 hr")
+      await expect(lobbyPage.configurationValue("Time per turn")).toHaveText("2 hr")
       await expect(lobbyPage.configurationValue("Planets")).toHaveText("1–2")
       await expect(lobbyPage.configurationValue("Planet density")).toHaveText("0.85–1")
       await expect(lobbyPage.configurationValue("Moons per planet")).toHaveText("1")

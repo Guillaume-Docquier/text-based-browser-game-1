@@ -127,7 +127,7 @@ function GameConfiguration({ configuration }: { configuration: ApiTypes.Lobby["c
       <CardContent className="flex flex-col gap-6">
         <div className="grid gap-4 md:grid-cols-2">
           <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
-          <DetailBlock label="Time per tick" value={formatTickInterval(configuration.tickIntervalSeconds)} />
+          <DetailBlock label="Time per turn" value={formatTurnInterval(configuration.turnIntervalSeconds)} />
         </div>
         <Separator />
         <div className="space-y-4">
@@ -221,6 +221,6 @@ function formatRange(value: ApiTypes.StarSystemGenerationSettings[ApiTypes.Range
   return value.min === value.max ? value.min.toString() : `${value.min}–${value.max}`
 }
 
-function formatTickInterval(tickIntervalSeconds: number): string {
-  return Temporal.Duration.from({ seconds: tickIntervalSeconds }).round({ largestUnit: "days" }).toLocaleString()
+function formatTurnInterval(turnIntervalSeconds: number): string {
+  return Temporal.Duration.from({ seconds: turnIntervalSeconds }).round({ largestUnit: "days" }).toLocaleString()
 }

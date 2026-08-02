@@ -59,7 +59,7 @@ export class GameplayController {
       }
 
       const startedAt = this.clock.now()
-      const nextTickAt = Datetime.increment({ date: startedAt, time: gameForStart.value.tickInterval })
+      const nextTurnAt = Datetime.increment({ date: startedAt, time: gameForStart.value.turnInterval })
       const starSystemResult = generateStarSystem({ settings: gameForStart.value.starSystemGenerationSettings, clock: this.clock })
       rollbackOnFailure(starSystemResult, "Failed to generate Star System")
 
@@ -76,14 +76,14 @@ export class GameplayController {
           game: gameForStart.value,
           status: GameStatus.COLLECTING_ORDERS,
           startedAt,
-          nextTickAt,
+          nextTurnAt,
           starSystem: starSystemResult.value,
           playerResources,
         },
         tx,
       )
 
-      return { nextTickAt }
+      return { nextTurnAt }
     })
 
     if (Result.isFailure(startGameResult)) {
@@ -123,7 +123,7 @@ export class GameplayController {
         {
           gameId,
           playerId,
-          tick: activeGameResult.value.tick,
+          turn: activeGameResult.value.turn,
         },
         tx,
       )
@@ -145,7 +145,7 @@ export class GameplayController {
    */
   public async setCurrentAction({
     gameId,
-    tick,
+    turn,
     playerId,
     actionType,
   }: SetCurrentActionDto): Promise<Result<GamePlayerAction | null, string>> {
@@ -153,14 +153,14 @@ export class GameplayController {
       const activeGameResult = await this.gameplayRepository.getPlayerActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
 
-      if (activeGameResult.value.tick !== tick) {
+      if (activeGameResult.value.turn !== turn) {
         throw new TransactionRollback(
-          `Cannot submit action for tick ${tick}, the game is currently at tick ${activeGameResult.value.tick}.`,
+          `Cannot submit action for turn ${turn}, the game is currently at turn ${activeGameResult.value.turn}.`,
         )
       }
 
       if (actionType === null) {
-        const deleteResult = await this.gameplayRepository.clearCurrentAction({ gameId, playerId, tick }, tx)
+        const deleteResult = await this.gameplayRepository.clearCurrentAction({ gameId, playerId, turn }, tx)
         rollbackOnFailure(deleteResult, "Failed to clear game player action")
 
         return null
@@ -178,14 +178,14 @@ export class GameplayController {
         throw new TransactionRollback(`You need ${actionRule.costMoney} money to select this action.`)
       }
 
-      const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, playerId, tick, actionType }, tx)
+      const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, playerId, turn, actionType }, tx)
       rollbackOnFailure(upsertResult, "Failed to upsert game player action")
 
       return toGamePlayerAction(upsertResult.value)
     })
 
     if (Result.isFailure(setActionResult)) {
-      this.logger.error("Failed to set current action", { gameId, tick, playerId, actionType, error: setActionResult.error })
+      this.logger.error("Failed to set current action", { gameId, turn, playerId, actionType, error: setActionResult.error })
       return Result.Failure(setActionResult.error.message)
     }
 
@@ -198,8 +198,8 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     gameId: playerViewModel.gameId,
     player: playerViewModel.player,
     opponents: playerViewModel.opponents,
-    tick: playerViewModel.tick,
-    nextTickAt: playerViewModel.nextTickAt,
+    turn: playerViewModel.turn,
+    nextTurnAt: playerViewModel.nextTurnAt,
     starSystem: playerViewModel.starSystem,
     resources: playerViewModel.resources,
   }
@@ -209,7 +209,7 @@ function toGamePlayerAction(gamePlayerActionModel: OrderModel): GamePlayerAction
   return {
     gameId: gamePlayerActionModel.gameId,
     playerId: gamePlayerActionModel.playerId,
-    tick: gamePlayerActionModel.tick,
+    turn: gamePlayerActionModel.turn,
     actionType: gamePlayerActionModel.actionType,
     updatedAt: gamePlayerActionModel.updatedAt,
   }
@@ -223,7 +223,7 @@ export const StartGameDto = z.object({
 
 export type StartedGameDto = z.infer<typeof StartedGameDto>
 export const StartedGameDto = z.object({
-  nextTickAt: z.date(),
+  nextTurnAt: z.date(),
 })
 
 const StarSystemBodyDto = z.object({
@@ -277,8 +277,8 @@ export const PlayerViewDto = z.object({
   gameId: GameId,
   player: PlayerViewPlayerDto,
   opponents: z.record(PlayerId, PlayerViewPlayerDto),
-  tick: z.number(),
-  nextTickAt: z.date(),
+  turn: z.number(),
+  nextTurnAt: z.date(),
   starSystem: StarSystemDto,
   resources: z.object({
     money: z.number(),
@@ -295,7 +295,7 @@ export type SetCurrentActionDto = z.infer<typeof SetCurrentActionDto>
 export const SetCurrentActionDto = z.object({
   gameId: z.coerce.number(),
   playerId: PlayerId,
-  tick: z.coerce.number(),
+  turn: z.coerce.number(),
   actionType: GamePlayerActionTypeSchema.nullable(),
 })
 

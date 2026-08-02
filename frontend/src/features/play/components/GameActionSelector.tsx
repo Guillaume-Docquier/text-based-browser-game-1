@@ -12,7 +12,7 @@ const PLAYER_ACTIONS = [
   {
     actionType: "MAKE_MORE_MONEY",
     label: "Make More Money",
-    description: "Turn 2 money into 5 extra money after the normal tick income.",
+    description: "Turn 2 money into 5 extra money after the normal turn income.",
     costMoney: 2,
     rewardMoney: 5,
   },
@@ -49,7 +49,7 @@ export function GameActionSelector({
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Actions</div>
           <h2 className="font-heading text-2xl font-semibold text-foreground">Choose your action</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Your selection applies to tick {playerView.tick} only. Click the selected action again to clear it.
+            Your selection applies to turn {playerView.turn} only. Click the selected action again to clear it.
           </p>
         </div>
         <div className="flex h-10 w-fit items-center gap-2 rounded-md border border-border/70 bg-card/45 px-3 text-sm font-medium text-foreground">
@@ -85,7 +85,7 @@ export function GameActionSelector({
 
                 setCurrentAction.mutate({
                   gameId,
-                  tick: playerView.tick,
+                  turn: playerView.turn,
                   actionType: isSelected ? null : action.actionType,
                 })
               }}
@@ -96,7 +96,7 @@ export function GameActionSelector({
                   onSelect: () => {
                     setCurrentAction.mutate({
                       gameId,
-                      tick: playerView.tick,
+                      turn: playerView.turn,
                       actionType: isSelected ? null : action.actionType,
                     })
                   },

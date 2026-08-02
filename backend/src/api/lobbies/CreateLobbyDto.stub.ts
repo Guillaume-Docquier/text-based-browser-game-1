@@ -8,7 +8,7 @@ export function createCreateLobbyDtoStub(overrides?: Partial<CreateLobbyDto>): C
     configuration: {
       name: "game name",
       nbSeats: 2,
-      tickIntervalSeconds: 60,
+      turnIntervalSeconds: 60,
       starSystemGenerationSettings: createStarSystemGenerationSettingsStub(),
     },
     ...overrides,

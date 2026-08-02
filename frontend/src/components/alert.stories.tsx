@@ -19,7 +19,7 @@ export const Default: Story = {
     <Alert {...args}>
       <InfoIcon />
       <AlertTitle>Fleet orders received</AlertTitle>
-      <AlertDescription>Your ships will move when the next tick is processed.</AlertDescription>
+      <AlertDescription>Your ships will move when the next turn is processed.</AlertDescription>
     </Alert>
   ),
 }

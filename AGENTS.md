@@ -22,14 +22,14 @@ This is a TypeScript monorepo using pnpm workspaces.
 | ---------------------------- | ------------------------------------------------------------------------------------------ |
 | frontend/                    | The web application.                                                                       |
 | backend/src/api/             | The api for the frontend.                                                                  |
-| backend/src/tick-processing/ | The tick processing engine.                                                                |
+| backend/src/turn-processing/ | The turn processing engine.                                                                |
 | infra/                       | The IaC for 3rd parties that we use.                                                       |
 | docs/                        | All the documentation for the project. There is no documentation in the other directories. |
 
 ### Dependencies
 
 ```
-frontend/ ───api-types───▶ backend/src/api/ ───orders-validation───▶ backend/src/tick-processing/
+frontend/ ───api-types───▶ backend/src/api/ ───orders-validation───▶ backend/src/turn-processing/
 ```
 
 There are no other allowed dependencies.
@@ -95,17 +95,17 @@ Key Directories:
 | Directory       | Description                                                                        |
 | --------------- | ---------------------------------------------------------------------------------- |
 | backend/src/api | All code for the API organized by vertical slices of router-controller-repository. |
-| backend/src/lib | Shared code between API and tick processing, mostly DB schemas.                    |
+| backend/src/lib | Shared code between API and turn processing, mostly DB schemas.                    |
 
 There is no build for the backend, we run TypeScript natively on node 24+. This means we require isolated modules and cannot use certain features like enums or decorators.
 
-### Backend Tick Processing
+### Backend Turn Processing
 
-The tick processing module runs in a TypeScript worker hosted by the API process.
+The turn processing module runs in a TypeScript worker hosted by the API process.
 
 It runs there for simplicity of deployment, but is designed to be isolated so we can scale the number of workers, or extract the workers into its own runtime, or even re-write in another language.
 
-The code is in `backend/src/tick-processing` and runs TypeScript natively on node 24+ just like the API.
+The code is in `backend/src/turn-processing` and runs TypeScript natively on node 24+ just like the API.
 
 ## Coding standards
 

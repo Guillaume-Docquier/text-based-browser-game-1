@@ -187,7 +187,7 @@ async function seedGames({
       configuration: {
         name: "insanely fast game",
         nbSeats: 5,
-        tickIntervalSeconds: 60,
+        turnIntervalSeconds: 60,
         starSystemGenerationSettings: createStarSystemGenerationSettingsDefaults(),
       },
     }),
@@ -198,7 +198,7 @@ async function seedGames({
       configuration: {
         name: "fast game",
         nbSeats: 10,
-        tickIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+        turnIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
         starSystemGenerationSettings: createStarSystemGenerationSettingsDefaults(),
       },
     }),

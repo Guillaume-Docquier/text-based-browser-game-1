@@ -15,7 +15,7 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
-import { startTickProcessing } from "#tick-processing/entry.tick-processing.ts"
+import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
 import { createApi } from "./createApi.ts"
 
 main().catch((error) => {
@@ -70,8 +70,8 @@ async function main(): Promise<void> {
     process.send?.({ type: "listening", port: serverAddress.port } as const satisfies PortListeningMessage)
   })
 
-  logger.info("Starting tick processing")
-  startTickProcessing({ logger })
+  logger.info("Starting turn processing")
+  startTurnProcessing({ logger })
 
   monitorMemoryUsage({ logger })
 }

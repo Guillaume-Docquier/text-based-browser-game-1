@@ -13,8 +13,8 @@ import { PageHeader } from "@/features/PageHeader.tsx"
 import { useCreateGameMutation } from "@/lib/api/useCreateGameMutation.ts"
 import { useLobbyCreationSettingsQuery } from "@/lib/api/useLobbyCreationSettingsQuery.ts"
 
-type TickIntervalUnit = Enumify<typeof TickIntervalUnit>
-const TickIntervalUnit = {
+type TurnIntervalUnit = Enumify<typeof TurnIntervalUnit>
+const TurnIntervalUnit = {
   days: "days",
   hours: "hours",
   minutes: "minutes",
@@ -41,8 +41,8 @@ export function CreateGamePage(): ReactElement {
 function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.LobbyCreationSettings }): ReactElement {
   const [name, setName] = useState("")
   const [nbSeats, setNbSeats] = useState(5)
-  const [tickIntervalMultiplier, setTickIntervalMultiplier] = useState(1)
-  const [tickIntervalUnit, setTickIntervalUnit] = useState<TickIntervalUnit>(TickIntervalUnit.days)
+  const [turnIntervalMultiplier, setTurnIntervalMultiplier] = useState(1)
+  const [turnIntervalUnit, setTurnIntervalUnit] = useState<TurnIntervalUnit>(TurnIntervalUnit.days)
   const [starSystemGenerationSettings, setStarSystemGenerationSettings] = useState(creationSettings.defaultStarSystemGenerationSettings)
   const createGame = useCreateGameMutation()
   const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > creationSettings.maxNbSeats
@@ -87,23 +87,23 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
               <Input
                 aria-label="Turn length"
                 type="number"
-                value={tickIntervalMultiplier}
+                value={turnIntervalMultiplier}
                 onChange={(event) => {
-                  setTickIntervalMultiplier(parseInt(event.target.value))
+                  setTurnIntervalMultiplier(parseInt(event.target.value))
                 }}
               />
               <Select
-                value={tickIntervalUnit}
+                value={turnIntervalUnit}
                 onValueChange={(value) => {
                   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Maybe we should parse, but this will be okay
-                  setTickIntervalUnit(value as TickIntervalUnit)
+                  setTurnIntervalUnit(value as TurnIntervalUnit)
                 }}
               >
                 <SelectTrigger aria-label="Turn length unit" className="w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(TickIntervalUnit).map((unit) => (
+                  {Object.values(TurnIntervalUnit).map((unit) => (
                     <SelectItem key={unit} value={unit}>
                       {unit}
                     </SelectItem>
@@ -173,7 +173,7 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
               configuration: {
                 name,
                 nbSeats,
-                tickIntervalSeconds: Temporal.Duration.from({ [tickIntervalUnit]: tickIntervalMultiplier }).total("seconds"),
+                turnIntervalSeconds: Temporal.Duration.from({ [turnIntervalUnit]: turnIntervalMultiplier }).total("seconds"),
                 starSystemGenerationSettings,
               },
             })

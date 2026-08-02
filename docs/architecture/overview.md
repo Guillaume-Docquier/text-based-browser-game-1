@@ -13,11 +13,11 @@ The game will have:
 Long term, the backend project will be split in two:
 
 - API for the frontend
-- Workers to simulate ticks
+- Workers to simulate turns
 
 This will allow scaling the workers and the API appropriately. The workers might even be in another language more suited for CPU bound tasks.  
 Until we start seeing performance problems, we won't need that, so we'll start with a single backend.  
-However, since we know a single backend won't scale, we'll make sure the tick simulation is well isolated so that we can extract it quickly when needed.
+However, since we know a single backend won't scale, we'll make sure the turn simulation is well isolated so that we can extract it quickly when needed.
 
 All the tech choices are balanced to make sure we don't take on too many new things.  
 For example, we chose:

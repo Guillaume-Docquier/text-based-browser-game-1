@@ -27,8 +27,8 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
             label={formatPlayerColor(playerView.player.color)}
             value={getPlayerLabel(game, playerView.player.id)}
           />
-          <TopBarFact icon={<TimerReset className="size-4" />} label="Tick" value={playerView.tick.toString()} />
-          <NextTickFact targetTimestamp={playerView.nextTickAt} />
+          <TopBarFact icon={<TimerReset className="size-4" />} label="Turn" value={playerView.turn.toString()} />
+          <NextTurnFact targetTimestamp={playerView.nextTurnAt} />
         </div>
       </div>
       {game.winnerAccountId === null ? null : (
@@ -41,15 +41,15 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
   )
 }
 
-function NextTickFact({ targetTimestamp }: { targetTimestamp: string | Date }): ReactElement {
+function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): ReactElement {
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft({ past: new Date(), future: new Date(targetTimestamp) }))
-  const nextTickAt = new Date(targetTimestamp)
-  const nextTickAtLabel = new Intl.DateTimeFormat(undefined, {
+  const nextTurnAt = new Date(targetTimestamp)
+  const nextTurnAtLabel = new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(nextTickAt)
+  }).format(nextTurnAt)
 
   useEffect(() => {
     const future = new Date(targetTimestamp)
@@ -63,15 +63,15 @@ function NextTickFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
   }, [targetTimestamp])
 
   if (timeLeft.noTimeLeft) {
-    return <TopBarFact icon={<Clock3 className="size-4" />} label="Next tick" value="ready" detail={nextTickAtLabel} />
+    return <TopBarFact icon={<Clock3 className="size-4" />} label="Next turn" value="ready" detail={nextTurnAtLabel} />
   }
 
   return (
     <TopBarFact
       icon={<Clock3 className="size-4" />}
-      label="Next tick"
+      label="Next turn"
       value={`${timeLeft.duration.days}d ${timeLeft.duration.hours}h ${timeLeft.duration.minutes}m ${timeLeft.duration.seconds}s`}
-      detail={nextTickAtLabel}
+      detail={nextTurnAtLabel}
     />
   )
 }

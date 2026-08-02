@@ -9,60 +9,60 @@ import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
-import { createTickProcessorStub } from "#tick-processing/TickProcessor.stub.ts"
-import { type ProcessedTickModel, TicksRepository } from "#tick-processing/ticks.repository.ts"
+import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import { type ProcessedTurnModel, TurnsRepository } from "#turn-processing/turns.repository.ts"
 
-describe("TickProcessor", () => {
-  describe("processTicksForever", () => {
+describe("TurnProcessor", () => {
+  describe("processTurnsForever", () => {
     afterEach(() => {
       vi.clearAllTimers()
       vi.useRealTimers()
     })
 
-    it("should process all currently due ticks before waiting", async () => {
+    it("should process all currently due turns before waiting", async () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const tickInterval = Time.create(100, UnitOfTime.SECONDS)
+      const turnInterval = Time.create(100, UnitOfTime.SECONDS)
       const { createdGameId: firstGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(tickInterval, UnitOfTime.SECONDS) / 2 }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) / 2 }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: firstGameId })
 
       const { createdGameId: secondGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(tickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: secondGameId })
 
-      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
 
       // Act
       vi.useFakeTimers()
-      clock.increment({ time: tickInterval })
-      await tickProcessor.processTicksForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
+      clock.increment({ time: turnInterval })
+      await turnProcessor.processTurnsForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
 
       // Assert
       expect(vi.getTimerCount()).toBe(1)
       vi.clearAllTimers()
       vi.useRealTimers()
 
-      // Processed twice because the tick interval was smaller than the increment
+      // Processed twice because the turn interval was smaller than the increment
       // Simulates a catch-up
       expect(await player.client.gameplay.getPlayerView.query({ gameId: firstGameId })).toMatchObject({
-        tick: 2,
+        turn: 2,
         resources: { money: 2 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: secondGameId })).toMatchObject({
-        tick: 1,
+        turn: 1,
         resources: { money: 1 },
       })
     })
 
-    it("should wait before retrying when the selected tick processing fails", async () => {
+    it("should wait before retrying when the selected turn processing fails", async () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
@@ -70,45 +70,45 @@ describe("TickProcessor", () => {
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
-      const tickInterval = Time.create(100, UnitOfTime.SECONDS)
+      const turnInterval = Time.create(100, UnitOfTime.SECONDS)
       const { createdGameId: failingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(tickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: failingGameId })
 
       const { createdGameId: successfulGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(tickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: successfulGameId })
 
-      const ticksRepository = new FailingTicksRepository({ db, logger, clock, failingGameId })
-      const { tickProcessor } = await createTickProcessorStub({ db, clock, ticksRepository })
+      const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
 
       // Act
       vi.useFakeTimers()
-      clock.increment({ time: tickInterval })
-      await tickProcessor.processTicksForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
+      clock.increment({ time: turnInterval })
+      await turnProcessor.processTurnsForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
 
       // Assert
       expect(vi.getTimerCount()).toBe(1)
       vi.clearAllTimers()
       vi.useRealTimers()
 
-      // No ticks were processed because ticks in error block, this will be resolved by https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/278
+      // No turns were processed because turns in error block, this will be resolved by https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/278
       expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
-        tick: 0,
+        turn: 0,
         resources: { money: 0 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
-        tick: 0,
+        turn: 0,
         resources: { money: 0 },
       })
     })
   })
 
-  describe("processNextDueTick", () => {
-    it("should process the current tick and queue the next one", async () => {
+  describe("processNextDueTurn", () => {
+    it("should process the current turn and queue the next one", async () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
@@ -116,14 +116,14 @@ describe("TickProcessor", () => {
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
-      const tickInterval = Time.create(1000, UnitOfTime.SECONDS)
+      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
       const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(tickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
 
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
       const resourcesRepository = new ResourcesRepository({ db, logger })
 
       const updateResourceResult = await resourcesRepository.updateResource({
@@ -136,13 +136,13 @@ describe("TickProcessor", () => {
 
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
-        tick: 0,
+        turn: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
       })
 
       // Act
-      clock.increment({ time: tickInterval })
-      await tickProcessor.processNextDueTick()
+      clock.increment({ time: turnInterval })
+      await turnProcessor.processNextDueTurn()
 
       // Assert
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -150,8 +150,8 @@ describe("TickProcessor", () => {
         gameId: createdGameId,
         player: { id: player.account.id, color: PlayerColor.WHITE },
         opponents: {},
-        tick: 1,
-        nextTickAt: Datetime.increment({ date: clock.now(), time: tickInterval }).toISOString(),
+        turn: 1,
+        nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
         starSystem: expect.any(Object),
         resources: {
           money: 6,
@@ -166,11 +166,11 @@ describe("TickProcessor", () => {
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: 0 }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
       const resourcesRepository = new ResourcesRepository({ db, logger })
 
       Assert.isSuccess(
@@ -183,7 +183,7 @@ describe("TickProcessor", () => {
       )
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
-        tick: 0,
+        turn: 0,
         actionType: GamePlayerActionType.MAKE_MORE_MONEY,
       })
       Assert.isSuccess(
@@ -196,19 +196,19 @@ describe("TickProcessor", () => {
       )
 
       // Act
-      await tickProcessor.processNextDueTick()
+      await turnProcessor.processNextDueTurn()
 
       // Assert
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toMatchObject({
-        tick: 1,
+        turn: 1,
         resources: {
           money: 1,
         },
       })
     })
 
-    it("should process only the earliest scheduled tick in one invocation", async () => {
+    it("should process only the earliest scheduled turn in one invocation", async () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
@@ -216,94 +216,94 @@ describe("TickProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       // later game
-      const laterTickInterval = Time.create(100, UnitOfTime.SECONDS)
+      const laterTurnInterval = Time.create(100, UnitOfTime.SECONDS)
       const { createdGameId: laterGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(laterTickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: laterGameId })
 
       // earlier game
-      const earlierTickInterval = Time.create(50, UnitOfTime.SECONDS)
+      const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: earlierGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(earlierTickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: earlierGameId })
 
-      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
 
       // Act
       clock.increment({ time: Time.create(200, UnitOfTime.SECONDS) })
-      await tickProcessor.processNextDueTick()
+      await turnProcessor.processNextDueTurn()
 
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
-        tick: 0,
+        turn: 0,
         resources: { money: 0 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
-        tick: 1,
+        turn: 1,
         resources: { money: 1 },
       })
     })
 
-    it("should be able to process the same tick over time", async () => {
+    it("should be able to process the same turn over time", async () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const tickInterval = Time.create(50, UnitOfTime.SECONDS)
+      const turnInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(tickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId })
 
-      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
 
       // Act
-      clock.increment({ time: tickInterval })
-      await tickProcessor.processNextDueTick()
+      clock.increment({ time: turnInterval })
+      await turnProcessor.processNextDueTurn()
 
-      clock.increment({ time: tickInterval })
-      await tickProcessor.processNextDueTick()
+      clock.increment({ time: turnInterval })
+      await turnProcessor.processNextDueTurn()
 
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
-        tick: 2,
+        turn: 2,
         resources: { money: 2 },
       })
     })
 
-    it("should skip ticks that are already processing", async () => {
+    it("should skip turns that are already processing", async () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
 
-      const processingTickInterval = Time.create(50, UnitOfTime.SECONDS)
+      const processingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: processingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(processingTickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(processingTurnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: processingGameId })
 
       // Act
-      clock.increment({ time: processingTickInterval })
-      const processingResults = await Promise.all([tickProcessor.processNextDueTick(), tickProcessor.processNextDueTick()])
+      clock.increment({ time: processingTurnInterval })
+      const processingResults = await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
 
       // Assert
       expect(processingResults).toEqual<typeof processingResults>(["processed", "idle"])
       expect(await player.client.gameplay.getPlayerView.query({ gameId: processingGameId })).toMatchObject({
-        tick: 1,
+        turn: 1,
         resources: { money: 1 },
       })
     })
 
-    it("should not process another tick when the selected tick processing fails", async () => {
+    it("should not process another turn when the selected turn processing fails", async () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
@@ -311,99 +311,99 @@ describe("TickProcessor", () => {
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
-      const failingTickInterval = Time.create(50, UnitOfTime.SECONDS)
+      const failingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: failingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(failingTickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(failingTurnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: failingGameId })
 
-      const successfulTickInterval = Time.create(100, UnitOfTime.SECONDS)
+      const successfulTurnInterval = Time.create(100, UnitOfTime.SECONDS)
       const { createdGameId: successfulGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(successfulTickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(successfulTurnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: successfulGameId })
 
-      const ticksRepository = new FailingTicksRepository({ db, logger, clock, failingGameId })
-      const { tickProcessor } = await createTickProcessorStub({ db, clock, ticksRepository })
+      const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
 
       // Act
-      clock.increment({ time: successfulTickInterval })
-      await tickProcessor.processNextDueTick()
+      clock.increment({ time: successfulTurnInterval })
+      await turnProcessor.processNextDueTurn()
 
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
-        tick: 0,
+        turn: 0,
         resources: { money: 0 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
-        tick: 0,
+        turn: 0,
         resources: { money: 0 },
       })
     })
 
-    it("should be able to process ticks in parallel", async () => {
+    it("should be able to process turns in parallel", async () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const earlierTickInterval = Time.create(50, UnitOfTime.SECONDS)
+      const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: earlierGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(earlierTickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: earlierGameId })
 
-      const laterTickInterval = Time.create(100, UnitOfTime.SECONDS)
+      const laterTurnInterval = Time.create(100, UnitOfTime.SECONDS)
       const { createdGameId: laterGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(laterTickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: laterGameId })
 
-      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
 
       // Act
-      clock.increment({ time: laterTickInterval })
+      clock.increment({ time: laterTurnInterval })
 
-      // if rows are locked correctly, processing 2 ticks concurrently should result in 2 different ticks being processed
-      await Promise.all([tickProcessor.processNextDueTick(), tickProcessor.processNextDueTick()])
+      // if rows are locked correctly, processing 2 turns concurrently should result in 2 different turns being processed
+      await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
 
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
-        tick: 1,
+        turn: 1,
         resources: { money: 1 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
-        tick: 1,
+        turn: 1,
         resources: { money: 1 },
       })
     })
 
-    it("should do nothing if there are no ticks left when processing ticks in parallel", async () => {
+    it("should do nothing if there are no turns left when processing turns in parallel", async () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock({ startDate: new Date(0) })
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const tickInterval = Time.create(50, UnitOfTime.SECONDS)
+      const turnInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: Time.in(tickInterval, UnitOfTime.SECONDS) }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
       await player.client.gameplay.startGame.mutate({ gameId })
 
-      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
 
       // Act
-      clock.increment({ time: tickInterval })
-      // if rows are locked correctly, processing 2 ticks concurrently should result in 1 tick being processed and the other one will do nothing
-      await Promise.all([tickProcessor.processNextDueTick(), tickProcessor.processNextDueTick()])
+      clock.increment({ time: turnInterval })
+      // if rows are locked correctly, processing 2 turns concurrently should result in 1 turn being processed and the other one will do nothing
+      await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
 
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
-        tick: 1,
+        turn: 1,
         resources: { money: 1 },
       })
     })
@@ -417,12 +417,12 @@ describe("TickProcessor", () => {
       const joiner = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: 0 }),
       })
       await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      const { tickProcessor } = await createTickProcessorStub({ db, clock })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
       const resourcesRepository = new ResourcesRepository({ db, logger })
 
       for (const { player, amountDelta } of [
@@ -439,13 +439,13 @@ describe("TickProcessor", () => {
 
         await player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
-          tick: 0,
+          turn: 0,
           actionType: GamePlayerActionType.WIN_THE_GAME,
         })
       }
 
       // Act
-      await tickProcessor.processNextDueTick()
+      await turnProcessor.processNextDueTurn()
 
       // Assert
       // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
@@ -482,31 +482,31 @@ describe("TickProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ tickIntervalSeconds: 0 }),
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: 0 }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      const ticksRepository = new FailingTicksRepository({ db, logger, clock, failingGameId: createdGameId })
-      const { tickProcessor } = await createTickProcessorStub({ db, clock, ticksRepository })
-      const tickToProcess = { gameId: createdGameId, tick: 0 }
+      const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId: createdGameId })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
+      const turnToProcess = { gameId: createdGameId, turn: 0 }
 
       // Act
-      await tickProcessor.processNextDueTick()
+      await turnProcessor.processNextDueTurn()
 
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
-        tick: 0,
+        turn: 0,
         resources: {
           money: 0,
         },
       })
 
-      ticksRepository.shouldFail = false
-      await ticksRepository.resetProcessingAttempt(tickToProcess)
-      await tickProcessor.processNextDueTick()
+      turnsRepository.shouldFail = false
+      await turnsRepository.resetProcessingAttempt(turnToProcess)
+      await turnProcessor.processNextDueTurn()
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
-        tick: 1,
+        turn: 1,
         resources: {
           money: 1,
         },
@@ -515,7 +515,7 @@ describe("TickProcessor", () => {
   })
 })
 
-class FailingTicksRepository extends TicksRepository {
+class FailingTurnsRepository extends TurnsRepository {
   private readonly failingGameId: number
 
   public shouldFail = true
@@ -525,18 +525,18 @@ class FailingTicksRepository extends TicksRepository {
     logger,
     clock,
     failingGameId,
-  }: ConstructorParameters<typeof TicksRepository>[0] & {
+  }: ConstructorParameters<typeof TurnsRepository>[0] & {
     failingGameId: number
   }) {
     super({ db, logger, clock })
     this.failingGameId = failingGameId
   }
 
-  public override async saveProcessedTick(processedTick: ProcessedTickModel): Promise<Result<{ saved: true }, string>> {
-    if (processedTick.gameId === this.failingGameId && this.shouldFail) {
-      return Result.Failure("Expected tick save failure")
+  public override async saveProcessedTurn(processedTurn: ProcessedTurnModel): Promise<Result<{ saved: true }, string>> {
+    if (processedTurn.gameId === this.failingGameId && this.shouldFail) {
+      return Result.Failure("Expected turn save failure")
     }
 
-    return await super.saveProcessedTick(processedTick)
+    return await super.saveProcessedTurn(processedTurn)
   }
 }
