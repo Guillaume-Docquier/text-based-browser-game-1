@@ -165,7 +165,7 @@ export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; p
 
   const canOpen =
     playerId !== undefined &&
-    (status === GameStatus.COLLECTING_ORDERS || status === GameStatus.PROCESSING_TURN) &&
+    (status === GameStatus.COLLECTING_ACTIONS || status === GameStatus.PROCESSING_TURN) &&
     lobbyModel.players.some((player) => player.id === playerId)
 
   return {

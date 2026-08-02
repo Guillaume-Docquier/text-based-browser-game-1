@@ -140,11 +140,11 @@ export const gameStatesTable = pgTable("game_states", {
 })
 
 /**
- * Orders submitted for a specific game turn.
+ * Actions submitted for a specific game turn.
  * Rows are kept as append-only history across turns.
  */
-export const ordersTable = pgTable(
-  "orders",
+export const gamePlayerActionsTable = pgTable(
+  "game_player_actions",
   {
     gameId: gameId("game_id").notNull(),
     playerId: playerId("player_id").notNull(),
@@ -160,7 +160,7 @@ export const ordersTable = pgTable(
     foreignKey({
       columns: [table.gameId, table.playerId],
       foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "orders_gameId_playerId_game_players_fk",
+      name: "game_player_actions_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
   ],
 )

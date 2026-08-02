@@ -18,7 +18,7 @@ import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
-import { type GameplayRepository, type OrderModel, type PlayerViewModel } from "./gameplay.repository.ts"
+import { type GamePlayerActionModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
@@ -74,7 +74,7 @@ export class GameplayController {
       await this.gameplayRepository.startGame(
         {
           game: gameForStart.value,
-          status: GameStatus.COLLECTING_ORDERS,
+          status: GameStatus.COLLECTING_ACTIONS,
           startedAt,
           nextTurnAt,
           starSystem: starSystemResult.value,
@@ -205,7 +205,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
   }
 }
 
-function toGamePlayerAction(gamePlayerActionModel: OrderModel): GamePlayerAction {
+function toGamePlayerAction(gamePlayerActionModel: GamePlayerActionModel): GamePlayerAction {
   return {
     gameId: gamePlayerActionModel.gameId,
     playerId: gamePlayerActionModel.playerId,

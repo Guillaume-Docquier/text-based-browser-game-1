@@ -61,9 +61,9 @@ export class TurnProcessor {
         return undefined
       }
 
-      if (nextTurnToProcessResult.value.gameStatus !== GameStatus.COLLECTING_ORDERS) {
+      if (nextTurnToProcessResult.value.gameStatus !== GameStatus.COLLECTING_ACTIONS) {
         throw new TransactionRollback("Game cannot be processed in its current status", {
-          cause: { status: nextTurnToProcessResult.value.gameStatus, expected: GameStatus.COLLECTING_ORDERS },
+          cause: { status: nextTurnToProcessResult.value.gameStatus, expected: GameStatus.COLLECTING_ACTIONS },
         })
       }
 
@@ -150,7 +150,7 @@ export class TurnProcessor {
     if (winnerAccountId === undefined) {
       return {
         ...turnResult,
-        gameStatus: GameStatus.COLLECTING_ORDERS,
+        gameStatus: GameStatus.COLLECTING_ACTIONS,
         nextTurn: {
           turn: turnToProcess.turn + 1,
           scheduledFor: Datetime.increment({

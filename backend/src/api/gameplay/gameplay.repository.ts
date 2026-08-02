@@ -12,16 +12,16 @@ import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamesTable, gameStatesTable, ordersTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
+import { gamePlayerActionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
-type OrderRow = typeof ordersTable.$inferSelect
+type GamePlayerActionRow = typeof gamePlayerActionsTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTurnRow = typeof turnsTable.$inferInsert
 
-export type OrderModel = OrderRow
+export type GamePlayerActionModel = GamePlayerActionRow
 
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
@@ -242,12 +242,18 @@ export class GameplayRepository extends PostgresRepository {
   public async getCurrentAction(
     params: { gameId: GameId; playerId: PlayerId; turn: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<OrderModel | null, string>> {
+  ): Promise<Result<GamePlayerActionModel | null, string>> {
     const getResult = await Result.tryCatch(
       db
         .select()
-        .from(ordersTable)
-        .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.turn, params.turn))),
+        .from(gamePlayerActionsTable)
+        .where(
+          and(
+            eq(gamePlayerActionsTable.gameId, params.gameId),
+            eq(gamePlayerActionsTable.playerId, params.playerId),
+            eq(gamePlayerActionsTable.turn, params.turn),
+          ),
+        ),
     )
 
     if (Result.isFailure(getResult)) {
@@ -268,7 +274,7 @@ export class GameplayRepository extends PostgresRepository {
   ): Promise<Result<PlayerActionContextModel, string>> {
     const contextResult = await Result.tryCatch(
       db.transaction(async (tx) => {
-        await lockGameCollectingOrders({ gameId: params.gameId }, tx)
+        await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
         const joinedPlayers = await tx
           .select({ playerId: playersTable.playerId })
@@ -323,17 +329,17 @@ export class GameplayRepository extends PostgresRepository {
   public async setCurrentAction(
     params: { gameId: GameId; playerId: PlayerId; turn: number; actionType: GamePlayerActionType },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<OrderModel, string>> {
+  ): Promise<Result<GamePlayerActionModel, string>> {
     const upsertResult = await Result.tryCatch(
       db.transaction(async (tx) => {
-        await lockGameCollectingOrders({ gameId: params.gameId }, tx)
+        await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
         const updatedAt = this.clock.now()
         const gamePlayerActions = await tx
-          .insert(ordersTable)
+          .insert(gamePlayerActionsTable)
           .values({ ...params, updatedAt })
           .onConflictDoUpdate({
-            target: [ordersTable.gameId, ordersTable.playerId, ordersTable.turn],
+            target: [gamePlayerActionsTable.gameId, gamePlayerActionsTable.playerId, gamePlayerActionsTable.turn],
             set: {
               actionType: params.actionType,
               updatedAt,
@@ -365,11 +371,17 @@ export class GameplayRepository extends PostgresRepository {
   ): Promise<Result<true, string>> {
     const deleteResult = await Result.tryCatch(
       db.transaction(async (tx) => {
-        await lockGameCollectingOrders({ gameId: params.gameId }, tx)
+        await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
         await tx
-          .delete(ordersTable)
-          .where(and(eq(ordersTable.gameId, params.gameId), eq(ordersTable.playerId, params.playerId), eq(ordersTable.turn, params.turn)))
+          .delete(gamePlayerActionsTable)
+          .where(
+            and(
+              eq(gamePlayerActionsTable.gameId, params.gameId),
+              eq(gamePlayerActionsTable.playerId, params.playerId),
+              eq(gamePlayerActionsTable.turn, params.turn),
+            ),
+          )
       }),
     )
 
@@ -385,14 +397,14 @@ export class GameplayRepository extends PostgresRepository {
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
-async function lockGameCollectingOrders({ gameId }: { gameId: GameId }, db: PostgresRepository["db"]): Promise<void> {
+async function lockGameCollectingActions({ gameId }: { gameId: GameId }, db: PostgresRepository["db"]): Promise<void> {
   const games = await db
     .select({ id: gamesTable.id })
     .from(gamesTable)
-    .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.COLLECTING_ORDERS)))
+    .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.COLLECTING_ACTIONS)))
     .for("no key update")
 
   if (games.length !== 1) {
-    throw new TransactionRollback("Cannot submit orders in the current game status")
+    throw new TransactionRollback("Cannot submit actions in the current game status")
   }
 }
