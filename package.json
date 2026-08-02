@@ -28,7 +28,7 @@
     "oxlint-tsgolint": "^7.0.2001"
   },
   "lint-staged": {
-    "*.{md,json,yml,yaml,css,scss}": "oxfmt --no-error-on-unmatched-pattern",
+    "*.{md,json,yml,yaml,css,html}": "oxfmt --no-error-on-unmatched-pattern",
     "*.{js,jsx,ts,tsx}": [
       "oxlint --fix",
       "oxfmt --no-error-on-unmatched-pattern"

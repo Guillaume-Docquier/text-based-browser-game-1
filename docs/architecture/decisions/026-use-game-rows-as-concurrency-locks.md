@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Many operations read game state, check rules, and then write to several tables. Examples include joining, leaving, starting, submitting orders, and processing ticks.
+Many operations read game state, check rules, and then write to several tables. Examples include joining, leaving, starting, submitting Actions, and processing Turns.
 
 Requests for the same game can run at the same time. A transaction alone does not stop two requests from reading the same state and both acting on it. Locking each related table separately would be hard to apply in the same way everywhere. It would also make deadlocks more likely if code locks tables in a different order.
 
