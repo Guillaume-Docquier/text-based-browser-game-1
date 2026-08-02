@@ -24,7 +24,7 @@ const PLAYER_ACTIONS = [
     rewardMoney: 0,
   },
 ] as const satisfies Array<{
-  actionType: ApiTypes.GamePlayerAction["actionType"]
+  actionType: ApiTypes.ActionDto["actionType"]
   label: string
   description: string
   costMoney: number
@@ -38,7 +38,7 @@ export function GameActionSelector({
 }: {
   gameId: ApiTypes.GameId
   playerView: PlayerView
-  currentAction: ApiTypes.GamePlayerAction | null
+  currentAction: ApiTypes.ActionDto | null
 }): ReactElement {
   const setCurrentAction = useSetCurrentActionMutation()
 

@@ -4,7 +4,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
@@ -30,7 +30,7 @@ describe("gameplay.router", () => {
       nonPlayer.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+        actionType: ActionType.MAKE_MORE_MONEY,
       }),
     ).rejects.toMatchObject(expectedError)
   })
@@ -376,7 +376,7 @@ describe("gameplay.router", () => {
       const setCurrentActionResult = await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+        actionType: ActionType.MAKE_MORE_MONEY,
       })
       const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,
@@ -388,7 +388,7 @@ describe("gameplay.router", () => {
           gameId: createdGameId,
           playerId: player.account.id,
           turn: 0,
-          actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+          actionType: ActionType.MAKE_MORE_MONEY,
           updatedAt: expect.any(String),
         },
       })
@@ -408,7 +408,7 @@ describe("gameplay.router", () => {
         player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           turn: 1,
-          actionType: GamePlayerActionType.MAKE_MORE_MONEY,
+          actionType: ActionType.MAKE_MORE_MONEY,
         }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },

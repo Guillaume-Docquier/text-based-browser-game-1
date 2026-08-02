@@ -27,8 +27,8 @@ export type RangeSettingKey = Exclude<keyof StarSystemGenerationSettings, "seed"
 export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 
 // Gameplay router
-type GamePlayerActionsOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
-export type GamePlayerAction = NonNullable<GamePlayerActionsOutput["action"]>
+type CurrentActionOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
+export type ActionDto = NonNullable<CurrentActionOutput["action"]>
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
 export type StarSystem = PlayerView["starSystem"]
 export type StarSystemOrbit = StarSystem["orbits"][number]

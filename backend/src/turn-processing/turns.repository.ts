@@ -5,16 +5,16 @@ import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import type { GamePlayerActionType } from "#lib/db/gameplay/gamePlayerActionType.ts"
+import type { ActionType } from "#lib/db/gameplay/actionType.ts"
 import type { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { gamePlayerActionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
+import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
-type GamePlayerActionRow = typeof gamePlayerActionsTable.$inferSelect
+type ActionRow = typeof actionsTable.$inferSelect
 
 /**
  * Owning a TurnForProcessing within a transaction guarantees that the turn and the game are locked, exist and need processing at this time.
@@ -49,7 +49,7 @@ export type TurnToProcessModel = {
         resourceType: ResourceType
         amount: number
       }>
-      actionType: GamePlayerActionType | undefined
+      actionType: ActionType | undefined
     }
   >
 }
@@ -154,7 +154,7 @@ export class TurnsRepository extends PostgresRepository {
       Assert.isTrue(games.length === 1)
       Assert.isDefined(games[0])
 
-      const [players, resources, gamePlayerActions] = await Promise.all([
+      const [players, resources, actions] = await Promise.all([
         tx
           .select()
           .from(playersTable)
@@ -167,14 +167,11 @@ export class TurnsRepository extends PostgresRepository {
           .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
         tx
           .select()
-          .from(gamePlayerActionsTable)
+          .from(actionsTable)
           .where(
-            and(
-              eq(gamePlayerActionsTable.gameId, startTurnProcessingModel.turn.gameId),
-              eq(gamePlayerActionsTable.turn, startTurnProcessingModel.turn.turn),
-            ),
+            and(eq(actionsTable.gameId, startTurnProcessingModel.turn.gameId), eq(actionsTable.turn, startTurnProcessingModel.turn.turn)),
           )
-          .orderBy(asc(gamePlayerActionsTable.playerId)),
+          .orderBy(asc(actionsTable.playerId)),
       ])
 
       return toTurnToProcessModel({
@@ -183,7 +180,7 @@ export class TurnsRepository extends PostgresRepository {
         turnIntervalSeconds: games[0].turnIntervalSeconds,
         players,
         resources,
-        gamePlayerActions,
+        actions,
       })
     })
 
@@ -301,17 +298,17 @@ function toTurnToProcessModel({
   turnIntervalSeconds,
   players,
   resources,
-  gamePlayerActions,
+  actions,
 }: {
   turnForProcessing: TurnForProcessing
   scheduledFor: Date
   turnIntervalSeconds: number
   players: PlayerRow[]
   resources: ResourceRow[]
-  gamePlayerActions: GamePlayerActionRow[]
+  actions: ActionRow[]
 }): TurnToProcessModel {
   const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
-  const gamePlayerActionsByPlayerId = Map.groupBy(gamePlayerActions, (gamePlayerAction) => gamePlayerAction.playerId)
+  const actionsByPlayerId = Map.groupBy(actions, (action) => action.playerId)
 
   return {
     ...turnForProcessing,
@@ -327,7 +324,7 @@ function toTurnToProcessModel({
           resourceType: resource.resourceType as ResourceType,
           amount: resource.amount,
         })),
-        actionType: gamePlayerActionsByPlayerId.get(playerId)?.[0]?.actionType,
+        actionType: actionsByPlayerId.get(playerId)?.[0]?.actionType,
       }
       return playersById
     }, {}),
