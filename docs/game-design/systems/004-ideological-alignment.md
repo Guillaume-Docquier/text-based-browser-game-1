@@ -28,20 +28,6 @@ Each Ideological Axis has Stances from -5 to 5. A Stance of 0 is neutral; -5 and
 
 An empire's Stances determine its available Actions. Each table row lists the complete Action Set available at that Stance. Repeated Actions between axes add together.
 
-Players will always have access to 1 Standard of every Action in the core pool. Then, each Axis will provide more or better Actions. Each axis defines its own Action pool.
-
-## Core Action Pool
-
-- Move
-- Post Trade
-- Bid on Trade
-- Cancel Trade
-- Post Contract
-- Bid on Contract
-- Cancel Contract
-- Build Infrastructure
-- Build Fleet
-
 ## Ideological Axes
 
 | Axis      | Theme                                        | -5 extreme   | 5 extreme   |
