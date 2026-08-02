@@ -98,6 +98,8 @@ Directives are targeted Actions, generally affecting a Planet or a Unit, that ha
 | Build Fleet          | Exceptional | N/A        | Self           | Owned Planet      | 10 Influence, 20 Metal            | Build a Fleet with Strength 20.                                                                |
 | ...                  | ...         | ...        | ...            | ...               | ...                               | ...                                                                                            |
 
+Note: Every Post Trade/Contract Action always comes with a Cancel Trade/Contract Action. It will not be explicitly written out in all documents to alleviate the text.
+
 ### Legacies
 
 Legacies are big undertakings that span multiple turns. They reward a lot of Legacy points when they complete their Legacy Project.
@@ -120,6 +122,10 @@ The action table uses compact effect text. Detailed definitions live in the rela
 | Assault        | [011-combat](./011-combat.md)                 |
 | Travel         | [012-travel](./012-travel.md)                 |
 | Cloaking       | [010-fleets](./010-fleets.md)                 |
+
+### Action Set
+
+The exact Action Set that a player will have access to is dictated by their Empire's [System 004-ideological-alignment](./004-ideological-alignment.md).
 
 ## Potential Flaws
 
