@@ -13,7 +13,7 @@ This index summarizes the game's systems. Read the related entries when a mechan
 | [005-political-regime](./005-political-regime.md)           | How an empire's Political Regime changes the cost and efficiency of its actions.                 |
 | [006-trade](./006-trade.md)                                 | How Sellers and Buyers exchange resources through private bids.                                  |
 | [007-contracts](./007-contracts.md)                         | How Clients hire Contractors to perform Actions on their behalf.                                 |
-| [008-colonization](./008-colonization.md)                   | How empires claim Unclaimed Planets.                                                             |
+| [008-planets](./008-planets.md)                             | How Planets, their Attributes, and Colonization shape expansion.                                 |
 | [009-infrastructure](./009-infrastructure.md)               | How empires improve their owned Planets.                                                         |
 | [010-fleets](./010-fleets.md)                               | How Fleets are created, represented, and merged.                                                 |
 | [011-combat](./011-combat.md)                               | How Fleet assaults and Surprise Assaults resolve.                                                |

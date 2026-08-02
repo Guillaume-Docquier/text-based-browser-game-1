@@ -9,7 +9,7 @@ Relates to:
 - [System 003-actions](./003-actions.md)
 - [System 001-turns](./001-turns.md)
 - [System 010-fleets](./010-fleets.md)
-- [System 008-colonization](./008-colonization.md)
+- [System 008-planets](./008-planets.md)
 
 ## Core Concepts
 

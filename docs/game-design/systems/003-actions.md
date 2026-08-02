@@ -113,7 +113,7 @@ The action table uses compact effect text. Detailed definitions live in the rela
 | -------------- | --------------------------------------------- |
 | Trade          | [006-trade](./006-trade.md)                   |
 | Contracts      | [007-contracts](./007-contracts.md)           |
-| Colonization   | [008-colonization](./008-colonization.md)     |
+| Colonization   | [008-planets](./008-planets.md)               |
 | Infrastructure | [009-infrastructure](./009-infrastructure.md) |
 | Fleets         | [010-fleets](./010-fleets.md)                 |
 | Assault        | [011-combat](./011-combat.md)                 |

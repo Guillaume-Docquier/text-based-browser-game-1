@@ -14,7 +14,7 @@ Relates to:
 - [System 003-actions](./003-actions.md)
 - [System 012-travel](./012-travel.md)
 - [System 011-combat](./011-combat.md)
-- [System 008-colonization](./008-colonization.md)
+- [System 008-planets](./008-planets.md)
 
 ## Core Concepts
 

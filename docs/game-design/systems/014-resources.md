@@ -11,6 +11,7 @@ Supports:
 Relates to:
 
 - [System 003-actions](./003-actions.md)
+- [System 008-planets](./008-planets.md)
 
 ## Core Concepts
 
@@ -36,7 +37,7 @@ Relates to:
 
 The game uses multiple distinct Resources. Metal, Fuel, Energy, Influence, and Colony are the current catalogue; additional Resources may be added later.
 
-Each Resource has its own production methods, uses, and availability. Planet attributes, geography, and Ideological Alignment can make a Resource abundant, limited, or unavailable from an empire's own territory.
+Each Resource has its own production methods, uses, and availability. Planet attributes and Ideological Alignment can make a Resource abundant, limited, or unavailable from an empire's own territory.
 
 An empire may hold and spend a Resource it has acquired regardless of its current Ideological Alignment. Alignment can restrict resource production and Action availability, but does not restrict ownership. Resources may therefore be stockpiled for a future Alignment change or exchanged with other empires where the relevant system permits it.
 
