@@ -20,11 +20,11 @@
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.5",
     "@guillaume-docquier/oxlint": "^1.2.3",
-    "@guillaume-docquier/show-me": "^1.1.0",
+    "@guillaume-docquier/show-me": "^1.7.1",
     "husky": "^9.1.7",
-    "lint-staged": "^17.2.0",
-    "oxfmt": ">=0.60.0",
-    "oxlint": "^1.75.0",
+    "lint-staged": "^17.3.0",
+    "oxfmt": ">=0.61.0",
+    "oxlint": "^1.76.0",
     "oxlint-tsgolint": "^7.0.2001"
   },
   "lint-staged": {
@@ -41,5 +41,5 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@11.15.0"
+  "packageManager": "pnpm@11.18.0"
 }
