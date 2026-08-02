@@ -1,5 +1,9 @@
 # Legacy
 
+## Status
+
+Not Implemented
+
 ## Purpose
 
 Legacy is the goal of the game. Empires fight to have lasting impact on the galaxy, which gives them Legacy points.
@@ -12,6 +16,7 @@ Supports:
 Relates to:
 
 - [System 003-actions](./003-actions.md)
+- [System 007-contracts](./007-contracts.md)
 
 ## Core Concepts
 

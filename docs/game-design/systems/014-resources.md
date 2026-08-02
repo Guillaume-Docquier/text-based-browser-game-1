@@ -1,5 +1,9 @@
 # Resources
 
+## Status
+
+Not Implemented
+
 ## Purpose
 
 Resources are the distinct economic inputs and outputs that make empire development, specialization, and exchange meaningful.
@@ -13,6 +17,8 @@ Relates to:
 - [System 003-actions](./003-actions.md)
 - [System 008-planets](./008-planets.md)
 - [System 005-political-regime](./005-political-regime.md)
+- [System 006-trade](./006-trade.md)
+- [System 007-contracts](./007-contracts.md)
 
 ## Core Concepts
 

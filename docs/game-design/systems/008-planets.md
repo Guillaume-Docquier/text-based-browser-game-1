@@ -1,5 +1,9 @@
 # Planets
 
+## Status
+
+Not Implemented
+
 ## Purpose
 
 Planets are the places empires develop, fight over, and colonize. Their Biomes and Attributes create the local tradeoffs that shape expansion.
@@ -15,6 +19,9 @@ Relates to:
 - [System 001-turns](./001-turns.md)
 - [System 014-resources](./014-resources.md)
 - [System 010-fleets](./010-fleets.md)
+- [System 009-infrastructure](./009-infrastructure.md)
+- [System 004-ideological-alignment](./004-ideological-alignment.md)
+- [System 011-combat](./011-combat.md)
 
 ## Core Concepts
 
@@ -24,7 +31,7 @@ Relates to:
 | Unclaimed Planet     | A Planet with no owner that may be claimed through colonization.                                       |
 | Colony               | A resource required to attempt colonization.                                                           |
 | Colonization Attempt | An empire's attempt to establish ownership of an Unclaimed Planet with a Fleet that has arrived there. |
-| Planet Attribute     | A public statistic of a Planet that affects its capabilities and resource production.                  |
+| Planet Attribute     | A statistic of a Planet that affects its capabilities and resource production.                         |
 | Biome                | A Planet classification that determines ranges for resource production.                                |
 | Size                 | A Planet category that determines ranges for Max Population and Area.                                  |
 | Max Population       | The hard limit on the number of Population units a Planet can sustain.                                 |
@@ -32,11 +39,13 @@ Relates to:
 | Population           | A whole-number worker unit assigned to one planetary activity.                                         |
 | Food                 | A Planet-local resource produced to gain Population.                                                   |
 
+## Rules
+
 ## Planet Attributes
 
-Every Planet has public Planet Attributes determined by its a Biome and Size. Biomes make planets legible by constraining their resource production ranges rather than making every planet entirely random. For example, an Oceanic Planet may tend toward high Food and lower Metal, while a Metallic Planet may tend toward the reverse. The planet Size affects how much productivity the planet will be able to sustain via caps to its population and infrastructure.
+Every Planet has Planet Attributes determined by its Biome and Size. Biomes make Planets legible by constraining their Resource production ranges rather than making every Planet entirely random. For example, an Oceanic Planet may tend toward high Food and lower Metal, while a Metallic Planet may tend toward the reverse. The Planet Size affects how much productivity the Planet will be able to sustain via caps to its Population and Infrastructure.
 
-Planet Attributes create colonization tradeoffs. A Planet's Attributes are visible only while the Planet is in an empire's vision.
+Planet Attributes create colonization tradeoffs. An empire sees a Planet's current Attributes while the Planet is in that empire's vision. When an empire loses vision of the Planet, it retains the last-seen Attribute values. When vision is renewed, the empire's recorded Attribute values refresh to the current values.
 
 Every Attribute is a base value for its related production or growth. Planet Infrastructure and empire-wide modifiers multiply that base value to determine the final output.
 
@@ -78,11 +87,11 @@ A Colonization Attempt requires an Unclaimed Planet, an arriving Fleet, and a Co
 
 Colonization resolves after Combat. A Colonization Attempt is valid only if its Fleet survives the encounter and remains at the Unclaimed Planet after Combat. Combat can therefore deny colonization by destroying a would-be colonizing Fleet. Valid Attempts are considered in the arrival order established by Travel Ticks, so an earlier arrival has priority over later arrivals. If multiple valid Attempts arrive on the same Travel Tick, one is selected randomly to succeed. The Fleets and Colony resources used by unsuccessful attempts return to their empires.
 
-A newly colonized Planet starts with `min(Max Population / 2, max(2, floor(colonizing Fleet Strength / 5)))` Population. In other words, every colonized planet starts with between 2 and half it's Max Population based on the colonizing Fleet Strength divided by 5, rounded down.
+A newly colonized Planet starts with `min(Max Population / 2, max(2, floor(colonizing Fleet Strength / 5)))` Population. In other words, every colonized Planet starts with between 2 and half its Max Population based on the colonizing Fleet Strength divided by 5, rounded down.
 
 ## Planet Development
 
-Planets develop automatically during Turn Resolution. Population is a pool of whole-number workers. Each worker is assigned to one activity: Food, Metal production, Fuel production, Energy production, Infrastructure construction, or Fleet construction. Worker allocation and construction choices follow empire-wide ideological priorities; Agendas and Directives may later provide global or local intervention.
+Ongoing planetary simulation is a core strategic system. Planets develop automatically during Turn Resolution, so population, production, construction, and fleets continue to progress without a separate player Action. This also makes missed Turns less damaging, but missed-Turn resilience is a benefit of the simulation rather than its purpose. Population is a pool of whole-number workers. Each worker is assigned to one activity: Food, Metal production, Fuel production, Energy production, Infrastructure construction, or Fleet construction. Worker allocation and construction choices follow empire-wide ideological priorities; Agendas and Directives may later provide global or local intervention.
 
 | Activity                    | Summary                                                                     |
 | --------------------------- | --------------------------------------------------------------------------- |
@@ -99,7 +108,7 @@ Food workers produce Food. Food is held locally by the Planet and does not enter
 
 Automatic governance reassigns Food workers when the Planet reaches Max Population. If Food is nevertheless produced at the cap, it has no further growth benefit.
 
-Infrastructure construction uses the Planet's same-turn local production. Each construction worker can invest one unit of a resource required by the current Infrastructure project. A Planet may complete at most one Infrastructure project per turn; a project may complete in one turn when its full resource cost is invested. The Planet cannot use resources from the empire stockpile for automatic construction.
+Infrastructure construction uses the Planet's same-turn local production. Each construction worker can invest one unit of a required Resource produced on the Planet during that Turn Resolution. For each worker, the Planet prioritizes an unfunded required Resource with the lowest planetary production; if multiple eligible Resources tie, it chooses randomly among them. If no eligible required Resource has same-turn production available, that worker invests nothing. Invested amounts persist on the current Infrastructure project between turns. The project completes only when every Resource cost is fully funded, and a Planet may complete at most one Infrastructure project per turn. The Planet cannot use resources from the empire stockpile for automatic construction; same-turn production that is not invested enters the empire stockpile.
 
 Fleet construction uses the Planet's same-turn local Metal production. Each Fleet construction worker can invest one Metal to add one Strength to the empire's Fleet at that Planet. The Planet cannot use resources from the empire stockpile for automatic Fleet construction.
 

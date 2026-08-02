@@ -17,7 +17,7 @@ We also want ideological axes to drive which actions are available to the player
 All actions will fit the "card" model, where an action:
 
 - has type(s)
-- has pre-requisite(s)
+- has prerequisite(s)
 - has cost(s)
 - has effect(s)
 - etc
@@ -27,7 +27,7 @@ Every turn, the player will have an Action pool.
 - Having access to multiple trade actions will mean a player can perform multiple trades.
 - Having access to a strong move action might mean the ships can move far, or fast, or stealthily, etc.
 
-Even if the Action is in the pool, players will have to meet certain pre-requisites and be able to pay the Action's costs in order to submit it, which means they won't be able to play all the actions every turn. They will have to choose.
+Even if the Action is in the pool, players will have to meet certain prerequisites and be able to pay the Action's costs in order to submit it, which means they won't be able to play all the actions every turn. They will have to choose.
 
 ## Pros
 

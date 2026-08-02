@@ -26,7 +26,7 @@ This is to prevent dragging games that are clearly won.
 ## Pros
 
 - Players know what to expect of the game in terms of time investment.
-- The length of the game also becomes strategic information, as the remaining game time can change players choices. A long term investment is better at the start of the game than near the end.
+- The length of the game also becomes strategic information, as the remaining game time can change players' choices. A long-term investment is better at the start of the game than near the end.
 
 ## Cons
 

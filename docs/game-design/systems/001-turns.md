@@ -1,5 +1,9 @@
 # Turns
 
+## Status
+
+Not Implemented
+
 ## Purpose
 
 Turns are the main element of the game loop. Their frequency dictates the pace of the game.
@@ -12,6 +16,8 @@ Supports:
 Relates to:
 
 - [System 003-actions](./003-actions.md)
+- [System 006-trade](./006-trade.md)
+- [System 007-contracts](./007-contracts.md)
 - [System 012-travel](./012-travel.md)
 - [System 011-combat](./011-combat.md)
 - [System 008-planets](./008-planets.md)
@@ -36,7 +42,7 @@ During a Turn, players can declare themselves Ready. This is public information.
 
 When a Turn ends, all Actions are locked in and Turn Resolution begins. Players cannot submit or revise Actions during Turn Resolution.
 
-Turn Resolution processes the locked-in Actions and automatic game events through 20 Ticks deterministically. Ticks are internal to resolution: they do not create additional player turns or opportunities to react. They establish the order for Travel and record the arrival order of Fleets. Events assigned to the same Tick are simultaneous.
+Turn Resolution processes the locked-in Actions and automatic game events through 20 Ticks deterministically. Ticks are internal to Turn Resolution: they do not create additional player Turns or opportunities to react. They establish the order for Travel and record the arrival order of Fleets. Events assigned to the same Tick are simultaneous.
 
 Ticks are not used to resolve Combat or Colonization. After all Travel has completed, Combat resolves from the final Fleet positions. Colonization then resolves after Combat, using the arrival order established by Travel Ticks. A Fleet that arrives during the Turn is present for Combat at its destination before it can colonize that Planet.
 
@@ -44,4 +50,4 @@ When Turn Resolution completes, its resulting game state becomes the state from 
 
 ## Potential Flaws
 
-Because turns are coarse grained, in some cases a player might not have the time to react to what their opponents are doing.
+Because Turns are coarse-grained, in some cases a player might not have the time to react to what their opponents are doing.

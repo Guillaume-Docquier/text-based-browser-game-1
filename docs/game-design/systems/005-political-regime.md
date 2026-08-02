@@ -1,5 +1,9 @@
 # Political Regime
 
+## Status
+
+Not Implemented
+
 ## Purpose
 
 Political Regime creates asymmetric play by defining an empire's fixed Influence budget and broad modifiers for Agendas and Directives.
@@ -20,7 +24,7 @@ Relates to:
 | Concept                  | Definition                                                           |
 | ------------------------ | -------------------------------------------------------------------- |
 | Political Regime         | A permanent empire profile chosen at the start of a game.            |
-| Influence Income         | The fixed amount of Influence available to the empire each turn.     |
+| Influence Income         | The fixed amount of Influence available to the Empire each Turn.     |
 | Agenda Cost Modifier     | A multiplier applied to an Agenda's Influence cost.                  |
 | Directive Cost Modifier  | A multiplier applied to a Directive's Influence cost.                |
 | Alignment Shift Modifier | A multiplier applied to any Action's numerical alignment shift.      |

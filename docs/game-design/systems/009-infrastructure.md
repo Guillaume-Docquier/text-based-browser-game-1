@@ -1,5 +1,9 @@
 # Infrastructure
 
+## Status
+
+Not Implemented
+
 ## Purpose
 
 Infrastructure is the set of persistent Planet-level improvements through which an empire develops the capabilities of its owned Planets.
@@ -7,6 +11,7 @@ Infrastructure is the set of persistent Planet-level improvements through which 
 Relates to:
 
 - [System 003-actions](./003-actions.md)
+- [System 008-planets](./008-planets.md)
 
 ## Core Concepts
 
@@ -19,7 +24,7 @@ Relates to:
 
 ## Rules
 
-Infrastructure may only be constructed on a Planet owned by the empire that will own it. Its construction requires payment of its listed cost and satisfaction of its Construction Prerequisites.
+Infrastructure may only be constructed on a Planet owned by the Empire that will own it. Its construction requires payment of its listed cost and satisfaction of its Construction Prerequisites.
 
 ### Basic Infrastructure
 

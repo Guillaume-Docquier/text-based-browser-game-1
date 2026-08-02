@@ -23,11 +23,11 @@ There will be Legacy Projects or Institutions, which will be large undertakings 
 For example:
 
 - Dyson Sphere: Energy is free and infinite
-- Science Archives: Empires can share science advancements will all other empires in the game
+- Science Archives: Empires can share science advancements with all other empires in the game
 - Closed Borders: Empires have explicit borders and gain full vision over their territory
 - Imperium Coin: Empires can now use a common currency for all trade
 
-Each of these projects change how the game is played by adding global mechanics. The project's sponsor and the contributors will gain Legacy points via the projects completion.
+Each of these projects changes how the game is played by adding global mechanics. The project's sponsor and the contributors will gain Legacy points via the project's completion.
 
 This encourages collaboration with your enemies. By contributing to a project, you enable it, but you also limit how much points your opponents will get compared to you. Some projects might also highly benefit your strategy even if you don't contribute to them.
 

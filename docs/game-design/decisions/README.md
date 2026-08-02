@@ -19,9 +19,9 @@ These decisions describe intended game philosophy and mechanics that are not yet
 
 These decisions describe game design that the game partially follows. Some aspects have been implemented, but the full scope is not yet realized.
 
-| GDDR                                | Summary                                                                                                                                                                                  | Use when                                                           |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| [003-turn-based](003-turn-based.md) | Players submit orders during a fixed turn window, without requiring player-to-player acknowledgement nor large time investment. If all players are ready, the turn resolves immediately. | You design turn resolution, order submission, player availability. |
+| GDDR                                | Summary                                                                                                                                                                                   | Use when                                       |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| [003-turn-based](003-turn-based.md) | Players submit Actions during a fixed Turn window, without requiring player-to-player acknowledgement nor large time investment. If all players are ready, the Turn resolves immediately. | You design Turn Resolution, Action submission. |
 
 ## Implemented decisions
 

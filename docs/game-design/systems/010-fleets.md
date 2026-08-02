@@ -1,5 +1,9 @@
 # Fleets
 
+## Status
+
+Not Implemented
+
 ## Purpose
 
 Fleets are simple mobile military units. They provide an empire's presence beyond its Planets and participate in travel, combat, colonization, and other fleet-related systems.
@@ -16,7 +20,7 @@ Relates to:
 | Concept           | Definition                                                                  |
 | ----------------- | --------------------------------------------------------------------------- |
 | Fleet             | An empire's combined mobile force at one location, represented by Strength. |
-| Visible Strength  | A positive whole number representing a Fleet's visbile military capacity.   |
+| Visible Strength  | A positive whole number representing a Fleet's visible military capacity.   |
 | Cloaked Strength  | A positive whole number representing a Fleet's hidden military capacity.    |
 | Total Strength    | A positive whole number representing a Fleet's total military capacity.     |
 | Cloaking Duration | The period for which a Fleet's Strength remains Cloaked.                    |

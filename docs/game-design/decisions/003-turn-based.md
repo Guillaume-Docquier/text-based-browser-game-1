@@ -17,7 +17,7 @@ On the other side, turn based games can be slow, require players to be online at
 
 ## Decision
 
-The game will be turn based, where players have a time window to submit orders, after which the turn is resolved, the next game state is computed, and the next turn starts.
+The game will be turn based, where players have a time window to submit Actions, after which Turn Resolution computes the next game state and the next Turn starts.
 
 The turn length will be decided before the game starts and can vary between games.
 
@@ -27,9 +27,9 @@ Each turn should be playable in ~30 minutes or less to limit the required time i
 
 A player may enter a ready state. When all players are ready, the turn resolves immediately. Readiness is reversible.
 
-The game will be leaning towards auto-battler style, where a simulation advances the game without your input. This will soften the impact of missed turns.
+The game will be leaning towards auto-battler style, where a simulation advances the game during Turn Resolution without your input. This will soften the impact of missed turns.
 
-If a player fails to submit orders, the game will still advance. The turn will not be delayed.
+If a player fails to submit Actions, the game will still advance. The Turn will not be delayed.
 
 ## Pros
 

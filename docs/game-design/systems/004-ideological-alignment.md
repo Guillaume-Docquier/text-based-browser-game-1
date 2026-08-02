@@ -1,5 +1,9 @@
 # Ideological Alignment
 
+## Status
+
+Not Implemented
+
 ## Purpose
 
 Ideological Alignment defines an empire's strategic identity and the Actions available to it. Each Axis creates a tradeoff between opposing playstyles.
@@ -13,6 +17,7 @@ Relates to:
 
 - [System 003-actions](./003-actions.md)
 - [System 005-political-regime](./005-political-regime.md)
+- [System 008-planets](./008-planets.md)
 
 ## Core Concepts
 
@@ -67,7 +72,7 @@ Industrial aims at exploiting planets by building infrastructure and are also in
 |              -1 | T4 Colonize Planet                           |
 |               0 | T4 Build Fleet                               |
 |               1 | T4 Build Fleet                               |
-|               2 | T4 Move,                                     |
+|               2 | T4 Move                                      |
 |               3 | T4 Move, T4 Colonize Planet                  |
 |               4 | T1 Move, T1 Bid on Trade                     |
 |   (Ecologist) 5 | T1 Move, T1 Colonize Planet, T1 Bid on Trade |

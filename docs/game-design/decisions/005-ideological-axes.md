@@ -10,7 +10,7 @@ Planned
 
 We want the player choices to feel meaningful, immersive and impact the game they're playing. Roguelikes and ARPGs do this via the variety of character builds you can aim for, mixed with some RNG. Some strategy games will do this via a Tech tree, others will promote asymmetric playstyles.
 
-We'd like to avoid general all rounded strategies that you can always play. We want players to make a plan and invest in it.
+We'd like to avoid general all-around strategies that you can always play. We want players to make a plan and invest in it.
 
 ## Decision
 
@@ -26,7 +26,7 @@ Because your stance on an axis dictates what you'll be able to do (and what you 
 
 - Can lead to very thematic builds
 - The player is in full control of their strategy
-- The player can plan their ideological path on the long term
+- The player can plan their ideological path over the long term
 - Extreme ideologies offer a real choice between staying flexible vs super specialized
 
 ## Cons
