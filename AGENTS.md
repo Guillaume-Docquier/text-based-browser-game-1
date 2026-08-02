@@ -132,6 +132,12 @@ This repo uses GDDRs in `docs/game-design/decisions/` to capture durable game-de
 
 Before implementing gameplay work, read the relevant GDDRs. During implementation, check whether a related planned GDDR is now reflected in the game. If it is, update its status to `Implemented` and move its entry from the planned section to the implemented section of the GDDR index. If the implementation differs from the planned decision, flag that mismatch and discuss it with the human before changing the record or the game direction.
 
+## Game Design Systems
+
+This repo documents the game systems in `docs/game-design/systems/`. When implementing a system, make sure to update existing documentation. Creating systems should be asked explicitly of you. If you think a system is missing, ask the human whether to create one, and then follow `docs/game-design/systems/how-to.md`.
+
+Before implementing gameplay work, read the relevant game systems. During implementation, check whether a related planned game system is now reflected in the game. If it is, update its status to `Implemented` and move its entry from the planned section to the implemented section of the GDDR index. If the implementation differs from the planned decision, flag that mismatch and discuss it with the human before changing the documentation or the game direction.
+
 ## Commands
 
 Always use pnpm, never use npm.
