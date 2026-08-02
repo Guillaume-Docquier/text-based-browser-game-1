@@ -72,30 +72,29 @@ Agendas are broad Actions, generally Empire or Planet wide, that have a noticeab
 
 Directives are targeted Actions, generally affecting a Planet or a Unit, that have little to no impact on the player Ideologies. They aim to have concrete, immediate effects.
 
-| Directive            | Tier        | Conditions  | Source  | Target            | Costs                             | Effects                                                                         |
-| -------------------- | ----------- | ----------- | ------- | ----------------- | --------------------------------- | ------------------------------------------------------------------------------- |
-| Attack Move          | Standard    | N/A         | Fleet   | Planet            | 5 Influence, 1 fuel               | Travel at Speed 1, Range 5. Assault on arrival.                                 |
-| Attack Move          | Exceptional | N/A         | Fleet   | Planet            | 5 Influence, 5 fuel, 5 energy     | Travel at Speed 5, Range 25. Surprise Assault on arrival.                       |
-| Stealth Move         | Standard    | N/A         | Fleet   | Planet            | 3 Influence, 1 fuel, 5 energy     | Travel at Speed 1, Range 3. Cloaked in transit.                                 |
-| Stealth Move         | Exceptional | N/A         | Fleet   | Planet            | 3 Influence, 3 fuel, 10 energy    | Travel at Speed 3, Range 9. Cloaked in transit and for 1 turn after arrival.    |
-| Post Trade           | Standard    | N/A         | Self    | Trade Board       | 5 Influence, Trade Offering       | Post a Trade Offering for 5 turns with 15% Tax.                                 |
-| Post Trade           | Exceptional | N/A         | Self    | Trade Board       | 3 Influence, Trade Offering       | Post a Trade Offering for 10 turns with 0% Tax.                                 |
-| Bid on Trade         | Standard    | N/A         | Self    | Open Trade        | 5 Influence, Bid Payment          | Bid at a 100% Rate on an Open Trade.                                            |
-| Bid on Trade         | Exceptional | N/A         | Self    | Open Trade        | 3 Influence, Bid Payment          | Bid at a 150% Rate on an Open Trade.                                            |
-| Cancel Trade         | Standard    | N/A         | Self    | Own Open Trade    | 1 Influence                       | Cancel the Trade. Refund its Trade Offering unless the Trade settles this turn. |
-| Post Contract        | Standard    | N/A         | Self    | Contract Board    | Contract Reward                   | Post a Contract for 3 turns with a 100% Reward Rate.                            |
-| Post Contract        | Exceptional | N/A         | Self    | Contract Board    | Contract Reward                   | Post a Contract for 6 turns with a 200% Reward Rate.                            |
-| Bid on Contract      | Standard    | N/A         | Self    | Open Contract     | Action Costs                      | Bid to complete an Open Contract for 100% of your Bid Reward.                   |
-| Bid on Contract      | Exceptional | N/A         | Self    | Open Contract     | Action Costs                      | Bid to complete an Open Contract for 200% of your Bid Reward.                   |
-| Cancel Contract      | Standard    | N/A         | Self    | Own Open Contract | 1 Influence                       | Cancel the Contract. Refund its escrow unless the Contract settles this turn.   |
-| Colonize Planet      | Standard    | N/A         | Fleet   | Unclaimed Planet  | 25 Influence, 1 colony            | Travel at Speed 1, Range 5. Colonize on arrival.                                |
-| Colonize Planet      | Exceptional | N/A         | Fleet   | Unclaimed Planet  | 25 Influence, 1 colony, 20 energy | Travel at Speed 5, Range 5. Colonize on arrival. Develop at 200% for 10 turns.  |
-| Build Infrastructure | Standard    | N/A         | Self    | Owned Planet      | 10 Influence, Infrastructure Cost | Build Standard or lower Infrastructure.                                         |
-| Build Infrastructure | Exceptional | N/A         | Self    | Owned Planet      | 10 Influence, Infrastructure Cost | Build Exceptional or lower Infrastructure.                                      |
-| Build Fleet          | Standard    | N/A         | Self    | Owned Planet      | 10 Influence, 5 Metal             | Build a Fleet with Strength 5.                                                  |
-| Build Fleet          | Exceptional | N/A         | Self    | Owned Planet      | 10 Influence, 20 Metal            | Build a Fleet with Strength 20.                                                 |
-| Merge Fleets         | Standard    | Same Planet | Fleet A | Fleet B           | 5 Influence, 5 Metal, 5 Energy    | Merge Fleet A onto Fleet B.                                                     |
-| ...                  | ...         | ...         | ...     | ...               | ...                               | ...                                                                             |
+| Directive            | Tier        | Conditions | Source         | Target            | Costs                             | Effects                                                                                        |
+| -------------------- | ----------- | ---------- | -------------- | ----------------- | --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Attack Move          | Standard    | N/A        | Fleet Strength | Planet            | 5 Influence, 1 fuel               | Travel selected Strength at Speed 1, Range 5. Assault on arrival.                              |
+| Attack Move          | Exceptional | N/A        | Fleet Strength | Planet            | 5 Influence, 5 fuel, 5 energy     | Travel selected Strength at Speed 5, Range 25. Surprise Assault on arrival.                    |
+| Stealth Move         | Standard    | N/A        | Fleet Strength | Planet            | 3 Influence, 1 fuel, 5 energy     | Travel selected Strength at Speed 1, Range 3. Cloaked in transit.                              |
+| Stealth Move         | Exceptional | N/A        | Fleet Strength | Planet            | 3 Influence, 3 fuel, 10 energy    | Travel selected Strength at Speed 3, Range 9. Cloaked in transit and for 1 turn after arrival. |
+| Post Trade           | Standard    | N/A        | Self           | Trade Board       | 5 Influence, Trade Offering       | Post a Trade Offering for 5 turns with 15% Tax.                                                |
+| Post Trade           | Exceptional | N/A        | Self           | Trade Board       | 3 Influence, Trade Offering       | Post a Trade Offering for 10 turns with 0% Tax.                                                |
+| Bid on Trade         | Standard    | N/A        | Self           | Open Trade        | 5 Influence, Bid Payment          | Bid at a 100% Rate on an Open Trade.                                                           |
+| Bid on Trade         | Exceptional | N/A        | Self           | Open Trade        | 3 Influence, Bid Payment          | Bid at a 150% Rate on an Open Trade.                                                           |
+| Cancel Trade         | Standard    | N/A        | Self           | Own Open Trade    | 1 Influence                       | Cancel the Trade. Refund its Trade Offering unless the Trade settles this turn.                |
+| Post Contract        | Standard    | N/A        | Self           | Contract Board    | Contract Reward                   | Post a Contract for 3 turns with a 100% Reward Rate.                                           |
+| Post Contract        | Exceptional | N/A        | Self           | Contract Board    | Contract Reward                   | Post a Contract for 6 turns with a 200% Reward Rate.                                           |
+| Bid on Contract      | Standard    | N/A        | Self           | Open Contract     | Action Costs                      | Bid to complete an Open Contract for 100% of your Bid Reward.                                  |
+| Bid on Contract      | Exceptional | N/A        | Self           | Open Contract     | Action Costs                      | Bid to complete an Open Contract for 200% of your Bid Reward.                                  |
+| Cancel Contract      | Standard    | N/A        | Self           | Own Open Contract | 1 Influence                       | Cancel the Contract. Refund its escrow unless the Contract settles this turn.                  |
+| Colonize Planet      | Standard    | N/A        | Fleet          | Unclaimed Planet  | 25 Influence, 1 colony            | Travel at Speed 1, Range 5. Colonize on arrival.                                               |
+| Colonize Planet      | Exceptional | N/A        | Fleet          | Unclaimed Planet  | 25 Influence, 1 colony, 20 energy | Travel at Speed 5, Range 5. Colonize on arrival. Develop at 200% for 10 turns.                 |
+| Build Infrastructure | Standard    | N/A        | Self           | Owned Planet      | 10 Influence, Infrastructure Cost | Build Standard or lower Infrastructure.                                                        |
+| Build Infrastructure | Exceptional | N/A        | Self           | Owned Planet      | 10 Influence, Infrastructure Cost | Build Exceptional or lower Infrastructure.                                                     |
+| Build Fleet          | Standard    | N/A        | Self           | Owned Planet      | 10 Influence, 5 Metal             | Build a Fleet with Strength 5.                                                                 |
+| Build Fleet          | Exceptional | N/A        | Self           | Owned Planet      | 10 Influence, 20 Metal            | Build a Fleet with Strength 20.                                                                |
+| ...                  | ...         | ...        | ...            | ...               | ...                               | ...                                                                                            |
 
 ### Legacies
 

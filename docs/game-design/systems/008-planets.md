@@ -14,6 +14,7 @@ Relates to:
 - [System 012-travel](./012-travel.md)
 - [System 001-turns](./001-turns.md)
 - [System 014-resources](./014-resources.md)
+- [System 010-fleets](./010-fleets.md)
 
 ## Core Concepts
 
@@ -81,7 +82,16 @@ A newly colonized Planet starts with `min(Max Population / 2, max(2, floor(colon
 
 ## Planet Development
 
-Planets develop automatically during Turn Resolution. Population is a pool of whole-number workers. Each worker is assigned to one activity: Food, Metal production, Fuel production, Energy production, or Infrastructure construction. Worker allocation and construction choices follow empire-wide ideological priorities; Agendas and Directives may later provide global or local intervention.
+Planets develop automatically during Turn Resolution. Population is a pool of whole-number workers. Each worker is assigned to one activity: Food, Metal production, Fuel production, Energy production, Infrastructure construction, or Fleet construction. Worker allocation and construction choices follow empire-wide ideological priorities; Agendas and Directives may later provide global or local intervention.
+
+| Activity                    | Summary                                                                     |
+| --------------------------- | --------------------------------------------------------------------------- |
+| Food                        | Produces Planet-local Food, allowing Population growth.                     |
+| Metal production            | Produces Metal from the Planet's Metal Attribute.                           |
+| Fuel production             | Produces Fuel from the Planet's Fuel Attribute.                             |
+| Energy production           | Produces Energy from the Planet's Energy Attribute.                         |
+| Infrastructure construction | Invests locally produced resources into the current Infrastructure project. |
+| Fleet construction          | Invests locally produced resources to build Fleet at the Planet.            |
 
 For Food and resource production, output is calculated as: `assigned workers × relevant Planet Attribute × applicable modifiers`
 
@@ -91,7 +101,9 @@ Automatic governance reassigns Food workers when the Planet reaches Max Populati
 
 Infrastructure construction uses the Planet's same-turn local production. Each construction worker can invest one unit of a resource required by the current Infrastructure project. A Planet may complete at most one Infrastructure project per turn; a project may complete in one turn when its full resource cost is invested. The Planet cannot use resources from the empire stockpile for automatic construction.
 
-Resources not invested in construction enter the empire stockpile. If a project completes before all construction capacity is used, remaining construction workers do not begin another project that turn. Each Infrastructure occupies one Area.
+Fleet construction uses the Planet's same-turn local Metal production. Each Fleet construction worker can invest one Metal to add one Strength to the empire's Fleet at that Planet. The Planet cannot use resources from the empire stockpile for automatic Fleet construction.
+
+Resources not invested in Infrastructure or Fleet construction enter the empire stockpile. If an Infrastructure project completes before all construction capacity is used, remaining Infrastructure construction workers do not begin another project that turn. Each Infrastructure occupies one Area.
 
 ## Potential Flaws
 

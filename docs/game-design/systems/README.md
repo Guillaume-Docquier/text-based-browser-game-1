@@ -15,7 +15,7 @@ This index summarizes the game's systems. Read the related entries when a mechan
 | [007-contracts](./007-contracts.md)                         | How Clients hire Contractors to perform Actions on their behalf.                                 |
 | [008-planets](./008-planets.md)                             | How Planets, their Attributes, and Colonization shape expansion.                                 |
 | [009-infrastructure](./009-infrastructure.md)               | How empires improve their owned Planets.                                                         |
-| [010-fleets](./010-fleets.md)                               | How Fleets are created, represented, and merged.                                                 |
+| [010-fleets](./010-fleets.md)                               | How Fleets combine automatically and split when they move.                                       |
 | [011-combat](./011-combat.md)                               | How Fleet assaults and Surprise Assaults resolve.                                                |
 | [012-travel](./012-travel.md)                               | How Fleets travel between Planets.                                                               |
 | [013-cloaking](./013-cloaking.md)                           | How Fleets are hidden from Enemy players.                                                        |

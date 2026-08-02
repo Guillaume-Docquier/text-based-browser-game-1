@@ -9,21 +9,25 @@ Relates to:
 - [System 003-actions](./003-actions.md)
 - [System 012-travel](./012-travel.md)
 - [System 011-combat](./011-combat.md)
+- [System 008-planets](./008-planets.md)
+- [System 013-cloaking](./013-cloaking.md)
 
 ## Core Concepts
 
-| Concept  | Definition                                                        |
-| -------- | ----------------------------------------------------------------- |
-| Fleet    | A mobile unit owned by one empire, with one stat: Strength.       |
-| Strength | A positive whole number representing a Fleet's military capacity. |
+| Concept  | Definition                                                                  |
+| -------- | --------------------------------------------------------------------------- |
+| Fleet    | An empire's combined mobile force at one location, represented by Strength. |
+| Strength | A positive whole number representing a Fleet's military capacity.           |
 
 ## Rules
 
-A Fleet whose Strength reaches 0 disappears. Fleet Strength has no maximum.
+A Fleet whose Strength reaches 0 disappears. Fleet Strength has no maximum. An empire has at most one Fleet at a given location.
 
-New Fleets are created at Planets owned by their empire.
+When fleets owned by the same empire meet at a location, they merge automatically into one Fleet with their combined Strength.
 
-Two Fleets owned by the same empire and located at the same Planet may merge. One Fleet is removed and its full Strength is added to the other Fleet.
+New Fleets can only be created at Planets owned by their empire.
+
+To move a Fleet, the player selects a positive amount of its Strength. That Strength departs as the moving Fleet, while any remaining Strength stays at the origin.
 
 ## Potential Flaws
 
