@@ -49,11 +49,9 @@ describe("TurnProcessor", () => {
       vi.clearAllTimers()
       vi.useRealTimers()
 
-      // Processed twice because the turn interval was smaller than the increment
-      // Simulates a catch-up
       expect(await player.client.gameplay.getPlayerView.query({ gameId: firstGameId })).toMatchObject({
-        turn: 2,
-        resources: { money: 2 },
+        turn: 1,
+        resources: { money: 1 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: secondGameId })).toMatchObject({
@@ -156,6 +154,58 @@ describe("TurnProcessor", () => {
         resources: {
           money: 6,
         },
+      })
+    })
+
+    it("should schedule the next turn from the current time when the delay exceeds 15 percent of the interval", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const clock = new ControlledClock({ startDate: new Date(0) })
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const turnInterval = Time.create(100, UnitOfTime.SECONDS)
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: Time.create(120, UnitOfTime.SECONDS) })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+        turn: 1,
+        nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
+      })
+    })
+
+    it("should cap the delay threshold at two minutes", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const clock = new ControlledClock({ startDate: new Date(0) })
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: Time.create(1200, UnitOfTime.SECONDS) })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+        turn: 1,
+        nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
       })
     })
 

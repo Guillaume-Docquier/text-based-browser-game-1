@@ -11,6 +11,9 @@ import { rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { ElapsedTimeContextProvider } from "#turn-processing/ElapsedTimeContextProvider.ts"
 import { type ProcessedTurnModel, type TurnsRepository, type TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 
+const SCHEDULE_DRIFT_RATIO = 0.15
+const MAX_SCHEDULE_DRIFT_MILLISECONDS = 2 * 60 * 1000
+
 export class TurnProcessor {
   private readonly logger: Logger
   private readonly turnsRepository: TurnsRepository
@@ -138,10 +141,11 @@ export class TurnProcessor {
       return processedPlayers
     }, {})
 
+    const processedAt = this.clock.now()
     const turnResult: Omit<ProcessedTurnModel, "gameStatus"> = {
       gameId: turnToProcess.gameId,
       turn: turnToProcess.turn,
-      processedAt: this.clock.now(),
+      processedAt,
       playerResources: Object.entries(playerStates).flatMap(([playerId, playerResources]) =>
         playerResources.map((resource) => ({ ...resource, playerId })),
       ),
@@ -153,9 +157,10 @@ export class TurnProcessor {
         gameStatus: GameStatus.COLLECTING_ACTIONS,
         nextTurn: {
           turn: turnToProcess.turn + 1,
-          scheduledFor: Datetime.increment({
-            date: turnToProcess.scheduledFor,
-            time: Time.create(turnToProcess.turnIntervalSeconds, UnitOfTime.SECONDS),
+          scheduledFor: getNextTurnScheduledFor({
+            scheduledFor: turnToProcess.scheduledFor,
+            processedAt,
+            turnIntervalSeconds: turnToProcess.turnIntervalSeconds,
           }),
         },
       }
@@ -168,4 +173,24 @@ export class TurnProcessor {
       endedAt: this.clock.now(),
     }
   }
+}
+
+function getNextTurnScheduledFor({
+  scheduledFor,
+  processedAt,
+  turnIntervalSeconds,
+}: {
+  scheduledFor: Date
+  processedAt: Date
+  turnIntervalSeconds: number
+}): Date {
+  const turnIntervalMilliseconds = turnIntervalSeconds * 1000
+  const scheduleDriftMilliseconds = processedAt.getTime() - scheduledFor.getTime()
+  const scheduleDriftThresholdMilliseconds = Math.min(turnIntervalMilliseconds * SCHEDULE_DRIFT_RATIO, MAX_SCHEDULE_DRIFT_MILLISECONDS)
+  const scheduleFrom = scheduleDriftMilliseconds > scheduleDriftThresholdMilliseconds ? processedAt : scheduledFor
+
+  return Datetime.increment({
+    date: scheduleFrom,
+    time: Time.create(turnIntervalSeconds, UnitOfTime.SECONDS),
+  })
 }
