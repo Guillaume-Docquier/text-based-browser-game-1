@@ -175,6 +175,10 @@ export class TurnProcessor {
   }
 }
 
+/**
+ * Schedules from the persisted time for normal drift, but from the processing time after a significant delay so server downtime cannot cause
+ * turns to resolve back-to-back when the server returns.
+ */
 function getNextTurnScheduledFor({
   scheduledFor,
   processedAt,
