@@ -3,7 +3,7 @@ import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { ActionType } from "#lib/db/gameplay/actionType.ts"
 
-type PlayerActionRule = {
+type ActionRule = {
   costMoney: number
   rewardMoney: number
   endsGame: boolean
@@ -19,7 +19,7 @@ export const ACTION_RULES = {
     rewardMoney: 0,
     endsGame: true,
   },
-} as const satisfies Record<ActionType, PlayerActionRule>
+} as const satisfies Record<ActionType, ActionRule>
 
 export const ActionTypeSchema = z.enum(ActionType)
 
