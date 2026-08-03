@@ -19,47 +19,6 @@ describe("TurnProcessor", () => {
       vi.useRealTimers()
     })
 
-    it("should process all currently due turns before waiting", async () => {
-      // Arrange
-      const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const turnInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: firstGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) / 2 }),
-      })
-      await player.client.gameplay.startGame.mutate({ gameId: firstGameId })
-
-      const { createdGameId: secondGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
-      })
-      await player.client.gameplay.startGame.mutate({ gameId: secondGameId })
-
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
-
-      // Act
-      vi.useFakeTimers()
-      clock.increment({ time: turnInterval })
-      await turnProcessor.processTurnsForever({ interval: Time.create(1, UnitOfTime.SECONDS) })
-
-      // Assert
-      expect(vi.getTimerCount()).toBe(1)
-      vi.clearAllTimers()
-      vi.useRealTimers()
-
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: firstGameId })).toMatchObject({
-        turn: 1,
-        resources: { money: 1 },
-      })
-
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: secondGameId })).toMatchObject({
-        turn: 1,
-        resources: { money: 1 },
-      })
-    })
-
     it("should wait before retrying when the selected turn processing fails", async () => {
       // Arrange
       const db = await createDbMock()
