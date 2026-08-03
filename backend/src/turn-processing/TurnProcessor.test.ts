@@ -49,11 +49,9 @@ describe("TurnProcessor", () => {
       vi.clearAllTimers()
       vi.useRealTimers()
 
-      // Processed twice because the turn interval was smaller than the increment
-      // Simulates a catch-up
       expect(await player.client.gameplay.getPlayerView.query({ gameId: firstGameId })).toMatchObject({
-        turn: 2,
-        resources: { money: 2 },
+        turn: 1,
+        resources: { money: 1 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: secondGameId })).toMatchObject({
@@ -158,6 +156,37 @@ describe("TurnProcessor", () => {
         },
       })
     })
+
+    it.each([
+      { turnInterval: Time.create(100, UnitOfTime.SECONDS), timeIncrement: Time.create(116, UnitOfTime.SECONDS) },
+      { turnInterval: Time.create(100, UnitOfTime.MINUTES), timeIncrement: Time.create(103, UnitOfTime.MINUTES) },
+    ])(
+      "should schedule the next turn from the current time when the delay exceeds 15 percent of the interval, capped at 2 minutes",
+      async ({ turnInterval, timeIncrement }) => {
+        // Arrange
+        const db = await createDbMock()
+        const clock = new ControlledClock({ startDate: new Date(0) })
+        using apiServer = new ApiServer(await createApiStub({ db, clock }))
+        const player = await apiServer.createClient({ authenticated: true })
+
+        const { createdGameId } = await player.client.lobbies.create.mutate({
+          configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+        })
+        await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+        const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+
+        // Act
+        clock.increment({ time: timeIncrement })
+        await turnProcessor.processNextDueTurn()
+
+        // Assert
+        expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+          turn: 1,
+          nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
+        })
+      },
+    )
 
     it("should not apply an action when the player cannot afford it", async () => {
       // Arrange

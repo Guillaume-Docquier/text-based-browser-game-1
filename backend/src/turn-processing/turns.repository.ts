@@ -1,4 +1,4 @@
-import { Assert, branded, type Branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, type Branded, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
@@ -41,7 +41,7 @@ export type TurnToProcessModel = {
   gameId: GameId
   turn: number
   scheduledFor: Date
-  turnIntervalSeconds: number
+  turnInterval: Time
   players: Record<
     PlayerId,
     {
@@ -177,7 +177,7 @@ export class TurnsRepository extends PostgresRepository {
       return toTurnToProcessModel({
         turnForProcessing: startTurnProcessingModel.turn,
         scheduledFor: turns[0].scheduledFor,
-        turnIntervalSeconds: games[0].turnIntervalSeconds,
+        turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
         players,
         resources,
         actions,
@@ -295,14 +295,14 @@ export class TurnsRepository extends PostgresRepository {
 function toTurnToProcessModel({
   turnForProcessing,
   scheduledFor,
-  turnIntervalSeconds,
+  turnInterval,
   players,
   resources,
   actions,
 }: {
   turnForProcessing: TurnForProcessing
   scheduledFor: Date
-  turnIntervalSeconds: number
+  turnInterval: Time
   players: PlayerRow[]
   resources: ResourceRow[]
   actions: ActionRow[]
@@ -313,7 +313,7 @@ function toTurnToProcessModel({
   return {
     ...turnForProcessing,
     scheduledFor,
-    turnIntervalSeconds,
+    turnInterval,
     players: players.reduce<TurnToProcessModel["players"]>((playersById, { playerId }) => {
       const resourcesForPlayer = resourcesByPlayerId.get(playerId)
       Assert.isDefined(resourcesForPlayer)
