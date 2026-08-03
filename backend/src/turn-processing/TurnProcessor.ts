@@ -12,7 +12,7 @@ import { ElapsedTimeContextProvider } from "#turn-processing/ElapsedTimeContextP
 import { type ProcessedTurnModel, type TurnsRepository, type TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 
 const SCHEDULE_DRIFT_RATIO = 0.15
-const MAX_SCHEDULE_DRIFT = Time.create(2 * 60 * 1000, UnitOfTime.MILLISECONDS)
+const MAX_SCHEDULE_DRIFT_MS = Time.in(Time.create(2, UnitOfTime.MINUTES), UnitOfTime.MILLISECONDS)
 
 export class TurnProcessor {
   private readonly logger: Logger
@@ -176,8 +176,8 @@ export class TurnProcessor {
 }
 
 /**
- * Schedules from the persisted time for normal drift, but from the processing time after a significant delay so server downtime cannot cause
- * turns to resolve back-to-back when the server returns.
+ * Schedules from the processing time when we detect a schedule time drift.
+ * This avoids quick-firing turn processing if there is a server downtime.
  */
 function getNextTurnScheduledFor({
   scheduledFor,
@@ -188,12 +188,8 @@ function getNextTurnScheduledFor({
   processedAt: Date
   turnInterval: Time
 }): Date {
-  const turnIntervalMilliseconds = Time.in(turnInterval, UnitOfTime.MILLISECONDS)
   const scheduleDriftMilliseconds = processedAt.getTime() - scheduledFor.getTime()
-  const scheduleDriftThreshold = Math.min(
-    turnIntervalMilliseconds * SCHEDULE_DRIFT_RATIO,
-    Time.in(MAX_SCHEDULE_DRIFT, UnitOfTime.MILLISECONDS),
-  )
+  const scheduleDriftThreshold = Math.min(Time.in(turnInterval, UnitOfTime.MILLISECONDS) * SCHEDULE_DRIFT_RATIO, MAX_SCHEDULE_DRIFT_MS)
   const scheduleFrom = scheduleDriftMilliseconds > scheduleDriftThreshold ? processedAt : scheduledFor
 
   return Datetime.increment({
