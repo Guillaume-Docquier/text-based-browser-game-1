@@ -2,14 +2,16 @@ import { mkdir, writeFile } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRng, mulberry32Prng } from "@guillaume-docquier/tools-ts"
-import { discGenerator } from "#lib/map/points/disc.generator.ts"
 import type { Point2D } from "#lib/map/points/Point.ts"
+import { spiralGenerator } from "#lib/map/points/spiral.generator.ts"
 import { randomUInt32 } from "#lib/randomUInt32.ts"
 
 const DEFAULT_NB_POINTS = 1000
+const DEFAULT_NB_ARMS = 6
+const DEFAULT_ARM_SIZE = 15
 const DEFAULT_RADIUS = 50
 const DEFAULT_ORIGIN = { x: 50, y: 50 }
-const DEFAULT_OUTPUT_PATH = fileURLToPath(new URL("../generated/disc.svg", import.meta.url))
+const DEFAULT_OUTPUT_PATH = fileURLToPath(new URL("../generated/spiral.svg", import.meta.url))
 
 const SVG_WIDTH = 900
 const SVG_HEIGHT = 900
@@ -19,10 +21,14 @@ const PLOT_SIZE = 720
 const POINT_RADIUS = 1
 const PLUS_SIZE = 10
 
-type DiscSvgOptions = {
+type SpiralSvgOptions = {
   readonly nbPoints: number
   readonly radius: number
   readonly origin: Point2D
+  readonly arms: {
+    readonly count: number
+    readonly size: number
+  }
   readonly seed: number
   readonly outputPath: string
 }
@@ -35,13 +41,14 @@ async function main(): Promise<void> {
     return
   }
 
-  const points = discGenerator({
+  const points = spiralGenerator({
     origin: options.origin,
     radius: options.radius,
     nbPoints: options.nbPoints,
+    arms: options.arms,
     rng: createRng(mulberry32Prng(options.seed)),
   })
-  const svg = renderDiscSvg({ points, ...options })
+  const svg = renderSpiralSvg({ points, ...options })
 
   await mkdir(dirname(options.outputPath), { recursive: true })
   await writeFile(options.outputPath, svg, "utf8")
@@ -49,10 +56,14 @@ async function main(): Promise<void> {
   console.log(`Wrote ${options.outputPath}`)
 }
 
-function parseArguments(arguments_: readonly string[]): DiscSvgOptions | undefined {
+function parseArguments(arguments_: readonly string[]): SpiralSvgOptions | undefined {
   let nbPoints = DEFAULT_NB_POINTS
   let radius = DEFAULT_RADIUS
   let origin = DEFAULT_ORIGIN
+  let arms = {
+    count: DEFAULT_NB_ARMS,
+    size: DEFAULT_ARM_SIZE,
+  }
   let seed = randomUInt32()
   let outputPath = DEFAULT_OUTPUT_PATH
 
@@ -78,6 +89,12 @@ function parseArguments(arguments_: readonly string[]): DiscSvgOptions | undefin
       case "--points":
         nbPoints = parseNonNegativeInteger(optionName, optionValue)
         break
+      case "--arms":
+        arms = { ...arms, count: parsePositiveInteger(optionName, optionValue) }
+        break
+      case "--arm-size":
+        arms = { ...arms, size: parsePositiveNumber(optionName, optionValue) }
+        break
       case "--radius":
         radius = parsePositiveNumber(optionName, optionValue)
         break
@@ -98,7 +115,7 @@ function parseArguments(arguments_: readonly string[]): DiscSvgOptions | undefin
     }
   }
 
-  return { nbPoints, radius, origin, seed, outputPath }
+  return { nbPoints, radius, origin, arms, seed, outputPath }
 }
 
 function parseNumber(optionName: string, value: string): number {
@@ -128,6 +145,15 @@ function parseNonNegativeInteger(optionName: string, value: string): number {
   return parsedValue
 }
 
+function parsePositiveInteger(optionName: string, value: string): number {
+  const parsedValue = parseNonNegativeInteger(optionName, value)
+  if (parsedValue === 0) {
+    throw new Error(`${optionName} must be greater than zero, received '${value}'`)
+  }
+
+  return parsedValue
+}
+
 function parsePositiveNumber(optionName: string, value: string): number {
   const parsedValue = parseNumber(optionName, value)
   if (parsedValue <= 0) {
@@ -137,7 +163,14 @@ function parsePositiveNumber(optionName: string, value: string): number {
   return parsedValue
 }
 
-function renderDiscSvg({ points, nbPoints, radius, origin, seed }: DiscSvgOptions & { readonly points: readonly Point2D[] }): string {
+function renderSpiralSvg({
+  points,
+  nbPoints,
+  radius,
+  origin,
+  arms,
+  seed,
+}: SpiralSvgOptions & { readonly points: readonly Point2D[] }): string {
   const coordinateExtent = getCoordinateExtent({ points, radius, origin })
   const scale = PLOT_SIZE / (coordinateExtent * 2)
   const circleRadius = radius * scale
@@ -151,12 +184,13 @@ function renderDiscSvg({ points, nbPoints, radius, origin, seed }: DiscSvgOption
   const originY = PLOT_CENTER_Y
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${SVG_WIDTH}" height="${SVG_HEIGHT}" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}">
-  <title>Disc generator output</title>
+  <title>Spiral generator output</title>
   <rect width="100%" height="100%" fill="#000000" />
   <g font-family="monospace" fill="#ffffff">
-    <text x="24" y="32" font-size="20">Disc generator</text>
-    <text x="24" y="60" font-size="16">Points: ${nbPoints} | Radius: ${formatNumber(radius)} | Standard deviation: ${formatNumber(radius / 4)}</text>
-    <text x="24" y="86" font-size="16">Origin: (${formatNumber(origin.x)}, ${formatNumber(origin.y)}) | Seed: ${seed}</text>
+    <text x="24" y="32" font-size="20">Spiral generator</text>
+    <text x="24" y="60" font-size="16">Points: ${points.length} generated (${nbPoints} requested) | Arms: ${arms.count}</text>
+    <text x="24" y="86" font-size="16">Radius: ${formatNumber(radius)} | Arm size: ${formatNumber(arms.size)}</text>
+    <text x="24" y="112" font-size="16">Origin: (${formatNumber(origin.x)}, ${formatNumber(origin.y)}) | Seed: ${seed}</text>
   </g>
   <circle cx="${originX}" cy="${originY}" r="${formatNumber(circleRadius)}" fill="none" stroke="#00ff66" stroke-width="2" />
   <g aria-label="Generated points">
@@ -203,11 +237,13 @@ function formatNumber(value: number): string {
 }
 
 function printHelp(): void {
-  console.log(`Generate an SVG preview of discGenerator output.
+  console.log(`Generate an SVG preview of spiralGenerator output.
 
 Options:
-  --points <integer>    Number of points (default: ${DEFAULT_NB_POINTS})
-  --radius <number>     Disc radius (default: ${DEFAULT_RADIUS})
+  --points <integer>    Requested number of points (default: ${DEFAULT_NB_POINTS})
+  --arms <integer>      Number of spiral arms (default: ${DEFAULT_NB_ARMS})
+  --arm-size <number>   Spiral arm size (default: ${DEFAULT_ARM_SIZE})
+  --radius <number>     Spiral radius (default: ${DEFAULT_RADIUS})
   --origin-x <number>   Origin x coordinate (default: ${DEFAULT_ORIGIN.x})
   --origin-y <number>   Origin y coordinate (default: ${DEFAULT_ORIGIN.y})
   --seed <integer>      Mulberry32 seed (default: random)

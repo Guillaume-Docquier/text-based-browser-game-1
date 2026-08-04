@@ -16,6 +16,7 @@
     "db:seed": "node --env-file=.env scripts/db/seed.ts",
     "dev": "node --watch --env-file=.env src/api/entry.api.ts",
     "map:disc-svg": "node scripts/generate-disc-svg.ts",
+    "map:spiral-svg": "node scripts/generate-spiral-svg.ts",
     "start": "node src/api/entry.api.ts",
     "test": "vitest run --silent",
     "test:coverage": "pnpm test --coverage",
@@ -30,6 +31,7 @@
     "express": "^5.2.1",
     "p-retry": "^8.0.0",
     "pg": "^8.22.0",
+    "transformation-matrix": "^3.1.0",
     "uuid": "^14.0.1",
     "zod": "^4.4.3"
   },
