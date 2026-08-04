@@ -8,7 +8,6 @@ import { type GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { type PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
-import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type CreateGameRow = typeof gamesTable.$inferInsert
@@ -18,7 +17,6 @@ export type LobbyConfigurationModel = {
   name: string
   nbSeats: number
   turnIntervalSeconds: number
-  starSystemGenerationSettings: StarSystemGenerationSettings
 }
 
 export type CreateLobbyModel = {
@@ -278,7 +276,6 @@ function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPl
       name: gameRow.name,
       nbSeats: gameRow.nbSeats,
       turnIntervalSeconds: gameRow.turnIntervalSeconds,
-      starSystemGenerationSettings: gameRow.starSystemGenerationSettings,
     },
     creator,
     players,

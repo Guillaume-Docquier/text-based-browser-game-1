@@ -5,7 +5,6 @@ import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
 import { Separator } from "@/components/separator.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
-import { RANGE_SETTING_LABELS } from "@/features/games/rangeSettingLabels.ts"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
 import { useJoinGameMutation } from "@/lib/api/useJoinGameMutation.ts"
@@ -129,25 +128,6 @@ function GameConfiguration({ configuration }: { configuration: ApiTypes.Lobby["c
           <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
           <DetailBlock label="Time per turn" value={formatTurnInterval(configuration.turnIntervalSeconds)} />
         </div>
-        <Separator />
-        <div className="space-y-4">
-          <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Star map</div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {Object.entries(RANGE_SETTING_LABELS).map(([key, metadata]) => {
-              // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries does not preserve the object's key type
-              const settingKey = key as ApiTypes.RangeSettingKey
-
-              return (
-                <DetailBlock
-                  key={settingKey}
-                  label={metadata.label}
-                  value={formatRange(configuration.starSystemGenerationSettings[settingKey])}
-                />
-              )
-            })}
-            <DetailBlock label="Generation seed" value={configuration.starSystemGenerationSettings.seed.toString()} />
-          </div>
-        </div>
       </CardContent>
     </Card>
   )
@@ -215,10 +195,6 @@ function getWinnerLabel(game: ApiTypes.Lobby): string {
   }
 
   return winner.alias ?? `Player ${winner.id}`
-}
-
-function formatRange(value: ApiTypes.StarSystemGenerationSettings[ApiTypes.RangeSettingKey]): string {
-  return value.min === value.max ? value.min.toString() : `${value.min}–${value.max}`
 }
 
 function formatTurnInterval(turnIntervalSeconds: number): string {

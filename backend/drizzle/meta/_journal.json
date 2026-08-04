@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1783817482816,
+      "when": 1785809550833,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1783999708940,
-      "tag": "0001_add-player-colors",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1785701520222,
-      "tag": "0002_standardize-turn-nomenclature",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1785707582999,
-      "tag": "0003_standardize-actions-nomenclature",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1785710253789,
-      "tag": "0004_rename-actions-table",
       "breakpoints": true
     }
   ]

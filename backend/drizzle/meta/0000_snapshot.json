@@ -1,5 +1,5 @@
 {
-  "id": "0c293e63-0582-43fd-ad8a-1fb0419679f1",
+  "id": "9e3edacd-01a9-4cef-897a-71061b0caf99",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -58,124 +58,69 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.bodies": {
-      "name": "bodies",
+    "public.actions": {
+      "name": "actions",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "game_id": {
           "name": "game_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "sector_id": {
-          "name": "sector_id",
+        "player_id": {
+          "name": "player_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "body_number": {
-          "name": "body_number",
+        "turn": {
+          "name": "turn",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "body_type": {
-          "name": "body_type",
-          "type": "body_type",
+        "action_type": {
+          "name": "action_type",
+          "type": "action_type",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         },
-        "movement_node_id": {
-          "name": "movement_node_id",
-          "type": "uuid",
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         }
       },
-      "indexes": {
-        "bodies_game_id_sector_id_idx": {
-          "name": "bodies_game_id_sector_id_idx",
-          "columns": [
-            {
-              "expression": "game_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sector_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "bodies_game_id_star_systems_game_id_fk": {
-          "name": "bodies_game_id_star_systems_game_id_fk",
-          "tableFrom": "bodies",
-          "tableTo": "star_systems",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["game_id"],
+        "actions_gameId_playerId_game_players_fk": {
+          "name": "actions_gameId_playerId_game_players_fk",
+          "tableFrom": "actions",
+          "tableTo": "players",
+          "columnsFrom": ["game_id", "player_id"],
+          "columnsTo": ["game_id", "player_id"],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "bodies_game_id_sector_id_sectors_fk": {
-          "name": "bodies_game_id_sector_id_sectors_fk",
-          "tableFrom": "bodies",
-          "tableTo": "sectors",
-          "columnsFrom": ["game_id", "sector_id"],
-          "columnsTo": ["game_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "bodies_game_id_movement_node_id_movement_nodes_fk": {
-          "name": "bodies_game_id_movement_node_id_movement_nodes_fk",
-          "tableFrom": "bodies",
-          "tableTo": "movement_nodes",
-          "columnsFrom": ["game_id", "movement_node_id"],
-          "columnsTo": ["game_id", "id"],
-          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "bodies_game_id_id_pk": {
-          "name": "bodies_game_id_id_pk",
-          "columns": ["game_id", "id"]
+        "actions_game_id_player_id_turn_pk": {
+          "name": "actions_game_id_player_id_turn_pk",
+          "columns": ["game_id", "player_id", "turn"]
         }
       },
-      "uniqueConstraints": {
-        "bodies_game_id_sector_id_body_number_unique": {
-          "name": "bodies_game_id_sector_id_body_number_unique",
-          "nullsNotDistinct": false,
-          "columns": ["game_id", "sector_id", "body_number"]
-        },
-        "bodies_game_id_movement_node_id_unique": {
-          "name": "bodies_game_id_movement_node_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["game_id", "movement_node_id"]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -190,15 +135,15 @@
           "primaryKey": true,
           "notNull": true
         },
-        "tick": {
-          "name": "tick",
+        "turn": {
+          "name": "turn",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "default": 0
         },
-        "next_tick_at": {
-          "name": "next_tick_at",
+        "next_turn_at": {
+          "name": "next_turn_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true
@@ -294,14 +239,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "star_system_generation_settings": {
-          "name": "star_system_generation_settings",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tick_interval_seconds": {
-          "name": "tick_interval_seconds",
+        "turn_interval_seconds": {
+          "name": "turn_interval_seconds",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -334,289 +273,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.movement_edges": {
-      "name": "movement_edges",
-      "schema": "",
-      "columns": {
-        "game_id": {
-          "name": "game_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "from_node_id": {
-          "name": "from_node_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "to_node_id": {
-          "name": "to_node_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "weight": {
-          "name": "weight",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "movement_edges_game_id_from_node_id_idx": {
-          "name": "movement_edges_game_id_from_node_id_idx",
-          "columns": [
-            {
-              "expression": "game_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "from_node_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "movement_edges_game_id_star_systems_game_id_fk": {
-          "name": "movement_edges_game_id_star_systems_game_id_fk",
-          "tableFrom": "movement_edges",
-          "tableTo": "star_systems",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["game_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "movement_edges_game_id_from_node_id_movement_nodes_fk": {
-          "name": "movement_edges_game_id_from_node_id_movement_nodes_fk",
-          "tableFrom": "movement_edges",
-          "tableTo": "movement_nodes",
-          "columnsFrom": ["game_id", "from_node_id"],
-          "columnsTo": ["game_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "movement_edges_game_id_to_node_id_movement_nodes_fk": {
-          "name": "movement_edges_game_id_to_node_id_movement_nodes_fk",
-          "tableFrom": "movement_edges",
-          "tableTo": "movement_nodes",
-          "columnsFrom": ["game_id", "to_node_id"],
-          "columnsTo": ["game_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "movement_edges_game_id_from_node_id_to_node_id_pk": {
-          "name": "movement_edges_game_id_from_node_id_to_node_id_pk",
-          "columns": ["game_id", "from_node_id", "to_node_id"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.movement_nodes": {
-      "name": "movement_nodes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "game_id": {
-          "name": "game_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "movement_nodes_game_id_idx": {
-          "name": "movement_nodes_game_id_idx",
-          "columns": [
-            {
-              "expression": "game_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "movement_nodes_game_id_star_systems_game_id_fk": {
-          "name": "movement_nodes_game_id_star_systems_game_id_fk",
-          "tableFrom": "movement_nodes",
-          "tableTo": "star_systems",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["game_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "movement_nodes_game_id_id_pk": {
-          "name": "movement_nodes_game_id_id_pk",
-          "columns": ["game_id", "id"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.orbits": {
-      "name": "orbits",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "game_id": {
-          "name": "game_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "orbit_number": {
-          "name": "orbit_number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "orbits_game_id_idx": {
-          "name": "orbits_game_id_idx",
-          "columns": [
-            {
-              "expression": "game_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "orbits_game_id_star_systems_game_id_fk": {
-          "name": "orbits_game_id_star_systems_game_id_fk",
-          "tableFrom": "orbits",
-          "tableTo": "star_systems",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["game_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "orbits_game_id_id_pk": {
-          "name": "orbits_game_id_id_pk",
-          "columns": ["game_id", "id"]
-        }
-      },
-      "uniqueConstraints": {
-        "orbits_game_id_orbit_number_unique": {
-          "name": "orbits_game_id_orbit_number_unique",
-          "nullsNotDistinct": false,
-          "columns": ["game_id", "orbit_number"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.orders": {
-      "name": "orders",
-      "schema": "",
-      "columns": {
-        "game_id": {
-          "name": "game_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "player_id": {
-          "name": "player_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tick": {
-          "name": "tick",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "action_type": {
-          "name": "action_type",
-          "type": "action_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "orders_gameId_playerId_game_players_fk": {
-          "name": "orders_gameId_playerId_game_players_fk",
-          "tableFrom": "orders",
-          "tableTo": "players",
-          "columnsFrom": ["game_id", "player_id"],
-          "columnsTo": ["game_id", "player_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "orders_game_id_player_id_tick_pk": {
-          "name": "orders_game_id_player_id_tick_pk",
-          "columns": ["game_id", "player_id", "tick"]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.players": {
       "name": "players",
       "schema": "",
@@ -630,6 +286,13 @@
         "player_id": {
           "name": "player_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "player_color",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -668,7 +331,13 @@
           "columns": ["game_id", "player_id"]
         }
       },
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "players_game_id_color_unique": {
+          "name": "players_game_id_color_unique",
+          "nullsNotDistinct": false,
+          "columns": ["game_id", "color"]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -726,198 +395,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.sectors": {
-      "name": "sectors",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "game_id": {
-          "name": "game_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "orbit_id": {
-          "name": "orbit_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sector_number": {
-          "name": "sector_number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "angle_numeric_type": {
-          "name": "angle_numeric_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "angle_max_bound_type": {
-          "name": "angle_max_bound_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "start_angle_degrees": {
-          "name": "start_angle_degrees",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "end_angle_degrees": {
-          "name": "end_angle_degrees",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "movement_node_id": {
-          "name": "movement_node_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "sectors_game_id_orbit_id_idx": {
-          "name": "sectors_game_id_orbit_id_idx",
-          "columns": [
-            {
-              "expression": "game_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "orbit_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "sectors_game_id_star_systems_game_id_fk": {
-          "name": "sectors_game_id_star_systems_game_id_fk",
-          "tableFrom": "sectors",
-          "tableTo": "star_systems",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["game_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "sectors_game_id_orbit_id_orbits_fk": {
-          "name": "sectors_game_id_orbit_id_orbits_fk",
-          "tableFrom": "sectors",
-          "tableTo": "orbits",
-          "columnsFrom": ["game_id", "orbit_id"],
-          "columnsTo": ["game_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "sectors_game_id_movement_node_id_movement_nodes_fk": {
-          "name": "sectors_game_id_movement_node_id_movement_nodes_fk",
-          "tableFrom": "sectors",
-          "tableTo": "movement_nodes",
-          "columnsFrom": ["game_id", "movement_node_id"],
-          "columnsTo": ["game_id", "id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "sectors_game_id_id_pk": {
-          "name": "sectors_game_id_id_pk",
-          "columns": ["game_id", "id"]
-        }
-      },
-      "uniqueConstraints": {
-        "sectors_game_id_orbit_id_sector_number_unique": {
-          "name": "sectors_game_id_orbit_id_sector_number_unique",
-          "nullsNotDistinct": false,
-          "columns": ["game_id", "orbit_id", "sector_number"]
-        },
-        "sectors_game_id_movement_node_id_unique": {
-          "name": "sectors_game_id_movement_node_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["game_id", "movement_node_id"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "sectors_angle_numeric_type_check": {
-          "name": "sectors_angle_numeric_type_check",
-          "value": "\"sectors\".\"angle_numeric_type\" in ('float', 'integer')"
-        },
-        "sectors_angle_max_bound_type_check": {
-          "name": "sectors_angle_max_bound_type_check",
-          "value": "\"sectors\".\"angle_max_bound_type\" in ('inclusive', 'exclusive')"
-        },
-        "sectors_start_angle_degrees_check": {
-          "name": "sectors_start_angle_degrees_check",
-          "value": "\"sectors\".\"start_angle_degrees\" >= 0"
-        },
-        "sectors_end_angle_degrees_check": {
-          "name": "sectors_end_angle_degrees_check",
-          "value": "\"sectors\".\"end_angle_degrees\" <= 360"
-        },
-        "sectors_angle_degrees_order_check": {
-          "name": "sectors_angle_degrees_order_check",
-          "value": "\"sectors\".\"start_angle_degrees\" < \"sectors\".\"end_angle_degrees\""
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.star_systems": {
-      "name": "star_systems",
-      "schema": "",
-      "columns": {
-        "game_id": {
-          "name": "game_id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "star_systems_game_id_games_id_fk": {
-          "name": "star_systems_game_id_games_id_fk",
-          "tableFrom": "star_systems",
-          "tableTo": "games",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.ticks": {
-      "name": "ticks",
+    "public.turns": {
+      "name": "turns",
       "schema": "",
       "columns": {
         "game_id": {
@@ -926,8 +405,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "tick": {
-          "name": "tick",
+        "turn": {
+          "name": "turn",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -952,8 +431,8 @@
         }
       },
       "indexes": {
-        "ticks_scheduled_for_index": {
-          "name": "ticks_scheduled_for_index",
+        "turns_scheduled_for_index": {
+          "name": "turns_scheduled_for_index",
           "columns": [
             {
               "expression": "scheduled_for",
@@ -969,9 +448,9 @@
         }
       },
       "foreignKeys": {
-        "ticks_game_id_games_id_fk": {
-          "name": "ticks_game_id_games_id_fk",
-          "tableFrom": "ticks",
+        "turns_game_id_games_id_fk": {
+          "name": "turns_game_id_games_id_fk",
+          "tableFrom": "turns",
           "tableTo": "games",
           "columnsFrom": ["game_id"],
           "columnsTo": ["id"],
@@ -980,9 +459,9 @@
         }
       },
       "compositePrimaryKeys": {
-        "ticks_game_id_tick_pk": {
-          "name": "ticks_game_id_tick_pk",
-          "columns": ["game_id", "tick"]
+        "turns_game_id_turn_pk": {
+          "name": "turns_game_id_turn_pk",
+          "columns": ["game_id", "turn"]
         }
       },
       "uniqueConstraints": {},
@@ -1000,12 +479,29 @@
     "public.game_status": {
       "name": "game_status",
       "schema": "public",
-      "values": ["WAITING_FOR_PLAYERS", "READY_TO_START", "COLLECTING_ORDERS", "PROCESSING_TICK", "ENDED"]
+      "values": ["WAITING_FOR_PLAYERS", "READY_TO_START", "COLLECTING_ACTIONS", "PROCESSING_TURN", "ENDED"]
     },
-    "public.body_type": {
-      "name": "body_type",
+    "public.player_color": {
+      "name": "player_color",
       "schema": "public",
-      "values": ["PLANET", "MOON", "ASTEROID"]
+      "values": [
+        "WHITE",
+        "RED",
+        "BLUE",
+        "TEAL",
+        "PURPLE",
+        "YELLOW",
+        "ORANGE",
+        "GREEN",
+        "LIGHT_PINK",
+        "VIOLET",
+        "LIGHT_GREY",
+        "DARK_GREEN",
+        "BROWN",
+        "LIGHT_GREEN",
+        "DARK_GREY",
+        "PINK"
+      ]
     }
   },
   "schemas": {},

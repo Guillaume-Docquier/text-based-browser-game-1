@@ -1,7 +1,5 @@
 import { type Branded, Assert, type Logger, Result, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
-import type { NewStarSystemModel, StarSystemModel } from "#api/gameplay/star-systems/StarSystemModels.ts"
-import { StarSystemQueries } from "#api/gameplay/star-systems/StarSystemQueries.ts"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -13,7 +11,6 @@ import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
-import type { StarSystemGenerationSettings } from "#lib/db/star-systems/StarSystemGenerationSettings.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
@@ -42,7 +39,6 @@ export type PlayerViewModel = {
   opponents: Record<PlayerId, PlayerViewPlayerModel>
   turn: number
   nextTurnAt: Date
-  starSystem: StarSystemModel
   resources: {
     money: number
   }
@@ -57,7 +53,6 @@ export type GameForStart = Branded<
     readonly id: GameId
     readonly createdByAccountId: AccountId
     readonly status: GameStatus
-    readonly starSystemGenerationSettings: StarSystemGenerationSettings
     readonly turnInterval: Time
     readonly playerIds: readonly PlayerId[]
   },
@@ -72,7 +67,6 @@ export type StartGameModel = {
   readonly status: GameStatus
   readonly startedAt: Date
   readonly nextTurnAt: Date
-  readonly starSystem: NewStarSystemModel
   readonly playerResources: ReadonlyArray<{
     readonly playerId: PlayerId
     readonly resourceType: ResourceType
@@ -118,7 +112,6 @@ export class GameplayRepository extends PostgresRepository {
         id: gamesTable.id,
         createdByAccountId: gamesTable.createdByAccountId,
         status: gamesTable.status,
-        starSystemGenerationSettings: gamesTable.starSystemGenerationSettings,
         turnIntervalSeconds: gamesTable.turnIntervalSeconds,
       })
       .from(gamesTable)
@@ -144,7 +137,6 @@ export class GameplayRepository extends PostgresRepository {
         id: gameForStart.id,
         createdByAccountId: gameForStart.createdByAccountId,
         status: gameForStart.status,
-        starSystemGenerationSettings: gameForStart.starSystemGenerationSettings,
         turnInterval: Time.create(gameForStart.turnIntervalSeconds, UnitOfTime.SECONDS),
         playerIds,
       }),
@@ -182,7 +174,6 @@ export class GameplayRepository extends PostgresRepository {
     await tx.insert(resourcesTable).values(resources)
     await tx.insert(gameStatesTable).values(gameState)
     await tx.insert(turnsTable).values(gameTurn)
-    await StarSystemQueries.insertStarSystem({ gameId: startGameModel.game.id, starSystem: startGameModel.starSystem }, tx)
   }
 
   public async getPlayerView(
@@ -198,8 +189,6 @@ export class GameplayRepository extends PostgresRepository {
         if (gameState === undefined) {
           return undefined
         }
-
-        const starSystem = await StarSystemQueries.selectStarSystem(gameId, tx)
 
         const players = await tx
           .select({ id: playersTable.playerId, color: playersTable.color })
@@ -220,7 +209,6 @@ export class GameplayRepository extends PostgresRepository {
           ...gameState,
           player,
           opponents,
-          starSystem,
           resources: {
             money: money.amount,
           },

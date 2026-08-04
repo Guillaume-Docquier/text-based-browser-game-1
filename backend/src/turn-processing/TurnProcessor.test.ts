@@ -150,7 +150,6 @@ describe("TurnProcessor", () => {
         opponents: {},
         turn: 1,
         nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
-        starSystem: expect.any(Object),
         resources: {
           money: 6,
         },

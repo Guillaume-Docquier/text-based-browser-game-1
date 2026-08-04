@@ -5,10 +5,8 @@ import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
 import { Input } from "@/components/input.tsx"
 import { Label } from "@/components/label.tsx"
-import { RangeSlider } from "@/components/RangeSlider.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
-import { RANGE_SETTING_LABELS } from "@/features/games/rangeSettingLabels.ts"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { useCreateGameMutation } from "@/lib/api/useCreateGameMutation.ts"
 import { useLobbyCreationSettingsQuery } from "@/lib/api/useLobbyCreationSettingsQuery.ts"
@@ -43,7 +41,6 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
   const [nbSeats, setNbSeats] = useState(5)
   const [turnIntervalMultiplier, setTurnIntervalMultiplier] = useState(1)
   const [turnIntervalUnit, setTurnIntervalUnit] = useState<TurnIntervalUnit>(TurnIntervalUnit.days)
-  const [starSystemGenerationSettings, setStarSystemGenerationSettings] = useState(creationSettings.defaultStarSystemGenerationSettings)
   const createGame = useCreateGameMutation()
   const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > creationSettings.maxNbSeats
 
@@ -115,56 +112,6 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
         </CardContent>
       </Card>
 
-      <Card className="border border-border/60">
-        <CardHeader>
-          <CardTitle>Star map</CardTitle>
-          <CardDescription>Choose a fixed value or a range for each generated feature.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-8">
-          {Object.entries(RANGE_SETTING_LABELS).map(([key, metadata]) => {
-            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries does not preserve the object's key type
-            const settingKey = key as ApiTypes.RangeSettingKey
-
-            return (
-              <RangeSetting
-                key={settingKey}
-                metadata={metadata}
-                value={starSystemGenerationSettings[settingKey]}
-                limits={creationSettings.starSystemGenerationSettingsLimits[settingKey]}
-                onChange={([min, max]) => {
-                  setStarSystemGenerationSettings((currentSettings) => ({
-                    ...currentSettings,
-                    [settingKey]: {
-                      ...currentSettings[settingKey],
-                      min,
-                      max,
-                    },
-                  }))
-                }}
-              />
-            )
-          })}
-          <div className="space-y-2">
-            <Label htmlFor="generation-seed">Generation seed</Label>
-            <p className="text-sm text-muted-foreground">Games with the same settings and seed generate the same star map.</p>
-            <Input
-              id="generation-seed"
-              type="number"
-              min={creationSettings.starSystemGenerationSettingsLimits.seed.min}
-              max={creationSettings.starSystemGenerationSettingsLimits.seed.max}
-              step={1}
-              value={starSystemGenerationSettings.seed}
-              onChange={(event) => {
-                setStarSystemGenerationSettings((currentSettings) => ({
-                  ...currentSettings,
-                  seed: Number(event.target.value),
-                }))
-              }}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       <div>
         <Button
           disabled={isCreateDisabled || createGame.isPending}
@@ -174,55 +121,12 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
                 name,
                 nbSeats,
                 turnIntervalSeconds: Temporal.Duration.from({ [turnIntervalUnit]: turnIntervalMultiplier }).total("seconds"),
-                starSystemGenerationSettings,
               },
             })
           }}
         >
           {createGame.isPending ? "Creating..." : "Create"}
         </Button>
-      </div>
-    </div>
-  )
-}
-
-function RangeSetting({
-  metadata,
-  value,
-  limits,
-  onChange,
-}: {
-  metadata: { label: string; description: string }
-  value: ApiTypes.StarSystemGenerationSettings[ApiTypes.RangeSettingKey]
-  limits: ApiTypes.StarSystemGenerationSettingsLimits[ApiTypes.RangeSettingKey]
-  onChange: (value: [number, number]) => void
-}): ReactElement {
-  const step = limits.numericType === "integer" ? 1 : 0.01
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <Label>{metadata.label}</Label>
-          <p className="text-sm text-muted-foreground">{metadata.description}</p>
-        </div>
-        <div className="flex items-center gap-2 font-mono text-sm">
-          <span className="min-w-12 rounded-full bg-muted px-3 py-1 text-center">{value.min}</span>
-          <span className="text-muted-foreground">to</span>
-          <span className="min-w-12 rounded-full bg-muted px-3 py-1 text-center">{value.max}</span>
-        </div>
-      </div>
-      <RangeSlider
-        min={limits.min}
-        max={limits.max}
-        step={step}
-        value={[value.min, value.max]}
-        thumbLabels={[`${metadata.label} minimum`, `${metadata.label} maximum`]}
-        onValueChange={onChange}
-      />
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{limits.min}</span>
-        <span>{limits.max}</span>
       </div>
     </div>
   )
