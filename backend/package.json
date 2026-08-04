@@ -15,6 +15,7 @@
     "db:migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
     "db:seed": "node --env-file=.env scripts/db/seed.ts",
     "dev": "node --watch --env-file=.env src/api/entry.api.ts",
+    "map:disc-svg": "node scripts/generate-disc-svg.ts",
     "start": "node src/api/entry.api.ts",
     "test": "vitest run --silent",
     "test:coverage": "pnpm test --coverage",
