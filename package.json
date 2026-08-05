@@ -11,6 +11,7 @@
     "format:fix": "oxfmt",
     "lint": "oxlint --max-warnings 0",
     "lint:fix": "pnpm lint --fix",
+    "map-gen": "node backend/scripts/map-gen/program.ts",
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
     "test:backend": "pnpm --filter backend test",

@@ -13,3 +13,12 @@ If you are an AI agent, see [the agents guidelines](./AGENTS.md).
 AI contributions are welcome, AI slop is not.
 
 Always disclose what you built with AI and how you ensured the quality of your contribution.
+
+## Generating maps to test
+
+We have scripts to create svg of procedurally generated maps for manual testing
+
+```bash
+pnpm map-gen disc
+pnpm map-gen spiral
+```
