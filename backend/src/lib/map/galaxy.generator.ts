@@ -29,7 +29,7 @@ export function galaxyGenerator({ size, pointsGenerator }: { size: number; point
   const points = pointsGenerator({ size })
   for (const point of points) {
     // Remove out of bounds
-    if (point.x < 0 || point.y >= size) {
+    if (point.x < 0 || point.x >= size || point.y < 0 || point.y >= size) {
       continue
     }
 
