@@ -40,6 +40,27 @@ describe("discGenerator", () => {
     ])
   })
 
+  it("should translate the generated disc with its origin", () => {
+    // Arrange
+    const origin = { x: 10, y: -20 }
+    const translatedOrigin = { x: 110, y: -95 }
+    const translation = {
+      x: translatedOrigin.x - origin.x,
+      y: translatedOrigin.y - origin.y,
+    }
+
+    // Act
+    const points = discGenerator({ origin, radius: 8, nbPoints: 5, rng: createSeededRng() })
+    const translatedPoints = discGenerator({ origin: translatedOrigin, radius: 8, nbPoints: 5, rng: createSeededRng() })
+
+    // Assert
+    expect(translatedPoints).toHaveLength(points.length)
+    for (const [index, point] of points.entries()) {
+      expect.soft(translatedPoints[index]?.x).toBeCloseTo(point.x + translation.x, 10)
+      expect.soft(translatedPoints[index]?.y).toBeCloseTo(point.y + translation.y, 10)
+    }
+  })
+
   it("should generate points following a normal distribution around the origin", () => {
     // Arrange
     const origin = { x: 100, y: -50 }
