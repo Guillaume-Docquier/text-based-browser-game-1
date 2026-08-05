@@ -1,4 +1,4 @@
-import type { Rng } from "@guillaume-docquier/tools-ts"
+import { type Rng, Range } from "@guillaume-docquier/tools-ts"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
 import { type System, systemGenerator } from "#lib/map/system.generator.ts"
 
@@ -30,7 +30,8 @@ export function galaxyGenerator({ size, pointsGenerator, rng }: { size: number; 
   const points = pointsGenerator({ size, rng })
   for (const point of points) {
     // Remove out of bounds
-    if (point.x < 0 || point.x >= size || point.y < 0 || point.y >= size) {
+    const bounds = Range.float({ min: 0, max: size })
+    if (!Range.isWithin(bounds, point.x) || !Range.isWithin(bounds, point.y)) {
       continue
     }
 

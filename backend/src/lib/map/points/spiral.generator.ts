@@ -5,7 +5,7 @@ import type { Point2D } from "#lib/map/points/Point2D.ts"
 
 const CORE_POINTS_RATIO = 0.2
 const CORE_RADIUS_RATIO = 0.15
-const DISKS_PER_ARM = 8
+const DISKS_PER_ARM = 16
 
 // PRIMER ON PROCEDURAL GENERATION BECAUSE I WILL FORGET
 //
@@ -40,7 +40,7 @@ export function spiralGenerator({
   const pointsPerArm = armPoints / arms.count
 
   // core
-  const coreRadius = Math.round(rng.normal(radius * CORE_RADIUS_RATIO))
+  const coreRadius = rng.normal(radius * CORE_RADIUS_RATIO)
   points.push(
     ...discGenerator({
       origin,
@@ -69,7 +69,7 @@ export function spiralGenerator({
       points.push(
         ...discGenerator({
           origin: discCenter,
-          radius: Math.round(rng.normal(arms.size)),
+          radius: rng.normal(arms.size, arms.size * 0.5),
           nbPoints: Math.round(rng.normal(nbPointsPerDisc)),
           rng,
         }),
@@ -80,7 +80,7 @@ export function spiralGenerator({
   // Add the final swirl, stronger the closer you are to the center
   return points.map((point) => {
     const distanceFromOrigin = Math.hypot(point.x - origin.x, point.y - origin.y)
-    const swirl = Math.max(0, 1 - distanceFromOrigin / radius)
+    const swirl = Math.max(0, 1 - distanceFromOrigin / radius) * Math.PI
 
     return applyToPoint(compose(translate(origin.x, origin.y), rotate(swirl), translate(-origin.x, -origin.y)), point)
   })

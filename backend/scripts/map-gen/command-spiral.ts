@@ -8,7 +8,7 @@ import { SvgRenderer } from "./SvgRenderer.ts"
 
 const DEFAULT_NB_POINTS = 1000
 const DEFAULT_NB_ARMS = 6
-const DEFAULT_ARM_SIZE = 15
+const DEFAULT_ARM_SIZE = 12
 const DEFAULT_RADIUS = 50
 const DEFAULT_ORIGIN = { x: 50, y: 50 }
 const DEFAULT_OUTPUT_PATH = Parser.filePath("generated/spiral.svg")

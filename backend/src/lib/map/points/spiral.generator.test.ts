@@ -6,7 +6,7 @@ const DEFAULT_OPTIONS = {
   origin: { x: 50, y: 50 },
   radius: 50,
   nbPoints: 1000,
-  arms: { count: 6, size: 15 },
+  arms: { count: 6, size: 12 },
 } as const
 
 describe("spiralGenerator", () => {
