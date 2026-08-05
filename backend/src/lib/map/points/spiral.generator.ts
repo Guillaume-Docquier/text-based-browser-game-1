@@ -7,6 +7,14 @@ const CORE_POINTS_RATIO = 0.2
 const CORE_RADIUS_RATIO = 0.15
 const DISKS_PER_ARM = 8
 
+// PRIMER ON PROCEDURAL GENERATION BECAUSE I WILL FORGET
+//
+// The main concept is: take something structured, then throw a bunch of gaussian (normal) noise at it, and now it looks random
+// Every value used to determine any setting (nb arms, arm size, radius, angle, etc) gets some noise
+// mean controls the expected value
+// std controls the noise (higher == more noise)
+// spread radius / 4 gives you a decent spread with very few values outside the range
+
 /**
  * Generates a spiral of the given radius with nbArms containing nbPoints that follow a normal distribution around its origin.
  * Some points might fall out of the radius, that's the nature of random numbers following normal distribution.

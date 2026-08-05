@@ -1,8 +1,10 @@
+import type { Point2D } from "#lib/map/points/Point.ts"
+
 export type Star = {
   x: number
   y: number
 }
 
-export function starGenerator(): Star {
-  return { x: 0, y: 0 }
+export function starGenerator(origin: Point2D): Star {
+  return origin
 }
