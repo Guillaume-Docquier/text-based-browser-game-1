@@ -1,4 +1,4 @@
-import type { Point2D } from "#lib/map/points/Point.ts"
+import type { Point2D } from "#lib/map/points/Point2D.ts"
 
 export type Star = {
   x: number

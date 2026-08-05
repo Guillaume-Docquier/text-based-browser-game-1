@@ -1,4 +1,4 @@
-import type { Point2D } from "#lib/map/points/Point.ts"
+import type { Point2D } from "#lib/map/points/Point2D.ts"
 import { type System, systemGenerator } from "#lib/map/system.generator.ts"
 
 export type Galaxy = {

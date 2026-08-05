@@ -1,5 +1,5 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
-import type { Point2D } from "#lib/map/points/Point.ts"
+import type { Point2D } from "#lib/map/points/Point2D.ts"
 
 /**
  * 4 stds yields 0.0063% of being outside the desired radius for each axis, so 0.0335% of being outside the disc

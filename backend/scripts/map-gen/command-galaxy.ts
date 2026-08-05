@@ -1,6 +1,6 @@
 import { Command } from "commander"
 import { galaxyGenerator } from "#lib/map/galaxy.generator.ts"
-import type { Point2D } from "#lib/map/points/Point.ts"
+import type { Point2D } from "#lib/map/points/Point2D.ts"
 import { createDiscCommand, type DiscRenderOptions } from "./command-disc.ts"
 import { createSpiralCommand, type SpiralRenderOptions } from "./command-spiral.ts"
 import { Parser } from "./Parser.ts"

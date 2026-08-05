@@ -1,7 +1,7 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
 import { compose, translate, rotate, applyToPoint } from "transformation-matrix"
 import { discGenerator } from "#lib/map/points/disc.generator.ts"
-import type { Point2D } from "#lib/map/points/Point.ts"
+import type { Point2D } from "#lib/map/points/Point2D.ts"
 
 const CORE_POINTS_RATIO = 0.2
 const CORE_RADIUS_RATIO = 0.15

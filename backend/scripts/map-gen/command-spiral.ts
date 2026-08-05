@@ -1,6 +1,6 @@
 import { createRng, mulberry32Prng } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
-import type { Point2D } from "#lib/map/points/Point.ts"
+import type { Point2D } from "#lib/map/points/Point2D.ts"
 import { spiralGenerator } from "#lib/map/points/spiral.generator.ts"
 import { randomUInt32 } from "#lib/randomUInt32.ts"
 import { Parser } from "./Parser.ts"
