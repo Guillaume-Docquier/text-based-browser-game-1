@@ -1,5 +1,6 @@
 import { createRng, mulberry32Prng } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
+import type { Point2D } from "#lib/map/points/Point.ts"
 import { spiralGenerator } from "#lib/map/points/spiral.generator.ts"
 import { randomUInt32 } from "#lib/randomUInt32.ts"
 import { Parser } from "./Parser.ts"
@@ -23,8 +24,28 @@ type SpiralOptions = {
   readonly armSize: number
 }
 
+/** Values available when rendering spiral generator output. */
+export type SpiralRenderOptions = {
+  readonly output: string
+  readonly pointsGenerator: () => Point2D[]
+  readonly requestedPoints: number
+  readonly radius: number
+  readonly origin: Point2D
+  readonly seed: number
+  readonly arms: number
+  readonly armSize: number
+}
+
+type SpiralCommandOptions = {
+  readonly defaultOutputPath?: string
+  readonly render?: (options: SpiralRenderOptions) => Promise<void>
+}
+
 /** Creates the command that renders points generated in spiral arms. */
-export function createSpiralCommand(): Command {
+export function createSpiralCommand({
+  defaultOutputPath = DEFAULT_OUTPUT_PATH,
+  render = renderSpiral,
+}: SpiralCommandOptions = {}): Command {
   return new Command("spiral")
     .description("Generate an SVG preview of spiralGenerator output.")
     .option("--points <integer>", "number of points", Parser.nonNegativeInteger, DEFAULT_NB_POINTS)
@@ -32,34 +53,49 @@ export function createSpiralCommand(): Command {
     .option("--origin-x <number>", "origin x coordinate", Parser.number, DEFAULT_ORIGIN.x)
     .option("--origin-y <number>", "origin y coordinate", Parser.number, DEFAULT_ORIGIN.y)
     .option("--seed <integer>", "Mulberry32 seed", Parser.integer, randomUInt32())
-    .option("--output <path>", "SVG output path", Parser.filePath, DEFAULT_OUTPUT_PATH)
+    .option("--output <path>", "SVG output path", Parser.filePath, defaultOutputPath)
     .option("--arms <integer>", "number of spiral arms", Parser.positiveInteger, DEFAULT_NB_ARMS)
     .option("--arm-size <number>", "spiral arm size", Parser.positiveNumber, DEFAULT_ARM_SIZE)
     .action(async (options: SpiralOptions) => {
       const origin = { x: options.originX, y: options.originY }
-      const points = spiralGenerator({
-        origin,
-        radius: options.radius,
-        nbPoints: options.points,
-        arms: {
-          count: options.arms,
-          size: options.armSize,
-        },
-        rng: createRng(mulberry32Prng(options.seed)),
-      })
 
-      await SvgRenderer.renderToFile({
-        outputPath: options.output,
-        title: "Spiral generator output",
-        text: [
-          "Spiral generator",
-          `Points: ${points.length} generated (${options.points} requested) | Arms: ${options.arms}`,
-          `Radius: ${SvgRenderer.formatNumber(options.radius)} | Arm size: ${SvgRenderer.formatNumber(options.armSize)}`,
-          `Origin: (${SvgRenderer.formatNumber(origin.x)}, ${SvgRenderer.formatNumber(origin.y)}) | Seed: ${options.seed}`,
-        ],
-        points,
+      await render({
+        output: options.output,
+        pointsGenerator: () =>
+          spiralGenerator({
+            origin,
+            radius: options.radius,
+            nbPoints: options.points,
+            arms: {
+              count: options.arms,
+              size: options.armSize,
+            },
+            rng: createRng(mulberry32Prng(options.seed)),
+          }),
+        requestedPoints: options.points,
         radius: options.radius,
         origin,
+        seed: options.seed,
+        arms: options.arms,
+        armSize: options.armSize,
       })
     })
+}
+
+async function renderSpiral(options: SpiralRenderOptions): Promise<void> {
+  const points = options.pointsGenerator()
+
+  await SvgRenderer.renderToFile({
+    outputPath: options.output,
+    title: "Spiral generator output",
+    text: [
+      "Spiral generator",
+      `Points: ${points.length} generated (${options.requestedPoints} requested) | Arms: ${options.arms}`,
+      `Radius: ${SvgRenderer.formatNumber(options.radius)} | Arm size: ${SvgRenderer.formatNumber(options.armSize)}`,
+      `Origin: (${SvgRenderer.formatNumber(options.origin.x)}, ${SvgRenderer.formatNumber(options.origin.y)}) | Seed: ${options.seed}`,
+    ],
+    points,
+    radius: options.radius,
+    origin: options.origin,
+  })
 }

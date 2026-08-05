@@ -21,4 +21,6 @@ We have scripts to create svg of procedurally generated maps for manual testing
 ```bash
 pnpm map-gen disc
 pnpm map-gen spiral
+pnpm map-gen galaxy disc
+pnpm map-gen galaxy spiral
 ```
