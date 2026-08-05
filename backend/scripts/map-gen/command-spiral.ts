@@ -1,4 +1,4 @@
-import { createRng, mulberry32Prng } from "@guillaume-docquier/tools-ts"
+import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
 import { spiralGenerator } from "#lib/map/points/spiral.generator.ts"
@@ -27,7 +27,7 @@ type SpiralOptions = {
 /** Values available when rendering spiral generator output. */
 export type SpiralRenderOptions = {
   readonly output: string
-  readonly pointsGenerator: () => Point2D[]
+  readonly pointsGenerator: (options: { rng: Rng }) => Point2D[]
   readonly requestedPoints: number
   readonly radius: number
   readonly origin: Point2D
@@ -61,7 +61,7 @@ export function createSpiralCommand({
 
       await render({
         output: options.output,
-        pointsGenerator: () =>
+        pointsGenerator: ({ rng }: { rng: Rng }) =>
           spiralGenerator({
             origin,
             radius: options.radius,
@@ -70,7 +70,7 @@ export function createSpiralCommand({
               count: options.arms,
               size: options.armSize,
             },
-            rng: createRng(mulberry32Prng(options.seed)),
+            rng,
           }),
         requestedPoints: options.points,
         radius: options.radius,
@@ -83,7 +83,7 @@ export function createSpiralCommand({
 }
 
 async function renderSpiral(options: SpiralRenderOptions): Promise<void> {
-  const points = options.pointsGenerator()
+  const points = options.pointsGenerator({ rng: createRng(mulberry32Prng(options.seed)) })
 
   await SvgRenderer.renderToFile({
     outputPath: options.output,

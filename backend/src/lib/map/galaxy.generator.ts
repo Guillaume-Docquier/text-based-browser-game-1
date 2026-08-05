@@ -1,3 +1,4 @@
+import type { Rng } from "@guillaume-docquier/tools-ts"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
 import { type System, systemGenerator } from "#lib/map/system.generator.ts"
 
@@ -16,7 +17,7 @@ export type Galaxy = {
   systems: System[]
 }
 
-type PointsGenerator = (options: { size: number }) => Point2D[]
+type PointsGenerator = (options: { size: number; rng: Rng }) => Point2D[]
 
 /**
  * Creates a square galaxy of the given size in light years.
@@ -24,9 +25,9 @@ type PointsGenerator = (options: { size: number }) => Point2D[]
  *
  * We need to know the galaxy size because generators might produces values that will be out of bounds.
  */
-export function galaxyGenerator({ size, pointsGenerator }: { size: number; pointsGenerator: PointsGenerator }): Galaxy {
-  const uniquePoints = new Map<string, Point2D>()
-  const points = pointsGenerator({ size })
+export function galaxyGenerator({ size, pointsGenerator, rng }: { size: number; pointsGenerator: PointsGenerator; rng: Rng }): Galaxy {
+  const pointsByCell = new Map<string, Point2D>()
+  const points = pointsGenerator({ size, rng })
   for (const point of points) {
     // Remove out of bounds
     if (point.x < 0 || point.x >= size || point.y < 0 || point.y >= size) {
@@ -34,13 +35,13 @@ export function galaxyGenerator({ size, pointsGenerator }: { size: number; point
     }
 
     // Keep at most 1 point per cell
-    uniquePoints.set(`${Math.floor(point.x)}-${Math.floor(point.y)}`, point)
+    pointsByCell.set(`${Math.floor(point.x)}-${Math.floor(point.y)}`, point)
   }
 
   return {
     width: size,
     height: size,
     // generate systems
-    systems: Array.from(uniquePoints.values(), systemGenerator),
+    systems: Array.from(pointsByCell.values(), (origin) => systemGenerator(origin, rng)),
   }
 }

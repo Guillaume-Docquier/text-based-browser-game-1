@@ -1,4 +1,4 @@
-import { createRng, mulberry32Prng } from "@guillaume-docquier/tools-ts"
+import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
 import { discGenerator } from "#lib/map/points/disc.generator.ts"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
@@ -23,7 +23,7 @@ type DiscOptions = {
 /** Values available when rendering disc generator output. */
 export type DiscRenderOptions = {
   readonly output: string
-  readonly pointsGenerator: () => Point2D[]
+  readonly pointsGenerator: (options: { rng: Rng }) => Point2D[]
   readonly requestedPoints: number
   readonly radius: number
   readonly origin: Point2D
@@ -50,12 +50,12 @@ export function createDiscCommand({ defaultOutputPath = DEFAULT_OUTPUT_PATH, ren
 
       await render({
         output: options.output,
-        pointsGenerator: () =>
+        pointsGenerator: ({ rng }) =>
           discGenerator({
             origin,
             radius: options.radius,
             nbPoints: options.points,
-            rng: createRng(mulberry32Prng(options.seed)),
+            rng,
           }),
         requestedPoints: options.points,
         radius: options.radius,
@@ -66,7 +66,7 @@ export function createDiscCommand({ defaultOutputPath = DEFAULT_OUTPUT_PATH, ren
 }
 
 async function renderDisc(options: DiscRenderOptions): Promise<void> {
-  const points = options.pointsGenerator()
+  const points = options.pointsGenerator({ rng: createRng(mulberry32Prng(options.seed)) })
 
   await SvgRenderer.renderToFile({
     outputPath: options.output,

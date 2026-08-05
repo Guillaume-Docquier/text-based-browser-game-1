@@ -1,3 +1,4 @@
+import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
 import { galaxyGenerator } from "#lib/map/galaxy.generator.ts"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
@@ -55,7 +56,7 @@ async function renderGalaxy({
 }: {
   readonly outputPath: string
   readonly generatorName: string
-  readonly pointsGenerator: () => Point2D[]
+  readonly pointsGenerator: (options: { rng: Rng }) => Point2D[]
   readonly requestedPoints: number
   readonly radius: number
   readonly origin: Point2D
@@ -66,8 +67,9 @@ async function renderGalaxy({
   let generatedPointCount = 0
   const galaxy = galaxyGenerator({
     size,
-    pointsGenerator: () => {
-      const points = pointsGenerator()
+    rng: createRng(mulberry32Prng(seed)),
+    pointsGenerator: ({ rng }) => {
+      const points = pointsGenerator({ rng })
       generatedPointCount = points.length
       return points
     },

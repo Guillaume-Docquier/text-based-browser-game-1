@@ -1,3 +1,4 @@
+import type { Rng } from "@guillaume-docquier/tools-ts"
 import type { Planet } from "#lib/map/planet.generator.ts"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
 import { type Star, starGenerator } from "#lib/map/star.generator.ts"
@@ -7,9 +8,9 @@ export type System = {
   planets: Planet[]
 }
 
-export function systemGenerator(origin: Point2D): System {
+export function systemGenerator(origin: Point2D, rng: Rng): System {
   return {
-    star: starGenerator(origin),
+    star: starGenerator(origin, rng),
     planets: [],
   }
 }
