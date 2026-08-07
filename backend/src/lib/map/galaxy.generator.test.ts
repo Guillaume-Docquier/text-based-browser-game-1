@@ -136,6 +136,7 @@ describe("galaxyGenerator", () => {
     // Assert
     // Hard to assert that this is correct without looking at it
     // You can run `pnpm map-gen spiral --seed 1234` and the matching DEFAULT_OPTIONS to visualize the spiral
+    // If you're happy, run `pnpm test:backend --update` to update the snapshot
     expect(galaxy).toMatchSnapshot()
   })
 })
