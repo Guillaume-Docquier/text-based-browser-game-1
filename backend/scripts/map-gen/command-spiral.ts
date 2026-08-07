@@ -95,7 +95,7 @@ async function renderSpiral(options: SpiralRenderOptions): Promise<void> {
       `Origin: (${SvgRenderer.formatNumber(options.origin.x)}, ${SvgRenderer.formatNumber(options.origin.y)}) | Seed: ${options.seed}`,
     ],
     points,
-    radius: options.radius,
+    boundary: { shape: "circle", radius: options.radius },
     origin: options.origin,
   })
 }

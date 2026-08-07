@@ -86,7 +86,7 @@ async function renderGalaxy({
       `Origin: (${SvgRenderer.formatNumber(origin.x)}, ${SvgRenderer.formatNumber(origin.y)}) | Seed: ${seed}`,
     ],
     points: systemPoints,
-    radius,
+    boundary: { shape: "square", size },
     origin,
   })
 }

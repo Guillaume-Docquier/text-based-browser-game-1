@@ -15,7 +15,7 @@ type RenderOptions = {
   readonly title: string
   readonly text: readonly string[]
   readonly points: readonly Point2D[]
-  readonly radius: number
+  readonly boundary: { readonly shape: "circle"; readonly radius: number } | { readonly shape: "square"; readonly size: number }
   readonly origin: Point2D
 }
 
@@ -36,10 +36,10 @@ export const SvgRenderer = {
   },
 } as const
 
-function renderSvg({ title, text, points, radius, origin }: RenderOptions): string {
-  const coordinateExtent = getCoordinateExtent({ points, radius, origin })
+function renderSvg({ title, text, points, boundary, origin }: RenderOptions): string {
+  const boundaryExtent = boundary.shape === "circle" ? boundary.radius : boundary.size / 2
+  const coordinateExtent = getCoordinateExtent({ points, boundaryExtent, origin })
   const scale = PLOT_SIZE / (coordinateExtent * 2)
-  const circleRadius = radius * scale
   const textElements = text
     .map((line, index) => {
       const fontSize = index === 0 ? 20 : 16
@@ -55,6 +55,7 @@ function renderSvg({ title, text, points, radius, origin }: RenderOptions): stri
     .join("\n")
   const originX = PLOT_CENTER_X
   const originY = PLOT_CENTER_Y
+  const boundaryElement = renderBoundary({ boundary, scale, originX, originY })
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${SVG_WIDTH}" height="${SVG_HEIGHT}" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}">
   <title>${title}</title>
@@ -62,7 +63,7 @@ function renderSvg({ title, text, points, radius, origin }: RenderOptions): stri
   <g font-family="monospace" fill="#ffffff">
 ${textElements}
   </g>
-  <circle cx="${originX}" cy="${originY}" r="${SvgRenderer.formatNumber(circleRadius)}" fill="none" stroke="#00ff66" stroke-width="2" />
+  ${boundaryElement}
   <g aria-label="Generated points">
 ${pointElements}
   </g>
@@ -74,18 +75,40 @@ ${pointElements}
 `
 }
 
+function renderBoundary({
+  boundary,
+  scale,
+  originX,
+  originY,
+}: {
+  readonly boundary: RenderOptions["boundary"]
+  readonly scale: number
+  readonly originX: number
+  readonly originY: number
+}): string {
+  if (boundary.shape === "circle") {
+    return `<circle cx="${originX}" cy="${originY}" r="${SvgRenderer.formatNumber(boundary.radius * scale)}" fill="none" stroke="#00ff66" stroke-width="2" />`
+  }
+
+  const size = boundary.size * scale
+  const x = originX - size / 2
+  const y = originY - size / 2
+
+  return `<rect x="${SvgRenderer.formatNumber(x)}" y="${SvgRenderer.formatNumber(y)}" width="${SvgRenderer.formatNumber(size)}" height="${SvgRenderer.formatNumber(size)}" fill="none" stroke="#00ff66" stroke-width="2" />`
+}
+
 function getCoordinateExtent({
   points,
-  radius,
+  boundaryExtent,
   origin,
 }: {
   readonly points: readonly Point2D[]
-  readonly radius: number
+  readonly boundaryExtent: number
   readonly origin: Point2D
 }): number {
   const furthestPoint = points.reduce(
     (furthest, point) => Math.max(furthest, Math.abs(point.x - origin.x), Math.abs(point.y - origin.y)),
-    radius,
+    boundaryExtent,
   )
 
   return furthestPoint * 1.1
