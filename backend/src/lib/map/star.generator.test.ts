@@ -1,0 +1,50 @@
+import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
+import { describe, expect, it } from "vitest"
+import { starGenerator } from "#lib/map/star.generator.ts"
+
+describe("starGenerator", () => {
+  function createSeededRng(): Rng {
+    return createRng(mulberry32Prng(1234))
+  }
+
+  it("should generate a star at the requested position", () => {
+    // Arrange
+    const position = { x: 10, y: -20 }
+
+    // Act
+    const star = starGenerator(position, createSeededRng())
+
+    // Assert
+    expect(star).toEqual({
+      x: 10,
+      y: -20,
+      name: "star 74220",
+    })
+  })
+
+  it("should generate deterministic stars", () => {
+    // Arrange
+    const position = { x: 10, y: -20 }
+
+    // Act
+    const firstStar = starGenerator(position, createSeededRng())
+    const secondStar = starGenerator(position, createSeededRng())
+
+    // Assert
+    expect({ firstStar, secondStar }).toEqual({
+      firstStar: { x: 10, y: -20, name: "star 74220" },
+      secondStar: { x: 10, y: -20, name: "star 74220" },
+    })
+  })
+
+  it("should generate the minimum name suffix at the rng lower bound", () => {
+    // Act
+    const star = starGenerator(
+      { x: 10, y: -20 },
+      createRng(() => 0),
+    )
+
+    // Assert
+    expect(star).toEqual({ x: 10, y: -20, name: "star 999" })
+  })
+})

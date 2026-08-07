@@ -24,17 +24,17 @@ describe("galaxyGenerator", () => {
     })
 
     // Assert
-    expect(galaxy).toEqual({
+    expect(galaxy).toEqual<typeof galaxy>({
       width: 10,
       height: 10,
       systems: [
         {
-          star: { x: 1.25, y: 2.5 },
-          planets: [],
+          star: { x: 1.25, y: 2.5, name: expect.any(String) },
+          planets: expect.any(Array),
         },
         {
-          star: { x: 8.75, y: 9.25 },
-          planets: [],
+          star: { x: 8.75, y: 9.25, name: expect.any(String) },
+          planets: expect.any(Array),
         },
       ],
     })
@@ -56,14 +56,14 @@ describe("galaxyGenerator", () => {
     })
 
     // Assert
-    expect(galaxy.systems).toEqual([
+    expect(galaxy.systems).toEqual<typeof galaxy.systems>([
       {
-        star: { x: 0, y: 0 },
-        planets: [],
+        star: { x: 0, y: 0, name: expect.any(String) },
+        planets: expect.any(Array),
       },
       {
-        star: { x: 9.999, y: 9.999 },
-        planets: [],
+        star: { x: 9.999, y: 9.999, name: expect.any(String) },
+        planets: expect.any(Array),
       },
     ])
   })
@@ -81,14 +81,14 @@ describe("galaxyGenerator", () => {
     })
 
     // Assert
-    expect(galaxy.systems).toEqual([
+    expect(galaxy.systems).toEqual<typeof galaxy.systems>([
       {
-        star: { x: 1.9, y: 2.9 },
-        planets: [],
+        star: { x: 1.9, y: 2.9, name: expect.any(String) },
+        planets: expect.any(Array),
       },
       {
-        star: { x: 2, y: 2 },
-        planets: [],
+        star: { x: 2, y: 2, name: expect.any(String) },
+        planets: expect.any(Array),
       },
     ])
   })
