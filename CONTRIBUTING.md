@@ -19,8 +19,8 @@ Always disclose what you built with AI and how you ensured the quality of your c
 We have scripts to create svg of procedurally generated maps for manual testing
 
 ```bash
-pnpm map-gen disc
+pnpm map-gen cluster
 pnpm map-gen spiral
-pnpm map-gen galaxy disc
+pnpm map-gen galaxy cluster
 pnpm map-gen galaxy spiral
 ```

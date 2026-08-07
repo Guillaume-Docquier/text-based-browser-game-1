@@ -1,11 +1,11 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
 import { compose, translate, rotate, applyToPoint } from "transformation-matrix"
-import { discGenerator } from "#lib/map/points/disc.generator.ts"
+import { clusterGenerator } from "#lib/map/points/cluster.generator.ts"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
 
 const CORE_POINTS_RATIO = 0.2
 const CORE_RADIUS_RATIO = 0.15
-const DISKS_PER_ARM = 16
+const CLUSTERS_PER_ARM = 16
 
 // PRIMER ON PROCEDURAL GENERATION BECAUSE I WILL FORGET
 //
@@ -42,7 +42,7 @@ export function spiralGenerator({
   // core
   const coreRadius = rng.normal(radius * CORE_RADIUS_RATIO)
   points.push(
-    ...discGenerator({
+    ...clusterGenerator({
       origin,
       radius: coreRadius,
       nbPoints: corePoints,
@@ -54,23 +54,23 @@ export function spiralGenerator({
   const angleBetweenArms = (2 * Math.PI) / arms.count
   const armAngles = Array.from({ length: arms.count }, (_, i) => angleBetweenArms * i)
   for (const armAngle of armAngles) {
-    // Each arm is a series of discs
-    const nbDiscs = Math.round(rng.normal(DISKS_PER_ARM))
-    const nbPointsPerDisc = pointsPerArm / nbDiscs
-    for (let i = 0; i < nbDiscs; i++) {
+    // Each arm is a series of clusters
+    const nbClusters = Math.round(rng.normal(CLUSTERS_PER_ARM))
+    const nbPointsPerCluster = pointsPerArm / nbClusters
+    for (let i = 0; i < nbClusters; i++) {
       const distanceFromOrigin = Math.abs(rng.normal(coreRadius, radius * 0.4))
 
       // Extend out and rotate around the center
-      const discCenter = applyToPoint(compose(translate(origin.x, origin.y), rotate(armAngle), translate(distanceFromOrigin, 0)), {
+      const clusterCenter = applyToPoint(compose(translate(origin.x, origin.y), rotate(armAngle), translate(distanceFromOrigin, 0)), {
         x: 0,
         y: 0,
       })
 
       points.push(
-        ...discGenerator({
-          origin: discCenter,
+        ...clusterGenerator({
+          origin: clusterCenter,
           radius: rng.normal(arms.size, arms.size * 0.5),
-          nbPoints: Math.round(rng.normal(nbPointsPerDisc)),
+          nbPoints: Math.round(rng.normal(nbPointsPerCluster)),
           rng,
         }),
       )

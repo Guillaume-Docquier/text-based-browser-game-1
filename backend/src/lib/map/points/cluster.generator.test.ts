@@ -1,8 +1,8 @@
 import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { discGenerator } from "#lib/map/points/disc.generator.ts"
+import { clusterGenerator } from "#lib/map/points/cluster.generator.ts"
 
-describe("discGenerator", () => {
+describe("clusterGenerator", () => {
   function createSeededRng(): Rng {
     return createRng(mulberry32Prng(1234))
   }
@@ -12,7 +12,7 @@ describe("discGenerator", () => {
     const nbPoints = 5
 
     // Act
-    const points = discGenerator({
+    const points = clusterGenerator({
       origin: { x: 10, y: -20 },
       radius: 8,
       nbPoints,
@@ -25,7 +25,7 @@ describe("discGenerator", () => {
 
   it("should generate deterministic points around the requested origin", () => {
     // Act
-    const points = discGenerator({
+    const points = clusterGenerator({
       origin: { x: 10, y: -20 },
       radius: 8,
       nbPoints: 3,
@@ -40,7 +40,7 @@ describe("discGenerator", () => {
     ])
   })
 
-  it("should translate the generated disc with its origin", () => {
+  it("should translate the generated cluster with its origin", () => {
     // Arrange
     const origin = { x: 10, y: -20 }
     const translatedOrigin = { x: 110, y: -95 }
@@ -50,8 +50,8 @@ describe("discGenerator", () => {
     }
 
     // Act
-    const points = discGenerator({ origin, radius: 8, nbPoints: 5, rng: createSeededRng() })
-    const translatedPoints = discGenerator({ origin: translatedOrigin, radius: 8, nbPoints: 5, rng: createSeededRng() })
+    const points = clusterGenerator({ origin, radius: 8, nbPoints: 5, rng: createSeededRng() })
+    const translatedPoints = clusterGenerator({ origin: translatedOrigin, radius: 8, nbPoints: 5, rng: createSeededRng() })
 
     // Assert
     expect(translatedPoints).toHaveLength(points.length)
@@ -71,7 +71,7 @@ describe("discGenerator", () => {
     const expectedTwoStandardDeviationCoverage = 0.9545
 
     // Act
-    const points = discGenerator({ origin, radius, nbPoints, rng: createSeededRng() })
+    const points = clusterGenerator({ origin, radius, nbPoints, rng: createSeededRng() })
 
     // Assert
     for (const axis of ["x", "y"] as const) {
@@ -92,7 +92,7 @@ describe("discGenerator", () => {
 
   it("should generate no points when the requested amount is zero", () => {
     // Act
-    const points = discGenerator({
+    const points = clusterGenerator({
       origin: { x: 10, y: -20 },
       radius: 8,
       nbPoints: 0,

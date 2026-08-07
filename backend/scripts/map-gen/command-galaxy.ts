@@ -2,12 +2,12 @@ import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-t
 import { Command } from "commander"
 import { galaxyGenerator } from "#lib/map/galaxy.generator.ts"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
-import { createDiscCommand, type DiscRenderOptions } from "./command-disc.ts"
+import { createClusterCommand, type ClusterRenderOptions } from "./command-cluster.ts"
 import { createSpiralCommand, type SpiralRenderOptions } from "./command-spiral.ts"
 import { Parser } from "./Parser.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
-const DEFAULT_DISC_OUTPUT_PATH = Parser.filePath("generated/galaxy-disc.svg")
+const DEFAULT_CLUSTER_OUTPUT_PATH = Parser.filePath("generated/galaxy-cluster.svg")
 const DEFAULT_SPIRAL_OUTPUT_PATH = Parser.filePath("generated/galaxy-spiral.svg")
 
 type GalaxyOptions = {
@@ -22,10 +22,10 @@ export function createGalaxyCommand(): Command {
 
   return command
     .addCommand(
-      createDiscCommand({
-        defaultOutputPath: DEFAULT_DISC_OUTPUT_PATH,
+      createClusterCommand({
+        defaultOutputPath: DEFAULT_CLUSTER_OUTPUT_PATH,
         render: async (options) => {
-          await renderDiscGalaxy(options, command.opts<GalaxyOptions>())
+          await renderClusterGalaxy(options, command.opts<GalaxyOptions>())
         },
       }),
     )
@@ -39,10 +39,10 @@ export function createGalaxyCommand(): Command {
     )
 }
 
-async function renderDiscGalaxy(options: DiscRenderOptions, galaxyOptions: GalaxyOptions): Promise<void> {
+async function renderClusterGalaxy(options: ClusterRenderOptions, galaxyOptions: GalaxyOptions): Promise<void> {
   await renderGalaxy({
     outputPath: options.output,
-    generatorName: "discGenerator",
+    generatorName: "Cluster",
     pointsGenerator: options.pointsGenerator,
     requestedPoints: options.requestedPoints,
     radius: options.radius,
@@ -56,7 +56,7 @@ async function renderDiscGalaxy(options: DiscRenderOptions, galaxyOptions: Galax
 async function renderSpiralGalaxy(options: SpiralRenderOptions, galaxyOptions: GalaxyOptions): Promise<void> {
   await renderGalaxy({
     outputPath: options.output,
-    generatorName: "spiralGenerator",
+    generatorName: "Spiral",
     pointsGenerator: options.pointsGenerator,
     requestedPoints: options.requestedPoints,
     radius: options.radius,
@@ -103,9 +103,9 @@ async function renderGalaxy({
 
   await SvgRenderer.renderToFile({
     outputPath,
-    title: `Galaxy generator output using ${generatorName}`,
+    title: `${generatorName} galaxy generator output`,
     text: [
-      `Galaxy generator using ${generatorName}`,
+      `${generatorName} galaxy generator`,
       `Systems: ${systemPoints.length} generated from ${generatedPointCount} points (${requestedPoints} requested)`,
       `Size: ${SvgRenderer.formatNumber(size)} | Radius: ${SvgRenderer.formatNumber(radius)} | ${details.join(" | ")}`,
       `Origin: (${SvgRenderer.formatNumber(origin.x)}, ${SvgRenderer.formatNumber(origin.y)}) | Seed: ${seed}`,
