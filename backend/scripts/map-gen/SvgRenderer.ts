@@ -15,17 +15,9 @@ type RenderOptions = {
   readonly title: string
   readonly text: readonly string[]
   readonly points: readonly Point2D[]
-  readonly foregroundPointLayers?: readonly PointLayer[]
   readonly boundary: { readonly shape: "circle"; readonly radius: number } | { readonly shape: "square"; readonly size: number }
   readonly grid?: { readonly size: number }
   readonly origin: Point2D
-}
-
-type PointLayer = {
-  readonly ariaLabel: string
-  readonly points: readonly Point2D[]
-  readonly radius: number
-  readonly fill: string
 }
 
 /** Renders map generator previews as SVG files. */
@@ -45,13 +37,9 @@ export const SvgRenderer = {
   },
 } as const
 
-function renderSvg({ title, text, points, foregroundPointLayers = [], boundary, grid, origin }: RenderOptions): string {
+function renderSvg({ title, text, points, boundary, grid, origin }: RenderOptions): string {
   const boundaryExtent = boundary.shape === "circle" ? boundary.radius : boundary.size / 2
-  const coordinateExtent = getCoordinateExtent({
-    points: [...points, ...foregroundPointLayers.flatMap((layer) => layer.points)],
-    boundaryExtent,
-    origin,
-  })
+  const coordinateExtent = getCoordinateExtent({ points, boundaryExtent, origin })
   const scale = PLOT_SIZE / (coordinateExtent * 2)
   const textElements = text
     .map((line, index) => {
@@ -61,13 +49,6 @@ function renderSvg({ title, text, points, foregroundPointLayers = [], boundary, 
     })
     .join("\n")
   const pointElements = points.map((point) => renderPoint({ point, radius: POINT_RADIUS, fill: "#ffeb3b", origin, scale })).join("\n")
-  const foregroundPointLayerElements = foregroundPointLayers
-    .map(
-      (layer) => `  <g aria-label="${layer.ariaLabel}">
-${layer.points.map((point) => renderPoint({ point, radius: layer.radius, fill: layer.fill, origin, scale })).join("\n")}
-  </g>`,
-    )
-    .join("\n")
   const originX = PLOT_CENTER_X
   const originY = PLOT_CENTER_Y
   const gridElement = grid === undefined ? "" : renderGrid({ size: grid.size, origin, scale })
@@ -84,7 +65,6 @@ ${textElements}
   <g aria-label="Generated points">
 ${pointElements}
   </g>
-${foregroundPointLayerElements}
   <g aria-label="Origin" stroke="#ff3333" stroke-width="3" stroke-linecap="square">
     <line x1="${originX - PLUS_SIZE}" y1="${originY}" x2="${originX + PLUS_SIZE}" y2="${originY}" />
     <line x1="${originX}" y1="${originY - PLUS_SIZE}" x2="${originX}" y2="${originY + PLUS_SIZE}" />

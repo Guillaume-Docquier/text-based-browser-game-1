@@ -1,4 +1,5 @@
-import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
+import path from "node:path"
+import { createRng, Distance, mulberry32Prng, UnitOfDistance, type Rng } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
 import { galaxyGenerator } from "#lib/map/galaxy.generator.ts"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
@@ -6,9 +7,11 @@ import { createClusterCommand, type ClusterRenderOptions } from "./command-clust
 import { createSpiralCommand, type SpiralRenderOptions } from "./command-spiral.ts"
 import { Parser } from "./Parser.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
+import { SystemSvgRenderer } from "./SystemSvgRenderer.ts"
 
 const DEFAULT_CLUSTER_OUTPUT_PATH = Parser.filePath("generated/galaxy-cluster.svg")
 const DEFAULT_SPIRAL_OUTPUT_PATH = Parser.filePath("generated/galaxy-spiral.svg")
+const NB_SYSTEM_PREVIEWS = 4
 
 type GalaxyOptions = {
   readonly grid?: boolean
@@ -90,10 +93,11 @@ async function renderGalaxy({
 }): Promise<void> {
   const size = radius * 2
   let generatedPointCount = 0
+  const rng = createRng(mulberry32Prng(seed))
   const galaxy = galaxyGenerator({
     size,
-    rng: createRng(mulberry32Prng(seed)),
-    pointsGenerator: ({ rng }) => {
+    rng,
+    pointsGenerator: () => {
       const points = pointsGenerator({ rng })
       generatedPointCount = points.length
       return points
@@ -117,9 +121,30 @@ async function renderGalaxy({
       `Origin: (${SvgRenderer.formatNumber(origin.x)}, ${SvgRenderer.formatNumber(origin.y)}) | Seed: ${seed}`,
     ],
     points: systemPoints,
-    foregroundPointLayers: [{ ariaLabel: "Planets", points: planetPoints, radius: 1 / 4, fill: "#00ffff" }],
     boundary: { shape: "square", size },
     ...(renderGrid ? { grid: { size } } : {}),
     origin,
   })
+
+  const sampledSystems = rng.draw(galaxy.systems, Math.min(NB_SYSTEM_PREVIEWS, galaxy.systems.length)).drawn
+  await SystemSvgRenderer.renderToFile({
+    outputPath: addFileNameSuffix(outputPath, "-systems"),
+    title: `${generatorName} galaxy system samples`,
+    systems: sampledSystems.map((system) => ({
+      planets: system.planets.map((planet) => ({
+        x: lightYearsToAstronomicalUnits(planet.x - system.star.x),
+        y: lightYearsToAstronomicalUnits(planet.y - system.star.y),
+      })),
+    })),
+    withGrid: renderGrid,
+  })
+}
+
+function lightYearsToAstronomicalUnits(value: number): number {
+  return Distance.in(Distance.create(value, UnitOfDistance.LIGHT_YEARS), UnitOfDistance.ASTRONOMICAL_UNITS)
+}
+
+function addFileNameSuffix(filePath: string, suffix: string): string {
+  const extension = path.extname(filePath)
+  return path.join(path.dirname(filePath), `${path.basename(filePath, extension)}${suffix}${extension}`)
 }
