@@ -79,9 +79,33 @@ ${pointElements}
 }
 
 function renderGrid({ size, origin, scale }: { readonly size: number; readonly origin: Point2D; readonly scale: number }): string {
+  const minorLines = renderGridLines({ size, origin, scale, increment: 1 })
+  const majorLines = renderGridLines({ size, origin, scale, increment: 10 })
+
+  return `<g aria-label="Coordinate grid" fill="none" stroke-width="0.5">
+  <g aria-label="1-unit grid lines" stroke="#4f4f4f" opacity="0.35">
+${minorLines}
+  </g>
+  <g aria-label="10-unit grid lines" stroke="#dfdfdf" opacity="0.35">
+${majorLines}
+  </g>
+  </g>`
+}
+
+function renderGridLines({
+  size,
+  origin,
+  scale,
+  increment,
+}: {
+  readonly size: number
+  readonly origin: Point2D
+  readonly scale: number
+  readonly increment: number
+}): string {
   const lines: string[] = []
 
-  for (let coordinate = 0; coordinate <= size; coordinate += 1) {
+  for (let coordinate = 0; coordinate <= size; coordinate += increment) {
     const verticalStart = toSvgPoint({ point: { x: coordinate, y: 0 }, origin, scale })
     const verticalEnd = toSvgPoint({ point: { x: coordinate, y: size }, origin, scale })
     const horizontalStart = toSvgPoint({ point: { x: 0, y: coordinate }, origin, scale })
@@ -93,9 +117,7 @@ function renderGrid({ size, origin, scale }: { readonly size: number; readonly o
     )
   }
 
-  return `<g aria-label="Coordinate grid" stroke="#d3d3d3" stroke-width="0.5" opacity="0.35">
-${lines.join("\n")}
-  </g>`
+  return lines.join("\n")
 }
 
 function renderBoundary({
