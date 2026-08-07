@@ -16,6 +16,7 @@ type RenderOptions = {
   readonly text: readonly string[]
   readonly points: readonly Point2D[]
   readonly boundary: { readonly shape: "circle"; readonly radius: number } | { readonly shape: "square"; readonly size: number }
+  readonly grid?: { readonly size: number }
   readonly origin: Point2D
 }
 
@@ -36,7 +37,7 @@ export const SvgRenderer = {
   },
 } as const
 
-function renderSvg({ title, text, points, boundary, origin }: RenderOptions): string {
+function renderSvg({ title, text, points, boundary, grid, origin }: RenderOptions): string {
   const boundaryExtent = boundary.shape === "circle" ? boundary.radius : boundary.size / 2
   const coordinateExtent = getCoordinateExtent({ points, boundaryExtent, origin })
   const scale = PLOT_SIZE / (coordinateExtent * 2)
@@ -55,6 +56,7 @@ function renderSvg({ title, text, points, boundary, origin }: RenderOptions): st
     .join("\n")
   const originX = PLOT_CENTER_X
   const originY = PLOT_CENTER_Y
+  const gridElement = grid === undefined ? "" : renderGrid({ size: grid.size, origin, scale })
   const boundaryElement = renderBoundary({ boundary, scale, originX, originY })
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${SVG_WIDTH}" height="${SVG_HEIGHT}" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}">
@@ -63,6 +65,7 @@ function renderSvg({ title, text, points, boundary, origin }: RenderOptions): st
   <g font-family="monospace" fill="#ffffff">
 ${textElements}
   </g>
+  ${gridElement}
   ${boundaryElement}
   <g aria-label="Generated points">
 ${pointElements}
@@ -73,6 +76,26 @@ ${pointElements}
   </g>
 </svg>
 `
+}
+
+function renderGrid({ size, origin, scale }: { readonly size: number; readonly origin: Point2D; readonly scale: number }): string {
+  const lines: string[] = []
+
+  for (let coordinate = 0; coordinate <= size; coordinate += 1) {
+    const verticalStart = toSvgPoint({ point: { x: coordinate, y: 0 }, origin, scale })
+    const verticalEnd = toSvgPoint({ point: { x: coordinate, y: size }, origin, scale })
+    const horizontalStart = toSvgPoint({ point: { x: 0, y: coordinate }, origin, scale })
+    const horizontalEnd = toSvgPoint({ point: { x: size, y: coordinate }, origin, scale })
+
+    lines.push(
+      `    <line x1="${SvgRenderer.formatNumber(verticalStart.x)}" y1="${SvgRenderer.formatNumber(verticalStart.y)}" x2="${SvgRenderer.formatNumber(verticalEnd.x)}" y2="${SvgRenderer.formatNumber(verticalEnd.y)}" />`,
+      `    <line x1="${SvgRenderer.formatNumber(horizontalStart.x)}" y1="${SvgRenderer.formatNumber(horizontalStart.y)}" x2="${SvgRenderer.formatNumber(horizontalEnd.x)}" y2="${SvgRenderer.formatNumber(horizontalEnd.y)}" />`,
+    )
+  }
+
+  return `<g aria-label="Coordinate grid" stroke="#d3d3d3" stroke-width="0.5" opacity="0.35">
+${lines.join("\n")}
+  </g>`
 }
 
 function renderBoundary({

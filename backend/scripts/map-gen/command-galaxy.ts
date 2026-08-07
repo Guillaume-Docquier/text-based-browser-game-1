@@ -10,15 +10,36 @@ import { SvgRenderer } from "./SvgRenderer.ts"
 const DEFAULT_DISC_OUTPUT_PATH = Parser.filePath("generated/galaxy-disc.svg")
 const DEFAULT_SPIRAL_OUTPUT_PATH = Parser.filePath("generated/galaxy-spiral.svg")
 
-/** Creates the command that renders galaxies generated from the supported point generators. */
-export function createGalaxyCommand(): Command {
-  return new Command("galaxy")
-    .description("Generate an SVG preview of galaxyGenerator output.")
-    .addCommand(createDiscCommand({ defaultOutputPath: DEFAULT_DISC_OUTPUT_PATH, render: renderDiscGalaxy }))
-    .addCommand(createSpiralCommand({ defaultOutputPath: DEFAULT_SPIRAL_OUTPUT_PATH, render: renderSpiralGalaxy }))
+type GalaxyOptions = {
+  readonly grid?: boolean
 }
 
-async function renderDiscGalaxy(options: DiscRenderOptions): Promise<void> {
+/** Creates the command that renders galaxies generated from the supported point generators. */
+export function createGalaxyCommand(): Command {
+  const command = new Command("galaxy")
+    .description("Generate an SVG preview of galaxyGenerator output.")
+    .option("--grid", "render the galaxy coordinate grid")
+
+  return command
+    .addCommand(
+      createDiscCommand({
+        defaultOutputPath: DEFAULT_DISC_OUTPUT_PATH,
+        render: async (options) => {
+          await renderDiscGalaxy(options, command.opts<GalaxyOptions>())
+        },
+      }),
+    )
+    .addCommand(
+      createSpiralCommand({
+        defaultOutputPath: DEFAULT_SPIRAL_OUTPUT_PATH,
+        render: async (options) => {
+          await renderSpiralGalaxy(options, command.opts<GalaxyOptions>())
+        },
+      }),
+    )
+}
+
+async function renderDiscGalaxy(options: DiscRenderOptions, galaxyOptions: GalaxyOptions): Promise<void> {
   await renderGalaxy({
     outputPath: options.output,
     generatorName: "discGenerator",
@@ -27,11 +48,12 @@ async function renderDiscGalaxy(options: DiscRenderOptions): Promise<void> {
     radius: options.radius,
     origin: options.origin,
     seed: options.seed,
+    renderGrid: galaxyOptions.grid ?? false,
     details: [`Standard deviation: ${SvgRenderer.formatNumber(options.radius / 4)}`],
   })
 }
 
-async function renderSpiralGalaxy(options: SpiralRenderOptions): Promise<void> {
+async function renderSpiralGalaxy(options: SpiralRenderOptions, galaxyOptions: GalaxyOptions): Promise<void> {
   await renderGalaxy({
     outputPath: options.output,
     generatorName: "spiralGenerator",
@@ -40,6 +62,7 @@ async function renderSpiralGalaxy(options: SpiralRenderOptions): Promise<void> {
     radius: options.radius,
     origin: options.origin,
     seed: options.seed,
+    renderGrid: galaxyOptions.grid ?? false,
     details: [`Arms: ${options.arms}`, `Arm size: ${SvgRenderer.formatNumber(options.armSize)}`],
   })
 }
@@ -52,6 +75,7 @@ async function renderGalaxy({
   radius,
   origin,
   seed,
+  renderGrid,
   details,
 }: {
   readonly outputPath: string
@@ -61,6 +85,7 @@ async function renderGalaxy({
   readonly radius: number
   readonly origin: Point2D
   readonly seed: number
+  readonly renderGrid: boolean
   readonly details: readonly string[]
 }): Promise<void> {
   const size = radius * 2
@@ -87,6 +112,7 @@ async function renderGalaxy({
     ],
     points: systemPoints,
     boundary: { shape: "square", size },
+    ...(renderGrid ? { grid: { size } } : {}),
     origin,
   })
 }
