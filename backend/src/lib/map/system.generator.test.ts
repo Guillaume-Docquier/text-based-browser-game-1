@@ -53,6 +53,6 @@ describe("systemGenerator", () => {
       .sort((left, right) => left - right)
 
     // Assert
-    expect(orbitsInAstronomicalUnits).toEqual([3, 19, 20, 27, 30, 39])
+    expect(orbitsInAstronomicalUnits).toEqual([5, 10, 30, 40, 45, 50])
   })
 })
