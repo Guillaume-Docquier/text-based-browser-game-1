@@ -13,7 +13,7 @@ const CLUSTERS_PER_ARM = 16
 // Every value used to determine any setting (nb arms, arm size, radius, angle, etc) gets some noise
 // mean controls the expected value
 // std controls the noise (higher == more noise)
-// spread radius / 4 gives you a decent spread with very few values outside the range
+// and std of `spread radius / 4` gives you a decent spread with very few values outside the range
 
 /**
  * Generates a spiral of the given radius with nbArms containing nbPoints that follow a normal distribution around its origin.
@@ -34,7 +34,7 @@ export function spiralGenerator({
 }): Point2D[] {
   const points: Point2D[] = []
 
-  // roughly
+  // roughly, because of rng we might have a little more or a little less stars in the arms because the arms will generate clusters with varying amounts of stars
   const corePoints = Math.round(rng.normal(nbPoints * CORE_POINTS_RATIO))
   const armPoints = nbPoints - corePoints
   const pointsPerArm = armPoints / arms.count
