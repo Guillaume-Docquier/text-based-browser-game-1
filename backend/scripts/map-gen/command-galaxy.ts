@@ -131,12 +131,12 @@ async function renderGalaxy({
     outputPath: addFileNameSuffix(outputPath, "-systems"),
     title: `${generatorName} galaxy system samples`,
     systems: sampledSystems.map((system) => ({
+      name: system.star.name,
       planets: system.planets.map((planet) => ({
         x: lightYearsToAstronomicalUnits(planet.x - system.star.x),
         y: lightYearsToAstronomicalUnits(planet.y - system.star.y),
       })),
     })),
-    withGrid: renderGrid,
   })
 }
 

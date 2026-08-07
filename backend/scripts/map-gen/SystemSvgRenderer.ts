@@ -5,12 +5,11 @@ import { SvgRenderer } from "./SvgRenderer.ts"
 
 const SVG_WIDTH = 900
 const SVG_HEIGHT = 900
-const SYSTEM_BOUNDARY_SIZE = 100
-const SYSTEM_BOUNDARY_EXTENT = SYSTEM_BOUNDARY_SIZE / 2
+const SYSTEM_RADIUS = 50
 const PANEL_PLOT_SIZE = 320
-const SCALE = PANEL_PLOT_SIZE / SYSTEM_BOUNDARY_SIZE
-const STAR_RADIUS = 4
-const PLANET_RADIUS = STAR_RADIUS / 4
+const SCALE = PANEL_PLOT_SIZE / (SYSTEM_RADIUS * 2)
+const STAR_RADIUS = 8
+const PLANET_RADIUS = STAR_RADIUS / 2
 const PANEL_CENTERS = [
   { x: 240, y: 300 },
   { x: 660, y: 300 },
@@ -19,6 +18,7 @@ const PANEL_CENTERS = [
 ] as const
 
 type SystemPreview = {
+  readonly name: string
   readonly planets: readonly Point2D[]
 }
 
@@ -26,7 +26,6 @@ type RenderOptions = {
   readonly outputPath: string
   readonly title: string
   readonly systems: readonly SystemPreview[]
-  readonly withGrid: boolean
 }
 
 /** Renders centered star-system previews measured in astronomical units. */
@@ -39,7 +38,7 @@ export const SystemSvgRenderer = {
   },
 } as const
 
-function renderSvg({ title, systems, withGrid }: RenderOptions): string {
+function renderSvg({ title, systems }: RenderOptions): string {
   const systemElements = systems
     .map((system, index) => {
       const center = PANEL_CENTERS[index]
@@ -47,7 +46,7 @@ function renderSvg({ title, systems, withGrid }: RenderOptions): string {
         return ""
       }
 
-      return renderSystem({ system, center, index, withGrid })
+      return renderSystem({ system, center })
     })
     .join("\n")
 
@@ -56,27 +55,17 @@ function renderSvg({ title, systems, withGrid }: RenderOptions): string {
   <rect width="100%" height="100%" fill="#000000" />
   <g font-family="monospace" fill="#ffffff">
     <text x="24" y="32" font-size="20">${title}</text>
-    <text x="24" y="60" font-size="16">${systems.length} random systems | Units: AU | Boundary: ${SYSTEM_BOUNDARY_SIZE} AU</text>
+    <text x="24" y="60" font-size="16">${systems.length} random systems | Units: AU | Radius: ${SYSTEM_RADIUS} AU</text>
   </g>
 ${systemElements}
 </svg>
 `
 }
 
-function renderSystem({
-  system,
-  center,
-  index,
-  withGrid,
-}: {
-  readonly system: SystemPreview
-  readonly center: Point2D
-  readonly index: number
-  readonly withGrid: boolean
-}): string {
-  const grid = withGrid ? renderGrid(center) : ""
+function renderSystem({ system, center }: { readonly system: SystemPreview; readonly center: Point2D }): string {
   const boundaryX = center.x - PANEL_PLOT_SIZE / 2
   const boundaryY = center.y - PANEL_PLOT_SIZE / 2
+  const orbitGuides = renderOrbitGuides({ center, planets: system.planets })
   const planets = system.planets
     .map((planet) => {
       const point = toSvgPoint({ point: planet, center })
@@ -84,10 +73,10 @@ function renderSystem({
     })
     .join("\n")
 
-  return `  <g aria-label="System ${index + 1}">
-    <text x="${boundaryX}" y="${boundaryY - 12}" font-family="monospace" font-size="16" fill="#ffffff">System ${index + 1} | ${system.planets.length} planets</text>
-${grid}
-    <rect x="${boundaryX}" y="${boundaryY}" width="${PANEL_PLOT_SIZE}" height="${PANEL_PLOT_SIZE}" fill="none" stroke="#00ff66" stroke-width="2" />
+  return `  <g aria-label="${system.name}">
+    <text x="${boundaryX}" y="${boundaryY - 12}" font-family="monospace" font-size="16" fill="#ffffff">${system.name} | ${system.planets.length} planets</text>
+${orbitGuides}
+    <circle cx="${center.x}" cy="${center.y}" r="${SYSTEM_RADIUS * SCALE}" fill="none" stroke="#00ff66" stroke-width="2" />
     <g aria-label="Star">
       <circle cx="${center.x}" cy="${center.y}" r="${STAR_RADIUS}" fill="#ffeb3b" />
     </g>
@@ -97,36 +86,15 @@ ${planets}
   </g>`
 }
 
-function renderGrid(center: Point2D): string {
-  const minorLines = renderGridLines({ center, increment: 1 })
-  const majorLines = renderGridLines({ center, increment: 10 })
+function renderOrbitGuides({ center, planets }: { readonly center: Point2D; readonly planets: readonly Point2D[] }): string {
+  const circles = planets.map((planet) => {
+    const orbitRadius = Math.hypot(planet.x, planet.y)
+    return `      <circle cx="${center.x}" cy="${center.y}" r="${SvgRenderer.formatNumber(orbitRadius * SCALE)}" />`
+  })
 
-  return `    <g aria-label="Coordinate grid" fill="none" stroke-width="0.5">
-      <g aria-label="1 AU grid lines" stroke="#4f4f4f" opacity="0.35">
-${minorLines}
-      </g>
-      <g aria-label="10 AU grid lines" stroke="#dfdfdf" opacity="0.35">
-${majorLines}
-      </g>
+  return `    <g aria-label="Planet orbits" fill="none" stroke="#4f4f4f" stroke-width="0.5" opacity="0.35">
+${circles.join("\n")}
     </g>`
-}
-
-function renderGridLines({ center, increment }: { readonly center: Point2D; readonly increment: number }): string {
-  const lines: string[] = []
-  const start = -SYSTEM_BOUNDARY_EXTENT
-  const end = SYSTEM_BOUNDARY_EXTENT
-
-  for (let coordinate = start; coordinate <= end; coordinate += increment) {
-    const x = center.x + coordinate * SCALE
-    const y = center.y - coordinate * SCALE
-
-    lines.push(
-      `        <line x1="${SvgRenderer.formatNumber(x)}" y1="${center.y - PANEL_PLOT_SIZE / 2}" x2="${SvgRenderer.formatNumber(x)}" y2="${center.y + PANEL_PLOT_SIZE / 2}" />`,
-      `        <line x1="${center.x - PANEL_PLOT_SIZE / 2}" y1="${SvgRenderer.formatNumber(y)}" x2="${center.x + PANEL_PLOT_SIZE / 2}" y2="${SvgRenderer.formatNumber(y)}" />`,
-    )
-  }
-
-  return lines.join("\n")
 }
 
 function toSvgPoint({ point, center }: { readonly point: Point2D; readonly center: Point2D }): Point2D {

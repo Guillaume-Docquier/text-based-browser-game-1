@@ -8,11 +8,13 @@ export type System = {
   planets: Planet[]
 }
 
+const ORBIT_SPACING = 5
+const NB_ORBITS = 10
 /**
- * Orbits between 1 and 50 AU
+ * Orbits between DISTANCE_MIN and DISTANCE_MAX AU
  */
-const POSSIBLE_ORBITS = Array.from({ length: 49 }, (_, i) =>
-  Distance.convert(Distance.create(i + 1, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS),
+const POSSIBLE_ORBITS = Array.from({ length: NB_ORBITS }, (_, i) =>
+  Distance.convert(Distance.create((i + 1) * ORBIT_SPACING, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS),
 )
 
 const PLANETS_RANGE = Range.integer({ min: 3, max: 7 })
