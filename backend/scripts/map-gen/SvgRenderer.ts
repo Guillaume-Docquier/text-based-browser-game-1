@@ -8,7 +8,6 @@ const PLOT_CENTER_X = SVG_WIDTH / 2
 const PLOT_CENTER_Y = 510
 const PLOT_SIZE = 720
 const POINT_RADIUS = 1
-const PLUS_SIZE = 10
 
 type RenderOptions = {
   readonly outputPath: string
@@ -64,10 +63,6 @@ ${textElements}
   ${boundaryElement}
   <g aria-label="Generated points">
 ${pointElements}
-  </g>
-  <g aria-label="Origin" stroke="#ff3333" stroke-width="3" stroke-linecap="square">
-    <line x1="${originX - PLUS_SIZE}" y1="${originY}" x2="${originX + PLUS_SIZE}" y2="${originY}" />
-    <line x1="${originX}" y1="${originY - PLUS_SIZE}" x2="${originX}" y2="${originY + PLUS_SIZE}" />
   </g>
 </svg>
 `
