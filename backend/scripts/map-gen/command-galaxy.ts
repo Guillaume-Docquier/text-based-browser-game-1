@@ -100,6 +100,11 @@ async function renderGalaxy({
     },
   })
   const systemPoints = galaxy.systems.map((system) => system.star)
+  const planetPoints = galaxy.systems.flatMap((system) => system.planets)
+  const planetCountsPerSystem = galaxy.systems.map((system) => system.planets.length)
+  const minPlanetsPerSystem = planetCountsPerSystem.length === 0 ? 0 : Math.min(...planetCountsPerSystem)
+  const maxPlanetsPerSystem = planetCountsPerSystem.length === 0 ? 0 : Math.max(...planetCountsPerSystem)
+  const averagePlanetsPerSystem = systemPoints.length === 0 ? 0 : planetPoints.length / systemPoints.length
 
   await SvgRenderer.renderToFile({
     outputPath,
@@ -107,10 +112,12 @@ async function renderGalaxy({
     text: [
       `${generatorName} galaxy generator`,
       `Systems: ${systemPoints.length} generated from ${generatedPointCount} points (${requestedPoints} requested)`,
+      `Planets: ${planetPoints.length} | Per system: ${minPlanetsPerSystem} min / ${maxPlanetsPerSystem} max / ${SvgRenderer.formatNumber(averagePlanetsPerSystem, 2)} avg`,
       `Size: ${SvgRenderer.formatNumber(size)} | Radius: ${SvgRenderer.formatNumber(radius)} | ${details.join(" | ")}`,
       `Origin: (${SvgRenderer.formatNumber(origin.x)}, ${SvgRenderer.formatNumber(origin.y)}) | Seed: ${seed}`,
     ],
     points: systemPoints,
+    foregroundPointLayers: [{ ariaLabel: "Planets", points: planetPoints, radius: 1 / 4, fill: "#00ffff" }],
     boundary: { shape: "square", size },
     ...(renderGrid ? { grid: { size } } : {}),
     origin,
