@@ -19,10 +19,12 @@ import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import { type ActionModel, type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
 const GALAXY_SIZE_LIGHT_YEARS = 100
-const GALAXY_RADIUS_LIGHT_YEARS = 50
-const GALAXY_ORIGIN = { x: 50, y: 50 }
-const GALAXY_POINT_COUNT = 1_000
 const REGION_SIZE_LIGHT_YEARS = 10
+const GALAXY_ORIGIN = {
+  x: GALAXY_SIZE_LIGHT_YEARS / 2,
+  y: GALAXY_SIZE_LIGHT_YEARS / 2,
+}
+const GALAXY_SYSTEMS_COUNT = 1_000
 
 export class GameplayController {
   private readonly logger: Logger
@@ -201,8 +203,8 @@ function createGalaxy(seed: number): GalaxyModel {
     pointsGenerator: () =>
       spiralGenerator({
         origin: GALAXY_ORIGIN,
-        radius: GALAXY_RADIUS_LIGHT_YEARS,
-        nbPoints: GALAXY_POINT_COUNT,
+        radius: GALAXY_SIZE_LIGHT_YEARS / 2,
+        nbPoints: GALAXY_SYSTEMS_COUNT,
         rng,
       }),
     rng,
