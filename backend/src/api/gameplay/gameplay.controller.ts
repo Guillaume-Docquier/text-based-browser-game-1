@@ -16,7 +16,6 @@ import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
-import { randomUInt32 } from "#lib/randomUInt32.ts"
 import { type ActionModel, type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
 const GALAXY_SIZE_LIGHT_YEARS = 100
@@ -75,7 +74,7 @@ export class GameplayController {
       )
 
       const startTime = Timer.start()
-      const galaxy = createGalaxy()
+      const galaxy = createGalaxy(gameForStart.value.seed)
       this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
 
       await this.gameplayRepository.startGame(
@@ -195,8 +194,8 @@ export class GameplayController {
   }
 }
 
-function createGalaxy(): GalaxyModel {
-  const rng = createRng(mulberry32Prng(randomUInt32()))
+function createGalaxy(seed: number): GalaxyModel {
+  const rng = createRng(mulberry32Prng(seed))
   const generatedGalaxy = galaxyGenerator({
     size: GALAXY_SIZE_LIGHT_YEARS,
     pointsGenerator: () =>

@@ -8,6 +8,13 @@
       "when": 1786155812924,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786162759545,
+      "tag": "0001_add-game-seed",
+      "breakpoints": true
     }
   ]
 }

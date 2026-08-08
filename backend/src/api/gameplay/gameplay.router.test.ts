@@ -34,6 +34,39 @@ describe("gameplay.router", () => {
   })
 
   describe("start", () => {
+    it("should generate a deterministic galaxy from the game's seed", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ seed: 1234 }),
+      })
+
+      // Act
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Assert
+      // quick sanity checks
+      expect(playerView.galaxy.systems.length).toBeGreaterThan(500) // enough systems are generated
+      expect(playerView.galaxy.systems.flatMap(({ planets }) => planets).length).toBeGreaterThan(1500) // enough planets are generated
+      expect(playerView.galaxy.systems[1]?.planets[1]).toEqual({
+        coordinates: "44:76:30", // coordinates make sense
+        x: 46.42151358853193,
+        y: 47.214134210593976,
+        id: expect.any(Number),
+        name: expect.any(String),
+      })
+
+      const allStars = playerView.galaxy.systems.map(({ star }) => star)
+      expect(new Set(allStars.map((star) => star.coordinates)).size).toEqual(allStars.length) // unique coordinates
+
+      const allPlanets = playerView.galaxy.systems.flatMap(({ planets }) => planets)
+      expect(new Set(allPlanets.map((planet) => planet.coordinates)).size).toEqual(allPlanets.length) // unique coordinates
+
+      expect(playerView.galaxy).toMatchSnapshot()
+    })
+
     it("should start a game", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())

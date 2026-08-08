@@ -2,7 +2,7 @@ import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-t
 import { Command } from "commander"
 import { clusterGenerator } from "#lib/map-generation/points/cluster.generator.ts"
 import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
-import { randomUInt32 } from "#lib/randomUInt32.ts"
+import { UInt32 } from "#lib/UInt32.ts"
 import { Parser } from "./Parser.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
@@ -46,7 +46,7 @@ export function createClusterCommand({
     .option("--radius <number>", "generator radius", Parser.positiveNumber, DEFAULT_RADIUS)
     .option("--origin-x <number>", "origin x coordinate", Parser.number, DEFAULT_ORIGIN.x)
     .option("--origin-y <number>", "origin y coordinate", Parser.number, DEFAULT_ORIGIN.y)
-    .option("--seed <integer>", "Mulberry32 seed", Parser.integer, randomUInt32())
+    .option("--seed <integer>", "rng seed", Parser.integer, UInt32.random())
     .option("--output <path>", "SVG output path", Parser.filePath, defaultOutputPath)
     .action(async (options: ClusterOptions) => {
       const origin = { x: options.originX, y: options.originY }

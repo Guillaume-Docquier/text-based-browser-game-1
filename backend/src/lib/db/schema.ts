@@ -1,4 +1,5 @@
 import {
+  bigint,
   foreignKey,
   index,
   integer,
@@ -69,6 +70,7 @@ export const gamesTable = pgTable("games", {
   name: text("name").notNull(),
   nbSeats: integer("nb_seats").notNull(),
   turnIntervalSeconds: integer("turn_interval_seconds").notNull(),
+  seed: bigint("seed", { mode: "number" }).notNull(),
 })
 
 /**

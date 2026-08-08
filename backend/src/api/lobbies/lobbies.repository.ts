@@ -21,6 +21,7 @@ export type LobbyConfigurationModel = {
 
 export type CreateLobbyModel = {
   createdByAccountId: AccountId
+  seed: number
   status: GameStatus
   configuration: LobbyConfigurationModel
   creatorPlayerColor: PlayerColor
@@ -256,6 +257,7 @@ export class LobbiesRepository extends PostgresRepository {
 function toCreateGameRow(createLobbyModel: CreateLobbyModel): CreateGameRow {
   return {
     createdByAccountId: createLobbyModel.createdByAccountId,
+    seed: createLobbyModel.seed,
     status: createLobbyModel.status,
     ...createLobbyModel.configuration,
   }

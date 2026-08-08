@@ -64,6 +64,7 @@ export type GameForStart = Branded<
   {
     readonly id: GameId
     readonly createdByAccountId: AccountId
+    readonly seed: number
     readonly status: GameStatus
     readonly turnInterval: Time
     readonly playerIds: readonly PlayerId[]
@@ -147,6 +148,7 @@ export class GameplayRepository extends PostgresRepository {
       .select({
         id: gamesTable.id,
         createdByAccountId: gamesTable.createdByAccountId,
+        seed: gamesTable.seed,
         status: gamesTable.status,
         turnIntervalSeconds: gamesTable.turnIntervalSeconds,
       })
@@ -172,6 +174,7 @@ export class GameplayRepository extends PostgresRepository {
       branded<GameForStart>({
         id: gameForStart.id,
         createdByAccountId: gameForStart.createdByAccountId,
+        seed: gameForStart.seed,
         status: gameForStart.status,
         turnInterval: Time.create(gameForStart.turnIntervalSeconds, UnitOfTime.SECONDS),
         playerIds,
