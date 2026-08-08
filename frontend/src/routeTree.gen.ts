@@ -20,8 +20,8 @@ import { Route as SiteGamesCreateRouteImport } from './routes/_site.games.create
 import { Route as GameGamesGameIdPlayRouteImport } from './routes/_game.games.$gameId.play'
 import { Route as GameGamesGameIdPlayIndexRouteImport } from './routes/_game.games.$gameId.play.index'
 import { Route as GameGamesGameIdPlayActionsRouteImport } from './routes/_game.games.$gameId.play.actions'
+import { Route as GameGamesGameIdPlayGalaxyRouteImport } from './routes/_game.games.$gameId.play.galaxy'
 import { Route as GameGamesGameIdPlayPlayersRouteImport } from './routes/_game.games.$gameId.play.players'
-import { Route as GameGamesGameIdPlayStarSystemRouteImport } from './routes/_game.games.$gameId.play.star-system'
 
 const GameRoute = GameRouteImport.update({
   id: '/_game',
@@ -78,16 +78,16 @@ const GameGamesGameIdPlayActionsRoute =
     path: '/actions',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
+const GameGamesGameIdPlayGalaxyRoute =
+  GameGamesGameIdPlayGalaxyRouteImport.update({
+    id: '/galaxy',
+    path: '/galaxy',
+    getParentRoute: () => GameGamesGameIdPlayRoute,
+  } as any)
 const GameGamesGameIdPlayPlayersRoute =
   GameGamesGameIdPlayPlayersRouteImport.update({
     id: '/players',
     path: '/players',
-    getParentRoute: () => GameGamesGameIdPlayRoute,
-  } as any)
-const GameGamesGameIdPlayStarSystemRoute =
-  GameGamesGameIdPlayStarSystemRouteImport.update({
-    id: '/star-system',
-    path: '/star-system',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
 
@@ -100,8 +100,8 @@ export interface FileRoutesByFullPath {
   '/games/': typeof SiteGamesIndexRoute
   '/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
   '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
+  '/games/$gameId/play/galaxy': typeof GameGamesGameIdPlayGalaxyRoute
   '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
-  '/games/$gameId/play/star-system': typeof GameGamesGameIdPlayStarSystemRoute
   '/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
 }
 export interface FileRoutesByTo {
@@ -112,8 +112,8 @@ export interface FileRoutesByTo {
   '/games/create': typeof SiteGamesCreateRoute
   '/games': typeof SiteGamesIndexRoute
   '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
+  '/games/$gameId/play/galaxy': typeof GameGamesGameIdPlayGalaxyRoute
   '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
-  '/games/$gameId/play/star-system': typeof GameGamesGameIdPlayStarSystemRoute
   '/games/$gameId/play': typeof GameGamesGameIdPlayIndexRoute
 }
 export interface FileRoutesById {
@@ -128,8 +128,8 @@ export interface FileRoutesById {
   '/_site/games/': typeof SiteGamesIndexRoute
   '/_game/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
   '/_game/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
+  '/_game/games/$gameId/play/galaxy': typeof GameGamesGameIdPlayGalaxyRoute
   '/_game/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
-  '/_game/games/$gameId/play/star-system': typeof GameGamesGameIdPlayStarSystemRoute
   '/_game/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
 }
 export interface FileRouteTypes {
@@ -143,8 +143,8 @@ export interface FileRouteTypes {
     | '/games/'
     | '/games/$gameId/play'
     | '/games/$gameId/play/actions'
+    | '/games/$gameId/play/galaxy'
     | '/games/$gameId/play/players'
-    | '/games/$gameId/play/star-system'
     | '/games/$gameId/play/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -155,8 +155,8 @@ export interface FileRouteTypes {
     | '/games/create'
     | '/games'
     | '/games/$gameId/play/actions'
+    | '/games/$gameId/play/galaxy'
     | '/games/$gameId/play/players'
-    | '/games/$gameId/play/star-system'
     | '/games/$gameId/play'
   id:
     | '__root__'
@@ -170,8 +170,8 @@ export interface FileRouteTypes {
     | '/_site/games/'
     | '/_game/games/$gameId/play'
     | '/_game/games/$gameId/play/actions'
+    | '/_game/games/$gameId/play/galaxy'
     | '/_game/games/$gameId/play/players'
-    | '/_game/games/$gameId/play/star-system'
     | '/_game/games/$gameId/play/'
   fileRoutesById: FileRoutesById
 }
@@ -259,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameGamesGameIdPlayActionsRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
+    '/_game/games/$gameId/play/galaxy': {
+      id: '/_game/games/$gameId/play/galaxy'
+      path: '/galaxy'
+      fullPath: '/games/$gameId/play/galaxy'
+      preLoaderRoute: typeof GameGamesGameIdPlayGalaxyRouteImport
+      parentRoute: typeof GameGamesGameIdPlayRoute
+    }
     '/_game/games/$gameId/play/players': {
       id: '/_game/games/$gameId/play/players'
       path: '/players'
@@ -266,27 +273,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameGamesGameIdPlayPlayersRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
-    '/_game/games/$gameId/play/star-system': {
-      id: '/_game/games/$gameId/play/star-system'
-      path: '/star-system'
-      fullPath: '/games/$gameId/play/star-system'
-      preLoaderRoute: typeof GameGamesGameIdPlayStarSystemRouteImport
-      parentRoute: typeof GameGamesGameIdPlayRoute
-    }
   }
 }
 
 interface GameGamesGameIdPlayRouteChildren {
   GameGamesGameIdPlayActionsRoute: typeof GameGamesGameIdPlayActionsRoute
+  GameGamesGameIdPlayGalaxyRoute: typeof GameGamesGameIdPlayGalaxyRoute
   GameGamesGameIdPlayPlayersRoute: typeof GameGamesGameIdPlayPlayersRoute
-  GameGamesGameIdPlayStarSystemRoute: typeof GameGamesGameIdPlayStarSystemRoute
   GameGamesGameIdPlayIndexRoute: typeof GameGamesGameIdPlayIndexRoute
 }
 
 const GameGamesGameIdPlayRouteChildren: GameGamesGameIdPlayRouteChildren = {
   GameGamesGameIdPlayActionsRoute: GameGamesGameIdPlayActionsRoute,
+  GameGamesGameIdPlayGalaxyRoute: GameGamesGameIdPlayGalaxyRoute,
   GameGamesGameIdPlayPlayersRoute: GameGamesGameIdPlayPlayersRoute,
-  GameGamesGameIdPlayStarSystemRoute: GameGamesGameIdPlayStarSystemRoute,
   GameGamesGameIdPlayIndexRoute: GameGamesGameIdPlayIndexRoute,
 }
 
