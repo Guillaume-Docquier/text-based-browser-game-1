@@ -1,4 +1,17 @@
-import { foreignKey, index, integer, pgEnum, pgTable, primaryKey, timestamp, unique, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core"
+import {
+  foreignKey,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+  text,
+  doublePrecision,
+} from "drizzle-orm/pg-core"
 import { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
@@ -19,6 +32,8 @@ export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
 const accountId = uuid
 const playerId = uuid
 const gameId = integer
+const starId = integer
+const planetId = integer
 
 /**
  * User accounts.
@@ -28,9 +43,9 @@ export const accountsTable = pgTable(
   "accounts",
   {
     id: accountId("id").primaryKey().defaultRandom(),
-    authId: varchar("auth_id", { length: 255 }).notNull(),
-    email: varchar("email", { length: 255 }),
-    alias: varchar("alias", { length: 255 }),
+    authId: text("auth_id").notNull(),
+    email: text("email"),
+    alias: text("alias"),
   },
   (table) => [uniqueIndex("auth_id_idx").on(table.authId)],
 )
@@ -51,7 +66,7 @@ export const gamesTable = pgTable("games", {
   status: gameStatusEnum("status").notNull().default(GameStatus.WAITING_FOR_PLAYERS),
 
   // Game configuration
-  name: varchar("name", { length: 255 }).notNull(),
+  name: text("name").notNull(),
   nbSeats: integer("nb_seats").notNull(),
   turnIntervalSeconds: integer("turn_interval_seconds").notNull(),
 })
@@ -92,7 +107,7 @@ export const resourcesTable = pgTable(
   {
     gameId: gameId("game_id").notNull(),
     playerId: playerId("player_id").notNull(),
-    resourceType: varchar("resource_type", { length: 255 }).notNull(),
+    resourceType: text("resource_type").notNull(),
     amount: integer("amount").notNull().default(0),
   },
   (table) => [
@@ -163,5 +178,47 @@ export const turnsTable = pgTable(
       columns: [table.gameId, table.turn],
     }),
     index().on(table.scheduledFor),
+  ],
+)
+
+export const starsTable = pgTable(
+  "stars",
+  {
+    gameId: gameId("game_id")
+      .notNull()
+      .references(() => gamesTable.id, { onDelete: "cascade" }),
+    id: starId("id"),
+    name: text("name"),
+    coordinates: text("coordinates"),
+    x: doublePrecision("x"),
+    y: doublePrecision("y"),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.gameId, table.id],
+    }),
+  ],
+)
+
+export const planetsTable = pgTable(
+  "planets",
+  {
+    gameId: gameId("game_id").notNull(),
+    starId: starId("star_id").notNull(),
+    id: planetId("id"),
+    name: text("name"),
+    coordinates: text("coordinates"),
+    x: doublePrecision("x"),
+    y: doublePrecision("y"),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.gameId, table.id],
+    }),
+    foreignKey({
+      columns: [table.gameId, table.starId],
+      foreignColumns: [starsTable.gameId, starsTable.id],
+      name: "planets_gameId_starId_planets_fk",
+    }).onDelete("cascade"),
   ],
 )

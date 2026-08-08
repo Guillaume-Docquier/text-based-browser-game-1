@@ -9,8 +9,8 @@ import { Parser } from "./Parser.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 import { SystemSvgRenderer } from "./SystemSvgRenderer.ts"
 
-const DEFAULT_CLUSTER_OUTPUT_PATH = Parser.filePath("generated/galaxy-cluster.svg")
-const DEFAULT_SPIRAL_OUTPUT_PATH = Parser.filePath("generated/galaxy-spiral.svg")
+const DEFAULT_CLUSTER_OUTPUT_PATH = Parser.filePath("generated/cluster-galaxy.svg")
+const DEFAULT_SPIRAL_OUTPUT_PATH = Parser.filePath("generated/spiral-galaxy.svg")
 const NB_SYSTEM_PREVIEWS = 4
 
 type GalaxyOptions = {
