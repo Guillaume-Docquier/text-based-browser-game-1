@@ -1,4 +1,7 @@
+import type { XY } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
+import { toOrbitCoordinates } from "#api/shared/OrbitCoordinates.ts"
+import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import { type planetsTable } from "#lib/db/schema.ts"
 
 /**
@@ -8,3 +11,15 @@ import { type planetsTable } from "#lib/db/schema.ts"
  */
 export type PlanetCoordinates = z.infer<typeof PlanetCoordinates>
 export const PlanetCoordinates = z.string() satisfies z.ZodType<(typeof planetsTable.$inferSelect)["coordinates"]>
+
+export function toPlanetCoordinates({
+  starCoordinates,
+  star,
+  planet,
+}: {
+  starCoordinates: StarCoordinates
+  star: XY
+  planet: XY
+}): PlanetCoordinates {
+  return `${starCoordinates}:${toOrbitCoordinates({ star, planet })}`
+}

@@ -1,20 +1,10 @@
-import {
-  createRng,
-  Datetime,
-  Distance,
-  type Logger,
-  mulberry32Prng,
-  Result,
-  Timer,
-  UnitOfDistance,
-  type XY,
-} from "@guillaume-docquier/tools-ts"
+import { createRng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
 import z from "zod"
+import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
 import { GameId } from "#api/shared/GameId.ts"
-import type { OrbitCoordinates } from "#api/shared/OrbitCoordinates.ts"
-import { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
+import { PlanetCoordinates, toPlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
-import { StarCoordinates } from "#api/shared/StarCoordinates.ts"
+import { StarCoordinates, toStarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -26,14 +16,6 @@ import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import { type ActionModel, type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
-
-const GALAXY_SIZE_LIGHT_YEARS = 100
-const REGION_SIZE_LIGHT_YEARS = 10
-const GALAXY_ORIGIN = {
-  x: GALAXY_SIZE_LIGHT_YEARS / 2,
-  y: GALAXY_SIZE_LIGHT_YEARS / 2,
-}
-const GALAXY_SYSTEMS_COUNT = 1_000
 
 export class GameplayController {
   private readonly logger: Logger
@@ -208,12 +190,12 @@ export class GameplayController {
 function createGalaxy(seed: number): GalaxyModel {
   const rng = createRng(mulberry32Prng(seed))
   const generatedGalaxy = galaxyGenerator({
-    size: GALAXY_SIZE_LIGHT_YEARS,
+    size: GalaxySettings.GALAXY_SIZE_LIGHT_YEARS,
     pointsGenerator: () =>
       spiralGenerator({
-        origin: GALAXY_ORIGIN,
-        radius: GALAXY_SIZE_LIGHT_YEARS / 2,
-        nbPoints: GALAXY_SYSTEMS_COUNT,
+        origin: GalaxySettings.GALAXY_ORIGIN,
+        radius: GalaxySettings.GALAXY_RADIUS_LIGHT_YEARS,
+        nbPoints: GalaxySettings.GALAXY_SYSTEMS_COUNT,
         rng,
       }),
     rng,
@@ -233,37 +215,11 @@ function createGalaxy(seed: number): GalaxyModel {
         planets: system.planets.map((planet) => ({
           id: nextPlanetId++,
           ...planet,
-          coordinates: `${starCoordinates}:${toOrbitCoordinates({ star: system.star, planet })}`,
+          coordinates: toPlanetCoordinates({ starCoordinates, star: system.star, planet }),
         })),
       }
     }),
   }
-}
-
-/**
- * Star coordinates go from 00:00 to 99:99
- * The first segment is for the region (<ROW><COL>)
- * The second segment is for the cell in the region (<ROW><COL>)
- */
-function toStarCoordinates({ x, y }: XY): StarCoordinates {
-  const row = Math.floor(y)
-  const column = Math.floor(x)
-  const regionRow = Math.floor(row / REGION_SIZE_LIGHT_YEARS)
-  const regionColumn = Math.floor(column / REGION_SIZE_LIGHT_YEARS)
-  const starRow = row % REGION_SIZE_LIGHT_YEARS
-  const starColumn = column % REGION_SIZE_LIGHT_YEARS
-
-  return `${regionRow}${regionColumn}:${starRow}${starColumn}`
-}
-
-/**
- * Orbit coordinates is the distance in AU to the nearest star, padded with zeroes.
- */
-function toOrbitCoordinates({ star, planet }: { star: XY; planet: XY }): OrbitCoordinates {
-  const distanceLightYears = Math.hypot(planet.x - star.x, planet.y - star.y)
-  const distanceAu = Distance.convert(Distance.create(distanceLightYears, UnitOfDistance.LIGHT_YEARS), UnitOfDistance.ASTRONOMICAL_UNITS)
-
-  return Math.round(distanceAu.value).toString().padStart(2, "0")
 }
 
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {

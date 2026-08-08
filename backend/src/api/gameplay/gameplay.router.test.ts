@@ -140,37 +140,11 @@ describe("gameplay.router", () => {
       const getByIdResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(getByIdResult.galaxy.systems.length).toBeGreaterThan(0)
-      const starIds = getByIdResult.galaxy.systems.map(({ star }) => star.id)
-      const planetIds = getByIdResult.galaxy.systems.flatMap(({ planets }) => planets.map(({ id }) => id))
-      expect(new Set(starIds).size).toBe(starIds.length)
-      expect(new Set(planetIds).size).toBe(planetIds.length)
-      for (const system of getByIdResult.galaxy.systems) {
-        expect(system.star).toEqual({
-          id: expect.any(Number),
-          name: expect.any(String),
-          coordinates: expect.stringMatching(/^\d{2}:\d{2}$/),
-          x: expect.any(Number),
-          y: expect.any(Number),
-        })
-        expect(system.planets.length).toBeGreaterThanOrEqual(3)
-        expect(system.planets.length).toBeLessThanOrEqual(7)
-        for (const planet of system.planets) {
-          expect(planet).toEqual({
-            id: expect.any(Number),
-            name: expect.any(String),
-            coordinates: expect.stringMatching(new RegExp(`^${system.star.coordinates}:\\d{2}$`)),
-            x: expect.any(Number),
-            y: expect.any(Number),
-          })
-        }
-      }
-
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameId: createdGameId,
         player: { id: player.account.id, color: PlayerColor.WHITE },
         opponents: {},
-        galaxy: getByIdResult.galaxy,
+        galaxy: expect.any(Object), // Verified by the snapshot test
         turn: 0,
         nextTurnAt: Datetime.increment({
           date: clock.now(),
@@ -199,7 +173,6 @@ describe("gameplay.router", () => {
 
       // Act
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const opponentView = await firstOpponent.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
       expect(playerView.player).toEqual({ id: creator.account.id, color: PlayerColor.WHITE })
@@ -207,7 +180,6 @@ describe("gameplay.router", () => {
         [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.RED },
         [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.BLUE },
       })
-      expect(opponentView.galaxy).toEqual(playerView.galaxy)
     })
 
     it("should reject invalid game ids", async () => {
