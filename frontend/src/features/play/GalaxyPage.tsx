@@ -33,7 +33,7 @@ export function GalaxyPage(): ReactElement {
             <GalaxyMap galaxy={playerView.galaxy} resetSignal={resetSignal} onSelectSystem={setSelectedSystem} />
           ) : (
             <div className="size-full animate-in fade-in-0 zoom-in-95 duration-300">
-              <StarSystemMap system={selectedSystem} resetSignal={resetSignal} />
+              <StarSystemMap system={selectedSystem} resetSignal={resetSignal} onSelectGalaxy={showGalaxy} />
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import type { StarSystem } from "@api-types"
-import type { ReactElement } from "react"
+import type { KeyboardEvent, ReactElement } from "react"
 import { useMapPanZoom } from "@/features/play/useMapPanZoom.ts"
 
 const CENTER = 500
@@ -21,16 +21,25 @@ type PlanetViewModel = {
  *
  * @param system - The Star System to render.
  * @param resetSignal - A value whose changes reset pan and zoom.
+ * @param onSelectGalaxy - Returns to the galaxy-wide map.
  * @returns The interactive SVG Star System map.
  */
-export function StarSystemMap({ system, resetSignal }: { system: StarSystem; resetSignal: number }): ReactElement {
+export function StarSystemMap({
+  system,
+  resetSignal,
+  onSelectGalaxy,
+}: {
+  system: StarSystem
+  resetSignal: number
+  onSelectGalaxy: () => void
+}): ReactElement {
   const panZoom = useMapPanZoom({ resetSignal })
   const planets = toPlanetViewModels(system)
 
   return (
     <svg
       aria-label={`${system.star.name} Star System map`}
-      role="img"
+      role="group"
       viewBox="0 0 1000 1000"
       className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"}`}
       onPointerCancel={panZoom.onPointerCancel}
@@ -61,9 +70,21 @@ export function StarSystemMap({ system, resetSignal }: { system: StarSystem; res
             vectorEffect="non-scaling-stroke"
           />
         ))}
-        <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS * 3} fill="url(#system-star-glow)" />
-        <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS} fill="#fde047" stroke="#fef9c3" strokeWidth="2" />
-        <MapLabel x={CENTER + STAR_RADIUS + 12} y={CENTER} text={system.star.name} />
+        <g
+          role="button"
+          tabIndex={0}
+          aria-label={`Return to Galaxy from ${system.star.name}`}
+          className="cursor-pointer outline-none focus:[&>circle:last-of-type]:stroke-white"
+          onClick={onSelectGalaxy}
+          onKeyDown={(event) => {
+            activateWithKeyboard(event, onSelectGalaxy)
+          }}
+        >
+          <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS * 3} fill="url(#system-star-glow)" />
+          <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS} fill="#fde047" stroke="#fef9c3" strokeWidth="2" />
+          <MapLabel x={CENTER + STAR_RADIUS + 12} y={CENTER} text={system.star.name} />
+          <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS + 10} fill="transparent" stroke="transparent" strokeWidth="2" />
+        </g>
         {planets.map((planet) => (
           <g key={planet.id}>
             <circle cx={planet.x} cy={planet.y} r={PLANET_RADIUS} fill="#22d3ee" stroke="#cffafe" strokeWidth="1" />
@@ -73,6 +94,15 @@ export function StarSystemMap({ system, resetSignal }: { system: StarSystem; res
       </g>
     </svg>
   )
+}
+
+function activateWithKeyboard(event: KeyboardEvent<SVGGElement>, activate: () => void): void {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return
+  }
+
+  event.preventDefault()
+  activate()
 }
 
 function MapLabel({ x, y, text }: { x: number; y: number; text: string }): ReactElement {

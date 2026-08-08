@@ -69,7 +69,7 @@ test.describe("authenticated user", () => {
       await galaxyPage.stars.first().press("Enter")
       await expect(galaxyPage.starSystemMap).toBeVisible()
 
-      await galaxyPage.backToGalaxyButton.click()
+      await galaxyPage.starSystemStar.click()
       await expect(galaxyPage.map).toBeVisible()
     })
   })

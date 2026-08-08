@@ -110,7 +110,7 @@ export function GalaxyMap({
               role="button"
               tabIndex={0}
               aria-label={`View ${system.star.name} Star System`}
-              className="cursor-pointer outline-none focus:[&>circle:last-of-type]:stroke-white"
+              className="cursor-pointer outline-none [&>circle]:transition-colors hover:[&>circle:nth-of-type(2)]:fill-yellow-100 hover:[&>circle:last-of-type]:stroke-yellow-200 focus:[&>circle:last-of-type]:stroke-white"
               onClick={() => {
                 onSelectSystem(system)
               }}
@@ -121,9 +121,10 @@ export function GalaxyMap({
               }}
             >
               <title>{system.star.name}</title>
-              <circle cx={x} cy={y} r="8" fill="url(#galaxy-star-glow)" />
-              <circle cx={x} cy={y} r="2.4" fill="#fde047" stroke="#fef9c3" strokeWidth="0.5" />
-              <circle cx={x} cy={y} r="7" fill="transparent" stroke="transparent" strokeWidth="1" />
+              <circle cx={x} cy={y} r="1.5" fill="url(#galaxy-star-glow)" />
+              <circle cx={x} cy={y} r="0.5" fill="#fde047" stroke="#fde047" strokeWidth="0.5" />
+              {/* provides a bigger click area */}
+              <circle cx={x} cy={y} r="2" fill="transparent" stroke="transparent" strokeWidth="1" />
             </g>
           )
         })}
