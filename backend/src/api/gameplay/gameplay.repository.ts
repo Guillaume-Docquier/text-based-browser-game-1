@@ -1,7 +1,9 @@
 import { type Branded, Assert, type Logger, Result, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
+import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
@@ -10,7 +12,16 @@ import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
+import {
+  actionsTable,
+  gameStatesTable,
+  gamesTable,
+  planetsTable,
+  playersTable,
+  resourcesTable,
+  starsTable,
+  turnsTable,
+} from "#lib/db/schema.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
@@ -71,6 +82,26 @@ export type StartGameModel = {
     readonly playerId: PlayerId
     readonly resourceType: ResourceType
     readonly amount: number
+  }>
+  readonly galaxy: GalaxyModel
+}
+
+export type GalaxyModel = {
+  readonly systems: ReadonlyArray<{
+    readonly star: {
+      readonly id: number
+      readonly name: string
+      readonly coordinates: StarCoordinates
+      readonly x: number
+      readonly y: number
+    }
+    readonly planets: ReadonlyArray<{
+      readonly id: number
+      readonly name: string
+      readonly coordinates: PlanetCoordinates
+      readonly x: number
+      readonly y: number
+    }>
   }>
 }
 
@@ -163,6 +194,17 @@ export class GameplayRepository extends PostgresRepository {
       ...playerResource,
       gameId: startGameModel.game.id,
     }))
+    const stars = startGameModel.galaxy.systems.map(({ star }) => ({
+      gameId: startGameModel.game.id,
+      ...star,
+    }))
+    const planets = startGameModel.galaxy.systems.flatMap(({ star, planets: systemPlanets }) =>
+      systemPlanets.map((planet) => ({
+        gameId: startGameModel.game.id,
+        starId: star.id,
+        ...planet,
+      })),
+    )
 
     const updatedGames = await tx
       .update(gamesTable)
@@ -172,6 +214,8 @@ export class GameplayRepository extends PostgresRepository {
     Assert.isTrue(updatedGames.length === 1)
 
     await tx.insert(resourcesTable).values(resources)
+    await tx.insert(starsTable).values(stars)
+    await tx.insert(planetsTable).values(planets)
     await tx.insert(gameStatesTable).values(gameState)
     await tx.insert(turnsTable).values(gameTurn)
   }
