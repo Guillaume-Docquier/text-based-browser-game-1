@@ -1,8 +1,7 @@
 import path from "node:path"
-import { createRng, Distance, mulberry32Prng, UnitOfDistance, type Rng } from "@guillaume-docquier/tools-ts"
+import { createRng, Distance, mulberry32Prng, UnitOfDistance, type Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
-import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
 import { createClusterCommand, type ClusterRenderOptions } from "./command-cluster.ts"
 import { createSpiralCommand, type SpiralRenderOptions } from "./command-spiral.ts"
 import { Parser } from "./Parser.ts"
@@ -83,10 +82,10 @@ async function renderGalaxy({
 }: {
   readonly outputPath: string
   readonly generatorName: string
-  readonly pointsGenerator: (options: { rng: Rng }) => Point2D[]
+  readonly pointsGenerator: (options: { rng: Rng }) => XY[]
   readonly requestedPoints: number
   readonly radius: number
-  readonly origin: Point2D
+  readonly origin: XY
   readonly seed: number
   readonly renderGrid: boolean
   readonly details: readonly string[]

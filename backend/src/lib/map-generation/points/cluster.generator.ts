@@ -1,5 +1,4 @@
-import type { Rng } from "@guillaume-docquier/tools-ts"
-import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
+import type { Rng, XY } from "@guillaume-docquier/tools-ts"
 
 /**
  * Generates a cluster of the given radius containing nbPoints that follow a normal distribution around its origin.
@@ -12,7 +11,7 @@ export function clusterGenerator({
   rng,
   options: { spreadFactor = 0.25 } = {},
 }: {
-  origin: Point2D
+  origin: XY
   radius: number
   nbPoints: number
   rng: Rng
@@ -22,7 +21,7 @@ export function clusterGenerator({
      */
     spreadFactor?: number | undefined
   }
-}): Point2D[] {
+}): XY[] {
   const std = radius * spreadFactor
   return Array.from({ length: nbPoints }, () => ({
     x: rng.normal(origin.x, std),

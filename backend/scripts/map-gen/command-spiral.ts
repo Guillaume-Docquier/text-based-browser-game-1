@@ -1,6 +1,5 @@
-import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
+import { createRng, mulberry32Prng, type Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
-import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { Parser } from "./Parser.ts"
@@ -27,10 +26,10 @@ type SpiralOptions = {
 /** Values available when rendering spiral generator output. */
 export type SpiralRenderOptions = {
   readonly output: string
-  readonly pointsGenerator: (options: { rng: Rng }) => Point2D[]
+  readonly pointsGenerator: (options: { rng: Rng }) => XY[]
   readonly requestedPoints: number
   readonly radius: number
-  readonly origin: Point2D
+  readonly origin: XY
   readonly seed: number
   readonly armCount: number
   readonly armRadius: number

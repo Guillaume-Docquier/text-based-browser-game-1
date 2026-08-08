@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
-import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
+import type { XY } from "@guillaume-docquier/tools-ts"
 
 const SVG_WIDTH = 900
 const SVG_HEIGHT = 900
@@ -13,10 +13,10 @@ type RenderOptions = {
   readonly outputPath: string
   readonly title: string
   readonly text: readonly string[]
-  readonly points: readonly Point2D[]
+  readonly points: readonly XY[]
   readonly boundary: { readonly shape: "circle"; readonly radius: number } | { readonly shape: "square"; readonly size: number }
   readonly grid?: { readonly size: number }
-  readonly origin: Point2D
+  readonly origin: XY
 }
 
 /** Renders map generator previews as SVG files. */
@@ -75,17 +75,17 @@ function renderPoint({
   origin,
   scale,
 }: {
-  readonly point: Point2D
+  readonly point: XY
   readonly radius: number
   readonly fill: string
-  readonly origin: Point2D
+  readonly origin: XY
   readonly scale: number
 }): string {
   const { x, y } = toSvgPoint({ point, origin, scale })
   return `    <circle cx="${SvgRenderer.formatNumber(x)}" cy="${SvgRenderer.formatNumber(y)}" r="${SvgRenderer.formatNumber(radius)}" fill="${fill}" />`
 }
 
-function renderGrid({ size, origin, scale }: { readonly size: number; readonly origin: Point2D; readonly scale: number }): string {
+function renderGrid({ size, origin, scale }: { readonly size: number; readonly origin: XY; readonly scale: number }): string {
   const minorLines = renderGridLines({ size, origin, scale, increment: 1 })
   const majorLines = renderGridLines({ size, origin, scale, increment: 10 })
 
@@ -106,7 +106,7 @@ function renderGridLines({
   increment,
 }: {
   readonly size: number
-  readonly origin: Point2D
+  readonly origin: XY
   readonly scale: number
   readonly increment: number
 }): string {
@@ -154,9 +154,9 @@ function getCoordinateExtent({
   boundaryExtent,
   origin,
 }: {
-  readonly points: readonly Point2D[]
+  readonly points: readonly XY[]
   readonly boundaryExtent: number
-  readonly origin: Point2D
+  readonly origin: XY
 }): number {
   const furthestPoint = points.reduce(
     (furthest, point) => Math.max(furthest, Math.abs(point.x - origin.x), Math.abs(point.y - origin.y)),
@@ -166,7 +166,7 @@ function getCoordinateExtent({
   return furthestPoint * 1.1
 }
 
-function toSvgPoint({ point, origin, scale }: { readonly point: Point2D; readonly origin: Point2D; readonly scale: number }): Point2D {
+function toSvgPoint({ point, origin, scale }: { readonly point: XY; readonly origin: XY; readonly scale: number }): XY {
   return {
     x: PLOT_CENTER_X + (point.x - origin.x) * scale,
     y: PLOT_CENTER_Y - (point.y - origin.y) * scale,

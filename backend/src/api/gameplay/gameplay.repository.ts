@@ -436,14 +436,10 @@ function toGalaxyModel({
   planets: ReadonlyArray<typeof planetsTable.$inferSelect>
 }): GalaxyModel {
   const planetsByStarId = Map.groupBy(planets, (planet) => planet.starId)
-  const systems = stars.map((star) => {
-    const { id, name, coordinates, x, y } = star
-
-    return {
-      star: { id, name, coordinates, x, y },
-      planets: planetsByStarId.get(id) ?? [],
-    }
-  })
+  const systems = stars.map((star) => ({
+    star,
+    planets: planetsByStarId.get(star.id) ?? [],
+  }))
 
   return { systems }
 }

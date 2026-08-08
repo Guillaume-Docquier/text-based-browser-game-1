@@ -1,4 +1,14 @@
-import { createRng, Datetime, Distance, type Logger, mulberry32Prng, Result, Timer, UnitOfDistance } from "@guillaume-docquier/tools-ts"
+import {
+  createRng,
+  Datetime,
+  Distance,
+  type Logger,
+  mulberry32Prng,
+  Result,
+  Timer,
+  UnitOfDistance,
+  type XY,
+} from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { GameId } from "#api/shared/GameId.ts"
 import type { OrbitCoordinates } from "#api/shared/OrbitCoordinates.ts"
@@ -14,7 +24,6 @@ import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
-import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import { type ActionModel, type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
@@ -236,7 +245,7 @@ function createGalaxy(seed: number): GalaxyModel {
  * The first segment is for the region (<ROW><COL>)
  * The second segment is for the cell in the region (<ROW><COL>)
  */
-function toStarCoordinates({ x, y }: Point2D): StarCoordinates {
+function toStarCoordinates({ x, y }: XY): StarCoordinates {
   const row = Math.floor(y)
   const column = Math.floor(x)
   const regionRow = Math.floor(row / REGION_SIZE_LIGHT_YEARS)
@@ -250,7 +259,7 @@ function toStarCoordinates({ x, y }: Point2D): StarCoordinates {
 /**
  * Orbit coordinates is the distance in AU to the nearest star, padded with zeroes.
  */
-function toOrbitCoordinates({ star, planet }: { star: Point2D; planet: Point2D }): OrbitCoordinates {
+function toOrbitCoordinates({ star, planet }: { star: XY; planet: XY }): OrbitCoordinates {
   const distanceLightYears = Math.hypot(planet.x - star.x, planet.y - star.y)
   const distanceAu = Distance.convert(Distance.create(distanceLightYears, UnitOfDistance.LIGHT_YEARS), UnitOfDistance.ASTRONOMICAL_UNITS)
 
