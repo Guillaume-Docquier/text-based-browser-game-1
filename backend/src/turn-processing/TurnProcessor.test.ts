@@ -120,6 +120,7 @@ describe("TurnProcessor", () => {
       })
 
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       const { turnProcessor } = await createTurnProcessorStub({ db, clock })
       const resourcesRepository = new ResourcesRepository({ db, logger })
@@ -148,6 +149,7 @@ describe("TurnProcessor", () => {
         gameId: createdGameId,
         player: { id: player.account.id, color: PlayerColor.WHITE },
         opponents: {},
+        galaxy: initialPlayerView.galaxy,
         turn: 1,
         nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
         resources: {

@@ -48,6 +48,7 @@ export type PlayerViewModel = {
   gameId: number
   player: PlayerViewPlayerModel
   opponents: Record<PlayerId, PlayerViewPlayerModel>
+  galaxy: GalaxyModel
   turn: number
   nextTurnAt: Date
   resources: {
@@ -86,22 +87,26 @@ export type StartGameModel = {
   readonly galaxy: GalaxyModel
 }
 
+type StarModel = {
+  readonly id: number
+  readonly name: string
+  readonly coordinates: StarCoordinates
+  readonly x: number
+  readonly y: number
+}
+
+type PlanetModel = {
+  readonly id: number
+  readonly name: string
+  readonly coordinates: PlanetCoordinates
+  readonly x: number
+  readonly y: number
+}
+
 export type GalaxyModel = {
   readonly systems: ReadonlyArray<{
-    readonly star: {
-      readonly id: number
-      readonly name: string
-      readonly coordinates: StarCoordinates
-      readonly x: number
-      readonly y: number
-    }
-    readonly planets: ReadonlyArray<{
-      readonly id: number
-      readonly name: string
-      readonly coordinates: PlanetCoordinates
-      readonly x: number
-      readonly y: number
-    }>
+    readonly star: StarModel
+    readonly planets: readonly PlanetModel[]
   }>
 }
 
@@ -249,10 +254,14 @@ export class GameplayRepository extends PostgresRepository {
         const money = playerResources.find((resource) => resource.resourceType === ResourceType.MONEY)
         Assert.isDefined(money, "money")
 
+        const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
+        const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
+
         return {
           ...gameState,
           player,
           opponents,
+          galaxy: toGalaxyModel({ stars, planets }),
           resources: {
             money: money.amount,
           },
@@ -414,6 +423,26 @@ export class GameplayRepository extends PostgresRepository {
 
     return Result.Success(true)
   }
+}
+
+function toGalaxyModel({
+  stars,
+  planets,
+}: {
+  stars: ReadonlyArray<typeof starsTable.$inferSelect>
+  planets: ReadonlyArray<typeof planetsTable.$inferSelect>
+}): GalaxyModel {
+  const planetsByStarId = Map.groupBy(planets, (planet) => planet.starId)
+  const systems = stars.map((star) => {
+    const { id, name, coordinates, x, y } = star
+
+    return {
+      star: { id, name, coordinates, x, y },
+      planets: planetsByStarId.get(id) ?? [],
+    }
+  })
+
+  return { systems }
 }
 
 /**

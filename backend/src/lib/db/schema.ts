@@ -187,11 +187,11 @@ export const starsTable = pgTable(
     gameId: gameId("game_id")
       .notNull()
       .references(() => gamesTable.id, { onDelete: "cascade" }),
-    id: starId("id"),
-    name: text("name"),
-    coordinates: text("coordinates"),
-    x: doublePrecision("x"),
-    y: doublePrecision("y"),
+    id: starId("id").notNull(),
+    name: text("name").notNull(),
+    coordinates: text("coordinates").notNull(),
+    x: doublePrecision("x").notNull(),
+    y: doublePrecision("y").notNull(),
   },
   (table) => [
     primaryKey({
@@ -205,11 +205,11 @@ export const planetsTable = pgTable(
   {
     gameId: gameId("game_id").notNull(),
     starId: starId("star_id").notNull(),
-    id: planetId("id"),
-    name: text("name"),
-    coordinates: text("coordinates"),
-    x: doublePrecision("x"),
-    y: doublePrecision("y"),
+    id: planetId("id").notNull(),
+    name: text("name").notNull(),
+    coordinates: text("coordinates").notNull(),
+    x: doublePrecision("x").notNull(),
+    y: doublePrecision("y").notNull(),
   },
   (table) => [
     primaryKey({

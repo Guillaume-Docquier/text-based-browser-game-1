@@ -2,8 +2,9 @@ import { createRng, Datetime, Distance, type Logger, mulberry32Prng, Result, Tim
 import z from "zod"
 import { GameId } from "#api/shared/GameId.ts"
 import type { OrbitCoordinates } from "#api/shared/OrbitCoordinates.ts"
+import { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
-import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
+import { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -260,6 +261,12 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     gameId: playerViewModel.gameId,
     player: playerViewModel.player,
     opponents: playerViewModel.opponents,
+    galaxy: {
+      systems: playerViewModel.galaxy.systems.map(({ star, planets }) => ({
+        star,
+        planets: [...planets],
+      })),
+    },
     turn: playerViewModel.turn,
     nextTurnAt: playerViewModel.nextTurnAt,
     resources: playerViewModel.resources,
@@ -296,11 +303,37 @@ export const GetPlayerViewDto = z.object({
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
 export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
 
+export const StarDto = z.object({
+  id: z.number(),
+  name: z.string(),
+  coordinates: StarCoordinates,
+  x: z.number(),
+  y: z.number(),
+})
+
+export const PlanetDto = z.object({
+  id: z.number(),
+  name: z.string(),
+  coordinates: PlanetCoordinates,
+  x: z.number(),
+  y: z.number(),
+})
+
+export const GalaxyDto = z.object({
+  systems: z.array(
+    z.object({
+      star: StarDto,
+      planets: z.array(PlanetDto),
+    }),
+  ),
+})
+
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
 export const PlayerViewDto = z.object({
   gameId: GameId,
   player: PlayerViewPlayerDto,
   opponents: z.record(PlayerId, PlayerViewPlayerDto),
+  galaxy: GalaxyDto,
   turn: z.number(),
   nextTurnAt: z.date(),
   resources: z.object({
