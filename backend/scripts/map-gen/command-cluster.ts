@@ -75,9 +75,9 @@ async function renderCluster(options: ClusterRenderOptions): Promise<void> {
     outputPath: options.output,
     title: "Cluster generator output",
     text: [
-      "Cluster generator",
-      `Points: ${options.requestedPoints} | Radius: ${SvgRenderer.formatNumber(options.radius)} | Standard deviation: ${SvgRenderer.formatNumber(options.radius / 4)}`,
-      `Origin: (${SvgRenderer.formatNumber(options.origin.x)}, ${SvgRenderer.formatNumber(options.origin.y)}) | Seed: ${options.seed}`,
+      `Cluster generator (seed: ${options.seed})`,
+      `Points: ${options.requestedPoints} | Standard deviation: ${SvgRenderer.formatNumber(options.radius / 4)}`,
+      `Radius: ${SvgRenderer.formatNumber(options.radius)} | Origin: (${SvgRenderer.formatNumber(options.origin.x)}, ${SvgRenderer.formatNumber(options.origin.y)})`,
     ],
     points,
     boundary: { shape: "circle", radius: options.radius },

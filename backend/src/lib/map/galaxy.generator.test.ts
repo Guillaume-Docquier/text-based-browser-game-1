@@ -101,7 +101,6 @@ describe("galaxyGenerator", () => {
         origin: { x: galaxySize / 2, y: galaxySize / 2 },
         radius: galaxySize / 2,
         nbPoints: 1_000,
-        arms: { count: 6, size: 15 },
         rng,
       })
 
@@ -127,8 +126,8 @@ describe("galaxyGenerator", () => {
           origin: { x: size / 2, y: size / 2 },
           radius: size / 2,
           nbPoints: 1_000,
-          arms: { count: 6, size: 15 },
           rng,
+          options: { armCount: 6, armRadius: 12 },
         }),
       rng,
     })

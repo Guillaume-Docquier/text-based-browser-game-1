@@ -66,7 +66,7 @@ async function renderSpiralGalaxy(options: SpiralRenderOptions, galaxyOptions: G
     origin: options.origin,
     seed: options.seed,
     renderGrid: galaxyOptions.grid ?? false,
-    details: [`Arms: ${options.arms}`, `Arm size: ${SvgRenderer.formatNumber(options.armSize)}`],
+    details: [`Arms: ${options.armCount}`, `Arm size: ${SvgRenderer.formatNumber(options.armRadius)}`],
   })
 }
 
@@ -114,11 +114,11 @@ async function renderGalaxy({
     outputPath,
     title: `${generatorName} galaxy generator output`,
     text: [
-      `${generatorName} galaxy generator`,
+      `${generatorName} galaxy generator (seed: ${seed})`,
       `Systems: ${systemPoints.length} generated from ${generatedPointCount} points (${requestedPoints} requested)`,
       `Planets: ${planetPoints.length} | Per system: ${minPlanetsPerSystem} min / ${maxPlanetsPerSystem} max / ${SvgRenderer.formatNumber(averagePlanetsPerSystem, 2)} avg`,
-      `Size: ${SvgRenderer.formatNumber(size)} | Radius: ${SvgRenderer.formatNumber(radius)} | ${details.join(" | ")}`,
-      `Origin: (${SvgRenderer.formatNumber(origin.x)}, ${SvgRenderer.formatNumber(origin.y)}) | Seed: ${seed}`,
+      `Radius: ${SvgRenderer.formatNumber(radius)} | Origin: (${SvgRenderer.formatNumber(origin.x)}, ${SvgRenderer.formatNumber(origin.y)})`,
+      details.join(" | "),
     ],
     points: systemPoints,
     boundary: { shape: "square", size },

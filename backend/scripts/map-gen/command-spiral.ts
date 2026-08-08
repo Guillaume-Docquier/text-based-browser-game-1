@@ -6,11 +6,11 @@ import { randomUInt32 } from "#lib/randomUInt32.ts"
 import { Parser } from "./Parser.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
-const DEFAULT_NB_POINTS = 1000
-const DEFAULT_NB_ARMS = 6
-const DEFAULT_ARM_SIZE = 12
-const DEFAULT_RADIUS = 50
 const DEFAULT_ORIGIN = { x: 50, y: 50 }
+const DEFAULT_RADIUS = 50
+const DEFAULT_NB_POINTS = 1000
+const DEFAULT_ARM_COUNT = 6
+const DEFAULT_ARM_RADIUS = 12
 const DEFAULT_OUTPUT_PATH = Parser.filePath("generated/spiral.svg")
 
 type SpiralOptions = {
@@ -20,8 +20,8 @@ type SpiralOptions = {
   readonly originY: number
   readonly seed: number
   readonly output: string
-  readonly arms: number
-  readonly armSize: number
+  readonly armCount: number
+  readonly armRadius: number
 }
 
 /** Values available when rendering spiral generator output. */
@@ -32,8 +32,8 @@ export type SpiralRenderOptions = {
   readonly radius: number
   readonly origin: Point2D
   readonly seed: number
-  readonly arms: number
-  readonly armSize: number
+  readonly armCount: number
+  readonly armRadius: number
 }
 
 type SpiralCommandOptions = {
@@ -54,8 +54,8 @@ export function createSpiralCommand({
     .option("--origin-y <number>", "origin y coordinate", Parser.number, DEFAULT_ORIGIN.y)
     .option("--seed <integer>", "Mulberry32 seed", Parser.integer, randomUInt32())
     .option("--output <path>", "SVG output path", Parser.filePath, defaultOutputPath)
-    .option("--arms <integer>", "number of spiral arms", Parser.positiveInteger, DEFAULT_NB_ARMS)
-    .option("--arm-size <number>", "spiral arm size", Parser.positiveNumber, DEFAULT_ARM_SIZE)
+    .option("--arm-count <integer>", "number of spiral arms", Parser.positiveInteger, DEFAULT_ARM_COUNT)
+    .option("--arm-radius <number>", "spiral arm radius", Parser.positiveNumber, DEFAULT_ARM_RADIUS)
     .action(async (options: SpiralOptions) => {
       const origin = { x: options.originX, y: options.originY }
 
@@ -66,18 +66,18 @@ export function createSpiralCommand({
             origin,
             radius: options.radius,
             nbPoints: options.points,
-            arms: {
-              count: options.arms,
-              size: options.armSize,
-            },
             rng,
+            options: {
+              armCount: options.armCount,
+              armRadius: options.armRadius,
+            },
           }),
         requestedPoints: options.points,
         radius: options.radius,
         origin,
         seed: options.seed,
-        arms: options.arms,
-        armSize: options.armSize,
+        armCount: options.armCount,
+        armRadius: options.armRadius,
       })
     })
 }
@@ -89,10 +89,10 @@ async function renderSpiral(options: SpiralRenderOptions): Promise<void> {
     outputPath: options.output,
     title: "Spiral generator output",
     text: [
-      "Spiral generator",
-      `Points: ${points.length} generated (${options.requestedPoints} requested) | Arms: ${options.arms}`,
-      `Radius: ${SvgRenderer.formatNumber(options.radius)} | Arm size: ${SvgRenderer.formatNumber(options.armSize)}`,
-      `Origin: (${SvgRenderer.formatNumber(options.origin.x)}, ${SvgRenderer.formatNumber(options.origin.y)}) | Seed: ${options.seed}`,
+      `Spiral generator (seed: ${options.seed})`,
+      `Points: ${points.length} generated (${options.requestedPoints} requested)`,
+      `Radius: ${SvgRenderer.formatNumber(options.radius)} | Origin: (${SvgRenderer.formatNumber(options.origin.x)}, ${SvgRenderer.formatNumber(options.origin.y)})`,
+      `Arm count: ${options.armCount} | Arm radius: ${SvgRenderer.formatNumber(options.armRadius)}`,
     ],
     points,
     boundary: { shape: "circle", radius: options.radius },

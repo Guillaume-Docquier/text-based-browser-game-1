@@ -3,10 +3,6 @@ import { compose, translate, rotate, applyToPoint } from "transformation-matrix"
 import { clusterGenerator } from "#lib/map/points/cluster.generator.ts"
 import type { Point2D } from "#lib/map/points/Point2D.ts"
 
-const CORE_POINTS_RATIO = 0.2
-const CORE_RADIUS_RATIO = 0.15
-const CLUSTERS_PER_ARM = 16
-
 // PRIMER ON PROCEDURAL GENERATION BECAUSE I WILL FORGET
 //
 // The main concept is: take something structured, then throw a bunch of gaussian (normal) noise at it, and now it looks random
@@ -23,24 +19,38 @@ export function spiralGenerator({
   origin,
   radius,
   nbPoints,
-  arms,
   rng,
+  options: {
+    corePointsRatio = 0.2,
+    coreRadiusRatio = 0.15,
+    armCount = 6,
+    armRadius = 12,
+    armClusterCount = 16,
+    swirlStrength = Math.PI,
+  } = {},
 }: {
   origin: Point2D
   radius: number
   nbPoints: number
-  arms: { count: number; size: number }
   rng: Rng
+  options?: {
+    corePointsRatio?: number | undefined
+    coreRadiusRatio?: number | undefined
+    armCount?: number | undefined
+    armRadius?: number | undefined
+    armClusterCount?: number | undefined
+    swirlStrength?: number | undefined
+  }
 }): Point2D[] {
   const points: Point2D[] = []
 
   // roughly, because of rng we might have a little more or a little less stars in the arms because the arms will generate clusters with varying amounts of stars
-  const corePoints = Math.round(rng.normal(nbPoints * CORE_POINTS_RATIO))
+  const corePoints = Math.round(rng.normal(nbPoints * corePointsRatio))
   const armPoints = nbPoints - corePoints
-  const pointsPerArm = armPoints / arms.count
+  const pointsPerArm = armPoints / armCount
 
   // core
-  const coreRadius = rng.normal(radius * CORE_RADIUS_RATIO)
+  const coreRadius = rng.normal(radius * coreRadiusRatio)
   points.push(
     ...clusterGenerator({
       origin,
@@ -51,11 +61,11 @@ export function spiralGenerator({
   )
 
   // Arms
-  const angleBetweenArms = (2 * Math.PI) / arms.count
-  const armAngles = Array.from({ length: arms.count }, (_, i) => angleBetweenArms * i)
+  const angleBetweenArms = (2 * Math.PI) / armCount
+  const armAngles = Array.from({ length: armCount }, (_, i) => angleBetweenArms * i)
   for (const armAngle of armAngles) {
     // Each arm is a series of clusters
-    const nbClusters = Math.round(rng.normal(CLUSTERS_PER_ARM))
+    const nbClusters = Math.round(rng.normal(armClusterCount))
     const nbPointsPerCluster = pointsPerArm / nbClusters
     for (let i = 0; i < nbClusters; i++) {
       const distanceFromOrigin = Math.abs(rng.normal(coreRadius, radius * 0.4))
@@ -69,7 +79,7 @@ export function spiralGenerator({
       points.push(
         ...clusterGenerator({
           origin: clusterCenter,
-          radius: rng.normal(arms.size, arms.size * 0.5),
+          radius: rng.normal(armRadius, armRadius * 0.5),
           nbPoints: Math.round(rng.normal(nbPointsPerCluster)),
           rng,
         }),
@@ -80,7 +90,7 @@ export function spiralGenerator({
   // Add the final swirl, stronger the closer you are to the center
   return points.map((point) => {
     const distanceFromOrigin = Math.hypot(point.x - origin.x, point.y - origin.y)
-    const swirl = Math.max(0, 1 - distanceFromOrigin / radius) * Math.PI
+    const swirl = Math.max(0, 1 - distanceFromOrigin / radius) * swirlStrength
 
     return applyToPoint(compose(translate(origin.x, origin.y), rotate(swirl), translate(-origin.x, -origin.y)), point)
   })
