@@ -1,5 +1,5 @@
 {
-  "id": "df10bbdc-fbe9-44a7-a4af-6094fa1bc921",
+  "id": "c213f232-1013-482d-b99c-2a269406fe16",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -244,6 +244,12 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "seed": {
+          "name": "seed",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -293,31 +299,31 @@
           "name": "id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "coordinates": {
           "name": "coordinates",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "x": {
           "name": "x",
           "type": "double precision",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "y": {
           "name": "y",
           "type": "double precision",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
@@ -479,31 +485,31 @@
           "name": "id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "coordinates": {
           "name": "coordinates",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "x": {
           "name": "x",
           "type": "double precision",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "y": {
           "name": "y",
           "type": "double precision",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},

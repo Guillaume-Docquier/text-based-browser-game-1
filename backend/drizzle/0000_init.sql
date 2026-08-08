@@ -34,17 +34,18 @@ CREATE TABLE "games" (
 	"status" "game_status" DEFAULT 'WAITING_FOR_PLAYERS' NOT NULL,
 	"name" text NOT NULL,
 	"nb_seats" integer NOT NULL,
-	"turn_interval_seconds" integer NOT NULL
+	"turn_interval_seconds" integer NOT NULL,
+	"seed" bigint NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "planets" (
 	"game_id" integer NOT NULL,
 	"star_id" integer NOT NULL,
-	"id" integer,
-	"name" text,
-	"coordinates" text,
-	"x" double precision,
-	"y" double precision,
+	"id" integer NOT NULL,
+	"name" text NOT NULL,
+	"coordinates" text NOT NULL,
+	"x" double precision NOT NULL,
+	"y" double precision NOT NULL,
 	CONSTRAINT "planets_game_id_id_pk" PRIMARY KEY("game_id","id")
 );
 --> statement-breakpoint
@@ -67,11 +68,11 @@ CREATE TABLE "resources" (
 --> statement-breakpoint
 CREATE TABLE "stars" (
 	"game_id" integer NOT NULL,
-	"id" integer,
-	"name" text,
-	"coordinates" text,
-	"x" double precision,
-	"y" double precision,
+	"id" integer NOT NULL,
+	"name" text NOT NULL,
+	"coordinates" text NOT NULL,
+	"x" double precision NOT NULL,
+	"y" double precision NOT NULL,
 	CONSTRAINT "stars_game_id_id_pk" PRIMARY KEY("game_id","id")
 );
 --> statement-breakpoint
