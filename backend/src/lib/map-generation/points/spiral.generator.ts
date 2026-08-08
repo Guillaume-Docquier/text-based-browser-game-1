@@ -1,7 +1,7 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
 import { compose, translate, rotate, applyToPoint } from "transformation-matrix"
-import { clusterGenerator } from "#lib/map/points/cluster.generator.ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
+import { clusterGenerator } from "#lib/map-generation/points/cluster.generator.ts"
+import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
 
 // PRIMER ON PROCEDURAL GENERATION BECAUSE I WILL FORGET
 //

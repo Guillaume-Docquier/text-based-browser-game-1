@@ -1,6 +1,6 @@
 import { createRng, Distance, mulberry32Prng, type Rng, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { systemGenerator } from "#lib/map/system.generator.ts"
+import { systemGenerator } from "#lib/map-generation/system.generator.ts"
 
 describe("systemGenerator", () => {
   function createSeededRng(): Rng {

@@ -1,8 +1,8 @@
 import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { galaxyGenerator } from "#lib/map/galaxy.generator.ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
-import { spiralGenerator } from "#lib/map/points/spiral.generator.ts"
+import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
+import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
+import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 
 describe("galaxyGenerator", () => {
   function createSeededRng(seed = 1234): Rng {

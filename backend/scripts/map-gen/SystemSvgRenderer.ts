@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
+import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
 const SVG_WIDTH = 900

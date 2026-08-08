@@ -1,5 +1,5 @@
 import { Range, type Rng } from "@guillaume-docquier/tools-ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
+import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
 
 export type Planet = {
   x: number

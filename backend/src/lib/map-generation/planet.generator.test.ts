@@ -1,6 +1,6 @@
 import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { planetGenerator } from "#lib/map/planet.generator.ts"
+import { planetGenerator } from "#lib/map-generation/planet.generator.ts"
 
 describe("planetGenerator", () => {
   function createSeededRng(): Rng {

@@ -1,6 +1,6 @@
 import { type Rng, Range } from "@guillaume-docquier/tools-ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
-import { type System, systemGenerator } from "#lib/map/system.generator.ts"
+import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
+import { type System, systemGenerator } from "#lib/map-generation/system.generator.ts"
 
 export type Galaxy = {
   /**

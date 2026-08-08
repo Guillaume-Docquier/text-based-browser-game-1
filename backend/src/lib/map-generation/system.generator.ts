@@ -1,7 +1,7 @@
 import { type Rng, Distance, UnitOfDistance, Range } from "@guillaume-docquier/tools-ts"
-import { type Planet, planetGenerator } from "#lib/map/planet.generator.ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
-import { type Star, starGenerator } from "#lib/map/star.generator.ts"
+import { type Planet, planetGenerator } from "#lib/map-generation/planet.generator.ts"
+import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
+import { type Star, starGenerator } from "#lib/map-generation/star.generator.ts"
 
 export type System = {
   star: Star

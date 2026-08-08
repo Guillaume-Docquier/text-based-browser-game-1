@@ -1,6 +1,6 @@
 import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { spiralGenerator } from "#lib/map/points/spiral.generator.ts"
+import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 
 const DEFAULT_OPTIONS = {
   origin: { x: 50, y: 50 },

@@ -1,5 +1,5 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
+import type { Point2D } from "#lib/map-generation/points/Point2D.ts"
 
 /**
  * Generates a cluster of the given radius containing nbPoints that follow a normal distribution around its origin.
