@@ -15,7 +15,7 @@ const MAX_SCALE = 12
 const DRAG_THRESHOLD = 3
 
 /**
- * Provides mouse, touch, and wheel interactions for an SVG map viewport.
+ * Provides shared mouse, touch, and wheel interactions for an SVG map viewport.
  *
  * @param resetSignal - A value whose changes reset the viewport.
  * @returns SVG event handlers and the transform for the map contents.

@@ -2,9 +2,9 @@ import type { StarSystem } from "@api-types"
 import { ArrowLeft, LocateFixed } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { Button } from "@/components/button.tsx"
-import { GalaxyMap } from "@/features/play/GalaxyMap.tsx"
+import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
+import { StarSystemMap } from "@/features/play/galaxy/StarSystemMap.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
-import { StarSystemMap } from "@/features/play/StarSystemMap.tsx"
 
 /**
  * Displays the game's galaxy and lets the player inspect individual Star Systems.

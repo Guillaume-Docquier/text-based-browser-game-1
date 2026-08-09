@@ -1,6 +1,6 @@
 import type { StarSystem } from "@api-types"
 import type { KeyboardEvent, ReactElement } from "react"
-import { useMapPanZoom } from "@/features/play/useMapPanZoom.ts"
+import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const CENTER = 500
 const STAR_RADIUS = 18
@@ -58,41 +58,59 @@ export function StarSystemMap({
       <g transform={panZoom.transform}>
         <rect width="1000" height="1000" fill="#05080f" />
         {planets.map((planet) => (
-          <circle
-            key={`orbit-${planet.id}`}
-            cx={CENTER}
-            cy={CENTER}
-            r={planet.orbitRadius}
-            fill="none"
-            stroke="#67e8f9"
-            strokeOpacity="0.18"
-            strokeWidth="1.25"
-            vectorEffect="non-scaling-stroke"
-          />
+          <OccupiedOrbit key={`orbit-${planet.id}`} radius={planet.orbitRadius} />
         ))}
-        <g
-          role="button"
-          tabIndex={0}
-          aria-label={`Return to Galaxy from ${system.star.name}`}
-          className="cursor-pointer outline-none focus:[&>circle:last-of-type]:stroke-white"
-          onClick={onSelectGalaxy}
-          onKeyDown={(event) => {
-            activateWithKeyboard(event, onSelectGalaxy)
-          }}
-        >
-          <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS * 3} fill="url(#system-star-glow)" />
-          <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS} fill="#fde047" stroke="#fef9c3" strokeWidth="2" />
-          <MapLabel x={CENTER + STAR_RADIUS + 12} y={CENTER} text={system.star.name} />
-          <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS + 10} fill="transparent" stroke="transparent" strokeWidth="2" />
-        </g>
+        <Star name={system.star.name} onSelect={onSelectGalaxy} />
         {planets.map((planet) => (
-          <g key={planet.id}>
-            <circle cx={planet.x} cy={planet.y} r={PLANET_RADIUS} fill="#22d3ee" stroke="#cffafe" strokeWidth="1" />
-            <MapLabel x={planet.x + PLANET_RADIUS + 8} y={planet.y} text={planet.name} />
-          </g>
+          <Planet key={planet.id} planet={planet} />
         ))}
       </g>
     </svg>
+  )
+}
+
+function OccupiedOrbit({ radius }: { radius: number }): ReactElement {
+  return (
+    <circle
+      cx={CENTER}
+      cy={CENTER}
+      r={radius}
+      fill="none"
+      stroke="#67e8f9"
+      strokeOpacity="0.18"
+      strokeWidth="1.25"
+      vectorEffect="non-scaling-stroke"
+    />
+  )
+}
+
+function Star({ name, onSelect }: { name: string; onSelect: () => void }): ReactElement {
+  return (
+    <g
+      role="button"
+      tabIndex={0}
+      aria-label={`Return to Galaxy from ${name}`}
+      className="cursor-pointer outline-none focus:[&>circle:last-of-type]:stroke-white"
+      onClick={onSelect}
+      onKeyDown={(event) => {
+        activateWithKeyboard(event, onSelect)
+      }}
+    >
+      <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS * 3} fill="url(#system-star-glow)" />
+      <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS} fill="#fde047" stroke="#fef9c3" strokeWidth="2" />
+      <MapLabel x={CENTER + STAR_RADIUS + 12} y={CENTER} text={name} />
+      {/* Provides a larger pointer and keyboard focus target without changing the visible star. */}
+      <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS + 10} fill="transparent" stroke="transparent" strokeWidth="2" />
+    </g>
+  )
+}
+
+function Planet({ planet }: { planet: PlanetViewModel }): ReactElement {
+  return (
+    <g>
+      <circle cx={planet.x} cy={planet.y} r={PLANET_RADIUS} fill="#22d3ee" stroke="#cffafe" strokeWidth="1" />
+      <MapLabel x={planet.x + PLANET_RADIUS + 8} y={planet.y} text={planet.name} />
+    </g>
   )
 }
 
