@@ -1,10 +1,12 @@
 import type { StarSystem } from "@api-types"
 import { ArrowLeft, LocateFixed } from "lucide-react"
-import { type ReactElement, useState } from "react"
+import { type AnimationEvent, type ReactElement, useState } from "react"
 import { Button } from "@/components/button.tsx"
 import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
 import { StarSystemMap } from "@/features/play/galaxy/StarSystemMap.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
+
+type GalaxyView = { type: "galaxy" } | { type: "star-system"; system: StarSystem; transition: "entering" | "exiting" }
 
 /**
  * Displays the game's galaxy and lets the player inspect individual Star Systems.
@@ -12,17 +14,36 @@ import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
  * @returns The interactive Galaxy page.
  */
 export function GalaxyPage(): ReactElement {
-  const [selectedSystem, setSelectedSystem] = useState<StarSystem | undefined>()
+  const [view, setView] = useState<GalaxyView>({ type: "galaxy" })
   const [resetSignal, setResetSignal] = useState(0)
   const { playerView } = usePlayGameContext()
+  const selectedSystem = view.type === "star-system" ? view.system : undefined
 
   function resetView(): void {
     setResetSignal((currentSignal) => currentSignal + 1)
   }
 
   function showGalaxy(): void {
-    setSelectedSystem(undefined)
+    setView((currentView) => {
+      if (currentView.type === "galaxy" || currentView.transition === "exiting") {
+        return currentView
+      }
+
+      return { ...currentView, transition: "exiting" }
+    })
+  }
+
+  function finishShowingGalaxy(event: AnimationEvent<HTMLDivElement>): void {
+    if (event.currentTarget !== event.target || event.animationName !== "exit" || view.type !== "star-system") {
+      return
+    }
+
+    setView({ type: "galaxy" })
     resetView()
+  }
+
+  function showStarSystem(system: StarSystem): void {
+    setView({ type: "star-system", system, transition: "entering" })
   }
 
   return (
@@ -30,9 +51,16 @@ export function GalaxyPage(): ReactElement {
       <div className="relative min-h-[34rem] flex-1 overflow-hidden bg-[#05080f]">
         <div className="absolute inset-0">
           {selectedSystem === undefined ? (
-            <GalaxyMap galaxy={playerView.galaxy} resetSignal={resetSignal} onSelectSystem={setSelectedSystem} />
+            <GalaxyMap galaxy={playerView.galaxy} resetSignal={resetSignal} onSelectSystem={showStarSystem} />
           ) : (
-            <div className="size-full animate-in fade-in-0 zoom-in-95 duration-300">
+            <div
+              className={`size-full duration-300 ${
+                view.type === "star-system" && view.transition === "exiting"
+                  ? "animate-out fade-out-0 zoom-out-95 fill-mode-forwards"
+                  : "animate-in fade-in-0 zoom-in-95"
+              }`}
+              onAnimationEnd={finishShowingGalaxy}
+            >
               <StarSystemMap system={selectedSystem} resetSignal={resetSignal} onSelectGalaxy={showGalaxy} />
             </div>
           )}
