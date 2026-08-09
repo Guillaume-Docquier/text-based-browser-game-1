@@ -28,10 +28,51 @@ export class GalaxyPage {
     await this.page.mouse.wheel(0, -100)
   }
 
+  public async panStarSystem({ deltaX, deltaY }: { deltaX: number; deltaY: number }): Promise<void> {
+    const mapBox = await this.starSystemMap.boundingBox()
+    Assert.isDefined(mapBox)
+    const start = {
+      x: mapBox.x + mapBox.width / 4,
+      y: mapBox.y + mapBox.height / 4,
+    }
+
+    await this.page.mouse.move(start.x, start.y)
+    await this.page.mouse.down()
+    await this.page.mouse.move(start.x + deltaX, start.y + deltaY)
+    await this.page.mouse.up()
+  }
+
   public async getGalaxyCameraTransform(): Promise<string> {
     const transform = await this.map.locator(":scope > g[transform]").getAttribute("transform")
     Assert.isDefined(transform)
 
     return transform
+  }
+
+  public async getGalaxyCameraScale(): Promise<number> {
+    const transform = await this.getGalaxyCameraTransform()
+    const scale = /scale\(([^)]+)\)/.exec(transform)?.[1]
+    Assert.isDefined(scale)
+
+    return Number(scale)
+  }
+
+  public async getGalaxyStarDistanceFromCenter(star: Locator): Promise<number> {
+    return await this.getDistanceFromMapCenter({ map: this.map, target: star })
+  }
+
+  public async getStarSystemStarDistanceFromCenter(): Promise<number> {
+    return await this.getDistanceFromMapCenter({ map: this.starSystemMap, target: this.starSystemStar.locator("circle").last() })
+  }
+
+  private async getDistanceFromMapCenter({ map, target }: { map: Locator; target: Locator }): Promise<number> {
+    const [mapBox, targetBox] = await Promise.all([map.boundingBox(), target.boundingBox()])
+    Assert.isDefined(mapBox)
+    Assert.isDefined(targetBox)
+
+    return Math.hypot(
+      targetBox.x + targetBox.width / 2 - (mapBox.x + mapBox.width / 2),
+      targetBox.y + targetBox.height / 2 - (mapBox.y + mapBox.height / 2),
+    )
   }
 }

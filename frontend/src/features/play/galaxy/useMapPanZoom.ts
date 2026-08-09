@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react"
+import { useEffect, useRef, useState, type PointerEvent, type TransitionEvent, type WheelEvent } from "react"
 
 type Point = {
   x: number
@@ -30,32 +30,54 @@ const INITIAL_TRANSFORM: ViewportTransform = { x: 0, y: 0, scale: 1 }
 const MIN_SCALE = 0.75
 const MAX_SCALE = 36
 const DRAG_THRESHOLD = 3
+const CENTERING_FALLBACK_DELAY_MS = 400
 
 /**
  * Provides shared mouse, touch, and wheel interactions for an SVG map viewport.
  *
  * @param resetSignal - A value whose changes reset the viewport.
+ * @param viewportCenter - The center of the visible SVG viewport.
  * @returns SVG event handlers and the transform for the map contents.
  */
-export function useMapPanZoom({ resetSignal }: { resetSignal: number }): {
+export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: number; viewportCenter: Point }): {
+  isCentering: boolean
   isPanning: boolean
   transform: string
+  centerOn: (point: Point, onCentered: () => void) => void
   onPointerCancel: (event: PointerEvent<SVGSVGElement>) => void
   onPointerDown: (event: PointerEvent<SVGSVGElement>) => void
   onPointerMove: (event: PointerEvent<SVGSVGElement>) => void
   onPointerUp: (event: PointerEvent<SVGSVGElement>) => void
+  onTransformTransitionEnd: (event: TransitionEvent<SVGGElement>) => void
   onWheel: (event: WheelEvent<SVGSVGElement>) => void
 } {
   const [viewportTransform, setViewportTransform] = useState(INITIAL_TRANSFORM)
+  const [isCentering, setIsCentering] = useState(false)
   const [isPanning, setIsPanning] = useState(false)
+  const centeringCompletion = useRef<(() => void) | undefined>(undefined)
+  const centeringTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const isCenteringRef = useRef(false)
   const pointers = useRef(new Map<number, Point>())
   const pointerOrigins = useRef(new Map<number, Point>())
 
   useEffect(() => {
+    if (centeringTimer.current !== undefined) {
+      clearTimeout(centeringTimer.current)
+      centeringTimer.current = undefined
+    }
+    centeringCompletion.current = undefined
+    isCenteringRef.current = false
     pointers.current.clear()
     pointerOrigins.current.clear()
+    setIsCentering(false)
     setIsPanning(false)
     setViewportTransform(INITIAL_TRANSFORM)
+
+    return (): void => {
+      if (centeringTimer.current !== undefined) {
+        clearTimeout(centeringTimer.current)
+      }
+    }
   }, [resetSignal])
 
   function onPointerDown(event: PointerEvent<SVGSVGElement>): void {
@@ -105,13 +127,56 @@ export function useMapPanZoom({ resetSignal }: { resetSignal: number }): {
     )
   }
 
+  function centerOn(point: Point, onCentered: () => void): void {
+    if (isCenteringRef.current) {
+      return
+    }
+
+    isCenteringRef.current = true
+    centeringCompletion.current = onCentered
+    setIsCentering(true)
+    setViewportTransform((currentTransform) => ({
+      ...currentTransform,
+      x: viewportCenter.x - point.x * currentTransform.scale,
+      y: viewportCenter.y - point.y * currentTransform.scale,
+    }))
+    centeringTimer.current = setTimeout(finishCentering, CENTERING_FALLBACK_DELAY_MS)
+  }
+
+  function onTransformTransitionEnd(event: TransitionEvent<SVGGElement>): void {
+    if (event.currentTarget !== event.target || event.propertyName !== "transform") {
+      return
+    }
+
+    finishCentering()
+  }
+
+  function finishCentering(): void {
+    if (!isCenteringRef.current) {
+      return
+    }
+
+    if (centeringTimer.current !== undefined) {
+      clearTimeout(centeringTimer.current)
+      centeringTimer.current = undefined
+    }
+    const onCentered = centeringCompletion.current
+    centeringCompletion.current = undefined
+    isCenteringRef.current = false
+    setIsCentering(false)
+    onCentered?.()
+  }
+
   return {
+    isCentering,
     isPanning,
     transform: `translate(${viewportTransform.x} ${viewportTransform.y}) scale(${viewportTransform.scale})`,
+    centerOn,
     onPointerCancel: onPointerEnd,
     onPointerDown,
     onPointerMove,
     onPointerUp: onPointerEnd,
+    onTransformTransitionEnd,
     onWheel,
   }
 }

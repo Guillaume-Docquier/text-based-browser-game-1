@@ -66,17 +66,25 @@ test.describe("authenticated user", () => {
 
     await test.step("Inspect a Star System", async () => {
       const galaxyPage = new GalaxyPage(page)
-      const initialCameraTransform = await galaxyPage.getGalaxyCameraTransform()
+      const selectedStar = galaxyPage.stars.first()
+      const initialCameraScale = await galaxyPage.getGalaxyCameraScale()
       await galaxyPage.zoomGalaxyIn()
-      await expect.poll(async () => galaxyPage.getGalaxyCameraTransform()).not.toBe(initialCameraTransform)
-      const cameraTransformBeforeInspecting = await galaxyPage.getGalaxyCameraTransform()
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).not.toBe(initialCameraScale)
+      const cameraScaleBeforeInspecting = await galaxyPage.getGalaxyCameraScale()
 
-      await galaxyPage.stars.first().press("Enter")
+      await selectedStar.press("Enter")
+      await expect(galaxyPage.starSystemMap).not.toBeVisible()
       await expect(galaxyPage.starSystemMap).toBeVisible()
 
+      await galaxyPage.panStarSystem({ deltaX: 60, deltaY: 40 })
+      expect(await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeGreaterThan(20)
       await galaxyPage.starSystemStar.click()
+      await expect(galaxyPage.heading).not.toBeVisible()
+      await expect.poll(async () => await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeLessThan(1)
+
       await expect(galaxyPage.heading).toBeVisible()
-      await expect.poll(async () => galaxyPage.getGalaxyCameraTransform()).toBe(cameraTransformBeforeInspecting)
+      expect(await galaxyPage.getGalaxyCameraScale()).toBeCloseTo(cameraScaleBeforeInspecting)
+      expect(await galaxyPage.getGalaxyStarDistanceFromCenter(selectedStar)).toBeLessThan(1)
     })
   })
 })

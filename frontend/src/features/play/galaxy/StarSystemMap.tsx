@@ -3,6 +3,7 @@ import type { KeyboardEvent, ReactElement } from "react"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const CENTER = 500
+const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
 const STAR_RADIUS = 18
 const PLANET_RADIUS = STAR_RADIUS / 3
 const INNER_ORBIT_RADIUS = 90
@@ -33,15 +34,21 @@ export function StarSystemMap({
   resetSignal: number
   onSelectGalaxy: () => void
 }): ReactElement {
-  const panZoom = useMapPanZoom({ resetSignal })
+  const panZoom = useMapPanZoom({ resetSignal, viewportCenter: VIEWPORT_CENTER })
   const planets = toPlanetViewModels(system)
+
+  function selectGalaxy(): void {
+    panZoom.centerOn(VIEWPORT_CENTER, onSelectGalaxy)
+  }
 
   return (
     <svg
       aria-label={`${system.star.name} Star System map`}
       role="group"
       viewBox="0 0 1000 1000"
-      className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"}`}
+      className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"} ${
+        panZoom.isCentering ? "pointer-events-none" : ""
+      }`}
       onPointerCancel={panZoom.onPointerCancel}
       onPointerDown={panZoom.onPointerDown}
       onPointerMove={panZoom.onPointerMove}
@@ -55,12 +62,16 @@ export function StarSystemMap({
           <stop offset="100%" stopColor="#facc15" stopOpacity="0" />
         </radialGradient>
       </defs>
-      <g transform={panZoom.transform}>
+      <g
+        transform={panZoom.transform}
+        className={panZoom.isCentering ? "transition-transform duration-300 ease-in-out" : undefined}
+        onTransitionEnd={panZoom.onTransformTransitionEnd}
+      >
         <rect width="1000" height="1000" fill="#05080f" />
         {planets.map((planet) => (
           <OccupiedOrbit key={`orbit-${planet.id}`} radius={planet.orbitRadius} />
         ))}
-        <Star name={system.star.name} onSelect={onSelectGalaxy} />
+        <Star name={system.star.name} onSelect={selectGalaxy} />
         {planets.map((planet) => (
           <Planet key={planet.id} planet={planet} />
         ))}

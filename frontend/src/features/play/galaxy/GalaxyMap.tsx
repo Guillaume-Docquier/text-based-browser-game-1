@@ -5,6 +5,7 @@ import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 const GALAXY_SIZE = 1_000
 const GALAXY_PADDING = 25
 const GALAXY_MAP_SIZE = GALAXY_SIZE + GALAXY_PADDING * 2
+const GALAXY_VIEWPORT_CENTER = { x: GALAXY_SIZE / 2, y: GALAXY_SIZE / 2 }
 const LIGHT_YEAR_SIZE = 10
 const MINOR_GRID_LINES = Array.from({ length: 99 }, (_, index) => index + 1)
   .filter((index) => index % 10 !== 0)
@@ -28,14 +29,22 @@ export function GalaxyMap({
   resetSignal: number
   onSelectSystem: (system: StarSystem) => void
 }): ReactElement {
-  const panZoom = useMapPanZoom({ resetSignal })
+  const panZoom = useMapPanZoom({ resetSignal, viewportCenter: GALAXY_VIEWPORT_CENTER })
+
+  function selectSystem(system: StarSystem): void {
+    panZoom.centerOn({ x: system.star.x * LIGHT_YEAR_SIZE, y: system.star.y * LIGHT_YEAR_SIZE }, () => {
+      onSelectSystem(system)
+    })
+  }
 
   return (
     <svg
       aria-label="Galaxy map"
       role="group"
       viewBox={`${-GALAXY_PADDING} ${-GALAXY_PADDING} ${GALAXY_MAP_SIZE} ${GALAXY_MAP_SIZE}`}
-      className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"}`}
+      className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"} ${
+        panZoom.isCentering ? "pointer-events-none" : ""
+      }`}
       onPointerCancel={panZoom.onPointerCancel}
       onPointerDown={panZoom.onPointerDown}
       onPointerMove={panZoom.onPointerMove}
@@ -52,11 +61,16 @@ export function GalaxyMap({
           <rect x={-GALAXY_PADDING} y={-GALAXY_PADDING} width={GALAXY_MAP_SIZE} height={GALAXY_MAP_SIZE} />
         </clipPath>
       </defs>
-      <g transform={panZoom.transform} clipPath="url(#galaxy-bounds)">
+      <g
+        transform={panZoom.transform}
+        clipPath="url(#galaxy-bounds)"
+        className={panZoom.isCentering ? "transition-transform duration-300 ease-in-out" : undefined}
+        onTransitionEnd={panZoom.onTransformTransitionEnd}
+      >
         <rect x={-GALAXY_PADDING} y={-GALAXY_PADDING} width={GALAXY_MAP_SIZE} height={GALAXY_MAP_SIZE} fill="#05080f" />
         <GalaxyGrid />
         {galaxy.systems.map((system) => (
-          <GalaxyStar key={system.star.id} system={system} onSelect={onSelectSystem} />
+          <GalaxyStar key={system.star.id} system={system} onSelect={selectSystem} />
         ))}
       </g>
     </svg>
