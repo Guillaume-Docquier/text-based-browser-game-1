@@ -3,6 +3,8 @@ import type { KeyboardEvent, ReactElement } from "react"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const GALAXY_SIZE = 1_000
+const GALAXY_PADDING = 25
+const GALAXY_MAP_SIZE = GALAXY_SIZE + GALAXY_PADDING * 2
 const LIGHT_YEAR_SIZE = 10
 const MINOR_GRID_LINES = Array.from({ length: 99 }, (_, index) => index + 1)
   .filter((index) => index % 10 !== 0)
@@ -32,7 +34,7 @@ export function GalaxyMap({
     <svg
       aria-label="Galaxy map"
       role="group"
-      viewBox="-25 -25 1050 1050"
+      viewBox={`${-GALAXY_PADDING} ${-GALAXY_PADDING} ${GALAXY_MAP_SIZE} ${GALAXY_MAP_SIZE}`}
       className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"}`}
       onPointerCancel={panZoom.onPointerCancel}
       onPointerDown={panZoom.onPointerDown}
@@ -47,11 +49,11 @@ export function GalaxyMap({
           <stop offset="100%" stopColor="#facc15" stopOpacity="0" />
         </radialGradient>
         <clipPath id="galaxy-bounds">
-          <rect width={GALAXY_SIZE} height={GALAXY_SIZE} />
+          <rect x={-GALAXY_PADDING} y={-GALAXY_PADDING} width={GALAXY_MAP_SIZE} height={GALAXY_MAP_SIZE} />
         </clipPath>
       </defs>
       <g transform={panZoom.transform} clipPath="url(#galaxy-bounds)">
-        <rect width={GALAXY_SIZE} height={GALAXY_SIZE} fill="#05080f" />
+        <rect x={-GALAXY_PADDING} y={-GALAXY_PADDING} width={GALAXY_MAP_SIZE} height={GALAXY_MAP_SIZE} fill="#05080f" />
         <GalaxyGrid />
         {galaxy.systems.map((system) => (
           <GalaxyStar key={system.star.id} system={system} onSelect={onSelectSystem} />
