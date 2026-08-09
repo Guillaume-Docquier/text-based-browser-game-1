@@ -1,0 +1,78 @@
+import { Assert } from "@guillaume-docquier/tools-ts"
+import type { Locator, Page } from "@playwright/test"
+
+export class GalaxyPage {
+  public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId/play/galaxy" })
+
+  private readonly page: Page
+
+  public readonly heading: Locator
+  public readonly map: Locator
+  public readonly stars: Locator
+  public readonly starSystemMap: Locator
+  public readonly starSystemStar: Locator
+  public readonly backToGalaxyButton: Locator
+
+  public constructor(page: Page) {
+    this.page = page
+    this.heading = page.getByRole("heading", { name: "Galaxy", exact: true })
+    this.map = page.getByRole("group", { name: "Galaxy map" })
+    this.stars = page.getByRole("button", { name: /^View .+ Star System$/ })
+    this.starSystemMap = page.getByRole("group", { name: / Star System map$/ })
+    this.starSystemStar = page.getByRole("button", { name: /^Return to Galaxy from / })
+    this.backToGalaxyButton = page.getByRole("button", { name: "Galaxy", exact: true })
+  }
+
+  public async zoomGalaxyIn(): Promise<void> {
+    await this.map.hover()
+    await this.page.mouse.wheel(0, -100)
+  }
+
+  public async panStarSystem({ deltaX, deltaY }: { deltaX: number; deltaY: number }): Promise<void> {
+    const mapBox = await this.starSystemMap.boundingBox()
+    Assert.isDefined(mapBox)
+    const start = {
+      x: mapBox.x + mapBox.width / 4,
+      y: mapBox.y + mapBox.height / 4,
+    }
+
+    await this.page.mouse.move(start.x, start.y)
+    await this.page.mouse.down()
+    await this.page.mouse.move(start.x + deltaX, start.y + deltaY)
+    await this.page.mouse.up()
+  }
+
+  public async getGalaxyCameraTransform(): Promise<string> {
+    const transform = await this.map.locator(":scope > g[transform]").getAttribute("transform")
+    Assert.isDefined(transform)
+
+    return transform
+  }
+
+  public async getGalaxyCameraScale(): Promise<number> {
+    const transform = await this.getGalaxyCameraTransform()
+    const scale = /scale\(([^)]+)\)/.exec(transform)?.[1]
+    Assert.isDefined(scale)
+
+    return Number(scale)
+  }
+
+  public async getGalaxyStarDistanceFromCenter(star: Locator): Promise<number> {
+    return await this.getDistanceFromMapCenter({ map: this.map, target: star })
+  }
+
+  public async getStarSystemStarDistanceFromCenter(): Promise<number> {
+    return await this.getDistanceFromMapCenter({ map: this.starSystemMap, target: this.starSystemStar.locator("circle").last() })
+  }
+
+  private async getDistanceFromMapCenter({ map, target }: { map: Locator; target: Locator }): Promise<number> {
+    const [mapBox, targetBox] = await Promise.all([map.boundingBox(), target.boundingBox()])
+    Assert.isDefined(mapBox)
+    Assert.isDefined(targetBox)
+
+    return Math.hypot(
+      targetBox.x + targetBox.width / 2 - (mapBox.x + mapBox.width / 2),
+      targetBox.y + targetBox.height / 2 - (mapBox.y + mapBox.height / 2),
+    )
+  }
+}
