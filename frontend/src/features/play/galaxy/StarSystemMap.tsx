@@ -1,5 +1,5 @@
-import type { PlanetBiome, PlanetSize, StarSystem } from "@api-types"
-import type { KeyboardEvent, ReactElement } from "react"
+import type { Planet as PlanetModel, PlanetBiome, PlanetSize, StarSystem } from "@api-types"
+import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const CENTER = 500
@@ -19,16 +19,10 @@ const PLANET_RADII = {
   LARGE: STAR_RADIUS / 1.25,
 } as const satisfies Record<PlanetSize, number>
 
-type PlanetViewModel = {
-  id: number
-  name: string
-  biome: PlanetBiome
-  size: PlanetSize
+type PlanetViewModel = PlanetModel & {
   radius: number
   color: `#${string}`
   orbitRadius: number
-  x: number
-  y: number
 }
 
 /**
@@ -37,16 +31,19 @@ type PlanetViewModel = {
  * @param system - The Star System to render.
  * @param resetSignal - A value whose changes reset pan and zoom.
  * @param onSelectGalaxy - Returns to the galaxy-wide map.
+ * @param onSelectPlanet - Selects a Planet for inspection.
  * @returns The interactive SVG Star System map.
  */
 export function StarSystemMap({
   system,
   resetSignal,
   onSelectGalaxy,
+  onSelectPlanet,
 }: {
   system: StarSystem
   resetSignal: number
   onSelectGalaxy: () => void
+  onSelectPlanet: (planet: PlanetModel) => void
 }): ReactElement {
   const panZoom = useMapPanZoom({ resetSignal, viewportCenter: VIEWPORT_CENTER })
   const planets = toPlanetViewModels(system)
@@ -89,7 +86,7 @@ export function StarSystemMap({
         ))}
         <Star name={system.star.name} onSelect={selectGalaxy} />
         {planets.map((planet) => (
-          <Planet key={planet.id} planet={planet} />
+          <Planet key={planet.id} planet={planet} onSelect={onSelectPlanet} />
         ))}
       </g>
     </svg>
@@ -162,11 +159,54 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
   )
 }
 
-function Planet({ planet }: { planet: PlanetViewModel }): ReactElement {
+function Planet({ planet, onSelect }: { planet: PlanetViewModel; onSelect: (planet: PlanetModel) => void }): ReactElement {
+  function selectPlanet(event: MouseEvent<SVGGElement>): void {
+    event.stopPropagation()
+    onSelect(planet)
+  }
+
   return (
-    <g role="img" aria-label={`${planet.name}, ${planet.size.toLowerCase()} ${planet.biome.toLowerCase()} planet`}>
-      <circle cx={planet.x} cy={planet.y} r={planet.radius} fill={planet.color} data-biome={planet.biome} data-size={planet.size} />
+    <g
+      role="button"
+      tabIndex={0}
+      aria-label={`View ${planet.name} details`}
+      className="group/planet cursor-pointer outline-none"
+      onClick={selectPlanet}
+      onKeyDown={(event) => {
+        activateWithKeyboard(event, () => {
+          onSelect(planet)
+        })
+      }}
+    >
+      <title>{`${planet.name}, ${planet.size.toLowerCase()} ${planet.biome.toLowerCase()} planet`}</title>
+      <circle
+        cx={planet.x}
+        cy={planet.y}
+        r={planet.radius + 8}
+        fill={planet.color}
+        opacity="0"
+        className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-hover/planet:opacity-25 group-focus/planet:scale-125 group-focus/planet:opacity-25"
+      />
+      <circle
+        cx={planet.x}
+        cy={planet.y}
+        r={planet.radius}
+        fill={planet.color}
+        data-biome={planet.biome}
+        data-size={planet.size}
+        className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-focus/planet:scale-125"
+      />
       <MapLabel x={planet.x + planet.radius + 8} y={planet.y} text={planet.name} />
+      {/* Provides a larger pointer and keyboard focus target without changing the visible planet. */}
+      <circle
+        cx={planet.x}
+        cy={planet.y}
+        r={planet.radius + 10}
+        fill="transparent"
+        stroke="transparent"
+        strokeWidth="2"
+        className="transition-colors duration-200 group-focus/planet:stroke-white"
+      />
     </g>
   )
 }
@@ -215,10 +255,7 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
     const directionScale = distance === 0 ? 0 : orbitRadius / distance
 
     return {
-      id: planet.id,
-      name: planet.name,
-      biome: planet.biome,
-      size: planet.size,
+      ...planet,
       radius: PLANET_RADII[planet.size],
       color: PLANET_COLORS[planet.biome],
       orbitRadius,

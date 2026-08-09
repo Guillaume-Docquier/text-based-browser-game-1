@@ -11,6 +11,8 @@ export class GalaxyPage {
   public readonly stars: Locator
   public readonly starSystemMap: Locator
   public readonly starSystemStar: Locator
+  public readonly planets: Locator
+  public readonly planetDetailsPane: Locator
   public readonly backToGalaxyButton: Locator
 
   public constructor(page: Page) {
@@ -20,6 +22,8 @@ export class GalaxyPage {
     this.stars = page.getByRole("button", { name: /^View .+ Star System$/ })
     this.starSystemMap = page.getByRole("group", { name: / Star System map$/ })
     this.starSystemStar = page.getByRole("button", { name: /^Return to Galaxy from / })
+    this.planets = page.getByRole("button", { name: /^View .+ details$/ })
+    this.planetDetailsPane = page.getByRole("complementary", { name: / details$/ })
     this.backToGalaxyButton = page.getByRole("button", { name: "Galaxy", exact: true })
   }
 
@@ -63,6 +67,13 @@ export class GalaxyPage {
 
   public async getStarSystemStarDistanceFromCenter(): Promise<number> {
     return await this.getDistanceFromMapCenter({ map: this.starSystemMap, target: this.starSystemStar.locator("circle").last() })
+  }
+
+  public async getPlanetName(planet: Locator): Promise<string> {
+    const name = await planet.locator("text").textContent()
+    Assert.isDefined(name)
+
+    return name
   }
 
   private async getDistanceFromMapCenter({ map, target }: { map: Locator; target: Locator }): Promise<number> {
