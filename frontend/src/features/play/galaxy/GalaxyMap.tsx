@@ -125,17 +125,47 @@ function GalaxyStar({ system, onSelect }: { system: StarSystem; onSelect: (syste
       role="button"
       tabIndex={0}
       aria-label={`View ${system.star.name} Star System`}
-      className="cursor-pointer outline-none [&>circle]:transition-colors hover:[&>circle:nth-of-type(2)]:fill-yellow-100 hover:[&>circle:last-of-type]:stroke-yellow-200 focus:[&>circle:last-of-type]:stroke-white"
+      className="group/star cursor-pointer outline-none"
       onClick={selectSystem}
       onKeyDown={(event) => {
         activateWithKeyboard(event, selectSystem)
       }}
     >
       <title>{system.star.name}</title>
-      <circle cx={x} cy={y} r="1.5" fill="url(#galaxy-star-glow)" />
-      <circle cx={x} cy={y} r="0.5" fill="#fde047" stroke="#fde047" strokeWidth="0.5" />
+      <circle
+        cx={x}
+        cy={y}
+        r="1.5"
+        fill="url(#galaxy-star-glow)"
+        className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-150 group-focus/star:scale-150"
+      />
+      <circle
+        cx={x}
+        cy={y}
+        r="1.5"
+        fill="url(#galaxy-star-glow)"
+        opacity="0"
+        className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-[1.9] group-hover/star:opacity-80 group-focus/star:scale-[1.9] group-focus/star:opacity-80"
+      />
+      <circle
+        cx={x}
+        cy={y}
+        r="0.5"
+        fill="#fde047"
+        stroke="#fde047"
+        strokeWidth="0.5"
+        className="pointer-events-none origin-center transition-[fill,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-150 group-hover/star:fill-yellow-100 group-focus/star:scale-150 group-focus/star:fill-yellow-100"
+      />
       {/* Provides a larger pointer and keyboard focus target without changing the visible star. */}
-      <circle cx={x} cy={y} r="2" fill="transparent" stroke="transparent" strokeWidth="1" />
+      <circle
+        cx={x}
+        cy={y}
+        r="1.5"
+        fill="transparent"
+        stroke="transparent"
+        strokeWidth="0.15"
+        className="transition-colors duration-200 group-focus/star:stroke-white"
+      />
     </g>
   )
 }

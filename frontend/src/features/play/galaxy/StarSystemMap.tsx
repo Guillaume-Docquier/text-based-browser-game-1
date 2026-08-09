@@ -90,17 +90,47 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
       role="button"
       tabIndex={0}
       aria-label={`Return to Galaxy from ${name}`}
-      className="cursor-pointer outline-none focus:[&>circle:last-of-type]:stroke-white"
+      className="group/star cursor-pointer outline-none"
       onClick={onSelect}
       onKeyDown={(event) => {
         activateWithKeyboard(event, onSelect)
       }}
     >
-      <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS * 3} fill="url(#system-star-glow)" />
-      <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS} fill="#fde047" stroke="#fef9c3" strokeWidth="2" />
+      <circle
+        cx={CENTER}
+        cy={CENTER}
+        r={STAR_RADIUS * 3}
+        fill="url(#system-star-glow)"
+        className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-125 group-focus/star:scale-125"
+      />
+      <circle
+        cx={CENTER}
+        cy={CENTER}
+        r={STAR_RADIUS * 3}
+        fill="url(#system-star-glow)"
+        opacity="0"
+        className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-150 group-hover/star:opacity-80 group-focus/star:scale-150 group-focus/star:opacity-80"
+      />
+      <circle
+        cx={CENTER}
+        cy={CENTER}
+        r={STAR_RADIUS}
+        fill="#fde047"
+        stroke="#fef9c3"
+        strokeWidth="2"
+        className="pointer-events-none origin-center transition-[fill,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-125 group-hover/star:fill-yellow-100 group-focus/star:scale-125 group-focus/star:fill-yellow-100"
+      />
       <MapLabel x={CENTER + STAR_RADIUS + 12} y={CENTER} text={name} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible star. */}
-      <circle cx={CENTER} cy={CENTER} r={STAR_RADIUS + 10} fill="transparent" stroke="transparent" strokeWidth="2" />
+      <circle
+        cx={CENTER}
+        cy={CENTER}
+        r={STAR_RADIUS + 10}
+        fill="transparent"
+        stroke="transparent"
+        strokeWidth="2"
+        className="transition-colors duration-200 group-focus/star:stroke-white"
+      />
     </g>
   )
 }
