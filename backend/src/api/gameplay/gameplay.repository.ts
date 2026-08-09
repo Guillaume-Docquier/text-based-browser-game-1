@@ -9,6 +9,8 @@ import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import type { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import type { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
+import type { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
@@ -28,6 +30,8 @@ type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type ActionRow = typeof actionsTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTurnRow = typeof turnsTable.$inferInsert
+// Keep each statement comfortably below PostgreSQL's bind-parameter limit as the persistent Planet row grows.
+const PLANET_INSERT_BATCH_SIZE = 500
 
 export type ActionModel = ActionRow
 
@@ -102,6 +106,14 @@ type PlanetModel = {
   readonly coordinates: PlanetCoordinates
   readonly x: number
   readonly y: number
+  readonly biome: PlanetBiome
+  readonly size: PlanetSize
+  readonly food: number
+  readonly metal: number
+  readonly fuel: number
+  readonly energy: number
+  readonly maxPopulation: number
+  readonly area: number
 }
 
 export type GalaxyModel = {
@@ -223,7 +235,9 @@ export class GameplayRepository extends PostgresRepository {
 
     await tx.insert(resourcesTable).values(resources)
     await tx.insert(starsTable).values(stars)
-    await tx.insert(planetsTable).values(planets)
+    for (let index = 0; index < planets.length; index += PLANET_INSERT_BATCH_SIZE) {
+      await tx.insert(planetsTable).values(planets.slice(index, index + PLANET_INSERT_BATCH_SIZE))
+    }
     await tx.insert(gameStatesTable).values(gameState)
     await tx.insert(turnsTable).values(gameTurn)
   }

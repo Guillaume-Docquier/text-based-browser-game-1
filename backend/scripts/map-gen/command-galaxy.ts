@@ -134,6 +134,8 @@ async function renderGalaxy({
       planets: system.planets.map((planet) => ({
         x: lightYearsToAstronomicalUnits(planet.x - system.star.x),
         y: lightYearsToAstronomicalUnits(planet.y - system.star.y),
+        biome: planet.biome,
+        size: planet.size,
       })),
     })),
   })

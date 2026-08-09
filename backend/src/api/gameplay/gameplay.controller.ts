@@ -10,6 +10,8 @@ import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { ACTION_RULES, ActionDto, ActionTypeSchema } from "#lib/db/gameplay/actions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
+import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
+import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
@@ -283,6 +285,14 @@ export const PlanetDto = z.object({
   coordinates: PlanetCoordinates,
   x: z.number(),
   y: z.number(),
+  biome: z.enum(PlanetBiome),
+  size: z.enum(PlanetSize),
+  food: z.number(),
+  metal: z.number(),
+  fuel: z.number(),
+  energy: z.number(),
+  maxPopulation: z.number(),
+  area: z.number(),
 })
 
 export const GalaxyDto = z.object({

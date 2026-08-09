@@ -2,7 +2,9 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
+
+Biome, Size, and initial Planet Attributes are generated deterministically when a game starts, persisted, and visible on the Star System map. Colonization, vision memory, Terraforming, and Planet Development remain planned.
 
 ## Purpose
 

@@ -14,6 +14,8 @@ import {
   doublePrecision,
 } from "drizzle-orm/pg-core"
 import { ActionType } from "#lib/db/gameplay/actionType.ts"
+import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
+import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 
@@ -28,6 +30,8 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 
 export const actionTypeEnum = pgEnum("action_type", pgEnumify(ActionType))
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
+export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
+export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
 
 const accountId = uuid
@@ -212,6 +216,14 @@ export const planetsTable = pgTable(
     coordinates: text("coordinates").notNull(),
     x: doublePrecision("x").notNull(),
     y: doublePrecision("y").notNull(),
+    biome: planetBiomeEnum("biome").notNull(),
+    size: planetSizeEnum("size").notNull(),
+    food: integer("food").notNull(),
+    metal: integer("metal").notNull(),
+    fuel: integer("fuel").notNull(),
+    energy: integer("energy").notNull(),
+    maxPopulation: integer("max_population").notNull(),
+    area: integer("area").notNull(),
   },
   (table) => [
     primaryKey({

@@ -2,6 +2,14 @@
 
 This index summarizes the game's systems. Read the related entries when a mechanic, its tradeoffs, or its implementation path matters to your work.
 
+## Partially Implemented Systems
+
+These Systems have live mechanics, but some documented rules remain planned.
+
+| System                          | Summary                                                          |
+| ------------------------------- | ---------------------------------------------------------------- |
+| [008-planets](./008-planets.md) | How Planets, their Attributes, and Colonization shape expansion. |
+
 ## Not Implemented Systems
 
 These Systems describe intended rules that are not yet implemented in the game.
@@ -15,7 +23,6 @@ These Systems describe intended rules that are not yet implemented in the game.
 | [005-political-regime](./005-political-regime.md)           | How an empire's Political Regime changes the cost and efficiency of its actions.                 |
 | [006-trade](./006-trade.md)                                 | How Sellers and Buyers exchange resources through private bids.                                  |
 | [007-contracts](./007-contracts.md)                         | How Clients hire Contractors to perform Actions on their behalf.                                 |
-| [008-planets](./008-planets.md)                             | How Planets, their Attributes, and Colonization shape expansion.                                 |
 | [009-infrastructure](./009-infrastructure.md)               | How empires improve their owned Planets.                                                         |
 | [010-fleets](./010-fleets.md)                               | How Fleets combine automatically and split when they move.                                       |
 | [011-combat](./011-combat.md)                               | How Fleet assaults and Surprise Assaults resolve.                                                |

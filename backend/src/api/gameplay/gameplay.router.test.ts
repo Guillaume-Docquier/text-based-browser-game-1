@@ -5,6 +5,8 @@ import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDt
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { ActionType } from "#lib/db/gameplay/actionType.ts"
+import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
+import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
@@ -51,11 +53,19 @@ describe("gameplay.router", () => {
       expect(playerView.galaxy.systems.length).toBeGreaterThan(500) // enough systems are generated
       expect(playerView.galaxy.systems.flatMap(({ planets }) => planets).length).toBeGreaterThan(1500) // enough planets are generated
       expect(playerView.galaxy.systems[1]?.planets[1]).toEqual({
-        coordinates: "44:76:30", // coordinates make sense
-        x: 46.42151358853193,
-        y: 47.214134210593976,
+        coordinates: "44:76:35", // coordinates make sense
+        x: 46.42101792976603,
+        y: 47.21423492967076,
         id: expect.any(Number),
-        name: expect.any(String),
+        name: "planet 685256",
+        biome: PlanetBiome.VOLCANIC,
+        size: PlanetSize.MEDIUM,
+        food: 2,
+        metal: 1,
+        fuel: 2,
+        energy: 3,
+        maxPopulation: 15,
+        area: 5,
       })
 
       const allStars = playerView.galaxy.systems.map(({ star }) => star)

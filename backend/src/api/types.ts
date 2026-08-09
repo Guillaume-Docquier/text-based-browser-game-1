@@ -29,3 +29,6 @@ export type ActionDto = NonNullable<CurrentActionOutput["action"]>
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
 export type Galaxy = PlayerView["galaxy"]
 export type StarSystem = Galaxy["systems"][number]
+export type Planet = StarSystem["planets"][number]
+export type PlanetBiome = Planet["biome"]
+export type PlanetSize = Planet["size"]

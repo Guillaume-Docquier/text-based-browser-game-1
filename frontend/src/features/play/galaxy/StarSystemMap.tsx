@@ -1,17 +1,31 @@
-import type { StarSystem } from "@api-types"
+import type { PlanetBiome, PlanetSize, StarSystem } from "@api-types"
 import type { KeyboardEvent, ReactElement } from "react"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const CENTER = 500
 const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
 const STAR_RADIUS = 18
-const PLANET_RADIUS = STAR_RADIUS / 3
 const INNER_ORBIT_RADIUS = 90
 const OUTER_ORBIT_RADIUS = 420
+const PLANET_COLORS = {
+  OCEANIC: "#0ea5e9",
+  METALLIC: "#94a3b8",
+  FROZEN: "#bfdbfe",
+  VOLCANIC: "#f97316",
+} as const satisfies Record<PlanetBiome, `#${string}`>
+const PLANET_RADII = {
+  SMALL: STAR_RADIUS / 4,
+  MEDIUM: STAR_RADIUS / 3,
+  LARGE: STAR_RADIUS / 2,
+} as const satisfies Record<PlanetSize, number>
 
 type PlanetViewModel = {
   id: number
   name: string
+  biome: PlanetBiome
+  size: PlanetSize
+  radius: number
+  color: `#${string}`
   orbitRadius: number
   x: number
   y: number
@@ -150,9 +164,18 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
 
 function Planet({ planet }: { planet: PlanetViewModel }): ReactElement {
   return (
-    <g>
-      <circle cx={planet.x} cy={planet.y} r={PLANET_RADIUS} fill="#22d3ee" stroke="#cffafe" strokeWidth="1" />
-      <MapLabel x={planet.x + PLANET_RADIUS + 8} y={planet.y} text={planet.name} />
+    <g role="img" aria-label={`${planet.name}, ${planet.size.toLowerCase()} ${planet.biome.toLowerCase()} planet`}>
+      <circle
+        cx={planet.x}
+        cy={planet.y}
+        r={planet.radius}
+        fill={planet.color}
+        stroke="#e2e8f0"
+        strokeWidth="1"
+        data-biome={planet.biome}
+        data-size={planet.size}
+      />
+      <MapLabel x={planet.x + planet.radius + 8} y={planet.y} text={planet.name} />
     </g>
   )
 }
@@ -203,6 +226,10 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
     return {
       id: planet.id,
       name: planet.name,
+      biome: planet.biome,
+      size: planet.size,
+      radius: PLANET_RADII[planet.size],
+      color: PLANET_COLORS[planet.biome],
       orbitRadius,
       x: CENTER + offsetX * directionScale,
       y: CENTER + offsetY * directionScale,
