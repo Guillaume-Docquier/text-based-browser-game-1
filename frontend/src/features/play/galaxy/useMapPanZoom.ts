@@ -9,9 +9,26 @@ type ViewportTransform = Point & {
   scale: number
 }
 
+type PointerMovement = {
+  pointerId: number
+  previousPoint: Point
+  currentPoint: Point
+  pointerOrigin: Point
+}
+
+type MapGesture =
+  | { type: "none" }
+  | { type: "pan"; translation: Point }
+  | {
+      type: "pinch"
+      previousCenter: Point
+      currentCenter: Point
+      scaleFactor: number
+    }
+
 const INITIAL_TRANSFORM: ViewportTransform = { x: 0, y: 0, scale: 1 }
 const MIN_SCALE = 0.75
-const MAX_SCALE = 12
+const MAX_SCALE = 36
 const DRAG_THRESHOLD = 3
 
 /**
@@ -48,57 +65,20 @@ export function useMapPanZoom({ resetSignal }: { resetSignal: number }): {
   }
 
   function onPointerMove(event: PointerEvent<SVGSVGElement>): void {
-    const previousPoint = pointers.current.get(event.pointerId)
-    const pointerOrigin = pointerOrigins.current.get(event.pointerId)
-    if (previousPoint === undefined || pointerOrigin === undefined) {
+    const movement = getPointerMovement({ event, pointers: pointers.current, pointerOrigins: pointerOrigins.current })
+    if (movement === undefined) {
       return
     }
 
-    const currentPoint = toSvgPoint(event)
-    if (!isPanning && distance(pointerOrigin, currentPoint) < DRAG_THRESHOLD) {
+    if (!isPanningGesture({ movement, isPanning })) {
       return
     }
 
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.setPointerCapture(event.pointerId)
-    }
+    capturePointer(event)
     setIsPanning(true)
 
-    const previousPointers = Array.from(pointers.current.values())
-    pointers.current.set(event.pointerId, currentPoint)
-    const currentPointers = Array.from(pointers.current.values())
-
-    if (currentPointers.length === 1) {
-      setViewportTransform((currentTransform) => ({
-        ...currentTransform,
-        x: currentTransform.x + currentPoint.x - previousPoint.x,
-        y: currentTransform.y + currentPoint.y - previousPoint.y,
-      }))
-      return
-    }
-
-    const [previousFirst, previousSecond] = previousPointers
-    const [currentFirst, currentSecond] = currentPointers
-    if (previousFirst === undefined || previousSecond === undefined || currentFirst === undefined || currentSecond === undefined) {
-      return
-    }
-
-    const previousCenter = midpoint(previousFirst, previousSecond)
-    const currentCenter = midpoint(currentFirst, currentSecond)
-    const previousDistance = distance(previousFirst, previousSecond)
-    const currentDistance = distance(currentFirst, currentSecond)
-    if (previousDistance === 0) {
-      return
-    }
-
-    setViewportTransform((currentTransform) =>
-      zoomAroundPoint({
-        currentTransform,
-        previousPoint: previousCenter,
-        currentPoint: currentCenter,
-        requestedScale: currentTransform.scale * (currentDistance / previousDistance),
-      }),
-    )
+    const gesture = updatePointersAndCreateGesture({ pointers: pointers.current, movement })
+    setViewportTransform((currentTransform) => applyGesture(currentTransform, gesture))
   }
 
   function onPointerEnd(event: PointerEvent<SVGSVGElement>): void {
@@ -133,6 +113,107 @@ export function useMapPanZoom({ resetSignal }: { resetSignal: number }): {
     onPointerMove,
     onPointerUp: onPointerEnd,
     onWheel,
+  }
+}
+
+function getPointerMovement({
+  event,
+  pointers,
+  pointerOrigins,
+}: {
+  event: PointerEvent<SVGSVGElement>
+  pointers: ReadonlyMap<number, Point>
+  pointerOrigins: ReadonlyMap<number, Point>
+}): PointerMovement | undefined {
+  const previousPoint = pointers.get(event.pointerId)
+  const pointerOrigin = pointerOrigins.get(event.pointerId)
+  if (previousPoint === undefined || pointerOrigin === undefined) {
+    return undefined
+  }
+
+  return {
+    pointerId: event.pointerId,
+    previousPoint,
+    currentPoint: toSvgPoint(event),
+    pointerOrigin,
+  }
+}
+
+function isPanningGesture({ movement, isPanning }: { movement: PointerMovement; isPanning: boolean }): boolean {
+  return isPanning || distance(movement.pointerOrigin, movement.currentPoint) >= DRAG_THRESHOLD
+}
+
+function capturePointer(event: PointerEvent<SVGSVGElement>): void {
+  if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+    return
+  }
+
+  event.currentTarget.setPointerCapture(event.pointerId)
+}
+
+function updatePointersAndCreateGesture({ pointers, movement }: { pointers: Map<number, Point>; movement: PointerMovement }): MapGesture {
+  const previousPointers = Array.from(pointers.values())
+  pointers.set(movement.pointerId, movement.currentPoint)
+
+  if (pointers.size === 1) {
+    return {
+      type: "pan",
+      translation: {
+        x: movement.currentPoint.x - movement.previousPoint.x,
+        y: movement.currentPoint.y - movement.previousPoint.y,
+      },
+    }
+  }
+
+  return createPinchGesture(previousPointers, Array.from(pointers.values()))
+}
+
+function createPinchGesture(previousPointers: Point[], currentPointers: Point[]): MapGesture {
+  const previousPair = firstTwoPoints(previousPointers)
+  const currentPair = firstTwoPoints(currentPointers)
+  if (previousPair === undefined || currentPair === undefined) {
+    return { type: "none" }
+  }
+
+  const previousDistance = distance(...previousPair)
+  if (previousDistance === 0) {
+    return { type: "none" }
+  }
+
+  return {
+    type: "pinch",
+    previousCenter: midpoint(...previousPair),
+    currentCenter: midpoint(...currentPair),
+    scaleFactor: distance(...currentPair) / previousDistance,
+  }
+}
+
+function firstTwoPoints(points: Point[]): [Point, Point] | undefined {
+  const [firstPoint, secondPoint] = points
+  if (firstPoint === undefined || secondPoint === undefined) {
+    return undefined
+  }
+
+  return [firstPoint, secondPoint]
+}
+
+function applyGesture(currentTransform: ViewportTransform, gesture: MapGesture): ViewportTransform {
+  switch (gesture.type) {
+    case "none":
+      return currentTransform
+    case "pan":
+      return {
+        ...currentTransform,
+        x: currentTransform.x + gesture.translation.x,
+        y: currentTransform.y + gesture.translation.y,
+      }
+    case "pinch":
+      return zoomAroundPoint({
+        currentTransform,
+        previousPoint: gesture.previousCenter,
+        currentPoint: gesture.currentCenter,
+        requestedScale: currentTransform.scale * gesture.scaleFactor,
+      })
   }
 }
 
