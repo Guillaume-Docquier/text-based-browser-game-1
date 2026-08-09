@@ -98,12 +98,6 @@ The visual direction is inspired by Dune, The Expanse and Homeworld 2: tactical,
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | ![Dune Board Game Map](../../../.github/images/inspiration-dune.png) | ![Homeworld 2 Tactical Map](../../../.github/images/inspiration-homeworld-2-map.png) |
 
-### AI Generated UI
-
-| AI Generated Solar System UI                                                             | AI Generated Planet UI                                                       |
-| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| ![AI Generated Solar System UI](../../../.github/images/mockup-ai-solar-system-view.png) | ![AI Generated Planet UI](../../../.github/images/mockup-ai-planet-view.png) |
-
 ## Game World Fiction
 
 Humanity has colonized the solar system and is approaching the point where expansion beyond it may become possible. Different factions now compete to define the future: mercantile blocs, technocratic societies, authoritarian powers, ideological movements, industrial networks and covert institutions.

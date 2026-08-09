@@ -1,10 +1,7 @@
-import { Assert, type Logger, Range, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
-import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
-import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
-import { RangeDto } from "#api/shared/RangeDto.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
@@ -38,10 +35,6 @@ export class LobbiesController {
       return Result.Failure(`Games cannot have more than ${MAX_NB_SEATS} seats`)
     }
 
-    if (!validateStarSystemGenerationSettings(createLobbyDto.configuration.starSystemGenerationSettings)) {
-      return Result.Failure("Star System generation settings must be within the accepted limits")
-    }
-
     const status = createLobbyDto.configuration.nbSeats <= 1 ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
     const createLobbyResult = await this.lobbiesRepository.createLobby({
       ...createLobbyDto,
@@ -58,8 +51,6 @@ export class LobbiesController {
   public getCreationSettings(): LobbyCreationSettingsDto {
     return {
       maxNbSeats: MAX_NB_SEATS,
-      defaultStarSystemGenerationSettings: createStarSystemGenerationSettingsDefaults(),
-      starSystemGenerationSettingsLimits: StarSystemGenerationSettingsLimits,
     }
   }
 
@@ -178,16 +169,6 @@ export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; p
   }
 }
 
-export type StarSystemGenerationSettingsDto = z.infer<typeof StarSystemGenerationSettingsDto>
-export const StarSystemGenerationSettingsDto = z.object({
-  planetDensity: RangeDto,
-  nbPlanets: RangeDto,
-  nbMoonsPerPlanet: RangeDto,
-  nbAsteroidBelts: RangeDto,
-  nbAsteroidsPerSector: RangeDto,
-  seed: z.number(),
-})
-
 export type CreateLobbyDto = z.infer<typeof CreateLobbyDto>
 export const CreateLobbyDto = z.object({
   createdByAccountId: AccountId,
@@ -195,7 +176,6 @@ export const CreateLobbyDto = z.object({
     name: z.string(),
     nbSeats: z.number(),
     turnIntervalSeconds: z.number(),
-    starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   }),
 })
 
@@ -224,27 +204,14 @@ export const LeaveLobbyDto = z.object({
 export type LeftLobbyDto = z.infer<typeof LeftLobbyDto>
 export const LeftLobbyDto = z.literal(true)
 
-export type StarSystemGenerationSettingsLimitsDto = z.infer<typeof StarSystemGenerationSettingsLimitsDto>
-export const StarSystemGenerationSettingsLimitsDto = z.object({
-  nbPlanets: RangeDto,
-  planetDensity: RangeDto,
-  nbMoonsPerPlanet: RangeDto,
-  nbAsteroidBelts: RangeDto,
-  nbAsteroidsPerSector: RangeDto,
-  seed: RangeDto,
-})
-
 export type LobbyCreationSettingsDto = z.infer<typeof LobbyCreationSettingsDto>
 export const LobbyCreationSettingsDto = z.object({
   maxNbSeats: z.number(),
-  defaultStarSystemGenerationSettings: StarSystemGenerationSettingsDto,
-  starSystemGenerationSettingsLimits: StarSystemGenerationSettingsLimitsDto,
 })
 
 export type GameConfigurationDto = z.infer<typeof GameConfigurationDto>
 export const GameConfigurationDto = z.object({
   name: z.string(),
-  starSystemGenerationSettings: StarSystemGenerationSettingsDto,
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
 })
@@ -284,21 +251,3 @@ export const LobbyDto = z.object({
    */
   canOpen: z.boolean(),
 })
-
-function isRangeWithinLimit(range: Range, limit: Range): boolean {
-  return range.numericType === limit.numericType && Range.isWithin(limit, range)
-}
-
-function validateStarSystemGenerationSettings(settings: StarSystemGenerationSettingsDto): boolean {
-  const limits = StarSystemGenerationSettingsLimits
-
-  return (
-    isRangeWithinLimit(settings.planetDensity, limits.planetDensity) &&
-    isRangeWithinLimit(settings.nbPlanets, limits.nbPlanets) &&
-    isRangeWithinLimit(settings.nbMoonsPerPlanet, limits.nbMoonsPerPlanet) &&
-    isRangeWithinLimit(settings.nbAsteroidBelts, limits.nbAsteroidBelts) &&
-    isRangeWithinLimit(settings.nbAsteroidsPerSector, limits.nbAsteroidsPerSector) &&
-    Number.isInteger(settings.seed) &&
-    Range.isWithin(limits.seed, settings.seed)
-  )
-}

@@ -1,9 +1,7 @@
 import { Datetime, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import z from "zod"
-import { generateStarSystem } from "#api/gameplay/star-systems/generateStarSystem.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
-import { RangeDto } from "#api/shared/RangeDto.ts"
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -11,7 +9,6 @@ import { ACTION_RULES, ActionDto, ActionTypeSchema } from "#lib/db/gameplay/acti
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
-import { BodyType } from "#lib/db/star-systems/BodyType.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { type ActionModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
@@ -55,8 +52,6 @@ export class GameplayController {
 
       const startedAt = this.clock.now()
       const nextTurnAt = Datetime.increment({ date: startedAt, time: gameForStart.value.turnInterval })
-      const starSystemResult = generateStarSystem({ settings: gameForStart.value.starSystemGenerationSettings, clock: this.clock })
-      rollbackOnFailure(starSystemResult, "Failed to generate Star System")
 
       const startingResources = Object.values(ResourceType).map((resourceType) => ({
         resourceType,
@@ -72,7 +67,6 @@ export class GameplayController {
           status: GameStatus.COLLECTING_ACTIONS,
           startedAt,
           nextTurnAt,
-          starSystem: starSystemResult.value,
           playerResources,
         },
         tx,
@@ -190,7 +184,6 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     opponents: playerViewModel.opponents,
     turn: playerViewModel.turn,
     nextTurnAt: playerViewModel.nextTurnAt,
-    starSystem: playerViewModel.starSystem,
     resources: playerViewModel.resources,
   }
 }
@@ -216,43 +209,6 @@ export const StartedGameDto = z.object({
   nextTurnAt: z.date(),
 })
 
-const StarSystemBodyDto = z.object({
-  id: z.string(),
-  number: z.number(),
-  coordinates: z.string(),
-  name: z.string(),
-  type: z.enum(BodyType),
-  movementNodeId: z.string(),
-})
-
-const StarSystemSectorDto = z.object({
-  id: z.string(),
-  number: z.number(),
-  coordinates: z.string(),
-  angleRange: RangeDto,
-  bodies: z.array(StarSystemBodyDto),
-  movementNodeId: z.string(),
-})
-
-const StarSystemOrbitDto = z.object({
-  id: z.string(),
-  number: z.number(),
-  coordinates: z.string(),
-  sectors: z.array(StarSystemSectorDto),
-})
-
-const MovementEdgeDto = z.object({
-  fromNodeId: z.string(),
-  toNodeId: z.string(),
-  weight: z.number(),
-})
-
-type StarSystemDto = z.infer<typeof StarSystemDto>
-const StarSystemDto = z.object({
-  orbits: z.array(StarSystemOrbitDto),
-  movementEdges: z.record(z.string(), z.array(MovementEdgeDto)),
-})
-
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
 export const GetPlayerViewDto = z.object({
   gameId: z.coerce.number(),
@@ -269,7 +225,6 @@ export const PlayerViewDto = z.object({
   opponents: z.record(PlayerId, PlayerViewPlayerDto),
   turn: z.number(),
   nextTurnAt: z.date(),
-  starSystem: StarSystemDto,
   resources: z.object({
     money: z.number(),
   }),

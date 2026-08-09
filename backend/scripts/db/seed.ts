@@ -4,7 +4,6 @@ import { sql } from "drizzle-orm"
 import { type Table } from "drizzle-orm/table"
 import { z } from "zod"
 import { type AccountModel, AccountsRepository, type NewAccountModel } from "#api/accounts/accounts.repository.ts"
-import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
@@ -188,7 +187,6 @@ async function seedGames({
         name: "insanely fast game",
         nbSeats: 5,
         turnIntervalSeconds: 60,
-        starSystemGenerationSettings: createStarSystemGenerationSettingsDefaults(),
       },
     }),
   )
@@ -199,7 +197,6 @@ async function seedGames({
         name: "fast game",
         nbSeats: 10,
         turnIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
-        starSystemGenerationSettings: createStarSystemGenerationSettingsDefaults(),
       },
     }),
   )

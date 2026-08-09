@@ -1,13 +1,9 @@
-import { Range } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createStarSystemGenerationSettingsDefaults } from "#api/gameplay/star-systems/createStarSystemGenerationSettingsDefaults.ts"
-import { StarSystemGenerationSettingsLimits } from "#api/gameplay/star-systems/StarSystemGenerationSettingsLimits.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { type LobbyPlayerDto, MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
-import { createStarSystemGenerationSettingsStub } from "#lib/db/star-systems/StarSystemGenerationSettings.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 
 describe("lobbies.router", () => {
@@ -21,14 +17,7 @@ describe("lobbies.router", () => {
       const creationSettings = await player.client.lobbies.getCreationSettings.query()
 
       // Assert
-      expect(creationSettings).toEqual<typeof creationSettings>({
-        maxNbSeats: MAX_NB_SEATS,
-        defaultStarSystemGenerationSettings: {
-          ...createStarSystemGenerationSettingsDefaults(),
-          seed: expect.any(Number),
-        },
-        starSystemGenerationSettingsLimits: StarSystemGenerationSettingsLimits,
-      })
+      expect(creationSettings).toEqual<typeof creationSettings>({ maxNbSeats: MAX_NB_SEATS })
     })
   })
 
@@ -123,44 +112,6 @@ describe("lobbies.router", () => {
         }),
       ).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
-      })
-    })
-
-    it("should reject Star System generation settings outside the accepted limits", async () => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub())
-      const player = await apiServer.createClient({ authenticated: true })
-
-      // Act & Assert
-      await expect(
-        player.client.lobbies.create.mutate({
-          configuration: createGameConfigurationDtoStub({
-            starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
-              planetDensity: Range.float({ min: 0.5, max: 1.1 }),
-            }),
-          }),
-        }),
-      ).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
-    })
-
-    it("should reject a non-integer Star System generation seed", async () => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub())
-      const player = await apiServer.createClient({ authenticated: true })
-
-      // Act & Assert
-      await expect(
-        player.client.lobbies.create.mutate({
-          configuration: createGameConfigurationDtoStub({
-            starSystemGenerationSettings: createStarSystemGenerationSettingsStub({
-              seed: 1.5,
-            }),
-          }),
-        }),
-      ).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
       })
     })
   })
