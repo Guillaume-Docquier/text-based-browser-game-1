@@ -2,14 +2,13 @@ import { Assert, Range, type Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 
-/** A generated Planet and all of its persistent Attributes. */
 export type Planet = {
   readonly x: number
   readonly y: number
   readonly name: string
   readonly biome: PlanetBiome
   readonly size: PlanetSize
-  readonly food: number
+  readonly fertility: number
   readonly metal: number
   readonly fuel: number
   readonly energy: number
@@ -27,30 +26,30 @@ type AttributeRanges<TAttribute extends keyof Planet> = Readonly<Record<TAttribu
 
 const BIOME_ATTRIBUTE_RANGES = {
   [PlanetBiome.OCEANIC]: {
-    food: Range.integer({ min: 2, max: 4 }),
+    fertility: Range.integer({ min: 2, max: 4 }),
     metal: Range.integer({ min: 1, max: 2 }),
     fuel: Range.integer({ min: 1, max: 3 }),
     energy: Range.integer({ min: 1, max: 2 }),
   },
   [PlanetBiome.METALLIC]: {
-    food: Range.integer({ min: 1, max: 2 }),
+    fertility: Range.integer({ min: 1, max: 2 }),
     metal: Range.integer({ min: 2, max: 4 }),
     fuel: Range.integer({ min: 1, max: 2 }),
     energy: Range.integer({ min: 1, max: 3 }),
   },
   [PlanetBiome.FROZEN]: {
-    food: Range.integer({ min: 1, max: 2 }),
+    fertility: Range.integer({ min: 1, max: 2 }),
     metal: Range.integer({ min: 1, max: 3 }),
     fuel: Range.integer({ min: 2, max: 4 }),
     energy: Range.integer({ min: 1, max: 2 }),
   },
   [PlanetBiome.VOLCANIC]: {
-    food: Range.integer({ min: 2, max: 3 }),
+    fertility: Range.integer({ min: 2, max: 3 }),
     metal: Range.integer({ min: 1, max: 2 }),
     fuel: Range.integer({ min: 1, max: 2 }),
     energy: Range.integer({ min: 2, max: 4 }),
   },
-} as const satisfies Record<PlanetBiome, AttributeRanges<"food" | "metal" | "fuel" | "energy">>
+} as const satisfies Record<PlanetBiome, AttributeRanges<"fertility" | "metal" | "fuel" | "energy">>
 
 const SIZE_ATTRIBUTE_RANGES = {
   [PlanetSize.SMALL]: {
@@ -84,7 +83,7 @@ export function planetGenerator(starPosition: XY, orbitDistance: number, rng: Rn
     name: planetNameGenerator(rng),
     biome,
     size,
-    food: rng.int(biomeRanges.food),
+    fertility: rng.int(biomeRanges.fertility),
     metal: rng.int(biomeRanges.metal),
     fuel: rng.int(biomeRanges.fuel),
     energy: rng.int(biomeRanges.energy),

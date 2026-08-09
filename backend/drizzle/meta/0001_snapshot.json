@@ -1,5 +1,5 @@
 {
-  "id": "920f0bbe-e837-4a0d-8403-9ff9ab1030e7",
+  "id": "8668bfeb-b85b-4f34-a7dc-4323e8b9f961",
   "prevId": "c213f232-1013-482d-b99c-2a269406fe16",
   "version": "7",
   "dialect": "postgresql",
@@ -339,8 +339,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "food": {
-          "name": "food",
+        "fertility": {
+          "name": "fertility",
           "type": "integer",
           "primaryKey": false,
           "notNull": true

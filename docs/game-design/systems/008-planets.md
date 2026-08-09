@@ -45,7 +45,7 @@ Relates to:
 
 ## Planet Attributes
 
-Every Planet has Planet Attributes determined by its Biome and Size. Biomes make Planets legible by constraining their Resource production ranges rather than making every Planet entirely random. For example, an Oceanic Planet may tend toward high Food and lower Metal, while a Metallic Planet may tend toward the reverse. The Planet Size affects how much productivity the Planet will be able to sustain via caps to its Population and Infrastructure.
+Every Planet has Planet Attributes determined by its Biome and Size. Biomes make Planets legible by constraining their Resource production ranges rather than making every Planet entirely random. For example, an Oceanic Planet may tend toward high Fertility and lower Metal, while a Metallic Planet may tend toward the reverse. The Planet Size affects how much productivity the Planet will be able to sustain via caps to its Population and Infrastructure.
 
 Planet Attributes create colonization tradeoffs. An empire sees a Planet's current Attributes while the Planet is in that empire's vision. When an empire loses vision of the Planet, it retains the last-seen Attribute values. When vision is renewed, the empire's recorded Attribute values refresh to the current values.
 
@@ -53,7 +53,7 @@ Every Attribute is a base value for its related production or growth. Planet Inf
 
 | Attribute      | Base value for                                                            |
 | -------------- | ------------------------------------------------------------------------- |
-| Food           | Food production on the Planet that goes toward increasing the population. |
+| Fertility      | Food production on the Planet that goes toward increasing the population. |
 | Metal          | Metal production on the Planet.                                           |
 | Fuel           | Fuel production on the Planet.                                            |
 | Energy         | Energy production on the Planet.                                          |
@@ -66,12 +66,12 @@ Terraforming may change a Planet's Attributes.
 
 Each Biome constrains a Planet's resource production and gives the Planet an immediately legible character. Each Attribute rolls independently within its listed range. The following ranges are initial balancing baselines and may change as the game is developed.
 
-| Biome    | Description                                                      | Food   | Metal  | Fuel   | Energy |
-| -------- | ---------------------------------------------------------------- | ------ | ------ | ------ | ------ |
-| Oceanic  | A Planet dominated by oceans or large bodies of water.           | 2 to 4 | 1 to 2 | 1 to 3 | 1 to 2 |
-| Metallic | A Planet with a metal-rich crust and sparse surface.             | 1 to 2 | 2 to 4 | 1 to 2 | 1 to 3 |
-| Frozen   | A cold Planet dominated by ice and volatile deposits.            | 1 to 2 | 1 to 3 | 2 to 4 | 1 to 2 |
-| Volcanic | A geologically active Planet with magma and geothermal activity. | 2 to 3 | 1 to 2 | 1 to 2 | 2 to 4 |
+| Biome    | Description                                                      | Fertility | Metal  | Fuel   | Energy |
+| -------- | ---------------------------------------------------------------- | --------- | ------ | ------ | ------ |
+| Oceanic  | A Planet dominated by oceans or large bodies of water.           | 2 to 4    | 1 to 2 | 1 to 3 | 1 to 2 |
+| Metallic | A Planet with a metal-rich crust and sparse surface.             | 1 to 2    | 2 to 4 | 1 to 2 | 1 to 3 |
+| Frozen   | A cold Planet dominated by ice and volatile deposits.            | 1 to 2    | 1 to 3 | 2 to 4 | 1 to 2 |
+| Volcanic | A geologically active Planet with magma and geothermal activity. | 2 to 3    | 1 to 2 | 1 to 2 | 2 to 4 |
 
 ## Planet Size
 
@@ -104,7 +104,7 @@ Ongoing planetary simulation is a core strategic system. Planets develop automat
 | Infrastructure construction | Invests locally produced resources into the current Infrastructure project. |
 | Fleet construction          | Invests locally produced resources to build Fleet at the Planet.            |
 
-For Food and resource production, output is calculated as: `assigned workers × relevant Planet Attribute × applicable modifiers`
+For Food and resource production, output is calculated as: `assigned workers × relevant Planet Attribute × applicable modifiers`. Food production uses the Planet's Fertility Attribute.
 
 Food workers produce Food. Food is held locally by the Planet and does not enter the empire stockpile. The Food needed for the next Population unit is `current Population^1.25`. When the Planet reaches that threshold, it gains one Population and subtracts the required Food while retaining any overflow. Population cannot exceed Max Population.
 

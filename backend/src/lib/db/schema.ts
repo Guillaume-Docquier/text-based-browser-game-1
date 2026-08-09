@@ -218,7 +218,7 @@ export const planetsTable = pgTable(
     y: doublePrecision("y").notNull(),
     biome: planetBiomeEnum("biome").notNull(),
     size: planetSizeEnum("size").notNull(),
-    food: integer("food").notNull(),
+    fertility: integer("fertility").notNull(),
     metal: integer("metal").notNull(),
     fuel: integer("fuel").notNull(),
     energy: integer("energy").notNull(),

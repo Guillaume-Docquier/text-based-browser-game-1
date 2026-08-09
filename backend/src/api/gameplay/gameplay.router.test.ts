@@ -60,7 +60,7 @@ describe("gameplay.router", () => {
         name: "planet 685256",
         biome: PlanetBiome.VOLCANIC,
         size: PlanetSize.MEDIUM,
-        food: 2,
+        fertility: 2,
         metal: 1,
         fuel: 2,
         energy: 3,

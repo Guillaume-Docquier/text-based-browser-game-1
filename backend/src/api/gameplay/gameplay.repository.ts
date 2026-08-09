@@ -30,7 +30,12 @@ type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type ActionRow = typeof actionsTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTurnRow = typeof turnsTable.$inferInsert
-// Keep each statement comfortably below PostgreSQL's bind-parameter limit as the persistent Planet row grows.
+
+/**
+ * postgress has a limit of 32767 (int16) bind parameters for a query. Some sources say 65536 (int32), it's not clear.
+ * However, pglite has 32767 for sure as tests break when we bust it.
+ * We'll batch insert planets to avoid the limit, as we can easily insert 3000+ planets with 15+ attributes each, leading to 45k+ bind paremeters.
+ */
 const PLANET_INSERT_BATCH_SIZE = 500
 
 export type ActionModel = ActionRow
@@ -108,7 +113,7 @@ type PlanetModel = {
   readonly y: number
   readonly biome: PlanetBiome
   readonly size: PlanetSize
-  readonly food: number
+  readonly fertility: number
   readonly metal: number
   readonly fuel: number
   readonly energy: number

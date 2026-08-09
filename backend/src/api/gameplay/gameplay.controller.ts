@@ -287,7 +287,7 @@ export const PlanetDto = z.object({
   y: z.number(),
   biome: z.enum(PlanetBiome),
   size: z.enum(PlanetSize),
-  food: z.number(),
+  fertility: z.number(),
   metal: z.number(),
   fuel: z.number(),
   energy: z.number(),
