@@ -13,15 +13,15 @@ const PANEL_PLOT_SIZE = 320
 const SCALE = PANEL_PLOT_SIZE / (SYSTEM_RADIUS * 2)
 const STAR_RADIUS = 8
 const PLANET_COLORS = {
-  OCEANIC: "#0ea5e9",
-  METALLIC: "#94a3b8",
-  FROZEN: "#bfdbfe",
+  OCEANIC: "#3452eb",
+  METALLIC: "#798391",
+  FROZEN: "#ffffff",
   VOLCANIC: "#f97316",
 } as const satisfies Record<PlanetBiome, `#${string}`>
 const PLANET_RADII = {
-  SMALL: STAR_RADIUS * 0.375,
-  MEDIUM: STAR_RADIUS * 0.5625,
-  LARGE: STAR_RADIUS * 0.75,
+  SMALL: STAR_RADIUS / 4,
+  MEDIUM: STAR_RADIUS / 2,
+  LARGE: STAR_RADIUS / 1.25,
 } as const satisfies Record<PlanetSize, number>
 const PANEL_CENTERS = [
   { x: 240, y: 300 },
