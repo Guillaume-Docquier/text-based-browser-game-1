@@ -14,7 +14,7 @@ export default defineConfig({
     },
     environment: "node",
     globals: false,
-    slowTestThreshold: 600,
+    slowTestThreshold: 1_000, // Tailored for local
     projects: [
       {
         // unit tests are lightweight and fast
@@ -34,6 +34,7 @@ export default defineConfig({
           name: { label: "integration", color: "cyan" },
           include: integrationTestsInclude,
           setupFiles: ["./src/tests/vitest.integration.setup.ts"],
+          testTimeout: 7_000, // slow in CI
         },
       },
       {
@@ -43,7 +44,7 @@ export default defineConfig({
           name: { label: "concurrency", color: "magenta" },
           include: concurrencyTestsInclude,
           setupFiles: ["./src/tests/vitest.concurrency.setup.ts"],
-          testTimeout: 30_000,
+          testTimeout: 30_000, // slow in CI
         },
       },
     ],
