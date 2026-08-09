@@ -66,7 +66,6 @@ const SIZE_ATTRIBUTE_RANGES = {
   },
 } as const satisfies Record<PlanetSize, AttributeRanges<"maxPopulation" | "area">>
 
-/** Generates a deterministic Planet at the requested orbit when provided a deterministic RNG. */
 export function planetGenerator(starPosition: XY, orbitDistance: number, rng: Rng): Planet {
   const angle = rng.float(ANGLE_RANGE)
   const biome = PLANET_BIOMES[rng.int(BIOME_INDEX_RANGE)]
