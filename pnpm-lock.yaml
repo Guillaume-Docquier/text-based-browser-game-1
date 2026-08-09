@@ -7,8 +7,8 @@ settings:
 catalogs:
   default:
     '@guillaume-docquier/tools-ts':
-      specifier: ^6.3.5
-      version: 6.3.5
+      specifier: ^6.6.0
+      version: 6.6.0
     typescript:
       specifier: ~7.0.2
       version: 7.0.2
@@ -52,7 +52,7 @@ importers:
         version: 2.1.49(express@5.2.1(supports-color@8.1.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 6.3.5
+        version: 6.6.0
       '@trpc/server':
         specifier: ^11.18.0
         version: 11.18.0(typescript@7.0.2)
@@ -68,6 +68,9 @@ importers:
       pg:
         specifier: ^8.22.0
         version: 8.22.0
+      transformation-matrix:
+        specifier: ^3.1.0
+        version: 3.1.0
       uuid:
         specifier: ^14.0.1
         version: 14.0.1
@@ -99,6 +102,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.1.10
         version: 4.1.10(vitest@4.1.10)
+      commander:
+        specifier: ^15.0.0
+        version: 15.0.0
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -125,7 +131,7 @@ importers:
         version: 5.3.0
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 6.3.5
+        version: 6.6.0
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.101.4(react@19.2.8)
@@ -1078,6 +1084,9 @@ packages:
 
   '@guillaume-docquier/tools-ts@6.3.5':
     resolution: {integrity: sha512-KcTikVShmwEaFo2zHJ1rlpSSBtWJ5C5IcJEHjyzsiegfDxoqsro1rfzWW5b6y0MKaGnRe9W0hftEQbYHq9G5Eg==}
+
+  '@guillaume-docquier/tools-ts@6.6.0':
+    resolution: {integrity: sha512-7o/duKDNAIC0663RWwrlqrmPpxEjUBB1WW6HhuE8zBV2GdZQmUynCjECZAd44t9eKe2BAWv6RlWdOBy+P6Z3TA==}
 
   '@hono/node-server@2.0.12':
     resolution: {integrity: sha512-eWpQYr67tqJLeaSUl0Q+TquuYfUdTibpOJlUMV2FfUP7+KqCC5TufnwnlXL6mobZBJbGAYRd7ZvEBDCbLInjhg==}
@@ -6904,6 +6913,9 @@ packages:
   tr46@0.0.3:
     resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
 
+  transformation-matrix@3.1.0:
+    resolution: {integrity: sha512-oYubRWTi2tYFHAL2J8DLvPIqIYcYZ0fSOi2vmSy042Ho4jBW2ce6VP7QfD44t65WQz6bw5w1Pk22J7lcUpaTKA==}
+
   ts-dedent@2.3.0:
     resolution: {integrity: sha512-JfJeIHke7y2egdGGgRAvpCwYFUsHlM2gPcrVOxFkznt/4uzQ7HFmvE63iFHVLBJNDuyDOQgijDK/tXH/f6Msjg==}
     engines: {node: '>=6.10'}
@@ -8115,6 +8127,11 @@ snapshots:
       - graphology-types
 
   '@guillaume-docquier/tools-ts@6.3.5':
+    dependencies:
+      '@logtape/logtape': 2.3.0
+      '@logtape/redaction': 2.3.0(@logtape/logtape@2.3.0)
+
+  '@guillaume-docquier/tools-ts@6.6.0':
     dependencies:
       '@logtape/logtape': 2.3.0
       '@logtape/redaction': 2.3.0(@logtape/logtape@2.3.0)
@@ -13937,6 +13954,8 @@ snapshots:
   toidentifier@1.0.1: {}
 
   tr46@0.0.3: {}
+
+  transformation-matrix@3.1.0: {}
 
   ts-dedent@2.3.0: {}
 

@@ -147,4 +147,5 @@ frontend/playwright/.clerk/
 frontend/test-results/
 
 .codex/
+generated/
 show-me.html
