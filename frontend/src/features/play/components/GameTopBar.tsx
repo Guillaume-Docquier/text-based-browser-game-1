@@ -1,7 +1,10 @@
 import type { Lobby, PlayerId, PlayerView } from "@api-types"
-import { Clock3, Crown, TimerReset } from "lucide-react"
+import { Clock3, Crown, RefreshCw, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
+import { Button } from "@/components/button.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
+import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
+import { useLogger } from "@/lib/LoggerContext.tsx"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function GameTopBar({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
@@ -42,8 +45,12 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
 }
 
 function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): ReactElement {
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft({ past: new Date(), future: new Date(targetTimestamp) }))
+  const logger = useLogger()
+  const refreshClientData = useRefreshClientData()
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [currentTime, setCurrentTime] = useState(() => new Date())
   const nextTurnAt = new Date(targetTimestamp)
+  const timeLeft = calculateTimeLeft({ past: currentTime, future: nextTurnAt })
   const nextTurnAtLabel = new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
@@ -52,18 +59,37 @@ function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
   }).format(nextTurnAt)
 
   useEffect(() => {
-    const future = new Date(targetTimestamp)
     const interval = setInterval(() => {
-      setTimeLeft(calculateTimeLeft({ past: new Date(), future }))
+      setCurrentTime(new Date())
     }, 1000)
 
     return (): void => {
       clearInterval(interval)
     }
-  }, [targetTimestamp])
+  }, [])
+
+  async function refreshGameData(): Promise<void> {
+    setIsRefreshing(true)
+
+    try {
+      await refreshClientData()
+    } catch (error: unknown) {
+      logger.error("Could not refresh game data", { error: error instanceof Error ? error.message : String(error) })
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   if (timeLeft.noTimeLeft) {
-    return <TopBarFact icon={<Clock3 className="size-4" />} label="Next turn" value="ready" detail={nextTurnAtLabel} />
+    return (
+      <NextTurnRefreshButton
+        detail={nextTurnAtLabel}
+        isRefreshing={isRefreshing}
+        onRefresh={() => {
+          void refreshGameData()
+        }}
+      />
+    )
   }
 
   return (
@@ -73,6 +99,36 @@ function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
       value={`${timeLeft.duration.days}d ${timeLeft.duration.hours}h ${timeLeft.duration.minutes}m ${timeLeft.duration.seconds}s`}
       detail={nextTurnAtLabel}
     />
+  )
+}
+
+function NextTurnRefreshButton({
+  detail,
+  isRefreshing,
+  onRefresh,
+}: {
+  detail: string
+  isRefreshing: boolean
+  onRefresh: () => void
+}): ReactElement {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      aria-label="Refresh game data for the next turn"
+      className="h-auto min-h-11 justify-start gap-2 rounded-md border-primary/50 bg-primary/10 px-3 py-1.5 text-left shadow-sm hover:border-primary/70 hover:bg-primary/20"
+      disabled={isRefreshing}
+      onClick={onRefresh}
+    >
+      <RefreshCw className={`size-4 text-primary ${isRefreshing ? "animate-spin" : ""}`} />
+      <div className="min-w-0">
+        <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Next turn</div>
+        <div className="truncate text-sm font-medium text-foreground">
+          {isRefreshing ? "Refreshing..." : "Refresh"}
+          <span className="ml-2 text-muted-foreground">{detail}</span>
+        </div>
+      </div>
+    </Button>
   )
 }
 
