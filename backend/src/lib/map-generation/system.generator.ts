@@ -1,7 +1,6 @@
-import { type Rng, Distance, UnitOfDistance, Range } from "@guillaume-docquier/tools-ts"
-import { type Planet, planetGenerator } from "#lib/map/planet.generator.ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
-import { type Star, starGenerator } from "#lib/map/star.generator.ts"
+import { type Rng, Distance, UnitOfDistance, Range, type XY } from "@guillaume-docquier/tools-ts"
+import { type Planet, planetGenerator } from "#lib/map-generation/planet.generator.ts"
+import { type Star, starGenerator } from "#lib/map-generation/star.generator.ts"
 
 export type System = {
   star: Star
@@ -18,7 +17,7 @@ const POSSIBLE_ORBITS = Array.from({ length: NB_ORBITS }, (_, i) =>
 )
 
 const PLANETS_RANGE = Range.integer({ min: 3, max: 7 })
-export function systemGenerator(origin: Point2D, rng: Rng): System {
+export function systemGenerator(origin: XY, rng: Rng): System {
   const nbPlanets = rng.int(PLANETS_RANGE)
   const orbits = rng.draw(POSSIBLE_ORBITS, nbPlanets).drawn
 

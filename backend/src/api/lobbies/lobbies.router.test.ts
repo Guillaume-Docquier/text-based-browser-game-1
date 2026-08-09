@@ -4,6 +4,7 @@ import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDt
 import { type LobbyPlayerDto, MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 
 describe("lobbies.router", () => {
@@ -22,6 +23,33 @@ describe("lobbies.router", () => {
   })
 
   describe("create", () => {
+    it.each([0, UInt32.max])("should accept the UInt32 seed %i", async (seed) => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      // Act
+      const createLobbyResult = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ seed }),
+      })
+
+      // Assert
+      expect(createLobbyResult).toEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
+    })
+
+    it.each([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (seed) => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      // Act & Assert
+      await expect(creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub({ seed }) })).rejects.toMatchObject(
+        {
+          data: { code: "BAD_REQUEST" },
+        },
+      )
+    })
+
     it("should create a game for the authenticated player", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())

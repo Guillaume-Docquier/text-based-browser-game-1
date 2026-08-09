@@ -1,7 +1,10 @@
-import { Datetime, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { createRng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
 import z from "zod"
+import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
 import { GameId } from "#api/shared/GameId.ts"
+import { PlanetCoordinates, toPlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
+import { StarCoordinates, toStarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -10,7 +13,9 @@ import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameRe
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
-import { type ActionModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
+import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
+import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
+import { type ActionModel, type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
@@ -61,6 +66,10 @@ export class GameplayController {
         startingResources.map((resource) => ({ playerId, ...resource })),
       )
 
+      const startTime = Timer.start()
+      const galaxy = createGalaxy(gameForStart.value.seed)
+      this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
+
       await this.gameplayRepository.startGame(
         {
           game: gameForStart.value,
@@ -68,6 +77,7 @@ export class GameplayController {
           startedAt,
           nextTurnAt,
           playerResources,
+          galaxy,
         },
         tx,
       )
@@ -177,11 +187,52 @@ export class GameplayController {
   }
 }
 
+function createGalaxy(seed: number): GalaxyModel {
+  const rng = createRng(mulberry32Prng(seed))
+  const generatedGalaxy = galaxyGenerator({
+    size: GalaxySettings.GALAXY_SIZE_LIGHT_YEARS,
+    pointsGenerator: () =>
+      spiralGenerator({
+        origin: GalaxySettings.GALAXY_ORIGIN,
+        radius: GalaxySettings.GALAXY_RADIUS_LIGHT_YEARS,
+        nbPoints: GalaxySettings.GALAXY_SYSTEMS_COUNT,
+        rng,
+      }),
+    rng,
+  })
+
+  let nextPlanetId = 1
+  return {
+    systems: generatedGalaxy.systems.map((system, starIndex) => {
+      const starCoordinates = toStarCoordinates(system.star)
+
+      return {
+        star: {
+          id: starIndex + 1,
+          ...system.star,
+          coordinates: starCoordinates,
+        },
+        planets: system.planets.map((planet) => ({
+          id: nextPlanetId++,
+          ...planet,
+          coordinates: toPlanetCoordinates({ starCoordinates, star: system.star, planet }),
+        })),
+      }
+    }),
+  }
+}
+
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
   return {
     gameId: playerViewModel.gameId,
     player: playerViewModel.player,
     opponents: playerViewModel.opponents,
+    galaxy: {
+      systems: playerViewModel.galaxy.systems.map(({ star, planets }) => ({
+        star,
+        planets: [...planets],
+      })),
+    },
     turn: playerViewModel.turn,
     nextTurnAt: playerViewModel.nextTurnAt,
     resources: playerViewModel.resources,
@@ -218,11 +269,37 @@ export const GetPlayerViewDto = z.object({
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
 export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
 
+export const StarDto = z.object({
+  id: z.number(),
+  name: z.string(),
+  coordinates: StarCoordinates,
+  x: z.number(),
+  y: z.number(),
+})
+
+export const PlanetDto = z.object({
+  id: z.number(),
+  name: z.string(),
+  coordinates: PlanetCoordinates,
+  x: z.number(),
+  y: z.number(),
+})
+
+export const GalaxyDto = z.object({
+  systems: z.array(
+    z.object({
+      star: StarDto,
+      planets: z.array(PlanetDto),
+    }),
+  ),
+})
+
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
 export const PlayerViewDto = z.object({
   gameId: GameId,
   player: PlayerViewPlayerDto,
   opponents: z.record(PlayerId, PlayerViewPlayerDto),
+  galaxy: GalaxyDto,
   turn: z.number(),
   nextTurnAt: z.date(),
   resources: z.object({

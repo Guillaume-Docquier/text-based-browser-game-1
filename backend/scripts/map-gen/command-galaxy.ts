@@ -1,16 +1,15 @@
 import path from "node:path"
-import { createRng, Distance, mulberry32Prng, UnitOfDistance, type Rng } from "@guillaume-docquier/tools-ts"
+import { createRng, Distance, mulberry32Prng, UnitOfDistance, type Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
-import { galaxyGenerator } from "#lib/map/galaxy.generator.ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
+import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { createClusterCommand, type ClusterRenderOptions } from "./command-cluster.ts"
 import { createSpiralCommand, type SpiralRenderOptions } from "./command-spiral.ts"
 import { Parser } from "./Parser.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 import { SystemSvgRenderer } from "./SystemSvgRenderer.ts"
 
-const DEFAULT_CLUSTER_OUTPUT_PATH = Parser.filePath("generated/galaxy-cluster.svg")
-const DEFAULT_SPIRAL_OUTPUT_PATH = Parser.filePath("generated/galaxy-spiral.svg")
+const DEFAULT_CLUSTER_OUTPUT_PATH = Parser.filePath("generated/cluster-galaxy.svg")
+const DEFAULT_SPIRAL_OUTPUT_PATH = Parser.filePath("generated/spiral-galaxy.svg")
 const NB_SYSTEM_PREVIEWS = 4
 
 type GalaxyOptions = {
@@ -83,10 +82,10 @@ async function renderGalaxy({
 }: {
   readonly outputPath: string
   readonly generatorName: string
-  readonly pointsGenerator: (options: { rng: Rng }) => Point2D[]
+  readonly pointsGenerator: (options: { rng: Rng }) => XY[]
   readonly requestedPoints: number
   readonly radius: number
-  readonly origin: Point2D
+  readonly origin: XY
   readonly seed: number
   readonly renderGrid: boolean
   readonly details: readonly string[]

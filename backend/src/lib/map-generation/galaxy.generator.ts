@@ -1,6 +1,5 @@
-import { type Rng, Range } from "@guillaume-docquier/tools-ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
-import { type System, systemGenerator } from "#lib/map/system.generator.ts"
+import { type Rng, Range, type XY } from "@guillaume-docquier/tools-ts"
+import { type System, systemGenerator } from "#lib/map-generation/system.generator.ts"
 
 export type Galaxy = {
   /**
@@ -17,7 +16,7 @@ export type Galaxy = {
   systems: System[]
 }
 
-type PointsGenerator = (options: { size: number; rng: Rng }) => Point2D[]
+type PointsGenerator = (options: { size: number; rng: Rng }) => XY[]
 
 /**
  * Creates a square galaxy of the given size in light years.
@@ -26,7 +25,7 @@ type PointsGenerator = (options: { size: number; rng: Rng }) => Point2D[]
  * We need to know the galaxy size because generators might produces values that will be out of bounds.
  */
 export function galaxyGenerator({ size, pointsGenerator, rng }: { size: number; pointsGenerator: PointsGenerator; rng: Rng }): Galaxy {
-  const pointsByCell = new Map<string, Point2D>()
+  const pointsByCell = new Map<string, XY>()
   const points = pointsGenerator({ size, rng })
   for (const point of points) {
     // Remove out of bounds

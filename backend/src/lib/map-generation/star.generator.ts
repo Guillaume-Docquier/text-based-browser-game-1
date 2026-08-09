@@ -1,5 +1,4 @@
-import { Range, type Rng } from "@guillaume-docquier/tools-ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
+import { Range, type Rng, type XY } from "@guillaume-docquier/tools-ts"
 
 export type Star = {
   x: number
@@ -7,7 +6,7 @@ export type Star = {
   name: string
 }
 
-export function starGenerator(position: Point2D, rng: Rng): Star {
+export function starGenerator(position: XY, rng: Rng): Star {
   return {
     ...position,
     name: starNameGenerator(rng),

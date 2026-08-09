@@ -1,5 +1,4 @@
-import { Range, type Rng } from "@guillaume-docquier/tools-ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
+import { Range, type Rng, type XY } from "@guillaume-docquier/tools-ts"
 
 export type Planet = {
   x: number
@@ -8,7 +7,7 @@ export type Planet = {
 }
 
 const ANGLE_RANGE = Range.float({ min: 0, max: 2 * Math.PI })
-export function planetGenerator(starPosition: Point2D, orbitDistance: number, rng: Rng): Planet {
+export function planetGenerator(starPosition: XY, orbitDistance: number, rng: Rng): Planet {
   const angle = rng.float(ANGLE_RANGE)
 
   return {

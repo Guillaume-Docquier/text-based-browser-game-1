@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
+import type { XY } from "@guillaume-docquier/tools-ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
 const SVG_WIDTH = 900
@@ -19,7 +19,7 @@ const PANEL_CENTERS = [
 
 type SystemPreview = {
   readonly name: string
-  readonly planets: readonly Point2D[]
+  readonly planets: readonly XY[]
 }
 
 type RenderOptions = {
@@ -62,7 +62,7 @@ ${systemElements}
 `
 }
 
-function renderSystem({ system, center }: { readonly system: SystemPreview; readonly center: Point2D }): string {
+function renderSystem({ system, center }: { readonly system: SystemPreview; readonly center: XY }): string {
   const boundaryX = center.x - PANEL_PLOT_SIZE / 2
   const boundaryY = center.y - PANEL_PLOT_SIZE / 2
   const orbitGuides = renderOrbitGuides({ center, planets: system.planets })
@@ -86,7 +86,7 @@ ${planets}
   </g>`
 }
 
-function renderOrbitGuides({ center, planets }: { readonly center: Point2D; readonly planets: readonly Point2D[] }): string {
+function renderOrbitGuides({ center, planets }: { readonly center: XY; readonly planets: readonly XY[] }): string {
   const circles = planets.map((planet) => {
     const orbitRadius = Math.hypot(planet.x, planet.y)
     return `      <circle cx="${center.x}" cy="${center.y}" r="${SvgRenderer.formatNumber(orbitRadius * SCALE)}" />`
@@ -97,7 +97,7 @@ ${circles.join("\n")}
     </g>`
 }
 
-function toSvgPoint({ point, center }: { readonly point: Point2D; readonly center: Point2D }): Point2D {
+function toSvgPoint({ point, center }: { readonly point: XY; readonly center: XY }): XY {
   return {
     x: center.x + point.x * SCALE,
     y: center.y - point.y * SCALE,

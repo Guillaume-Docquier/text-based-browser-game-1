@@ -1,8 +1,7 @@
-import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
+import { createRng, mulberry32Prng, type Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { galaxyGenerator } from "#lib/map/galaxy.generator.ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
-import { spiralGenerator } from "#lib/map/points/spiral.generator.ts"
+import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
+import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 
 describe("galaxyGenerator", () => {
   function createSeededRng(seed = 1234): Rng {
@@ -96,7 +95,7 @@ describe("galaxyGenerator", () => {
   it("should generate a deterministic galaxy using the spiral generator", () => {
     // Arrange
     const size = 100
-    const pointsGenerator = ({ size: galaxySize, rng }: { size: number; rng: Rng }): Point2D[] =>
+    const pointsGenerator = ({ size: galaxySize, rng }: { size: number; rng: Rng }): XY[] =>
       spiralGenerator({
         origin: { x: galaxySize / 2, y: galaxySize / 2 },
         radius: galaxySize / 2,

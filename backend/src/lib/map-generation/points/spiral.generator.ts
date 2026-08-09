@@ -1,7 +1,6 @@
-import type { Rng } from "@guillaume-docquier/tools-ts"
+import type { Rng, XY } from "@guillaume-docquier/tools-ts"
 import { compose, translate, rotate, applyToPoint } from "transformation-matrix"
-import { clusterGenerator } from "#lib/map/points/cluster.generator.ts"
-import type { Point2D } from "#lib/map/points/Point2D.ts"
+import { clusterGenerator } from "#lib/map-generation/points/cluster.generator.ts"
 
 // PRIMER ON PROCEDURAL GENERATION BECAUSE I WILL FORGET
 //
@@ -29,7 +28,7 @@ export function spiralGenerator({
     swirlStrength = Math.PI,
   } = {},
 }: {
-  origin: Point2D
+  origin: XY
   radius: number
   nbPoints: number
   rng: Rng
@@ -41,8 +40,8 @@ export function spiralGenerator({
     armClusterCount?: number | undefined
     swirlStrength?: number | undefined
   }
-}): Point2D[] {
-  const points: Point2D[] = []
+}): XY[] {
+  const points: XY[] = []
 
   // roughly, because of rng we might have a little more or a little less stars in the arms because the arms will generate clusters with varying amounts of stars
   const corePoints = Math.round(rng.normal(nbPoints * corePointsRatio))
