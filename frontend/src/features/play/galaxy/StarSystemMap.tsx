@@ -8,15 +8,15 @@ const STAR_RADIUS = 18
 const INNER_ORBIT_RADIUS = 90
 const OUTER_ORBIT_RADIUS = 420
 const PLANET_COLORS = {
-  OCEANIC: "#0ea5e9",
-  METALLIC: "#94a3b8",
-  FROZEN: "#bfdbfe",
+  OCEANIC: "#3452eb",
+  METALLIC: "#798391",
+  FROZEN: "#ffffff",
   VOLCANIC: "#f97316",
 } as const satisfies Record<PlanetBiome, `#${string}`>
 const PLANET_RADII = {
   SMALL: STAR_RADIUS / 4,
-  MEDIUM: STAR_RADIUS / 3,
-  LARGE: STAR_RADIUS / 2,
+  MEDIUM: STAR_RADIUS / 2,
+  LARGE: STAR_RADIUS / 1.25,
 } as const satisfies Record<PlanetSize, number>
 
 type PlanetViewModel = {
@@ -165,16 +165,7 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
 function Planet({ planet }: { planet: PlanetViewModel }): ReactElement {
   return (
     <g role="img" aria-label={`${planet.name}, ${planet.size.toLowerCase()} ${planet.biome.toLowerCase()} planet`}>
-      <circle
-        cx={planet.x}
-        cy={planet.y}
-        r={planet.radius}
-        fill={planet.color}
-        stroke="#e2e8f0"
-        strokeWidth="1"
-        data-biome={planet.biome}
-        data-size={planet.size}
-      />
+      <circle cx={planet.x} cy={planet.y} r={planet.radius} fill={planet.color} data-biome={planet.biome} data-size={planet.size} />
       <MapLabel x={planet.x + planet.radius + 8} y={planet.y} text={planet.name} />
     </g>
   )
