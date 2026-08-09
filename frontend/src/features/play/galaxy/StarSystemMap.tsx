@@ -44,6 +44,7 @@ export function StarSystemMap({
   return (
     <svg
       aria-label={`${system.star.name} Star System map`}
+      aria-busy={panZoom.isCentering}
       role="group"
       viewBox="0 0 1000 1000"
       className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"} ${
@@ -64,7 +65,8 @@ export function StarSystemMap({
       </defs>
       <g
         transform={panZoom.transform}
-        className={panZoom.isCentering ? "transition-transform duration-300 ease-in-out" : undefined}
+        className={panZoom.isCentering ? "transition-transform ease-in-out" : undefined}
+        style={panZoom.isCentering ? { transitionDuration: `${panZoom.centeringDurationMs}ms` } : undefined}
         onTransitionEnd={panZoom.onTransformTransitionEnd}
       >
         <rect width="1000" height="1000" fill="#05080f" />

@@ -40,6 +40,7 @@ export function GalaxyMap({
   return (
     <svg
       aria-label="Galaxy map"
+      aria-busy={panZoom.isCentering}
       role="group"
       viewBox={`${-GALAXY_PADDING} ${-GALAXY_PADDING} ${GALAXY_MAP_SIZE} ${GALAXY_MAP_SIZE}`}
       className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"} ${
@@ -64,7 +65,8 @@ export function GalaxyMap({
       <g
         transform={panZoom.transform}
         clipPath="url(#galaxy-bounds)"
-        className={panZoom.isCentering ? "transition-transform duration-300 ease-in-out" : undefined}
+        className={panZoom.isCentering ? "transition-transform ease-in-out" : undefined}
+        style={panZoom.isCentering ? { transitionDuration: `${panZoom.centeringDurationMs}ms` } : undefined}
         onTransitionEnd={panZoom.onTransformTransitionEnd}
       >
         <rect x={-GALAXY_PADDING} y={-GALAXY_PADDING} width={GALAXY_MAP_SIZE} height={GALAXY_MAP_SIZE} fill="#05080f" />

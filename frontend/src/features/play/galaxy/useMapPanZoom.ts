@@ -30,7 +30,11 @@ const INITIAL_TRANSFORM: ViewportTransform = { x: 0, y: 0, scale: 1 }
 const MIN_SCALE = 0.75
 const MAX_SCALE = 36
 const DRAG_THRESHOLD = 3
-const CENTERING_FALLBACK_DELAY_MS = 400
+const CENTERING_POSITION_EPSILON = 0.001
+const MIN_CENTERING_DURATION_MS = 100
+const MAX_CENTERING_DURATION_MS = 350
+const CENTERING_SPEED_VIEWPORT_UNITS_PER_MS = 2
+const CENTERING_FALLBACK_BUFFER_MS = 100
 
 /**
  * Provides shared mouse, touch, and wheel interactions for an SVG map viewport.
@@ -40,6 +44,7 @@ const CENTERING_FALLBACK_DELAY_MS = 400
  * @returns SVG event handlers and the transform for the map contents.
  */
 export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: number; viewportCenter: Point }): {
+  centeringDurationMs: number
   isCentering: boolean
   isPanning: boolean
   transform: string
@@ -52,6 +57,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
   onWheel: (event: WheelEvent<SVGSVGElement>) => void
 } {
   const [viewportTransform, setViewportTransform] = useState(INITIAL_TRANSFORM)
+  const [centeringDurationMs, setCenteringDurationMs] = useState(0)
   const [isCentering, setIsCentering] = useState(false)
   const [isPanning, setIsPanning] = useState(false)
   const centeringCompletion = useRef<(() => void) | undefined>(undefined)
@@ -69,6 +75,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
     isCenteringRef.current = false
     pointers.current.clear()
     pointerOrigins.current.clear()
+    setCenteringDurationMs(0)
     setIsCentering(false)
     setIsPanning(false)
     setViewportTransform(INITIAL_TRANSFORM)
@@ -132,15 +139,24 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
       return
     }
 
+    const centeredTransform = {
+      ...viewportTransform,
+      x: viewportCenter.x - point.x * viewportTransform.scale,
+      y: viewportCenter.y - point.y * viewportTransform.scale,
+    }
+    const panDistance = distance(viewportTransform, centeredTransform)
+    if (panDistance <= CENTERING_POSITION_EPSILON) {
+      onCentered()
+      return
+    }
+
+    const durationMs = calculateCenteringDurationMs(panDistance)
     isCenteringRef.current = true
     centeringCompletion.current = onCentered
+    setCenteringDurationMs(durationMs)
     setIsCentering(true)
-    setViewportTransform((currentTransform) => ({
-      ...currentTransform,
-      x: viewportCenter.x - point.x * currentTransform.scale,
-      y: viewportCenter.y - point.y * currentTransform.scale,
-    }))
-    centeringTimer.current = setTimeout(finishCentering, CENTERING_FALLBACK_DELAY_MS)
+    setViewportTransform(centeredTransform)
+    centeringTimer.current = setTimeout(finishCentering, durationMs + CENTERING_FALLBACK_BUFFER_MS)
   }
 
   function onTransformTransitionEnd(event: TransitionEvent<SVGGElement>): void {
@@ -168,6 +184,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
   }
 
   return {
+    centeringDurationMs,
     isCentering,
     isPanning,
     transform: `translate(${viewportTransform.x} ${viewportTransform.y}) scale(${viewportTransform.scale})`,
@@ -179,6 +196,12 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
     onTransformTransitionEnd,
     onWheel,
   }
+}
+
+function calculateCenteringDurationMs(panDistance: number): number {
+  return Math.round(
+    Math.min(MAX_CENTERING_DURATION_MS, Math.max(MIN_CENTERING_DURATION_MS, panDistance / CENTERING_SPEED_VIEWPORT_UNITS_PER_MS)),
+  )
 }
 
 function getPointerMovement({
