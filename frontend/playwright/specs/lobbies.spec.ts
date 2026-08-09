@@ -137,7 +137,7 @@ test.describe("authenticated user", () => {
     await expect(galaxyPage.planetDetailsPane).toBeVisible()
     await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: firstPlanetName })).toBeVisible()
 
-    await secondPlanet.click()
+    await secondPlanet.press("Enter")
     await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: secondPlanetName })).toBeVisible()
 
     await galaxyPage.starSystemMap.click({ position: { x: 10, y: 10 } })

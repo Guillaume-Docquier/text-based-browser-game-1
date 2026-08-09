@@ -59,7 +59,7 @@ export function PlanetDetailsPane({
             style={{
               backgroundColor: `color-mix(in srgb, ${biomeColor} 15%, transparent)`,
               borderColor: `color-mix(in srgb, ${biomeColor} 40%, transparent)`,
-              color: biomeColor,
+              color: `color-mix(in srgb, ${biomeColor} 55%, white)`,
             }}
           >
             <span className="sr-only">Biome: </span>
