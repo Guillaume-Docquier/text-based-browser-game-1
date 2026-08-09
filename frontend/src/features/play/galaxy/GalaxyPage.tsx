@@ -15,12 +15,19 @@ type GalaxyView = { type: "galaxy" } | { type: "star-system"; system: StarSystem
  */
 export function GalaxyPage(): ReactElement {
   const [view, setView] = useState<GalaxyView>({ type: "galaxy" })
-  const [resetSignal, setResetSignal] = useState(0)
+  const [galaxyResetSignal, setGalaxyResetSignal] = useState(0)
+  const [starSystemResetSignal, setStarSystemResetSignal] = useState(0)
   const { playerView } = usePlayGameContext()
   const selectedSystem = view.type === "star-system" ? view.system : undefined
+  const isExitingStarSystem = view.type === "star-system" && view.transition === "exiting"
 
   function resetView(): void {
-    setResetSignal((currentSignal) => currentSignal + 1)
+    if (view.type === "galaxy") {
+      setGalaxyResetSignal((currentSignal) => currentSignal + 1)
+      return
+    }
+
+    setStarSystemResetSignal((currentSignal) => currentSignal + 1)
   }
 
   function showGalaxy(): void {
@@ -39,7 +46,6 @@ export function GalaxyPage(): ReactElement {
     }
 
     setView({ type: "galaxy" })
-    resetView()
   }
 
   function showStarSystem(system: StarSystem): void {
@@ -50,18 +56,23 @@ export function GalaxyPage(): ReactElement {
     <section className="flex min-h-[34rem] min-w-0 flex-1 flex-col">
       <div className="relative min-h-[34rem] flex-1 overflow-hidden bg-[#05080f]">
         <div className="absolute inset-0">
-          {selectedSystem === undefined ? (
-            <GalaxyMap galaxy={playerView.galaxy} resetSignal={resetSignal} onSelectSystem={showStarSystem} />
-          ) : (
+          <div className="size-full" inert={selectedSystem !== undefined}>
+            <GalaxyMap galaxy={playerView.galaxy} resetSignal={galaxyResetSignal} onSelectSystem={showStarSystem} />
+          </div>
+          {selectedSystem !== undefined && (
             <div
-              className={`size-full duration-300 ${
-                view.type === "star-system" && view.transition === "exiting"
-                  ? "animate-out fade-out-0 zoom-out-95 fill-mode-forwards"
-                  : "animate-in fade-in-0 zoom-in-95"
+              className={`absolute inset-0 bg-[#05080f] ${
+                isExitingStarSystem ? "animate-out fade-out-0 duration-300 fill-mode-forwards" : ""
               }`}
               onAnimationEnd={finishShowingGalaxy}
             >
-              <StarSystemMap system={selectedSystem} resetSignal={resetSignal} onSelectGalaxy={showGalaxy} />
+              <div
+                className={`size-full duration-300 ${
+                  isExitingStarSystem ? "animate-out zoom-out-95 fill-mode-forwards" : "animate-in fade-in-0 zoom-in-95"
+                }`}
+              >
+                <StarSystemMap system={selectedSystem} resetSignal={starSystemResetSignal} onSelectGalaxy={showGalaxy} />
+              </div>
             </div>
           )}
         </div>

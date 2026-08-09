@@ -66,11 +66,17 @@ test.describe("authenticated user", () => {
 
     await test.step("Inspect a Star System", async () => {
       const galaxyPage = new GalaxyPage(page)
+      const initialCameraTransform = await galaxyPage.getGalaxyCameraTransform()
+      await galaxyPage.zoomGalaxyIn()
+      await expect.poll(async () => galaxyPage.getGalaxyCameraTransform()).not.toBe(initialCameraTransform)
+      const cameraTransformBeforeInspecting = await galaxyPage.getGalaxyCameraTransform()
+
       await galaxyPage.stars.first().press("Enter")
       await expect(galaxyPage.starSystemMap).toBeVisible()
 
       await galaxyPage.starSystemStar.click()
-      await expect(galaxyPage.map).toBeVisible()
+      await expect(galaxyPage.heading).toBeVisible()
+      await expect.poll(async () => galaxyPage.getGalaxyCameraTransform()).toBe(cameraTransformBeforeInspecting)
     })
   })
 })
