@@ -1,5 +1,6 @@
-import type { Planet as PlanetModel, PlanetBiome, PlanetSize, StarSystem } from "@api-types"
+import type { Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
+import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/planetBiomeColors.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const CENTER = 500
@@ -7,12 +8,6 @@ const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
 const STAR_RADIUS = 18
 const INNER_ORBIT_RADIUS = 90
 const OUTER_ORBIT_RADIUS = 420
-const PLANET_COLORS = {
-  OCEANIC: "#3452eb",
-  METALLIC: "#798391",
-  FROZEN: "#ffffff",
-  VOLCANIC: "#f97316",
-} as const satisfies Record<PlanetBiome, `#${string}`>
 const PLANET_RADII = {
   SMALL: STAR_RADIUS / 4,
   MEDIUM: STAR_RADIUS / 2,
@@ -257,7 +252,7 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
     return {
       ...planet,
       radius: PLANET_RADII[planet.size],
-      color: PLANET_COLORS[planet.biome],
+      color: PLANET_BIOME_COLORS[planet.biome],
       orbitRadius,
       x: CENTER + offsetX * directionScale,
       y: CENTER + offsetY * directionScale,

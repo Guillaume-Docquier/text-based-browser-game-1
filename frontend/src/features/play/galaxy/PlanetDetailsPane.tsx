@@ -1,5 +1,6 @@
 import type { Planet } from "@api-types"
 import type { AnimationEvent, ReactElement } from "react"
+import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/planetBiomeColors.ts"
 import { cn } from "@/lib/cn.ts"
 
 /**
@@ -19,6 +20,7 @@ export function PlanetDetailsPane({
   isClosing: boolean
   onCloseAnimationEnd: () => void
 }): ReactElement {
+  const biomeColor = PLANET_BIOME_COLORS[planet.biome]
   const attributes = [
     { label: "Fertility", value: planet.fertility },
     { label: "Metal", value: planet.metal },
@@ -52,7 +54,14 @@ export function PlanetDetailsPane({
         <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Planet profile</p>
         <h2 className="mt-1 font-heading text-2xl font-semibold text-foreground">{planet.name}</h2>
         <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
-          <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-cyan-100">
+          <span
+            className="rounded-full border px-2.5 py-1"
+            style={{
+              backgroundColor: `color-mix(in srgb, ${biomeColor} 15%, transparent)`,
+              borderColor: `color-mix(in srgb, ${biomeColor} 40%, transparent)`,
+              color: biomeColor,
+            }}
+          >
             <span className="sr-only">Biome: </span>
             {formatCategory(planet.biome)}
           </span>
