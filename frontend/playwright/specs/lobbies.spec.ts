@@ -64,6 +64,25 @@ test.describe("authenticated user", () => {
       await expect(galaxyPage.map).toBeVisible()
     })
 
+    await test.step("Center and fit a Galaxy region", async () => {
+      const galaxyPage = new GalaxyPage(page)
+      const selectedRegion = galaxyPage.regions.last()
+
+      await selectedRegion.click()
+      expect(await galaxyPage.map.getAttribute("aria-busy")).toBe("true")
+      await expect.poll(async () => await galaxyPage.getGalaxyRegionDistanceFromCenter(selectedRegion)).toBeLessThan(1)
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeCloseTo(10.5)
+
+      await galaxyPage.zoomGalaxyIn()
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeGreaterThan(10.5)
+      await selectedRegion.click()
+      expect(await galaxyPage.map.getAttribute("aria-busy")).toBe("true")
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeCloseTo(10.5)
+
+      await galaxyPage.resetViewButton.click()
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBe(1)
+    })
+
     await test.step("Inspect a Star System", async () => {
       const galaxyPage = new GalaxyPage(page)
       const selectedStar = galaxyPage.stars.first()

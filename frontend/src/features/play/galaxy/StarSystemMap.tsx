@@ -44,7 +44,7 @@ export function StarSystemMap({
   const planets = toPlanetViewModels(system)
 
   function selectGalaxy(): void {
-    panZoom.centerOn(VIEWPORT_CENTER, onSelectGalaxy)
+    panZoom.centerOn(VIEWPORT_CENTER, { onCentered: onSelectGalaxy })
   }
 
   return (

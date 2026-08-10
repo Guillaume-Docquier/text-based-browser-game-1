@@ -144,7 +144,7 @@ export function GalaxyPage(): ReactElement {
 
         <div className="pointer-events-none absolute bottom-4 left-4 rounded-md border border-border/70 bg-background/85 px-2.5 py-1.5 text-xs text-muted-foreground backdrop-blur-sm">
           {selectedSystem === undefined
-            ? "Drag to pan · Scroll or pinch to zoom · Select a star to inspect"
+            ? "Drag to pan · Scroll or pinch to zoom · Select a region to center or a star to inspect"
             : "Drag to pan · Scroll or pinch to zoom"}
         </div>
 
