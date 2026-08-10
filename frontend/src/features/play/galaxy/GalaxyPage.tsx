@@ -23,6 +23,7 @@ export function GalaxyPage(): ReactElement {
   const { playerView } = usePlayGameContext()
   const selectedSystem = view.type === "star-system" ? view.system : undefined
   const isExitingStarSystem = view.type === "star-system" && view.transition === "exiting"
+  const totalNbPlanets = playerView.galaxy.systems.flatMap((system) => system.planets).length
 
   function resetView(): void {
     if (view.type === "galaxy") {
@@ -119,9 +120,12 @@ export function GalaxyPage(): ReactElement {
             {selectedSystem === undefined ? "Galaxy" : selectedSystem.star.name}
           </h1>
           <p className="text-xs text-muted-foreground">
+            {selectedSystem === undefined ? "" : `Coordinates: ${selectedSystem.star.coordinates}`}
+          </p>
+          <p className="text-xs text-muted-foreground">
             {selectedSystem === undefined
-              ? `${playerView.galaxy.systems.length.toLocaleString()} Star Systems`
-              : `${selectedSystem.planets.length} ${selectedSystem.planets.length === 1 ? "planet" : "planets"}`}
+              ? `${playerView.galaxy.systems.length.toLocaleString()} Stars | ${totalNbPlanets.toLocaleString()} Planets`
+              : `1 Star | ${selectedSystem.planets.length} ${selectedSystem.planets.length === 1 ? "planet" : "planets"}`}
           </p>
         </div>
 

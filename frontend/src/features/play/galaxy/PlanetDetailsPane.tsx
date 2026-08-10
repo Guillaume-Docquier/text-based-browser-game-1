@@ -51,7 +51,7 @@ export function PlanetDetailsPane({
       onAnimationEnd={finishClosing}
     >
       <header className="border-b border-border/60 px-5 py-4">
-        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Planet profile</p>
+        <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">{planet.coordinates}</p>
         <h2 className="mt-1 font-heading text-2xl font-semibold text-foreground">{planet.name}</h2>
         <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
           <span
