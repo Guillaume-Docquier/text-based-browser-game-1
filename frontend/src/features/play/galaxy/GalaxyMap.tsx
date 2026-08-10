@@ -7,10 +7,18 @@ const GALAXY_PADDING = 25
 const GALAXY_MAP_SIZE = GALAXY_SIZE + GALAXY_PADDING * 2
 const GALAXY_VIEWPORT_CENTER = { x: GALAXY_SIZE / 2, y: GALAXY_SIZE / 2 }
 const LIGHT_YEAR_SIZE = 10
+const REGION_COUNT_PER_AXIS = 10
+const REGION_SIZE = GALAXY_SIZE / REGION_COUNT_PER_AXIS
+const REGION_ZOOM_PADDING = 2
+const REGION_FIT_SCALE = GALAXY_MAP_SIZE / REGION_SIZE - REGION_ZOOM_PADDING
+const REGIONS = Array.from({ length: REGION_COUNT_PER_AXIS ** 2 }, (_, index) => ({
+  row: Math.floor(index / REGION_COUNT_PER_AXIS),
+  column: index % REGION_COUNT_PER_AXIS,
+}))
 const MINOR_GRID_LINES = Array.from({ length: 99 }, (_, index) => index + 1)
   .filter((index) => index % 10 !== 0)
   .map((index) => index * LIGHT_YEAR_SIZE)
-const MAJOR_GRID_LINES = Array.from({ length: 11 }, (_, index) => index * LIGHT_YEAR_SIZE * 10)
+const MAJOR_GRID_LINES = Array.from({ length: REGION_COUNT_PER_AXIS + 1 }, (_, index) => index * REGION_SIZE)
 
 /**
  * Renders the galaxy-wide star map.
@@ -32,9 +40,18 @@ export function GalaxyMap({
   const panZoom = useMapPanZoom({ resetSignal, viewportCenter: GALAXY_VIEWPORT_CENTER })
 
   function selectSystem(system: StarSystem): void {
-    panZoom.centerOn({ x: system.star.x * LIGHT_YEAR_SIZE, y: system.star.y * LIGHT_YEAR_SIZE }, () => {
-      onSelectSystem(system)
-    })
+    panZoom.centerOn(
+      { x: system.star.x * LIGHT_YEAR_SIZE, y: system.star.y * LIGHT_YEAR_SIZE },
+      {
+        onCentered: () => {
+          onSelectSystem(system)
+        },
+      },
+    )
+  }
+
+  function selectRegion(point: { x: number; y: number }): void {
+    panZoom.centerOn(point, { scale: REGION_FIT_SCALE })
   }
 
   return (
@@ -71,11 +88,60 @@ export function GalaxyMap({
       >
         <rect x={-GALAXY_PADDING} y={-GALAXY_PADDING} width={GALAXY_MAP_SIZE} height={GALAXY_MAP_SIZE} fill="#05080f" />
         <GalaxyGrid />
+        <GalaxyRegions onSelect={selectRegion} />
         {galaxy.systems.map((system) => (
           <GalaxyStar key={system.star.id} system={system} onSelect={selectSystem} />
         ))}
       </g>
     </svg>
+  )
+}
+
+function GalaxyRegions({ onSelect }: { onSelect: (point: { x: number; y: number }) => void }): ReactElement {
+  return (
+    <g>
+      {REGIONS.map(({ row, column }) => (
+        <GalaxyRegion key={`${row}-${column}`} row={row} column={column} onSelect={onSelect} />
+      ))}
+    </g>
+  )
+}
+
+function GalaxyRegion({
+  row,
+  column,
+  onSelect,
+}: {
+  row: number
+  column: number
+  onSelect: (point: { x: number; y: number }) => void
+}): ReactElement {
+  const x = column * REGION_SIZE
+  const y = row * REGION_SIZE
+
+  function selectRegion(): void {
+    onSelect({ x: x + REGION_SIZE / 2, y: y + REGION_SIZE / 2 })
+  }
+
+  return (
+    <rect
+      role="button"
+      tabIndex={0}
+      aria-label={`Center region ${row}${column}`}
+      x={x}
+      y={y}
+      width={REGION_SIZE}
+      height={REGION_SIZE}
+      fill="transparent"
+      stroke="transparent"
+      strokeWidth="1"
+      vectorEffect="non-scaling-stroke"
+      className="cursor-pointer outline-none transition-colors duration-200 hover:fill-sky-200/5 focus:fill-sky-200/5 focus:stroke-sky-200/60"
+      onClick={selectRegion}
+      onKeyDown={(event) => {
+        activateWithKeyboard(event, selectRegion)
+      }}
+    />
   )
 }
 

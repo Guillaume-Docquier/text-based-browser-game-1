@@ -17,6 +17,7 @@ describe("systemGenerator", () => {
 
     // Assert
     expect(firstSystem).toEqual(secondSystem)
+    expect(firstSystem.star).toMatchObject(origin)
   })
 
   it("should generate a system around the requested origin", () => {
@@ -27,15 +28,17 @@ describe("systemGenerator", () => {
     const system = systemGenerator(origin, createSeededRng())
 
     // Assert
-    expect(system.star).toEqual<typeof system.star>({ ...origin, name: expect.any(String) })
-    expect(system.planets).toEqual<typeof system.planets>([
-      { x: expect.closeTo(origin.x), y: expect.closeTo(origin.y), name: expect.any(String) },
-      { x: expect.closeTo(origin.x), y: expect.closeTo(origin.y), name: expect.any(String) },
-      { x: expect.closeTo(origin.x), y: expect.closeTo(origin.y), name: expect.any(String) },
-      { x: expect.closeTo(origin.x), y: expect.closeTo(origin.y), name: expect.any(String) },
-      { x: expect.closeTo(origin.x), y: expect.closeTo(origin.y), name: expect.any(String) },
-      { x: expect.closeTo(origin.x), y: expect.closeTo(origin.y), name: expect.any(String) },
-    ])
+    expect(system).toEqual<typeof system>({
+      star: expect.objectContaining(origin),
+      planets: [
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+      ],
+    })
   })
 
   it("should generate planets on distinct valid orbits", () => {

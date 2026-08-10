@@ -1,6 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
 import type { XY } from "@guillaume-docquier/tools-ts"
+import type { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
+import type { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
+import type { Planet } from "#lib/map-generation/planet.generator.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
 const SVG_WIDTH = 900
@@ -9,7 +12,17 @@ const SYSTEM_RADIUS = 50
 const PANEL_PLOT_SIZE = 320
 const SCALE = PANEL_PLOT_SIZE / (SYSTEM_RADIUS * 2)
 const STAR_RADIUS = 8
-const PLANET_RADIUS = STAR_RADIUS / 2
+const PLANET_COLORS = {
+  OCEANIC: "#3452eb",
+  METALLIC: "#798391",
+  FROZEN: "#ffffff",
+  VOLCANIC: "#f97316",
+} as const satisfies Record<PlanetBiome, `#${string}`>
+const PLANET_RADII = {
+  SMALL: STAR_RADIUS / 4,
+  MEDIUM: STAR_RADIUS / 2,
+  LARGE: STAR_RADIUS / 1.25,
+} as const satisfies Record<PlanetSize, number>
 const PANEL_CENTERS = [
   { x: 240, y: 300 },
   { x: 660, y: 300 },
@@ -19,7 +32,7 @@ const PANEL_CENTERS = [
 
 type SystemPreview = {
   readonly name: string
-  readonly planets: readonly XY[]
+  readonly planets: ReadonlyArray<XY & Pick<Planet, "biome" | "size">>
 }
 
 type RenderOptions = {
@@ -69,7 +82,7 @@ function renderSystem({ system, center }: { readonly system: SystemPreview; read
   const planets = system.planets
     .map((planet) => {
       const point = toSvgPoint({ point: planet, center })
-      return `    <circle cx="${SvgRenderer.formatNumber(point.x)}" cy="${SvgRenderer.formatNumber(point.y)}" r="${PLANET_RADIUS}" fill="#00ffff" />`
+      return `    <circle cx="${SvgRenderer.formatNumber(point.x)}" cy="${SvgRenderer.formatNumber(point.y)}" r="${PLANET_RADII[planet.size]}" fill="${PLANET_COLORS[planet.biome]}" data-biome="${planet.biome}" data-size="${planet.size}" />`
     })
     .join("\n")
 

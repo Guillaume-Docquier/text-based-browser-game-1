@@ -9,6 +9,8 @@ import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import type { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
+import type { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
+import type { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
@@ -28,6 +30,13 @@ type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type ActionRow = typeof actionsTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTurnRow = typeof turnsTable.$inferInsert
+
+/**
+ * postgress has a limit of 32767 (int16) bind parameters for a query. Some sources say 65536 (int32), it's not clear.
+ * However, pglite has 32767 for sure as tests break when we bust it.
+ * We'll batch insert planets to avoid the limit, as we can easily insert 3000+ planets with 15+ attributes each, leading to 45k+ bind paremeters.
+ */
+const PLANET_INSERT_BATCH_SIZE = 1_000
 
 export type ActionModel = ActionRow
 
@@ -102,6 +111,14 @@ type PlanetModel = {
   readonly coordinates: PlanetCoordinates
   readonly x: number
   readonly y: number
+  readonly biome: PlanetBiome
+  readonly size: PlanetSize
+  readonly fertility: number
+  readonly metal: number
+  readonly fuel: number
+  readonly energy: number
+  readonly maxPopulation: number
+  readonly area: number
 }
 
 export type GalaxyModel = {
@@ -223,7 +240,9 @@ export class GameplayRepository extends PostgresRepository {
 
     await tx.insert(resourcesTable).values(resources)
     await tx.insert(starsTable).values(stars)
-    await tx.insert(planetsTable).values(planets)
+    for (let index = 0; index < planets.length; index += PLANET_INSERT_BATCH_SIZE) {
+      await tx.insert(planetsTable).values(planets.slice(index, index + PLANET_INSERT_BATCH_SIZE))
+    }
     await tx.insert(gameStatesTable).values(gameState)
     await tx.insert(turnsTable).values(gameTurn)
   }

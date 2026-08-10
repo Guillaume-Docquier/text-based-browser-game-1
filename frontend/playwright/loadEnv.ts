@@ -20,14 +20,31 @@ export const PlaywrightEnv = z.object({
    * Identifies the existing Clerk development user used by authenticated tests.
    */
   E2E_CLERK_USER_EMAIL: z.string(),
+
+  /**
+   * Identifies the Postgres database used by the backend during the tests.
+   */
+  DATABASE_URL: z.string().default("postgres://user:pwd@localhost:5432/cosmic-empires"),
+
+  /**
+   * Port used by the backend started for Playwright.
+   */
+  E2E_BACKEND_PORT: z.coerce.number().default(3000),
+
+  /**
+   * Port used by the frontend started for Playwright.
+   */
+  E2E_FRONTEND_PORT: z.coerce.number().default(4173),
 })
 
 /**
- * Parses the env file to validate that the variables required by Playwright are defined.
+ * Optionally loads an env file, then validates the variables required by Playwright.
  * Returns a type safe PlaywrightEnv object for further use.
  */
-export function loadEnv({ envFilePath }: { envFilePath: string }): PlaywrightEnv {
-  process.loadEnvFile(envFilePath)
+export function loadEnv({ envFilePath }: { envFilePath?: string } = {}): PlaywrightEnv {
+  if (envFilePath !== undefined) {
+    process.loadEnvFile(envFilePath)
+  }
 
   const envResult = PlaywrightEnv.safeParse(process.env)
   if (!envResult.success) {

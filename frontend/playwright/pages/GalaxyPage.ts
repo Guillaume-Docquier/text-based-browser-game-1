@@ -8,24 +8,32 @@ export class GalaxyPage {
 
   public readonly heading: Locator
   public readonly map: Locator
+  public readonly regions: Locator
   public readonly stars: Locator
   public readonly starSystemMap: Locator
   public readonly starSystemStar: Locator
+  public readonly planets: Locator
+  public readonly planetDetailsPane: Locator
   public readonly backToGalaxyButton: Locator
+  public readonly resetViewButton: Locator
 
   public constructor(page: Page) {
     this.page = page
     this.heading = page.getByRole("heading", { name: "Galaxy", exact: true })
     this.map = page.getByRole("group", { name: "Galaxy map" })
+    this.regions = page.getByRole("button", { name: /^Center region \d{2}$/ })
     this.stars = page.getByRole("button", { name: /^View .+ Star System$/ })
     this.starSystemMap = page.getByRole("group", { name: / Star System map$/ })
     this.starSystemStar = page.getByRole("button", { name: /^Return to Galaxy from / })
+    this.planets = page.getByRole("button", { name: /^View .+ details$/ })
+    this.planetDetailsPane = page.getByRole("complementary", { name: / details$/ })
     this.backToGalaxyButton = page.getByRole("button", { name: "Galaxy", exact: true })
+    this.resetViewButton = page.getByRole("button", { name: "Reset view", exact: true })
   }
 
-  public async zoomGalaxyIn(): Promise<void> {
+  public async zoomGalaxyOut(): Promise<void> {
     await this.map.hover()
-    await this.page.mouse.wheel(0, -100)
+    await this.page.mouse.wheel(0, -200)
   }
 
   public async panStarSystem({ deltaX, deltaY }: { deltaX: number; deltaY: number }): Promise<void> {
@@ -61,8 +69,19 @@ export class GalaxyPage {
     return await this.getDistanceFromMapCenter({ map: this.map, target: star })
   }
 
+  public async getGalaxyRegionDistanceFromCenter(region: Locator): Promise<number> {
+    return await this.getDistanceFromMapCenter({ map: this.map, target: region })
+  }
+
   public async getStarSystemStarDistanceFromCenter(): Promise<number> {
     return await this.getDistanceFromMapCenter({ map: this.starSystemMap, target: this.starSystemStar.locator("circle").last() })
+  }
+
+  public async getPlanetName(planet: Locator): Promise<string> {
+    const name = await planet.locator("text").textContent()
+    Assert.isDefined(name)
+
+    return name
   }
 
   private async getDistanceFromMapCenter({ map, target }: { map: Locator; target: Locator }): Promise<number> {

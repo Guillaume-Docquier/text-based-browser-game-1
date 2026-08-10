@@ -57,8 +57,45 @@ jobs:
       - name: Storybook
         run: pnpm --filter frontend storybook:build
 
-      - name: Tests
-        run: pnpm --filter frontend test
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        # Needs to be in sync with the concurrency test image in ConcurrencyTestApiServer.ts, prod and docker-compose
+        image: postgres:18.4
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pwd
+          POSTGRES_DB: cosmic-empires
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready --username=user --dbname=cosmic-empires"
+          --health-interval 1s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      - name: Checkout ${{ github.ref_name }}
+        uses: actions/checkout@v7.0.1
+
+      - name: Setting up pnpm
+        uses: pnpm/action-setup@v6.0.9
+
+      - name: Install packages
+        run: pnpm ci
+
+      - name: Install Playwright browser
+        run: pnpm --filter frontend e2e:install
+
+      - name: End-to-end tests
+        run: pnpm --filter frontend e2e
+        env:
+          DATABASE_URL: "postgres://user:pwd@127.0.0.1:5432/cosmic-empires"
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          E2E_CLERK_USER_EMAIL: "e2e+clerk_test@example.com"
 
   backend:
     runs-on: ubuntu-latest

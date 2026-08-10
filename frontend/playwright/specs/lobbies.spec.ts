@@ -64,17 +64,55 @@ test.describe("authenticated user", () => {
       await expect(galaxyPage.map).toBeVisible()
     })
 
+    await test.step("Center and fit a Galaxy region", async () => {
+      const galaxyPage = new GalaxyPage(page)
+      const selectedRegion = galaxyPage.regions.last()
+
+      await selectedRegion.click()
+      expect(await galaxyPage.map.getAttribute("aria-busy")).toBe("true")
+      await expect.poll(async () => await galaxyPage.getGalaxyRegionDistanceFromCenter(selectedRegion)).toBeLessThan(1)
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
+
+      await galaxyPage.zoomGalaxyOut()
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeGreaterThan(10.5)
+      await selectedRegion.click()
+      expect(await galaxyPage.map.getAttribute("aria-busy")).toBe("true")
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
+
+      await galaxyPage.resetViewButton.click()
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBe(1)
+    })
+
     await test.step("Inspect a Star System", async () => {
       const galaxyPage = new GalaxyPage(page)
       const selectedStar = galaxyPage.stars.first()
       const initialCameraScale = await galaxyPage.getGalaxyCameraScale()
-      await galaxyPage.zoomGalaxyIn()
+      await galaxyPage.zoomGalaxyOut()
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).not.toBe(initialCameraScale)
       const cameraScaleBeforeInspecting = await galaxyPage.getGalaxyCameraScale()
 
       await selectedStar.press("Enter")
       await expect(galaxyPage.starSystemMap).not.toBeVisible()
       await expect(galaxyPage.starSystemMap).toBeVisible()
+
+      const firstPlanet = galaxyPage.planets.first()
+      const secondPlanet = galaxyPage.planets.nth(1)
+      const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
+      const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
+
+      await firstPlanet.press("Enter")
+      await expect(galaxyPage.planetDetailsPane).toBeVisible()
+      await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: firstPlanetName })).toBeVisible()
+      await expect(galaxyPage.planetDetailsPane).toContainText("Planet attributes")
+      await expect(galaxyPage.planetDetailsPane).toContainText("Fertility")
+      await expect(galaxyPage.planetDetailsPane).toContainText("Max population")
+      await expect(galaxyPage.planetDetailsPane).toContainText("Coordinates")
+
+      await secondPlanet.click()
+      await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: secondPlanetName })).toBeVisible()
+
+      await galaxyPage.starSystemMap.click({ position: { x: 10, y: 10 } })
+      await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
 
       await galaxyPage.panStarSystem({ deltaX: 60, deltaY: 40 })
       expect(await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeGreaterThan(20)
@@ -94,5 +132,34 @@ test.describe("authenticated user", () => {
       expect(await galaxyPage.starSystemMap.getAttribute("aria-busy")).not.toBe("true")
       await expect(galaxyPage.heading).toBeVisible()
     })
+  })
+
+  test("opens, switches, and closes the Planet profile pane", async ({ page }) => {
+    const createGamePage = await CreateGamePage.goto(page)
+    await createGamePage.setGameName(`Planet profile ${Date.now()}`)
+    await createGamePage.submit()
+
+    const lobbyPage = new LobbyPage(page)
+    await lobbyPage.startGame()
+    await lobbyPage.openGame()
+
+    const galaxyPage = new GalaxyPage(page)
+    await galaxyPage.stars.first().click()
+    await expect(galaxyPage.starSystemMap).toBeVisible()
+
+    const firstPlanet = galaxyPage.planets.first()
+    const secondPlanet = galaxyPage.planets.nth(1)
+    const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
+    const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
+
+    await firstPlanet.click()
+    await expect(galaxyPage.planetDetailsPane).toBeVisible()
+    await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: firstPlanetName })).toBeVisible()
+
+    await secondPlanet.press("Enter")
+    await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: secondPlanetName })).toBeVisible()
+
+    await galaxyPage.starSystemMap.click({ position: { x: 10, y: 10 } })
+    await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
   })
 })

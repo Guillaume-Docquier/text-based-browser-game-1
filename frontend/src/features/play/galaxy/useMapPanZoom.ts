@@ -9,6 +9,11 @@ type ViewportTransform = Point & {
   scale: number
 }
 
+type CenterOnOptions = {
+  scale?: number
+  onCentered?: () => void
+}
+
 type PointerMovement = {
   pointerId: number
   previousPoint: Point
@@ -48,7 +53,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
   isCentering: boolean
   isPanning: boolean
   transform: string
-  centerOn: (point: Point, onCentered: () => void) => void
+  centerOn: (point: Point, options?: CenterOnOptions) => void
   onPointerCancel: (event: PointerEvent<SVGSVGElement>) => void
   onPointerDown: (event: PointerEvent<SVGSVGElement>) => void
   onPointerMove: (event: PointerEvent<SVGSVGElement>) => void
@@ -134,25 +139,27 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
     )
   }
 
-  function centerOn(point: Point, onCentered: () => void): void {
+  function centerOn(point: Point, options: CenterOnOptions = {}): void {
     if (isCenteringRef.current) {
       return
     }
 
+    const scale = clampScale(options.scale ?? viewportTransform.scale)
     const centeredTransform = {
-      ...viewportTransform,
-      x: viewportCenter.x - point.x * viewportTransform.scale,
-      y: viewportCenter.y - point.y * viewportTransform.scale,
+      x: viewportCenter.x - point.x * scale,
+      y: viewportCenter.y - point.y * scale,
+      scale,
     }
     const panDistance = distance(viewportTransform, centeredTransform)
-    if (panDistance <= CENTERING_POSITION_EPSILON) {
-      onCentered()
+    const scaleDistance = Math.abs(viewportTransform.scale - centeredTransform.scale)
+    if (panDistance <= CENTERING_POSITION_EPSILON && scaleDistance <= CENTERING_POSITION_EPSILON) {
+      options.onCentered?.()
       return
     }
 
     const durationMs = calculateCenteringDurationMs(panDistance)
     isCenteringRef.current = true
-    centeringCompletion.current = onCentered
+    centeringCompletion.current = options.onCentered
     setCenteringDurationMs(durationMs)
     setIsCentering(true)
     setViewportTransform(centeredTransform)
@@ -316,7 +323,7 @@ function zoomAroundPoint({
   currentPoint: Point
   requestedScale: number
 }): ViewportTransform {
-  const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, requestedScale))
+  const scale = clampScale(requestedScale)
   const worldPoint = {
     x: (previousPoint.x - currentTransform.x) / currentTransform.scale,
     y: (previousPoint.y - currentTransform.y) / currentTransform.scale,
@@ -327,6 +334,10 @@ function zoomAroundPoint({
     y: currentPoint.y - worldPoint.y * scale,
     scale,
   }
+}
+
+function clampScale(scale: number): number {
+  return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale))
 }
 
 function toSvgPoint(event: PointerEvent<SVGSVGElement> | WheelEvent<SVGSVGElement>): Point {

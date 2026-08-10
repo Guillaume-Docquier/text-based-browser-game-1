@@ -8,7 +8,7 @@ import { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
 
-// The image is the same we use to dev locally, keep it this way.
+// Needs to be in sync with the GitHub Actions, prod and docker-compose
 // See infra/docker-compose.yaml
 export const POSTGRES_IMAGE = "postgres:18.4"
 /**

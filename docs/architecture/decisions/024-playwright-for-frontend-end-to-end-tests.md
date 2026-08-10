@@ -4,6 +4,10 @@
 
 Accepted
 
+### Amendment history
+
+- 2026-08-09: Added CI execution using GitHub hosted Postgres service
+
 ## Context
 
 The backend has good integration feature oriented tests, but the frontend has nothing. Unit tests could be used easily, but that wouldn't be feature oriented and would leave a gap in our testing: authentication.
@@ -14,7 +18,8 @@ Use Playwright with Chromium for frontend end-to-end (e2e) tests in `frontend/pl
 
 The e2e tests should test real user flows with real authentication, real backend, real everything.
 
-Railway supports PR environments, but for now we won't hook the e2e tests to the CI to avoid costs.
+Run the e2e tests in CI using a GitHub Actions Postgres service. Playwright starts the backend and frontend, and the backend applies migrations on boot. The tests create their own scenario data, so the
+database does not need a separate seed step.
 
 We've set up the `e2e+clerk_test@example.com` in the Clerk dev env for use in tests.
 
@@ -26,4 +31,15 @@ We've set up the `e2e+clerk_test@example.com` in the Clerk dev env for use in te
 
 ## Consequences
 
-We'll have e2e tests offering good coverage of the system, but the tests will be run locally only. This is fine since I'm the only contributor right now.
+e2e tests are enforced with every change.
+
+However, the secrets are now in GitHub Actions, so they can be stolen by an external contributor running a workflow on our repository. That being said, they're dev credentials, so the blast radius is limited.
+
+We also now have 4 Postgres versions to keep in sync:
+
+- dev setup via docker compose
+- prod via a Railway service
+- concurrency tests via dev containers
+- GitHub via services
+
+Using Railway PR environments would remove on version, as it would be the same as prod.
