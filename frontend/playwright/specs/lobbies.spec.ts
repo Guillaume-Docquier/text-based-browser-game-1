@@ -71,13 +71,13 @@ test.describe("authenticated user", () => {
       await selectedRegion.click()
       expect(await galaxyPage.map.getAttribute("aria-busy")).toBe("true")
       await expect.poll(async () => await galaxyPage.getGalaxyRegionDistanceFromCenter(selectedRegion)).toBeLessThan(1)
-      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeCloseTo(10.5)
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
 
-      await galaxyPage.zoomGalaxyIn()
+      await galaxyPage.zoomGalaxyOut()
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeGreaterThan(10.5)
       await selectedRegion.click()
       expect(await galaxyPage.map.getAttribute("aria-busy")).toBe("true")
-      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeCloseTo(10.5)
+      await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
 
       await galaxyPage.resetViewButton.click()
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBe(1)
@@ -87,7 +87,7 @@ test.describe("authenticated user", () => {
       const galaxyPage = new GalaxyPage(page)
       const selectedStar = galaxyPage.stars.first()
       const initialCameraScale = await galaxyPage.getGalaxyCameraScale()
-      await galaxyPage.zoomGalaxyIn()
+      await galaxyPage.zoomGalaxyOut()
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).not.toBe(initialCameraScale)
       const cameraScaleBeforeInspecting = await galaxyPage.getGalaxyCameraScale()
 

@@ -31,9 +31,9 @@ export class GalaxyPage {
     this.resetViewButton = page.getByRole("button", { name: "Reset view", exact: true })
   }
 
-  public async zoomGalaxyIn(): Promise<void> {
+  public async zoomGalaxyOut(): Promise<void> {
     await this.map.hover()
-    await this.page.mouse.wheel(0, -100)
+    await this.page.mouse.wheel(0, -200)
   }
 
   public async panStarSystem({ deltaX, deltaY }: { deltaX: number; deltaY: number }): Promise<void> {
