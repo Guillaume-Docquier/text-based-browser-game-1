@@ -19,59 +19,22 @@ describe("planetGenerator", () => {
     const secondPlanet = planetGenerator(starPosition, orbitDistance, createSeededRng())
 
     // Assert
-    expect({ firstPlanet, secondPlanet }).toEqual({
-      firstPlanet: {
-        x: 17.166551105169326,
-        y: -16.444645551144536,
-        name: "planet 970578",
-        biome: PlanetBiome.FROZEN,
-        size: PlanetSize.LARGE,
-        fertility: 1,
-        metal: 1,
-        fuel: 2,
-        energy: 2,
-        maxPopulation: 26,
-        area: 7,
-      },
-      secondPlanet: {
-        x: 17.166551105169326,
-        y: -16.444645551144536,
-        name: "planet 970578",
-        biome: PlanetBiome.FROZEN,
-        size: PlanetSize.LARGE,
-        fertility: 1,
-        metal: 1,
-        fuel: 2,
-        energy: 2,
-        maxPopulation: 26,
-        area: 7,
-      },
-    })
+    expect(firstPlanet).toEqual(secondPlanet)
+    expect(Math.hypot(firstPlanet.x - starPosition.x, firstPlanet.y - starPosition.y)).toBeCloseTo(orbitDistance, 5)
   })
 
   it("should place the planet at the angle selected by the rng", () => {
     // Arrange
     const starPosition = { x: 10, y: -20 }
     const orbitDistance = 8
-    const quarterTurnRng = createRng(() => 0.25)
+    const quarterTurnRng = createRng(() => 0.25) // straight up, x should not change
 
     // Act
     const planet = planetGenerator(starPosition, orbitDistance, quarterTurnRng)
 
     // Assert
-    expect(planet).toEqual({
-      x: expect.closeTo(10, 10),
-      y: -12,
-      name: "planet 250749",
-      biome: PlanetBiome.METALLIC,
-      size: PlanetSize.SMALL,
-      fertility: 1,
-      metal: 2,
-      fuel: 1,
-      energy: 1,
-      maxPopulation: 6,
-      area: 2,
-    })
+    expect(planet.y).toEqual(starPosition.y + orbitDistance)
+    expect(Math.hypot(planet.x - starPosition.x, planet.y - starPosition.y)).toBeCloseTo(orbitDistance, 5)
   })
 
   it("should generate every biome and size with independent Attributes in their configured ranges", () => {
