@@ -2,7 +2,7 @@ import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-t
 import { describe, expect, it } from "vitest"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
-import { planetGenerator } from "#lib/map-generation/planet.generator.ts"
+import { BIOME_ATTRIBUTE_RANGES, planetGenerator, SIZE_ATTRIBUTE_RANGES } from "#lib/map-generation/planet.generator.ts"
 
 describe("planetGenerator", () => {
   function createSeededRng(): Rng {
@@ -37,75 +37,42 @@ describe("planetGenerator", () => {
     expect(Math.hypot(planet.x - starPosition.x, planet.y - starPosition.y)).toBeCloseTo(orbitDistance, 5)
   })
 
-  it("should generate every biome and size with independent Attributes in their configured ranges", () => {
+  it("should generate every biome with Attributes in its configured ranges", () => {
     // Arrange
-    const cases = [
-      { biomeRoll: 0, sizeRoll: 0 },
-      { biomeRoll: 0.25, sizeRoll: 1 / 3 },
-      { biomeRoll: 0.5, sizeRoll: 2 / 3 },
-      { biomeRoll: 0.75, sizeRoll: 0 },
-    ]
+    const rng = createSeededRng()
 
     // Act
-    const planets = cases.map(({ biomeRoll, sizeRoll }) =>
-      planetGenerator({ x: 0, y: 0 }, 8, createSequenceRng([0, biomeRoll, sizeRoll, 0.999_999, 0, 0.2, 0.4, 0.6, 0.8, 0.999_999])),
-    )
+    const planets = Array.from({ length: 5_000 }, () => planetGenerator({ x: 0, y: 0 }, 8, rng))
 
     // Assert
-    expect(planets).toEqual([
-      {
-        x: 8,
-        y: 0,
-        name: "planet 999999",
-        biome: PlanetBiome.OCEANIC,
-        size: PlanetSize.SMALL,
-        fertility: 2,
-        metal: 1,
-        fuel: 2,
-        energy: 2,
-        maxPopulation: 9,
-        area: 4,
-      },
-      {
-        x: 8,
-        y: 0,
-        name: "planet 999999",
-        biome: PlanetBiome.METALLIC,
-        size: PlanetSize.MEDIUM,
-        fertility: 1,
-        metal: 2,
-        fuel: 1,
-        energy: 2,
-        maxPopulation: 18,
-        area: 7,
-      },
-      {
-        x: 8,
-        y: 0,
-        name: "planet 999999",
-        biome: PlanetBiome.FROZEN,
-        size: PlanetSize.LARGE,
-        fertility: 1,
-        metal: 1,
-        fuel: 3,
-        energy: 2,
-        maxPopulation: 32,
-        area: 11,
-      },
-      {
-        x: 8,
-        y: 0,
-        name: "planet 999999",
-        biome: PlanetBiome.VOLCANIC,
-        size: PlanetSize.SMALL,
-        fertility: 2,
-        metal: 1,
-        fuel: 1,
-        energy: 3,
-        maxPopulation: 9,
-        area: 4,
-      },
-    ])
+    expect(new Set(planets.map((planet) => planet.biome))).toEqual(new Set(Object.values(PlanetBiome)))
+    for (const biome of Object.values(PlanetBiome)) {
+      const biomePlanets = planets.filter((planet) => planet.biome === biome)
+      const limits = BIOME_ATTRIBUTE_RANGES[biome]
+
+      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.fertility)), limits.fertility)
+      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.metal)), limits.metal)
+      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.fuel)), limits.fuel)
+      expectToMatchLimits(getObservedRange(biomePlanets.map((planet) => planet.energy)), limits.energy)
+    }
+  })
+
+  it("should generate every size with Attributes in its configured ranges", () => {
+    // Arrange
+    const rng = createSeededRng()
+
+    // Act
+    const planets = Array.from({ length: 5_000 }, () => planetGenerator({ x: 0, y: 0 }, 8, rng))
+
+    // Assert
+    expect(new Set(planets.map((planet) => planet.size))).toEqual(new Set(Object.values(PlanetSize)))
+    for (const size of Object.values(PlanetSize)) {
+      const sizePlanets = planets.filter((planet) => planet.size === size)
+      const limits = SIZE_ATTRIBUTE_RANGES[size]
+
+      expectToMatchLimits(getObservedRange(sizePlanets.map((planet) => planet.maxPopulation)), limits.maxPopulation)
+      expectToMatchLimits(getObservedRange(sizePlanets.map((planet) => planet.area)), limits.area)
+    }
   })
 
   it("should translate the generated planet with its star", () => {
@@ -130,16 +97,19 @@ describe("planetGenerator", () => {
   })
 })
 
-function createSequenceRng(values: readonly number[]): Rng {
-  let index = 0
+type NumericRange = {
+  readonly min: number
+  readonly max: number
+}
 
-  return createRng(() => {
-    const value = values[index]
-    if (value === undefined) {
-      throw new Error("The test RNG sequence was exhausted")
-    }
+function getObservedRange(values: readonly number[]): NumericRange {
+  return {
+    min: Math.min(...values),
+    max: Math.max(...values),
+  }
+}
 
-    index++
-    return value
-  })
+function expectToMatchLimits(observed: NumericRange, limits: NumericRange): void {
+  expect(observed.min).toEqual(limits.min)
+  expect(observed.max).toEqual(limits.max)
 }

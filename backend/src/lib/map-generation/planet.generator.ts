@@ -24,7 +24,8 @@ const SIZE_INDEX_RANGE = Range.integer({ min: 0, max: PLANET_SIZES.length - 1 })
 
 type AttributeRanges<TAttribute extends keyof Planet> = Readonly<Record<TAttribute, ReturnType<typeof Range.integer>>>
 
-const BIOME_ATTRIBUTE_RANGES = {
+/** Attribute ranges configured for each Planet Biome. */
+export const BIOME_ATTRIBUTE_RANGES = {
   [PlanetBiome.OCEANIC]: {
     fertility: Range.integer({ min: 2, max: 4 }),
     metal: Range.integer({ min: 1, max: 2 }),
@@ -51,7 +52,8 @@ const BIOME_ATTRIBUTE_RANGES = {
   },
 } as const satisfies Record<PlanetBiome, AttributeRanges<"fertility" | "metal" | "fuel" | "energy">>
 
-const SIZE_ATTRIBUTE_RANGES = {
+/** Attribute ranges configured for each Planet Size. */
+export const SIZE_ATTRIBUTE_RANGES = {
   [PlanetSize.SMALL]: {
     maxPopulation: Range.integer({ min: 5, max: 10 }),
     area: Range.integer({ min: 2, max: 4 }),
