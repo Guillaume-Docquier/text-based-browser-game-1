@@ -19,6 +19,7 @@ describe("systemGenerator", () => {
 
     // Assert
     expect(firstSystem).toEqual(secondSystem)
+    expect(firstSystem.star).toMatchObject(origin)
   })
 
   it("should generate a system around the requested origin", () => {

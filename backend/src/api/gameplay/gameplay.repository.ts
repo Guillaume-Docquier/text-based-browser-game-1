@@ -36,7 +36,7 @@ type NewTurnRow = typeof turnsTable.$inferInsert
  * However, pglite has 32767 for sure as tests break when we bust it.
  * We'll batch insert planets to avoid the limit, as we can easily insert 3000+ planets with 15+ attributes each, leading to 45k+ bind paremeters.
  */
-const PLANET_INSERT_BATCH_SIZE = 500
+const PLANET_INSERT_BATCH_SIZE = 1_000
 
 export type ActionModel = ActionRow
 
