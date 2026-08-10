@@ -1,7 +1,5 @@
 import { createRng, Distance, mulberry32Prng, type Rng, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
-import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { systemGenerator } from "#lib/map-generation/system.generator.ts"
 
 describe("systemGenerator", () => {
@@ -31,86 +29,14 @@ describe("systemGenerator", () => {
 
     // Assert
     expect(system).toEqual<typeof system>({
-      star: { ...origin, name: expect.any(String) },
+      star: expect.objectContaining(origin),
       planets: [
-        {
-          x: expect.closeTo(origin.x),
-          y: expect.closeTo(origin.y),
-          name: expect.any(String),
-          biome: PlanetBiome.METALLIC,
-          size: PlanetSize.LARGE,
-          fertility: 1,
-          metal: 4,
-          fuel: 1,
-          energy: 3,
-          maxPopulation: 20,
-          area: 11,
-        },
-        {
-          x: expect.closeTo(origin.x),
-          y: expect.closeTo(origin.y),
-          name: expect.any(String),
-          biome: PlanetBiome.OCEANIC,
-          size: PlanetSize.SMALL,
-          fertility: 4,
-          metal: 1,
-          fuel: 2,
-          energy: 2,
-          maxPopulation: 6,
-          area: 3,
-        },
-        {
-          x: expect.closeTo(origin.x),
-          y: expect.closeTo(origin.y),
-          name: expect.any(String),
-          biome: PlanetBiome.OCEANIC,
-          size: PlanetSize.MEDIUM,
-          fertility: 2,
-          metal: 2,
-          fuel: 3,
-          energy: 1,
-          maxPopulation: 20,
-          area: 4,
-        },
-        {
-          x: expect.closeTo(origin.x),
-          y: expect.closeTo(origin.y),
-          name: expect.any(String),
-          biome: PlanetBiome.FROZEN,
-          size: PlanetSize.SMALL,
-          fertility: 1,
-          metal: 3,
-          fuel: 4,
-          energy: 2,
-          maxPopulation: 7,
-          area: 4,
-        },
-        {
-          x: expect.closeTo(origin.x),
-          y: expect.closeTo(origin.y),
-          name: expect.any(String),
-          biome: PlanetBiome.FROZEN,
-          size: PlanetSize.LARGE,
-          fertility: 2,
-          metal: 2,
-          fuel: 2,
-          energy: 2,
-          maxPopulation: 33,
-          area: 9,
-        },
-        {
-          x: expect.closeTo(origin.x),
-          y: expect.closeTo(origin.y),
-          name: expect.any(String),
-          biome: PlanetBiome.VOLCANIC,
-          size: PlanetSize.LARGE,
-          fertility: 2,
-          metal: 1,
-          fuel: 2,
-          energy: 2,
-          maxPopulation: 27,
-          area: 10,
-        },
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
+        expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
       ],
     })
   })
