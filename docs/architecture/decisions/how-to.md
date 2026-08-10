@@ -3,7 +3,7 @@
 ## Philosophy
 
 - ADRs explain durable decisions, not every implementation detail.
-- The ADR template is intentionally small: `Title`, `Status`, `Context`, `Decision`, and `Consequences`.
+- The ADR template is intentionally small: `Title`, `Status`, `Context`, `Decision`, and `Consequences`, with an `Amendment history` when an accepted ADR changes.
 - Capture useful options, rejected alternatives, boundaries, risks, and follow-up work inside the existing template sections.
 - The ADR must be self-contained — no tribal knowledge assumptions
 
@@ -20,7 +20,7 @@ Do not write an ADR for:
 
 - Routine implementation choices within an established pattern.
 - Bug fixes or typo corrections.
-- Decisions already captured in an existing ADR. Update the existing ADR instead.
+- Decisions already captured in an existing ADR. Amend the existing ADR instead.
 - Style preferences already covered by linters or formatters.
 
 When in doubt: if a future agent working in this codebase would benefit from knowing _why_ this choice was made, write the ADR.
@@ -145,13 +145,17 @@ Agents should read existing ADRs before implementing changes that touch architec
 4. Follow accepted ADRs unless the work is explicitly to supersede or revise them.
 5. If code and an accepted ADR disagree, flag the mismatch before changing direction.
 
-## Updating ADRs
+## Amending ADRs
 
-Do not rewrite history unless the ADR is still a draft. For accepted ADRs:
+Draft ADRs can be edited directly. Once an ADR is accepted, it must be amended, never simply modified. Amendments keep the ADR's guidance current while preserving a visible record of how the decision changed.
 
-- To accept or reject a draft, update `Status` and add any final context needed.
-- To deprecate an ADR, set `Status` to `Deprecated` and explain the replacement path.
-- To supersede an ADR, create a new ADR and link both ways.
-- To add later learning, add a dated note or amendment inside the relevant template section.
+To amend an accepted ADR:
+
+1. Add an `### Amendment history` subsection immediately after `Status` if it does not already exist.
+2. Append a dated list item in `YYYY-MM-DD` format that concisely describes what changed and why. Keep entries in chronological order.
+3. Update the affected `Context`, `Decision`, or `Consequences` text so the ADR remains the current source of truth.
+4. If the change reverses or replaces the original decision instead of refining it, create a new ADR and mark the old ADR as `Superseded`, linking the two ADRs in both directions.
+
+Status changes on accepted ADRs are amendments too. Record deprecation or supersession in the amendment history and explain the replacement path in the ADR body.
 
 Update `docs/architecture/decisions/README.md` when an ADR is accepted, deprecated, superseded, or otherwise changes how contributors should use the index.
