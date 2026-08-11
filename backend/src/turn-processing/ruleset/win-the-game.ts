@@ -1,15 +1,15 @@
-import type { ActionDefinition } from "#turn-processing/engine/action/ActionDefinition.ts"
-import { ActionTier } from "#turn-processing/engine/action/ActionTier.ts"
-import { ActionType } from "#turn-processing/engine/action/ActionType.ts"
-import { Victory } from "#turn-processing/engine/effects/mechanics/Victory.ts"
-import { ResourceType } from "#turn-processing/engine/effects/ResourceType.ts"
+import type { ActionDefinition } from "#turn-processing/engine/actions/ActionDefinition.ts"
+import { ActionTier } from "#turn-processing/engine/actions/ActionTier.ts"
+import { ActionType } from "#turn-processing/engine/actions/ActionType.ts"
+import { ResourceType } from "#turn-processing/engine/mechanics/ResourceType.ts"
+import { Victory } from "#turn-processing/engine/mechanics/Victory.ts"
 
 export const WinTheGame: ActionDefinition = {
-  id: "",
+  id: "win-the-game-action",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.EXCEPTIONAL,
   source: "SELF",
   target: "SELF",
   costs: [{ resourceType: ResourceType.MONEY, quantity: 10 }],
-  effects: [{ mechanicId: Victory.id, resolvedParameters: {} }],
+  mechanics: [{ mechanicId: Victory.id, resolvedParameters: {} }],
 }

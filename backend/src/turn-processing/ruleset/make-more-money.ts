@@ -1,8 +1,8 @@
-import type { ActionDefinition } from "#turn-processing/engine/action/ActionDefinition.ts"
-import { ActionTier } from "#turn-processing/engine/action/ActionTier.ts"
-import { ActionType } from "#turn-processing/engine/action/ActionType.ts"
-import { Income } from "#turn-processing/engine/effects/mechanics/Income.ts"
-import { ResourceType } from "#turn-processing/engine/effects/ResourceType.ts"
+import type { ActionDefinition } from "#turn-processing/engine/actions/ActionDefinition.ts"
+import { ActionTier } from "#turn-processing/engine/actions/ActionTier.ts"
+import { ActionType } from "#turn-processing/engine/actions/ActionType.ts"
+import { Income } from "#turn-processing/engine/mechanics/Income.ts"
+import { ResourceType } from "#turn-processing/engine/mechanics/ResourceType.ts"
 
 export const MakeMoreMoney: ActionDefinition = {
   id: "make-more-money-action",
@@ -11,7 +11,7 @@ export const MakeMoreMoney: ActionDefinition = {
   source: "SELF",
   target: "SELF",
   costs: [{ resourceType: ResourceType.MONEY, quantity: 2 }],
-  effects: [
+  mechanics: [
     {
       mechanicId: Income.id,
       resolvedParameters: {

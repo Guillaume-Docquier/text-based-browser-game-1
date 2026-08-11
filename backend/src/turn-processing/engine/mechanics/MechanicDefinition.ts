@@ -1,8 +1,8 @@
-import type { Income } from "#turn-processing/engine/effects/mechanics/Income.ts"
-import type { Victory } from "#turn-processing/engine/effects/mechanics/Victory.ts"
-import type { ResourceType } from "#turn-processing/engine/effects/ResourceType.ts"
+import type { Income } from "#turn-processing/engine/mechanics/Income.ts"
+import type { ResourceType } from "#turn-processing/engine/mechanics/ResourceType.ts"
+import type { Victory } from "#turn-processing/engine/mechanics/Victory.ts"
 
-export type Mechanic = {
+export type MechanicDefinition = {
   /**
    * The unique id of the mechanic
    */
@@ -29,4 +29,4 @@ export type MechanicParameterTSType<TMechanicParameterType> = TMechanicParameter
       ? ResourceType
       : never
 
-export type Mechanics = typeof Income | typeof Victory
+export type MechanicDefinitions = typeof Income | typeof Victory
