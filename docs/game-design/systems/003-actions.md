@@ -15,6 +15,7 @@ Supports:
 - [GDDR 005-ideological-axes](../decisions/005-ideological-axes.md)
 - [GDDR 006-card-like-actions](../decisions/006-card-like-actions.md)
 - [GDDR 007-asymmetric-play](../decisions/007-asymmetric-play.md)
+- [GDDR 009-deterministic-data-driven-rules-engine](../decisions/009-deterministic-data-driven-rules-engine.md)
 
 Relates to:
 
@@ -30,22 +31,29 @@ Relates to:
 - [System 011-combat](./011-combat.md)
 - [System 012-travel](./012-travel.md)
 - [System 014-resources](./014-resources.md)
+- [System 015-rules-engine](./015-rules-engine.md)
 
 ## Core Concepts
 
-| Concept   | Definition                                                                                                                |
-| --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Action    | What the player chooses their Empire should do this Turn. There are 3 types of Actions: Agendas, Directives and Programs. |
-| Agenda    | A broad Action that shifts the Empire's Ideological Alignments                                                            |
-| Directive | A specific Action that exploits the Empire's Ideological Alignments without affecting them                                |
-| Program   | An Action to achieve a Legacy Project. See [System 002-legacy](./002-legacy.md)                                           |
-| Influence | Resource that all Actions cost. See [System 005-political-regime](./005-political-regime.md)                              |
+| Concept                   | Definition                                                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Action Definition         | The Ruleset content that declares an Action's presentation, type, tier, prerequisites, costs, composed Mechanics, sources, inputs, and target slots.                            |
+| Available Action Instance | A currently usable instance of an Action Definition offered to a player, including its exact server-provided source, input, and target candidates.                              |
+| Action Submission         | A player's proposed use of an Available Action Instance with selected sources, inputs, and targets.                                                                             |
+| Action                    | Player-facing shorthand for the definition, available instance, or submission when that distinction is not important. There are three types: Agendas, Directives, and Programs. |
+| Agenda                    | A broad Action that shifts the Empire's Ideological Alignments.                                                                                                                 |
+| Directive                 | A specific Action that exploits the Empire's Ideological Alignments without affecting them.                                                                                     |
+| Program                   | An Action to achieve a Legacy Project. See [System 002-legacy](./002-legacy.md).                                                                                                |
+| Effect                    | Player-facing shorthand for what an Action does; the Rules Engine produces concrete Effects from the Action Definition's composed Mechanics.                                    |
+| Influence                 | Resource that all Actions cost. See [System 005-political-regime](./005-political-regime.md).                                                                                   |
 
 ## Rules
 
-Actions are submitted each Turn by players.
+The game's Ruleset contains Action Definitions. During each Turn, the server evaluates the current game state and gives each player their Available Action Instances. Multiple instances can share one Action Definition, such as several opportunities to use the same Move definition.
 
-Every player-caused change to the game is made by playing an Action. Players cannot take a game-impacting action outside this system.
+Each instance includes the exact currently valid source, input, and target candidates. The client displays those server-provided choices and does not derive legality from player state. Playing an Action creates an Action Submission containing the player's selections. The server validates the submission when received and again during Turn Resolution.
+
+Every player-caused change to the game is made through an Action Submission. Players cannot take a game-impacting action outside this system.
 
 There are 3 types of Actions:
 
@@ -53,23 +61,26 @@ There are 3 types of Actions:
 - Directives
 - Programs
 
-The different Action types only differ in scope and flavor. Aside from that, all actions have the same card-like shape:
+The different Action types only differ in scope and flavor. Aside from that, all Action Definitions have the same card-like shape:
 
+- They have presentation data
 - They have a type (Agenda/Directive/Program)
 - They have a tier (Basic/Standard/Improved/Advanced/Exceptional)
 - They may have prerequisite(s)
-- They have source(s)
-- They have target(s)
+- They have source and input requirements
+- They have target slots
 - They have cost(s)
-- They have effect(s)
+- They compose Mechanic(s), presented to players as the Action's effect(s)
 
 All Actions cost Influence, and usually cost additional resources. The player's Political Regime will affect the Influence Cost and the Action's efficiency.
 
-The available Action pool every Turn will be dictated by the player's ideological alignments. Every Action in the pool can be used once per Turn.
+The available Action pool every Turn will be dictated by the player's ideological alignments. Each entry in the pool becomes a distinct Available Action Instance and can be submitted once per Turn.
 
-To play an Action, a player will have to meet the prerequisites, have a valid source, have a valid target and be able to pay the costs. The prerequisites might be things like "no other Agendas played this Turn" or "no other Legacy Project in progress". The Action source and target could be the Empire, a Planet or a unit.
+To submit an Action, a player will have to meet the prerequisites, choose from the instance's valid sources, inputs, and targets, and be able to pay the costs across all their submissions. The prerequisites might be things like "no other Agendas played this Turn" or "no other Legacy Project in progress". An Action source or target could be the Empire, a Planet, or a unit.
 
-The costs are spent only when the Turn ends, but the player will not be allowed to play Actions that would overspend. A visual indicator will let the user know how much of each Resource they have in total, and how much they will have after paying the costs of all their Actions. Whenever an Action is canceled or prevented, the Influence cost is always spent and is never refunded. Other Resources may be refunded, depending on the Action.
+Costs are validated and accounted for across the player's Action Submissions, but they are spent in the Pay Costs Phase after the Turn ends. A visual indicator will let the user know how much of each Resource they have in total, committed by current submissions, and expected to have after paying all locked submissions.
+
+A submission withdrawn or revised while the Turn is open has not yet paid its costs. Once submissions are locked, Pay Costs resolves before downstream Effects. If a locked Action is later prevented, its Influence cost remains spent. Whether another Resource is refunded must be defined by that Action and the related system. Not all Action will be refundable.
 
 ### Action Tiers
 
@@ -131,7 +142,7 @@ Programs are big undertakings that span multiple Turns. They reward a lot of Leg
 
 ### Detailed Mechanics
 
-The action table uses compact effect text. Detailed definitions live in the related system documents:
+The Action tables use compact player-facing effect text. This text summarizes the Action Definition's composed Mechanics; the authoritative resolution boundary is [System 015-rules-engine](./015-rules-engine.md), and detailed mechanic rules live in the related system documents:
 
 | Mechanic       | System                                        |
 | -------------- | --------------------------------------------- |
