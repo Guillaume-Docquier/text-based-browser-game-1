@@ -18,6 +18,7 @@ Relates to:
 - [System 003-actions](./003-actions.md)
 - [System 004-ideological-alignment](./004-ideological-alignment.md)
 - [System 014-resources](./014-resources.md)
+- [System 015-rules-engine](./015-rules-engine.md)
 
 ## Core Concepts
 

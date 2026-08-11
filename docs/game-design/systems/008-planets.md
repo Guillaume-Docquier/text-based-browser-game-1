@@ -24,6 +24,7 @@ Relates to:
 - [System 009-infrastructure](./009-infrastructure.md)
 - [System 004-ideological-alignment](./004-ideological-alignment.md)
 - [System 011-combat](./011-combat.md)
+- [System 015-rules-engine](./015-rules-engine.md)
 
 ## Core Concepts
 

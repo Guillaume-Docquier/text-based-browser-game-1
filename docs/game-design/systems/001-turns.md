@@ -12,6 +12,7 @@ Supports:
 
 - [GDDR 002-bounded-game-length](../decisions/002-bounded-game-length.md)
 - [GDDR 003-turn-based](../decisions/003-turn-based.md)
+- [GDDR 009-deterministic-data-driven-rules-engine](../decisions/009-deterministic-data-driven-rules-engine.md)
 
 Relates to:
 
@@ -21,16 +22,18 @@ Relates to:
 - [System 012-travel](./012-travel.md)
 - [System 011-combat](./011-combat.md)
 - [System 008-planets](./008-planets.md)
+- [System 015-rules-engine](./015-rules-engine.md)
 
 ## Core Concepts
 
-| Concept         | Definition                                                                                          |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| Turn            | The period during which players can submit and revise Actions.                                      |
-| Turn Resolution | The internal processing phase that begins when a Turn ends and produces the next game state.        |
-| Tick            | An ordered sub-step within Turn Resolution, used to calculate events that must resolve in sequence. |
-| Readiness       | A public state a player can set. When all players are Ready, the Turn ends.                         |
-| Action          | What players can do to affect the game.                                                             |
+| Concept           | Definition                                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------------------- |
+| Turn              | The period during which players can submit and revise Actions.                                        |
+| Turn Resolution   | The internal processing period that begins when a Turn ends and produces the next game state.         |
+| Phase             | A coarse, ordered stage of Turn Resolution that determines when a category of Effects resolves.       |
+| Tick              | An ordered precision sub-step inside the Travel Phase, used to sequence travel progress and arrivals. |
+| Readiness         | A public state a player can set. When all players are Ready, the Turn ends.                           |
+| Action Submission | A player's proposed use of an Available Action Instance, locked for processing when the Turn ends.    |
 
 ## Rules
 
@@ -40,11 +43,13 @@ At every moment, all players know how much time is left before the Turn ends. Du
 
 During a Turn, players can declare themselves Ready. This is public information. When all players are Ready, the Turn ends. This is the only way that a Turn can take less time than the Turn duration determined before the game starts.
 
-When a Turn ends, all Actions are locked in and Turn Resolution begins. Players cannot submit or revise Actions during Turn Resolution.
+When a Turn ends, all Action Submissions are locked in and Turn Resolution begins. Players cannot submit or revise them during Turn Resolution. The server validates locked submissions and the [System 015-rules-engine](./015-rules-engine.md) turns their composed Mechanics into Effects.
 
-Turn Resolution processes the locked-in Actions and automatic game events through 20 Ticks deterministically. Ticks are internal to Turn Resolution: they do not create additional player Turns or opportunities to react. They establish the order for Travel and record the arrival order of Fleets. Events assigned to the same Tick are simultaneous.
+Turn Resolution processes Effects through ordered Phases. Phases are coarse ordering boundaries such as Pay Costs, Travel, Combat, and Colonization; their order is defined by the game's Ruleset. They do not create additional player Turns or opportunities to react.
 
-Ticks are not used to resolve Combat or Colonization. After all Travel has completed, Combat resolves from the final Fleet positions. Colonization then resolves after Combat, using the arrival order established by Travel Ticks. A Fleet that arrives during the Turn is present for Combat at its destination before it can colonize that Planet.
+The Travel Phase uses 20 Ticks to provide finer chronological ordering within the Phase. Travel Ticks establish Fleet progress and arrival order, and events assigned to the same Tick are simultaneous. Combat, Colonization, and other Phases do not each run through those 20 Ticks.
+
+After the Travel Phase, Combat resolves from the final Fleet positions. Colonization resolves in its later Phase using the arrival order established by Travel Ticks. Other Ruleset Phases may occur between Combat and Colonization. A Fleet that arrives during the Turn is present for Combat at its destination before it can colonize that Planet.
 
 When Turn Resolution completes, its resulting game state becomes the state from which players take their Actions in the next Turn.
 
