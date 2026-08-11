@@ -1,10 +1,10 @@
-import type { ActionSubmission } from "#turn-processing/engine/action/ActionSubmission.ts"
+import type { ActionSubmission } from "#turn-processing/engine/actions/ActionSubmission.ts"
 
 /**
  * The current state of the turn.
  */
 export type TurnState = {
-  players: {
+  players: Array<{
     actions: ActionSubmission[]
-  }
+  }>
 }
