@@ -1,6 +1,5 @@
-import type { EffectsPool } from "#turn-processing/engine/EffectsPool.ts"
-import type { TurnState } from "#turn-processing/engine/TurnState.ts"
+import type { PhaseContext } from "#turn-processing/engine/phases/PhaseContext.ts"
 
-export function colonizationPhase(_turnState: TurnState, _effectsPool: EffectsPool): void {
+export function colonizationPhase(_context: PhaseContext): void {
   // not yet implemented
 }
