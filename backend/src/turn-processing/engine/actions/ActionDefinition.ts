@@ -2,7 +2,7 @@ import type { ActionSource } from "#turn-processing/engine/actions/ActionSource.
 import type { ActionTarget } from "#turn-processing/engine/actions/ActionTarget.ts"
 import type { ActionTier } from "#turn-processing/engine/actions/ActionTier.ts"
 import type { ActionType } from "#turn-processing/engine/actions/ActionType.ts"
-import type { Cost } from "#turn-processing/engine/actions/Cost.ts"
+import type { CostMechanic } from "#turn-processing/engine/mechanics/CostMechanic.ts"
 import type { Mechanic } from "#turn-processing/engine/mechanics/Mechanic.ts"
 
 /**
@@ -13,10 +13,14 @@ export type ActionDefinition = {
    * Unique action definition id for reference in action submissions
    */
   id: string
+  /**
+   * Displayed in the UI
+   */
+  name: string
   type: ActionType
   tier: ActionTier
   source: ActionSource
   target: ActionTarget
-  costs: Cost[]
+  costs: CostMechanic[]
   mechanics: Mechanic[]
 }
