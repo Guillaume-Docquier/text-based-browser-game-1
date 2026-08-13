@@ -9,7 +9,7 @@ import { resolveIncomePhase } from "#lib/rules-engine/phases/resolvers/resolveIn
 import { resolveMovementPhase } from "#lib/rules-engine/phases/resolvers/resolveMovementPhase.ts"
 import { resolvePayCostsPhase } from "#lib/rules-engine/phases/resolvers/resolvePayCostsPhase.ts"
 import type { TurnState } from "#lib/rules-engine/TurnState.ts"
-import type { Ruleset } from "#lib/ruleset/ruleset.ts"
+import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
 const phaseResolvers: PhaseResolver[] = [
   // resolvePayCostsPhase

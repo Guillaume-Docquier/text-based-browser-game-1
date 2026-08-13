@@ -6,7 +6,7 @@ import { IncomeMechanic } from "#lib/rules-engine/mechanics/implementations/Inco
 import { ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
 
 export const MakeMoreMoney: ActionDefinition = {
-  id: "make-more-money-action",
+  id: "MAKE_MORE_MONEY",
   name: "Make More Money",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.STANDARD,
