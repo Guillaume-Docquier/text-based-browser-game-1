@@ -10,8 +10,9 @@ export const MakeMoreMoney: ActionDefinition = {
   name: "Make More Money",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.STANDARD,
-  source: "SELF",
-  target: "SELF",
+  targets: {
+    self: "",
+  },
   costs: [
     CostMechanic.create({
       quantity: 2,
