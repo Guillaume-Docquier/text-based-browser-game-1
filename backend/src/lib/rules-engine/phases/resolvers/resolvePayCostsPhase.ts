@@ -2,7 +2,7 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
 import { Effect } from "#lib/rules-engine/effects/Effect.ts"
 import { resolveEffect } from "#lib/rules-engine/effects/resolveEffect.ts"
-import type { CostMechanic } from "#lib/rules-engine/mechanics/CostMechanic.ts"
+import type { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMechanic.ts"
 import type { PhaseContext } from "#lib/rules-engine/phases/PhaseContext.ts"
 import type { Ruleset } from "#lib/ruleset/ruleset.ts"
 

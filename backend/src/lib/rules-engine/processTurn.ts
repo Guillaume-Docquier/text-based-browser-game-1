@@ -1,5 +1,5 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import { EffectPool } from "#lib/rules-engine/EffectPool.ts"
+import { EffectPool } from "#lib/rules-engine/effects/EffectPool.ts"
 import type { PhaseContext } from "#lib/rules-engine/phases/PhaseContext.ts"
 import type { PhaseResolver } from "#lib/rules-engine/phases/PhaseResolver.ts"
 import { resolveColonizationPhase } from "#lib/rules-engine/phases/resolvers/resolveColonizationPhase.ts"

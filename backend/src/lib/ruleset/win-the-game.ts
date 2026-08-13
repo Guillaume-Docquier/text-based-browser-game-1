@@ -1,9 +1,9 @@
 import type { ActionDefinition } from "#lib/rules-engine/actions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/actions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/actions/ActionType.ts"
-import { CostMechanic } from "#lib/rules-engine/mechanics/CostMechanic.ts"
+import { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMechanic.ts"
+import { VictoryMechanic } from "#lib/rules-engine/mechanics/implementations/VictoryMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
-import { VictoryMechanic } from "#lib/rules-engine/mechanics/VictoryMechanic.ts"
 
 export const WinTheGame: ActionDefinition = {
   id: "win-the-game-action",
