@@ -1,4 +1,4 @@
-import type { Effect, EffectOfType } from "#turn-processing/engine/effects/Effect.ts"
+import type { Effect, EffectOfType } from "#lib/rules-engine/effects/Effect.ts"
 
 /**
  * The EffectPool contains all the Effects that need to be applied to the TurnState

@@ -1,4 +1,4 @@
-import type { Mechanic } from "#turn-processing/engine/mechanics/Mechanic.ts"
+import type { Mechanic } from "#lib/rules-engine/mechanics/Mechanic.ts"
 
 type EffectFor<TMechanic extends Mechanic> = {
   // We'll include source, status, etc
