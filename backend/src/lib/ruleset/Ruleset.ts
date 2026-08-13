@@ -1,6 +1,6 @@
 import type { ActionDefinition } from "#lib/rules-engine/actions/ActionDefinition.ts"
-import { MakeMoreMoney } from "#lib/ruleset/make-more-money.ts"
-import { WinTheGame } from "#lib/ruleset/win-the-game.ts"
+import { MakeMoreMoney } from "#lib/ruleset/action-definitions/make-more-money.ts"
+import { WinTheGame } from "#lib/ruleset/action-definitions/win-the-game.ts"
 
 export type Ruleset = {
   actionDefinitions: Record<string, ActionDefinition>
