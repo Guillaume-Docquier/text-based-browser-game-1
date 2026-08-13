@@ -14,6 +14,10 @@ export class EffectPool {
     return this.effects.filter((effect): effect is EffectOfType<TType> => effect.type === effectType)
   }
 
+  public addMany(effects: Effect[]): void {
+    this.effects.push(...effects)
+  }
+
   public isEmpty(): boolean {
     return this.effects.length === 0
   }

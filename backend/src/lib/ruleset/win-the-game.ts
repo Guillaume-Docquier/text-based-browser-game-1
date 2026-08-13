@@ -10,13 +10,14 @@ export const WinTheGame: ActionDefinition = {
   name: "Win The Game",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.EXCEPTIONAL,
-  source: "SELF",
-  target: "SELF",
+  targets: {
+    self: "",
+  },
   costs: [
     CostMechanic.create({
       quantity: 10,
       resourceType: ResourceType.MONEY,
     }),
   ],
-  mechanics: [VictoryMechanic.create({})],
+  mechanics: [VictoryMechanic.create()],
 }
