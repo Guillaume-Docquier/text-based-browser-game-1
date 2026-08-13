@@ -6,7 +6,7 @@ import { VictoryMechanic } from "#lib/rules-engine/mechanics/implementations/Vic
 import { ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
 
 export const WinTheGame: ActionDefinition = {
-  id: "win-the-game-action",
+  id: "WIN_THE_GAME",
   name: "Win The Game",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.EXCEPTIONAL,

@@ -4,7 +4,7 @@ import { Effect } from "#lib/rules-engine/effects/Effect.ts"
 import { resolveEffect } from "#lib/rules-engine/effects/resolveEffect.ts"
 import type { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMechanic.ts"
 import type { PhaseContext } from "#lib/rules-engine/phases/PhaseContext.ts"
-import type { Ruleset } from "#lib/ruleset/ruleset.ts"
+import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
 export function resolvePayCostsPhase(context: PhaseContext, actionSubmissions: ActionSubmission[], ruleset: Ruleset): void {
   const contextDraft = structuredClone(context)
