@@ -1,6 +1,5 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
-import type { ResolvedTargets } from "#lib/rules-engine/actions/ResolvedTargets.ts"
 import { Effect } from "#lib/rules-engine/effects/Effect.ts"
 import { resolveEffect } from "#lib/rules-engine/effects/resolveEffect.ts"
 import type { CostMechanic } from "#lib/rules-engine/mechanics/CostMechanic.ts"
@@ -22,7 +21,7 @@ export function resolvePayCostsPhase(context: PhaseContext, actionSubmissions: A
       }),
     )
 
-    if (!canPayAllCosts(contextDraft, targets, costEffects)) {
+    if (!canPayAllCosts(contextDraft, targets.self, costEffects)) {
       continue
     }
 
@@ -40,13 +39,13 @@ export function resolvePayCostsPhase(context: PhaseContext, actionSubmissions: A
   }
 }
 
-function canPayAllCosts(context: PhaseContext, targets: Readonly<ResolvedTargets>, costEffects: Array<Effect<CostMechanic>>): boolean {
+function canPayAllCosts(context: PhaseContext, playerId: string, costEffects: Array<Effect<CostMechanic>>): boolean {
+  const player = context.state.players[playerId]
+  Assert.isDefined(player)
+
   for (const costEffect of costEffects) {
     resolveEffect(context, costEffect)
   }
 
-  const playerDraft = context.state.players[targets.self]
-  Assert.isDefined(playerDraft)
-
-  return Object.values(playerDraft.resources).every((resourceCount) => resourceCount >= 0)
+  return Object.values(player.resources).every((resourceCount) => resourceCount >= 0)
 }
