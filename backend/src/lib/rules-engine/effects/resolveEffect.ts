@@ -22,4 +22,8 @@ export function resolveEffect(context: PhaseContext, effect: Effect): void {
     default:
       Assert.isExhausted(effect)
   }
+
+  // TODO GD Maybe should be done by the resolvers themselves?
+  // TODO GD We need a status too (resolved, prevented, failed, etc)
+  context.effects.markResolved(effect)
 }

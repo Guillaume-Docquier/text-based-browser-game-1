@@ -12,6 +12,7 @@ import type { TurnState } from "#lib/rules-engine/TurnState.ts"
 import type { Ruleset } from "#lib/ruleset/ruleset.ts"
 
 const phaseResolvers: PhaseResolver[] = [
+  // resolvePayCostsPhase
   resolveMovementPhase,
   resolveCombatPhase,
   resolveGovernancePhase,
@@ -31,8 +32,8 @@ export function processTurn(turnState: Readonly<TurnState>, ruleset: Ruleset): T
   const actionSubmissions = Object.values(turnState.players).flatMap((player) => player.actionSubmissions)
 
   resolvePayCostsPhase(phaseContext, actionSubmissions, ruleset) // The pay costs phase is a bit special
-  for (const phaseResolver of phaseResolvers) {
-    phaseResolver(phaseContext)
+  for (const resolvePhase of phaseResolvers) {
+    resolvePhase(phaseContext)
   }
 
   // All effects should be accounted for
