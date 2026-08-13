@@ -4,7 +4,7 @@ import { Effect } from "#lib/rules-engine/effects/Effect.ts"
 import type { PhaseContext } from "#lib/rules-engine/phases/PhaseContext.ts"
 import type { Ruleset } from "#lib/ruleset/ruleset.ts"
 
-export function payCostsPhase(context: PhaseContext, actionSubmissions: ActionSubmission[], ruleset: Ruleset): void {
+export function resolvePayCostsPhase(context: PhaseContext, actionSubmissions: ActionSubmission[], ruleset: Ruleset): void {
   for (const actionSubmission of actionSubmissions) {
     const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
     Assert.isDefined(actionDefinition)
