@@ -1,5 +1,5 @@
-import { CostMechanic } from "#turn-processing/engine/mechanics/CostMechanic.ts"
-import type { PhaseContext } from "#turn-processing/engine/phases/PhaseContext.ts"
+import { CostMechanic } from "#lib/rules-engine/mechanics/CostMechanic.ts"
+import type { PhaseContext } from "#lib/rules-engine/phases/PhaseContext.ts"
 
 export function payCostsPhase(context: PhaseContext): void {
   const costs = context.effects.getEffectsOfType(CostMechanic.id)

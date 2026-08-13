@@ -1,4 +1,4 @@
-import type { QuantityOfResource } from "#turn-processing/engine/mechanics/QuantityOfResource.ts"
+import type { QuantityOfResource } from "#lib/rules-engine/mechanics/QuantityOfResource.ts"
 
 export type IncomeMechanic = {
   id: (typeof IncomeMechanic)["id"]

@@ -1,4 +1,4 @@
-import { type ResourceType } from "#turn-processing/engine/mechanics/ResourceType.ts"
+import { type ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
 
 export type QuantityOfResource = {
   /**
