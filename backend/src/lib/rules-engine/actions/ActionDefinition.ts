@@ -1,6 +1,6 @@
 import type { ActionTier } from "#lib/rules-engine/actions/ActionTier.ts"
 import type { ActionType } from "#lib/rules-engine/actions/ActionType.ts"
-import type { CostMechanic } from "#lib/rules-engine/mechanics/CostMechanic.ts"
+import type { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMechanic.ts"
 import type { Mechanic } from "#lib/rules-engine/mechanics/Mechanic.ts"
 
 /**

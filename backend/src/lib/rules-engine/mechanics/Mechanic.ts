@@ -1,7 +1,7 @@
-import type { CostMechanic } from "#lib/rules-engine/mechanics/CostMechanic.ts"
-import type { IncomeMechanic } from "#lib/rules-engine/mechanics/IncomeMechanic.ts"
+import type { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMechanic.ts"
+import type { IncomeMechanic } from "#lib/rules-engine/mechanics/implementations/IncomeMechanic.ts"
+import type { VictoryMechanic } from "#lib/rules-engine/mechanics/implementations/VictoryMechanic.ts"
 import type { MechanicTarget } from "#lib/rules-engine/mechanics/MechanicTarget.ts"
-import type { VictoryMechanic } from "#lib/rules-engine/mechanics/VictoryMechanic.ts"
 
 export type AbstractMechanic = {
   readonly type: string
