@@ -5,4 +5,4 @@ export const MechanicTargetType = {
   FLEET: "FLEET",
   PLANET: "PLANET",
   PLAYER: "PLAYER",
-}
+} as const

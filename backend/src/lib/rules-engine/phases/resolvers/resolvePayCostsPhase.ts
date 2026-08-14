@@ -7,7 +7,6 @@ import type { TurnContext } from "#lib/rules-engine/TurnContext.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
 export function resolvePayCostsPhase(context: TurnContext, actionSubmissions: ActionSubmission[], ruleset: Ruleset): void {
-  const contextDraft = structuredClone(context)
   for (const actionSubmission of actionSubmissions) {
     const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
     Assert.isDefined(actionDefinition)
@@ -21,7 +20,7 @@ export function resolvePayCostsPhase(context: TurnContext, actionSubmissions: Ac
       }),
     )
 
-    if (!canPayAllCosts(contextDraft, targets.self, costEffects)) {
+    if (!canPayAllCosts(context, targets.self, costEffects)) {
       continue
     }
 
@@ -43,9 +42,10 @@ function canPayAllCosts(context: TurnContext, playerId: string, costEffects: Arr
   const player = context.state.players[playerId]
   Assert.isDefined(player)
 
+  const resourcesAvailable = structuredClone(player.resources)
   for (const costEffect of costEffects) {
-    resolveEffect(context, costEffect)
+    resourcesAvailable[costEffect.mechanic.resourceType] -= costEffect.mechanic.quantity
   }
 
-  return Object.values(player.resources).every((resourceCount) => resourceCount >= 0)
+  return Object.values(resourcesAvailable).every((resourceCount) => resourceCount >= 0)
 }

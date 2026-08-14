@@ -7,8 +7,5 @@ export function resolveIncomeEffect(context: TurnContext, effect: Effect<IncomeM
   const player = context.state.players[effect.targets.self]
   Assert.isDefined(player)
 
-  const resourceCount = player.resources[effect.mechanic.resourceType]
-  Assert.isDefined(resourceCount)
-
-  player.resources[effect.mechanic.resourceType] = resourceCount + effect.mechanic.quantity
+  player.resources[effect.mechanic.resourceType] += effect.mechanic.quantity
 }
