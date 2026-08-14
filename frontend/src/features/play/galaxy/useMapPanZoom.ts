@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent, type TransitionEvent, type WheelEvent } from "react"
+import { useEffect, useRef, useState, type PointerEvent, type RefObject, type TransitionEvent } from "react"
 
 type Point = {
   x: number
@@ -59,7 +59,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
   onPointerMove: (event: PointerEvent<SVGSVGElement>) => void
   onPointerUp: (event: PointerEvent<SVGSVGElement>) => void
   onTransformTransitionEnd: (event: TransitionEvent<SVGGElement>) => void
-  onWheel: (event: WheelEvent<SVGSVGElement>) => void
+  viewportRef: RefObject<SVGSVGElement | null>
 } {
   const [viewportTransform, setViewportTransform] = useState(INITIAL_TRANSFORM)
   const [centeringDurationMs, setCenteringDurationMs] = useState(0)
@@ -70,6 +70,34 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
   const isCenteringRef = useRef(false)
   const pointers = useRef(new Map<number, Point>())
   const pointerOrigins = useRef(new Map<number, Point>())
+  const viewportRef = useRef<SVGSVGElement>(null)
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (viewport === null) {
+      return
+    }
+
+    const onWheel = (event: WheelEvent): void => {
+      event.preventDefault()
+      const point = toSvgPoint({ element: viewport, clientX: event.clientX, clientY: event.clientY })
+      const zoomFactor = Math.exp(-event.deltaY * 0.0015)
+
+      setViewportTransform((currentTransform) =>
+        zoomAroundPoint({
+          currentTransform,
+          previousPoint: point,
+          currentPoint: point,
+          requestedScale: currentTransform.scale * zoomFactor,
+        }),
+      )
+    }
+
+    viewport.addEventListener("wheel", onWheel, { passive: false })
+    return (): void => {
+      viewport.removeEventListener("wheel", onWheel)
+    }
+  }, [])
 
   useEffect(() => {
     if (centeringTimer.current !== undefined) {
@@ -93,7 +121,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
   }, [resetSignal])
 
   function onPointerDown(event: PointerEvent<SVGSVGElement>): void {
-    const point = toSvgPoint(event)
+    const point = toSvgPoint({ element: event.currentTarget, clientX: event.clientX, clientY: event.clientY })
     pointers.current.set(event.pointerId, point)
     pointerOrigins.current.set(event.pointerId, point)
   }
@@ -122,21 +150,6 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
     setIsPanning(pointers.current.size > 0)
-  }
-
-  function onWheel(event: WheelEvent<SVGSVGElement>): void {
-    event.preventDefault()
-    const point = toSvgPoint(event)
-    const zoomFactor = Math.exp(-event.deltaY * 0.0015)
-
-    setViewportTransform((currentTransform) =>
-      zoomAroundPoint({
-        currentTransform,
-        previousPoint: point,
-        currentPoint: point,
-        requestedScale: currentTransform.scale * zoomFactor,
-      }),
-    )
   }
 
   function centerOn(point: Point, options: CenterOnOptions = {}): void {
@@ -201,7 +214,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
     onPointerMove,
     onPointerUp: onPointerEnd,
     onTransformTransitionEnd,
-    onWheel,
+    viewportRef,
   }
 }
 
@@ -229,7 +242,7 @@ function getPointerMovement({
   return {
     pointerId: event.pointerId,
     previousPoint,
-    currentPoint: toSvgPoint(event),
+    currentPoint: toSvgPoint({ element: event.currentTarget, clientX: event.clientX, clientY: event.clientY }),
     pointerOrigin,
   }
 }
@@ -340,13 +353,13 @@ function clampScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale))
 }
 
-function toSvgPoint(event: PointerEvent<SVGSVGElement> | WheelEvent<SVGSVGElement>): Point {
-  const matrix = event.currentTarget.getScreenCTM()
+function toSvgPoint({ element, clientX, clientY }: { element: SVGSVGElement; clientX: number; clientY: number }): Point {
+  const matrix = element.getScreenCTM()
   if (matrix === null) {
-    return { x: event.clientX, y: event.clientY }
+    return { x: clientX, y: clientY }
   }
 
-  const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse())
+  const point = new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse())
   return { x: point.x, y: point.y }
 }
 

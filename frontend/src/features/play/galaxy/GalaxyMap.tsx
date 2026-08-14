@@ -56,6 +56,7 @@ export function GalaxyMap({
 
   return (
     <svg
+      ref={panZoom.viewportRef}
       aria-label="Galaxy map"
       aria-busy={panZoom.isCentering}
       role="group"
@@ -67,7 +68,6 @@ export function GalaxyMap({
       onPointerDown={panZoom.onPointerDown}
       onPointerMove={panZoom.onPointerMove}
       onPointerUp={panZoom.onPointerUp}
-      onWheel={panZoom.onWheel}
     >
       <defs>
         <radialGradient id="galaxy-star-glow">

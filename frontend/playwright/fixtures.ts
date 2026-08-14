@@ -1,7 +1,14 @@
-import { expect, test as base } from "@playwright/test"
+import { expect, test as base, type ConsoleMessage } from "@playwright/test"
 import { PlaywrightEnv } from "./loadEnv.ts"
 
+const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development keys\./]
+
 type Fixtures = {
+  /**
+   * Automatically fails the test on unexpected browser errors or warnings.
+   */
+  browserDiagnostics: undefined
+
   /**
    * Should only be used within the fixtures.
    */
@@ -18,6 +25,33 @@ type Fixtures = {
 }
 
 export const test = base.extend<Fixtures>({
+  browserDiagnostics: [
+    async ({ page }, use): Promise<void> => {
+      const unexpectedDiagnostics: string[] = []
+      const recordPageError = (error: Error): void => {
+        unexpectedDiagnostics.push(`page error: ${error.stack ?? error.message}`)
+      }
+      const recordConsoleMessage = (message: ConsoleMessage): void => {
+        if (message.type() === "warning" && isAllowedConsoleWarning(message.text())) {
+          return
+        }
+
+        if (message.type() === "error" || message.type() === "warning") {
+          unexpectedDiagnostics.push(`console ${message.type()}: ${message.text()}`)
+        }
+      }
+
+      page.on("pageerror", recordPageError)
+      page.on("console", recordConsoleMessage)
+
+      await use(undefined)
+
+      page.off("pageerror", recordPageError)
+      page.off("console", recordConsoleMessage)
+      expect(unexpectedDiagnostics, "Unexpected browser diagnostics").toEqual([])
+    },
+    { auto: true },
+  ],
   // oxlint-disable-next-line no-empty-pattern -- That's how playwright fixtures work
   env: async ({}, use, testInfo) => {
     await use(PlaywrightEnv.parse(testInfo.config.metadata.env))
@@ -30,5 +64,9 @@ export const test = base.extend<Fixtures>({
     })
   },
 })
+
+function isAllowedConsoleWarning(message: string): boolean {
+  return allowedConsoleWarnings.some((allowedWarning) => allowedWarning.test(message))
+}
 
 export { expect }

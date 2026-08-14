@@ -1,4 +1,3 @@
-import { noop } from "@guillaume-docquier/tools-ts"
 import { type ParsedLocation, redirect } from "@tanstack/react-router"
 import type { RouterContext } from "@/routes/__root.tsx"
 
@@ -31,13 +30,7 @@ import type { RouterContext } from "@/routes/__root.tsx"
  * ```
  */
 export function privateRoute({ context, location }: { context: RouterContext; location: ParsedLocation }): void {
-  if (!context.auth.isLoaded) {
-    // Wait for auth to kick in
-    // oxlint-disable-next-line typescript/only-throw-error -- That's how tanstack works
-    throw new Promise(noop)
-  }
-
-  if (!context.auth.isSignedIn) {
+  if (context.auth.isSignedIn !== true) {
     // oxlint-disable-next-line typescript/only-throw-error -- That's how tanstack works
     throw redirect({
       to: "/sign-in",

@@ -46,7 +46,12 @@ export class TurnProcessor {
       turnProcessingOutcome = await this.processNextDueTurn()
     }
 
-    setTimeout(() => void this.processTurnsForever({ interval }), Time.in(interval, UnitOfTime.MILLISECONDS))
+    setTimeout(
+      () => {
+        void this.processTurnsForever({ interval })
+      },
+      Time.in(interval, UnitOfTime.MILLISECONDS),
+    )
   }
 
   /**
