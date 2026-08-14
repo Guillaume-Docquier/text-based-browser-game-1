@@ -1,5 +1,5 @@
-import type { PhaseContext } from "#lib/rules-engine/phases/PhaseContext.ts"
+import type { TurnContext } from "#lib/rules-engine/TurnContext.ts"
 
-export function resolveMovementPhase(_context: PhaseContext): void {
+export function resolveMovementPhase(_context: TurnContext): void {
   // not yet implemented
 }

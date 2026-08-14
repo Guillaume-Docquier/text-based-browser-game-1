@@ -3,10 +3,10 @@ import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmissio
 import { Effect } from "#lib/rules-engine/effects/Effect.ts"
 import { resolveEffect } from "#lib/rules-engine/effects/resolveEffect.ts"
 import type { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMechanic.ts"
-import type { PhaseContext } from "#lib/rules-engine/phases/PhaseContext.ts"
+import type { TurnContext } from "#lib/rules-engine/TurnContext.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
-export function resolvePayCostsPhase(context: PhaseContext, actionSubmissions: ActionSubmission[], ruleset: Ruleset): void {
+export function resolvePayCostsPhase(context: TurnContext, actionSubmissions: ActionSubmission[], ruleset: Ruleset): void {
   const contextDraft = structuredClone(context)
   for (const actionSubmission of actionSubmissions) {
     const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
@@ -39,7 +39,7 @@ export function resolvePayCostsPhase(context: PhaseContext, actionSubmissions: A
   }
 }
 
-function canPayAllCosts(context: PhaseContext, playerId: string, costEffects: Array<Effect<CostMechanic>>): boolean {
+function canPayAllCosts(context: TurnContext, playerId: string, costEffects: Array<Effect<CostMechanic>>): boolean {
   const player = context.state.players[playerId]
   Assert.isDefined(player)
 
