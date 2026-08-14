@@ -38,7 +38,13 @@ test("transition the page through logins and logouts", async ({ clerkConfig, pag
   })
 
   await test.step("Sign in and return to game creation", async () => {
-    await clerk.signIn({ page, emailAddress: clerkConfig.emailAddress })
+    const signInPage = new SignInPage(page)
+
+    // We log in via verification code because the test users can't use passwords
+    await signInPage.submitEmailAddress(clerkConfig.emailAddress)
+    await signInPage.chooseAnotherMethod()
+    await signInPage.requestEmailCode(clerkConfig.emailAddress)
+    await signInPage.enterVerificationCode("424242")
 
     await expect(page).toHaveURL(CreateGamePage.urlPattern)
     const createGamePage = new CreateGamePage(page)

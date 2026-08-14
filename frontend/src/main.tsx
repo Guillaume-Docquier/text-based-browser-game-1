@@ -4,7 +4,7 @@ import { dark } from "@clerk/ui/themes"
 import { Logger, createConsoleLogSink, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
-import { type ReactElement, StrictMode, useMemo } from "react"
+import { type ReactElement, StrictMode, useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { createBackendApiClient } from "@/lib/api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "@/lib/api/BackendApiClientContext.tsx"
@@ -61,19 +61,19 @@ if (rootElement.innerHTML === "") {
 
 function App(): ReactElement {
   const auth = useAuth()
+  const [router] = useState(() => createAppRouter({ auth }))
 
-  const router = useMemo(
-    () => createAppRouter({ auth }),
-    // Recreate the router for sign-in transitions, but not Clerk token refreshes.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- The router only reads these auth properties in route guards
-    [auth.isSignedIn],
-  )
+  useEffect(() => {
+    if (auth.isLoaded) {
+      void router.invalidate()
+    }
+  }, [auth.isLoaded, auth.isSignedIn, router])
 
   if (!auth.isLoaded) {
     return <></>
   }
 
-  return <RouterProvider key={`${auth.isSignedIn}`} router={router} />
+  return <RouterProvider router={router} context={{ auth }} />
 }
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tanstack inference do the work
