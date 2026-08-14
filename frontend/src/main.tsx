@@ -62,14 +62,6 @@ if (rootElement.innerHTML === "") {
 function App(): ReactElement {
   const auth = useAuth()
 
-  if (!auth.isLoaded) {
-    return <></>
-  }
-
-  return <LoadedRouter auth={auth} />
-}
-
-function LoadedRouter({ auth }: RouterContext): ReactElement {
   const router = useMemo(
     () => createAppRouter({ auth }),
     // Recreate the router for sign-in transitions, but not Clerk token refreshes.
@@ -77,7 +69,10 @@ function LoadedRouter({ auth }: RouterContext): ReactElement {
     [auth.isSignedIn],
   )
 
-  // A replacement router needs a fresh provider so it can publish its initial matches.
+  if (!auth.isLoaded) {
+    return <></>
+  }
+
   return <RouterProvider key={`${auth.isSignedIn}`} router={router} />
 }
 
