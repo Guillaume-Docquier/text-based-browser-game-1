@@ -2,7 +2,7 @@ import type { EffectPool } from "#lib/rules-engine/effects/EffectPool.ts"
 import type { TurnState } from "#lib/rules-engine/TurnState.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
-export type PhaseContext = {
+export type TurnContext = {
   /**
    * The turn state, to mutate.
    */
