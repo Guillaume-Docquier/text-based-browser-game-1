@@ -14,7 +14,7 @@ import type { TurnState } from "#lib/rules-engine/TurnState.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
 const phaseResolvers: PhaseResolver[] = [
-  // resolvePayCostsPhase
+  // resolvePayCostsPhase // The pay costs phase is a bit special
   resolveMovementPhase,
   resolveCombatPhase,
   resolveGovernancePhase,
@@ -50,6 +50,11 @@ export function processTurn(turnState: TurnState, ruleset: Ruleset): TurnState {
 
 function validateActionSubmissions(actionSubmissions: ActionSubmission[]): { valid: ActionSubmission[]; invalid: ActionSubmission[] } {
   // TODO Implement
+  // Check targets
+  // Check costs <-- If we do this here, then payCostsPhase is a normal phase
+  // Check action definitions
+  // Aka all integrity pre conditions
+  // This might be its own pipeline?
   return {
     valid: actionSubmissions,
     invalid: [],
