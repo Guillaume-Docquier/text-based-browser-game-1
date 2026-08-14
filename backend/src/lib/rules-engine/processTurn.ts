@@ -8,6 +8,7 @@ import { resolveGovernancePhase } from "#lib/rules-engine/phases/resolvers/resol
 import { resolveIncomePhase } from "#lib/rules-engine/phases/resolvers/resolveIncomePhase.ts"
 import { resolveMovementPhase } from "#lib/rules-engine/phases/resolvers/resolveMovementPhase.ts"
 import { resolvePayCostsPhase } from "#lib/rules-engine/phases/resolvers/resolvePayCostsPhase.ts"
+import { resolveVictoryPhase } from "#lib/rules-engine/phases/resolvers/resolveVictoryPhase.ts"
 import type { TurnState } from "#lib/rules-engine/TurnState.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
@@ -18,6 +19,7 @@ const phaseResolvers: PhaseResolver[] = [
   resolveGovernancePhase,
   resolveColonizationPhase,
   resolveIncomePhase,
+  resolveVictoryPhase,
 ]
 
 /**

@@ -5,7 +5,7 @@ type EffectFor<TMechanic extends Mechanic> = {
   readonly type: TMechanic["type"]
   readonly mechanic: TMechanic
   /**
-   * Expected to contain all the necessary targets for the mechanic
+   * Expected to contain at least all the necessary targets for the mechanic. (it might contain more since it is scoped to the action)
    */
   readonly targets: Readonly<ActionSubmission["targets"]>
 }

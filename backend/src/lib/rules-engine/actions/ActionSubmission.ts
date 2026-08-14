@@ -9,7 +9,7 @@ export type ActionSubmission = {
   readonly actionDefinitionId: ActionDefinition["id"]
   /**
    * Contains the targets to fill required by the ActionDefinition.
-   * Contains the special "self" key that the backend will always override.
+   * Contains the special "self" key that the server will always override.
    */
   readonly targets: ResolvedTargets
 }

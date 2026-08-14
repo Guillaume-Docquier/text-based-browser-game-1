@@ -20,4 +20,8 @@ export type TurnState = {
       actionSubmissions: ActionSubmission[]
     }
   >
+  /**
+   * If set, the game ends.
+   */
+  winnerPlayerId: PlayerId | undefined
 }
