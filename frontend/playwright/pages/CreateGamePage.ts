@@ -73,6 +73,11 @@ export class CreateGamePage {
     await this.createButton.click()
   }
 
+  public async signOut(): Promise<void> {
+    await this.userMenuButton.click()
+    await this.page.getByRole("group", { name: "Account actions" }).getByRole("button").last().click()
+  }
+
   private async getSliderValue(slider: Locator): Promise<number> {
     const value = await slider.getAttribute("aria-valuenow")
     Assert.isDefined(value)

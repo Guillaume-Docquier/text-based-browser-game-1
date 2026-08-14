@@ -1,8 +1,11 @@
 import { clerk } from "@clerk/testing/playwright"
 import { expect, test } from "../fixtures.ts"
+import { CreateGamePage } from "../pages/CreateGamePage.ts"
+import { GamesPage } from "../pages/GamesPage.ts"
 import { HomePage } from "../pages/HomePage.ts"
+import { SignInPage } from "../pages/SignInPage.ts"
 
-test("updates the current page across sign-in and sign-out transitions", async ({ clerkConfig, page }) => {
+test("transition the page through logins and logouts", async ({ clerkConfig, page }) => {
   const homePage = await HomePage.goto(page)
 
   await test.step("Sign in without navigating", async () => {
@@ -19,5 +22,39 @@ test("updates the current page across sign-in and sign-out transitions", async (
     await expect(homePage.signInLink).toBeVisible()
     await expect(homePage.signUpLink).toBeVisible()
     await expect(homePage.userMenuButton).not.toBeVisible()
+  })
+
+  await test.step("Try to create a game while signed out and get redirected to login", async () => {
+    await homePage.playForFreeLink.click()
+    const gamesPage = new GamesPage(page)
+    await expect(page).toHaveURL(GamesPage.urlPattern)
+    await expect(gamesPage.heading).toBeVisible()
+    await gamesPage.createGameLink.click()
+
+    await expect(page).toHaveURL(SignInPage.urlPattern)
+    expect(new URL(page.url()).searchParams.get("redirect")).toBe("/games/create")
+    const signInPage = new SignInPage(page)
+    await expect(signInPage.heading).toBeVisible()
+  })
+
+  await test.step("Sign in and return to game creation", async () => {
+    await clerk.signIn({ page, emailAddress: clerkConfig.emailAddress })
+
+    await expect(page).toHaveURL(CreateGamePage.urlPattern)
+    const createGamePage = new CreateGamePage(page)
+    await expect(createGamePage.heading).toBeVisible()
+    await expect(createGamePage.userMenuButton).toBeVisible()
+  })
+
+  await test.step("Sign out and return home", async () => {
+    const createGamePage = new CreateGamePage(page)
+    await createGamePage.signOut()
+
+    await expect(page).toHaveURL(HomePage.urlPattern)
+    const signedOutHomePage = new HomePage(page)
+    await expect(signedOutHomePage.heading).toBeVisible()
+    await expect(signedOutHomePage.signInLink).toBeVisible()
+    await expect(signedOutHomePage.signUpLink).toBeVisible()
+    await expect(signedOutHomePage.userMenuButton).not.toBeVisible()
   })
 })
