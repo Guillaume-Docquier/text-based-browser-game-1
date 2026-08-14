@@ -61,14 +61,24 @@ if (rootElement.innerHTML === "") {
 
 function App(): ReactElement {
   const auth = useAuth()
+
+  if (!auth.isLoaded) {
+    return <></>
+  }
+
+  return <LoadedRouter auth={auth} />
+}
+
+function LoadedRouter({ auth }: RouterContext): ReactElement {
   const router = useMemo(
     () => createAppRouter({ auth }),
-    // Recreate the router for auth transitions, but not Clerk token refreshes.
+    // Recreate the router for sign-in transitions, but not Clerk token refreshes.
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- The router only reads these auth properties in route guards
-    [auth.isLoaded, auth.isSignedIn],
+    [auth.isSignedIn],
   )
 
-  return <RouterProvider router={router} />
+  // A replacement router needs a fresh provider so it can publish its initial matches.
+  return <RouterProvider key={`${auth.isSignedIn}`} router={router} />
 }
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tanstack inference do the work

@@ -4,7 +4,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import type { ReactElement } from "react"
 
 export interface RouterContext {
-  auth: ReturnType<typeof useAuth>
+  auth: ReturnType<typeof useAuth> & { readonly isLoaded: true }
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({

@@ -49,6 +49,7 @@ export function StarSystemMap({
 
   return (
     <svg
+      ref={panZoom.viewportRef}
       aria-label={`${system.star.name} Star System map`}
       aria-busy={panZoom.isCentering}
       role="group"
@@ -60,7 +61,6 @@ export function StarSystemMap({
       onPointerDown={panZoom.onPointerDown}
       onPointerMove={panZoom.onPointerMove}
       onPointerUp={panZoom.onPointerUp}
-      onWheel={panZoom.onWheel}
     >
       <defs>
         <radialGradient id="system-star-glow">
