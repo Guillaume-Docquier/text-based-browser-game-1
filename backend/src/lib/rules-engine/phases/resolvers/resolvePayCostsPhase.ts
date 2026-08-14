@@ -20,6 +20,7 @@ export function resolvePayCostsPhase(context: TurnContext, actionSubmissions: Ac
       }),
     )
 
+    // A bit awkward that we assume all costs target self, but all action costs should probably target self, given the game design, so that's probably not a problem.
     if (!canPayAllCosts(context, targets.self, costEffects)) {
       continue
     }
