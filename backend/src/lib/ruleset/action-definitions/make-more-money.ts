@@ -5,7 +5,7 @@ import { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMe
 import { IncomeMechanic } from "#lib/rules-engine/mechanics/implementations/IncomeMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
 
-export const MakeMoreMoney: ActionDefinition = {
+export const MakeMoreMoney = {
   id: "MAKE_MORE_MONEY",
   name: "Make More Money",
   type: ActionType.DIRECTIVE,
@@ -25,4 +25,4 @@ export const MakeMoreMoney: ActionDefinition = {
       resourceType: ResourceType.MONEY,
     }),
   ],
-}
+} as const satisfies ActionDefinition

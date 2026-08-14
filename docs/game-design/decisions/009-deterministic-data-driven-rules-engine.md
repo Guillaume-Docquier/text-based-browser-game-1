@@ -19,7 +19,7 @@ Designers also need to combine familiar rules into new Actions and tune a game w
 
 Actions declaratively compose reusable Mechanics. An Action Definition describes its presentation, choices, and ordered Mechanics rather than owning bespoke resolution code.
 
-A Ruleset defines the available Action Definitions, their Mechanics, and the ordered Phases through which submitted Actions resolve. Phases provide coarse ordering between kinds of change; Mechanics within a Phase also follow explicit deterministic ordering and tie-breaking rules. Composition is ordered: one Mechanic may change the state or Effects that later Mechanics observe, cancel, or modify.
+A Ruleset defines the available Action Definitions and their configured Mechanics. The engine defines the supported Phases and their fixed order. It also assigns each supported Mechanic type to a Phase and defines deterministic ordering and tie-breaking rules within that Phase. Composition is ordered: one Mechanic may change the state or Effects that later Mechanics observe, cancel, or modify.
 
 The initial scope gives each game one persisted Ruleset. That Ruleset is fixed when the game starts so every Turn in that game continues to use the same rules. Initially, games may all use the same developer-authored default Ruleset.
 
@@ -40,5 +40,5 @@ Player-authored Rulesets and multiple simultaneous games using different alterna
 - A finite Mechanic vocabulary may not express every desirable Action cleanly; one-off behavior can pressure the engine toward excessive abstraction.
 - Ordered composition creates interaction risks when an earlier Mechanic changes, cancels, or invalidates a later one.
 - Rulesets and Action submissions require strong validation so invalid combinations cannot enter or corrupt a game.
-- Ruleset evolution requires explicit versioning and compatibility rules because active games must keep resolving against their persisted definition.
+- Compatibility and versioning may eventually be required for long-running games, but are deliberately deferred until the engine has a concrete migration need.
 - Deterministic random outcomes require carefully specified seeds, ordering, and tie-breakers to remain reproducible.

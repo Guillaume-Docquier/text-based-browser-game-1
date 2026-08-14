@@ -1,22 +1,28 @@
 import type { AbstractMechanic } from "#lib/rules-engine/mechanics/Mechanic.ts"
-import { MechanicTargetSelf } from "#lib/rules-engine/mechanics/MechanicTarget.ts"
+import { MechanicTargetSelf, type PlayerMechanicTarget } from "#lib/rules-engine/mechanics/MechanicTarget.ts"
+import { MechanicType } from "#lib/rules-engine/mechanics/MechanicType.ts"
 import type { QuantityOfResource } from "#lib/rules-engine/mechanics/QuantityOfResource.ts"
 
 export interface IncomeMechanic extends AbstractMechanic, QuantityOfResource {
-  readonly type: "INCOME"
+  readonly type: typeof MechanicType.INCOME
   readonly targets: {
-    readonly player: MechanicTargetSelf
+    readonly player: PlayerMechanicTarget
   }
 }
 
 export const IncomeMechanic = {
-  type: "INCOME",
-  create: ({ quantity, resourceType }: Omit<IncomeMechanic, "type" | "targets">): IncomeMechanic => ({
-    type: IncomeMechanic.type,
+  create: ({
+    quantity,
+    resourceType,
+    player = MechanicTargetSelf,
+  }: Omit<IncomeMechanic, "type" | "targets"> & {
+    readonly player?: PlayerMechanicTarget
+  }): IncomeMechanic => ({
+    type: MechanicType.INCOME,
     quantity,
     resourceType,
     targets: {
-      player: MechanicTargetSelf,
+      player,
     },
   }),
 } as const

@@ -1,29 +1,19 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import type { Effect } from "#lib/rules-engine/effects/Effect.ts"
-import { resolveCostEffect } from "#lib/rules-engine/effects/resolvers/resolveCostEffect.ts"
+import type { NonCostEffect } from "#lib/rules-engine/effects/Effect.ts"
+import type { EffectOutcome } from "#lib/rules-engine/effects/EffectOutcome.ts"
 import { resolveIncomeEffect } from "#lib/rules-engine/effects/resolvers/resolveIncomeEffect.ts"
 import { resolveVictoryEffect } from "#lib/rules-engine/effects/resolvers/resolveVictoryEffect.ts"
-import { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMechanic.ts"
-import { IncomeMechanic } from "#lib/rules-engine/mechanics/implementations/IncomeMechanic.ts"
-import { VictoryMechanic } from "#lib/rules-engine/mechanics/implementations/VictoryMechanic.ts"
+import { MechanicType } from "#lib/rules-engine/mechanics/MechanicType.ts"
 import type { TurnContext } from "#lib/rules-engine/TurnContext.ts"
 
-export function resolveEffect(context: TurnContext, effect: Effect): void {
+export function resolveEffect(context: TurnContext, effect: NonCostEffect): EffectOutcome {
   switch (effect.type) {
-    case CostMechanic.type:
-      resolveCostEffect(context, effect)
-      break
-    case IncomeMechanic.type:
-      resolveIncomeEffect(context, effect)
-      break
-    case VictoryMechanic.type:
-      resolveVictoryEffect(context, effect)
-      break
+    case MechanicType.INCOME:
+      return resolveIncomeEffect(context, effect)
+    case MechanicType.VICTORY:
+      return resolveVictoryEffect(context, effect)
     default:
       Assert.isExhausted(effect)
+      return effect
   }
-
-  // TODO GD Maybe should be done by the resolvers themselves?
-  // TODO GD We need a status too (resolved, prevented, failed, etc)
-  context.effects.markResolved(effect)
 }

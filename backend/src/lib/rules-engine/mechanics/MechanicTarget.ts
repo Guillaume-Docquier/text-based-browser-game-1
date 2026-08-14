@@ -1,18 +1,20 @@
 import type { MechanicTargetType } from "#lib/rules-engine/mechanics/MechanicTargetType.ts"
 
-export type MechanicTarget =
-  | {
-      /**
-       * The key to use on the submitted action's targets to find the target id.
-       * This is not the id of the actual target.
-       */
-      readonly tag: string
-      /**
-       * The type that this target must be.
-       */
-      readonly type: MechanicTargetType
-    }
-  | MechanicTargetSelf
+export type MechanicTargetOfType<TType extends MechanicTargetType> = {
+  /**
+   * The key to use on the submitted action's targets to find the target id.
+   * This is not the id of the actual target.
+   */
+  readonly tag: string
+  /**
+   * The type that this target must be.
+   */
+  readonly type: TType
+}
+
+export type MechanicTarget = MechanicTargetOfType<MechanicTargetType> | MechanicTargetSelf
+
+export type PlayerMechanicTarget = MechanicTargetOfType<typeof MechanicTargetType.PLAYER> | MechanicTargetSelf
 
 /**
  * A special target that is always the player that submitted the action.

@@ -3,14 +3,14 @@ import { MakeMoreMoney } from "#lib/ruleset/action-definitions/make-more-money.t
 import { WinTheGame } from "#lib/ruleset/action-definitions/win-the-game.ts"
 
 export type Ruleset = {
-  actionDefinitions: Record<string, ActionDefinition>
+  readonly actionDefinitions: Readonly<Record<string, ActionDefinition>>
 }
 
 export const Ruleset: Ruleset = {
   actionDefinitions: indexById([MakeMoreMoney, WinTheGame]),
 }
 
-function indexById<T extends { id: string }>(array: T[]): Record<string, T> {
+function indexById<T extends { id: string }>(array: readonly T[]): Record<string, T> {
   return array.reduce<Record<string, T>>((acc, val) => {
     acc[val.id] = val
     return acc

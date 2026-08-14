@@ -1,7 +1,7 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
-import type { ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
+import type { ResourceStockpile } from "#lib/rules-engine/mechanics/ResourceStockpile.ts"
 
 /**
  * The current state of the turn.
@@ -16,7 +16,7 @@ export type TurnState = {
     PlayerId,
     {
       id: PlayerId
-      resources: Record<ResourceType, number>
+      resources: ResourceStockpile
       actionSubmissions: ActionSubmission[]
     }
   >

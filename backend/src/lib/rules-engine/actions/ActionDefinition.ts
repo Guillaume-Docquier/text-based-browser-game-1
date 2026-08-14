@@ -22,7 +22,7 @@ export type ActionDefinition = {
    * An Action will use the keys from the ActionDefinition and fill the value with the proper id.
    * self is a special key that's always present that the server will always override.
    */
-  readonly targets: { self: "" } & Record<string, "">
-  readonly costs: CostMechanic[]
-  readonly mechanics: Mechanic[]
+  readonly targets: Readonly<{ self: "" } & Record<string, "">>
+  readonly costs: readonly CostMechanic[]
+  readonly mechanics: readonly Mechanic[]
 }

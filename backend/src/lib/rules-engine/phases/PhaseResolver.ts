@@ -1,7 +1,6 @@
 import type { TurnContext } from "#lib/rules-engine/TurnContext.ts"
 
 /**
- * A Phase takes a TurnState and an EffectPool, applies the Effects it knows how to handle, removing them from the Pool and mutating the TurnState.
- * For now a Phase doesn't return anything, but it could return some game logs of what happened and why.
+ * A Phase applies the Effects it owns, records their outcomes, removes them from the Effect Pool, and mutates the Turn State.
  */
 export type PhaseResolver = (context: TurnContext) => void

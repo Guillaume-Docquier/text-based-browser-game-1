@@ -5,7 +5,7 @@ import { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMe
 import { VictoryMechanic } from "#lib/rules-engine/mechanics/implementations/VictoryMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
 
-export const WinTheGame: ActionDefinition = {
+export const WinTheGame = {
   id: "WIN_THE_GAME",
   name: "Win The Game",
   type: ActionType.DIRECTIVE,
@@ -20,4 +20,4 @@ export const WinTheGame: ActionDefinition = {
     }),
   ],
   mechanics: [VictoryMechanic.create()],
-}
+} as const satisfies ActionDefinition
