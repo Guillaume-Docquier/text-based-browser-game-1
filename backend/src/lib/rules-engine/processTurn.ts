@@ -1,4 +1,5 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
+import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
 import { EffectPool } from "#lib/rules-engine/effects/EffectPool.ts"
 import type { PhaseContext } from "#lib/rules-engine/phases/PhaseContext.ts"
 import type { PhaseResolver } from "#lib/rules-engine/phases/PhaseResolver.ts"
@@ -31,9 +32,11 @@ export function processTurn(turnState: Readonly<TurnState>, ruleset: Ruleset): T
     effects: new EffectPool([]),
     ruleset,
   }
-  const actionSubmissions = Object.values(turnState.players).flatMap((player) => player.actionSubmissions)
+  const actionSubmissionValidation = validateActionSubmissions(
+    Object.values(turnState.players).flatMap((player) => player.actionSubmissions),
+  )
 
-  resolvePayCostsPhase(phaseContext, actionSubmissions, ruleset) // The pay costs phase is a bit special
+  resolvePayCostsPhase(phaseContext, actionSubmissionValidation.valid, ruleset) // The pay costs phase is a bit special
   for (const resolvePhase of phaseResolvers) {
     resolvePhase(phaseContext)
   }
@@ -42,4 +45,12 @@ export function processTurn(turnState: Readonly<TurnState>, ruleset: Ruleset): T
   Assert.isTrue(phaseContext.effects.isEmpty())
 
   return phaseContext.state
+}
+
+function validateActionSubmissions(actionSubmissions: ActionSubmission[]): { valid: ActionSubmission[]; invalid: ActionSubmission[] } {
+  // TODO Implement
+  return {
+    valid: actionSubmissions,
+    invalid: [],
+  }
 }
