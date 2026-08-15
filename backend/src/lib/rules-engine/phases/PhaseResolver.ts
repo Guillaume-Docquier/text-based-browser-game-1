@@ -1,4 +1,4 @@
-import type { TurnContext } from "#lib/rules-engine/TurnContext.ts"
+import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 
 /**
  * A Phase takes a TurnState and an EffectPool, applies the Effects it knows how to handle, removing them from the Pool and mutating the TurnState.
