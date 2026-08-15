@@ -17,6 +17,17 @@ export type Effect<T extends Mechanic = Mechanic> =
   T extends Mechanic ? EffectFor<T> : never
 
 export const Effect = {
+  /**
+   * A type guard builder to check that an effect is of a certain type.
+   */
+  isOfType:
+    <TType extends Effect["type"]>(effectType: TType) =>
+    (effect: Effect): effect is EffectOfType<TType> => {
+      return effect.type === effectType
+    },
+  /**
+   * Creates an effect for a mechanic
+   */
   fromMechanic: <TMechanic extends Mechanic>({
     mechanic,
     targets,

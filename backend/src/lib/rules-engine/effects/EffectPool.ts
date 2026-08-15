@@ -1,4 +1,4 @@
-import type { Effect, EffectOfType } from "#lib/rules-engine/effects/Effect.ts"
+import { Effect, type EffectOfType } from "#lib/rules-engine/effects/Effect.ts"
 
 /**
  * The EffectPool contains all the Effects that need to be applied to the TurnState
@@ -11,10 +11,7 @@ export class EffectPool {
   }
 
   public getEffectsOfType<TType extends Effect["type"]>(effectType: TType): Array<EffectOfType<TType>> {
-    return this.effects
-      .values()
-      .filter((effect): effect is EffectOfType<TType> => effect.type === effectType)
-      .toArray()
+    return this.effects.values().filter(Effect.isOfType(effectType)).toArray()
   }
 
   public addMany(effects: Effect[]): void {
