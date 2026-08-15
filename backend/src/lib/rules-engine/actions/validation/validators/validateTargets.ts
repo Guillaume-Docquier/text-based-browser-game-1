@@ -27,7 +27,7 @@ export function validateTargets(
   )
   for (const missingTargetSlot of missingTargetSlots) {
     issues.push({
-      issue: `Submitted action ${actionSubmission.id} is missing target slot ${missingTargetSlot} from its Action Definition ${actionDefinition.name}`,
+      issue: `missing target slot "${missingTargetSlot}".`,
     })
   }
 
@@ -41,13 +41,7 @@ export function validateTargets(
   allTargetDefinitions.set(TargetDefinitionSelf.tag, TargetDefinitionSelf.type) // Self is always required, even if no mechanic mentions it
 
   for (const [targetSlot, targetId] of Object.entries(actionSubmission.targets)) {
-    const targetDefinitionIssue = validateTargetDefinition(
-      actionSubmission,
-      allTargetDefinitions.get(targetSlot),
-      targetSlot,
-      targetId,
-      turnState,
-    )
+    const targetDefinitionIssue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
     if (targetDefinitionIssue !== null) {
       issues.push(targetDefinitionIssue)
     }
@@ -57,7 +51,6 @@ export function validateTargets(
 }
 
 function validateTargetDefinition(
-  actionSubmission: ActionSubmission,
   targetType: TargetDefinition["type"] | undefined,
   targetSlot: string,
   targetId: string,
@@ -65,13 +58,13 @@ function validateTargetDefinition(
 ): ActionSubmissionValidationIssue | null {
   if (targetType === undefined) {
     return {
-      issue: `Submitted action ${actionSubmission.id} ${targetSlot} target slot is unexpected.`,
+      issue: `unexpected target slot "${targetSlot}".`,
     }
   }
 
-  if (targetId === undefined) {
+  if (targetId.length === 0) {
     return {
-      issue: `Submitted action ${actionSubmission.id} ${targetSlot} target slot must be set.`,
+      issue: `target slot "${targetSlot}" must be set to a ${targetType} id.`,
     }
   }
 
@@ -80,7 +73,7 @@ function validateTargetDefinition(
     case "SELF": {
       if (turnState.players[targetId] === undefined) {
         return {
-          issue: `Submitted action ${actionSubmission.id} ${targetSlot} target ${targetId} is not a player.`,
+          issue: `target slot "${targetSlot}" references unknown Player id "${targetId}".`,
         }
       }
       return null

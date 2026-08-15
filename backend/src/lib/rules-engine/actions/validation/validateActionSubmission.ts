@@ -15,8 +15,16 @@ export function validateActionSubmission(
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
 ): ActionSubmissionValidationIssue[] {
-  return validators
+  const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+  const actionDefinitionDescription =
+    actionDefinition === undefined ? actionSubmission.actionDefinitionId : `${actionDefinition.id} (${actionDefinition.name})`
+
+  const issues = validators
     .map((validator) => validator(actionSubmission, ruleset, turnState))
     .filter(Result.isSuccess) // We discard failures because they are caused by requirements checked by other validators
     .flatMap((success) => success.value)
+
+  return issues.map(({ issue }) => ({
+    issue: `Action Submission ${actionSubmission.id} for Action Definition ${actionDefinitionDescription}: ${issue}`,
+  }))
 }

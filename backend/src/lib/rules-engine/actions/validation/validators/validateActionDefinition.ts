@@ -10,7 +10,7 @@ export function validateActionDefinition(actionSubmission: ActionSubmission, rul
   if (ruleset.actionDefinitions[actionSubmission.actionDefinitionId] === undefined) {
     return Result.Success([
       {
-        issue: `Action Definition ${actionSubmission.actionDefinitionId} referenced by action ${actionSubmission.id} does not exist in the Ruleset`,
+        issue: "does not exist in the Ruleset.",
       },
     ])
   }
