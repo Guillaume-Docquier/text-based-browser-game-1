@@ -1,6 +1,6 @@
-import type { MechanicTargetType } from "#lib/rules-engine/mechanics/MechanicTargetType.ts"
+import type { TargetType } from "#lib/rules-engine/mechanics/TargetType.ts"
 
-export type MechanicTarget =
+export type TargetDefinition =
   | {
       /**
        * The key to use on the submitted action's targets to find the target id.
@@ -10,20 +10,20 @@ export type MechanicTarget =
       /**
        * The type that this target must be.
        */
-      readonly type: MechanicTargetType
+      readonly type: TargetType
     }
-  | MechanicTargetSelf
+  | TargetDefinitionSelf
 
 /**
  * A special target that is always the player that submitted the action.
  * This value is always overridden by the server.
  */
-export type MechanicTargetSelf = typeof MechanicTargetSelf
+export type TargetDefinitionSelf = typeof TargetDefinitionSelf
 /**
  * A special target that is always the player that submitted the action.
  * This value is always overridden by the server.
  */
-export const MechanicTargetSelf = {
+export const TargetDefinitionSelf = {
   tag: "self",
   type: "SELF",
 } as const

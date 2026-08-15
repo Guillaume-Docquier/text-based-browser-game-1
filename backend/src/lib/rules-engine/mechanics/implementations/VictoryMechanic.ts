@@ -1,10 +1,10 @@
 import type { AbstractMechanic } from "#lib/rules-engine/mechanics/Mechanic.ts"
-import { MechanicTargetSelf } from "#lib/rules-engine/mechanics/MechanicTarget.ts"
+import { TargetDefinitionSelf } from "#lib/rules-engine/mechanics/TargetDefinition.ts"
 
 export interface VictoryMechanic extends AbstractMechanic {
   readonly type: "VICTORY"
   readonly targets: {
-    readonly player: MechanicTargetSelf
+    readonly player: TargetDefinitionSelf
   }
 }
 
@@ -13,7 +13,7 @@ export const VictoryMechanic = {
   create: (): VictoryMechanic => ({
     type: VictoryMechanic.type,
     targets: {
-      player: MechanicTargetSelf,
+      player: TargetDefinitionSelf,
     },
   }),
 } as const
