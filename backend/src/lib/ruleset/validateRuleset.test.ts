@@ -32,14 +32,17 @@ const validActionDefinition: ActionDefinition = {
 
 describe("validateRuleset", () => {
   it("should validate a Ruleset with correctly indexed Action Definitions and all required target slots", () => {
+    // Arrange
     const ruleset: Ruleset = {
       actionDefinitions: {
         [validActionDefinition.id]: validActionDefinition,
       },
     }
 
+    // Act
     const validationResult = validateRuleset(ruleset)
 
+    // Assert
     expect(validationResult).toEqual<typeof validationResult>({
       valid: true,
       invalidIndices: [],
@@ -48,14 +51,17 @@ describe("validateRuleset", () => {
   })
 
   it("should report an Action Definition indexed under an id other than its own", () => {
+    // Arrange
     const ruleset: Ruleset = {
       actionDefinitions: {
         "incorrect-index": validActionDefinition,
       },
     }
 
+    // Act
     const validationResult = validateRuleset(ruleset)
 
+    // Assert
     expect(validationResult).toEqual<typeof validationResult>({
       valid: false,
       invalidIndices: [
@@ -70,6 +76,7 @@ describe("validateRuleset", () => {
   })
 
   it("should report target slots required by costs and Mechanics but missing from the Action Definition", () => {
+    // Arrange
     const actionDefinitionWithoutSelfTarget: ActionDefinition = {
       id: "MAKE_MORE_MONEY",
       name: "Make More Money",
@@ -96,8 +103,10 @@ describe("validateRuleset", () => {
       },
     }
 
+    // Act
     const validationResult = validateRuleset(ruleset)
 
+    // Assert
     expect(validationResult).toEqual<typeof validationResult>({
       valid: false,
       invalidIndices: [],
