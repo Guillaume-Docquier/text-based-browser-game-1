@@ -1,3 +1,4 @@
+import { Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
 import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/actions/validation/ActionSubmissionValidationIssue.ts"
 import type { ActionSubmissionValidator } from "#lib/rules-engine/actions/validation/ActionSubmissionValidator.ts"
@@ -14,5 +15,8 @@ export function validateActionSubmission(
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
 ): ActionSubmissionValidationIssue[] {
-  return validators.flatMap((validator) => validator(actionSubmission, ruleset, turnState))
+  return validators
+    .map((validator) => validator(actionSubmission, ruleset, turnState))
+    .filter(Result.isSuccess) // We discard failures because they are caused by requirements checked by other validators
+    .flatMap((success) => success.value)
 }
