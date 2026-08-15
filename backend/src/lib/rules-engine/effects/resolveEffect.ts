@@ -23,7 +23,5 @@ export function resolveEffect(context: TurnContext, effect: Effect): void {
       Assert.isExhausted(effect)
   }
 
-  // TODO GD Maybe should be done by the resolvers themselves?
-  // TODO GD We need a status too (resolved, prevented, failed, etc)
   context.effects.markResolved(effect)
 }
