@@ -6,7 +6,7 @@ import { resolveVictoryEffect } from "#lib/rules-engine/effects/resolvers/resolv
 import { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMechanic.ts"
 import { IncomeMechanic } from "#lib/rules-engine/mechanics/implementations/IncomeMechanic.ts"
 import { VictoryMechanic } from "#lib/rules-engine/mechanics/implementations/VictoryMechanic.ts"
-import type { TurnContext } from "#lib/rules-engine/TurnContext.ts"
+import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 
 export function resolveEffect(context: TurnContext, effect: Effect): void {
   switch (effect.type) {

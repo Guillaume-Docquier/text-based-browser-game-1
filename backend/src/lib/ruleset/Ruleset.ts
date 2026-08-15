@@ -3,7 +3,7 @@ import { MakeMoreMoney } from "#lib/ruleset/action-definitions/make-more-money.t
 import { WinTheGame } from "#lib/ruleset/action-definitions/win-the-game.ts"
 
 export type Ruleset = {
-  actionDefinitions: Record<string, ActionDefinition>
+  readonly actionDefinitions: Readonly<Record<string, ActionDefinition>>
 }
 
 export const Ruleset: Ruleset = {
