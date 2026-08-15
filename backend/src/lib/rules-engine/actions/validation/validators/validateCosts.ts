@@ -40,7 +40,7 @@ export function validateCosts(
     Object.entries(resourcesAvailable)
       .filter(([_, resourceCount]) => resourceCount < 0)
       .map(([resourceType, resourceCount]) => ({
-        issue: `Missing ${Math.abs(resourceCount)} ${resourceType} to play ${actionDefinition.name}`,
+        issue: `missing ${Math.abs(resourceCount)} ${resourceType}.`,
       })),
   )
 }

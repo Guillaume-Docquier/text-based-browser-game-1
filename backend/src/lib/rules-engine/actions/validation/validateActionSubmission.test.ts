@@ -67,7 +67,7 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: "Action Definition UNKNOWN_ACTION referenced by action action-submission-id does not exist in the Ruleset",
+        issue: "Action Submission action-submission-id for Action Definition UNKNOWN_ACTION: does not exist in the Ruleset.",
       },
     ])
   })
@@ -111,7 +111,8 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: "Submitted action action-submission-id is missing target slot targetPlayer from its Action Definition Test Action",
+        issue:
+          'Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): missing target slot "targetPlayer".',
       },
     ])
   })
@@ -145,7 +146,7 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: "Submitted action action-submission-id fleet target slot is unexpected.",
+        issue: 'Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): unexpected target slot "fleet".',
       },
     ])
   })
@@ -167,7 +168,8 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: "Submitted action action-submission-id self target  is not a player.",
+        issue:
+          'Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): target slot "self" must be set to a SELF id.',
       },
     ])
   })
@@ -211,7 +213,7 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: "Missing 3 MONEY to play Test Action",
+        issue: "Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): missing 3 MONEY.",
       },
     ])
   })
@@ -245,10 +247,10 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: "Submitted action action-submission-id fleet target slot is unexpected.",
+        issue: 'Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): unexpected target slot "fleet".',
       },
       {
-        issue: "Missing 1 MONEY to play Test Action",
+        issue: "Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): missing 1 MONEY.",
       },
     ])
   })
