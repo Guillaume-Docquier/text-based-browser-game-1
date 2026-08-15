@@ -2,6 +2,6 @@ import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmissio
 import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/actions/validation/ActionSubmissionValidationIssue.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
-export function validateTargets(actionSubmission: ActionSubmission, ruleset: Ruleset): ActionSubmissionValidationIssue[] {
+export function validateTargets(_actionSubmission: ActionSubmission, _ruleset: Ruleset): ActionSubmissionValidationIssue[] {
   return []
 }
