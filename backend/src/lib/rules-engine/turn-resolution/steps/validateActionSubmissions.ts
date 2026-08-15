@@ -1,4 +1,3 @@
-import { Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
 import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/actions/validation/ActionSubmissionValidationIssue.ts"
 import { validateActionSubmission } from "#lib/rules-engine/actions/validation/validateActionSubmission.ts"
@@ -19,12 +18,12 @@ export function validateActionSubmissions(
   const invalid: ActionSubmissionValidities["invalid"] = []
 
   for (const actionSubmission of actionSubmissions) {
-    const validationResult = validateActionSubmission(actionSubmission, ruleset, turnState)
+    const issues = validateActionSubmission(actionSubmission, ruleset, turnState)
 
-    if (Result.isFailure(validationResult)) {
-      invalid.push({ actionSubmission, issues: validationResult.error })
-    } else {
+    if (issues.length === 0) {
       valid.push(actionSubmission)
+    } else {
+      invalid.push({ actionSubmission, issues })
     }
   }
 

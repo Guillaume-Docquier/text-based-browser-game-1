@@ -1,4 +1,3 @@
-import { Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
 import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/actions/validation/ActionSubmissionValidationIssue.ts"
 import type { ActionSubmissionValidator } from "#lib/rules-engine/actions/validation/ActionSubmissionValidator.ts"
@@ -14,15 +13,6 @@ export function validateActionSubmission(
   actionSubmission: ActionSubmission,
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
-): Result<ActionSubmission, ActionSubmissionValidationIssue[]> {
-  const issues: ActionSubmissionValidationIssue[] = []
-  for (const validator of validators) {
-    issues.push(...validator(actionSubmission, ruleset, turnState))
-  }
-
-  if (issues.length > 0) {
-    return Result.Failure(issues)
-  }
-
-  return Result.Success(actionSubmission)
+): ActionSubmissionValidationIssue[] {
+  return validators.flatMap((validator) => validator(actionSubmission, ruleset, turnState))
 }
