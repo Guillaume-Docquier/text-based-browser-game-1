@@ -1,25 +1,15 @@
 import { describe, expect, it } from "vitest"
-import type { ActionDefinition } from "#lib/rules-engine/actions/ActionDefinition.ts"
+import { createActionDefinitionStub } from "#lib/rules-engine/actions/ActionDefinition.stub.ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
-import { ActionTier } from "#lib/rules-engine/actions/ActionTier.ts"
-import { ActionType } from "#lib/rules-engine/actions/ActionType.ts"
 import { validateActionSubmission } from "#lib/rules-engine/actions/validation/validateActionSubmission.ts"
 import { CostMechanic } from "#lib/rules-engine/mechanics/implementations/CostMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
-const actionDefinition: ActionDefinition = {
-  id: "TEST_ACTION",
-  name: "Test Action",
-  type: ActionType.DIRECTIVE,
-  tier: ActionTier.STANDARD,
-  targets: {
-    self: "",
-  },
+const actionDefinition = createActionDefinitionStub({
   costs: [CostMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY })],
-  mechanics: [],
-}
+})
 
 const ruleset: Ruleset = {
   actionDefinitions: {
@@ -43,7 +33,7 @@ describe("validateActionSubmission", () => {
         [playerId]: {
           id: playerId,
           resources: {
-            [ResourceType.MONEY]: 10,
+            [ResourceType.MONEY]: 5,
           },
           actionSubmissions: [actionSubmission],
         },
@@ -82,14 +72,91 @@ describe("validateActionSubmission", () => {
     ])
   })
 
-  it("should report all missing, empty, and unexpected target slots", () => {
+  it("should report a target slot required by the Action Definition but missing from the submission", () => {
+    // Arrange
+    const playerId = "player-id"
+    const actionDefinitionWithRequiredTarget = createActionDefinitionStub({
+      targets: {
+        self: "",
+        targetPlayer: "",
+      },
+    })
+    const rulesetWithRequiredTarget: Ruleset = {
+      actionDefinitions: {
+        [actionDefinitionWithRequiredTarget.id]: actionDefinitionWithRequiredTarget,
+      },
+    }
+    const actionSubmission: ActionSubmission = {
+      id: "action-submission-id",
+      actionDefinitionId: actionDefinitionWithRequiredTarget.id,
+      targets: {
+        self: playerId,
+      },
+    }
+    const turnState = createTurnStateStub({
+      players: {
+        [playerId]: {
+          id: playerId,
+          resources: {
+            [ResourceType.MONEY]: 5,
+          },
+          actionSubmissions: [actionSubmission],
+        },
+      },
+    })
+
+    // Act
+    const issues = validateActionSubmission(actionSubmission, rulesetWithRequiredTarget, turnState)
+
+    // Assert
+    expect(issues).toEqual<typeof issues>([
+      {
+        issue: "Submitted action action-submission-id is missing target slot targetPlayer from its Action Definition Test Action",
+      },
+    ])
+  })
+
+  it("should report unexpected target slots", () => {
+    // Arrange
+    const playerId = "player-id"
+    const actionSubmission: ActionSubmission = {
+      id: "action-submission-id",
+      actionDefinitionId: actionDefinition.id,
+      targets: {
+        self: playerId,
+        fleet: "unexpected-fleet-slot",
+      },
+    }
+    const turnState = createTurnStateStub({
+      players: {
+        [playerId]: {
+          id: playerId,
+          resources: {
+            [ResourceType.MONEY]: 5,
+          },
+          actionSubmissions: [actionSubmission],
+        },
+      },
+    })
+
+    // Act
+    const issues = validateActionSubmission(actionSubmission, ruleset, turnState)
+
+    // Assert
+    expect(issues).toEqual<typeof issues>([
+      {
+        issue: "Submitted action action-submission-id fleet target slot is unexpected.",
+      },
+    ])
+  })
+
+  it("should report empty target slots", () => {
     // Arrange
     const actionSubmission: ActionSubmission = {
       id: "action-submission-id",
       actionDefinitionId: actionDefinition.id,
       targets: {
         self: "",
-        fleet: "fleet-id",
       },
     }
     const turnState = createTurnStateStub()
@@ -102,11 +169,86 @@ describe("validateActionSubmission", () => {
       {
         issue: "Submitted action action-submission-id self target  is not a player.",
       },
+    ])
+  })
+
+  it("should aggregate costs for the same resource before reporting the shortage", () => {
+    // Arrange
+    const playerId = "player-id"
+    const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
+      costs: [
+        CostMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
+        CostMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
+      ],
+    })
+    const rulesetWithMultipleCosts: Ruleset = {
+      actionDefinitions: {
+        [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
+      },
+    }
+    const actionSubmission: ActionSubmission = {
+      id: "action-submission-id",
+      actionDefinitionId: actionDefinitionWithMultipleCosts.id,
+      targets: {
+        self: playerId,
+      },
+    }
+    const turnState = createTurnStateStub({
+      players: {
+        [playerId]: {
+          id: playerId,
+          resources: {
+            [ResourceType.MONEY]: 7,
+          },
+          actionSubmissions: [actionSubmission],
+        },
+      },
+    })
+
+    // Act
+    const issues = validateActionSubmission(actionSubmission, rulesetWithMultipleCosts, turnState)
+
+    // Assert
+    expect(issues).toEqual<typeof issues>([
+      {
+        issue: "Missing 3 MONEY to play Test Action",
+      },
+    ])
+  })
+
+  it("should collect target and cost issues from the complete validation pipeline", () => {
+    // Arrange
+    const playerId = "player-id"
+    const actionSubmission: ActionSubmission = {
+      id: "action-submission-id",
+      actionDefinitionId: actionDefinition.id,
+      targets: {
+        self: playerId,
+        fleet: "fleet-id",
+      },
+    }
+    const turnState = createTurnStateStub({
+      players: {
+        [playerId]: {
+          id: playerId,
+          resources: {
+            [ResourceType.MONEY]: 4,
+          },
+          actionSubmissions: [actionSubmission],
+        },
+      },
+    })
+
+    // Act
+    const issues = validateActionSubmission(actionSubmission, ruleset, turnState)
+
+    // Assert
+    expect(issues).toEqual<typeof issues>([
       {
         issue: "Submitted action action-submission-id fleet target slot is unexpected.",
       },
       {
-        issue: "Submitted action action-submission-id self target  is not a player.",
+        issue: "Missing 1 MONEY to play Test Action",
       },
     ])
   })

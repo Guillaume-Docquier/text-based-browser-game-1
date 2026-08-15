@@ -1,3 +1,4 @@
+import { Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
 import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/actions/validation/ActionSubmissionValidationIssue.ts"
 import { Effect } from "#lib/rules-engine/effects/Effect.ts"
@@ -11,17 +12,19 @@ export function validateCosts(
   actionSubmission: ActionSubmission,
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
-): ActionSubmissionValidationIssue[] {
+): Result<ActionSubmissionValidationIssue[], string> {
   const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
   if (actionDefinition === undefined) {
-    return [] // Failed prior validation but we always run all validators
+    return Result.Failure(
+      `Cannot validate costs for action submission ${actionSubmission.id}, there is no action definition ${actionSubmission.actionDefinitionId}`,
+    )
   }
 
   const targets = actionSubmission.targets
 
   const player = turnState.players[targets.self]
   if (player === undefined) {
-    return [] // Failed prior validation but we always run all validators
+    return Result.Failure(`Cannot validate costs for action submission ${actionSubmission.id}, there is no player with id ${targets.self}`)
   }
 
   const costEffects = actionDefinition.costs.map((mechanic) => Effect.fromMechanic({ mechanic, targets }))
@@ -33,9 +36,11 @@ export function validateCosts(
   }
 
   // We'll need something better that can format issues per cost mechanic if we start having costs beyond resources
-  return Object.entries(resourcesAvailable)
-    .filter(([_, resourceCount]) => resourceCount < 0)
-    .map(([resourceType, resourceCount]) => ({
-      issue: `Missing ${Math.abs(resourceCount)} ${resourceType} to play ${actionDefinition.name}`,
-    }))
+  return Result.Success(
+    Object.entries(resourcesAvailable)
+      .filter(([_, resourceCount]) => resourceCount < 0)
+      .map(([resourceType, resourceCount]) => ({
+        issue: `Missing ${Math.abs(resourceCount)} ${resourceType} to play ${actionDefinition.name}`,
+      })),
+  )
 }

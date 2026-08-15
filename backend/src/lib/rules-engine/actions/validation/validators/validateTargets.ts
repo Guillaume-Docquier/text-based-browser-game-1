@@ -1,7 +1,7 @@
-import { NotImplementedError } from "@guillaume-docquier/tools-ts"
+import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
 import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/actions/validation/ActionSubmissionValidationIssue.ts"
-import type { TargetDefinition } from "#lib/rules-engine/mechanics/TargetDefinition.ts"
+import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/mechanics/TargetDefinition.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
@@ -12,10 +12,12 @@ export function validateTargets(
   actionSubmission: ActionSubmission,
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
-): ActionSubmissionValidationIssue[] {
+): Result<ActionSubmissionValidationIssue[], string> {
   const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
   if (actionDefinition === undefined) {
-    return [] // Failed prior validation but we always run all validators
+    return Result.Failure(
+      `Cannot validate targets for action submission ${actionSubmission.id}, there is no action definition ${actionSubmission.actionDefinitionId}`,
+    )
   }
 
   const issues: ActionSubmissionValidationIssue[] = []
@@ -36,6 +38,8 @@ export function validateTargets(
       .flatMap((mechanic) => Object.values(mechanic.targets))
       .map(({ tag, type }) => [tag, type]),
   )
+  allTargetDefinitions.set(TargetDefinitionSelf.tag, TargetDefinitionSelf.type) // Self is always required, even if no mechanic mentions it
+
   for (const [targetSlot, targetId] of Object.entries(actionSubmission.targets)) {
     const targetDefinitionIssue = validateTargetDefinition(
       actionSubmission,
@@ -49,13 +53,7 @@ export function validateTargets(
     }
   }
 
-  if (turnState.players[actionSubmission.targets.self] === undefined) {
-    issues.push({
-      issue: `Submitted action ${actionSubmission.id} self target ${actionSubmission.targets.self} is not a player.`,
-    })
-  }
-
-  return issues
+  return Result.Success(issues)
 }
 
 function validateTargetDefinition(
