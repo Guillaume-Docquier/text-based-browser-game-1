@@ -4,14 +4,13 @@ import { validateRuleset } from "#lib/ruleset/validateRuleset.ts"
 
 describe("Ruleset", () => {
   it("should be valid", () => {
+    // Arrange
+    const ruleset = Ruleset
+
     // Act
-    const validationResult = validateRuleset(Ruleset)
+    const validationIssues = validateRuleset(ruleset)
 
     // Assert
-    expect(validationResult).toEqual<typeof validationResult>({
-      valid: true,
-      invalidIndices: [],
-      missingTargets: [],
-    })
+    expect(validationIssues).toEqual([])
   })
 })

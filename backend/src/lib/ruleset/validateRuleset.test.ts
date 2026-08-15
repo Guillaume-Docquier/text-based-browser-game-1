@@ -40,14 +40,10 @@ describe("validateRuleset", () => {
     }
 
     // Act
-    const validationResult = validateRuleset(ruleset)
+    const validationIssues = validateRuleset(ruleset)
 
     // Assert
-    expect(validationResult).toEqual<typeof validationResult>({
-      valid: true,
-      invalidIndices: [],
-      missingTargets: [],
-    })
+    expect(validationIssues).toEqual([])
   })
 
   it("should report an Action Definition indexed under an id other than its own", () => {
@@ -59,20 +55,14 @@ describe("validateRuleset", () => {
     }
 
     // Act
-    const validationResult = validateRuleset(ruleset)
+    const validationIssues = validateRuleset(ruleset)
 
     // Assert
-    expect(validationResult).toEqual<typeof validationResult>({
-      valid: false,
-      invalidIndices: [
-        {
-          actionDefinitionId: validActionDefinition.id,
-          expectedIndex: validActionDefinition.id,
-          actualIndex: "incorrect-index",
-        },
-      ],
-      missingTargets: [],
-    })
+    expect(validationIssues).toEqual<typeof validationIssues>([
+      {
+        issue: "Action Definition Test Action is indexed under incorrect-index instead of TEST_ACTION",
+      },
+    ])
   })
 
   it("should report target slots required by costs and Mechanics but missing from the Action Definition", () => {
@@ -104,24 +94,16 @@ describe("validateRuleset", () => {
     }
 
     // Act
-    const validationResult = validateRuleset(ruleset)
+    const validationIssues = validateRuleset(ruleset)
 
     // Assert
-    expect(validationResult).toEqual<typeof validationResult>({
-      valid: false,
-      invalidIndices: [],
-      missingTargets: [
-        {
-          actionDefinitionId: actionDefinitionWithoutSelfTarget.id,
-          missingTargetSlot: "self",
-          forMechanicType: "COST",
-        },
-        {
-          actionDefinitionId: actionDefinitionWithoutSelfTarget.id,
-          missingTargetSlot: "self",
-          forMechanicType: "INCOME",
-        },
-      ],
-    })
+    expect(validationIssues).toEqual<typeof validationIssues>([
+      {
+        issue: "Action Definition Make More Money is missing target slot self required by COST",
+      },
+      {
+        issue: "Action Definition Make More Money is missing target slot self required by INCOME",
+      },
+    ])
   })
 })
