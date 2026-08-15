@@ -2,6 +2,17 @@ import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmissio
 import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/actions/validation/ActionSubmissionValidationIssue.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
-export function validateActionDefinition(_actionSubmission: ActionSubmission, _ruleset: Ruleset): ActionSubmissionValidationIssue[] {
+/**
+ * Validates that an Action Submission references an Action Definition in the Ruleset.
+ */
+export function validateActionDefinition(actionSubmission: ActionSubmission, ruleset: Ruleset): ActionSubmissionValidationIssue[] {
+  if (ruleset.actionDefinitions[actionSubmission.actionDefinitionId] === undefined) {
+    return [
+      {
+        issue: `Action Definition ${actionSubmission.actionDefinitionId} referenced by action ${actionSubmission.id} does not exist in the Ruleset`,
+      },
+    ]
+  }
+
   return []
 }

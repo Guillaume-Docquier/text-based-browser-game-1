@@ -1,22 +1,28 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
 import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/actions/validation/ActionSubmissionValidationIssue.ts"
 import { Effect } from "#lib/rules-engine/effects/Effect.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
+/**
+ * Validates that all the action submission costs can be paid.
+ */
 export function validateCosts(
   actionSubmission: ActionSubmission,
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
 ): ActionSubmissionValidationIssue[] {
   const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
-  Assert.isDefined(actionDefinition)
+  if (actionDefinition === undefined) {
+    return [] // Failed prior validation but we always run all validators
+  }
 
   const targets = actionSubmission.targets
 
   const player = turnState.players[targets.self]
-  Assert.isDefined(player)
+  if (player === undefined) {
+    return [] // Failed prior validation but we always run all validators
+  }
 
   const costEffects = actionDefinition.costs.map((mechanic) => Effect.fromMechanic({ mechanic, targets }))
 
