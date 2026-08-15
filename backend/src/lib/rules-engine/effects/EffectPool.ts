@@ -23,7 +23,6 @@ export class EffectPool {
     }
   }
 
-  // TODO GD Should keep a log of effect resolutions / addition / etc?
   public markResolved(effect: Effect): void {
     this.effects.delete(effect)
   }
