@@ -9,51 +9,53 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
  * Validates that the target slots for the action submission are filled and valid.
  */
 export function validateTargets(
-  actionSubmission: ActionSubmission,
+  actionSubmissions: ActionSubmission[],
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
 ): Result<ActionSubmissionIssue[], string> {
-  const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
-  if (actionDefinition === undefined) {
-    return Result.Failure(
-      `Cannot validate targets for action submission ${actionSubmission.id}, there is no action definition ${actionSubmission.actionDefinitionId}`,
-    )
-  }
-
   const issues: ActionSubmissionIssue[] = []
 
-  const missingTargetSlots = Object.keys(actionDefinition.targets).filter(
-    (targetSlot) => actionSubmission.targets[targetSlot] === undefined,
-  )
-  for (const missingTargetSlot of missingTargetSlots) {
-    issues.push(
-      ActionSubmissionIssue.create({
-        issue: `Missing target slot "${missingTargetSlot}"`,
-        actionSubmission,
-        actionDefinitionName: actionDefinition.name,
-      }),
+  for (const actionSubmission of actionSubmissions) {
+    const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+    if (actionDefinition === undefined) {
+      return Result.Failure(
+        `Cannot validate targets for action submission ${actionSubmission.id}, there is no action definition ${actionSubmission.actionDefinitionId}`,
+      )
+    }
+
+    const missingTargetSlots = Object.keys(actionDefinition.targets).filter(
+      (targetSlot) => actionSubmission.targets[targetSlot] === undefined,
     )
-  }
-
-  // This keeps only 1 of each target definition
-  // Fine as long as it stays simple (no conditions / refinements)
-  const allTargetDefinitions = new Map<string, TargetDefinition["type"]>(
-    [...actionDefinition.costs, ...actionDefinition.mechanics]
-      .flatMap((mechanic) => Object.values(mechanic.targets))
-      .map(({ tag, type }) => [tag, type]),
-  )
-  allTargetDefinitions.set(TargetDefinitionSelf.tag, TargetDefinitionSelf.type) // Self is always required, even if no mechanic mentions it
-
-  for (const [targetSlot, targetId] of Object.entries(actionSubmission.targets)) {
-    const issue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
-    if (issue !== null) {
+    for (const missingTargetSlot of missingTargetSlots) {
       issues.push(
         ActionSubmissionIssue.create({
-          issue,
+          issue: `Missing target slot "${missingTargetSlot}"`,
           actionSubmission,
           actionDefinitionName: actionDefinition.name,
         }),
       )
+    }
+
+    // This keeps only 1 of each target definition
+    // Fine as long as it stays simple (no conditions / refinements)
+    const allTargetDefinitions = new Map<string, TargetDefinition["type"]>(
+      [...actionDefinition.costs, ...actionDefinition.mechanics]
+        .flatMap((mechanic) => Object.values(mechanic.targets))
+        .map(({ tag, type }) => [tag, type]),
+    )
+    allTargetDefinitions.set(TargetDefinitionSelf.tag, TargetDefinitionSelf.type) // Self is always required, even if no mechanic mentions it
+
+    for (const [targetSlot, targetId] of Object.entries(actionSubmission.targets)) {
+      const issue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
+      if (issue !== null) {
+        issues.push(
+          ActionSubmissionIssue.create({
+            issue,
+            actionSubmission,
+            actionDefinitionName: actionDefinition.name,
+          }),
+        )
+      }
     }
   }
 

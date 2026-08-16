@@ -1,6 +1,6 @@
 import { Assert, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
-import { validateActionSubmission } from "#lib/rules-engine/action-submission/validation/validateActionSubmission.ts"
+import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { EffectFactory } from "#lib/rules-engine/turn-resolution/effects/EffectFactory.ts"
 import { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
@@ -26,9 +26,7 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
   const actionSubmissions = Object.values(turnState.players).flatMap((player) => player.actionSubmissions)
 
   // Validate submissions
-  const actionSubmissionIssues = actionSubmissions.flatMap((actionSubmission) =>
-    validateActionSubmission(actionSubmission, ruleset, turnState),
-  )
+  const actionSubmissionIssues = validateActionSubmissions(actionSubmissions, ruleset, turnState)
   if (actionSubmissionIssues.length > 0) {
     return Result.Failure({ _tag: "INVALID_SUBMISSIONS", issues: actionSubmissionIssues })
   }

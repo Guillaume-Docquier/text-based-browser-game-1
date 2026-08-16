@@ -6,16 +6,20 @@ import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 /**
  * Validates that an Action Submission references an Action Definition in the Ruleset.
  */
-export function validateActionDefinition(actionSubmission: ActionSubmission, ruleset: Ruleset): Success<ActionSubmissionIssue[]> {
-  if (ruleset.actionDefinitions[actionSubmission.actionDefinitionId] === undefined) {
-    return Result.Success([
-      ActionSubmissionIssue.create({
-        issue: "Action definition does not exist in the Ruleset",
-        actionSubmission,
-        actionDefinitionName: undefined,
-      }),
-    ])
-  }
+export function validateActionDefinition(actionSubmissions: ActionSubmission[], ruleset: Ruleset): Success<ActionSubmissionIssue[]> {
+  return Result.Success(
+    actionSubmissions.flatMap((actionSubmission) => {
+      if (ruleset.actionDefinitions[actionSubmission.actionDefinitionId] === undefined) {
+        return [
+          ActionSubmissionIssue.create({
+            issue: "Action definition does not exist in the Ruleset",
+            actionSubmission,
+            actionDefinitionName: undefined,
+          }),
+        ]
+      }
 
-  return Result.Success([])
+      return []
+    }),
+  )
 }

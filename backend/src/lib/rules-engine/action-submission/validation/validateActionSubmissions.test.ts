@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import { validateActionSubmission } from "#lib/rules-engine/action-submission/validation/validateActionSubmission.ts"
+import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
@@ -17,7 +17,7 @@ const ruleset: Ruleset = {
   },
 }
 
-describe("validateActionSubmission", () => {
+describe("validateActionSubmissions", () => {
   it("should return no issues for a valid Action Submission", () => {
     // Arrange
     const playerId = "player-id"
@@ -41,7 +41,7 @@ describe("validateActionSubmission", () => {
     })
 
     // Act
-    const issues = validateActionSubmission(actionSubmission, ruleset, turnState)
+    const issues = validateActionSubmissions([actionSubmission], ruleset, turnState)
 
     // Assert
     expect(issues).toEqual([])
@@ -62,7 +62,7 @@ describe("validateActionSubmission", () => {
     const turnState = createTurnStateStub()
 
     // Act
-    const issues = validateActionSubmission(actionSubmission, emptyRuleset, turnState)
+    const issues = validateActionSubmissions([actionSubmission], emptyRuleset, turnState)
 
     // Assert
     expect(issues).toEqual<typeof issues>([
@@ -109,7 +109,7 @@ describe("validateActionSubmission", () => {
     })
 
     // Act
-    const issues = validateActionSubmission(actionSubmission, rulesetWithRequiredTarget, turnState)
+    const issues = validateActionSubmissions([actionSubmission], rulesetWithRequiredTarget, turnState)
 
     // Assert
     expect(issues).toEqual<typeof issues>([
@@ -146,7 +146,7 @@ describe("validateActionSubmission", () => {
     })
 
     // Act
-    const issues = validateActionSubmission(actionSubmission, ruleset, turnState)
+    const issues = validateActionSubmissions([actionSubmission], ruleset, turnState)
 
     // Assert
     expect(issues).toEqual<typeof issues>([
@@ -171,7 +171,7 @@ describe("validateActionSubmission", () => {
     const turnState = createTurnStateStub()
 
     // Act
-    const issues = validateActionSubmission(actionSubmission, ruleset, turnState)
+    const issues = validateActionSubmissions([actionSubmission], ruleset, turnState)
 
     // Assert
     expect(issues).toEqual<typeof issues>([
@@ -218,7 +218,7 @@ describe("validateActionSubmission", () => {
     })
 
     // Act
-    const issues = validateActionSubmission(actionSubmission, rulesetWithMultipleCosts, turnState)
+    const issues = validateActionSubmissions([actionSubmission], rulesetWithMultipleCosts, turnState)
 
     // Assert
     expect(issues).toEqual<typeof issues>([
@@ -255,7 +255,7 @@ describe("validateActionSubmission", () => {
     })
 
     // Act
-    const issues = validateActionSubmission(actionSubmission, ruleset, turnState)
+    const issues = validateActionSubmissions([actionSubmission], ruleset, turnState)
 
     // Assert
     expect(issues).toEqual<typeof issues>([
