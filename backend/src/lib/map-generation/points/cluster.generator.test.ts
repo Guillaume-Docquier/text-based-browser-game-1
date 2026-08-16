@@ -1,12 +1,8 @@
-import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { clusterGenerator } from "#lib/map-generation/points/cluster.generator.ts"
 
 describe("clusterGenerator", () => {
-  function createSeededRng(): Rng {
-    return createRng(mulberry32Prng(1234))
-  }
-
   it("should generate the requested number of points", () => {
     // Arrange
     const nbPoints = 5

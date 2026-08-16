@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 import { processTurn } from "#lib/rules-engine/turn-resolution/processTurn.ts"
@@ -30,7 +31,7 @@ describe("processTurn", () => {
     })
 
     // Act
-    const result = processTurn(turnState, RulesetV1)
+    const result = processTurn(turnState, RulesetV1, createSeededRng())
 
     // Assert
     expect(result.players[playerId]?.resources).toEqual({ [ResourceType.MONEY]: money })
@@ -54,7 +55,7 @@ describe("processTurn", () => {
     })
 
     // Act
-    const result = processTurn(turnState, RulesetV1)
+    const result = processTurn(turnState, RulesetV1, createSeededRng())
 
     // Assert
     expect(result.players[playerId]?.resources).toEqual({ [ResourceType.MONEY]: 5 })
@@ -78,7 +79,7 @@ describe("processTurn", () => {
     })
 
     // Act
-    const result = processTurn(turnState, RulesetV1)
+    const result = processTurn(turnState, RulesetV1, createSeededRng())
 
     // Assert
     expect(result.players[playerId]?.resources).toEqual({ [ResourceType.MONEY]: 0 })

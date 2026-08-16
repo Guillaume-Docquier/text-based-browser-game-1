@@ -1,12 +1,9 @@
-import { createRng, Distance, mulberry32Prng, type Rng, UnitOfDistance } from "@guillaume-docquier/tools-ts"
+import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { systemGenerator } from "#lib/map-generation/system.generator.ts"
 
 describe("systemGenerator", () => {
-  function createSeededRng(): Rng {
-    return createRng(mulberry32Prng(2))
-  }
-
   it("should generate a deterministic system at the requested origin", () => {
     // Arrange
     const origin = { x: 10, y: -20 }
@@ -25,7 +22,7 @@ describe("systemGenerator", () => {
     const origin = { x: 10, y: -20 }
 
     // Act
-    const system = systemGenerator(origin, createSeededRng())
+    const system = systemGenerator(origin, createSeededRng(2))
 
     // Assert
     expect(system).toEqual<typeof system>({
@@ -46,7 +43,7 @@ describe("systemGenerator", () => {
     const origin = { x: 10, y: -20 }
 
     // Act
-    const system = systemGenerator(origin, createSeededRng())
+    const system = systemGenerator(origin, createSeededRng(2))
     const orbitsInAstronomicalUnits = system.planets
       .map((planet) => {
         const orbitInLightYears = Distance.create(Math.hypot(planet.x - origin.x, planet.y - origin.y), UnitOfDistance.LIGHT_YEARS)
