@@ -84,7 +84,7 @@ describe("playSolo", () => {
     expect(plainPromptMessages.every((message) => message.includes("COMMAND"))).toBe(true)
     expect(plainPromptMessages.find((message) => message.includes("SELECTED ACTIONS  ·  2"))).not.toContain("costs 2 MONEY")
     expect(promptChoices.flat()).toContainEqual({
-      name: "＋ Make More Money",
+      name: "+ Make More Money",
       description: "STANDARD DIRECTIVE  ·  costs 2 MONEY  ·  gains 5 MONEY",
     })
     expect(promptChoices.flat()).toContainEqual({
