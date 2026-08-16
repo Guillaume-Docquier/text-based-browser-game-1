@@ -1,3 +1,4 @@
+import { stripVTControlCharacters } from "node:util"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
@@ -39,6 +40,8 @@ describe("playSolo", () => {
     })
 
     // Assert
+    const plainPromptMessages = promptMessages.map(stripVTControlCharacters)
+    const plainOutput = output.map(stripVTControlCharacters)
     expect(session).toEqual({
       turn: 4,
       state: {
@@ -55,19 +58,19 @@ describe("playSolo", () => {
       },
     })
     expect(selections).toEqual([])
-    expect(promptMessages).toContainEqual(expect.stringContaining("Turn was not resolved:\n  Win The Game: Missing 8 MONEY"))
-    expect(promptMessages).toContainEqual(expect.stringContaining("Selected actions:\n  1. Make More Money\n  2. Make More Money"))
-    expect(output.filter((line) => line === "────────────────────────────────────────")).toHaveLength(4)
-    expect(output.filter((line) => line.endsWith("— resolved"))).toEqual([
-      "Turn 1 — resolved",
-      "Turn 2 — resolved",
-      "Turn 3 — resolved",
-      "Turn 4 — resolved",
-    ])
-    expect(output).not.toContain("Turn 1 — open")
-    expect(output.join("\n")).toContain(
-      "Turn 3 — resolved\nResources:\n  MONEY: 14\nSubmitted actions:\n  1. Make More Money\n  2. Make More Money",
-    )
-    expect(output.at(-1)).toBe("You won on turn 4.")
+    expect(plainPromptMessages).toContainEqual(expect.stringContaining("TURN REJECTED"))
+    expect(plainPromptMessages).toContainEqual(expect.stringContaining("Missing 8 MONEY"))
+    expect(plainPromptMessages).toContainEqual(expect.stringContaining("SELECTED ACTIONS  ·  2"))
+    expect(plainPromptMessages).toContainEqual(expect.stringContaining("01  Make More Money"))
+    expect(plainPromptMessages).toContainEqual(expect.stringContaining("02  Make More Money"))
+    expect(plainPromptMessages.every((message) => message.includes("CURRENT TURN"))).toBe(true)
+    expect(plainPromptMessages.every((message) => message.includes("EMPIRE STATE"))).toBe(true)
+    expect(plainPromptMessages.every((message) => message.includes("COMMAND"))).toBe(true)
+    expect(plainOutput.filter((line) => line === "━".repeat(72))).toHaveLength(4)
+    expect(plainOutput.filter((line) => line.includes("RESOLVED TURN"))).toHaveLength(4)
+    expect(plainOutput).not.toContainEqual(expect.stringContaining("CURRENT TURN"))
+    expect(plainOutput.join("\n")).toContain("14 available")
+    expect(plainOutput.join("\n")).toContain("SUBMITTED ACTIONS  ·  2")
+    expect(plainOutput.at(-1)).toBe("You won on turn 4.")
   })
 })
