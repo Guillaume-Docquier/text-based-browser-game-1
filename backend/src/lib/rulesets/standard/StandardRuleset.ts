@@ -4,5 +4,6 @@ import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-mo
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 
 export const StandardRuleset: Ruleset = {
+  name: "Standard Ruleset",
   actionDefinitions: indexById([MakeMoreMoney, WinTheGame]),
 }

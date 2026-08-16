@@ -12,6 +12,7 @@ const actionDefinition = createActionDefinitionStub({
 })
 
 const ruleset: Ruleset = {
+  name: "Test Ruleset",
   actionDefinitions: {
     [actionDefinition.id]: actionDefinition,
   },
@@ -57,6 +58,7 @@ describe("validateActionSubmissions", () => {
       },
     }
     const emptyRuleset: Ruleset = {
+      name: "Empty Ruleset",
       actionDefinitions: {},
     }
     const turnState = createTurnStateStub()
@@ -85,6 +87,7 @@ describe("validateActionSubmissions", () => {
       },
     })
     const rulesetWithRequiredTarget: Ruleset = {
+      name: "Test Ruleset",
       actionDefinitions: {
         [actionDefinitionWithRequiredTarget.id]: actionDefinitionWithRequiredTarget,
       },
@@ -194,6 +197,7 @@ describe("validateActionSubmissions", () => {
       ],
     })
     const rulesetWithMultipleCosts: Ruleset = {
+      name: "Test Ruleset",
       actionDefinitions: {
         [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
       },

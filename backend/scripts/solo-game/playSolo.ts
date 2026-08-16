@@ -79,7 +79,7 @@ export async function playSolo({
   let turnResolutionError: TurnResolutionError | undefined
 
   writeLine("")
-  writeLine(UiStyle.accent("✦  COSMIC EMPIRES  ·  RULESET V1 PLAYTEST  ✦"))
+  writeLine(UiStyle.accent(`✦  COSMIC EMPIRES  ·  ${StandardRuleset.name.toUpperCase()} PLAYTEST  ✦`))
   writeLine(UiStyle.muted("Interactive in-memory rules-engine session"))
   writeLine("")
 
@@ -269,7 +269,7 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
   const lines = [
     ...createPanel(
       isOpen ? "CURRENT TURN" : "RESOLVED TURN",
-      [alignSides(UiStyle.accent(`TURN ${session.turn.toString().padStart(2, "0")}`), statusBadge), UiStyle.muted("Standard Ruleset")],
+      [alignSides(UiStyle.accent(`TURN ${session.turn.toString().padStart(2, "0")}`), statusBadge), UiStyle.muted(StandardRuleset.name)],
       isOpen ? "cyan" : "green",
     ),
     "",
