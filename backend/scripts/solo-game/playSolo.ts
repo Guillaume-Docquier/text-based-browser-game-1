@@ -3,12 +3,12 @@ import { Assert, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { select } from "@inquirer/prompts"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
+import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
-import { RulesetV1 } from "#lib/ruleset/v1/RulesetV1.ts"
+import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 const SOLO_PLAYER_ID = "solo-player"
 const UI_WIDTH = 72
@@ -61,7 +61,7 @@ type TurnResolutionError =
   | { readonly _tag: "FAILED_TO_RESOLVE_EFFECT" }
 
 /**
- * Runs a complete in-memory solo game against RulesetV1.
+ * Runs a complete in-memory solo game against StandardRuleset.
  *
  * @param options - Optional CLI boundaries used to prompt, generate deterministic random values, and render output.
  * @returns The final in-memory session after the player wins or quits.
@@ -107,7 +107,7 @@ export async function playSolo({
         turnResolutionError = undefined
         break
       case "SUBMIT_TURN": {
-        const result = resolveTurn(session.state, RulesetV1, rng)
+        const result = resolveTurn(session.state, StandardRuleset, rng)
         if (Result.isFailure(result)) {
           turnResolutionError = result.error
           break
@@ -194,7 +194,7 @@ function getSelectionKey(selection: SoloGameSelection): string {
 
 function createChoices(session: SoloGameSession): SoloGameChoice[] {
   const player = getSoloPlayer(session)
-  const addActionChoices = Object.values(RulesetV1.actionDefinitions).map((actionDefinition) => ({
+  const addActionChoices = Object.values(StandardRuleset.actionDefinitions).map((actionDefinition) => ({
     name: UiStyle.positive(`＋ ${actionDefinition.name}`),
     description: formatActionDescription(actionDefinition),
     value: {
@@ -204,7 +204,7 @@ function createChoices(session: SoloGameSession): SoloGameChoice[] {
   }))
   const actionCounts = new Map<string, number>()
   const removeActionChoices = player.actionSubmissions.map((actionSubmission) => {
-    const actionDefinition = RulesetV1.actionDefinitions[actionSubmission.actionDefinitionId]
+    const actionDefinition = StandardRuleset.actionDefinitions[actionSubmission.actionDefinitionId]
     Assert.isDefined(actionDefinition)
     const actionCount = (actionCounts.get(actionDefinition.id) ?? 0) + 1
     actionCounts.set(actionDefinition.id, actionCount)
@@ -236,7 +236,7 @@ function createChoices(session: SoloGameSession): SoloGameChoice[] {
 
 function addAction(session: SoloGameSession, actionDefinitionId: string, actionSubmissionNumber: number): void {
   const player = getSoloPlayer(session)
-  const actionDefinition = RulesetV1.actionDefinitions[actionDefinitionId]
+  const actionDefinition = StandardRuleset.actionDefinitions[actionDefinitionId]
   Assert.isDefined(actionDefinition)
 
   player.actionSubmissions.push({
@@ -269,7 +269,7 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
   const lines = [
     ...createPanel(
       isOpen ? "CURRENT TURN" : "RESOLVED TURN",
-      [alignSides(UiStyle.accent(`TURN ${session.turn.toString().padStart(2, "0")}`), statusBadge), UiStyle.muted("Ruleset V1")],
+      [alignSides(UiStyle.accent(`TURN ${session.turn.toString().padStart(2, "0")}`), statusBadge), UiStyle.muted("Standard Ruleset")],
       isOpen ? "cyan" : "green",
     ),
     "",
@@ -286,7 +286,7 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
     actionLines.push(UiStyle.muted("No orders selected"))
   } else {
     for (const [index, actionSubmission] of player.actionSubmissions.entries()) {
-      const actionDefinition = RulesetV1.actionDefinitions[actionSubmission.actionDefinitionId]
+      const actionDefinition = StandardRuleset.actionDefinitions[actionSubmission.actionDefinitionId]
       Assert.isDefined(actionDefinition)
       const orderNumber = (index + 1).toString().padStart(2, "0")
       actionLines.push(`${UiStyle.action(orderNumber)}  ${styleText("bold", actionDefinition.name)}`)
@@ -373,9 +373,9 @@ function formatActionSummary(actionDefinition: ActionDefinition): string {
 
 function formatMechanic(mechanic: Mechanic): string {
   switch (mechanic.type) {
-    case "COST":
+    case "RESOURCE_LOSS":
       return `pays ${mechanic.quantity} ${mechanic.resourceType}`
-    case "INCOME":
+    case "RESOURCE_GAIN":
       return `gains ${mechanic.quantity} ${mechanic.resourceType}`
     case "VICTORY":
       return "wins the game"

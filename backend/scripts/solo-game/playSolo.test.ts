@@ -1,9 +1,9 @@
 import { stripVTControlCharacters } from "node:util"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
-import { MakeMoreMoney } from "#lib/ruleset/v1/action-definitions/make-more-money.ts"
-import { WinTheGame } from "#lib/ruleset/v1/action-definitions/win-the-game.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-more-money.ts"
+import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { playSolo, type SoloGameSelection } from "./playSolo.ts"
 
 describe("playSolo", () => {
