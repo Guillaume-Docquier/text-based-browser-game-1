@@ -1,5 +1,5 @@
-import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 
 const DEFAULT_OPTIONS = {
@@ -10,10 +10,6 @@ const DEFAULT_OPTIONS = {
 } as const
 
 describe("spiralGenerator", () => {
-  function createSeededRng(seed = 1234): Rng {
-    return createRng(mulberry32Prng(seed))
-  }
-
   it("should generate deterministic points", () => {
     // Act
     const firstPoints = spiralGenerator({ ...DEFAULT_OPTIONS, rng: createSeededRng() })

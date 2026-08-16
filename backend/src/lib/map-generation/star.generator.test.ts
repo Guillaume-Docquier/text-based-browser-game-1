@@ -1,12 +1,9 @@
-import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
+import { createRng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { starGenerator } from "#lib/map-generation/star.generator.ts"
 
 describe("starGenerator", () => {
-  function createSeededRng(): Rng {
-    return createRng(mulberry32Prng(1234))
-  }
-
   it("should generate a star at the requested position", () => {
     // Arrange
     const position = { x: 10, y: -20 }

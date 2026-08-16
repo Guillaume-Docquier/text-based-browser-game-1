@@ -1,14 +1,11 @@
-import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
+import { createRng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { BIOME_ATTRIBUTE_RANGES, planetGenerator, SIZE_ATTRIBUTE_RANGES } from "#lib/map-generation/planet.generator.ts"
 
 describe("planetGenerator", () => {
-  function createSeededRng(): Rng {
-    return createRng(mulberry32Prng(1234))
-  }
-
   it("should generate a deterministic planet at the requested orbit distance", () => {
     // Arrange
     const starPosition = { x: 10, y: -20 }

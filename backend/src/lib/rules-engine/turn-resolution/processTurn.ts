@@ -1,4 +1,4 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Assert, type Rng } from "@guillaume-docquier/tools-ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
 import { reduceToEffects } from "#lib/rules-engine/turn-resolution/steps/reduceToEffects.ts"
@@ -11,8 +11,9 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
  * Takes a turn state and applies all its actions on it, then returns it.
  * The turnState is mutated in place. The returned value is the input.
  */
-export function processTurn(turnState: TurnState, ruleset: Ruleset): TurnState {
+export function processTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): TurnState {
   const context: TurnContext = {
+    rng,
     state: turnState,
     effects: new EffectPool([]),
     ruleset,

@@ -1,13 +1,10 @@
-import { createRng, mulberry32Prng, type Rng, type XY } from "@guillaume-docquier/tools-ts"
+import { type Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 
 describe("galaxyGenerator", () => {
-  function createSeededRng(seed = 1234): Rng {
-    return createRng(mulberry32Prng(seed))
-  }
-
   it("should create a square galaxy and generate systems from points", () => {
     // Act
     const galaxy = galaxyGenerator({
