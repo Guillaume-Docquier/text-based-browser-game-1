@@ -10,7 +10,7 @@ export function validateActionDefinition(actionSubmission: ActionSubmission, rul
   if (ruleset.actionDefinitions[actionSubmission.actionDefinitionId] === undefined) {
     return Result.Success([
       ActionSubmissionIssue.create({
-        cause: "does not exist in the Ruleset",
+        issue: "Action definition does not exist in the Ruleset",
         actionSubmission,
         actionDefinitionName: undefined,
       }),

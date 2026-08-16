@@ -38,7 +38,15 @@ describe("resolveTurn", () => {
     expect(result).toEqual<typeof result>(
       Result.Failure({
         _tag: "INVALID_SUBMISSIONS",
-        issues: [{ issue: expect.stringContaining(actionDefinitionId) }],
+        issues: [
+          {
+            actionSubmissionId: actionSubmission.id,
+            actionDefinitionId,
+            // oxlint-disable-next-line typescript/no-non-null-assertion -- It's there
+            actionDefinitionName: RulesetV1.actionDefinitions[actionSubmission.actionDefinitionId]!.name,
+            issue: "Missing 1 MONEY",
+          },
+        ],
       }),
     )
   })
