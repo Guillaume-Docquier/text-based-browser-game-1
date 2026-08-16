@@ -1,20 +1,21 @@
+import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
-import { processTurn } from "#lib/rules-engine/turn-resolution/processTurn.ts"
+import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 import { MakeMoreMoney } from "#lib/ruleset/v1/action-definitions/make-more-money.ts"
 import { WinTheGame } from "#lib/ruleset/v1/action-definitions/win-the-game.ts"
 import { RulesetV1 } from "#lib/ruleset/v1/RulesetV1.ts"
 
-describe("processTurn", () => {
+describe("resolveTurn", () => {
   const playerId = "player-id"
 
   it.each([
     { actionDefinitionId: MakeMoreMoney.id, money: 1 },
     { actionDefinitionId: WinTheGame.id, money: 9 },
-  ])("should not resolve $actionDefinitionId when the player does not have enough money", ({ actionDefinitionId, money }) => {
+  ])("should not resolve the turn when the player does not have enough money for $actionDefinitionId", ({ actionDefinitionId, money }) => {
     // Arrange
     const actionSubmission = createActionSubmissionStub({
       actionDefinitionId,
@@ -31,11 +32,15 @@ describe("processTurn", () => {
     })
 
     // Act
-    const result = processTurn(turnState, RulesetV1, createSeededRng())
+    const result = resolveTurn(turnState, RulesetV1, createSeededRng())
 
     // Assert
-    expect(result.players[playerId]?.resources).toEqual({ [ResourceType.MONEY]: money })
-    expect(result.winnerPlayerId).toBeUndefined()
+    expect(result).toEqual<typeof result>(
+      Result.Failure({
+        _tag: "INVALID_SUBMISSIONS",
+        issues: [{ issue: expect.stringContaining(actionDefinitionId) }],
+      }),
+    )
   })
 
   it("should make more money when the player has enough money", () => {
@@ -55,11 +60,24 @@ describe("processTurn", () => {
     })
 
     // Act
-    const result = processTurn(turnState, RulesetV1, createSeededRng())
+    const result = resolveTurn(turnState, RulesetV1, createSeededRng())
+    Assert.isSuccess(result)
 
     // Assert
-    expect(result.players[playerId]?.resources).toEqual({ [ResourceType.MONEY]: 5 })
-    expect(result.winnerPlayerId).toBeUndefined()
+    expect(result).toEqual<typeof result>(
+      Result.Success({
+        players: {
+          [playerId]: {
+            actionSubmissions: [actionSubmission],
+            id: playerId,
+            resources: {
+              MONEY: 5,
+            },
+          },
+        },
+        winnerPlayerId: undefined,
+      }),
+    )
   })
 
   it("should win the game when the player has enough money", () => {
@@ -79,10 +97,22 @@ describe("processTurn", () => {
     })
 
     // Act
-    const result = processTurn(turnState, RulesetV1, createSeededRng())
+    const result = resolveTurn(turnState, RulesetV1, createSeededRng())
 
     // Assert
-    expect(result.players[playerId]?.resources).toEqual({ [ResourceType.MONEY]: 0 })
-    expect(result.winnerPlayerId).toBe(playerId)
+    expect(result).toEqual<typeof result>(
+      Result.Success({
+        players: {
+          [playerId]: {
+            actionSubmissions: [actionSubmission],
+            id: playerId,
+            resources: {
+              MONEY: 0,
+            },
+          },
+        },
+        winnerPlayerId: playerId,
+      }),
+    )
   })
 })

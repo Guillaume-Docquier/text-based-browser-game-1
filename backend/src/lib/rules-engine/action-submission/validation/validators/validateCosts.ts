@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionValidationIssue.ts"
+import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
@@ -12,7 +12,7 @@ export function validateCosts(
   actionSubmission: ActionSubmission,
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
-): Result<ActionSubmissionValidationIssue[], string> {
+): Result<ActionSubmissionIssue[], string> {
   const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
   if (actionDefinition === undefined) {
     return Result.Failure(

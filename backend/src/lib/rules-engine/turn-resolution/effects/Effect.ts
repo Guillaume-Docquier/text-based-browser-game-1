@@ -1,5 +1,7 @@
+import { Assert } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 
 type EffectFor<TMechanic extends Mechanic> = {
   readonly type: TMechanic["type"]
@@ -43,5 +45,17 @@ export const Effect = {
 
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Needed to make calling Effect.fromMechanic with a generic mechanic work fine
     return effect as Effect<TMechanic>
+  },
+  /**
+   * Creates all effects for an action submission
+   */
+  fromActionSubmission: (actionSubmission: ActionSubmission, ruleset: Ruleset): Effect[] => {
+    const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+    Assert.isDefined(actionDefinition)
+
+    const targets = actionSubmission.targets
+    const mechanics = [...actionDefinition.costs, ...actionDefinition.mechanics]
+
+    return mechanics.map((mechanic) => Effect.fromMechanic({ mechanic, targets }))
   },
 }

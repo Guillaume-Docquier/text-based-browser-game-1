@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionValidationIssue.ts"
+import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import type { ActionSubmissionValidator } from "#lib/rules-engine/action-submission/validation/ActionSubmissionValidator.ts"
 import { validateActionDefinition } from "#lib/rules-engine/action-submission/validation/validators/validateActionDefinition.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
@@ -14,7 +14,7 @@ export function validateActionSubmission(
   actionSubmission: ActionSubmission,
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
-): ActionSubmissionValidationIssue[] {
+): ActionSubmissionIssue[] {
   const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
   const actionDefinitionDescription =
     actionDefinition === undefined ? actionSubmission.actionDefinitionId : `${actionDefinition.id} (${actionDefinition.name})`
