@@ -1,7 +1,9 @@
+import type { Result } from "@guillaume-docquier/tools-ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
+import type { ResolvePhaseError } from "#lib/rules-engine/turn-resolution/phases/ResolvePhaseError.ts"
 import { simplePhaseResolver } from "#lib/rules-engine/turn-resolution/phases/resolvers/simplePhaseResolver.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 
-export function resolvePayCostsPhase(context: TurnContext): void {
-  simplePhaseResolver(ResourceLossMechanic.type, context)
+export function resolvePayCostsPhase(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
+  return simplePhaseResolver(ResourceLossMechanic.type, context)
 }

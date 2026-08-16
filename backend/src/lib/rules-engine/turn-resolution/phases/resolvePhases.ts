@@ -1,4 +1,6 @@
+import { Result } from "@guillaume-docquier/tools-ts"
 import type { PhaseResolver } from "#lib/rules-engine/turn-resolution/phases/PhaseResolver.ts"
+import type { ResolvePhaseError } from "#lib/rules-engine/turn-resolution/phases/ResolvePhaseError.ts"
 import { resolveColonizationPhase } from "#lib/rules-engine/turn-resolution/phases/resolvers/resolveColonizationPhase.ts"
 import { resolveCombatPhase } from "#lib/rules-engine/turn-resolution/phases/resolvers/resolveCombatPhase.ts"
 import { resolveIncomePhase } from "#lib/rules-engine/turn-resolution/phases/resolvers/resolveIncomePhase.ts"
@@ -18,8 +20,16 @@ const phaseResolvers: PhaseResolver[] = [
   resolveVictoryPhase,
 ]
 
-export function resolvePhases(context: TurnContext): void {
+/**
+ * Mutates the context
+ */
+export function resolvePhases(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
   for (const resolvePhase of phaseResolvers) {
-    resolvePhase(context)
+    const result = resolvePhase(context)
+    if (Result.isFailure(result)) {
+      return result
+    }
   }
+
+  return Result.Success(context)
 }

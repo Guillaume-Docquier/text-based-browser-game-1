@@ -11,6 +11,10 @@ export class EffectPool {
     this.effects = new Set(effects)
   }
 
+  public getAll(): Effect[] {
+    return Array.from(this.effects)
+  }
+
   public getEffectsOfType(type: Mechanic["type"]): Effect[] {
     return this.effects
       .values()
