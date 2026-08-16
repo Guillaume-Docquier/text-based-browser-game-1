@@ -2,17 +2,17 @@ import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics
 import type { QuantityOfResource } from "#lib/rules-engine/ruleset-model/mechanics/QuantityOfResource.ts"
 import { TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 
-export interface IncomeMechanic extends AbstractMechanic, QuantityOfResource {
-  readonly type: "INCOME"
+export interface ResourceLossMechanic extends AbstractMechanic, QuantityOfResource {
+  readonly type: "RESOURCE_LOSS"
   readonly targets: {
     readonly player: TargetDefinitionSelf
   }
 }
 
-export const IncomeMechanic = {
-  type: "INCOME",
-  create: ({ quantity, resourceType }: Omit<IncomeMechanic, "type" | "targets">): IncomeMechanic => ({
-    type: IncomeMechanic.type,
+export const ResourceLossMechanic = {
+  type: "RESOURCE_LOSS",
+  create: ({ quantity, resourceType }: Omit<ResourceLossMechanic, "type" | "targets">): ResourceLossMechanic => ({
+    type: ResourceLossMechanic.type,
     targets: {
       player: TargetDefinitionSelf,
     },

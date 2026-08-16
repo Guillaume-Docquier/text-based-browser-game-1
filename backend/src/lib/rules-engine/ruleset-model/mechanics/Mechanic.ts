@@ -1,5 +1,5 @@
-import type { CostMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/CostMechanic.ts"
-import type { IncomeMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/IncomeMechanic.ts"
+import type { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
+import type { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import type { VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
 import type { TargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 
@@ -16,4 +16,4 @@ export type AbstractMechanic = {
   readonly targets: Record<TargetRole, TargetDefinition>
 }
 
-export type Mechanic = CostMechanic | IncomeMechanic | VictoryMechanic
+export type Mechanic = ResourceLossMechanic | ResourceGainMechanic | VictoryMechanic

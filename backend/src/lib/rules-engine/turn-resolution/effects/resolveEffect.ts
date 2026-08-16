@@ -1,6 +1,6 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import { CostMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/CostMechanic.ts"
-import { IncomeMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/IncomeMechanic.ts"
+import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
+import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
 import type { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import { resolveCostEffect } from "#lib/rules-engine/turn-resolution/effects/resolvers/resolveCostEffect.ts"
@@ -10,10 +10,10 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
 
 export function resolveEffect(context: TurnContext, effect: Effect): void {
   switch (effect.type) {
-    case CostMechanic.type:
+    case ResourceLossMechanic.type:
       resolveCostEffect(context, effect)
       break
-    case IncomeMechanic.type:
+    case ResourceGainMechanic.type:
       resolveIncomeEffect(context, effect)
       break
     case VictoryMechanic.type:

@@ -5,6 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/coverage" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/playwright-report" />
       <excludeFolder url="file://$MODULE_DIR$/generated" />
+      <excludeFolder url="file://$MODULE_DIR$/show-me.html" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
