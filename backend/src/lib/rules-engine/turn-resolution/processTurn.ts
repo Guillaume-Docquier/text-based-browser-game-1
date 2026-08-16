@@ -1,11 +1,11 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import { EffectPool } from "#lib/rules-engine/effects/EffectPool.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
+import { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
 import { reduceToEffects } from "#lib/rules-engine/turn-resolution/steps/reduceToEffects.ts"
 import { resolvePhases } from "#lib/rules-engine/turn-resolution/steps/resolvePhases.ts"
 import { validateActionSubmissions } from "#lib/rules-engine/turn-resolution/steps/validateActionSubmissions.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
-import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
 /**
  * Takes a turn state and applies all its actions on it, then returns it.

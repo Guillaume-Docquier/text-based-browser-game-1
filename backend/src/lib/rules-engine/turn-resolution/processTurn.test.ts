@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { createActionSubmissionStub } from "#lib/rules-engine/actions/ActionSubmission.stub.ts"
-import { ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
+import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 import { processTurn } from "#lib/rules-engine/turn-resolution/processTurn.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
-import { MakeMoreMoney } from "#lib/ruleset/action-definitions/make-more-money.ts"
-import { WinTheGame } from "#lib/ruleset/action-definitions/win-the-game.ts"
-import { Ruleset } from "#lib/ruleset/Ruleset.ts"
+import { MakeMoreMoney } from "#lib/ruleset/v1/action-definitions/make-more-money.ts"
+import { WinTheGame } from "#lib/ruleset/v1/action-definitions/win-the-game.ts"
+import { RulesetV1 } from "#lib/ruleset/v1/RulesetV1.ts"
 
 describe("processTurn", () => {
   const playerId = "player-id"
@@ -30,7 +30,7 @@ describe("processTurn", () => {
     })
 
     // Act
-    const result = processTurn(turnState, Ruleset)
+    const result = processTurn(turnState, RulesetV1)
 
     // Assert
     expect(result.players[playerId]?.resources).toEqual({ [ResourceType.MONEY]: money })
@@ -54,7 +54,7 @@ describe("processTurn", () => {
     })
 
     // Act
-    const result = processTurn(turnState, Ruleset)
+    const result = processTurn(turnState, RulesetV1)
 
     // Assert
     expect(result.players[playerId]?.resources).toEqual({ [ResourceType.MONEY]: 5 })
@@ -78,7 +78,7 @@ describe("processTurn", () => {
     })
 
     // Act
-    const result = processTurn(turnState, Ruleset)
+    const result = processTurn(turnState, RulesetV1)
 
     // Assert
     expect(result.players[playerId]?.resources).toEqual({ [ResourceType.MONEY]: 0 })

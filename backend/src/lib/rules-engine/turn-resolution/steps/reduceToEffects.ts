@@ -1,7 +1,7 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
-import { Effect } from "#lib/rules-engine/effects/Effect.ts"
-import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
+import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
+import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 
 export function reduceToEffects(actionSubmissions: ActionSubmission[], ruleset: Ruleset): Effect[] {
   return actionSubmissions.flatMap((actionSubmission) => {
