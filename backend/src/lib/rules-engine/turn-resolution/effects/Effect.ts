@@ -1,7 +1,7 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
+import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 type EffectFor<TMechanic extends Mechanic> = {
   readonly type: TMechanic["type"]

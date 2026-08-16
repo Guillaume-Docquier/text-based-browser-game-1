@@ -1,6 +1,6 @@
-import type { AbstractMechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
-import type { QuantityOfResource } from "#lib/rules-engine/ruleset/mechanics/QuantityOfResource.ts"
-import { TargetDefinitionSelf } from "#lib/rules-engine/ruleset/mechanics/TargetDefinition.ts"
+import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import type { QuantityOfResource } from "#lib/rules-engine/ruleset-model/mechanics/QuantityOfResource.ts"
+import { TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 
 export interface CostMechanic extends AbstractMechanic, QuantityOfResource {
   readonly type: "COST"

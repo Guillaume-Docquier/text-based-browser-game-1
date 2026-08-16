@@ -1,4 +1,4 @@
-import { type ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import { type ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
 export type QuantityOfResource = {
   /**

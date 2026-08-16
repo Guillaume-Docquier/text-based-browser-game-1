@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
-import { ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
-import { ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
-import { CostMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/CostMechanic.ts"
-import { IncomeMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/IncomeMechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
-import { validateRuleset } from "#lib/rules-engine/ruleset/validateRuleset.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
+import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
+import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
+import { CostMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/CostMechanic.ts"
+import { IncomeMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/IncomeMechanic.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { validateRuleset } from "#lib/rules-engine/ruleset-model/validateRuleset.ts"
 
 const validActionDefinition: ActionDefinition = {
   id: "TEST_ACTION",

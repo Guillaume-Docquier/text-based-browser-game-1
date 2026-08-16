@@ -1,5 +1,5 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import type { CostMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/CostMechanic.ts"
+import type { CostMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/CostMechanic.ts"
 import type { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 

@@ -1,5 +1,5 @@
-import type { AbstractMechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
-import { TargetDefinitionSelf } from "#lib/rules-engine/ruleset/mechanics/TargetDefinition.ts"
+import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import { TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 
 export interface VictoryMechanic extends AbstractMechanic {
   readonly type: "VICTORY"

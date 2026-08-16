@@ -1,7 +1,7 @@
-import type { ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
-import type { ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
-import type { CostMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/CostMechanic.ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
+import type { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
+import type { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
+import type { CostMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/CostMechanic.ts"
+import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 
 /**
  * The definition of an Action.

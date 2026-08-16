@@ -1,4 +1,4 @@
-import type { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import type { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 
 export type TargetDefinition =
   | {
