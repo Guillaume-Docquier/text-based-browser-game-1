@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
-import { ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
-import { ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
-import { CostMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/CostMechanic.ts"
-import { IncomeMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/IncomeMechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
-import { validateRuleset } from "#lib/rules-engine/ruleset/validateRuleset.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
+import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
+import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
+import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
+import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { validateRuleset } from "#lib/rules-engine/ruleset-model/validateRuleset.ts"
 
 const validActionDefinition: ActionDefinition = {
   id: "TEST_ACTION",
@@ -17,13 +17,13 @@ const validActionDefinition: ActionDefinition = {
     self: "",
   },
   costs: [
-    CostMechanic.create({
+    ResourceLossMechanic.create({
       quantity: 2,
       resourceType: ResourceType.MONEY,
     }),
   ],
   mechanics: [
-    IncomeMechanic.create({
+    ResourceGainMechanic.create({
       quantity: 5,
       resourceType: ResourceType.MONEY,
     }),
@@ -75,13 +75,13 @@ describe("validateRuleset", () => {
       // @ts-expect-error -- We don't have other targets than self right now, have to cheat
       targets: {},
       costs: [
-        CostMechanic.create({
+        ResourceLossMechanic.create({
           quantity: 2,
           resourceType: ResourceType.MONEY,
         }),
       ],
       mechanics: [
-        IncomeMechanic.create({
+        ResourceGainMechanic.create({
           quantity: 5,
           resourceType: ResourceType.MONEY,
         }),
@@ -99,10 +99,10 @@ describe("validateRuleset", () => {
     // Assert
     expect(validationIssues).toEqual<typeof validationIssues>([
       {
-        issue: "Action Definition Make More Money is missing target slot self required by COST",
+        issue: `Action Definition Make More Money is missing target slot self required by ${ResourceLossMechanic.type}`,
       },
       {
-        issue: "Action Definition Make More Money is missing target slot self required by INCOME",
+        issue: `Action Definition Make More Money is missing target slot self required by ${ResourceGainMechanic.type}`,
       },
     ])
   })

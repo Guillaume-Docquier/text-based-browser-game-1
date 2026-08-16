@@ -1,5 +1,5 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 

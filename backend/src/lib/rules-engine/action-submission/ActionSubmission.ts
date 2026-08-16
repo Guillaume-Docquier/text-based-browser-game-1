@@ -1,5 +1,5 @@
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
-import type { ResolvedTargets } from "#lib/rules-engine/ruleset/actions/ResolvedTargets.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
+import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 
 /**
  * The submitted action payload that invokes an ActionDefinition with a target and a source.

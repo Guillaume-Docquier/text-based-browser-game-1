@@ -1,4 +1,5 @@
-import { Effect, type EffectOfType } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
+import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import { type Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 
 /**
  * The EffectPool contains all the Effects that need to be applied to the TurnState
@@ -10,8 +11,11 @@ export class EffectPool {
     this.effects = new Set(effects)
   }
 
-  public getEffectsOfType<TType extends Effect["type"]>(effectType: TType): Array<EffectOfType<TType>> {
-    return this.effects.values().filter(Effect.isOfType(effectType)).toArray()
+  public getEffectsOfType(type: Mechanic["type"]): Effect[] {
+    return this.effects
+      .values()
+      .filter((effect) => effect.type === type)
+      .toArray()
   }
 
   public addMany(effects: Effect[]): void {

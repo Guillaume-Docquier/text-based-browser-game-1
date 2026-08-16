@@ -1,61 +1,17 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
+import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 
-type EffectFor<TMechanic extends Mechanic> = {
-  readonly type: TMechanic["type"]
-  readonly mechanic: TMechanic
-  /**
-   * Expected to contain at least all the necessary targets for the mechanic. (it might contain more since it is scoped to the action)
-   */
-  readonly targets: Readonly<ActionSubmission["targets"]>
-}
+export abstract class Effect {
+  public readonly type: Mechanic["type"]
 
-export type EffectOfType<TType extends Effect["type"]> = Effect & { type: TType }
+  protected constructor(type: Mechanic["type"]) {
+    this.type = type
+  }
 
-export type Effect<T extends Mechanic = Mechanic> =
-  // Weird type trick to make Mechanic a distributed union like MechanicDefinitions
-  T extends Mechanic ? EffectFor<T> : never
+  public resolve(context: TurnContext): void {
+    this.doResolve(context)
+    context.effects.markResolved(this)
+  }
 
-export const Effect = {
-  /**
-   * A type guard builder to check that an effect is of a certain type.
-   */
-  isOfType:
-    <TType extends Effect["type"]>(effectType: TType) =>
-    (effect: Effect): effect is EffectOfType<TType> => {
-      return effect.type === effectType
-    },
-  /**
-   * Creates an effect for a mechanic
-   */
-  fromMechanic: <TMechanic extends Mechanic>({
-    mechanic,
-    targets,
-  }: {
-    mechanic: TMechanic
-    targets: ActionSubmission["targets"]
-  }): Effect<TMechanic> => {
-    const effect: EffectFor<TMechanic> = {
-      type: mechanic.type,
-      mechanic,
-      targets,
-    }
-
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Needed to make calling Effect.fromMechanic with a generic mechanic work fine
-    return effect as Effect<TMechanic>
-  },
-  /**
-   * Creates all effects for an action submission
-   */
-  fromActionSubmission: (actionSubmission: ActionSubmission, ruleset: Ruleset): Effect[] => {
-    const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
-    Assert.isDefined(actionDefinition)
-
-    const targets = actionSubmission.targets
-    const mechanics = [...actionDefinition.costs, ...actionDefinition.mechanics]
-
-    return mechanics.map((mechanic) => Effect.fromMechanic({ mechanic, targets }))
-  },
+  protected abstract doResolve(context: TurnContext): void
 }
