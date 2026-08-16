@@ -19,6 +19,7 @@ const UiStyle = {
   accent: (text: string): string => styleText(["bold", "cyan"], text),
   action: (text: string): string => styleText(["bold", "magenta"], text),
   danger: (text: string): string => styleText(["bold", "red"], text),
+  history: (text: string): string => styleText("dim", text),
   muted: (text: string): string => styleText("gray", text),
   positive: (text: string): string => styleText(["bold", "green"], text),
   resource: (text: string): string => styleText(["bold", "yellow"], text),
@@ -243,10 +244,7 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
   const lines = [
     ...createPanel(
       isOpen ? "CURRENT TURN" : "RESOLVED TURN",
-      [
-        alignSides(UiStyle.accent(`TURN ${session.turn.toString().padStart(2, "0")}`), statusBadge),
-        UiStyle.muted("Ruleset V1  ·  Solo empire  ·  Deterministic resolution"),
-      ],
+      [alignSides(UiStyle.accent(`TURN ${session.turn.toString().padStart(2, "0")}`), statusBadge), UiStyle.muted("Ruleset V1")],
       isOpen ? "cyan" : "green",
     ),
     "",
@@ -328,7 +326,7 @@ function formatTurnResolutionFailure(error: TurnResolutionError): string[] {
 
 function writeResolvedTurn(session: SoloGameSession, writeLine: (line: string) => void): void {
   for (const line of formatTurnDashboard(session, "resolved")) {
-    writeLine(line)
+    writeLine(UiStyle.history(line))
   }
 
   if (session.state.winnerPlayerId === undefined) {

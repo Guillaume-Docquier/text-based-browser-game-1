@@ -86,13 +86,13 @@ describe("playSolo", () => {
       description: undefined,
     })
     expect(promptChoices.flat().every((choice) => !choice.name.includes("Queue") && !choice.name.includes("Remove"))).toBe(true)
-    expect(plainOutput.filter((line) => line === "━".repeat(72))).toHaveLength(3)
+    expect(plainOutput.filter((line) => line.trim() === "━".repeat(72))).toHaveLength(3)
     expect(plainOutput.filter((line) => line.includes("RESOLVED TURN"))).toHaveLength(4)
     expect(plainOutput).not.toContainEqual(expect.stringContaining("CURRENT TURN"))
     expect(plainOutput.join("\n")).toContain("14 available")
     expect(plainOutput.join("\n")).toContain("SUBMITTED ACTIONS  ·  2")
     expect(plainOutput.at(-1)).toBe("You won on turn 4.")
-    const firstSeparatorIndex = terminalEvents.findIndex((event) => event.type === "output" && event.value === "━".repeat(72))
+    const firstSeparatorIndex = terminalEvents.findIndex((event) => event.type === "output" && event.value.trim() === "━".repeat(72))
     expect(terminalEvents[firstSeparatorIndex + 1]).toMatchObject({
       type: "prompt",
       value: expect.stringContaining("TURN 02"),
