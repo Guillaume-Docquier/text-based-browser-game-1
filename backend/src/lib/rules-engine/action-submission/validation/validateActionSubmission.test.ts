@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { validateActionSubmission } from "#lib/rules-engine/action-submission/validation/validateActionSubmission.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
-import { CostMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/CostMechanic.ts"
+import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 
 const actionDefinition = createActionDefinitionStub({
-  costs: [CostMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY })],
+  costs: [ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY })],
 })
 
 const ruleset: Ruleset = {
@@ -189,8 +189,8 @@ describe("validateActionSubmission", () => {
     const playerId = "player-id"
     const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
       costs: [
-        CostMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
-        CostMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
+        ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
+        ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
       ],
     })
     const rulesetWithMultipleCosts: Ruleset = {
