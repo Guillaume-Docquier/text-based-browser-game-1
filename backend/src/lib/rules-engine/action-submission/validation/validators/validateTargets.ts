@@ -1,6 +1,6 @@
 import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionValidationIssue.ts"
+import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset/mechanics/TargetDefinition.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
@@ -12,7 +12,7 @@ export function validateTargets(
   actionSubmission: ActionSubmission,
   ruleset: Ruleset,
   turnState: Readonly<TurnState>,
-): Result<ActionSubmissionValidationIssue[], string> {
+): Result<ActionSubmissionIssue[], string> {
   const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
   if (actionDefinition === undefined) {
     return Result.Failure(
@@ -20,7 +20,7 @@ export function validateTargets(
     )
   }
 
-  const issues: ActionSubmissionValidationIssue[] = []
+  const issues: ActionSubmissionIssue[] = []
 
   const missingTargetSlots = Object.keys(actionDefinition.targets).filter(
     (targetSlot) => actionSubmission.targets[targetSlot] === undefined,
@@ -55,7 +55,7 @@ function validateTargetDefinition(
   targetSlot: string,
   targetId: string,
   turnState: TurnState,
-): ActionSubmissionValidationIssue | null {
+): ActionSubmissionIssue | null {
   if (targetType === undefined) {
     return {
       issue: `unexpected target slot "${targetSlot}".`,
