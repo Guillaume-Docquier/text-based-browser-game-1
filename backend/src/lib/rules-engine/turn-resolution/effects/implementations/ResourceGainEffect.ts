@@ -8,8 +8,8 @@ export class ResourceGainEffect extends Effect {
   private readonly mechanic: ResourceGainMechanic
   private readonly targetPlayerId: string
 
-  public constructor(mechanic: ResourceGainMechanic, targets: ActionSubmission["targets"]) {
-    super(mechanic.type)
+  public constructor(id: number, mechanic: ResourceGainMechanic, targets: ActionSubmission["targets"]) {
+    super(id, mechanic.type)
     this.mechanic = mechanic
     this.targetPlayerId = targets[mechanic.targets.player.tag]
   }

@@ -6,8 +6,8 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
 export class VictoryEffect extends Effect {
   private readonly targetPlayerId: string
 
-  public constructor(mechanic: VictoryMechanic, targets: ActionSubmission["targets"]) {
-    super(mechanic.type)
+  public constructor(id: number, mechanic: VictoryMechanic, targets: ActionSubmission["targets"]) {
+    super(id, mechanic.type)
     this.targetPlayerId = targets[mechanic.targets.player.tag]
   }
 

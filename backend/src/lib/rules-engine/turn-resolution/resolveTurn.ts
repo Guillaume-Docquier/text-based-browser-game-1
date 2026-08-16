@@ -5,6 +5,7 @@ import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { EffectFactory } from "#lib/rules-engine/turn-resolution/effects/EffectFactory.ts"
 import type { EffectJson } from "#lib/rules-engine/turn-resolution/effects/EffectJson.ts"
 import { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
+import { MonotonicIdFactory } from "#lib/rules-engine/turn-resolution/MonotonicIdFactory.ts"
 import type { ResolvePhaseError } from "#lib/rules-engine/turn-resolution/phases/ResolvePhaseError.ts"
 import { resolvePhases } from "#lib/rules-engine/turn-resolution/phases/resolvePhases.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
@@ -35,7 +36,10 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
   }
 
   // Create effects
-  context.effects.addMany(actionSubmissions.flatMap((actionSubmission) => EffectFactory.fromActionSubmission(actionSubmission, ruleset)))
+  const monotonicIdFactory = MonotonicIdFactory.create()
+  context.effects.addMany(
+    actionSubmissions.flatMap((actionSubmission) => EffectFactory.fromActionSubmission(actionSubmission, ruleset, monotonicIdFactory)),
+  )
 
   // Resolve effects
   const phaseResolutionResult = resolvePhases(context)
