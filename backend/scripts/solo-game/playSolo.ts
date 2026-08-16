@@ -10,6 +10,7 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { RulesetV1 } from "#lib/ruleset/v1/RulesetV1.ts"
 
 const SOLO_PLAYER_ID = "solo-player"
+const TURN_SEPARATOR = "────────────────────────────────────────"
 
 /** A command selected from the interactive solo-game prompt. */
 export type SoloGameSelection =
@@ -23,16 +24,25 @@ type SoloGameChoice = {
   readonly value: SoloGameSelection
 }
 
+type SoloGamePromptOptions = {
+  readonly message: string
+  readonly choices: readonly SoloGameChoice[]
+}
+
 type SoloGameSession = {
   turn: number
   readonly state: TurnState
 }
 
 type PlaySoloOptions = {
-  readonly prompt?: (choices: readonly SoloGameChoice[]) => Promise<SoloGameSelection>
+  readonly prompt?: (options: SoloGamePromptOptions) => Promise<SoloGameSelection>
   readonly rng?: Rng
   readonly writeLine?: (line: string) => void
 }
+
+type TurnResolutionError =
+  | { readonly _tag: "INVALID_SUBMISSIONS"; readonly issues: ActionSubmissionIssue[] }
+  | { readonly _tag: "FAILED_TO_RESOLVE_EFFECT" }
 
 /**
  * Runs a complete in-memory solo game against RulesetV1.
@@ -48,29 +58,37 @@ export async function playSolo({
   },
 }: PlaySoloOptions = {}): Promise<SoloGameSession> {
   const session = createSoloGameSession()
+  let nextActionSubmissionNumber = 1
+  let turnResolutionError: TurnResolutionError | undefined
 
   writeLine("Cosmic Empires — Solo")
 
   while (session.state.winnerPlayerId === undefined) {
-    renderSession(session, writeLine)
-    const selection = await prompt(createChoices(session))
+    const selection = await prompt({
+      message: formatTurnState(session, "open", turnResolutionError).join("\n"),
+      choices: createChoices(session),
+    })
 
     switch (selection.command) {
       case "ADD_ACTION":
-        addAction(session, selection.actionDefinitionId)
+        addAction(session, selection.actionDefinitionId, nextActionSubmissionNumber)
+        nextActionSubmissionNumber += 1
+        turnResolutionError = undefined
         break
       case "REMOVE_ACTION":
         removeAction(session, selection.actionSubmissionId)
+        turnResolutionError = undefined
         break
       case "SUBMIT_TURN": {
         const result = resolveTurn(session.state, RulesetV1, rng)
         if (Result.isFailure(result)) {
-          renderTurnResolutionFailure(result.error, writeLine)
+          turnResolutionError = result.error
           break
         }
 
+        writeResolvedTurn(session, writeLine)
         getSoloPlayer(session).actionSubmissions.length = 0
-        writeLine(`Turn ${session.turn} resolved.`)
+        turnResolutionError = undefined
 
         if (session.state.winnerPlayerId === undefined) {
           session.turn += 1
@@ -85,7 +103,6 @@ export async function playSolo({
     }
   }
 
-  renderSession(session, writeLine)
   writeLine(`You won on turn ${session.turn}.`)
   return session
 }
@@ -108,32 +125,37 @@ function createSoloGameSession(): SoloGameSession {
   }
 }
 
-async function promptWithInquirer(choices: readonly SoloGameChoice[]): Promise<SoloGameSelection> {
-  return await select({
-    message: "Choose a command",
-    choices,
-    loop: false,
-  })
+async function promptWithInquirer({ message, choices }: SoloGamePromptOptions): Promise<SoloGameSelection> {
+  return await select(
+    {
+      message,
+      choices,
+      loop: false,
+    },
+    {
+      clearPromptOnDone: true,
+    },
+  )
 }
 
 function createChoices(session: SoloGameSession): SoloGameChoice[] {
   const player = getSoloPlayer(session)
-  const selectedActionDefinitionIds = new Set(player.actionSubmissions.map((actionSubmission) => actionSubmission.actionDefinitionId))
-  const addActionChoices = Object.values(RulesetV1.actionDefinitions)
-    .filter((actionDefinition) => !selectedActionDefinitionIds.has(actionDefinition.id))
-    .map((actionDefinition) => ({
-      name: `Add: ${formatActionDefinition(actionDefinition)}`,
-      value: {
-        command: "ADD_ACTION" as const,
-        actionDefinitionId: actionDefinition.id,
-      },
-    }))
+  const addActionChoices = Object.values(RulesetV1.actionDefinitions).map((actionDefinition) => ({
+    name: `Add: ${formatActionDefinition(actionDefinition)}`,
+    value: {
+      command: "ADD_ACTION" as const,
+      actionDefinitionId: actionDefinition.id,
+    },
+  }))
+  const actionCounts = new Map<string, number>()
   const removeActionChoices = player.actionSubmissions.map((actionSubmission) => {
     const actionDefinition = RulesetV1.actionDefinitions[actionSubmission.actionDefinitionId]
     Assert.isDefined(actionDefinition)
+    const actionCount = (actionCounts.get(actionDefinition.id) ?? 0) + 1
+    actionCounts.set(actionDefinition.id, actionCount)
 
     return {
-      name: `Remove: ${actionDefinition.name}`,
+      name: `Remove: ${actionDefinition.name} #${actionCount}`,
       value: {
         command: "REMOVE_ACTION" as const,
         actionSubmissionId: actionSubmission.id,
@@ -155,14 +177,13 @@ function createChoices(session: SoloGameSession): SoloGameChoice[] {
   ]
 }
 
-function addAction(session: SoloGameSession, actionDefinitionId: string): void {
+function addAction(session: SoloGameSession, actionDefinitionId: string, actionSubmissionNumber: number): void {
   const player = getSoloPlayer(session)
   const actionDefinition = RulesetV1.actionDefinitions[actionDefinitionId]
   Assert.isDefined(actionDefinition)
-  Assert.isTrue(!player.actionSubmissions.some((actionSubmission) => actionSubmission.actionDefinitionId === actionDefinitionId))
 
   player.actionSubmissions.push({
-    id: `turn-${session.turn}-${actionDefinition.id}`,
+    id: `turn-${session.turn}-${actionDefinition.id}-${actionSubmissionNumber}`,
     actionDefinitionId: actionDefinition.id,
     targets: {
       self: player.id,
@@ -184,49 +205,56 @@ function getSoloPlayer(session: SoloGameSession): TurnState["players"][string] {
   return player
 }
 
-function renderSession(session: SoloGameSession, writeLine: (line: string) => void): void {
+function formatTurnState(session: SoloGameSession, status: "open" | "resolved", turnResolutionError?: TurnResolutionError): string[] {
   const player = getSoloPlayer(session)
+  const lines = [`Turn ${session.turn} — ${status}`, "Resources:"]
 
-  writeLine("")
-  writeLine(`Turn ${session.turn}`)
-  writeLine("Resources:")
   for (const [resourceType, quantity] of Object.entries(player.resources)) {
-    writeLine(`  ${resourceType}: ${quantity}`)
+    lines.push(`  ${resourceType}: ${quantity}`)
   }
 
-  writeLine("Selected actions:")
+  lines.push(status === "open" ? "Selected actions:" : "Submitted actions:")
   if (player.actionSubmissions.length === 0) {
-    writeLine("  None")
+    lines.push("  None")
   } else {
-    for (const actionSubmission of player.actionSubmissions) {
+    for (const [index, actionSubmission] of player.actionSubmissions.entries()) {
       const actionDefinition = RulesetV1.actionDefinitions[actionSubmission.actionDefinitionId]
       Assert.isDefined(actionDefinition)
-      writeLine(`  ${actionDefinition.name}`)
+      lines.push(`  ${index + 1}. ${actionDefinition.name}`)
     }
   }
 
   if (session.state.winnerPlayerId !== undefined) {
-    writeLine(`Winner: ${session.state.winnerPlayerId}`)
+    lines.push(`Winner: ${session.state.winnerPlayerId}`)
   }
+
+  if (turnResolutionError !== undefined) {
+    lines.push("", ...formatTurnResolutionFailure(turnResolutionError))
+  }
+
+  return lines
 }
 
-function renderTurnResolutionFailure(
-  error: { readonly _tag: "INVALID_SUBMISSIONS"; readonly issues: ActionSubmissionIssue[] } | { readonly _tag: "FAILED_TO_RESOLVE_EFFECT" },
-  writeLine: (line: string) => void,
-): void {
+function formatTurnResolutionFailure(error: TurnResolutionError): string[] {
   // oxlint-disable-next-line eslint/no-underscore-dangle -- _tag is the rules engine's existing error discriminant
   switch (error._tag) {
     case "INVALID_SUBMISSIONS":
-      writeLine("Turn was not resolved:")
-      for (const issue of error.issues) {
-        writeLine(`  ${issue.actionDefinitionName ?? issue.actionDefinitionId}: ${issue.issue}`)
-      }
-      break
+      return [
+        "Turn was not resolved:",
+        ...error.issues.map((issue) => `  ${issue.actionDefinitionName ?? issue.actionDefinitionId}: ${issue.issue}`),
+      ]
     case "FAILED_TO_RESOLVE_EFFECT":
-      writeLine("Turn was not resolved because an Effect failed.")
-      break
+      return ["Turn was not resolved because an Effect failed."]
     default:
       Assert.isExhausted(error)
+      return []
+  }
+}
+
+function writeResolvedTurn(session: SoloGameSession, writeLine: (line: string) => void): void {
+  writeLine(TURN_SEPARATOR)
+  for (const line of formatTurnState(session, "resolved")) {
+    writeLine(line)
   }
 }
 
