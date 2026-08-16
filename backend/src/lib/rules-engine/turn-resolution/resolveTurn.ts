@@ -2,7 +2,7 @@ import { Assert, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import { validateActionSubmission } from "#lib/rules-engine/action-submission/validation/validateActionSubmission.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
+import { EffectFactory } from "#lib/rules-engine/turn-resolution/effects/EffectFactory.ts"
 import { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
 import { resolvePhases } from "#lib/rules-engine/turn-resolution/phases/resolvePhases.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
@@ -34,7 +34,7 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
   }
 
   // Create effects
-  context.effects.addMany(actionSubmissions.flatMap((actionSubmission) => Effect.fromActionSubmission(actionSubmission, ruleset)))
+  context.effects.addMany(actionSubmissions.flatMap((actionSubmission) => EffectFactory.fromActionSubmission(actionSubmission, ruleset)))
 
   // Resolve effects
   resolvePhases(context)

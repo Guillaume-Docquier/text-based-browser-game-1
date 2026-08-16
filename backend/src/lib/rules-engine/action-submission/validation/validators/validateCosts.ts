@@ -2,7 +2,6 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 /**
@@ -27,12 +26,10 @@ export function validateCosts(
     return Result.Failure(`Cannot validate costs for action submission ${actionSubmission.id}, there is no player with id ${targets.self}`)
   }
 
-  const costEffects = actionDefinition.costs.map((mechanic) => Effect.fromMechanic({ mechanic, targets }))
-
   // We'll need something better that can reuse effect resolvers if we start having costs beyond resources
   const resourcesAvailable = structuredClone(player.resources)
-  for (const costEffect of costEffects) {
-    resourcesAvailable[costEffect.mechanic.resourceType] -= costEffect.mechanic.quantity
+  for (const cost of actionDefinition.costs) {
+    resourcesAvailable[cost.resourceType] -= cost.quantity
   }
 
   // We'll need something better that can format issues per cost mechanic if we start having costs beyond resources

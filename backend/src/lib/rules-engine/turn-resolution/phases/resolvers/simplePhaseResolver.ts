@@ -1,5 +1,4 @@
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
-import { resolveEffect } from "#lib/rules-engine/turn-resolution/effects/resolveEffect.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 
 /**
@@ -7,6 +6,6 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
  */
 export function simplePhaseResolver(mechanicType: Mechanic["type"], context: TurnContext): void {
   for (const effect of context.effects.getEffectsOfType(mechanicType)) {
-    resolveEffect(context, effect)
+    effect.resolve(context)
   }
 }
