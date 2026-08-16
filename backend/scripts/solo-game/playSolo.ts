@@ -107,13 +107,15 @@ export async function playSolo({
         turnResolutionError = undefined
         break
       case "SUBMIT_TURN": {
+        const submittedTurn = structuredClone(session)
         const result = resolveTurn(session.state, StandardRuleset, rng)
         if (Result.isFailure(result)) {
           turnResolutionError = result.error
           break
         }
 
-        writeResolvedTurn(session, writeLine)
+        submittedTurn.state.winnerPlayerId = session.state.winnerPlayerId
+        writeResolvedTurn(submittedTurn, writeLine)
         getSoloPlayer(session).actionSubmissions.length = 0
         turnResolutionError = undefined
 
@@ -195,7 +197,7 @@ function getSelectionKey(selection: SoloGameSelection): string {
 function createChoices(session: SoloGameSession): SoloGameChoice[] {
   const player = getSoloPlayer(session)
   const addActionChoices = Object.values(StandardRuleset.actionDefinitions).map((actionDefinition) => ({
-    name: UiStyle.positive(`＋ ${actionDefinition.name}`),
+    name: UiStyle.positive(`+ ${actionDefinition.name}`),
     description: formatActionDescription(actionDefinition),
     value: {
       command: "ADD_ACTION" as const,

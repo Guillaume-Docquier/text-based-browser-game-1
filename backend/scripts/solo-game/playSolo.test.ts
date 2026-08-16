@@ -100,6 +100,13 @@ describe("playSolo", () => {
     expect(plainOutput.filter((line) => line.includes("RESOLVED TURN"))).toHaveLength(4)
     expect(plainOutput).toContainEqual(expect.stringContaining("STANDARD RULESET PLAYTEST"))
     expect(plainOutput).not.toContainEqual(expect.stringContaining("CURRENT TURN"))
+    const firstResolvedTurnIndex = plainOutput.findIndex((line) => line.includes("RESOLVED TURN"))
+    const firstResolvedTurnSeparatorIndex = plainOutput.findIndex(
+      (line, index) => index > firstResolvedTurnIndex && line.trim() === "━".repeat(72),
+    )
+    const firstResolvedTurnOutput = plainOutput.slice(firstResolvedTurnIndex, firstResolvedTurnSeparatorIndex).join("\n")
+    expect(firstResolvedTurnOutput).toContain("2 available")
+    expect(firstResolvedTurnOutput).not.toContain("5 available")
     expect(plainOutput.join("\n")).toContain("14 available")
     expect(plainOutput.join("\n")).toContain("SUBMITTED ACTIONS  ·  2")
     expect(plainOutput.at(-1)).toBe("You won on turn 4.")
