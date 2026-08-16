@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
+import { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
@@ -39,8 +39,12 @@ export function validateCosts(
   return Result.Success(
     Object.entries(resourcesAvailable)
       .filter(([_, resourceCount]) => resourceCount < 0)
-      .map(([resourceType, resourceCount]) => ({
-        issue: `missing ${Math.abs(resourceCount)} ${resourceType}.`,
-      })),
+      .map(([resourceType, resourceCount]) =>
+        ActionSubmissionIssue.create({
+          cause: `missing ${Math.abs(resourceCount)} ${resourceType}`,
+          actionSubmission,
+          actionDefinitionName: actionDefinition.name,
+        }),
+      ),
   )
 }

@@ -1,6 +1,6 @@
 import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
+import { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset/mechanics/TargetDefinition.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
@@ -26,9 +26,13 @@ export function validateTargets(
     (targetSlot) => actionSubmission.targets[targetSlot] === undefined,
   )
   for (const missingTargetSlot of missingTargetSlots) {
-    issues.push({
-      issue: `missing target slot "${missingTargetSlot}".`,
-    })
+    issues.push(
+      ActionSubmissionIssue.create({
+        cause: `missing target slot "${missingTargetSlot}"`,
+        actionSubmission,
+        actionDefinitionName: actionDefinition.name,
+      }),
+    )
   }
 
   // This keeps only 1 of each target definition
@@ -43,7 +47,13 @@ export function validateTargets(
   for (const [targetSlot, targetId] of Object.entries(actionSubmission.targets)) {
     const targetDefinitionIssue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
     if (targetDefinitionIssue !== null) {
-      issues.push(targetDefinitionIssue)
+      issues.push(
+        ActionSubmissionIssue.create({
+          cause: targetDefinitionIssue.cause,
+          actionSubmission,
+          actionDefinitionName: actionDefinition.name,
+        }),
+      )
     }
   }
 
@@ -55,16 +65,16 @@ function validateTargetDefinition(
   targetSlot: string,
   targetId: string,
   turnState: TurnState,
-): ActionSubmissionIssue | null {
+): { cause: string } | null {
   if (targetType === undefined) {
     return {
-      issue: `unexpected target slot "${targetSlot}".`,
+      cause: `unexpected target slot "${targetSlot}"`,
     }
   }
 
   if (targetId.length === 0) {
     return {
-      issue: `target slot "${targetSlot}" must be set to a ${targetType} id.`,
+      cause: `target slot "${targetSlot}" must be set to a ${targetType} id`,
     }
   }
 
@@ -73,7 +83,7 @@ function validateTargetDefinition(
     case "SELF": {
       if (turnState.players[targetId] === undefined) {
         return {
-          issue: `target slot "${targetSlot}" references unknown Player id "${targetId}".`,
+          cause: `target slot "${targetSlot}" references unknown Player id "${targetId}"`,
         }
       }
       return null
