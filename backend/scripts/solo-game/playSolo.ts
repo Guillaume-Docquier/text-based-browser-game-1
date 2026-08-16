@@ -13,7 +13,7 @@ import { RulesetV1 } from "#lib/ruleset/v1/RulesetV1.ts"
 const SOLO_PLAYER_ID = "solo-player"
 const UI_WIDTH = 72
 const PANEL_CONTENT_WIDTH = UI_WIDTH - 4
-const TURN_SEPARATOR = "━".repeat(UI_WIDTH)
+const TURN_SEPARATOR = "\n" + "━".repeat(UI_WIDTH) + "\n"
 
 const UiStyle = {
   accent: (text: string): string => styleText(["bold", "cyan"], text),
@@ -34,7 +34,7 @@ export type SoloGameSelection =
 
 type SoloGameChoice = {
   readonly name: string
-  readonly description: string
+  readonly description?: string
   readonly value: SoloGameSelection
 }
 
@@ -169,7 +169,7 @@ async function promptWithInquirer({ message, choices }: SoloGamePromptOptions): 
 function createChoices(session: SoloGameSession): SoloGameChoice[] {
   const player = getSoloPlayer(session)
   const addActionChoices = Object.values(RulesetV1.actionDefinitions).map((actionDefinition) => ({
-    name: UiStyle.positive(`＋ Queue ${actionDefinition.name}`),
+    name: UiStyle.positive(`＋ ${actionDefinition.name}`),
     description: formatActionDescription(actionDefinition),
     value: {
       command: "ADD_ACTION" as const,
@@ -184,8 +184,7 @@ function createChoices(session: SoloGameSession): SoloGameChoice[] {
     actionCounts.set(actionDefinition.id, actionCount)
 
     return {
-      name: UiStyle.warning(`− Remove #${actionCount} ${actionDefinition.name}`),
-      description: `Remove this order from Turn ${session.turn}`,
+      name: UiStyle.warning(`− #${actionCount} ${actionDefinition.name}`),
       value: {
         command: "REMOVE_ACTION" as const,
         actionSubmissionId: actionSubmission.id,
@@ -194,13 +193,13 @@ function createChoices(session: SoloGameSession): SoloGameChoice[] {
   })
 
   return [
-    ...addActionChoices,
-    ...removeActionChoices,
     {
       name: UiStyle.accent(`▶ Resolve Turn ${session.turn}`),
-      description: `${player.actionSubmissions.length} selected ${player.actionSubmissions.length === 1 ? "order" : "orders"} will be submitted to the rules engine`,
+      description: `${player.actionSubmissions.length} selected ${player.actionSubmissions.length === 1 ? "action" : "actions"} will be submitted to the rules engine`,
       value: { command: "SUBMIT_TURN" },
     },
+    ...addActionChoices,
+    ...removeActionChoices,
     {
       name: UiStyle.muted("× Exit playtest"),
       description: "End this in-memory session without a winner",
@@ -268,7 +267,6 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
       Assert.isDefined(actionDefinition)
       const orderNumber = (index + 1).toString().padStart(2, "0")
       actionLines.push(`${UiStyle.action(orderNumber)}  ${styleText("bold", actionDefinition.name)}`)
-      actionLines.push(`    ${UiStyle.muted(formatActionSummary(actionDefinition))}`)
     }
   }
   const actionPanelTitle = `${isOpen ? "SELECTED ACTIONS" : "SUBMITTED ACTIONS"}  ·  ${player.actionSubmissions.length}`
@@ -289,7 +287,7 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
         "COMMAND",
         [
           styleText("bold", "Choose what your empire does next."),
-          UiStyle.muted("Queue orders, revise the selection, or resolve the turn."),
+          UiStyle.muted("Select actions, revise the selection, or resolve the turn."),
         ],
         "yellow",
       ),
@@ -306,7 +304,7 @@ function formatTurnResolutionFailure(error: TurnResolutionError): string[] {
       return createPanel(
         "TURN REJECTED",
         [
-          UiStyle.danger("✕ The rules engine refused these orders."),
+          UiStyle.danger("✕ The rules engine refused these actions."),
           UiStyle.muted("Revise the selected actions, then resolve the turn again."),
           "",
           ...error.issues.flatMap((issue) => [
@@ -329,9 +327,12 @@ function formatTurnResolutionFailure(error: TurnResolutionError): string[] {
 }
 
 function writeResolvedTurn(session: SoloGameSession, writeLine: (line: string) => void): void {
-  writeLine(UiStyle.muted(TURN_SEPARATOR))
   for (const line of formatTurnDashboard(session, "resolved")) {
     writeLine(line)
+  }
+
+  if (session.state.winnerPlayerId === undefined) {
+    writeLine(UiStyle.muted(TURN_SEPARATOR))
   }
 }
 

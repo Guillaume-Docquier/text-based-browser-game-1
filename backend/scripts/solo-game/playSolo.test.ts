@@ -25,17 +25,27 @@ describe("playSolo", () => {
     ]
     const output: string[] = []
     const promptMessages: string[] = []
+    const promptChoices: Array<Array<{ readonly name: string; readonly description: string | undefined }>> = []
+    const terminalEvents: Array<{ readonly type: "output" | "prompt"; readonly value: string }> = []
 
     // Act
     const session = await playSolo({
-      prompt: async ({ message }) => {
+      prompt: async ({ message, choices }) => {
         promptMessages.push(message)
+        promptChoices.push(
+          choices.map((choice) => ({
+            name: stripVTControlCharacters(choice.name),
+            description: choice.description,
+          })),
+        )
+        terminalEvents.push({ type: "prompt", value: stripVTControlCharacters(message) })
         const selection = selections.shift()
         Assert.isDefined(selection)
         return selection
       },
       writeLine: (line) => {
         output.push(line)
+        terminalEvents.push({ type: "output", value: stripVTControlCharacters(line) })
       },
     })
 
@@ -66,11 +76,26 @@ describe("playSolo", () => {
     expect(plainPromptMessages.every((message) => message.includes("CURRENT TURN"))).toBe(true)
     expect(plainPromptMessages.every((message) => message.includes("EMPIRE STATE"))).toBe(true)
     expect(plainPromptMessages.every((message) => message.includes("COMMAND"))).toBe(true)
-    expect(plainOutput.filter((line) => line === "━".repeat(72))).toHaveLength(4)
+    expect(plainPromptMessages.find((message) => message.includes("SELECTED ACTIONS  ·  2"))).not.toContain("costs 2 MONEY")
+    expect(promptChoices.flat()).toContainEqual({
+      name: "＋ Make More Money",
+      description: "STANDARD DIRECTIVE  ·  costs 2 MONEY  ·  gains 5 MONEY",
+    })
+    expect(promptChoices.flat()).toContainEqual({
+      name: "− #1 Make More Money",
+      description: undefined,
+    })
+    expect(promptChoices.flat().every((choice) => !choice.name.includes("Queue") && !choice.name.includes("Remove"))).toBe(true)
+    expect(plainOutput.filter((line) => line === "━".repeat(72))).toHaveLength(3)
     expect(plainOutput.filter((line) => line.includes("RESOLVED TURN"))).toHaveLength(4)
     expect(plainOutput).not.toContainEqual(expect.stringContaining("CURRENT TURN"))
     expect(plainOutput.join("\n")).toContain("14 available")
     expect(plainOutput.join("\n")).toContain("SUBMITTED ACTIONS  ·  2")
     expect(plainOutput.at(-1)).toBe("You won on turn 4.")
+    const firstSeparatorIndex = terminalEvents.findIndex((event) => event.type === "output" && event.value === "━".repeat(72))
+    expect(terminalEvents[firstSeparatorIndex + 1]).toMatchObject({
+      type: "prompt",
+      value: expect.stringContaining("TURN 02"),
+    })
   })
 })
