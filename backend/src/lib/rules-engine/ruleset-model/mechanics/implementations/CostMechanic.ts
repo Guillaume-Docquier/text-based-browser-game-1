@@ -13,10 +13,10 @@ export const CostMechanic = {
   type: "COST",
   create: ({ quantity, resourceType }: Omit<CostMechanic, "type" | "targets">): CostMechanic => ({
     type: CostMechanic.type,
-    quantity,
-    resourceType,
     targets: {
       player: TargetDefinitionSelf,
     },
+    quantity,
+    resourceType,
   }),
 } as const
