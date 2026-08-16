@@ -26,11 +26,12 @@ describe("playSolo", () => {
     const output: string[] = []
     const promptMessages: string[] = []
     const promptChoices: Array<Array<{ readonly name: string; readonly description: string | undefined }>> = []
+    const promptPositions: Array<{ readonly defaultIndex: number; readonly selectedIndex: number }> = []
     const terminalEvents: Array<{ readonly type: "output" | "prompt"; readonly value: string }> = []
 
     // Act
     const session = await playSolo({
-      prompt: async ({ message, choices }) => {
+      prompt: async ({ message, choices, default: defaultSelection }) => {
         promptMessages.push(message)
         promptChoices.push(
           choices.map((choice) => ({
@@ -41,6 +42,10 @@ describe("playSolo", () => {
         terminalEvents.push({ type: "prompt", value: stripVTControlCharacters(message) })
         const selection = selections.shift()
         Assert.isDefined(selection)
+        promptPositions.push({
+          defaultIndex: choices.findIndex((choice) => choice.value === defaultSelection),
+          selectedIndex: choices.findIndex((choice) => JSON.stringify(choice.value) === JSON.stringify(selection)),
+        })
         return selection
       },
       writeLine: (line) => {
@@ -86,6 +91,10 @@ describe("playSolo", () => {
       description: undefined,
     })
     expect(promptChoices.flat().every((choice) => !choice.name.includes("Queue") && !choice.name.includes("Remove"))).toBe(true)
+    expect(promptPositions.slice(0, 2)).toEqual([
+      { defaultIndex: 0, selectedIndex: 2 },
+      { defaultIndex: 2, selectedIndex: 0 },
+    ])
     expect(plainOutput.filter((line) => line.trim() === "━".repeat(72))).toHaveLength(3)
     expect(plainOutput.filter((line) => line.includes("RESOLVED TURN"))).toHaveLength(4)
     expect(plainOutput).not.toContainEqual(expect.stringContaining("CURRENT TURN"))

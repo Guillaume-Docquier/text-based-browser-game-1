@@ -42,6 +42,7 @@ type SoloGameChoice = {
 type SoloGamePromptOptions = {
   readonly message: string
   readonly choices: readonly SoloGameChoice[]
+  readonly default: SoloGameSelection
 }
 
 type SoloGameSession = {
@@ -74,6 +75,7 @@ export async function playSolo({
 }: PlaySoloOptions = {}): Promise<SoloGameSession> {
   const session = createSoloGameSession()
   let nextActionSubmissionNumber = 1
+  let highlightedChoiceIndex = 0
   let turnResolutionError: TurnResolutionError | undefined
 
   writeLine("")
@@ -82,10 +84,17 @@ export async function playSolo({
   writeLine("")
 
   while (session.state.winnerPlayerId === undefined) {
+    const choices = createChoices(session)
+    const highlightedChoice = choices[Math.min(highlightedChoiceIndex, choices.length - 1)]
+    Assert.isDefined(highlightedChoice)
     const selection = await prompt({
       message: formatTurnDashboard(session, "open", turnResolutionError).join("\n"),
-      choices: createChoices(session),
+      choices,
+      default: highlightedChoice.value,
     })
+    const selectedChoiceIndex = choices.findIndex((choice) => getSelectionKey(choice.value) === getSelectionKey(selection))
+    Assert.isTrue(selectedChoiceIndex >= 0)
+    highlightedChoiceIndex = selectedChoiceIndex
 
     switch (selection.command) {
       case "ADD_ACTION":
@@ -143,11 +152,12 @@ function createSoloGameSession(): SoloGameSession {
   }
 }
 
-async function promptWithInquirer({ message, choices }: SoloGamePromptOptions): Promise<SoloGameSelection> {
+async function promptWithInquirer({ message, choices, default: defaultSelection }: SoloGamePromptOptions): Promise<SoloGameSelection> {
   return await select(
     {
       message,
       choices,
+      default: defaultSelection,
       loop: false,
       pageSize: 12,
       theme: {
@@ -165,6 +175,21 @@ async function promptWithInquirer({ message, choices }: SoloGamePromptOptions): 
       clearPromptOnDone: true,
     },
   )
+}
+
+function getSelectionKey(selection: SoloGameSelection): string {
+  switch (selection.command) {
+    case "ADD_ACTION":
+      return `${selection.command}:${selection.actionDefinitionId}`
+    case "REMOVE_ACTION":
+      return `${selection.command}:${selection.actionSubmissionId}`
+    case "SUBMIT_TURN":
+    case "QUIT":
+      return selection.command
+    default:
+      Assert.isExhausted(selection)
+      return ""
+  }
 }
 
 function createChoices(session: SoloGameSession): SoloGameChoice[] {
@@ -258,7 +283,7 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
 
   const actionLines: string[] = []
   if (player.actionSubmissions.length === 0) {
-    actionLines.push(UiStyle.muted("No orders selected yet."))
+    actionLines.push(UiStyle.muted("No orders selected"))
   } else {
     for (const [index, actionSubmission] of player.actionSubmissions.entries()) {
       const actionDefinition = RulesetV1.actionDefinitions[actionSubmission.actionDefinitionId]
