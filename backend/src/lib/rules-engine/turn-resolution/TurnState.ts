@@ -1,6 +1,6 @@
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
 /**
  * The current state of the turn.

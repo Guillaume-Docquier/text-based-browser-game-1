@@ -1,8 +1,8 @@
 import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
-import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset/mechanics/TargetDefinition.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
+import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 /**

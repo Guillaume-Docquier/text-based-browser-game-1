@@ -1,4 +1,4 @@
-import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 export type RulesetValidationIssue = { issue: string }
 

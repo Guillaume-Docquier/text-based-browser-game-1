@@ -1,4 +1,4 @@
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 
 /**
  * The action definition targets are always an empty string.

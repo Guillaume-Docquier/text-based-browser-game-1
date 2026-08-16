@@ -1,7 +1,7 @@
 import { Assert, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import { validateActionSubmission } from "#lib/rules-engine/action-submission/validation/validateActionSubmission.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
 import { resolvePhases } from "#lib/rules-engine/turn-resolution/phases/resolvePhases.ts"

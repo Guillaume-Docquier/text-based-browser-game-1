@@ -2,12 +2,12 @@ import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
-import { MakeMoreMoney } from "#lib/ruleset/v1/action-definitions/make-more-money.ts"
-import { WinTheGame } from "#lib/ruleset/v1/action-definitions/win-the-game.ts"
-import { RulesetV1 } from "#lib/ruleset/v1/RulesetV1.ts"
+import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-more-money.ts"
+import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
+import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 describe("resolveTurn", () => {
   const playerId = "player-id"
@@ -32,7 +32,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, RulesetV1, createSeededRng())
+    const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
 
     // Assert
     expect(result).toEqual<typeof result>(
@@ -43,7 +43,7 @@ describe("resolveTurn", () => {
             actionSubmissionId: actionSubmission.id,
             actionDefinitionId,
             // oxlint-disable-next-line typescript/no-non-null-assertion -- It's there
-            actionDefinitionName: RulesetV1.actionDefinitions[actionSubmission.actionDefinitionId]!.name,
+            actionDefinitionName: StandardRuleset.actionDefinitions[actionSubmission.actionDefinitionId]!.name,
             issue: "Missing 1 MONEY",
           },
         ],
@@ -68,7 +68,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, RulesetV1, createSeededRng())
+    const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
     Assert.isSuccess(result)
 
     // Assert
@@ -105,7 +105,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, RulesetV1, createSeededRng())
+    const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
 
     // Assert
     expect(result).toEqual<typeof result>(
