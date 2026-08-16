@@ -1,4 +1,5 @@
 import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
+import type { DeepReadonly } from "utility-types"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
@@ -11,7 +12,7 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 export function validateTargets(
   actionSubmissions: ActionSubmission[],
   ruleset: Ruleset,
-  turnState: Readonly<TurnState>,
+  turnState: DeepReadonly<TurnState>,
 ): Result<ActionSubmissionIssue[], string> {
   const issues: ActionSubmissionIssue[] = []
 
@@ -66,7 +67,7 @@ function validateTargetDefinition(
   targetType: TargetDefinition["type"] | undefined,
   targetSlot: string,
   targetId: string,
-  turnState: TurnState,
+  turnState: DeepReadonly<TurnState>,
 ): string | null {
   if (targetType === undefined) {
     return `Unexpected target slot "${targetSlot}"`

@@ -20,6 +20,37 @@ const ruleset: Ruleset = {
 }
 
 describe("validateActionSubmissions", () => {
+  it("should not mutate the turnState", () => {
+    // Arrange
+    const playerId = "player-id"
+    const actionSubmission: ActionSubmission = {
+      id: "action-submission-id",
+      actionDefinitionId: actionDefinition.id,
+      targets: {
+        self: playerId,
+      },
+    }
+    const turnState = createTurnStateStub({
+      players: {
+        [playerId]: {
+          id: playerId,
+          resources: {
+            [ResourceType.MONEY]: 5,
+          },
+          actionSubmissions: [actionSubmission],
+        },
+      },
+    })
+
+    const originalTurnState = structuredClone(turnState)
+
+    // Act
+    validateActionSubmissions([actionSubmission], ruleset, turnState)
+
+    // Assert
+    expect(turnState).toEqual(originalTurnState)
+  })
+
   it("should return no issues for a valid Action Submission", () => {
     // Arrange
     const playerId = "player-id"

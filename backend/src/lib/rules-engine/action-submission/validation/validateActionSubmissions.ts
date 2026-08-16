@@ -1,4 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
+import type { DeepReadonly } from "utility-types"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import type { ActionSubmissionValidator } from "#lib/rules-engine/action-submission/validation/ActionSubmissionValidator.ts"
@@ -13,7 +14,7 @@ const validators: ActionSubmissionValidator[] = [validateActionDefinition, valid
 export function validateActionSubmissions(
   actionSubmissions: ActionSubmission[],
   ruleset: Ruleset,
-  turnState: Readonly<TurnState>,
+  turnState: DeepReadonly<TurnState>,
 ): ActionSubmissionIssue[] {
   return validators
     .map((validator) => validator(actionSubmissions, ruleset, turnState))
