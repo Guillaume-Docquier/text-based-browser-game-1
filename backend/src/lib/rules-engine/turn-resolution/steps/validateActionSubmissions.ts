@@ -1,8 +1,8 @@
-import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
-import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/actions/validation/ActionSubmissionValidationIssue.ts"
-import { validateActionSubmission } from "#lib/rules-engine/actions/validation/validateActionSubmission.ts"
+import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { ActionSubmissionValidationIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionValidationIssue.ts"
+import { validateActionSubmission } from "#lib/rules-engine/action-submission/validation/validateActionSubmission.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
-import type { Ruleset } from "#lib/ruleset/Ruleset.ts"
 
 type ActionSubmissionValidities = {
   valid: ActionSubmission[]

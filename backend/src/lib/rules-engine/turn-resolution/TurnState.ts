@@ -1,7 +1,7 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
-import type { ActionSubmission } from "#lib/rules-engine/actions/ActionSubmission.ts"
-import type { ResourceType } from "#lib/rules-engine/mechanics/ResourceType.ts"
+import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 
 /**
  * The current state of the turn.
