@@ -41,7 +41,7 @@ export function validateCosts(
       .filter(([_, resourceCount]) => resourceCount < 0)
       .map(([resourceType, resourceCount]) =>
         ActionSubmissionIssue.create({
-          cause: `missing ${Math.abs(resourceCount)} ${resourceType}`,
+          issue: `Missing ${Math.abs(resourceCount)} ${resourceType}`,
           actionSubmission,
           actionDefinitionName: actionDefinition.name,
         }),

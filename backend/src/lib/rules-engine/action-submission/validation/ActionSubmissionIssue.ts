@@ -1,30 +1,27 @@
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 
-export type ActionSubmissionIssue = { issue: string }
+export type ActionSubmissionIssue = {
+  issue: string
+  actionSubmissionId: string
+  actionDefinitionId: string
+  actionDefinitionName: string | undefined
+}
 
 export const ActionSubmissionIssue = {
   create: ({
-    cause,
+    issue,
     actionSubmission,
     actionDefinitionName,
   }: {
-    cause: string
-    /**
-     * Metadata included in the issue description.
-     */
+    issue: string
     actionSubmission: ActionSubmission
-    /**
-     * Metadata included in the issue description.
-     */
     actionDefinitionName: string | undefined
   }): ActionSubmissionIssue => {
-    const actionDefinitionDescription =
-      actionDefinitionName === undefined
-        ? actionSubmission.actionDefinitionId
-        : `${actionSubmission.actionDefinitionId} (${actionDefinitionName})`
-
     return {
-      issue: `Action Submission ${actionSubmission.id} for Action Definition ${actionDefinitionDescription}: ${cause}.`,
+      issue,
+      actionSubmissionId: actionSubmission.id,
+      actionDefinitionId: actionSubmission.actionDefinitionId,
+      actionDefinitionName,
     }
   },
 }

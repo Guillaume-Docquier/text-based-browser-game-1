@@ -67,7 +67,10 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: "Action Submission action-submission-id for Action Definition UNKNOWN_ACTION: does not exist in the Ruleset.",
+        issue: "Action definition does not exist in the Ruleset",
+        actionSubmissionId: "action-submission-id",
+        actionDefinitionId: "UNKNOWN_ACTION",
+        actionDefinitionName: undefined,
       },
     ])
   })
@@ -111,8 +114,10 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue:
-          'Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): missing target slot "targetPlayer".',
+        issue: 'Missing target slot "targetPlayer"',
+        actionSubmissionId: "action-submission-id",
+        actionDefinitionId: "TEST_ACTION",
+        actionDefinitionName: "Test Action",
       },
     ])
   })
@@ -146,7 +151,10 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: 'Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): unexpected target slot "fleet".',
+        issue: 'Unexpected target slot "fleet"',
+        actionSubmissionId: "action-submission-id",
+        actionDefinitionId: "TEST_ACTION",
+        actionDefinitionName: "Test Action",
       },
     ])
   })
@@ -168,8 +176,10 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue:
-          'Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): target slot "self" must be set to a SELF id.',
+        issue: 'Target slot "self" must be set to a SELF id',
+        actionSubmissionId: "action-submission-id",
+        actionDefinitionId: "TEST_ACTION",
+        actionDefinitionName: "Test Action",
       },
     ])
   })
@@ -213,7 +223,10 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: "Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): missing 3 MONEY.",
+        issue: "Missing 3 MONEY",
+        actionSubmissionId: "action-submission-id",
+        actionDefinitionId: "TEST_ACTION",
+        actionDefinitionName: "Test Action",
       },
     ])
   })
@@ -247,10 +260,16 @@ describe("validateActionSubmission", () => {
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
-        issue: 'Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): unexpected target slot "fleet".',
+        issue: 'Unexpected target slot "fleet"',
+        actionSubmissionId: "action-submission-id",
+        actionDefinitionId: "TEST_ACTION",
+        actionDefinitionName: "Test Action",
       },
       {
-        issue: "Action Submission action-submission-id for Action Definition TEST_ACTION (Test Action): missing 1 MONEY.",
+        issue: "Missing 1 MONEY",
+        actionSubmissionId: "action-submission-id",
+        actionDefinitionId: "TEST_ACTION",
+        actionDefinitionName: "Test Action",
       },
     ])
   })

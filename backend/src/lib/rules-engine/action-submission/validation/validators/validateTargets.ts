@@ -28,7 +28,7 @@ export function validateTargets(
   for (const missingTargetSlot of missingTargetSlots) {
     issues.push(
       ActionSubmissionIssue.create({
-        cause: `missing target slot "${missingTargetSlot}"`,
+        issue: `Missing target slot "${missingTargetSlot}"`,
         actionSubmission,
         actionDefinitionName: actionDefinition.name,
       }),
@@ -45,11 +45,11 @@ export function validateTargets(
   allTargetDefinitions.set(TargetDefinitionSelf.tag, TargetDefinitionSelf.type) // Self is always required, even if no mechanic mentions it
 
   for (const [targetSlot, targetId] of Object.entries(actionSubmission.targets)) {
-    const targetDefinitionIssue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
-    if (targetDefinitionIssue !== null) {
+    const issue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
+    if (issue !== null) {
       issues.push(
         ActionSubmissionIssue.create({
-          cause: targetDefinitionIssue.cause,
+          issue,
           actionSubmission,
           actionDefinitionName: actionDefinition.name,
         }),
@@ -65,26 +65,20 @@ function validateTargetDefinition(
   targetSlot: string,
   targetId: string,
   turnState: TurnState,
-): { cause: string } | null {
+): string | null {
   if (targetType === undefined) {
-    return {
-      cause: `unexpected target slot "${targetSlot}"`,
-    }
+    return `Unexpected target slot "${targetSlot}"`
   }
 
   if (targetId.length === 0) {
-    return {
-      cause: `target slot "${targetSlot}" must be set to a ${targetType} id`,
-    }
+    return `Target slot "${targetSlot}" must be set to a ${targetType} id`
   }
 
   switch (targetType) {
     case "PLAYER":
     case "SELF": {
       if (turnState.players[targetId] === undefined) {
-        return {
-          cause: `target slot "${targetSlot}" references unknown Player id "${targetId}"`,
-        }
+        return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
       }
       return null
     }
