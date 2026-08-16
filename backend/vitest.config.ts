@@ -2,6 +2,7 @@ import { defineConfig } from "vitest/config"
 
 const integrationTestsInclude = ["src/**/*.router.test.ts", "src/**/TurnProcessor.test.ts"]
 const concurrencyTestsInclude = ["src/**/*.concurrency.test.ts"]
+const unitTestsInclude = ["src/**/*.test.ts", "scripts/**/*.test.ts"]
 
 export default defineConfig({
   test: {
@@ -21,7 +22,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: { label: "unit", color: "green" },
-          include: ["src/**/*.test.ts"],
+          include: unitTestsInclude,
           // I would do something like .unit.test.ts and .integration.test.ts without exclude
           // However, this breaks WebStorm's "Go to test" and it cannot be configured...
           exclude: [...integrationTestsInclude, ...concurrencyTestsInclude],
