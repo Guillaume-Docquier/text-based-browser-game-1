@@ -17,6 +17,7 @@
     "lint:fix": "pnpm lint --fix",
     "map-gen": "node backend/scripts/map-gen/program.ts",
     "map-gen:all": "pnpm map-gen galaxy cluster --grid --seed 1234 && pnpm map-gen galaxy spiral --grid --seed 1234 && pnpm map-gen spiral --seed 1234 && pnpm map-gen cluster --seed 1234",
+    "playtest": "node backend/scripts/solo-game/program.ts play",
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
     "wts": "pnpm ci && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"

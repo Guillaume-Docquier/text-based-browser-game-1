@@ -34,6 +34,7 @@ describe("validateRuleset", () => {
   it("should validate a Ruleset with correctly indexed Action Definitions and all required target slots", () => {
     // Arrange
     const ruleset: Ruleset = {
+      name: "Test Ruleset",
       actionDefinitions: {
         [validActionDefinition.id]: validActionDefinition,
       },
@@ -49,6 +50,7 @@ describe("validateRuleset", () => {
   it("should report an Action Definition indexed under an id other than its own", () => {
     // Arrange
     const ruleset: Ruleset = {
+      name: "Test Ruleset",
       actionDefinitions: {
         "incorrect-index": validActionDefinition,
       },
@@ -88,6 +90,7 @@ describe("validateRuleset", () => {
       ],
     }
     const ruleset: Ruleset = {
+      name: "Test Ruleset",
       actionDefinitions: {
         [actionDefinitionWithoutSelfTarget.id]: actionDefinitionWithoutSelfTarget,
       },
