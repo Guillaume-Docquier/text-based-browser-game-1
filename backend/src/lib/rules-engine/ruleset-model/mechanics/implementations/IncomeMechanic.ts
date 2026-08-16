@@ -13,10 +13,10 @@ export const IncomeMechanic = {
   type: "INCOME",
   create: ({ quantity, resourceType }: Omit<IncomeMechanic, "type" | "targets">): IncomeMechanic => ({
     type: IncomeMechanic.type,
-    quantity,
-    resourceType,
     targets: {
       player: TargetDefinitionSelf,
     },
+    quantity,
+    resourceType,
   }),
 } as const
