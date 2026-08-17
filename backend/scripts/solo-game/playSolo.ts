@@ -2,11 +2,10 @@ import { stripVTControlCharacters, styleText } from "node:util"
 import { Assert, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { select } from "@inquirer/prompts"
 import { createSeededRng } from "#lib/createSeededRng.ts"
-import type { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
+import { resolveTurn, type ResolveTurnError } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
@@ -56,10 +55,6 @@ type PlaySoloOptions = {
   readonly writeLine?: (line: string) => void
 }
 
-type TurnResolutionError =
-  | { readonly _tag: "INVALID_SUBMISSIONS"; readonly issues: ActionSubmissionIssue[] }
-  | { readonly _tag: "FAILED_TO_RESOLVE_EFFECT" }
-
 /**
  * Runs a complete in-memory solo game against StandardRuleset.
  *
@@ -76,7 +71,7 @@ export async function playSolo({
   const session = createSoloGameSession()
   let nextActionSubmissionNumber = 1
   let highlightedChoiceIndex = 0
-  let turnResolutionError: TurnResolutionError | undefined
+  let turnResolutionError: ResolveTurnError | undefined
 
   writeLine("")
   writeLine(UiStyle.accent(`✦  COSMIC EMPIRES  ·  ${StandardRuleset.name.toUpperCase()} PLAYTEST  ✦`))
@@ -264,7 +259,7 @@ function getSoloPlayer(session: SoloGameSession): TurnState["players"][string] {
   return player
 }
 
-function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolved", turnResolutionError?: TurnResolutionError): string[] {
+function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolved", turnResolutionError?: ResolveTurnError): string[] {
   const player = getSoloPlayer(session)
   const isOpen = status === "open"
   const statusBadge = isOpen ? UiStyle.warning("● OPEN") : UiStyle.positive("✓ RESOLVED")
@@ -322,7 +317,7 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
   return lines
 }
 
-function formatTurnResolutionFailure(error: TurnResolutionError): string[] {
+function formatTurnResolutionFailure(error: ResolveTurnError): string[] {
   // oxlint-disable-next-line eslint/no-underscore-dangle -- _tag is the rules engine's existing error discriminant
   switch (error._tag) {
     case "INVALID_SUBMISSIONS":
@@ -339,10 +334,24 @@ function formatTurnResolutionFailure(error: TurnResolutionError): string[] {
         ],
         "red",
       )
-    case "FAILED_TO_RESOLVE_EFFECT":
+    case "FAILED_TO_RESOLVE_PHASES":
       return createPanel(
         "TURN REJECTED",
-        [UiStyle.danger("✕ An Effect failed during resolution."), UiStyle.muted("The turn state was not advanced.")],
+        [
+          UiStyle.danger("✕ A Phase failed to resolve."),
+          UiStyle.danger(`Error: ${JSON.stringify(error.error, null, 2)}`),
+          UiStyle.muted("The turn state was not advanced."),
+        ],
+        "red",
+      )
+    case "UNRESOLVED_EFFECTS":
+      return createPanel(
+        "TURN REJECTED",
+        [
+          UiStyle.danger("✕ An Effect was not resolved."),
+          UiStyle.danger(`Effects: ${JSON.stringify(error.effects, null, 2)}`),
+          UiStyle.muted("The turn state was not advanced."),
+        ],
         "red",
       )
     default:

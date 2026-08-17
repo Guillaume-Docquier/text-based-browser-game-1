@@ -11,7 +11,7 @@ import { resolvePhases } from "#lib/rules-engine/turn-resolution/phases/resolveP
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
-type ResolveTurnError = InvalidSubmissions | FailedToResolvePhases | UnresolvedEffects
+export type ResolveTurnError = InvalidSubmissions | FailedToResolvePhases | UnresolvedEffects
 type InvalidSubmissions = { _tag: "INVALID_SUBMISSIONS"; issues: ActionSubmissionIssue[] }
 type FailedToResolvePhases = { _tag: "FAILED_TO_RESOLVE_PHASES"; error: ResolvePhaseError }
 type UnresolvedEffects = { _tag: "UNRESOLVED_EFFECTS"; effects: EffectJson[] }
