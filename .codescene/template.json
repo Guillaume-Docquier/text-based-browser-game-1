@@ -2,6 +2,28 @@
   "usage": "Persist this file inside your repositories as .codescene/code-health-rules.json Keep the rules you want to override, remove the rest for simplicity and an easy overview.Override the code health rules by changing the default 1.0 value to a lower relative weight. A value of 0.0 disables the rule. A value of 0.5 still implies a code health hit but only at 50% of the default impact. Note that you can specify multiple rule sets and use the matching-content-path to control to which parts or languages the rules apply. This makes it possible to differentiate between test vs application code, or tailor rules to specific languages. In case multiple rule sets match a piece of content, then we prioritize the first mathcing set of rules.",
   "rule_sets": [
     {
+      "matching_content_path": "**/*",
+      "rules": [],
+      "thresholds": [
+        {
+          "name": "function_duplication_min_lines_of_code_for_check",
+          "value": 10
+        },
+        {
+          "name": "function_duplication_min_similarity_percentage",
+          "value": 75
+        },
+        {
+          "name": "function_lines_of_code_alert",
+          "value": 500
+        },
+        {
+          "name": "function_lines_of_code_warning",
+          "value": 70
+        }
+      ]
+    },
+    {
       "thresholds": [
         {
           "name": "constructor_max_arguments",
