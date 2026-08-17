@@ -12,7 +12,6 @@ export class CreateGamePage {
   public readonly maxPlayersInput: Locator
   public readonly turnLengthInput: Locator
   public readonly turnLengthUnitSelect: Locator
-  public readonly generationSeedInput: Locator
   public readonly createButton: Locator
 
   public constructor(page: Page) {
@@ -23,18 +22,18 @@ export class CreateGamePage {
     this.maxPlayersInput = page.getByRole("spinbutton", { name: "Max number of players" })
     this.turnLengthInput = page.getByRole("spinbutton", { name: "Turn length" })
     this.turnLengthUnitSelect = page.getByRole("combobox", { name: "Turn length unit" })
-    this.generationSeedInput = page.getByRole("spinbutton", { name: "Generation seed" })
     this.createButton = page.getByRole("button", { name: "Create", exact: true })
   }
 
-  public static async goto(page: Page): Promise<CreateGamePage> {
+  public static async goto(page: Page, options?: { seed: number }): Promise<CreateGamePage> {
     const createGamePage = new CreateGamePage(page)
-    await createGamePage.goto()
+    await createGamePage.goto(options)
     return createGamePage
   }
 
-  public async goto(): Promise<void> {
-    await this.page.goto(CreateGamePage.urlPattern.pathname)
+  public async goto(options?: { seed: number }): Promise<void> {
+    const seedSearch = options === undefined ? "" : `?seed=${options.seed}`
+    await this.page.goto(`${CreateGamePage.urlPattern.pathname}${seedSearch}`)
   }
 
   public async setGameName(name: string): Promise<void> {
@@ -63,10 +62,6 @@ export class CreateGamePage {
       await this.setSliderValue(minimumSlider, min)
       await this.setSliderValue(maximumSlider, max)
     }
-  }
-
-  public async setGenerationSeed(seed: number): Promise<void> {
-    await this.generationSeedInput.fill(seed.toString())
   }
 
   public async submit(): Promise<void> {

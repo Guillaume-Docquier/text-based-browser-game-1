@@ -18,7 +18,7 @@ const TurnIntervalUnit = {
   minutes: "minutes",
 } as const
 
-export function CreateGamePage(): ReactElement {
+export function CreateGamePage({ seed }: { seed: number | undefined }): ReactElement {
   const creationSettingsQuery = useLobbyCreationSettingsQuery()
 
   if (creationSettingsQuery.isPending || creationSettingsQuery.isFetching) {
@@ -33,10 +33,16 @@ export function CreateGamePage(): ReactElement {
     )
   }
 
-  return <CreateGameForm creationSettings={creationSettingsQuery.data} />
+  return <CreateGameForm creationSettings={creationSettingsQuery.data} seed={seed} />
 }
 
-function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.LobbyCreationSettings }): ReactElement {
+function CreateGameForm({
+  creationSettings,
+  seed,
+}: {
+  creationSettings: ApiTypes.LobbyCreationSettings
+  seed: number | undefined
+}): ReactElement {
   const [name, setName] = useState("")
   const [nbSeats, setNbSeats] = useState(5)
   const [turnIntervalMultiplier, setTurnIntervalMultiplier] = useState(1)
@@ -121,6 +127,7 @@ function CreateGameForm({ creationSettings }: { creationSettings: ApiTypes.Lobby
                 name,
                 nbSeats,
                 turnIntervalSeconds: Temporal.Duration.from({ [turnIntervalUnit]: turnIntervalMultiplier }).total("seconds"),
+                ...(seed === undefined ? {} : { seed }),
               },
             })
           }}

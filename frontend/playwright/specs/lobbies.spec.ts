@@ -5,6 +5,8 @@ import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
+const DETERMINISTIC_GALAXY_SEED = 1234
+
 test.describe("anonymous user", () => {
   test("must sign in to create a game", async ({ page }) => {
     await CreateGamePage.goto(page)
@@ -32,7 +34,7 @@ test.describe("authenticated user", () => {
   })
 
   test("creates and starts a game", async ({ page }) => {
-    const createGamePage = await CreateGamePage.goto(page)
+    const createGamePage = await CreateGamePage.goto(page, { seed: DETERMINISTIC_GALAXY_SEED })
     const gameName = `Playwright game ${Date.now()}`
 
     await test.step("Configure the game", async () => {
@@ -92,13 +94,14 @@ test.describe("authenticated user", () => {
       const cameraScaleBeforeInspecting = await galaxyPage.getGalaxyCameraScale()
 
       await selectedStar.press("Enter")
-      await expect(galaxyPage.starSystemMap).not.toBeVisible()
       await expect(galaxyPage.starSystemMap).toBeVisible()
 
       const firstPlanet = galaxyPage.planets.first()
       const secondPlanet = galaxyPage.planets.nth(1)
       const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
       const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
+      expect(firstPlanetName).toBe("planet 122350")
+      expect(secondPlanetName).toBe("planet 983117")
 
       await firstPlanet.press("Enter")
       await expect(galaxyPage.planetDetailsPane).toBeVisible()
