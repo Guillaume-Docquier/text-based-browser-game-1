@@ -12,7 +12,7 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 /**
  * Takes a turn state and applies all its actions on it, then returns it.
- * The turnState is mutated in place. The returned value is the input.
+ * The turnState will be mutated. You should not provide an object that cannot / must not be mutated.
  */
 export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): Result<ResolvedTurnState, ResolveTurnError> {
   const context: TurnContext = {
