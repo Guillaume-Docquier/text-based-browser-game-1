@@ -88,6 +88,60 @@ describe("resolveTurn", () => {
     )
   })
 
+  it("should resolve Action Submissions from multiple players", () => {
+    // Arrange
+    const firstPlayerId = "first-player-id"
+    const secondPlayerId = "second-player-id"
+    const firstPlayerActionSubmission = createActionSubmissionStub({
+      actionDefinitionId: MakeMoreMoney.id,
+      targets: { self: firstPlayerId },
+    })
+    const secondPlayerActionSubmission = createActionSubmissionStub({
+      actionDefinitionId: WinTheGame.id,
+      targets: { self: secondPlayerId },
+    })
+    const turnState = createTurnStateStub({
+      players: {
+        [firstPlayerId]: {
+          id: firstPlayerId,
+          resources: { [ResourceType.MONEY]: 2 },
+          actionSubmissions: [firstPlayerActionSubmission],
+        },
+        [secondPlayerId]: {
+          id: secondPlayerId,
+          resources: { [ResourceType.MONEY]: 10 },
+          actionSubmissions: [secondPlayerActionSubmission],
+        },
+      },
+    })
+
+    // Act
+    const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
+
+    // Assert
+    expect(result).toEqual<typeof result>(
+      Result.Success({
+        players: {
+          [firstPlayerId]: {
+            actionSubmissions: [firstPlayerActionSubmission],
+            id: firstPlayerId,
+            resources: {
+              MONEY: 5,
+            },
+          },
+          [secondPlayerId]: {
+            actionSubmissions: [secondPlayerActionSubmission],
+            id: secondPlayerId,
+            resources: {
+              MONEY: 0,
+            },
+          },
+        },
+        winnerPlayerId: secondPlayerId,
+      }),
+    )
+  })
+
   it("should win the game when the player has enough money", () => {
     // Arrange
     const actionSubmission = createActionSubmissionStub({

@@ -259,6 +259,55 @@ describe("validateActionSubmissions", () => {
   })
 
   describe("costs", () => {
+    it("should validate each player's costs against their own resources", () => {
+      // Arrange
+      const firstPlayerId = "first-player-id"
+      const secondPlayerId = "second-player-id"
+      const firstPlayerActionSubmission = createActionSubmissionStub({
+        actionDefinitionId: actionDefinition.id,
+        targets: {
+          self: firstPlayerId,
+        },
+      })
+      const secondPlayerActionSubmission = createActionSubmissionStub({
+        actionDefinitionId: actionDefinition.id,
+        targets: {
+          self: secondPlayerId,
+        },
+      })
+      const turnState = createTurnStateStub({
+        players: {
+          [firstPlayerId]: {
+            id: firstPlayerId,
+            resources: {
+              [ResourceType.MONEY]: 5,
+            },
+            actionSubmissions: [firstPlayerActionSubmission],
+          },
+          [secondPlayerId]: {
+            id: secondPlayerId,
+            resources: {
+              [ResourceType.MONEY]: 4,
+            },
+            actionSubmissions: [secondPlayerActionSubmission],
+          },
+        },
+      })
+
+      // Act
+      const issues = validateActionSubmissions([firstPlayerActionSubmission, secondPlayerActionSubmission], ruleset, turnState)
+
+      // Assert
+      expect(issues).toEqual<typeof issues>([
+        {
+          issue: "Missing 1 MONEY",
+          actionSubmissionId: secondPlayerActionSubmission.id,
+          actionDefinitionId: secondPlayerActionSubmission.actionDefinitionId,
+          actionDefinitionName: actionDefinition.name,
+        },
+      ])
+    })
+
     it("should aggregate costs for the same resource before reporting the shortage", () => {
       // Arrange
       const playerId = "player-id"

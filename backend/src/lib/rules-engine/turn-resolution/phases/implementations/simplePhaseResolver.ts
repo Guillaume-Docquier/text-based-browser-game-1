@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
-import type { ResolvePhaseError } from "#lib/rules-engine/turn-resolution/phases/ResolvePhaseError.ts"
+import { ResolvePhaseError } from "#lib/rules-engine/turn-resolution/phases/ResolvePhaseError.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 
 /**
@@ -8,7 +8,12 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
  */
 export function simplePhaseResolver(mechanicType: Mechanic["type"], context: TurnContext): Result<TurnContext, ResolvePhaseError> {
   for (const effect of context.effects.getEffectsOfType(mechanicType)) {
-    effect.resolve(context)
+    const outcome = effect.resolve(context)
+    if (Result.isFailure(outcome)) {
+      return Result.Failure(ResolvePhaseError.FailedEffect({ error: outcome.error }))
+    }
+
+    context.effects.recordOutcome(effect, outcome.value)
   }
 
   return Result.Success(context)
