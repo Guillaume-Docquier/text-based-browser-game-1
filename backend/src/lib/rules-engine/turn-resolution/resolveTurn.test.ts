@@ -5,6 +5,7 @@ import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
+import { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-more-money.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
@@ -37,18 +38,19 @@ describe("resolveTurn", () => {
 
     // Assert
     expect(result).toEqual<typeof result>(
-      Result.Failure({
-        _tag: "INVALID_SUBMISSIONS",
-        issues: [
-          {
-            actionSubmissionId: actionSubmission.id,
-            actionDefinitionId,
-            // oxlint-disable-next-line typescript/no-non-null-assertion -- It's there
-            actionDefinitionName: StandardRuleset.actionDefinitions[actionSubmission.actionDefinitionId]!.name,
-            issue: "Missing 1 MONEY",
-          },
-        ],
-      }),
+      Result.Failure(
+        ResolveTurnError.InvalidSubmissions({
+          issues: [
+            {
+              actionSubmissionId: actionSubmission.id,
+              actionDefinitionId,
+              // oxlint-disable-next-line typescript/no-non-null-assertion -- It's there
+              actionDefinitionName: StandardRuleset.actionDefinitions[actionSubmission.actionDefinitionId]!.name,
+              issue: "Missing 1 MONEY",
+            },
+          ],
+        }),
+      ),
     )
   })
 
@@ -155,7 +157,7 @@ describe("resolveTurn", () => {
             actionSubmission: secondPlayerActionSubmission,
             actionOutcomes: [
               EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 10 MONEY` }),
-              EffectOutcome.Resolved({ result: `Player ${secondPlayerId} wins the game` }),
+              EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" wins the game` }),
             ],
           },
         ],
@@ -199,7 +201,7 @@ describe("resolveTurn", () => {
             actionSubmission,
             actionOutcomes: [
               EffectOutcome.Resolved({ result: `Player "${playerId}" spent 10 MONEY` }),
-              EffectOutcome.Resolved({ result: `Player ${playerId} wins the game` }),
+              EffectOutcome.Resolved({ result: `Player "${playerId}" wins the game` }),
             ],
           },
         ],

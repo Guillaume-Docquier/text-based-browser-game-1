@@ -16,10 +16,10 @@ export class VictoryEffect extends Effect {
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
     if (context.state.winnerPlayerId !== undefined) {
-      return Result.Success(EffectOutcome.Prevented({ reason: `Another player ${context.state.winnerPlayerId} already won the game` }))
+      return Result.Success(EffectOutcome.Prevented({ reason: `Another player "${context.state.winnerPlayerId}" already won the game` }))
     }
 
     context.state.winnerPlayerId = this.targetPlayerId
-    return Result.Success(EffectOutcome.Resolved({ result: `Player ${context.state.winnerPlayerId} wins the game` }))
+    return Result.Success(EffectOutcome.Resolved({ result: `Player "${context.state.winnerPlayerId}" wins the game` }))
   }
 }

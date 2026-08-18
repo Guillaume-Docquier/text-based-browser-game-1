@@ -5,6 +5,8 @@ import { createSeededRng } from "#lib/createSeededRng.ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
+import type { ResolvedAction } from "#lib/rules-engine/turn-resolution/ResolvedAction.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
@@ -56,6 +58,16 @@ type PlaySoloOptions = {
   readonly writeLine?: (line: string) => void
 }
 
+type TurnDashboardState =
+  | {
+      readonly status: "open"
+      readonly turnResolutionError: ResolveTurnError | undefined
+    }
+  | {
+      readonly status: "resolved"
+      readonly resolvedActions: readonly ResolvedAction[]
+    }
+
 /**
  * Runs a complete in-memory solo game against StandardRuleset.
  *
@@ -84,7 +96,7 @@ export async function playSolo({
     const highlightedChoice = choices[Math.min(highlightedChoiceIndex, choices.length - 1)]
     Assert.isDefined(highlightedChoice)
     const selection = await prompt({
-      message: formatTurnDashboard(session, "open", turnResolutionError).join("\n"),
+      message: formatTurnDashboard(session, { status: "open", turnResolutionError }).join("\n"),
       choices,
       default: highlightedChoice.value,
     })
@@ -111,7 +123,7 @@ export async function playSolo({
         }
 
         submittedTurn.state.winnerPlayerId = result.value.winnerPlayerId
-        writeResolvedTurn(submittedTurn, writeLine)
+        writeResolvedTurn(submittedTurn, result.value.resolvedActions, writeLine)
         session.state = {
           actionSubmissions: [],
           players: result.value.players,
@@ -272,9 +284,9 @@ function getSoloPlayer(session: SoloGameSession): TurnState["players"][string] {
   return player
 }
 
-function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolved", turnResolutionError?: ResolveTurnError): string[] {
+function formatTurnDashboard(session: SoloGameSession, dashboardState: TurnDashboardState): string[] {
   const player = getSoloPlayer(session)
-  const isOpen = status === "open"
+  const isOpen = dashboardState.status === "open"
   const statusBadge = isOpen ? UiStyle.warning("● OPEN") : UiStyle.positive("✓ RESOLVED")
   const lines = [
     ...createPanel(
@@ -300,6 +312,12 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
       Assert.isDefined(actionDefinition)
       const orderNumber = (index + 1).toString().padStart(2, "0")
       actionLines.push(`${UiStyle.action(orderNumber)}  ${styleText("bold", actionDefinition.name)}`)
+
+      if (dashboardState.status === "resolved") {
+        const resolvedAction = dashboardState.resolvedActions.find((candidate) => candidate.actionSubmission.id === actionSubmission.id)
+        Assert.isDefined(resolvedAction)
+        actionLines.push(...resolvedAction.actionOutcomes.map((outcome) => `    ${formatActionOutcome(outcome)}`))
+      }
     }
   }
   const actionPanelTitle = `${isOpen ? "SELECTED ACTIONS" : "SUBMITTED ACTIONS"}  ·  ${session.state.actionSubmissions.length}`
@@ -309,8 +327,8 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
     lines.push("", ...createPanel("VICTORY", [UiStyle.positive(`★ ${session.state.winnerPlayerId} won the game`)], "green"))
   }
 
-  if (turnResolutionError !== undefined) {
-    lines.push("", ...formatTurnResolutionFailure(turnResolutionError))
+  if (dashboardState.status === "open" && dashboardState.turnResolutionError !== undefined) {
+    lines.push("", ...formatTurnResolutionFailure(dashboardState.turnResolutionError))
   }
 
   if (isOpen) {
@@ -331,8 +349,7 @@ function formatTurnDashboard(session: SoloGameSession, status: "open" | "resolve
 }
 
 function formatTurnResolutionFailure(error: ResolveTurnError): string[] {
-  // oxlint-disable-next-line eslint/no-underscore-dangle -- _tag is the rules engine's existing error discriminant
-  switch (error._tag) {
+  switch (error.type) {
     case "INVALID_SUBMISSIONS":
       return createPanel(
         "TURN REJECTED",
@@ -373,13 +390,25 @@ function formatTurnResolutionFailure(error: ResolveTurnError): string[] {
   }
 }
 
-function writeResolvedTurn(session: SoloGameSession, writeLine: (line: string) => void): void {
-  for (const line of formatTurnDashboard(session, "resolved")) {
+function writeResolvedTurn(session: SoloGameSession, resolvedActions: readonly ResolvedAction[], writeLine: (line: string) => void): void {
+  for (const line of formatTurnDashboard(session, { status: "resolved", resolvedActions })) {
     writeLine(UiStyle.history(line))
   }
 
   if (session.state.winnerPlayerId === undefined) {
     writeLine(UiStyle.muted(TURN_SEPARATOR))
+  }
+}
+
+function formatActionOutcome(outcome: EffectOutcome): string {
+  switch (outcome.type) {
+    case "RESOLVED":
+      return `${UiStyle.positive("✓")} ${outcome.result}`
+    case "PREVENTED":
+      return `${UiStyle.warning("○")} ${outcome.reason}`
+    default:
+      Assert.isExhausted(outcome)
+      return ""
   }
 }
 
@@ -403,9 +432,6 @@ function formatMechanic(mechanic: Mechanic): string {
       return `gains ${mechanic.quantity} ${mechanic.resourceType}`
     case "VICTORY":
       return "wins the game"
-    default:
-      Assert.isExhausted(mechanic)
-      return ""
   }
 }
 

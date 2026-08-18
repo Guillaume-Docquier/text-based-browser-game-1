@@ -6,12 +6,12 @@ export type EffectError = EffectFailed
 /**
  * An effect failed to resolve because something was missing.
  */
-type EffectFailed = Readonly<{ _tag: "FAILED"; error: string }>
+type EffectFailed = Readonly<{ type: "FAILED"; error: string }>
 
 export const EffectError = {
-  Failed: ({ error }: Omit<EffectFailed, "_tag">): EffectFailed => {
+  Failed: ({ error }: Omit<EffectFailed, "type">): EffectFailed => {
     return {
-      _tag: "FAILED",
+      type: "FAILED",
       error,
     }
   },
