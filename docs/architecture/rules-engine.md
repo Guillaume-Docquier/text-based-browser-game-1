@@ -8,6 +8,8 @@ The Actions are a data driven composition of Mechanics, where each Mechanic maps
 
 Because the Rules Engine is data driven and persistence agnostic, we can play games entirely offline in the terminal through the `pnpm playtest` command.
 
+![Rules Engine Turn Resolution pipeline](../../.github/images/rules-engine-turn-resolution.png)
+
 ## Ruleset
 
 The Rules Engine defines clear models to define Actions. The Ruleset and its Actions are entirely data driven.
@@ -19,6 +21,8 @@ This means that creating Actions and balancing the game is nearly free, and mult
 However, it also means that removing Mechanics entirely or changing how Effects are resolved is a breaking change that should be reviewed carefully. At a later stage, we will probably have to introduce engine versioning to support multiple engines.
 
 When we support multiple engines, we will probably prevent games from starting with old engine versions so that we can get rid of the code once all games running on that version are over. It's also possible that we keep multiple engines, but we'd highly prefer supporting a single engine and many Rulesets than supporting many engines.
+
+![Ruleset model to runtime Effects](../../.github/images/rules-engine-data-model.png)
 
 ## Determinism
 
@@ -37,6 +41,8 @@ All action submissions are validated before any resolution starts. Any invalid a
 A failed turn state is expected to not be persisted, as the turn resolver stopped at the first error and the state is probably incomplete.
 
 If any Effect fails to process at a later time, for any reason, then the turn will also be failed. Passing the validation should ensure that every Action will be able to resolve correctly, so if an Effect cannot properly resolve, it will be treated as fatal and fail the turn.
+
+![Rules Engine success and failure boundary](../../.github/images/rules-engine-failure-boundary.png)
 
 ## Turn Context
 
