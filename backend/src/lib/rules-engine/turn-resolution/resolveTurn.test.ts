@@ -1,4 +1,4 @@
-import { Assert, Result } from "@guillaume-docquier/tools-ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
@@ -72,7 +72,6 @@ describe("resolveTurn", () => {
 
     // Act
     const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
-    Assert.isSuccess(result)
 
     // Assert
     expect(result).toEqual<typeof result>(

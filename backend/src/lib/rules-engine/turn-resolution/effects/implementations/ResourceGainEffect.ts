@@ -17,7 +17,7 @@ export class ResourceGainEffect extends Effect {
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
-    const player = context.state.players[this.targetPlayerId]
+    const player = context.turnState.players[this.targetPlayerId]
     if (player === undefined) {
       return Result.Failure(EffectError.Failed({ error: `Could not resolve player with id "${this.targetPlayerId}"` }))
     }

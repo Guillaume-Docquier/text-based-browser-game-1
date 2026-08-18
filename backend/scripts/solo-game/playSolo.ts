@@ -258,6 +258,7 @@ function addAction(session: SoloGameSession, actionDefinitionId: string, actionS
       ...session.state.actionSubmissions,
       {
         id: `turn-${session.turn}-${actionDefinition.id}-${actionSubmissionNumber}`,
+        submittedByPlayerId: player.id,
         actionDefinitionId: actionDefinition.id,
         targets: {
           self: player.id,

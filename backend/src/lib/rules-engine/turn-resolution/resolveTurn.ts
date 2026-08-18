@@ -17,8 +17,8 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): Result<ResolvedTurnState, ResolveTurnError> {
   const context: TurnContext = {
     rng,
-    state: turnState,
-    effects: new EffectPool([]),
+    turnState,
+    effectPool: new EffectPool([]),
     ruleset,
   }
   const actionSubmissions = turnState.actionSubmissions
@@ -31,7 +31,7 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
 
   // Create effects
   const monotonicIdFactory = MonotonicIdFactory.create()
-  context.effects.addMany(
+  context.effectPool.addMany(
     actionSubmissions.flatMap((actionSubmission) => EffectFactory.fromActionSubmission(actionSubmission, ruleset, monotonicIdFactory)),
   )
 
@@ -42,16 +42,16 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
   }
 
   // Check invariants
-  if (!context.effects.isEmpty()) {
-    return Result.Failure(ResolveTurnError.UnresolvedEffects({ effects: context.effects.getAll().map((effect) => effect.toJson()) }))
+  if (!context.effectPool.isEmpty()) {
+    return Result.Failure(ResolveTurnError.UnresolvedEffects({ effects: context.effectPool.getAll().map((effect) => effect.toJson()) }))
   }
 
   return Result.Success({
-    resolvedActions: context.state.actionSubmissions.map((actionSubmission) => ({
+    resolvedActions: context.turnState.actionSubmissions.map((actionSubmission) => ({
       actionSubmission,
-      actionOutcomes: context.effects.getOutcomes(actionSubmission),
+      actionOutcomes: context.effectPool.getOutcomes(actionSubmission),
     })),
-    players: context.state.players,
-    winnerPlayerId: context.state.winnerPlayerId,
+    players: context.turnState.players,
+    winnerPlayerId: context.turnState.winnerPlayerId,
   })
 }

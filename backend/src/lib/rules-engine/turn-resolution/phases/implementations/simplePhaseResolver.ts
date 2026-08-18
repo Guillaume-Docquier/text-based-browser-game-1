@@ -7,7 +7,7 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
  * A resolver that collects a single mechanic type and resolves them with no further logic.
  */
 export function simplePhaseResolver(mechanicType: Mechanic["type"], context: TurnContext): Result<TurnContext, ResolvePhaseError> {
-  for (const effect of context.effects.getEffectsOfType(mechanicType)) {
+  for (const effect of context.effectPool.getEffectsOfType(mechanicType)) {
     const outcome = effect.resolve(context)
     if (Result.isFailure(outcome)) {
       return Result.Failure(ResolvePhaseError.FailedEffect({ error: outcome.error }))

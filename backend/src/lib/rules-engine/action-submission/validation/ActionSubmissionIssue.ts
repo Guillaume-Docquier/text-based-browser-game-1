@@ -1,11 +1,11 @@
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 
-export type ActionSubmissionIssue = {
+export type ActionSubmissionIssue = Readonly<{
   issue: string
   actionSubmissionId: string
   actionDefinitionId: string
   actionDefinitionName: string | undefined
-}
+}>
 
 export const ActionSubmissionIssue = {
   create: ({

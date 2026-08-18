@@ -27,7 +27,7 @@ export abstract class Effect {
   public resolve(context: TurnContext): Result<EffectOutcome, EffectError> {
     const result = this.doResolve(context)
     if (Result.isSuccess(result)) {
-      context.effects.recordOutcome(this, result.value)
+      context.effectPool.recordOutcome(this, result.value)
     }
 
     return result

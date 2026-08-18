@@ -8,12 +8,14 @@ import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Res
  */
 export type TurnState = {
   readonly actionSubmissions: readonly ActionSubmission[]
-  readonly players: Record<
-    PlayerId,
-    {
-      id: PlayerId
-      resources: Record<ResourceType, number>
-    }
+  readonly players: Readonly<
+    Record<
+      PlayerId,
+      {
+        id: PlayerId
+        resources: Record<ResourceType, number>
+      }
+    >
   >
   /**
    * If set, the game ends.

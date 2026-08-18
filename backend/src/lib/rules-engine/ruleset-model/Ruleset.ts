@@ -8,5 +8,5 @@ export type Ruleset = Readonly<{
    * The player-facing name of this Ruleset.
    */
   name: string
-  actionDefinitions: Readonly<Record<string, ActionDefinition>>
+  actionDefinitions: Readonly<Record<ActionDefinition["id"], ActionDefinition>>
 }>
