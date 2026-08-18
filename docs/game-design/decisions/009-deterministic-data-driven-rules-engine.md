@@ -2,12 +2,12 @@
 
 ## Status
 
-Planned
+Implemented
 
-- [ ] Phases
-- [ ] Mechanics
-- [ ] Actions
-- [ ] Rulesets
+- [x] Phases
+- [x] Mechanics
+- [x] Actions
+- [x] Rulesets
 
 ## Context
 
@@ -17,9 +17,9 @@ Designers also need to combine familiar rules into new Actions and tune a game w
 
 ## Decision
 
-Actions declaratively compose reusable Mechanics. An Action Definition describes its presentation, choices, and ordered Mechanics rather than owning bespoke resolution code.
+Actions declaratively compose reusable Mechanics. An Action Definition describes its presentation, choices, and Mechanics rather than owning bespoke resolution code.
 
-A Ruleset defines the available Action Definitions, their Mechanics, and the ordered Phases through which submitted Actions resolve. Phases provide coarse ordering between kinds of change; Mechanics within a Phase also follow explicit deterministic ordering and tie-breaking rules. Composition is ordered: one Mechanic may change the state or Effects that later Mechanics observe, cancel, or modify.
+A Ruleset defines the available Action Definitions and their Mechanics. The Rules Engine defines the ordered Phases through which submitted Actions resolve. Phases provide coarse ordering between kinds of change, and each Phase is responsible for coordinating and resolving its Effects according to that Phase's needs. One Mechanic may change the state or Effects that later Mechanics observe, cancel, or modify.
 
 The initial scope gives each game one persisted Ruleset. That Ruleset is fixed when the game starts so every Turn in that game continues to use the same rules. Initially, games may all use the same developer-authored default Ruleset.
 
@@ -31,14 +31,14 @@ Player-authored Rulesets and multiple simultaneous games using different alterna
 
 - Players can learn reusable Mechanics and apply that knowledge across many Actions.
 - Designers can add, remove, and tune Actions by composing established behavior.
-- Explicit ordering makes simultaneous choices more predictable and explainable.
+- Explicit engine-owned Phase ordering makes simultaneous choices more predictable and explainable.
 - Deterministic resolution supports replay, debugging, and trustworthy outcome logs.
 - Persisted Rulesets give games stable rules while leaving a path to alternate modes and player-authored content.
 
 ## Cons
 
 - A finite Mechanic vocabulary may not express every desirable Action cleanly; one-off behavior can pressure the engine toward excessive abstraction.
-- Ordered composition creates interaction risks when an earlier Mechanic changes, cancels, or invalidates a later one.
+- Interactions across engine-ordered Phases create risks when an earlier Mechanic changes, cancels, or invalidates a later one.
 - Rulesets and Action submissions require strong validation so invalid combinations cannot enter or corrupt a game.
 - Ruleset evolution requires explicit versioning and compatibility rules because active games must keep resolving against their persisted definition.
 - Deterministic random outcomes require carefully specified seeds, ordering, and tie-breakers to remain reproducible.
