@@ -29,7 +29,7 @@ Relates to:
 - [System 009-infrastructure](./009-infrastructure.md)
 - [System 010-fleets](./010-fleets.md)
 - [System 011-combat](./011-combat.md)
-- [System 012-travel](./012-travel.md)
+- [System 012-movement](012-movement.md)
 - [System 014-resources](./014-resources.md)
 - [System 015-rules-engine](./015-rules-engine.md)
 
@@ -104,31 +104,31 @@ Agendas are broad Actions, generally Empire or Planet wide, that have a noticeab
 
 Directives are targeted Actions, generally affecting a Planet or a Unit, that have little to no impact on the player Ideologies. They aim to have concrete, immediate effects.
 
-| Directive            | Tier | Conditions | Source         | Target            | Costs                             | Effects                                                                                        | Core |
-| -------------------- | ---- | ---------- | -------------- | ----------------- | --------------------------------- | ---------------------------------------------------------------------------------------------- | ---- |
-| Attack Move          | T4   | N/A        | Fleet Strength | Planet            | 5 Influence, 1 fuel               | Travel selected Strength at Speed 1, Range 5. Assault on arrival.                              |      |
-| Attack Move          | T1   | N/A        | Fleet Strength | Planet            | 5 Influence, 5 fuel, 5 energy     | Travel selected Strength at Speed 5, Range 25. Surprise Assault on arrival.                    |      |
-| Move                 | T4   | N/A        | Fleet Strength | Planet            | 3 Influence, 1 fuel               | Travel selected Strength at Speed 1, Range 5.                                                  | Yes  |
-| Move                 | T1   | N/A        | Fleet Strength | Planet            | 3 Influence, 5 fuel               | Travel selected Strength at Speed 5, Range 25.                                                 |      |
-| Stealth Move         | T4   | N/A        | Fleet Strength | Planet            | 3 Influence, 1 fuel, 5 energy     | Travel selected Strength at Speed 1, Range 3. Cloaked in transit.                              |      |
-| Stealth Move         | T1   | N/A        | Fleet Strength | Planet            | 3 Influence, 3 fuel, 10 energy    | Travel selected Strength at Speed 3, Range 9. Cloaked in transit and for 1 Turn after arrival. |      |
-| Post Trade           | T4   | N/A        | Self           | Trade Board       | 5 Influence, Trade Offering       | Post a Trade Offering for 5 Turns with 15% Tax.                                                | Yes  |
-| Post Trade           | T1   | N/A        | Self           | Trade Board       | 3 Influence, Trade Offering       | Post a Trade Offering for 10 Turns with 0% Tax.                                                |      |
-| Bid on Trade         | T4   | N/A        | Self           | Open Trade        | 5 Influence, Bid Payment          | Bid at a 100% Rate on an Open Trade.                                                           | Yes  |
-| Bid on Trade         | T1   | N/A        | Self           | Open Trade        | 3 Influence, Bid Payment          | Bid at a 150% Rate on an Open Trade.                                                           |      |
-| Cancel Trade         | T4   | N/A        | Self           | Own Open Trade    | 1 Influence                       | Cancel the Trade. Refund its Trade Offering unless the Trade settles this Turn.                | Yes  |
-| Post Contract        | T4   | N/A        | Self           | Contract Board    | Contract Reward                   | Post a Contract for 3 Turns with a 100% Reward Rate.                                           | Yes  |
-| Post Contract        | T1   | N/A        | Self           | Contract Board    | Contract Reward                   | Post a Contract for 6 Turns with a 200% Reward Rate.                                           |      |
-| Bid on Contract      | T4   | N/A        | Self           | Open Contract     | Action Costs                      | Bid to complete an Open Contract for 100% of your Bid Reward.                                  | Yes  |
-| Bid on Contract      | T1   | N/A        | Self           | Open Contract     | Action Costs                      | Bid to complete an Open Contract for 200% of your Bid Reward.                                  |      |
-| Cancel Contract      | T4   | N/A        | Self           | Own Open Contract | 1 Influence                       | Cancel the Contract. Refund its escrow unless the Contract settles this Turn.                  | Yes  |
-| Colonize Planet      | T4   | N/A        | Fleet          | Unclaimed Planet  | 25 Influence, 1 colony            | Travel at Speed 1, Range 5. Colonize on arrival.                                               |      |
-| Colonize Planet      | T1   | N/A        | Fleet          | Unclaimed Planet  | 25 Influence, 1 colony, 20 energy | Travel at Speed 5, Range 5. Colonize on arrival. Develop at 200% for 10 Turns.                 |      |
-| Build Infrastructure | T4   | N/A        | Self           | Owned Planet      | 10 Influence, Infrastructure Cost | Build Standard or lower Infrastructure.                                                        | Yes  |
-| Build Infrastructure | T1   | N/A        | Self           | Owned Planet      | 10 Influence, Infrastructure Cost | Build Exceptional or lower Infrastructure.                                                     |      |
-| Build Fleet          | T4   | N/A        | Self           | Owned Planet      | 10 Influence, 5 Metal             | Build a Fleet with Strength 5.                                                                 | Yes  |
-| Build Fleet          | T1   | N/A        | Self           | Owned Planet      | 10 Influence, 20 Metal            | Build a Fleet with Strength 20.                                                                |      |
-| ...                  | ...  | ...        | ...            | ...               | ...                               | ...                                                                                            |      |
+| Directive            | Tier | Conditions | Source         | Target            | Costs                             | Effects                                                                                      | Core |
+| -------------------- | ---- | ---------- | -------------- | ----------------- | --------------------------------- | -------------------------------------------------------------------------------------------- | ---- |
+| Attack Move          | T4   | N/A        | Fleet Strength | Planet            | 5 Influence, 1 fuel               | Move selected Strength at Speed 1, Range 5. Assault on arrival.                              |      |
+| Attack Move          | T1   | N/A        | Fleet Strength | Planet            | 5 Influence, 5 fuel, 5 energy     | Move selected Strength at Speed 5, Range 25. Surprise Assault on arrival.                    |      |
+| Move                 | T4   | N/A        | Fleet Strength | Planet            | 3 Influence, 1 fuel               | Move selected Strength at Speed 1, Range 5.                                                  | Yes  |
+| Move                 | T1   | N/A        | Fleet Strength | Planet            | 3 Influence, 5 fuel               | Move selected Strength at Speed 5, Range 25.                                                 |      |
+| Stealth Move         | T4   | N/A        | Fleet Strength | Planet            | 3 Influence, 1 fuel, 5 energy     | Move selected Strength at Speed 1, Range 3. Cloaked in transit.                              |      |
+| Stealth Move         | T1   | N/A        | Fleet Strength | Planet            | 3 Influence, 3 fuel, 10 energy    | Move selected Strength at Speed 3, Range 9. Cloaked in transit and for 1 Turn after arrival. |      |
+| Post Trade           | T4   | N/A        | Self           | Trade Board       | 5 Influence, Trade Offering       | Post a Trade Offering for 5 Turns with 15% Tax.                                              | Yes  |
+| Post Trade           | T1   | N/A        | Self           | Trade Board       | 3 Influence, Trade Offering       | Post a Trade Offering for 10 Turns with 0% Tax.                                              |      |
+| Bid on Trade         | T4   | N/A        | Self           | Open Trade        | 5 Influence, Bid Payment          | Bid at a 100% Rate on an Open Trade.                                                         | Yes  |
+| Bid on Trade         | T1   | N/A        | Self           | Open Trade        | 3 Influence, Bid Payment          | Bid at a 150% Rate on an Open Trade.                                                         |      |
+| Cancel Trade         | T4   | N/A        | Self           | Own Open Trade    | 1 Influence                       | Cancel the Trade. Refund its Trade Offering unless the Trade settles this Turn.              | Yes  |
+| Post Contract        | T4   | N/A        | Self           | Contract Board    | Contract Reward                   | Post a Contract for 3 Turns with a 100% Reward Rate.                                         | Yes  |
+| Post Contract        | T1   | N/A        | Self           | Contract Board    | Contract Reward                   | Post a Contract for 6 Turns with a 200% Reward Rate.                                         |      |
+| Bid on Contract      | T4   | N/A        | Self           | Open Contract     | Action Costs                      | Bid to complete an Open Contract for 100% of your Bid Reward.                                | Yes  |
+| Bid on Contract      | T1   | N/A        | Self           | Open Contract     | Action Costs                      | Bid to complete an Open Contract for 200% of your Bid Reward.                                |      |
+| Cancel Contract      | T4   | N/A        | Self           | Own Open Contract | 1 Influence                       | Cancel the Contract. Refund its escrow unless the Contract settles this Turn.                | Yes  |
+| Colonize Planet      | T4   | N/A        | Fleet          | Unclaimed Planet  | 25 Influence, 1 colony            | Move at Speed 1, Range 5. Colonize on arrival.                                               |      |
+| Colonize Planet      | T1   | N/A        | Fleet          | Unclaimed Planet  | 25 Influence, 1 colony, 20 energy | Move at Speed 5, Range 5. Colonize on arrival. Develop at 200% for 10 Turns.                 |      |
+| Build Infrastructure | T4   | N/A        | Self           | Owned Planet      | 10 Influence, Infrastructure Cost | Build Standard or lower Infrastructure.                                                      | Yes  |
+| Build Infrastructure | T1   | N/A        | Self           | Owned Planet      | 10 Influence, Infrastructure Cost | Build Exceptional or lower Infrastructure.                                                   |      |
+| Build Fleet          | T4   | N/A        | Self           | Owned Planet      | 10 Influence, 5 Metal             | Build a Fleet with Strength 5.                                                               | Yes  |
+| Build Fleet          | T1   | N/A        | Self           | Owned Planet      | 10 Influence, 20 Metal            | Build a Fleet with Strength 20.                                                              |      |
+| ...                  | ...  | ...        | ...            | ...               | ...                               | ...                                                                                          |      |
 
 Note: Every Post Trade/Contract Action always comes with a Cancel Trade/Contract Action. It will not be explicitly written out in all documents to alleviate the text.
 
@@ -152,7 +152,7 @@ The Action tables use compact player-facing effect text. This text summarizes th
 | Infrastructure | [009-infrastructure](./009-infrastructure.md) |
 | Fleets         | [010-fleets](./010-fleets.md)                 |
 | Assault        | [011-combat](./011-combat.md)                 |
-| Travel         | [012-travel](./012-travel.md)                 |
+| Movement       | [012-movement](012-movement.md)               |
 | Cloaking       | [010-fleets](./010-fleets.md)                 |
 
 ### Action Pool

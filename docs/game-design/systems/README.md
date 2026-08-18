@@ -6,9 +6,10 @@ This index summarizes the game's systems. Read the related entries when a mechan
 
 These Systems have live mechanics, but some documented rules remain planned.
 
-| System                          | Summary                                                          |
-| ------------------------------- | ---------------------------------------------------------------- |
-| [008-planets](./008-planets.md) | How Planets, their Attributes, and Colonization shape expansion. |
+| System                                    | Summary                                                                                 |
+| ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| [008-planets](./008-planets.md)           | How Planets, their Attributes, and Colonization shape expansion.                        |
+| [015-rules-engine](./015-rules-engine.md) | How the Rules Engine turns Ruleset Action Definitions into phased Effects and outcomes. |
 
 ## Not Implemented Systems
 
@@ -26,6 +27,5 @@ These Systems describe intended rules that are not yet implemented in the game.
 | [009-infrastructure](./009-infrastructure.md)               | How empires improve their owned Planets.                                                  |
 | [010-fleets](./010-fleets.md)                               | How Fleets combine automatically and split when they move.                                |
 | [011-combat](./011-combat.md)                               | How Fleet assaults and Surprise Assaults resolve.                                         |
-| [012-travel](./012-travel.md)                               | How Fleets travel between Planets.                                                        |
+| [012-movement](012-movement.md)                             | How Fleets move between Planets.                                                          |
 | [014-resources](./014-resources.md)                         | How distinct thematic resources are acquired, held, spent, and made scarce.               |
-| [015-rules-engine](./015-rules-engine.md)                   | How Ruleset Action Definitions become phased Effects.                                     |

@@ -1,0 +1,48 @@
+{
+  "rule_sets": [
+    {
+      "matching_content_path": "**/*.test.ts",
+      "rules": [],
+      "thresholds": [
+        {
+          "name": "function_duplication_min_lines_of_code_for_check",
+          "value": 20
+        },
+        {
+          "name": "function_duplication_min_similarity_percentage",
+          "value": 85
+        },
+        {
+          "name": "function_lines_of_code_alert",
+          "value": 750
+        },
+        {
+          "name": "function_lines_of_code_warning",
+          "value": 100
+        }
+      ]
+    },
+    {
+      "matching_content_path": "**/*.spec.ts",
+      "rules": [],
+      "thresholds": [
+        {
+          "name": "function_duplication_min_lines_of_code_for_check",
+          "value": 20
+        },
+        {
+          "name": "function_duplication_min_similarity_percentage",
+          "value": 85
+        },
+        {
+          "name": "function_lines_of_code_alert",
+          "value": 750
+        },
+        {
+          "name": "function_lines_of_code_warning",
+          "value": 100
+        }
+      ]
+    }
+  ]
+}

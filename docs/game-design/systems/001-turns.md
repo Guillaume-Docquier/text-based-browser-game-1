@@ -19,21 +19,21 @@ Relates to:
 - [System 003-actions](./003-actions.md)
 - [System 006-trade](./006-trade.md)
 - [System 007-contracts](./007-contracts.md)
-- [System 012-travel](./012-travel.md)
+- [System 012-movement](012-movement.md)
 - [System 011-combat](./011-combat.md)
 - [System 008-planets](./008-planets.md)
 - [System 015-rules-engine](./015-rules-engine.md)
 
 ## Core Concepts
 
-| Concept           | Definition                                                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------------------- |
-| Turn              | The period during which players can submit and revise Actions.                                        |
-| Turn Resolution   | The internal processing period that begins when a Turn ends and produces the next game state.         |
-| Phase             | A coarse, ordered stage of Turn Resolution that determines when a category of Effects resolves.       |
-| Tick              | An ordered precision sub-step inside the Travel Phase, used to sequence travel progress and arrivals. |
-| Readiness         | A public state a player can set. When all players are Ready, the Turn ends.                           |
-| Action Submission | A player's proposed use of an Available Action Instance, locked for processing when the Turn ends.    |
+| Concept           | Definition                                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| Turn              | The period during which players can submit and revise Actions.                                            |
+| Turn Resolution   | The internal processing period that begins when a Turn ends and produces the next game state.             |
+| Phase             | A coarse, ordered stage of Turn Resolution that determines when a category of Effects resolves.           |
+| Tick              | An ordered precision sub-step inside the Movement Phase, used to sequence movement progress and arrivals. |
+| Readiness         | A public state a player can set. When all players are Ready, the Turn ends.                               |
+| Action Submission | A player's proposed use of an Available Action Instance, locked for processing when the Turn ends.        |
 
 ## Rules
 
@@ -45,11 +45,13 @@ During a Turn, players can declare themselves Ready. This is public information.
 
 When a Turn ends, all Action Submissions are locked in and Turn Resolution begins. Players cannot submit or revise them during Turn Resolution. The server validates locked submissions and the [System 015-rules-engine](./015-rules-engine.md) turns their composed Mechanics into Effects.
 
-Turn Resolution processes Effects through ordered Phases. Phases are coarse ordering boundaries such as Pay Costs, Travel, Combat, and Colonization; their order is defined by the game's Ruleset. They do not create additional player Turns or opportunities to react.
+Turn Resolution processes Effects through the fixed, engine-owned Phase order: Pay Costs, Movement, Combat, Planet, Colonization, Income, then Victory. A Ruleset does not configure this sequence. Phases are coarse ordering boundaries and do not create additional player Turns or opportunities to react.
 
-The Travel Phase uses 20 Ticks to provide finer chronological ordering within the Phase. Travel Ticks establish Fleet progress and arrival order, and events assigned to the same Tick are simultaneous. Combat, Colonization, and other Phases do not each run through those 20 Ticks.
+The Movement Phase uses 20 Ticks to provide finer chronological ordering within the Phase. Movement Ticks establish Fleet progress and arrival order, and events assigned to the same Tick are simultaneous. Combat, Colonization, and other Phases do not each run through those 20 Ticks.
 
-After the Travel Phase, Combat resolves from the final Fleet positions. Colonization resolves in its later Phase using the arrival order established by Travel Ticks. Other Ruleset Phases may occur between Combat and Colonization. A Fleet that arrives during the Turn is present for Combat at its destination before it can colonize that Planet.
+After the Movement Phase, Combat resolves from the final Fleet positions. The Planet Phase occurs before Colonization. Colonization then uses the arrival order established by Movement Ticks. A Fleet that arrives during the Turn is present for Combat at its destination before it can colonize that Planet.
+
+If a locked Action Submission is invalid or an Effect fails to resolve, Turn Resolution does not complete. The Turn remains locked and is retried from the same pre-resolution state, Action Submissions, and deterministic random input. Partial state changes and Effect Outcomes from the failed attempt are discarded.
 
 When Turn Resolution completes, its resulting game state becomes the state from which players take their Actions in the next Turn.
 

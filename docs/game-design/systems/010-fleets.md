@@ -6,12 +6,12 @@ Not Implemented
 
 ## Purpose
 
-Fleets are simple mobile military units. They provide an empire's presence beyond its Planets and participate in travel, combat, colonization, and other fleet-related systems.
+Fleets are simple mobile military units. They provide an empire's presence beyond its Planets and participate in movement, combat, colonization, and other fleet-related systems.
 
 Relates to:
 
 - [System 003-actions](./003-actions.md)
-- [System 012-travel](./012-travel.md)
+- [System 012-movement](012-movement.md)
 - [System 011-combat](./011-combat.md)
 - [System 008-planets](./008-planets.md)
 - [System 015-rules-engine](./015-rules-engine.md)

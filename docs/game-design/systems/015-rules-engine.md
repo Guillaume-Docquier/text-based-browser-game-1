@@ -2,7 +2,14 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
+
+- [x] Data Driven Rules Engine
+- [x] Standard Ruleset
+- [x] Effect Outcomes
+- [ ] Production Turn Processing Integration
+- [ ] Data Driven Frontend
+- [ ] Available Actions & Multiple Actions
 
 ## Purpose
 
@@ -24,22 +31,24 @@ Relates to:
 - [System 009-infrastructure](./009-infrastructure.md)
 - [System 010-fleets](./010-fleets.md)
 - [System 011-combat](./011-combat.md)
-- [System 012-travel](./012-travel.md)
+- [System 012-movement](./012-movement.md)
 - [System 014-resources](./014-resources.md)
 
 ## Core Concepts
 
 | Concept                   | Definition                                                                                                                                                   |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Ruleset                   | The persisted rules used by one game, including its Action Definitions, Mechanics, Phase order, and other game settings.                                     |
+| Ruleset                   | The persisted rules used by one game, including its Action Definitions, Mechanics, and other game settings.                                                  |
 | Action Definition         | Declarative content that describes an Action's presentation, Mechanics, source and input requirements, and target slots.                                     |
 | Available Action Instance | A currently usable instance of an Action Definition, including its identity and the exact source, input, and target candidates the server currently permits. |
 | Action Submission         | A player's proposed use of an Available Action Instance, including the selected source, inputs, and targets.                                                 |
+| Resolved Action           | An Action Submission and its Effect Outcomes after the Turn has been resolved.                                                                               |
 | Mechanic Definition       | The contract for one reusable kind of game behavior, including its supported values and required source, input, and target data.                             |
 | Mechanic                  | A configured use of a Mechanic Definition within an Action Definition.                                                                                       |
-| Effect                    | A concrete state change produced from a Mechanic during Turn Resolution.                                                                                     |
+| Effect                    | A concrete attempt to apply game behavior produced from a Mechanic during Turn Resolution.                                                                   |
+| Effect Outcome            | The recorded result of resolving an Effect: either `Resolved` when applied or `Prevented` as an expected game result.                                        |
 | Effect Pool               | The complete working collection of unresolved Effects for the current Turn Resolution.                                                                       |
-| Phase                     | A coarse, ordered stage of Turn Resolution that determines when a category of Effects can resolve.                                                           |
+| Phase                     | An engine-owned, ordered stage of Turn Resolution that determines when a category of Effects can resolve.                                                    |
 
 ## Rules
 
@@ -47,7 +56,7 @@ Relates to:
 
 The rules boundary is:
 
-1. A Ruleset persists Action Definitions. Each definition contains the presentation data needed to display the Action, its composed Mechanics, its source and input requirements, and its target slots.
+1. A Ruleset persists Action Definitions. Each definition contains the Action metadata (id, name, tier, etc.), its composed Mechanics, its source and input requirements, and its target slots.
 2. For each player and Turn, the server evaluates the current game state and produces Available Action Instances.
 3. For every Available Action Instance, the server sends the exact currently valid candidates for every target slot, as well as the permitted source and input choices. The client displays and submits these choices; it does not derive legality from player state.
 4. An Action Submission identifies the Available Action Instance and the player's selected source, inputs, and targets.
@@ -66,26 +75,37 @@ The data-driven model leaves a future path for the engine to host multiple games
 
 ### Effect Resolution
 
-Turn Resolution creates one Effect Pool from locked Action Submissions and automatic game rules. The engine resolves that pool through ordered Phases:
+Turn Resolution creates one Effect Pool from locked Action Submissions and automatic game rules. The Rules Engine resolves that pool through this fixed, engine-owned Phase order:
 
-| Phase        | Responsibility                                                                                                      |
-| ------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Pay Costs    | Validate and apply the costs committed by locked Action Submissions.                                                |
-| Travel       | Resolve Fleet Travel and chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md). |
-| Combat       | Resolve hostile Fleet encounters after Travel.                                                                      |
-| Governance   | Resolve changes to empire governance and Ideological Alignment.                                                     |
-| Income       | Resolve Resource production and other recurring gains.                                                              |
-| Colonization | Resolve attempts to claim Unclaimed Planets after Travel and Combat.                                                |
+| Phase        | Responsibility                                                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Pay Costs    | Validate and apply the costs committed by locked Action Submissions.                                                  |
+| Movement     | Resolve Fleet Movement and chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md). |
+| Combat       | Resolve hostile Fleet encounters after Movement.                                                                      |
+| Planet       | Resolve Planet activities.                                                                                            |
+| Colonization | Resolve attempts to claim Unclaimed Planets after Movement and Combat.                                                |
+| Income       | Resolve Resource production and other recurring gains.                                                                |
+| Victory      | Resolve the winning player, if any.                                                                                   |
 
-Phases are coarse ordering boundaries. Ticks are finer ordering steps used inside the Travel Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
+The Phase sequence belongs to the Rules Engine and is the same for every Ruleset. Each Phase is free to collect, order, coordinate, and resolve its Effects in the way that Phase requires.
 
-Each Effect belongs to a Phase. The Ruleset must define a complete deterministic order and tie-breaking behavior for Effects within a Phase. A Mechanic may create, modify, cancel, or make a later Effect invalid, but it must do so through explicit rules whose outcome is independent of runtime iteration order.
+Phases are coarse ordering boundaries. Ticks are finer ordering steps used inside the Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
+
+Each Effect belongs to a Phase that will orchestrate its resolution. A Mechanic may create, modify, cancel, or make a later Effect invalid.
 
 Random-seeming outcomes, such as selecting among tied candidates, use deterministic random values derived from persisted game data. The same Ruleset and game inputs therefore produce the same result.
 
 Pay Costs occurs before downstream Effects. A later cancellation or invalidation does not imply a refund: Influence and other Resource treatment follows [System 003-actions](./003-actions.md), [System 014-resources](./014-resources.md), and the relevant Action Definition. Actions that can receive refunds are done via using a refund Mechanic in their definition.
 
 After the final Phase, the Effect Pool must be empty. Remaining Effects indicate an invalid Ruleset, an unsupported interaction, or an engine defect. They must not be silently ignored.
+
+### Effect Outcomes and Failed Resolution
+
+Every Effect that resolves normally records an Effect Outcome. `Resolved` means the Effect was applied. `Prevented` is also a completed, expected game result, such as losing a competition with another Effect; it does not fail Turn Resolution. Outcomes are grouped under the corresponding Resolved Action.
+
+Effect Outcomes support both debugging and player-facing explanations of previous Turns. A player can inspect all outcomes produced by their own Actions for the entire game. A player can also inspect outcomes from other Effects when the global visibility rules determine that those outcomes affected them, such as being attacked. Outcome visibility is outside the Rules Engine: the engine resolves Effects and records outcomes without deciding who can see them.
+
+An Effect resolution failure or an invalid locked Action Submission indicates an engine or data defect. The Turn does not complete, remains locked, and must be retried from the same pre-resolution state with the same Action Submissions and deterministic random input. All partial state changes and Effect Outcomes from the failed attempt are discarded. Only a fully completed Turn contributes game state or player-visible outcome history.
 
 ## Potential Flaws
 
