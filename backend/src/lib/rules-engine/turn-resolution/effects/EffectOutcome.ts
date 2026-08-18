@@ -6,13 +6,13 @@ export type EffectOutcome = EffectResolved | EffectPrevented
 /**
  * The effect fully resolved.
  */
-type EffectResolved = { _tag: "RESOLVED"; result: string }
+type EffectResolved = Readonly<{ _tag: "RESOLVED"; result: string }>
 
 /**
  * The effect did not resolve because it was prevented by other normal events.
  * This usually happen when multiple effects compete for something.
  */
-type EffectPrevented = { _tag: "PREVENTED"; reason: string }
+type EffectPrevented = Readonly<{ _tag: "PREVENTED"; reason: string }>
 
 export const EffectOutcome = {
   Resolved: ({ result }: Omit<EffectResolved, "_tag">): EffectResolved => {

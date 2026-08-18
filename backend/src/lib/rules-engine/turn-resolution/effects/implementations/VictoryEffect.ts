@@ -9,12 +9,12 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
 export class VictoryEffect extends Effect {
   private readonly targetPlayerId: string
 
-  public constructor(id: number, mechanic: VictoryMechanic, targets: ActionSubmission["targets"]) {
-    super(id, mechanic.type)
-    this.targetPlayerId = targets[mechanic.targets.player.tag]
+  public constructor(id: number, mechanic: VictoryMechanic, actionSubmission: ActionSubmission) {
+    super(id, mechanic.type, actionSubmission)
+    this.targetPlayerId = actionSubmission.targets[mechanic.targets.player.tag]
   }
 
-  public override resolve(context: TurnContext): Result<EffectOutcome, EffectError> {
+  protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
     if (context.state.winnerPlayerId !== undefined) {
       return Result.Success(EffectOutcome.Prevented({ reason: `Another player ${context.state.winnerPlayerId} already won the game` }))
     }

@@ -9,11 +9,10 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
  * Validates that all the action submission costs can be paid.
  */
 export function validateCosts(
-  actionSubmissions: ActionSubmission[],
+  actionSubmissions: readonly ActionSubmission[],
   ruleset: Ruleset,
   turnState: DeepReadonly<TurnState>,
 ): Result<ActionSubmissionIssue[], string> {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- We're making a copy to edit it
   const turnStateCopy = structuredClone(turnState) as TurnState
   const issues: ActionSubmissionIssue[] = []
 

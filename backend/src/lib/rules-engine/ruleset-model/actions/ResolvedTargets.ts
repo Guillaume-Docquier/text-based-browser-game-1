@@ -4,6 +4,6 @@ import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/A
  * The action definition targets are always an empty string.
  * The resolved targets point to actual target ids.
  */
-export type ResolvedTargets = {
+export type ResolvedTargets = Readonly<{
   [TargetTag in keyof ActionDefinition["targets"]]: string
-}
+}>

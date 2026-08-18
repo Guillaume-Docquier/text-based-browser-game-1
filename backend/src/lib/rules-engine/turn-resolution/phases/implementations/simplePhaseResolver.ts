@@ -12,8 +12,6 @@ export function simplePhaseResolver(mechanicType: Mechanic["type"], context: Tur
     if (Result.isFailure(outcome)) {
       return Result.Failure(ResolvePhaseError.FailedEffect({ error: outcome.error }))
     }
-
-    context.effects.recordOutcome(effect, outcome.value)
   }
 
   return Result.Success(context)

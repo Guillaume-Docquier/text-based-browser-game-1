@@ -29,13 +29,13 @@ describe("validateActionSubmissions", () => {
       },
     })
     const turnState = createTurnStateStub({
+      actionSubmissions: [actionSubmission],
       players: {
         [playerId]: {
           id: playerId,
           resources: {
             [ResourceType.MONEY]: 5,
           },
-          actionSubmissions: [actionSubmission],
         },
       },
     })
@@ -59,13 +59,13 @@ describe("validateActionSubmissions", () => {
       },
     })
     const turnState = createTurnStateStub({
+      actionSubmissions: [actionSubmission],
       players: {
         [playerId]: {
           id: playerId,
           resources: {
             [ResourceType.MONEY]: 5,
           },
-          actionSubmissions: [actionSubmission],
         },
       },
     })
@@ -88,13 +88,13 @@ describe("validateActionSubmissions", () => {
       },
     })
     const turnState = createTurnStateStub({
+      actionSubmissions: [actionSubmission],
       players: {
         [playerId]: {
           id: playerId,
           resources: {
             [ResourceType.MONEY]: 4,
           },
-          actionSubmissions: [actionSubmission],
         },
       },
     })
@@ -172,13 +172,13 @@ describe("validateActionSubmissions", () => {
         },
       })
       const turnState = createTurnStateStub({
+        actionSubmissions: [actionSubmission],
         players: {
           [playerId]: {
             id: playerId,
             resources: {
               [ResourceType.MONEY]: 5,
             },
-            actionSubmissions: [actionSubmission],
           },
         },
       })
@@ -208,13 +208,13 @@ describe("validateActionSubmissions", () => {
         },
       })
       const turnState = createTurnStateStub({
+        actionSubmissions: [actionSubmission],
         players: {
           [playerId]: {
             id: playerId,
             resources: {
               [ResourceType.MONEY]: 5,
             },
-            actionSubmissions: [actionSubmission],
           },
         },
       })
@@ -276,20 +276,19 @@ describe("validateActionSubmissions", () => {
         },
       })
       const turnState = createTurnStateStub({
+        actionSubmissions: [firstPlayerActionSubmission, secondPlayerActionSubmission],
         players: {
           [firstPlayerId]: {
             id: firstPlayerId,
             resources: {
               [ResourceType.MONEY]: 5,
             },
-            actionSubmissions: [firstPlayerActionSubmission],
           },
           [secondPlayerId]: {
             id: secondPlayerId,
             resources: {
               [ResourceType.MONEY]: 4,
             },
-            actionSubmissions: [secondPlayerActionSubmission],
           },
         },
       })
@@ -330,13 +329,13 @@ describe("validateActionSubmissions", () => {
         },
       })
       const turnState = createTurnStateStub({
+        actionSubmissions: [actionSubmission],
         players: {
           [playerId]: {
             id: playerId,
             resources: {
               [ResourceType.MONEY]: 7,
             },
-            actionSubmissions: [actionSubmission],
           },
         },
       })
@@ -383,13 +382,13 @@ describe("validateActionSubmissions", () => {
         },
       })
       const turnState = createTurnStateStub({
+        actionSubmissions: [actionSubmission1, actionSubmission2],
         players: {
           [playerId]: {
             id: playerId,
             resources: {
               [ResourceType.MONEY]: 14,
             },
-            actionSubmissions: [actionSubmission1, actionSubmission2],
           },
         },
       })
@@ -436,13 +435,13 @@ describe("validateActionSubmissions", () => {
         },
       })
       const turnState = createTurnStateStub({
+        actionSubmissions: [actionSubmission1, actionSubmission2],
         players: {
           [playerId]: {
             id: playerId,
             resources: {
               [ResourceType.MONEY]: 7,
             },
-            actionSubmissions: [actionSubmission1, actionSubmission2],
           },
         },
       })

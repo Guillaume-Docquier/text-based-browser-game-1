@@ -6,7 +6,7 @@ import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 export type ActionSubmissionValidator = (
-  actionSubmissions: ActionSubmission[],
+  actionSubmissions: readonly ActionSubmission[],
   ruleset: Ruleset,
   turnState: DeepReadonly<TurnState>,
 ) => Result<ActionSubmissionIssue[], string>

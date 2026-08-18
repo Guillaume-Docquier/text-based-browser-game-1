@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-more-money.ts"
@@ -22,11 +23,11 @@ describe("resolveTurn", () => {
       targets: { self: playerId },
     })
     const turnState = createTurnStateStub({
+      actionSubmissions: [actionSubmission],
       players: {
         [playerId]: {
           id: playerId,
           resources: { [ResourceType.MONEY]: money },
-          actionSubmissions: [actionSubmission],
         },
       },
     })
@@ -58,11 +59,11 @@ describe("resolveTurn", () => {
       targets: { self: playerId },
     })
     const turnState = createTurnStateStub({
+      actionSubmissions: [actionSubmission],
       players: {
         [playerId]: {
           id: playerId,
           resources: { [ResourceType.MONEY]: 2 },
-          actionSubmissions: [actionSubmission],
         },
       },
     })
@@ -76,13 +77,21 @@ describe("resolveTurn", () => {
       Result.Success({
         players: {
           [playerId]: {
-            actionSubmissions: [actionSubmission],
             id: playerId,
             resources: {
               MONEY: 5,
             },
           },
         },
+        resolvedActions: [
+          {
+            actionSubmission,
+            actionOutcomes: [
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 2 MONEY` }),
+              EffectOutcome.Resolved({ result: `Player "${playerId}" gained 5 MONEY` }),
+            ],
+          },
+        ],
         winnerPlayerId: undefined,
       }),
     )
@@ -101,16 +110,15 @@ describe("resolveTurn", () => {
       targets: { self: secondPlayerId },
     })
     const turnState = createTurnStateStub({
+      actionSubmissions: [firstPlayerActionSubmission, secondPlayerActionSubmission],
       players: {
         [firstPlayerId]: {
           id: firstPlayerId,
           resources: { [ResourceType.MONEY]: 2 },
-          actionSubmissions: [firstPlayerActionSubmission],
         },
         [secondPlayerId]: {
           id: secondPlayerId,
           resources: { [ResourceType.MONEY]: 10 },
-          actionSubmissions: [secondPlayerActionSubmission],
         },
       },
     })
@@ -123,20 +131,34 @@ describe("resolveTurn", () => {
       Result.Success({
         players: {
           [firstPlayerId]: {
-            actionSubmissions: [firstPlayerActionSubmission],
             id: firstPlayerId,
             resources: {
               MONEY: 5,
             },
           },
           [secondPlayerId]: {
-            actionSubmissions: [secondPlayerActionSubmission],
             id: secondPlayerId,
             resources: {
               MONEY: 0,
             },
           },
         },
+        resolvedActions: [
+          {
+            actionSubmission: firstPlayerActionSubmission,
+            actionOutcomes: [
+              EffectOutcome.Resolved({ result: `Player "${firstPlayerId}" spent 2 MONEY` }),
+              EffectOutcome.Resolved({ result: `Player "${firstPlayerId}" gained 5 MONEY` }),
+            ],
+          },
+          {
+            actionSubmission: secondPlayerActionSubmission,
+            actionOutcomes: [
+              EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 10 MONEY` }),
+              EffectOutcome.Resolved({ result: `Player ${secondPlayerId} wins the game` }),
+            ],
+          },
+        ],
         winnerPlayerId: secondPlayerId,
       }),
     )
@@ -149,11 +171,11 @@ describe("resolveTurn", () => {
       targets: { self: playerId },
     })
     const turnState = createTurnStateStub({
+      actionSubmissions: [actionSubmission],
       players: {
         [playerId]: {
           id: playerId,
           resources: { [ResourceType.MONEY]: 10 },
-          actionSubmissions: [actionSubmission],
         },
       },
     })
@@ -166,13 +188,21 @@ describe("resolveTurn", () => {
       Result.Success({
         players: {
           [playerId]: {
-            actionSubmissions: [actionSubmission],
             id: playerId,
             resources: {
               MONEY: 0,
             },
           },
         },
+        resolvedActions: [
+          {
+            actionSubmission,
+            actionOutcomes: [
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 10 MONEY` }),
+              EffectOutcome.Resolved({ result: `Player ${playerId} wins the game` }),
+            ],
+          },
+        ],
         winnerPlayerId: playerId,
       }),
     )

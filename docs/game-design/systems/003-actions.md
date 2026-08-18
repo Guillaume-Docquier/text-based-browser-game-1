@@ -29,7 +29,7 @@ Relates to:
 - [System 009-infrastructure](./009-infrastructure.md)
 - [System 010-fleets](./010-fleets.md)
 - [System 011-combat](./011-combat.md)
-- [System 012-travel](./012-travel.md)
+- [System 012-movement](012-movement.md)
 - [System 014-resources](./014-resources.md)
 - [System 015-rules-engine](./015-rules-engine.md)
 
@@ -152,7 +152,7 @@ The Action tables use compact player-facing effect text. This text summarizes th
 | Infrastructure | [009-infrastructure](./009-infrastructure.md) |
 | Fleets         | [010-fleets](./010-fleets.md)                 |
 | Assault        | [011-combat](./011-combat.md)                 |
-| Travel         | [012-travel](./012-travel.md)                 |
+| Travel         | [012-movement](012-movement.md)               |
 | Cloaking       | [010-fleets](./010-fleets.md)                 |
 
 ### Action Pool

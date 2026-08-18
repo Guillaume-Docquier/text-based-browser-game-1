@@ -12,7 +12,7 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 const validators: ActionSubmissionValidator[] = [validateActionDefinition, validateTargets, validateCosts]
 
 export function validateActionSubmissions(
-  actionSubmissions: ActionSubmission[],
+  actionSubmissions: readonly ActionSubmission[],
   ruleset: Ruleset,
   turnState: DeepReadonly<TurnState>,
 ): ActionSubmissionIssue[] {

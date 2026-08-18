@@ -1,4 +1,4 @@
-import type { DeepReadonly } from "utility-types"
+import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 import { type Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import { type EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
@@ -9,8 +9,8 @@ import { type EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/Ef
 export class EffectPool {
   private readonly effects: Set<Effect>
 
-  // I don't know yet what I need here, so this is very basic for now
-  private readonly outcomes: Array<DeepReadonly<EffectOutcome>> = []
+  // maybe this shouldn't live in the effect pool
+  private readonly outcomes = new Map<ActionSubmission, EffectOutcome[]>()
 
   public constructor(effects: Effect[]) {
     this.effects = new Set(effects)
@@ -37,12 +37,12 @@ export class EffectPool {
     return this.effects.size === 0
   }
 
-  public recordOutcome(effect: Effect, outcome: DeepReadonly<EffectOutcome>): void {
+  public recordOutcome(effect: Effect, outcome: EffectOutcome): void {
     this.effects.delete(effect)
-    this.outcomes.push(outcome)
+    this.outcomes.getOrInsert(effect.actionSubmission, []).push(outcome)
   }
 
-  public getOutcomes(): DeepReadonly<EffectOutcome[]> {
-    return this.outcomes
+  public getOutcomes(actionSubmission: ActionSubmission): readonly EffectOutcome[] {
+    return this.outcomes.getOrInsert(actionSubmission, [])
   }
 }

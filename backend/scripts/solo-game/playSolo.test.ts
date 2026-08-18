@@ -60,13 +60,13 @@ describe("playSolo", () => {
     expect(session).toEqual({
       turn: 4,
       state: {
+        actionSubmissions: [],
         players: {
           "solo-player": {
             id: "solo-player",
             resources: {
               [ResourceType.MONEY]: 4,
             },
-            actionSubmissions: [],
           },
         },
         winnerPlayerId: "solo-player",

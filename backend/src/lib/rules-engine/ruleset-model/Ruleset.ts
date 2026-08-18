@@ -3,10 +3,10 @@ import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/A
 /**
  * The complete data-driven rules for a game.
  */
-export type Ruleset = {
+export type Ruleset = Readonly<{
   /**
    * The player-facing name of this Ruleset.
    */
-  readonly name: string
-  readonly actionDefinitions: Readonly<Record<string, ActionDefinition>>
-}
+  name: string
+  actionDefinitions: Readonly<Record<string, ActionDefinition>>
+}>

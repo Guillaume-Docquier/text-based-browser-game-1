@@ -10,13 +10,13 @@ export class ResourceLossEffect extends Effect {
   private readonly mechanic: ResourceLossMechanic
   private readonly targetPlayerId: string
 
-  public constructor(id: number, mechanic: ResourceLossMechanic, targets: ActionSubmission["targets"]) {
-    super(id, mechanic.type)
+  public constructor(id: number, mechanic: ResourceLossMechanic, actionSubmission: ActionSubmission) {
+    super(id, mechanic.type, actionSubmission)
     this.mechanic = mechanic
-    this.targetPlayerId = targets[mechanic.targets.player.tag]
+    this.targetPlayerId = actionSubmission.targets[mechanic.targets.player.tag]
   }
 
-  public override resolve(context: TurnContext): Result<EffectOutcome, EffectError> {
+  protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
     const player = context.state.players[this.targetPlayerId]
     if (player === undefined) {
       return Result.Failure(EffectError.Failed({ error: `Could not resolve player with id "${this.targetPlayerId}"` }))

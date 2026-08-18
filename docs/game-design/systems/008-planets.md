@@ -17,7 +17,7 @@ Supports:
 Relates to:
 
 - [System 003-actions](./003-actions.md)
-- [System 012-travel](./012-travel.md)
+- [System 012-movement](012-movement.md)
 - [System 001-turns](./001-turns.md)
 - [System 014-resources](./014-resources.md)
 - [System 010-fleets](./010-fleets.md)

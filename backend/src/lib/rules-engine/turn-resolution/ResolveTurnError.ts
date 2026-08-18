@@ -3,9 +3,9 @@ import type { EffectJson } from "#lib/rules-engine/turn-resolution/effects/Effec
 import type { ResolvePhaseError } from "#lib/rules-engine/turn-resolution/phases/ResolvePhaseError.ts"
 
 export type ResolveTurnError = InvalidSubmissions | FailedToResolvePhases | UnresolvedEffects
-type InvalidSubmissions = { _tag: "INVALID_SUBMISSIONS"; issues: ActionSubmissionIssue[] }
-type FailedToResolvePhases = { _tag: "FAILED_TO_RESOLVE_PHASES"; error: ResolvePhaseError }
-type UnresolvedEffects = { _tag: "UNRESOLVED_EFFECTS"; effects: EffectJson[] }
+type InvalidSubmissions = Readonly<{ _tag: "INVALID_SUBMISSIONS"; issues: ActionSubmissionIssue[] }>
+type FailedToResolvePhases = Readonly<{ _tag: "FAILED_TO_RESOLVE_PHASES"; error: ResolvePhaseError }>
+type UnresolvedEffects = Readonly<{ _tag: "UNRESOLVED_EFFECTS"; effects: EffectJson[] }>
 
 export const ResolveTurnError = {
   InvalidSubmissions: ({ issues }: Omit<InvalidSubmissions, "_tag">): InvalidSubmissions => {

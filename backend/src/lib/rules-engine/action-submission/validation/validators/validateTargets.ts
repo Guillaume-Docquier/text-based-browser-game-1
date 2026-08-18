@@ -10,7 +10,7 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
  * Validates that the target slots for the action submission are filled and valid.
  */
 export function validateTargets(
-  actionSubmissions: ActionSubmission[],
+  actionSubmissions: readonly ActionSubmission[],
   ruleset: Ruleset,
   turnState: DeepReadonly<TurnState>,
 ): Result<ActionSubmissionIssue[], string> {

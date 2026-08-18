@@ -4,14 +4,15 @@ import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Res
 
 /**
  * The current state of the turn.
+ * This is generally mutated.
  */
 export type TurnState = {
-  players: Record<
+  readonly actionSubmissions: readonly ActionSubmission[]
+  readonly players: Record<
     PlayerId,
     {
       id: PlayerId
       resources: Record<ResourceType, number>
-      actionSubmissions: ActionSubmission[]
     }
   >
   /**

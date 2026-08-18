@@ -19,22 +19,21 @@ export const EffectFactory = {
     const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
     Assert.isDefined(actionDefinition)
 
-    const targets = actionSubmission.targets
     const mechanics = [...actionDefinition.costs, ...actionDefinition.mechanics]
 
-    return mechanics.map((mechanic) => EffectFactory.fromMechanic(mechanic, targets, monotonicIdFactory()))
+    return mechanics.map((mechanic) => EffectFactory.fromMechanic(monotonicIdFactory(), mechanic, actionSubmission))
   },
   /**
    * Creates an effect for a mechanic
    */
-  fromMechanic: (mechanic: Mechanic, targets: ActionSubmission["targets"], id: number): Effect => {
+  fromMechanic: (id: number, mechanic: Mechanic, actionSubmission: ActionSubmission): Effect => {
     switch (mechanic.type) {
       case ResourceLossMechanic.type:
-        return new ResourceLossEffect(id, mechanic, targets)
+        return new ResourceLossEffect(id, mechanic, actionSubmission)
       case ResourceGainMechanic.type:
-        return new ResourceGainEffect(id, mechanic, targets)
+        return new ResourceGainEffect(id, mechanic, actionSubmission)
       case VictoryMechanic.type:
-        return new VictoryEffect(id, mechanic, targets)
+        return new VictoryEffect(id, mechanic, actionSubmission)
     }
   },
 }

@@ -11,7 +11,7 @@ Fleets are simple mobile military units. They provide an empire's presence beyon
 Relates to:
 
 - [System 003-actions](./003-actions.md)
-- [System 012-travel](./012-travel.md)
+- [System 012-movement](012-movement.md)
 - [System 011-combat](./011-combat.md)
 - [System 008-planets](./008-planets.md)
 - [System 015-rules-engine](./015-rules-engine.md)
