@@ -18,21 +18,21 @@ Relates to:
 
 ## Core Concepts
 
-| Concept         | Definition                                                                        |
-| --------------- | --------------------------------------------------------------------------------- |
-| Speed           | The maximum number of light-years a Fleet travels per Turn.                       |
-| Range           | The maximum travel distance allowed between a Fleet and its target Planet.        |
-| Travel Distance | The distance in light-years between a Fleet's departure Planet and target Planet. |
-| In Transit      | A Fleet that has departed but has not yet arrived.                                |
-| Movement Tick   | A sub-step within Turn Resolution that orders travel progress and arrivals.       |
+| Concept           | Definition                                                                        |
+| ----------------- | --------------------------------------------------------------------------------- |
+| Speed             | The maximum number of light-years a Fleet moves per Turn.                         |
+| Range             | The maximum Movement Distance allowed between a Fleet and its target Planet.      |
+| Movement Distance | The distance in light-years between a Fleet's departure Planet and target Planet. |
+| In Transit        | A Fleet that has departed but has not yet arrived.                                |
+| Movement Tick     | A sub-step within the Movement Phase that orders movement progress and arrivals.  |
 
 ## Rules
 
-A Fleet moves from one Planet to another; it cannot be stationed in empty space. A journey may only target a Planet whose Travel Distance is within its allowed Range.
+A Fleet moves from one Planet to another; it cannot be stationed in empty space. A movement may only target a Planet whose Movement Distance is within its allowed Range.
 
-Movement resolves through the Ticks defined by [System 001-turns](./001-turns.md) during Turn Resolution. Each Turn, an In-Transit Fleet travels up to its Speed toward its target Planet. Fleets arrive in chronological order based on their arrival time. A Fleet that is closer relative to its Speed therefore arrives before a Fleet that reaches the same destination later in the Turn.
+Movement resolves through the Ticks defined by [System 001-turns](./001-turns.md) during Turn Resolution. Each Turn, an In-Transit Fleet moves up to its Speed toward its target Planet. Fleets arrive in chronological order based on their arrival time. A Fleet that is closer relative to its Speed therefore arrives before a Fleet that reaches the same destination later in the Turn.
 
-Fleets that arrive on the same Travel Tick are simultaneous. A Fleet ceases to be In Transit when it reaches its target Planet.
+Fleets that arrive on the same Movement Tick are simultaneous. A Fleet ceases to be In Transit when it reaches its target Planet.
 
 ## Potential Flaws
 

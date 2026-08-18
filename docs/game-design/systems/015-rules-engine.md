@@ -29,7 +29,7 @@ Relates to:
 - [System 009-infrastructure](./009-infrastructure.md)
 - [System 010-fleets](./010-fleets.md)
 - [System 011-combat](./011-combat.md)
-- [System 012-Movement](./012-movement.md)
+- [System 012-movement](./012-movement.md)
 - [System 014-resources](./014-resources.md)
 
 ## Core Concepts

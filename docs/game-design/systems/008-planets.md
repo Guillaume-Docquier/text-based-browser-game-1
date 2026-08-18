@@ -88,7 +88,7 @@ Each Planet has a Size that determines independent ranges for Max Population and
 
 A Colonization Attempt requires an Unclaimed Planet, an arriving Fleet, and a Colony resource. On success, the Planet becomes owned by the colonizing empire and the Fleet is consumed.
 
-Colonization resolves after Combat. A Colonization Attempt is valid only if its Fleet survives the encounter and remains at the Unclaimed Planet after Combat. Combat can therefore deny colonization by destroying a would-be colonizing Fleet. Valid Attempts are considered in the arrival order established by Travel Ticks, so an earlier arrival has priority over later arrivals. If multiple valid Attempts arrive on the same Travel Tick, one is selected randomly to succeed. The Fleets and Colony resources used by unsuccessful attempts return to their empires.
+Colonization resolves after Combat. A Colonization Attempt is valid only if its Fleet survives the encounter and remains at the Unclaimed Planet after Combat. Combat can therefore deny colonization by destroying a would-be colonizing Fleet. Valid Attempts are considered in the arrival order established by Movement Ticks, so an earlier arrival has priority over later arrivals. If multiple valid Attempts arrive on the same Movement Tick, one is selected randomly to succeed. The Fleets and Colony resources used by unsuccessful attempts return to their empires.
 
 A newly colonized Planet starts with `min(Max Population / 2, max(2, floor(colonizing Fleet Strength / 5)))` Population. In other words, every colonized Planet starts with between 2 and half its Max Population based on the colonizing Fleet Strength divided by 5, rounded down.
 

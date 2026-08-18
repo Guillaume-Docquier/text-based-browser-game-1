@@ -26,6 +26,6 @@ These Systems describe intended rules that are not yet implemented in the game.
 | [009-infrastructure](./009-infrastructure.md)               | How empires improve their owned Planets.                                                  |
 | [010-fleets](./010-fleets.md)                               | How Fleets combine automatically and split when they move.                                |
 | [011-combat](./011-combat.md)                               | How Fleet assaults and Surprise Assaults resolve.                                         |
-| [012-movement](012-movement.md)                             | How Fleets travel between Planets.                                                        |
+| [012-movement](012-movement.md)                             | How Fleets move between Planets.                                                          |
 | [014-resources](./014-resources.md)                         | How distinct thematic resources are acquired, held, spent, and made scarce.               |
 | [015-rules-engine](./015-rules-engine.md)                   | How Ruleset Action Definitions become phased Effects.                                     |
