@@ -67,7 +67,7 @@ An Action Definition is reusable rules content. An Available Action Instance is 
 
 ### Current Ruleset Scope
 
-Production Turn Resolution currently uses the developer-authored Standard Ruleset directly for every game. Persisting a fixed Ruleset snapshot per game remains planned; lobby selection and player authoring are not part of the current scope.
+Production Turn Resolution currently uses the developer-authored Standard Ruleset directly for every game. Persisting a fixed Ruleset snapshot per game remains planned for when the Ruleset will be a bit more mature. Lobby selection and player authoring are not part of the current scope.
 
 ### Future Ruleset Capability
 
