@@ -1,4 +1,4 @@
-import { Rng } from "@guillaume-docquier/tools-ts"
+import { Rng, createGeneratorStub } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
@@ -24,7 +24,7 @@ describe("planetGenerator", () => {
     // Arrange
     const starPosition = { x: 10, y: -20 }
     const orbitDistance = 8
-    const quarterTurnRng = Rng.create(() => 0.25) // straight up, x should not change
+    const quarterTurnRng = Rng.create(createGeneratorStub(0.25)) // straight up, x should not change
 
     // Act
     const planet = planetGenerator(starPosition, orbitDistance, quarterTurnRng)

@@ -1,4 +1,4 @@
-import { Rng } from "@guillaume-docquier/tools-ts"
+import { Rng, createGeneratorStub } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import { starGenerator } from "#lib/map-generation/star.generator.ts"
@@ -36,10 +36,7 @@ describe("starGenerator", () => {
 
   it("should generate the minimum name suffix at the rng lower bound", () => {
     // Act
-    const star = starGenerator(
-      { x: 10, y: -20 },
-      Rng.create(() => 0),
-    )
+    const star = starGenerator({ x: 10, y: -20 }, Rng.create(createGeneratorStub(0)))
 
     // Assert
     expect(star).toEqual({ x: 10, y: -20, name: "star 999" })
