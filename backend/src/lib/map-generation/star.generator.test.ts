@@ -1,4 +1,4 @@
-import { createRng } from "@guillaume-docquier/tools-ts"
+import { Rng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import { starGenerator } from "#lib/map-generation/star.generator.ts"
@@ -38,7 +38,7 @@ describe("starGenerator", () => {
     // Act
     const star = starGenerator(
       { x: 10, y: -20 },
-      createRng(() => 0),
+      Rng.create(() => 0),
     )
 
     // Assert

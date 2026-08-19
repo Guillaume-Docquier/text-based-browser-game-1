@@ -1,4 +1,4 @@
-import { createRng, mulberry32Prng, type Rng, type XY } from "@guillaume-docquier/tools-ts"
+import { mulberry32Prng, Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import { UInt32 } from "#lib/UInt32.ts"
@@ -82,7 +82,7 @@ export function createSpiralCommand({
 }
 
 async function renderSpiral(options: SpiralRenderOptions): Promise<void> {
-  const points = options.pointsGenerator({ rng: createRng(mulberry32Prng(options.seed)) })
+  const points = options.pointsGenerator({ rng: Rng.create(mulberry32Prng(options.seed)) })
 
   await SvgRenderer.renderToFile({
     outputPath: options.output,
