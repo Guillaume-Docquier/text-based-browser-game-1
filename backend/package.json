@@ -35,7 +35,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.4",
+    "@electric-sql/pglite": "^0.5.5",
     "@inquirer/prompts": "^8.5.2",
     "@testcontainers/postgresql": "^12.1.0",
     "@trpc/client": "^11.18.0",

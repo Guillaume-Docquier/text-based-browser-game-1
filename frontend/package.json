@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",
-    "@clerk/testing": "^2.2.22",
+    "@clerk/testing": "^2.2.24",
     "@playwright/test": "^1.62.1",
     "@rolldown/plugin-babel": "^0.2.3",
     "@storybook/react-vite": "^10.5.7",
@@ -50,7 +50,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
     "babel-plugin-react-compiler": "^1.0.0",
-    "storybook": "^10.5.7",
+    "storybook": "^10.5.8",
     "typescript": "catalog:",
     "vite": "^8.2.1"
   }
