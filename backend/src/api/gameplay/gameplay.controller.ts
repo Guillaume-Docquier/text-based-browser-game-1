@@ -1,4 +1,4 @@
-import { createRng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
+import { Rng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
 import z from "zod"
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
 import { GameId } from "#api/shared/GameId.ts"
@@ -190,7 +190,7 @@ export class GameplayController {
 }
 
 function createGalaxy(seed: number): GalaxyModel {
-  const rng = createRng(mulberry32Prng(seed))
+  const rng = Rng.create(mulberry32Prng(seed))
   const generatedGalaxy = galaxyGenerator({
     size: GalaxySettings.GALAXY_SIZE_LIGHT_YEARS,
     pointsGenerator: () =>

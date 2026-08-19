@@ -1,5 +1,5 @@
 import path from "node:path"
-import { createRng, Distance, mulberry32Prng, UnitOfDistance, type Rng, type XY } from "@guillaume-docquier/tools-ts"
+import { Distance, mulberry32Prng, UnitOfDistance, Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { createClusterCommand, type ClusterRenderOptions } from "./command-cluster.ts"
@@ -92,7 +92,7 @@ async function renderGalaxy({
 }): Promise<void> {
   const size = radius * 2
   let generatedPointCount = 0
-  const rng = createRng(mulberry32Prng(seed))
+  const rng = Rng.create(mulberry32Prng(seed))
   const galaxy = galaxyGenerator({
     size,
     rng,

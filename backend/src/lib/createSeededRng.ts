@@ -1,5 +1,5 @@
-import { createRng, mulberry32Prng, type Rng } from "@guillaume-docquier/tools-ts"
+import { mulberry32Prng, Rng } from "@guillaume-docquier/tools-ts"
 
 export function createSeededRng(seed = 1234): Rng {
-  return createRng(mulberry32Prng(seed))
+  return Rng.create(mulberry32Prng(seed))
 }
