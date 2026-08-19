@@ -25,14 +25,14 @@ export class CreateGamePage {
     this.createButton = page.getByRole("button", { name: "Create", exact: true })
   }
 
-  public static async goto(page: Page, options?: { seed: number }): Promise<CreateGamePage> {
+  public static async goto(page: Page, options?: { mapGenerationSeed: number }): Promise<CreateGamePage> {
     const createGamePage = new CreateGamePage(page)
     await createGamePage.goto(options)
     return createGamePage
   }
 
-  public async goto(options?: { seed: number }): Promise<void> {
-    const seedSearch = options === undefined ? "" : `?seed=${options.seed}`
+  public async goto(options?: { mapGenerationSeed: number }): Promise<void> {
+    const seedSearch = options === undefined ? "" : `?mapGenerationSeed=${options.mapGenerationSeed}`
     await this.page.goto(`${CreateGamePage.urlPattern.pathname}${seedSearch}`)
   }
 

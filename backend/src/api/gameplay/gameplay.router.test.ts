@@ -41,7 +41,7 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ seed: 1234 }),
+        configuration: createGameConfigurationDtoStub({ mapGenerationSeed: 1234 }),
       })
 
       // Act

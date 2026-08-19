@@ -74,7 +74,7 @@ export const gamesTable = pgTable("games", {
   name: text("name").notNull(),
   nbSeats: integer("nb_seats").notNull(),
   turnIntervalSeconds: integer("turn_interval_seconds").notNull(),
-  seed: bigint("seed", { mode: "number" }).notNull(),
+  mapGenerationSeed: bigint("map_generation_seed", { mode: "number" }).notNull(),
 })
 
 /**

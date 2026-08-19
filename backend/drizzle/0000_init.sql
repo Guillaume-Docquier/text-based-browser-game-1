@@ -39,7 +39,7 @@ CREATE TABLE "games" (
 	"name" text NOT NULL,
 	"nb_seats" integer NOT NULL,
 	"turn_interval_seconds" integer NOT NULL,
-	"seed" bigint NOT NULL
+	"map_generation_seed" bigint NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "planets" (

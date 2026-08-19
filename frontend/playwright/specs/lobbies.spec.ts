@@ -34,7 +34,7 @@ test.describe("authenticated user", () => {
   })
 
   test("creates and starts a game", async ({ page }) => {
-    const createGamePage = await CreateGamePage.goto(page, { seed: DETERMINISTIC_GALAXY_SEED })
+    const createGamePage = await CreateGamePage.goto(page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
     const gameName = `Playwright game ${Date.now()}`
 
     await test.step("Configure the game", async () => {

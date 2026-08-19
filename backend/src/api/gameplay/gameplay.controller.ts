@@ -22,6 +22,7 @@ import type { ActionSubmission } from "#lib/rules-engine/action-submission/Actio
 import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
+import { UInt32 } from "#lib/UInt32.ts"
 import { type ActionSubmissionModel, type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
@@ -74,7 +75,7 @@ export class GameplayController {
       )
 
       const startTime = Timer.start()
-      const galaxy = createGalaxy(gameForStart.value.seed)
+      const galaxy = createGalaxy(gameForStart.value.mapGenerationSeed)
       this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
 
       await this.gameplayRepository.startGame(
@@ -83,7 +84,8 @@ export class GameplayController {
           status: GameStatus.COLLECTING_ACTIONS,
           startedAt,
           nextTurnAt,
-          rngState: Rng.create(mulberry32Prng(gameForStart.value.seed)).getState(),
+          // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
+          rngState: { generatorState: UInt32.random(), spareNormal: null },
           playerResources,
           galaxy,
         },

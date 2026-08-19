@@ -36,14 +36,14 @@ export class LobbiesController {
       return Result.Failure(`Games cannot have more than ${MAX_NB_SEATS} seats`)
     }
 
-    if (createLobbyDto.configuration.seed !== undefined && !UInt32.validate(createLobbyDto.configuration.seed)) {
+    if (createLobbyDto.configuration.mapGenerationSeed !== undefined && !UInt32.validate(createLobbyDto.configuration.mapGenerationSeed)) {
       return Result.Failure(`The seed must be an integer between 0 and ${UInt32.max}`)
     }
 
     const status = createLobbyDto.configuration.nbSeats <= 1 ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
     const createLobbyResult = await this.lobbiesRepository.createLobby({
       ...createLobbyDto,
-      seed: createLobbyDto.configuration.seed ?? UInt32.random(),
+      mapGenerationSeed: createLobbyDto.configuration.mapGenerationSeed ?? UInt32.random(),
       status,
       creatorPlayerColor: PlayerColor.WHITE,
     })
@@ -180,7 +180,7 @@ export const GameConfigurationDto = z.object({
   name: z.string(),
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
-  seed: z.number().exactOptional(),
+  mapGenerationSeed: z.number().exactOptional(),
 })
 
 export type CreateLobbyDto = z.infer<typeof CreateLobbyDto>

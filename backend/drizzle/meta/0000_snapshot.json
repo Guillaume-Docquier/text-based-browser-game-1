@@ -1,5 +1,5 @@
 {
-  "id": "b2bee4c1-64e5-4174-a11c-df49a9c34dae",
+  "id": "11bc6bfa-5b6b-4cc5-8ffa-eb342f951751",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -263,8 +263,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "seed": {
-          "name": "seed",
+        "map_generation_seed": {
+          "name": "map_generation_seed",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true
