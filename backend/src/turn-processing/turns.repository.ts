@@ -278,18 +278,6 @@ export class TurnsRepository extends PostgresRepository {
             },
           })
 
-        const updatedGameStates = await tx
-          .update(gameStatesTable)
-          .set({
-            turn: processedTurnModel.nextTurn?.turn ?? processedTurnModel.turn,
-            nextTurnAt: processedTurnModel.nextTurn?.scheduledFor,
-            rngGeneratorState: processedTurnModel.rngState.generatorState,
-            rngSpareNormal: processedTurnModel.rngState.spareNormal,
-          })
-          .where(and(eq(gameStatesTable.gameId, processedTurnModel.gameId), eq(gameStatesTable.turn, processedTurnModel.turn)))
-          .returning()
-        Assert.isTrue(updatedGameStates.length === 1)
-
         if (processedTurnModel.nextTurn !== undefined) {
           const insertedTurns = await tx
             .insert(turnsTable)
@@ -300,6 +288,18 @@ export class TurnsRepository extends PostgresRepository {
             })
             .returning()
           Assert.isTrue(insertedTurns.length === 1)
+
+          const updatedGameStates = await tx
+            .update(gameStatesTable)
+            .set({
+              turn: processedTurnModel.nextTurn.turn,
+              nextTurnAt: processedTurnModel.nextTurn.scheduledFor,
+              rngGeneratorState: processedTurnModel.rngState.generatorState,
+              rngSpareNormal: processedTurnModel.rngState.spareNormal,
+            })
+            .where(and(eq(gameStatesTable.gameId, processedTurnModel.gameId), eq(gameStatesTable.turn, processedTurnModel.turn)))
+            .returning()
+          Assert.isTrue(updatedGameStates.length === 1)
         }
       }),
     )
@@ -349,7 +349,7 @@ function toTurnToProcessModel({
 
       playersById[playerId] = {
         id: playerId,
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Resource types are persisted as text.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Resource types are persisted as text instead of enum, should probably fix this
         resources: Object.fromEntries(resourcesForPlayer.map((resource) => [resource.resourceType, resource.amount])) as Record<
           ResourceType,
           number

@@ -137,7 +137,13 @@ export const gameStatesTable = pgTable("game_states", {
     .references(() => gamesTable.id, { onDelete: "cascade" }),
   turn: integer("turn").notNull().default(0),
   nextTurnAt: timestamp("next_turn_at").notNull(),
+  /**
+   * The Rng state to use for the current turn resolution
+   */
   rngGeneratorState: bigint("rng_generator_state", { mode: "number" }).notNull(),
+  /**
+   * The Rng state to use for the current turn resolution
+   */
   rngSpareNormal: doublePrecision("rng_spare_normal"),
 })
 
