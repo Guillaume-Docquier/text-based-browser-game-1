@@ -3,6 +3,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -13,11 +14,11 @@ import {
   text,
   doublePrecision,
 } from "drizzle-orm/pg-core"
-import { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 
 /**
  * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
@@ -28,7 +29,6 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
   return Object.values(enumLike) as [TEnumLike, ...TEnumLike[]]
 }
 
-export const actionTypeEnum = pgEnum("action_type", pgEnumify(ActionType))
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
@@ -137,30 +137,31 @@ export const gameStatesTable = pgTable("game_states", {
     .references(() => gamesTable.id, { onDelete: "cascade" }),
   turn: integer("turn").notNull().default(0),
   nextTurnAt: timestamp("next_turn_at").notNull(),
+  rngGeneratorState: bigint("rng_generator_state", { mode: "number" }).notNull(),
+  rngSpareNormal: doublePrecision("rng_spare_normal"),
 })
 
 /**
  * Actions submitted for a specific game turn.
  * Rows are kept as append-only history across turns.
  */
-export const actionsTable = pgTable(
-  "actions",
+export const actionSubmissionsTable = pgTable(
+  "action_submissions",
   {
+    id: uuid("id").primaryKey().defaultRandom(),
     gameId: gameId("game_id").notNull(),
-    playerId: playerId("player_id").notNull(),
+    submittedByPlayerId: playerId("submitted_by_player_id").notNull(),
     turn: integer("turn").notNull(),
-    actionType: actionTypeEnum("action_type").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    actionDefinitionId: text("action_definition_id").notNull(),
+    targets: jsonb("targets").$type<ResolvedTargets>().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    primaryKey({
-      columns: [table.gameId, table.playerId, table.turn],
-    }),
+    unique("action_submissions_game_id_player_id_turn_unique").on(table.gameId, table.submittedByPlayerId, table.turn),
     foreignKey({
-      columns: [table.gameId, table.playerId],
+      columns: [table.gameId, table.submittedByPlayerId],
       foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "actions_gameId_playerId_game_players_fk",
+      name: "action_submissions_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
   ],
 )

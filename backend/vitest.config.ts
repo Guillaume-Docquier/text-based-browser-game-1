@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config"
 
-const integrationTestsInclude = ["src/**/*.router.test.ts", "src/**/TurnProcessor.test.ts"]
+const integrationTestsInclude = ["src/**/*.router.test.ts", "src/**/*.repository.test.ts", "src/**/TurnProcessor.test.ts"]
 const concurrencyTestsInclude = ["src/**/*.concurrency.test.ts"]
 const unitTestsInclude = ["src/**/*.test.ts", "scripts/**/*.test.ts"]
 

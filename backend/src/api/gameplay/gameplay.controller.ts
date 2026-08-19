@@ -1,4 +1,5 @@
-import { Rng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
+import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
+import { v4 } from "uuid"
 import z from "zod"
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
 import { GameId } from "#api/shared/GameId.ts"
@@ -8,7 +9,7 @@ import { StarCoordinates, toStarCoordinates } from "#api/shared/StarCoordinates.
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { ACTION_RULES, ActionDto, ActionTypeSchema } from "#lib/db/gameplay/actions.ts"
+import { ActionDto, ActionTypeSchema } from "#lib/db/gameplay/actions.ts"
 import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
@@ -17,7 +18,11 @@ import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
-import { type ActionModel, type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
+import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
+import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
+import { type ActionSubmissionModel, type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
@@ -78,6 +83,7 @@ export class GameplayController {
           status: GameStatus.COLLECTING_ACTIONS,
           startedAt,
           nextTurnAt,
+          rngState: Rng.create(mulberry32Prng(gameForStart.value.seed)).getState(),
           playerResources,
           galaxy,
         },
@@ -162,19 +168,28 @@ export class GameplayController {
         return null
       }
 
-      const actionRule = ACTION_RULES[actionType]
-      if (activeGameResult.value.money < actionRule.costMoney) {
-        this.logger.error("Player cannot afford selected action", {
-          gameId,
-          playerId,
-          actionType,
-          money: activeGameResult.value.money,
-          costMoney: actionRule.costMoney,
-        })
-        throw new TransactionRollback(`You need ${actionRule.costMoney} money to select this action.`)
+      const actionSubmission = {
+        id: v4(),
+        submittedByPlayerId: playerId,
+        actionDefinitionId: actionType,
+        targets: { self: playerId },
+      } as const satisfies ActionSubmission
+      const turnState: TurnState = {
+        actionSubmissions: [actionSubmission],
+        players: {
+          [playerId]: {
+            id: playerId,
+            resources: { [ResourceType.MONEY]: activeGameResult.value.money },
+          },
+        },
+        winnerPlayerId: undefined,
+      }
+      const issues = validateActionSubmissions(turnState.actionSubmissions, StandardRuleset, turnState)
+      if (issues.length > 0) {
+        throw new TransactionRollback(issues.map(({ issue }) => issue).join("\n"))
       }
 
-      const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, playerId, turn, actionType }, tx)
+      const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, turn, actionSubmission }, tx)
       rollbackOnFailure(upsertResult, "Failed to upsert action")
 
       return toActionDto(upsertResult.value)
@@ -241,13 +256,16 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
   }
 }
 
-function toActionDto(actionModel: ActionModel): ActionDto {
+function toActionDto(actionSubmissionModel: ActionSubmissionModel): ActionDto {
+  const actionTypeResult = ActionTypeSchema.safeParse(actionSubmissionModel.actionSubmission.actionDefinitionId)
+  Assert.isTrue(actionTypeResult.success)
+
   return {
-    gameId: actionModel.gameId,
-    playerId: actionModel.playerId,
-    turn: actionModel.turn,
-    actionType: actionModel.actionType,
-    updatedAt: actionModel.updatedAt,
+    gameId: actionSubmissionModel.gameId,
+    playerId: actionSubmissionModel.actionSubmission.submittedByPlayerId,
+    turn: actionSubmissionModel.turn,
+    actionType: actionTypeResult.data,
+    updatedAt: actionSubmissionModel.updatedAt,
   }
 }
 

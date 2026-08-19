@@ -161,7 +161,7 @@ describe("gameplay.router", () => {
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
         resources: {
-          money: 0,
+          money: 2,
         },
       })
     })
@@ -220,17 +220,12 @@ describe("gameplay.router", () => {
     it("should set the current action for the authenticated player", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, logger, accountsRepository } = await createApiStub({ db })
-      const resourcesRepository = new ResourcesRepository({ db, logger })
+      const { api, accountsRepository } = await createApiStub({ db })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      await resourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 2 }),
-      )
-
       // Act
       const setCurrentActionResult = await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
@@ -273,14 +268,70 @@ describe("gameplay.router", () => {
         data: { code: "BAD_REQUEST" },
       })
     })
+
+    it("should reject an action the player cannot afford", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      // Act
+      const setActionPromise = player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: 0,
+        actionType: ActionType.WIN_THE_GAME,
+      })
+
+      // Assert
+      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+    })
+
+    it("should replace and clear the current action", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const { api, logger, accountsRepository } = await createApiStub({ db })
+      const resourcesRepository = new ResourcesRepository({ db, logger })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await resourcesRepository.updateResource(
+        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 8 }),
+      )
+
+      // Act
+      await player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: 0,
+        actionType: ActionType.MAKE_MORE_MONEY,
+      })
+      const replacedAction = await player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: 0,
+        actionType: ActionType.WIN_THE_GAME,
+      })
+      const currentAction = await player.client.gameplay.getCurrentAction.query({ gameId: createdGameId })
+      const clearedAction = await player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: 0,
+        actionType: null,
+      })
+      const currentActionAfterClear = await player.client.gameplay.getCurrentAction.query({ gameId: createdGameId })
+
+      // Assert
+      expect(replacedAction.action).toMatchObject({ actionType: ActionType.WIN_THE_GAME })
+      expect(currentAction).toEqual(replacedAction)
+      expect(clearedAction).toEqual({ action: null })
+      expect(currentActionAfterClear).toEqual({ action: null })
+    })
   })
 
   describe("getCurrentAction", () => {
     it("should get the current action for the authenticated player", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, logger, accountsRepository } = await createApiStub({ db })
-      const resourcesRepository = new ResourcesRepository({ db, logger })
+      const { api, accountsRepository } = await createApiStub({ db })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -288,10 +339,6 @@ describe("gameplay.router", () => {
         configuration: createGameConfigurationDtoStub(),
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      await resourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 2 }),
-      )
-
       // Act
       const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,

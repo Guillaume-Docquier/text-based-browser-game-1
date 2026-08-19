@@ -1,11 +1,8 @@
-import type { Enumify } from "@guillaume-docquier/tools-ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
-export type ResourceType = Enumify<typeof ResourceType>
-export const ResourceType = {
-  MONEY: "MONEY",
-} as const
+export { ResourceType }
 
 // Long term this should be data-driven, not hardcoded
 export const STARTING_RESOURCE_AMOUNTS: Readonly<Record<ResourceType, number>> = {
-  [ResourceType.MONEY]: 0,
+  [ResourceType.MONEY]: 2,
 }

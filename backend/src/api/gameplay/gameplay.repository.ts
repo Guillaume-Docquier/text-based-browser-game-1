@@ -1,4 +1,4 @@
-import { type Branded, Assert, type Logger, Result, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
+import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
@@ -7,7 +7,6 @@ import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import type { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import type { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import type { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
@@ -15,7 +14,7 @@ import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
-  actionsTable,
+  actionSubmissionsTable,
   gameStatesTable,
   gamesTable,
   planetsTable,
@@ -25,9 +24,10 @@ import {
   turnsTable,
 } from "#lib/db/schema.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
+import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
-type ActionRow = typeof actionsTable.$inferSelect
+type ActionSubmissionRow = typeof actionSubmissionsTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type NewTurnRow = typeof turnsTable.$inferInsert
 
@@ -38,7 +38,12 @@ type NewTurnRow = typeof turnsTable.$inferInsert
  */
 const PLANET_INSERT_BATCH_SIZE = 1_000
 
-export type ActionModel = ActionRow
+export type ActionSubmissionModel = {
+  readonly gameId: GameId
+  readonly turn: number
+  readonly actionSubmission: ActionSubmission
+  readonly updatedAt: Date
+}
 
 /**
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
@@ -89,6 +94,7 @@ export type StartGameModel = {
   readonly status: GameStatus
   readonly startedAt: Date
   readonly nextTurnAt: Date
+  readonly rngState: RngState<number>
   readonly playerResources: ReadonlyArray<{
     readonly playerId: PlayerId
     readonly resourceType: ResourceType
@@ -207,6 +213,8 @@ export class GameplayRepository extends PostgresRepository {
       gameId: startGameModel.game.id,
       turn: 0,
       nextTurnAt: startGameModel.nextTurnAt,
+      rngGeneratorState: startGameModel.rngState.generatorState,
+      rngSpareNormal: startGameModel.rngState.spareNormal,
     } as const satisfies NewGameStateRow
 
     const gameTurn: NewTurnRow = {
@@ -305,12 +313,18 @@ export class GameplayRepository extends PostgresRepository {
   public async getCurrentAction(
     params: { gameId: GameId; playerId: PlayerId; turn: number },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<ActionModel | null, string>> {
+  ): Promise<Result<ActionSubmissionModel | null, string>> {
     const getResult = await Result.tryCatch(
       db
         .select()
-        .from(actionsTable)
-        .where(and(eq(actionsTable.gameId, params.gameId), eq(actionsTable.playerId, params.playerId), eq(actionsTable.turn, params.turn))),
+        .from(actionSubmissionsTable)
+        .where(
+          and(
+            eq(actionSubmissionsTable.gameId, params.gameId),
+            eq(actionSubmissionsTable.submittedByPlayerId, params.playerId),
+            eq(actionSubmissionsTable.turn, params.turn),
+          ),
+        ),
     )
 
     if (Result.isFailure(getResult)) {
@@ -319,7 +333,7 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     Assert.isTrue(getResult.value.length <= 1)
-    return Result.Success(getResult.value[0] ?? null)
+    return Result.Success(getResult.value[0] === undefined ? null : toActionSubmissionModel(getResult.value[0]))
   }
 
   /**
@@ -384,30 +398,40 @@ export class GameplayRepository extends PostgresRepository {
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
   public async setCurrentAction(
-    params: { gameId: GameId; playerId: PlayerId; turn: number; actionType: ActionType },
+    params: { gameId: GameId; turn: number; actionSubmission: ActionSubmission },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<ActionModel, string>> {
+  ): Promise<Result<ActionSubmissionModel, string>> {
     const upsertResult = await Result.tryCatch(
       db.transaction(async (tx) => {
         await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
         const updatedAt = this.clock.now()
-        const actions = await tx
-          .insert(actionsTable)
-          .values({ ...params, updatedAt })
+        const actionSubmissions = await tx
+          .insert(actionSubmissionsTable)
+          .values({
+            id: params.actionSubmission.id,
+            gameId: params.gameId,
+            turn: params.turn,
+            submittedByPlayerId: params.actionSubmission.submittedByPlayerId,
+            actionDefinitionId: params.actionSubmission.actionDefinitionId,
+            targets: params.actionSubmission.targets,
+            updatedAt,
+          })
           .onConflictDoUpdate({
-            target: [actionsTable.gameId, actionsTable.playerId, actionsTable.turn],
+            target: [actionSubmissionsTable.gameId, actionSubmissionsTable.submittedByPlayerId, actionSubmissionsTable.turn],
             set: {
-              actionType: params.actionType,
+              id: params.actionSubmission.id,
+              actionDefinitionId: params.actionSubmission.actionDefinitionId,
+              targets: params.actionSubmission.targets,
               updatedAt,
             },
           })
           .returning()
 
-        Assert.isTrue(actions.length === 1)
-        Assert.isDefined(actions[0])
+        Assert.isTrue(actionSubmissions.length === 1)
+        Assert.isDefined(actionSubmissions[0])
 
-        return actions[0]
+        return toActionSubmissionModel(actionSubmissions[0])
       }),
     )
 
@@ -431,9 +455,13 @@ export class GameplayRepository extends PostgresRepository {
         await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
         await tx
-          .delete(actionsTable)
+          .delete(actionSubmissionsTable)
           .where(
-            and(eq(actionsTable.gameId, params.gameId), eq(actionsTable.playerId, params.playerId), eq(actionsTable.turn, params.turn)),
+            and(
+              eq(actionSubmissionsTable.gameId, params.gameId),
+              eq(actionSubmissionsTable.submittedByPlayerId, params.playerId),
+              eq(actionSubmissionsTable.turn, params.turn),
+            ),
           )
       }),
     )
@@ -444,6 +472,20 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return Result.Success(true)
+  }
+}
+
+function toActionSubmissionModel(row: ActionSubmissionRow): ActionSubmissionModel {
+  return {
+    gameId: row.gameId,
+    turn: row.turn,
+    actionSubmission: {
+      id: row.id,
+      submittedByPlayerId: row.submittedByPlayerId,
+      actionDefinitionId: row.actionDefinitionId,
+      targets: row.targets,
+    },
+    updatedAt: row.updatedAt,
   }
 }
 
