@@ -23,31 +23,31 @@ describe("lobbies.router", () => {
   })
 
   describe("create", () => {
-    it.each([0, UInt32.max])("should accept the UInt32 seed %i", async (seed) => {
+    it.each([0, UInt32.max])("should accept the UInt32 seed %i", async (mapGenerationSeed) => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
       const createLobbyResult = await creator.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ seed }),
+        configuration: createGameConfigurationDtoStub({ mapGenerationSeed }),
       })
 
       // Assert
       expect(createLobbyResult).toEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
     })
 
-    it.each([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (seed) => {
+    it.each([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (mapGenerationSeed) => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act & Assert
-      await expect(creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub({ seed }) })).rejects.toMatchObject(
-        {
-          data: { code: "BAD_REQUEST" },
-        },
-      )
+      await expect(
+        creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub({ mapGenerationSeed }) }),
+      ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
     })
 
     it("should create a game for the authenticated player", async () => {

@@ -9,8 +9,6 @@ import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
-import { createResourceUpdateModelStub } from "#tests/resources/ResourceUpdateModel.stub.ts"
 
 describe("gameplay.router", () => {
   it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
@@ -41,7 +39,7 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ seed: 1234 }),
+        configuration: createGameConfigurationDtoStub({ mapGenerationSeed: 1234 }),
       })
 
       // Act
@@ -161,7 +159,7 @@ describe("gameplay.router", () => {
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
         resources: {
-          money: 0,
+          money: 2,
         },
       })
     })
@@ -220,17 +218,12 @@ describe("gameplay.router", () => {
     it("should set the current action for the authenticated player", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, logger, accountsRepository } = await createApiStub({ db })
-      const resourcesRepository = new ResourcesRepository({ db, logger })
+      const { api, accountsRepository } = await createApiStub({ db })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      await resourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 2 }),
-      )
-
       // Act
       const setCurrentActionResult = await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
@@ -273,14 +266,31 @@ describe("gameplay.router", () => {
         data: { code: "BAD_REQUEST" },
       })
     })
+
+    it("should reject an action the player cannot afford", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      // Act
+      const setActionPromise = player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: 0,
+        actionType: ActionType.WIN_THE_GAME,
+      })
+
+      // Assert
+      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+    })
   })
 
   describe("getCurrentAction", () => {
     it("should get the current action for the authenticated player", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, logger, accountsRepository } = await createApiStub({ db })
-      const resourcesRepository = new ResourcesRepository({ db, logger })
+      const { api, accountsRepository } = await createApiStub({ db })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -288,10 +298,6 @@ describe("gameplay.router", () => {
         configuration: createGameConfigurationDtoStub(),
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      await resourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 2 }),
-      )
-
       // Act
       const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,

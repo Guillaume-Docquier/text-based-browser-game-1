@@ -7,7 +7,7 @@ Partially Implemented
 - [x] Data Driven Rules Engine
 - [x] Standard Ruleset
 - [x] Effect Outcomes
-- [ ] Production Turn Processing Integration
+- [x] Production Turn Processing Integration
 - [ ] Data Driven Frontend
 - [ ] Available Actions & Multiple Actions
 
@@ -67,7 +67,7 @@ An Action Definition is reusable rules content. An Available Action Instance is 
 
 ### Current Ruleset Scope
 
-The current planned scope gives each game exactly one persisted Ruleset, fixed when the game starts. Initially, every new game may use the same developer-authored default Ruleset; lobby selection and player authoring are not part of this scope.
+Production Turn Resolution currently uses the developer-authored Standard Ruleset directly for every game. Persisting a fixed Ruleset snapshot per game remains planned for when the Ruleset will be a bit more mature. Lobby selection and player authoring are not part of the current scope.
 
 ### Future Ruleset Capability
 

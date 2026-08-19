@@ -1,20 +1,20 @@
-import { Assert, branded, type Branded, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import type { ActionType } from "#lib/db/gameplay/actionType.ts"
-import type { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
+import { actionSubmissionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
+import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
 type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
-type ActionRow = typeof actionsTable.$inferSelect
+type ActionSubmissionRow = typeof actionSubmissionsTable.$inferSelect
 
 /**
  * Owning a TurnForProcessing within a transaction guarantees that the turn and the game are locked, exist and need processing at this time.
@@ -42,14 +42,13 @@ export type TurnToProcessModel = {
   turn: number
   scheduledFor: Date
   turnInterval: Time
+  rngState: RngState<number>
+  actionSubmissions: ActionSubmission[]
   players: Record<
     PlayerId,
     {
-      resources: Array<{
-        resourceType: ResourceType
-        amount: number
-      }>
-      actionType: ActionType | undefined
+      id: PlayerId
+      resources: Record<ResourceType, number>
     }
   >
 }
@@ -58,6 +57,7 @@ export type ProcessedTurnModel = {
   gameId: GameId
   turn: number
   processedAt: Date
+  rngState: RngState<number>
   playerResources: Array<{
     playerId: PlayerId
     resourceType: ResourceType
@@ -154,7 +154,14 @@ export class TurnsRepository extends PostgresRepository {
       Assert.isTrue(games.length === 1)
       Assert.isDefined(games[0])
 
-      const [players, resources, actions] = await Promise.all([
+      const [gameStates, players, resources, actionSubmissions] = await Promise.all([
+        tx
+          .select({
+            rngGeneratorState: gameStatesTable.rngGeneratorState,
+            rngSpareNormal: gameStatesTable.rngSpareNormal,
+          })
+          .from(gameStatesTable)
+          .where(eq(gameStatesTable.gameId, startTurnProcessingModel.turn.gameId)),
         tx
           .select()
           .from(playersTable)
@@ -167,20 +174,29 @@ export class TurnsRepository extends PostgresRepository {
           .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
         tx
           .select()
-          .from(actionsTable)
+          .from(actionSubmissionsTable)
           .where(
-            and(eq(actionsTable.gameId, startTurnProcessingModel.turn.gameId), eq(actionsTable.turn, startTurnProcessingModel.turn.turn)),
+            and(
+              eq(actionSubmissionsTable.gameId, startTurnProcessingModel.turn.gameId),
+              eq(actionSubmissionsTable.turn, startTurnProcessingModel.turn.turn),
+            ),
           )
-          .orderBy(asc(actionsTable.playerId)),
+          .orderBy(asc(actionSubmissionsTable.submittedByPlayerId)),
       ])
+      Assert.isTrue(gameStates.length === 1)
+      Assert.isDefined(gameStates[0])
 
       return toTurnToProcessModel({
         turnForProcessing: startTurnProcessingModel.turn,
         scheduledFor: turns[0].scheduledFor,
         turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
+        rngState: {
+          generatorState: gameStates[0].rngGeneratorState,
+          spareNormal: gameStates[0].rngSpareNormal,
+        },
         players,
         resources,
-        actions,
+        actionSubmissions,
       })
     })
 
@@ -273,12 +289,17 @@ export class TurnsRepository extends PostgresRepository {
             .returning()
           Assert.isTrue(insertedTurns.length === 1)
 
-          const updateGameStates = await tx
+          const updatedGameStates = await tx
             .update(gameStatesTable)
-            .set({ turn: processedTurnModel.nextTurn.turn, nextTurnAt: processedTurnModel.nextTurn.scheduledFor })
+            .set({
+              turn: processedTurnModel.nextTurn.turn,
+              nextTurnAt: processedTurnModel.nextTurn.scheduledFor,
+              rngGeneratorState: processedTurnModel.rngState.generatorState,
+              rngSpareNormal: processedTurnModel.rngState.spareNormal,
+            })
             .where(and(eq(gameStatesTable.gameId, processedTurnModel.gameId), eq(gameStatesTable.turn, processedTurnModel.turn)))
             .returning()
-          Assert.isTrue(updateGameStates.length === 1)
+          Assert.isTrue(updatedGameStates.length === 1)
         }
       }),
     )
@@ -296,35 +317,43 @@ function toTurnToProcessModel({
   turnForProcessing,
   scheduledFor,
   turnInterval,
+  rngState,
   players,
   resources,
-  actions,
+  actionSubmissions,
 }: {
   turnForProcessing: TurnForProcessing
   scheduledFor: Date
   turnInterval: Time
+  rngState: RngState<number>
   players: PlayerRow[]
   resources: ResourceRow[]
-  actions: ActionRow[]
+  actionSubmissions: ActionSubmissionRow[]
 }): TurnToProcessModel {
   const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
-  const actionsByPlayerId = Map.groupBy(actions, (action) => action.playerId)
 
   return {
     ...turnForProcessing,
     scheduledFor,
     turnInterval,
+    rngState,
+    actionSubmissions: actionSubmissions.map(({ id, submittedByPlayerId, actionDefinitionId, targets }) => ({
+      id,
+      submittedByPlayerId,
+      actionDefinitionId,
+      targets,
+    })),
     players: players.reduce<TurnToProcessModel["players"]>((playersById, { playerId }) => {
       const resourcesForPlayer = resourcesByPlayerId.get(playerId)
       Assert.isDefined(resourcesForPlayer)
 
       playersById[playerId] = {
-        resources: resourcesForPlayer.map((resource) => ({
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- resourceType uses varchar instead of enum, should probably fix this
-          resourceType: resource.resourceType as ResourceType,
-          amount: resource.amount,
-        })),
-        actionType: actionsByPlayerId.get(playerId)?.[0]?.actionType,
+        id: playerId,
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Resource types are persisted as text instead of enum, should probably fix this
+        resources: Object.fromEntries(resourcesForPlayer.map((resource) => [resource.resourceType, resource.amount])) as Record<
+          ResourceType,
+          number
+        >,
       }
       return playersById
     }, {}),

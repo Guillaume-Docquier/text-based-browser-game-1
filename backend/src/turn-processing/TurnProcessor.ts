@@ -1,13 +1,12 @@
-import { Assert, Datetime, type Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import type { PlayerId } from "#api/shared/PlayerId.ts"
+import { Datetime, type Logger, mulberry32Prng, Result, Rng, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { Clock } from "#lib/Clock.ts"
-import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { ACTION_RULES } from "#lib/db/gameplay/actions.ts"
-import { ActionType } from "#lib/db/gameplay/actionType.ts"
-import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
+import type { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
+import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 import { ElapsedTimeContextProvider } from "#turn-processing/ElapsedTimeContextProvider.ts"
 import { type ProcessedTurnModel, type TurnsRepository, type TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 
@@ -100,8 +99,17 @@ export class TurnProcessor {
     }
 
     processingLogger.info("Processing turn", { gameId: turnToProcess.gameId, turn: turnToProcess.turn })
-    const processedTurn = this.processTurn(turnToProcess)
-    const saveResult = await this.turnsRepository.saveProcessedTurn(processedTurn)
+    const processedTurnResult = this.processTurn(turnToProcess)
+    if (Result.isFailure(processedTurnResult)) {
+      processingLogger.error("Could not resolve turn", {
+        gameId: turnToProcess.gameId,
+        turn: turnToProcess.turn,
+        error: processedTurnResult.error,
+      })
+      return "failed"
+    }
+
+    const saveResult = await this.turnsRepository.saveProcessedTurn(processedTurnResult.value)
     if (Result.isFailure(saveResult)) {
       processingLogger.error("Could not save processed turn", {
         gameId: turnToProcess.gameId,
@@ -115,49 +123,38 @@ export class TurnProcessor {
     return "processed"
   }
 
-  /**
-   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
-   */
-  private processTurn(turnToProcess: TurnToProcessModel): ProcessedTurnModel {
-    let winnerAccountId: AccountId | undefined
-
-    const playerStates = Object.entries(turnToProcess.players).reduce<
-      Record<PlayerId, Array<{ resourceType: ResourceType; amount: number }>>
-    >((processedPlayers, [playerId, { resources, actionType }]) => {
-      const updatedResources = resources.map((resource) => ({ ...resource }))
-      const money = updatedResources.find((resource) => resource.resourceType === ResourceType.MONEY)
-      Assert.isDefined(money)
-
-      money.amount += 1
-
-      if (actionType !== undefined) {
-        const actionRule = ACTION_RULES[actionType]
-        if (actionRule.costMoney <= money.amount) {
-          money.amount -= actionRule.costMoney
-          money.amount += actionRule.rewardMoney
-
-          if (actionType === ActionType.WIN_THE_GAME && winnerAccountId === undefined) {
-            winnerAccountId = playerId
-          }
-        }
-      }
-
-      processedPlayers[playerId] = updatedResources
-      return processedPlayers
-    }, {})
+  private processTurn(turnToProcess: TurnToProcessModel): Result<ProcessedTurnModel, ResolveTurnError> {
+    const rng = Rng.fromState(turnToProcess.rngState, mulberry32Prng)
+    const resolvedTurnResult = resolveTurn(
+      {
+        actionSubmissions: turnToProcess.actionSubmissions,
+        players: turnToProcess.players,
+        winnerPlayerId: undefined,
+      },
+      StandardRuleset,
+      rng,
+    )
+    if (Result.isFailure(resolvedTurnResult)) {
+      return resolvedTurnResult
+    }
 
     const processedAt = this.clock.now()
     const turnResult: Omit<ProcessedTurnModel, "gameStatus"> = {
       gameId: turnToProcess.gameId,
       turn: turnToProcess.turn,
       processedAt,
-      playerResources: Object.entries(playerStates).flatMap(([playerId, playerResources]) =>
-        playerResources.map((resource) => ({ ...resource, playerId })),
+      rngState: rng.getState(),
+      playerResources: Object.values(resolvedTurnResult.value.players).flatMap((player) =>
+        Object.values(ResourceType).map((resourceType) => ({
+          playerId: player.id,
+          resourceType,
+          amount: player.resources[resourceType],
+        })),
       ),
     }
 
-    if (winnerAccountId === undefined) {
-      return {
+    if (resolvedTurnResult.value.winnerPlayerId === undefined) {
+      return Result.Success({
         ...turnResult,
         gameStatus: GameStatus.COLLECTING_ACTIONS,
         nextTurn: {
@@ -168,15 +165,15 @@ export class TurnProcessor {
             turnInterval: turnToProcess.turnInterval,
           }),
         },
-      }
+      })
     }
 
-    return {
+    return Result.Success({
       ...turnResult,
       gameStatus: GameStatus.ENDED,
-      winnerAccountId,
+      winnerAccountId: resolvedTurnResult.value.winnerPlayerId,
       endedAt: this.clock.now(),
-    }
+    })
   }
 }
 
