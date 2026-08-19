@@ -10,7 +10,7 @@ import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { ActionDto, ActionTypeSchema } from "#lib/db/gameplay/actions.ts"
-import { ResourceType, STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
+import { STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
@@ -20,6 +20,7 @@ import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 import { UInt32 } from "#lib/UInt32.ts"
@@ -259,6 +260,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
 }
 
 function toActionDto(actionSubmissionModel: ActionSubmissionModel): ActionDto {
+  // Temporary while the frontend is not data driven
   const actionTypeResult = ActionTypeSchema.safeParse(actionSubmissionModel.actionSubmission.actionDefinitionId)
   Assert.isTrue(actionTypeResult.success)
 

@@ -7,7 +7,6 @@ import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import { ResourceType } from "#lib/db/gameplay/gameResources.ts"
 import type { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import type { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
@@ -25,6 +24,7 @@ import {
 } from "#lib/db/schema.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type ActionSubmissionRow = typeof actionSubmissionsTable.$inferSelect

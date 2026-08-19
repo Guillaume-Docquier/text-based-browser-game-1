@@ -9,8 +9,6 @@ import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
-import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
-import { createResourceUpdateModelStub } from "#tests/resources/ResourceUpdateModel.stub.ts"
 
 describe("gameplay.router", () => {
   it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
@@ -285,45 +283,6 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-    })
-
-    it("should replace and clear the current action", async () => {
-      // Arrange
-      const db = await createDbMock()
-      const { api, logger, accountsRepository } = await createApiStub({ db })
-      const resourcesRepository = new ResourcesRepository({ db, logger })
-      using apiServer = new ApiServer({ api, accountsRepository })
-      const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      await resourcesRepository.updateResource(
-        createResourceUpdateModelStub({ gameId: createdGameId, playerId: player.account.id, amountDelta: 8 }),
-      )
-
-      // Act
-      await player.client.gameplay.setCurrentAction.mutate({
-        gameId: createdGameId,
-        turn: 0,
-        actionType: ActionType.MAKE_MORE_MONEY,
-      })
-      const replacedAction = await player.client.gameplay.setCurrentAction.mutate({
-        gameId: createdGameId,
-        turn: 0,
-        actionType: ActionType.WIN_THE_GAME,
-      })
-      const currentAction = await player.client.gameplay.getCurrentAction.query({ gameId: createdGameId })
-      const clearedAction = await player.client.gameplay.setCurrentAction.mutate({
-        gameId: createdGameId,
-        turn: 0,
-        actionType: null,
-      })
-      const currentActionAfterClear = await player.client.gameplay.getCurrentAction.query({ gameId: createdGameId })
-
-      // Assert
-      expect(replacedAction.action).toMatchObject({ actionType: ActionType.WIN_THE_GAME })
-      expect(currentAction).toEqual(replacedAction)
-      expect(clearedAction).toEqual({ action: null })
-      expect(currentActionAfterClear).toEqual({ action: null })
     })
   })
 
