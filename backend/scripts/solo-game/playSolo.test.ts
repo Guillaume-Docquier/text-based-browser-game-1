@@ -3,6 +3,7 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -80,13 +81,12 @@ describe("playSolo", () => {
         players: {
           "solo-player": {
             id: "solo-player",
-            resources: {
+            resources: createResourcesStub({
               [ResourceType.INFLUENCE]: 8,
               [ResourceType.METAL]: 6,
               [ResourceType.FUEL]: 9,
               [ResourceType.ENERGY]: 5,
-              [ResourceType.COLONY]: 0,
-            },
+            }),
           },
         },
         winnerPlayerId: "solo-player",

@@ -7,8 +7,12 @@ import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
+import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
+import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
@@ -165,14 +169,34 @@ describe("gameplay.router", () => {
           date: clock.now(),
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
-        resources: {
-          [ResourceType.MONEY]: 2,
-        },
+        resources: createResourcesStub({
+          [ResourceType.INFLUENCE]: 3,
+          [ResourceType.METAL]: 2,
+          [ResourceType.FUEL]: 1,
+        }),
         ruleset: StandardRuleset,
         availableActions: [
           {
             id: expect.any(String),
             actionDefinitionId: GainInfluence.id,
+            targets: { self: player.account.id },
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainMetal.id,
+            targets: { self: player.account.id },
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainEnergy.id,
+            targets: { self: player.account.id },
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainFuel.id,
             targets: { self: player.account.id },
             canAfford: true,
           },

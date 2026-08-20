@@ -2,6 +2,7 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
@@ -14,13 +15,10 @@ import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 describe("resolveTurn", () => {
   const playerId = "player-id"
 
-  it.each([
-    { actionDefinitionId: GainInfluence.id, money: 1 },
-    { actionDefinitionId: WinTheGame.id, money: 9 },
-  ])("should not resolve the turn when the player does not have enough money for $actionDefinitionId", ({ actionDefinitionId, money }) => {
+  it("should not resolve the turn when the player cannot afford an Action", () => {
     // Arrange
     const actionSubmission = createActionSubmissionStub({
-      actionDefinitionId,
+      actionDefinitionId: WinTheGame.id,
       targets: { self: playerId },
     })
     const turnState = createTurnStateStub({
@@ -28,7 +26,11 @@ describe("resolveTurn", () => {
       players: {
         [playerId]: {
           id: playerId,
-          resources: { [ResourceType.MONEY]: money },
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: 3,
+            [ResourceType.METAL]: 2,
+            [ResourceType.FUEL]: 1,
+          }),
         },
       },
     })
@@ -43,10 +45,28 @@ describe("resolveTurn", () => {
           issues: [
             {
               actionSubmissionId: actionSubmission.id,
-              actionDefinitionId,
+              actionDefinitionId: WinTheGame.id,
               // oxlint-disable-next-line typescript/no-non-null-assertion -- It's there
               actionDefinitionName: StandardRuleset.actionDefinitions[actionSubmission.actionDefinitionId]!.name,
-              issue: "Missing 1 MONEY",
+              issue: "Missing 7 INFLUENCE",
+            },
+            {
+              actionSubmissionId: actionSubmission.id,
+              actionDefinitionId: WinTheGame.id,
+              actionDefinitionName: WinTheGame.name,
+              issue: "Missing 3 METAL",
+            },
+            {
+              actionSubmissionId: actionSubmission.id,
+              actionDefinitionId: WinTheGame.id,
+              actionDefinitionName: WinTheGame.name,
+              issue: "Missing 4 FUEL",
+            },
+            {
+              actionSubmissionId: actionSubmission.id,
+              actionDefinitionId: WinTheGame.id,
+              actionDefinitionName: WinTheGame.name,
+              issue: "Missing 5 ENERGY",
             },
           ],
         }),
@@ -54,7 +74,7 @@ describe("resolveTurn", () => {
     )
   })
 
-  it("should make more money when the player has enough money", () => {
+  it("should gain influence", () => {
     // Arrange
     const actionSubmission = createActionSubmissionStub({
       actionDefinitionId: GainInfluence.id,
@@ -65,7 +85,11 @@ describe("resolveTurn", () => {
       players: {
         [playerId]: {
           id: playerId,
-          resources: { [ResourceType.MONEY]: 2 },
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: 3,
+            [ResourceType.METAL]: 2,
+            [ResourceType.FUEL]: 1,
+          }),
         },
       },
     })
@@ -79,18 +103,17 @@ describe("resolveTurn", () => {
         players: {
           [playerId]: {
             id: playerId,
-            resources: {
-              MONEY: 5,
-            },
+            resources: createResourcesStub({
+              [ResourceType.INFLUENCE]: 8,
+              [ResourceType.METAL]: 2,
+              [ResourceType.FUEL]: 1,
+            }),
           },
         },
         resolvedActions: [
           {
             actionSubmission,
-            actionOutcomes: [
-              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 2 MONEY` }),
-              EffectOutcome.Resolved({ result: `Player "${playerId}" gained 5 MONEY` }),
-            ],
+            actionOutcomes: [EffectOutcome.Resolved({ result: `Player "${playerId}" gained 5 INFLUENCE` })],
           },
         ],
         winnerPlayerId: undefined,
@@ -115,11 +138,20 @@ describe("resolveTurn", () => {
       players: {
         [firstPlayerId]: {
           id: firstPlayerId,
-          resources: { [ResourceType.MONEY]: 2 },
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: 3,
+            [ResourceType.METAL]: 2,
+            [ResourceType.FUEL]: 1,
+          }),
         },
         [secondPlayerId]: {
           id: secondPlayerId,
-          resources: { [ResourceType.MONEY]: 10 },
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: 10,
+            [ResourceType.METAL]: 5,
+            [ResourceType.FUEL]: 5,
+            [ResourceType.ENERGY]: 5,
+          }),
         },
       },
     })
@@ -133,29 +165,29 @@ describe("resolveTurn", () => {
         players: {
           [firstPlayerId]: {
             id: firstPlayerId,
-            resources: {
-              MONEY: 5,
-            },
+            resources: createResourcesStub({
+              [ResourceType.INFLUENCE]: 8,
+              [ResourceType.METAL]: 2,
+              [ResourceType.FUEL]: 1,
+            }),
           },
           [secondPlayerId]: {
             id: secondPlayerId,
-            resources: {
-              MONEY: 0,
-            },
+            resources: createResourcesStub(),
           },
         },
         resolvedActions: [
           {
             actionSubmission: firstPlayerActionSubmission,
-            actionOutcomes: [
-              EffectOutcome.Resolved({ result: `Player "${firstPlayerId}" spent 2 MONEY` }),
-              EffectOutcome.Resolved({ result: `Player "${firstPlayerId}" gained 5 MONEY` }),
-            ],
+            actionOutcomes: [EffectOutcome.Resolved({ result: `Player "${firstPlayerId}" gained 5 INFLUENCE` })],
           },
           {
             actionSubmission: secondPlayerActionSubmission,
             actionOutcomes: [
-              EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 10 MONEY` }),
+              EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 10 INFLUENCE` }),
+              EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 5 METAL` }),
+              EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 5 ENERGY` }),
+              EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 5 FUEL` }),
               EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" wins the game` }),
             ],
           },
@@ -165,7 +197,7 @@ describe("resolveTurn", () => {
     )
   })
 
-  it("should win the game when the player has enough money", () => {
+  it("should win the game when the player can afford it", () => {
     // Arrange
     const actionSubmission = createActionSubmissionStub({
       actionDefinitionId: WinTheGame.id,
@@ -176,7 +208,12 @@ describe("resolveTurn", () => {
       players: {
         [playerId]: {
           id: playerId,
-          resources: { [ResourceType.MONEY]: 10 },
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: 10,
+            [ResourceType.METAL]: 5,
+            [ResourceType.FUEL]: 5,
+            [ResourceType.ENERGY]: 5,
+          }),
         },
       },
     })
@@ -190,16 +227,17 @@ describe("resolveTurn", () => {
         players: {
           [playerId]: {
             id: playerId,
-            resources: {
-              MONEY: 0,
-            },
+            resources: createResourcesStub(),
           },
         },
         resolvedActions: [
           {
             actionSubmission,
             actionOutcomes: [
-              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 10 MONEY` }),
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 10 INFLUENCE` }),
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 5 METAL` }),
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 5 ENERGY` }),
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 5 FUEL` }),
               EffectOutcome.Resolved({ result: `Player "${playerId}" wins the game` }),
             ],
           },
