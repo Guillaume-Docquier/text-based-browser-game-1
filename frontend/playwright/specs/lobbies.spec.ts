@@ -145,12 +145,14 @@ test.describe("authenticated user", () => {
       await expect(actionsPage.heading).toBeVisible()
 
       const makeMoreMoney = actionsPage.action("Make More Money")
-      await expect(makeMoreMoney).toContainText("Spend 2 Money")
-      await expect(makeMoreMoney).toContainText("Gain 5 Money")
+      await expect(makeMoreMoney).toContainText("Standard Directive")
+      await expect(makeMoreMoney).toContainText("2 Money")
+      await expect(makeMoreMoney).toContainText("Gain 5 Money.")
 
       const winTheGame = actionsPage.action("Win The Game")
-      await expect(winTheGame).toContainText("Spend 10 Money")
-      await expect(winTheGame).toContainText("Win the game")
+      await expect(winTheGame).toContainText("Exceptional Directive")
+      await expect(winTheGame).toContainText("10 Money")
+      await expect(winTheGame).toContainText("Win the game.")
       await expect(winTheGame).toHaveAttribute("aria-disabled", "true")
 
       await makeMoreMoney.click()

@@ -6,19 +6,26 @@ import type { Mechanic } from "@api-types"
 export function mechanicToRulesText(mechanic: Mechanic): string {
   switch (mechanic.type) {
     case "RESOURCE_LOSS":
-      return `Spend ${mechanic.quantity} ${formatResourceType(mechanic.resourceType)}`
+      return `Spend ${mechanic.quantity} ${formatRulesetTerm(mechanic.resourceType)}`
     case "RESOURCE_GAIN":
-      return `Gain ${mechanic.quantity} ${formatResourceType(mechanic.resourceType)}`
+      return `Gain ${mechanic.quantity} ${formatRulesetTerm(mechanic.resourceType)}`
     case "VICTORY":
       return "Win the game"
   }
 }
 
 /**
- * Converts a ResourceType into a player-facing name.
+ * Converts configured Mechanics into a player-facing rules sentence.
  */
-export function formatResourceType(resourceType: string): string {
-  return resourceType
+export function mechanicsToRulesText(mechanics: readonly Mechanic[]): string {
+  return `${mechanics.map(mechanicToRulesText).join(". ")}.`
+}
+
+/**
+ * Converts a ruleset enum value into a player-facing name.
+ */
+export function formatRulesetTerm(value: string): string {
+  return value
     .toLowerCase()
     .split("_")
     .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
