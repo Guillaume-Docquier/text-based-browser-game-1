@@ -154,6 +154,9 @@ test.describe("authenticated user", () => {
       await expect(winTheGame).toContainText("10 Money")
       await expect(winTheGame).toContainText("Win the game.")
       await expect(winTheGame).toHaveAttribute("aria-disabled", "true")
+      await expect(winTheGame.locator("[data-unaffordable-overlay]")).toBeVisible()
+      await expect(winTheGame.locator('[aria-label="10 Money, cannot afford"]')).toHaveClass(/text-red-400/)
+      await expect(winTheGame).not.toContainText("Unavailable")
 
       await makeMoreMoney.click()
       await expect(makeMoreMoney).toHaveAttribute("aria-pressed", "true")
