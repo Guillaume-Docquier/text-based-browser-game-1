@@ -5,7 +5,7 @@ import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDt
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-more-money.ts"
+import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
@@ -126,7 +126,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: getAvailableAction(initialPlayerView, MakeMoreMoney.id),
+        actionSubmission: getAvailableAction(initialPlayerView, GainInfluence.id),
       })
 
       // Act
@@ -195,7 +195,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: getAvailableAction(initialPlayerView, MakeMoreMoney.id),
+        actionSubmission: getAvailableAction(initialPlayerView, GainInfluence.id),
       })
       Assert.isSuccess(
         await resourcesRepository.updateResource({
@@ -503,7 +503,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: getAvailableAction(playerView, MakeMoreMoney.id),
+        actionSubmission: getAvailableAction(playerView, GainInfluence.id),
       })
 
       const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId: createdGameId })

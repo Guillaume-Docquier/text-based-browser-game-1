@@ -1,9 +1,15 @@
 import { stripVTControlCharacters } from "node:util"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
+import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-more-money.ts"
+import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
+import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
+import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
+import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
+import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 import { playSolo, type SoloGameSelection } from "./playSolo.ts"
 
 describe("playSolo", () => {
@@ -13,12 +19,22 @@ describe("playSolo", () => {
       { command: "ADD_ACTION", actionDefinitionId: WinTheGame.id },
       { command: "SUBMIT_TURN" },
       { command: "REMOVE_ACTION", actionSubmissionId: "turn-1-WIN_THE_GAME-1" },
-      { command: "ADD_ACTION", actionDefinitionId: MakeMoreMoney.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainInfluence.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainInfluence.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainInfluence.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainMetal.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainMetal.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainMetal.id },
       { command: "SUBMIT_TURN" },
-      { command: "ADD_ACTION", actionDefinitionId: MakeMoreMoney.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainInfluence.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainInfluence.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainInfluence.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainFuel.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainFuel.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainFuel.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainEnergy.id },
       { command: "SUBMIT_TURN" },
-      { command: "ADD_ACTION", actionDefinitionId: MakeMoreMoney.id },
-      { command: "ADD_ACTION", actionDefinitionId: MakeMoreMoney.id },
+      { command: "ADD_ACTION", actionDefinitionId: GainEnergy.id },
       { command: "SUBMIT_TURN" },
       { command: "ADD_ACTION", actionDefinitionId: WinTheGame.id },
       { command: "SUBMIT_TURN" },
@@ -65,7 +81,11 @@ describe("playSolo", () => {
           "solo-player": {
             id: "solo-player",
             resources: {
-              [ResourceType.MONEY]: 4,
+              [ResourceType.INFLUENCE]: 8,
+              [ResourceType.METAL]: 6,
+              [ResourceType.FUEL]: 9,
+              [ResourceType.ENERGY]: 5,
+              [ResourceType.COLONY]: 0,
             },
           },
         },
@@ -74,21 +94,18 @@ describe("playSolo", () => {
     })
     expect(selections).toEqual([])
     expect(plainPromptMessages).toContainEqual(expect.stringContaining("TURN REJECTED"))
-    expect(plainPromptMessages).toContainEqual(expect.stringContaining("Missing 8 MONEY"))
+    expect(plainPromptMessages).toContainEqual(expect.stringContaining(`Missing 7 ${ResourceType.INFLUENCE}`))
     expect(plainPromptMessages).toContainEqual(expect.stringContaining("SELECTED ACTIONS  ·  2"))
-    expect(plainPromptMessages).toContainEqual(expect.stringContaining("01  Make More Money"))
-    expect(plainPromptMessages).toContainEqual(expect.stringContaining("02  Make More Money"))
     expect(plainPromptMessages.every((message) => message.includes("CURRENT TURN"))).toBe(true)
-    expect(plainPromptMessages.every((message) => message.includes("Standard Ruleset"))).toBe(true)
+    expect(plainPromptMessages.every((message) => message.includes(StandardRuleset.name))).toBe(true)
     expect(plainPromptMessages.every((message) => message.includes("EMPIRE STATE"))).toBe(true)
     expect(plainPromptMessages.every((message) => message.includes("COMMAND"))).toBe(true)
-    expect(plainPromptMessages.find((message) => message.includes("SELECTED ACTIONS  ·  2"))).not.toContain("costs 2 MONEY")
     expect(promptChoices.flat()).toContainEqual({
-      name: "+ Make More Money",
-      description: "STANDARD DIRECTIVE  ·  costs 2 MONEY  ·  gains 5 MONEY",
+      name: `+ ${GainInfluence.name}`,
+      description: `${ActionTier.BASIC} ${ActionType.AGENDA}  ·  no cost  ·  gains 5 INFLUENCE`,
     })
     expect(promptChoices.flat()).toContainEqual({
-      name: "− #1 Make More Money",
+      name: `− #1 ${GainInfluence.name}`,
       description: undefined,
     })
     expect(promptChoices.flat().every((choice) => !choice.name.includes("Queue") && !choice.name.includes("Remove"))).toBe(true)
@@ -105,14 +122,10 @@ describe("playSolo", () => {
       (line, index) => index > firstResolvedTurnIndex && line.trim() === "━".repeat(72),
     )
     const firstResolvedTurnOutput = plainOutput.slice(firstResolvedTurnIndex, firstResolvedTurnSeparatorIndex).join("\n")
-    expect(firstResolvedTurnOutput).toContain("2 available")
-    expect(firstResolvedTurnOutput).not.toContain("5 available")
-    expect(firstResolvedTurnOutput).toContain("SUBMITTED ACTIONS  ·  1")
-    expect(firstResolvedTurnOutput).toContain("01  Make More Money")
-    expect(firstResolvedTurnOutput).toContain('✓ Player "solo-player" spent 2 MONEY')
-    expect(firstResolvedTurnOutput).toContain('✓ Player "solo-player" gained 5 MONEY')
-    expect(plainOutput.join("\n")).toContain("14 available")
-    expect(plainOutput.join("\n")).toContain("SUBMITTED ACTIONS  ·  2")
+    expect(firstResolvedTurnOutput).toContain("SUBMITTED ACTIONS  ·  6")
+    expect(firstResolvedTurnOutput).toContain(`01  ${GainInfluence.name}`)
+    expect(firstResolvedTurnOutput).toContain('✓ Player "solo-player" spent')
+    expect(firstResolvedTurnOutput).toContain('✓ Player "solo-player" gained')
     expect(plainOutput.at(-1)).toBe("You won on turn 4.")
     const firstSeparatorIndex = terminalEvents.findIndex((event) => event.type === "output" && event.value.trim() === "━".repeat(72))
     expect(terminalEvents[firstSeparatorIndex + 1]).toMatchObject({

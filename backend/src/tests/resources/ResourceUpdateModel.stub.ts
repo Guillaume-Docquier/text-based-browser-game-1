@@ -6,7 +6,7 @@ export function createResourceUpdateModelStub(override: Partial<ResourceUpdateMo
   return {
     gameId: 999,
     playerId: v4(),
-    resourceType: ResourceType.MONEY,
+    resourceType: ResourceType.INFLUENCE,
     amountDelta: 1,
     ...override,
   }

@@ -7,7 +7,7 @@ import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectO
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
-import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-more-money.ts"
+import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
@@ -15,7 +15,7 @@ describe("resolveTurn", () => {
   const playerId = "player-id"
 
   it.each([
-    { actionDefinitionId: MakeMoreMoney.id, money: 1 },
+    { actionDefinitionId: GainInfluence.id, money: 1 },
     { actionDefinitionId: WinTheGame.id, money: 9 },
   ])("should not resolve the turn when the player does not have enough money for $actionDefinitionId", ({ actionDefinitionId, money }) => {
     // Arrange
@@ -57,7 +57,7 @@ describe("resolveTurn", () => {
   it("should make more money when the player has enough money", () => {
     // Arrange
     const actionSubmission = createActionSubmissionStub({
-      actionDefinitionId: MakeMoreMoney.id,
+      actionDefinitionId: GainInfluence.id,
       targets: { self: playerId },
     })
     const turnState = createTurnStateStub({
@@ -103,7 +103,7 @@ describe("resolveTurn", () => {
     const firstPlayerId = "first-player-id"
     const secondPlayerId = "second-player-id"
     const firstPlayerActionSubmission = createActionSubmissionStub({
-      actionDefinitionId: MakeMoreMoney.id,
+      actionDefinitionId: GainInfluence.id,
       targets: { self: firstPlayerId },
     })
     const secondPlayerActionSubmission = createActionSubmissionStub({
