@@ -1,44 +1,23 @@
-import type * as ApiTypes from "@api-types"
-import type { PlayerView } from "@api-types"
-import { AlertTriangle, CheckCircle2, Coins } from "lucide-react"
+import type { ActionSubmission, GameId, Mechanic, PlayerView } from "@api-types"
+import { Assert } from "@guillaume-docquier/tools-ts"
+import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import type { KeyboardEvent, ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
+import { Badge } from "@/components/badge.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
+import { formatResourceType, mechanicToRulesText } from "@/features/play/mechanicToRulesText.ts"
 import { useSetCurrentActionMutation } from "@/lib/api/useSetCurrentActionMutation.ts"
 import { cn } from "@/lib/cn.ts"
-
-const PLAYER_ACTIONS = [
-  {
-    actionType: "MAKE_MORE_MONEY",
-    label: "Make More Money",
-    description: "Turn 2 money into 5 extra money after the normal turn income.",
-    costMoney: 2,
-    rewardMoney: 5,
-  },
-  {
-    actionType: "WIN_THE_GAME",
-    label: "Win The Game",
-    description: "Spend 10 money and immediately end the game in your favor.",
-    costMoney: 10,
-    rewardMoney: 0,
-  },
-] as const satisfies Array<{
-  actionType: ApiTypes.ActionDto["actionType"]
-  label: string
-  description: string
-  costMoney: number
-  rewardMoney: number
-}>
 
 export function ActionSelector({
   gameId,
   playerView,
   currentAction,
 }: {
-  gameId: ApiTypes.GameId
+  gameId: GameId
   playerView: PlayerView
-  currentAction: ApiTypes.ActionDto | null
+  currentAction: ActionSubmission | null
 }): ReactElement {
   const setCurrentAction = useSetCurrentActionMutation()
 
@@ -52,22 +31,32 @@ export function ActionSelector({
             Your selection applies to turn {playerView.turn} only. Click the selected action again to clear it.
           </p>
         </div>
-        <div className="flex h-10 w-fit items-center gap-2 rounded-md border border-border/70 bg-card/45 px-3 text-sm font-medium text-foreground">
-          <Coins className="size-4 text-primary" />
-          {playerView.resources.money} money
+        <div className="flex h-10 w-fit items-center gap-3 rounded-md border border-border/70 bg-card/45 px-3 text-sm font-medium text-foreground">
+          {Object.entries(playerView.resources).map(([resourceType, quantity]) => (
+            <span key={resourceType}>
+              {quantity} {formatResourceType(resourceType)}
+            </span>
+          ))}
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {PLAYER_ACTIONS.map((action) => {
-          const isSelected = currentAction?.actionType === action.actionType
-          const hasEnoughMoney = playerView.resources.money >= action.costMoney
-          const disabledReason = !hasEnoughMoney && !isSelected ? `Requires ${action.costMoney} money.` : undefined
-          const canSubmitAction = !setCurrentAction.isPending && (hasEnoughMoney || isSelected)
-
+        {playerView.availableActions.map((action) => {
+          const actionDefinition = playerView.ruleset.actionDefinitions[action.actionDefinitionId]
+          Assert.isDefined(actionDefinition)
+          const isSelected = currentAction?.actionDefinitionId === action.actionDefinitionId
+          const disabledReason = !action.canAfford && !isSelected ? "You cannot afford this action." : undefined
+          const canSubmitAction = !setCurrentAction.isPending && (action.canAfford || isSelected)
+          const selectAction = (): void => {
+            setCurrentAction.mutate({
+              gameId,
+              turn: playerView.turn,
+              actionSubmission: isSelected ? null : action,
+            })
+          }
           return (
             <Card
-              key={action.actionType}
+              key={action.id}
               role="button"
               tabIndex={canSubmitAction ? 0 : -1}
               aria-pressed={isSelected}
@@ -83,42 +72,31 @@ export function ActionSelector({
                   return
                 }
 
-                setCurrentAction.mutate({
-                  gameId,
-                  turn: playerView.turn,
-                  actionType: isSelected ? null : action.actionType,
-                })
+                selectAction()
               }}
               onKeyDown={(event) => {
                 handleActionCardKeyDown({
                   event,
                   canSubmitAction,
-                  onSelect: () => {
-                    setCurrentAction.mutate({
-                      gameId,
-                      turn: playerView.turn,
-                      actionType: isSelected ? null : action.actionType,
-                    })
-                  },
+                  onSelect: selectAction,
                 })
               }}
             >
               <CardHeader className="gap-3">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg">{action.label}</CardTitle>
-                    <CardDescription>{action.description}</CardDescription>
+                    <CardTitle className="text-lg">{actionDefinition.name}</CardTitle>
+                    <CardDescription className="flex gap-2 pt-1 capitalize">
+                      <Badge variant="outline">{actionDefinition.type.toLowerCase()}</Badge>
+                      <Badge variant="outline">{actionDefinition.tier.toLowerCase()}</Badge>
+                    </CardDescription>
                   </div>
                   {isSelected ? <CheckCircle2 className="size-5 text-primary" /> : null}
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <div className="text-sm text-muted-foreground">
-                  Cost: {action.costMoney} money
-                  {action.rewardMoney > 0
-                    ? ` | Effect: +${action.rewardMoney} money after paying the cost`
-                    : " | Effect: End the game immediately"}
-                </div>
+                <RulesList title="Costs" mechanics={actionDefinition.costs} />
+                <RulesList title="Effects" mechanics={actionDefinition.mechanics} />
                 {disabledReason === undefined ? null : (
                   <Alert variant="destructive">
                     <AlertTriangle className="size-4" />
@@ -140,6 +118,19 @@ export function ActionSelector({
         </Alert>
       ) : null}
     </section>
+  )
+}
+
+function RulesList({ title, mechanics }: { title: string; mechanics: readonly Mechanic[] }): ReactElement {
+  return (
+    <div className="space-y-1 text-sm text-muted-foreground">
+      <div className="font-medium text-foreground">{title}</div>
+      <ul className="list-disc space-y-1 pl-5">
+        {mechanics.map((mechanic, index) => (
+          <li key={`${mechanic.type}-${index}`}>{mechanicToRulesText(mechanic)}</li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

@@ -29,6 +29,7 @@ import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Resource
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type ActionSubmissionRow = typeof actionSubmissionsTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
+type ResourceRow = typeof resourcesTable.$inferSelect
 type NewTurnRow = typeof turnsTable.$inferInsert
 
 /**
@@ -50,7 +51,7 @@ export type ActionSubmissionModel = {
  */
 export type ActionContextModel = {
   turn: number
-  money: number
+  resources: Record<ResourceType, number>
 }
 
 type PlayerViewPlayerModel = {
@@ -65,9 +66,7 @@ export type PlayerViewModel = {
   galaxy: GalaxyModel
   turn: number
   nextTurnAt: Date
-  resources: {
-    money: number
-  }
+  resources: Record<ResourceType, number>
 }
 
 /**
@@ -281,8 +280,6 @@ export class GameplayRepository extends PostgresRepository {
           .select()
           .from(resourcesTable)
           .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
-        const money = playerResources.find((resource) => resource.resourceType === ResourceType.MONEY)
-        Assert.isDefined(money, "money")
 
         const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
         const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
@@ -292,9 +289,7 @@ export class GameplayRepository extends PostgresRepository {
           player,
           opponents,
           galaxy: toGalaxyModel({ stars, planets }),
-          resources: {
-            money: money.amount,
-          },
+          resources: toResourceBag(playerResources),
         }
       }),
     )
@@ -364,24 +359,14 @@ export class GameplayRepository extends PostgresRepository {
         }
         Assert.isDefined(gameStates[0])
 
-        const moneyRows = await tx
-          .select({ amount: resourcesTable.amount })
+        const resourceRows = await tx
+          .select()
           .from(resourcesTable)
-          .where(
-            and(
-              eq(resourcesTable.gameId, params.gameId),
-              eq(resourcesTable.playerId, params.playerId),
-              eq(resourcesTable.resourceType, ResourceType.MONEY),
-            ),
-          )
-        if (moneyRows.length !== 1) {
-          throw new TransactionRollback("Player money resource does not exist.")
-        }
-        Assert.isDefined(moneyRows[0])
+          .where(and(eq(resourcesTable.gameId, params.gameId), eq(resourcesTable.playerId, params.playerId)))
 
         return {
           turn: gameStates[0].turn,
-          money: moneyRows[0].amount,
+          resources: toResourceBag(resourceRows),
         }
       }),
     )
@@ -473,6 +458,18 @@ export class GameplayRepository extends PostgresRepository {
 
     return Result.Success(true)
   }
+}
+
+function toResourceBag(resourceRows: readonly ResourceRow[]): Record<ResourceType, number> {
+  const entries = Object.values(ResourceType).map((resourceType) => {
+    const resource = resourceRows.find((row) => row.resourceType === resourceType)
+    Assert.isDefined(resource, resourceType)
+    return [resourceType, resource.amount] as const
+  })
+
+  // SAFETY: entries contains exactly one numeric quantity for every configured ResourceType.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot infer Object.fromEntries completeness.
+  return Object.fromEntries(entries) as Record<ResourceType, number>
 }
 
 function toActionSubmissionModel(row: ActionSubmissionRow): ActionSubmissionModel {

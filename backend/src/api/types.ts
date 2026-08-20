@@ -25,8 +25,12 @@ export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 
 // Gameplay router
 type CurrentActionOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
-export type ActionDto = NonNullable<CurrentActionOutput["action"]>
+export type ActionSubmission = NonNullable<CurrentActionOutput["action"]>
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
+export type Ruleset = PlayerView["ruleset"]
+export type ActionDefinition = Ruleset["actionDefinitions"][string]
+export type Mechanic = ActionDefinition["costs"][number] | ActionDefinition["mechanics"][number]
+export type AvailableAction = PlayerView["availableActions"][number]
 export type Galaxy = PlayerView["galaxy"]
 export type StarSystem = Galaxy["systems"][number]
 export type Planet = StarSystem["planets"][number]

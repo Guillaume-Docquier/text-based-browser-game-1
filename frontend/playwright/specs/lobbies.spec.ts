@@ -1,5 +1,6 @@
 import { authenticatedUser } from "../authenticatedUser.ts"
 import { expect, test } from "../fixtures.ts"
+import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
@@ -134,6 +135,29 @@ test.describe("authenticated user", () => {
       await galaxyPage.starSystemStar.click()
       expect(await galaxyPage.starSystemMap.getAttribute("aria-busy")).not.toBe("true")
       await expect(galaxyPage.heading).toBeVisible()
+    })
+
+    await test.step("Choose an Action from the Ruleset", async () => {
+      const actionsPage = new ActionsPage(page)
+      await actionsPage.open()
+
+      await expect(page).toHaveURL(ActionsPage.urlPattern)
+      await expect(actionsPage.heading).toBeVisible()
+
+      const makeMoreMoney = actionsPage.action("Make More Money")
+      await expect(makeMoreMoney).toContainText("Spend 2 Money")
+      await expect(makeMoreMoney).toContainText("Gain 5 Money")
+
+      const winTheGame = actionsPage.action("Win The Game")
+      await expect(winTheGame).toContainText("Spend 10 Money")
+      await expect(winTheGame).toContainText("Win the game")
+      await expect(winTheGame).toHaveAttribute("aria-disabled", "true")
+
+      await makeMoreMoney.click()
+      await expect(makeMoreMoney).toHaveAttribute("aria-pressed", "true")
+
+      await makeMoreMoney.click()
+      await expect(makeMoreMoney).toHaveAttribute("aria-pressed", "false")
     })
   })
 

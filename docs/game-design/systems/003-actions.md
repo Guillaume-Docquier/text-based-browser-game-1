@@ -2,7 +2,13 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
+
+- [x] Data-driven Action Definitions
+- [x] Available Action pool
+- [x] Single Action submission
+- [ ] Multiple Action submissions
+- [ ] Ideology-driven Action pools
 
 ## Purpose
 

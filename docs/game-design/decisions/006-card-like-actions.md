@@ -2,9 +2,12 @@
 
 ## Status
 
-Planned
+Partially Implemented
 
-- [ ] Card-like action system
+- [x] Card-like Action Definitions
+- [x] Per-Turn Available Action pool
+- [ ] Multiple Action selection
+- [ ] Ideology-driven Action pools
 
 ## Context
 

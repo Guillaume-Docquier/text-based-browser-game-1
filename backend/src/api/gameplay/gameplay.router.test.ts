@@ -1,13 +1,16 @@
-import { Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { ActionType } from "#lib/db/gameplay/actionType.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-more-money.ts"
+import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
+import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 
 describe("gameplay.router", () => {
@@ -28,7 +31,11 @@ describe("gameplay.router", () => {
       nonPlayer.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: ActionType.MAKE_MORE_MONEY,
+        actionSubmission: {
+          id: "unavailable-action",
+          actionDefinitionId: MakeMoreMoney.id,
+          targets: { self: nonPlayer.account.id },
+        },
       }),
     ).rejects.toMatchObject(expectedError)
   })
@@ -159,8 +166,23 @@ describe("gameplay.router", () => {
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
         resources: {
-          money: 2,
+          [ResourceType.MONEY]: 2,
         },
+        ruleset: StandardRuleset,
+        availableActions: [
+          {
+            id: expect.any(String),
+            actionDefinitionId: MakeMoreMoney.id,
+            targets: { self: player.account.id },
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: WinTheGame.id,
+            targets: { self: player.account.id },
+            canAfford: false,
+          },
+        ],
       })
     })
 
@@ -215,20 +237,27 @@ describe("gameplay.router", () => {
   })
 
   describe("setCurrentAction", () => {
-    it("should set the current action for the authenticated player", async () => {
+    it("should set the current action for the authenticated player and override server-owned targets", async () => {
       // Arrange
       const db = await createDbMock()
       const { api, accountsRepository } = await createApiStub({ db })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
+      const otherPlayer = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const makeMoreMoney = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === MakeMoreMoney.id)
+      Assert.isDefined(makeMoreMoney)
       // Act
       const setCurrentActionResult = await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: ActionType.MAKE_MORE_MONEY,
+        actionSubmission: {
+          ...makeMoreMoney,
+          targets: { self: otherPlayer.account.id },
+        },
       })
       const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
         gameId: createdGameId,
@@ -237,11 +266,9 @@ describe("gameplay.router", () => {
       // Assert
       expect(setCurrentActionResult).toEqual<typeof setCurrentActionResult>({
         action: {
-          gameId: createdGameId,
-          playerId: player.account.id,
-          turn: 0,
-          actionType: ActionType.MAKE_MORE_MONEY,
-          updatedAt: expect.any(String),
+          id: makeMoreMoney.id,
+          actionDefinitionId: MakeMoreMoney.id,
+          targets: { self: player.account.id },
         },
       })
       expect(getCurrentActionResult).toEqual<typeof getCurrentActionResult>(setCurrentActionResult)
@@ -254,13 +281,16 @@ describe("gameplay.router", () => {
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const makeMoreMoney = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === MakeMoreMoney.id)
+      Assert.isDefined(makeMoreMoney)
 
       // Act & Assert
       await expect(
         player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           turn: 1,
-          actionType: ActionType.MAKE_MORE_MONEY,
+          actionSubmission: makeMoreMoney,
         }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
@@ -273,12 +303,15 @@ describe("gameplay.router", () => {
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const winTheGame = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === WinTheGame.id)
+      Assert.isDefined(winTheGame)
 
       // Act
       const setActionPromise = player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: ActionType.WIN_THE_GAME,
+        actionSubmission: winTheGame,
       })
 
       // Assert

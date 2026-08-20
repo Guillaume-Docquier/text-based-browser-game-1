@@ -8,8 +8,9 @@ Partially Implemented
 - [x] Standard Ruleset
 - [x] Effect Outcomes
 - [x] Production Turn Processing Integration
-- [ ] Data Driven Frontend
-- [ ] Available Actions & Multiple Actions
+- [x] Data Driven Frontend
+- [x] Available Actions
+- [ ] Multiple Actions
 
 ## Purpose
 

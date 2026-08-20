@@ -9,7 +9,6 @@ import { StarCoordinates, toStarCoordinates } from "#api/shared/StarCoordinates.
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { ActionDto, ActionTypeSchema } from "#lib/db/gameplay/actions.ts"
 import { STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
@@ -20,11 +19,15 @@ import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
+import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
+import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
+import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 import { UInt32 } from "#lib/UInt32.ts"
-import { type ActionSubmissionModel, type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
+import { type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger
@@ -124,7 +127,7 @@ export class GameplayController {
   /**
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
-  public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<ActionDto | null, string>> {
+  public async getCurrentAction({ gameId, playerId }: GetCurrentActionDto): Promise<Result<ActionSubmissionDto | null, string>> {
     const getCurrentActionResult = await this.createTransaction(async (tx) => {
       const activeGameResult = await this.gameplayRepository.getActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
@@ -139,7 +142,7 @@ export class GameplayController {
       )
       rollbackOnFailure(currentActionResult, "Failed to get current action")
 
-      return currentActionResult.value === null ? null : toActionDto(currentActionResult.value)
+      return currentActionResult.value === null ? null : toActionSubmissionDto(currentActionResult.value.actionSubmission)
     })
 
     if (Result.isFailure(getCurrentActionResult)) {
@@ -153,7 +156,12 @@ export class GameplayController {
   /**
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
-  public async setCurrentAction({ gameId, turn, playerId, actionType }: SetCurrentActionDto): Promise<Result<ActionDto | null, string>> {
+  public async setCurrentAction({
+    gameId,
+    turn,
+    playerId,
+    actionSubmission: submittedAction,
+  }: SetCurrentActionDto): Promise<Result<ActionSubmissionDto | null, string>> {
     const setActionResult = await this.createTransaction(async (tx) => {
       const activeGameResult = await this.gameplayRepository.getActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
@@ -164,7 +172,7 @@ export class GameplayController {
         )
       }
 
-      if (actionType === null) {
+      if (submittedAction === null) {
         const deleteResult = await this.gameplayRepository.clearCurrentAction({ gameId, playerId, turn }, tx)
         rollbackOnFailure(deleteResult, "Failed to clear action")
 
@@ -172,21 +180,15 @@ export class GameplayController {
       }
 
       const actionSubmission = {
-        id: v4(),
+        ...submittedAction,
         submittedByPlayerId: playerId,
-        actionDefinitionId: actionType,
-        targets: { self: playerId },
-      } as const satisfies ActionSubmission
-      const turnState: TurnState = {
+        targets: { ...submittedAction.targets, self: playerId },
+      } satisfies ActionSubmission
+      const turnState = createTurnState({
+        playerId,
+        resources: activeGameResult.value.resources,
         actionSubmissions: [actionSubmission],
-        players: {
-          [playerId]: {
-            id: playerId,
-            resources: { [ResourceType.MONEY]: activeGameResult.value.money },
-          },
-        },
-        winnerPlayerId: undefined,
-      }
+      })
       const issues = validateActionSubmissions(turnState.actionSubmissions, StandardRuleset, turnState)
       if (issues.length > 0) {
         throw new TransactionRollback(issues.map(({ issue }) => issue).join("\n"))
@@ -195,11 +197,17 @@ export class GameplayController {
       const upsertResult = await this.gameplayRepository.setCurrentAction({ gameId, turn, actionSubmission }, tx)
       rollbackOnFailure(upsertResult, "Failed to upsert action")
 
-      return toActionDto(upsertResult.value)
+      return toActionSubmissionDto(upsertResult.value.actionSubmission)
     })
 
     if (Result.isFailure(setActionResult)) {
-      this.logger.error("Failed to set current action", { gameId, turn, playerId, actionType, error: setActionResult.error })
+      this.logger.error("Failed to set current action", {
+        gameId,
+        turn,
+        playerId,
+        actionDefinitionId: submittedAction?.actionDefinitionId,
+        error: setActionResult.error,
+      })
       return Result.Failure(setActionResult.error.message)
     }
 
@@ -256,20 +264,61 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     turn: playerViewModel.turn,
     nextTurnAt: playerViewModel.nextTurnAt,
     resources: playerViewModel.resources,
+    ruleset: StandardRuleset,
+    availableActions: createAvailableActions(playerViewModel),
   }
 }
 
-function toActionDto(actionSubmissionModel: ActionSubmissionModel): ActionDto {
-  // Temporary while the frontend is not data driven
-  const actionTypeResult = ActionTypeSchema.safeParse(actionSubmissionModel.actionSubmission.actionDefinitionId)
-  Assert.isTrue(actionTypeResult.success)
+function createAvailableActions(playerViewModel: PlayerViewModel): AvailableActionDto[] {
+  const turnState = createTurnState({
+    playerId: playerViewModel.player.id,
+    resources: playerViewModel.resources,
+    actionSubmissions: [],
+  })
 
+  return Object.values(StandardRuleset.actionDefinitions).map((actionDefinition) => {
+    const availableAction = {
+      id: v4(),
+      actionDefinitionId: actionDefinition.id,
+      targets: { self: playerViewModel.player.id },
+    }
+    const actionSubmission = {
+      ...availableAction,
+      submittedByPlayerId: playerViewModel.player.id,
+    } as const satisfies ActionSubmission
+    const affordabilityResult = validateCosts([actionSubmission], StandardRuleset, turnState)
+    Assert.isSuccess(affordabilityResult)
+
+    return { ...availableAction, canAfford: affordabilityResult.value.length === 0 }
+  })
+}
+
+function toActionSubmissionDto(actionSubmission: ActionSubmission): ActionSubmissionDto {
   return {
-    gameId: actionSubmissionModel.gameId,
-    playerId: actionSubmissionModel.actionSubmission.submittedByPlayerId,
-    turn: actionSubmissionModel.turn,
-    actionType: actionTypeResult.data,
-    updatedAt: actionSubmissionModel.updatedAt,
+    id: actionSubmission.id,
+    actionDefinitionId: actionSubmission.actionDefinitionId,
+    targets: actionSubmission.targets,
+  }
+}
+
+function createTurnState({
+  playerId,
+  resources,
+  actionSubmissions,
+}: {
+  playerId: PlayerId
+  resources: Record<ResourceType, number>
+  actionSubmissions: readonly ActionSubmission[]
+}): TurnState {
+  return {
+    actionSubmissions,
+    players: {
+      [playerId]: {
+        id: playerId,
+        resources,
+      },
+    },
+    winnerPlayerId: undefined,
   }
 }
 
@@ -326,6 +375,55 @@ export const GalaxyDto = z.object({
   ),
 })
 
+const TargetDefinitionDto = z.object({
+  tag: z.string(),
+  type: z.enum([...Object.values(TargetType), "SELF"]),
+})
+
+const MechanicTargetsDto = z.record(z.string(), TargetDefinitionDto)
+const QuantityOfResourceDto = {
+  quantity: z.number(),
+  resourceType: z.enum(ResourceType),
+}
+const ResourceLossMechanicDto = z.object({
+  type: z.literal("RESOURCE_LOSS"),
+  targets: MechanicTargetsDto,
+  ...QuantityOfResourceDto,
+})
+const MechanicDto = z.discriminatedUnion("type", [
+  ResourceLossMechanicDto,
+  z.object({
+    type: z.literal("RESOURCE_GAIN"),
+    targets: MechanicTargetsDto,
+    ...QuantityOfResourceDto,
+  }),
+  z.object({
+    type: z.literal("VICTORY"),
+    targets: MechanicTargetsDto,
+  }),
+])
+const ActionDefinitionDto = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.enum(ActionType),
+  tier: z.enum(ActionTier),
+  targets: z.record(z.string(), z.literal("")),
+  costs: z.array(ResourceLossMechanicDto),
+  mechanics: z.array(MechanicDto),
+})
+const RulesetDto = z.object({
+  name: z.string(),
+  actionDefinitions: z.record(z.string(), ActionDefinitionDto),
+})
+const ActionSubmissionDto = z.object({
+  id: z.string(),
+  actionDefinitionId: z.string(),
+  targets: z.record(z.string(), z.string()),
+})
+type ActionSubmissionDto = z.infer<typeof ActionSubmissionDto>
+const AvailableActionDto = ActionSubmissionDto.extend({ canAfford: z.boolean() })
+type AvailableActionDto = z.infer<typeof AvailableActionDto>
+
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
 export const PlayerViewDto = z.object({
   gameId: GameId,
@@ -334,9 +432,9 @@ export const PlayerViewDto = z.object({
   galaxy: GalaxyDto,
   turn: z.number(),
   nextTurnAt: z.date(),
-  resources: z.object({
-    money: z.number(),
-  }),
+  resources: z.record(z.enum(ResourceType), z.number()),
+  ruleset: RulesetDto,
+  availableActions: z.array(AvailableActionDto),
 })
 
 export type GetCurrentActionDto = z.infer<typeof GetCurrentActionDto>
@@ -350,9 +448,9 @@ export const SetCurrentActionDto = z.object({
   gameId: z.coerce.number(),
   playerId: PlayerId,
   turn: z.coerce.number(),
-  actionType: ActionTypeSchema.nullable(),
+  actionSubmission: ActionSubmissionDto.nullable(),
 })
 
 export const CurrentActionDto = z.object({
-  action: ActionDto.nullable(),
+  action: ActionSubmissionDto.nullable(),
 })

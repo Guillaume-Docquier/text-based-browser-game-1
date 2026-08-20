@@ -4,9 +4,9 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { ActionType } from "#lib/db/gameplay/actionType.ts"
-import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { MakeMoreMoney } from "#lib/rulesets/standard/action-definitions/make-more-money.ts"
+import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { ResourcesRepository } from "#tests/resources/resources.repository.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
@@ -51,12 +51,12 @@ describe("TurnProcessor", () => {
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: firstGameId })).toMatchObject({
         turn: 1,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: secondGameId })).toMatchObject({
         turn: 1,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
     })
 
@@ -95,12 +95,12 @@ describe("TurnProcessor", () => {
       // No turns were processed because turns in error block, this will be resolved by https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/278
       expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
         turn: 0,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
         turn: 0,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
     })
   })
@@ -126,7 +126,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: ActionType.MAKE_MORE_MONEY,
+        actionSubmission: getAvailableAction(initialPlayerView, MakeMoreMoney.id),
       })
 
       // Act
@@ -136,15 +136,13 @@ describe("TurnProcessor", () => {
       // Assert
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toEqual<typeof playerView>({
-        gameId: createdGameId,
-        player: { id: player.account.id, color: PlayerColor.WHITE },
-        opponents: {},
-        galaxy: initialPlayerView.galaxy,
+        ...initialPlayerView,
         turn: 1,
         nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
         resources: {
-          money: 5,
+          [ResourceType.MONEY]: 5,
         },
+        availableActions: expect.any(Array),
       })
     })
 
@@ -192,11 +190,12 @@ describe("TurnProcessor", () => {
 
       const { turnProcessor } = await createTurnProcessorStub({ db, clock })
       const resourcesRepository = new ResourcesRepository({ db, logger })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: ActionType.MAKE_MORE_MONEY,
+        actionSubmission: getAvailableAction(initialPlayerView, MakeMoreMoney.id),
       })
       Assert.isSuccess(
         await resourcesRepository.updateResource({
@@ -215,7 +214,7 @@ describe("TurnProcessor", () => {
       expect(playerView).toMatchObject({
         turn: 0,
         resources: {
-          money: 0,
+          [ResourceType.MONEY]: 0,
         },
       })
       expect(result).toBe("failed")
@@ -251,12 +250,12 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
         turn: 0,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
         turn: 1,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
     })
 
@@ -285,7 +284,7 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
         turn: 2,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
     })
 
@@ -312,7 +311,7 @@ describe("TurnProcessor", () => {
       expect(processingResults).toEqual<typeof processingResults>(["processed", "idle"])
       expect(await player.client.gameplay.getPlayerView.query({ gameId: processingGameId })).toMatchObject({
         turn: 1,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
     })
 
@@ -346,12 +345,12 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
         turn: 0,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
         turn: 0,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
     })
 
@@ -385,12 +384,12 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
         turn: 1,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
         turn: 1,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
     })
 
@@ -417,7 +416,7 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
         turn: 1,
-        resources: { money: 2 },
+        resources: { [ResourceType.MONEY]: 2 },
       })
     })
 
@@ -449,11 +448,12 @@ describe("TurnProcessor", () => {
           amountDelta,
         })
         Assert.isSuccess(updateResourceResult)
+        const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
         await player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           turn: 0,
-          actionType: ActionType.WIN_THE_GAME,
+          actionSubmission: getAvailableAction(playerView, WinTheGame.id),
         })
       }
 
@@ -474,14 +474,14 @@ describe("TurnProcessor", () => {
       const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(creatorView).toMatchObject({
         resources: {
-          money: 2,
+          [ResourceType.MONEY]: 2,
         },
       })
 
       const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(joinerView).toMatchObject({
         resources: {
-          money: 4,
+          [ResourceType.MONEY]: 4,
         },
       })
     })
@@ -498,11 +498,12 @@ describe("TurnProcessor", () => {
         configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: 0 }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionType: ActionType.MAKE_MORE_MONEY,
+        actionSubmission: getAvailableAction(playerView, MakeMoreMoney.id),
       })
 
       const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId: createdGameId })
@@ -522,19 +523,28 @@ describe("TurnProcessor", () => {
       expect(playerViewAfterFailedSave).toMatchObject({
         turn: 0,
         resources: {
-          money: 2,
+          [ResourceType.MONEY]: 2,
         },
       })
       expect(retriedProcessingResult).toBe("processed")
       expect(playerViewAfterRetry).toMatchObject({
         turn: 1,
         resources: {
-          money: 5,
+          [ResourceType.MONEY]: 5,
         },
       })
     })
   })
 })
+
+function getAvailableAction<TPlayerView extends { availableActions: ReadonlyArray<{ actionDefinitionId: string }> }>(
+  playerView: TPlayerView,
+  actionDefinitionId: string,
+): TPlayerView["availableActions"][number] {
+  const action = playerView.availableActions.find((availableAction) => availableAction.actionDefinitionId === actionDefinitionId)
+  Assert.isDefined(action)
+  return action
+}
 
 class FailingTurnsRepository extends TurnsRepository {
   private readonly failingGameId: number
