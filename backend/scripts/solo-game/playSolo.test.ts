@@ -16,6 +16,7 @@ import { playSolo, type SoloGameSelection } from "./playSolo.ts"
 describe("playSolo", () => {
   it("should collect actions and resolve turns until the player wins", async () => {
     // Arrange
+    const ruleset = { ...StandardRuleset, name: "Test Ruleset" }
     const selections: SoloGameSelection[] = [
       { command: "ADD_ACTION", actionDefinitionId: WinTheGame.id },
       { command: "SUBMIT_TURN" },
@@ -48,6 +49,7 @@ describe("playSolo", () => {
 
     // Act
     const session = await playSolo({
+      ruleset,
       prompt: async ({ message, choices, default: defaultSelection }) => {
         promptMessages.push(message)
         promptChoices.push(
@@ -97,7 +99,7 @@ describe("playSolo", () => {
     expect(plainPromptMessages).toContainEqual(expect.stringContaining(`Missing 7 ${ResourceType.INFLUENCE}`))
     expect(plainPromptMessages).toContainEqual(expect.stringContaining("SELECTED ACTIONS  ·  2"))
     expect(plainPromptMessages.every((message) => message.includes("CURRENT TURN"))).toBe(true)
-    expect(plainPromptMessages.every((message) => message.includes(StandardRuleset.name))).toBe(true)
+    expect(plainPromptMessages.every((message) => message.includes(ruleset.name))).toBe(true)
     expect(plainPromptMessages.every((message) => message.includes("EMPIRE STATE"))).toBe(true)
     expect(plainPromptMessages.every((message) => message.includes("COMMAND"))).toBe(true)
     expect(promptChoices.flat()).toContainEqual({
@@ -115,7 +117,7 @@ describe("playSolo", () => {
     ])
     expect(plainOutput.filter((line) => line.trim() === "━".repeat(72))).toHaveLength(3)
     expect(plainOutput.filter((line) => line.includes("RESOLVED TURN"))).toHaveLength(4)
-    expect(plainOutput).toContainEqual(expect.stringContaining("STANDARD RULESET PLAYTEST"))
+    expect(plainOutput).toContainEqual(expect.stringContaining("TEST RULESET PLAYTEST"))
     expect(plainOutput).not.toContainEqual(expect.stringContaining("CURRENT TURN"))
     const firstResolvedTurnIndex = plainOutput.findIndex((line) => line.includes("RESOLVED TURN"))
     const firstResolvedTurnSeparatorIndex = plainOutput.findIndex(
