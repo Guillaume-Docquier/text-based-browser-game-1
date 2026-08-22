@@ -62,15 +62,12 @@ test.describe("authenticated user", () => {
     })
 
     await test.step("Display resources in their canonical order", async () => {
-      // Arrange
       const topBarResources = galaxyPage.resources
 
-      // Act
       const resourceLabels = await Promise.all(
         (await topBarResources.all()).map(async (resource) => await resource.getAttribute("aria-label")),
       )
 
-      // Assert
       expect(resourceLabels).toEqual(["3 Influence", "2 Metal", "0 Energy", "1 Fuel", "0 Colony"])
     })
 
@@ -92,51 +89,68 @@ test.describe("authenticated user", () => {
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBe(1)
     })
 
-    await test.step("Inspect a Star System", async () => {
-      const selectedStar = galaxyPage.stars.first()
+    const cameraScaleBeforeInspecting = await test.step("Zoom the Galaxy before inspecting a Star System", async () => {
       const initialCameraScale = await galaxyPage.getGalaxyCameraScale()
       await galaxyPage.zoomGalaxyOut()
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).not.toBe(initialCameraScale)
-      const cameraScaleBeforeInspecting = await galaxyPage.getGalaxyCameraScale()
+      return await galaxyPage.getGalaxyCameraScale()
+    })
 
-      await selectedStar.press("Enter")
+    const selectedStar = await test.step("Open a Star System with the mouse", async () => {
+      const star = galaxyPage.stars.first()
+      await star.click()
       await expect(galaxyPage.starSystemMap).toBeVisible()
+      return star
+    })
 
+    await test.step("Open the first Planet profile with the mouse", async () => {
       const firstPlanet = galaxyPage.planets.first()
-      const secondPlanet = galaxyPage.planets.nth(1)
       const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
-      const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
+      await firstPlanet.click()
       expect(firstPlanetName).toBe("planet 122350")
-      expect(secondPlanetName).toBe("planet 983117")
-
-      await firstPlanet.press("Enter")
       await expect(galaxyPage.planetDetailsPane).toBeVisible()
       await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: firstPlanetName })).toBeVisible()
       await expect(galaxyPage.planetDetailsPane).toContainText("Planet attributes")
       await expect(galaxyPage.planetDetailsPane).toContainText("Fertility")
       await expect(galaxyPage.planetDetailsPane).toContainText("Max population")
       await expect(galaxyPage.planetDetailsPane).toContainText("Coordinates")
+    })
 
+    await test.step("Switch to the second Planet profile with the mouse", async () => {
+      const secondPlanet = galaxyPage.planets.nth(1)
+      const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
       await secondPlanet.click()
+      expect(secondPlanetName).toBe("planet 983117")
       await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: secondPlanetName })).toBeVisible()
+    })
 
+    await test.step("Close the Planet profile by clicking the map", async () => {
       await galaxyPage.starSystemMap.click({ position: { x: 10, y: 10 } })
       await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
+    })
 
+    await test.step("Pan the Star System away from its center", async () => {
       await galaxyPage.panStarSystem({ deltaX: 60, deltaY: 40 })
       expect(await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeGreaterThan(20)
+    })
+
+    await test.step("Recenter and return to the Galaxy from a panned Star System", async () => {
       await galaxyPage.starSystemStar.click()
       expect(await galaxyPage.starSystemMap.getAttribute("aria-busy")).toBe("true")
       await expect(galaxyPage.heading).not.toBeVisible()
       await expect.poll(async () => await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeLessThan(1)
-
       await expect(galaxyPage.heading).toBeVisible()
       expect(await galaxyPage.getGalaxyCameraScale()).toBeCloseTo(cameraScaleBeforeInspecting)
       expect(await galaxyPage.getGalaxyStarDistanceFromCenter(selectedStar)).toBeLessThan(1)
+    })
 
-      await selectedStar.press("Enter")
+    await test.step("Reopen the same Star System with the mouse", async () => {
+      await selectedStar.click()
       expect(await galaxyPage.starSystemMap.count()).toBe(1)
       await expect(galaxyPage.starSystemMap).toBeVisible()
+    })
+
+    await test.step("Return to the Galaxy from a centered Star System", async () => {
       await galaxyPage.starSystemStar.click()
       expect(await galaxyPage.starSystemMap.getAttribute("aria-busy")).not.toBe("true")
       await expect(galaxyPage.heading).toBeVisible()
@@ -170,14 +184,11 @@ test.describe("authenticated user", () => {
     })
 
     await test.step("Display Action costs in their canonical order", async () => {
-      // Arrange
       const actionsPage = new ActionsPage(page)
       const actionCosts = actionsPage.action("Win The Game").locator('[aria-label="Costs"] > [aria-label]')
 
-      // Act
       const costLabels = await Promise.all((await actionCosts.all()).map(async (cost) => await cost.getAttribute("aria-label")))
 
-      // Assert
       expect(costLabels).toEqual([
         "10 Influence, cannot afford",
         "5 Metal, cannot afford",
