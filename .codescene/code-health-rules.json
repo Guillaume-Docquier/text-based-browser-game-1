@@ -5,16 +5,16 @@
       "rules": [],
       "thresholds": [
         {
+          "name": "function_complex_conditional_branches_warning",
+          "value": 3
+        },
+        {
           "name": "function_duplication_min_lines_of_code_for_check",
           "value": 20
         },
         {
           "name": "function_duplication_min_similarity_percentage",
           "value": 85
-        },
-        {
-          "name": "function_lines_of_code_alert",
-          "value": 750
         },
         {
           "name": "function_lines_of_code_warning",
@@ -27,6 +27,10 @@
       "rules": [],
       "thresholds": [
         {
+          "name": "function_complex_conditional_branches_warning",
+          "value": 3
+        },
+        {
           "name": "function_duplication_min_lines_of_code_for_check",
           "value": 20
         },
@@ -35,12 +39,18 @@
           "value": 85
         },
         {
-          "name": "function_lines_of_code_alert",
-          "value": 750
-        },
-        {
           "name": "function_lines_of_code_warning",
-          "value": 100
+          "value": 200
+        }
+      ]
+    },
+    {
+      "matching_content_path": "**/*",
+      "rules": [],
+      "thresholds": [
+        {
+          "name": "function_complex_conditional_branches_warning",
+          "value": 3
         }
       ]
     }
