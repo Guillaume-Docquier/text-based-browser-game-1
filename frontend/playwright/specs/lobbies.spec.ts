@@ -55,13 +55,12 @@ test.describe("authenticated user", () => {
       await expect(lobbyPage.configurationValue("Time per turn")).toHaveText("2 hr")
     })
 
-    await test.step("Start and open the game", async () => {
+    const galaxyPage = await test.step("Start and open the game", async () => {
       await lobbyPage.startGame()
-      await lobbyPage.openGame()
+      return await lobbyPage.openGame()
     })
 
     await test.step("Verify the Galaxy opens", async () => {
-      const galaxyPage = new GalaxyPage(page)
       await expect(page).toHaveURL(GalaxyPage.urlPattern)
       await expect(galaxyPage.heading).toBeVisible()
       await expect(galaxyPage.map).toBeVisible()
@@ -69,9 +68,7 @@ test.describe("authenticated user", () => {
 
     await test.step("Display resources in their canonical order", async () => {
       // Arrange
-      const topBarResources = page.locator(
-        'header [aria-label$="Influence"], header [aria-label$="Metal"], header [aria-label$="Energy"], header [aria-label$="Fuel"], header [aria-label$="Colony"]',
-      )
+      const topBarResources = galaxyPage.resources
 
       // Act
       const resourceLabels = await Promise.all(
@@ -83,7 +80,6 @@ test.describe("authenticated user", () => {
     })
 
     await test.step("Center and fit a Galaxy region", async () => {
-      const galaxyPage = new GalaxyPage(page)
       const selectedRegion = galaxyPage.regions.last()
 
       await selectedRegion.click()
@@ -102,7 +98,6 @@ test.describe("authenticated user", () => {
     })
 
     await test.step("Inspect a Star System", async () => {
-      const galaxyPage = new GalaxyPage(page)
       const selectedStar = galaxyPage.stars.first()
       const initialCameraScale = await galaxyPage.getGalaxyCameraScale()
       await galaxyPage.zoomGalaxyOut()
@@ -153,8 +148,7 @@ test.describe("authenticated user", () => {
     })
 
     await test.step("Choose an Action from the Ruleset", async () => {
-      const actionsPage = new ActionsPage(page)
-      await actionsPage.open()
+      const actionsPage = await galaxyPage.openActions()
 
       await expect(page).toHaveURL(ActionsPage.urlPattern)
       await expect(actionsPage.heading).toBeVisible()
@@ -205,9 +199,8 @@ test.describe("authenticated user", () => {
 
     const lobbyPage = new LobbyPage(page)
     await lobbyPage.startGame()
-    await lobbyPage.openGame()
+    const galaxyPage = await lobbyPage.openGame()
 
-    const galaxyPage = new GalaxyPage(page)
     await galaxyPage.stars.first().click()
     await expect(galaxyPage.starSystemMap).toBeVisible()
 

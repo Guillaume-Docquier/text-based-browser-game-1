@@ -1,10 +1,9 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
+import { GamePage } from "./GamePage.ts"
 
-export class GalaxyPage {
+export class GalaxyPage extends GamePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId/play/galaxy" })
-
-  private readonly page: Page
 
   public readonly heading: Locator
   public readonly map: Locator
@@ -18,7 +17,7 @@ export class GalaxyPage {
   public readonly resetViewButton: Locator
 
   public constructor(page: Page) {
-    this.page = page
+    super(page)
     this.heading = page.getByRole("heading", { name: "Galaxy", exact: true })
     this.map = page.getByRole("group", { name: "Galaxy map" })
     this.regions = page.getByRole("button", { name: /^Center region \d{2}$/ })
