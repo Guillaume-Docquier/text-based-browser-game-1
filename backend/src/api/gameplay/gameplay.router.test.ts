@@ -7,6 +7,7 @@ import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
@@ -35,11 +36,7 @@ describe("gameplay.router", () => {
       nonPlayer.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: {
-          id: "unavailable-action",
-          actionDefinitionId: GainInfluence.id,
-          targets: { self: nonPlayer.account.id },
-        },
+        actionSubmission: createActionSubmissionStub({ id: "unavailable-action" }),
       }),
     ).rejects.toMatchObject(expectedError)
   })
@@ -267,7 +264,6 @@ describe("gameplay.router", () => {
       const { api, accountsRepository } = await createApiStub({ db })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
-      const otherPlayer = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
@@ -280,7 +276,7 @@ describe("gameplay.router", () => {
         turn: 0,
         actionSubmission: {
           ...makeMoreMoney,
-          targets: { self: otherPlayer.account.id },
+          targets: { self: "not self" },
         },
       })
       const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
