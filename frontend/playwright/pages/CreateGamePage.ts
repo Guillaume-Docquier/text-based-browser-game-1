@@ -1,5 +1,6 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
+import { LobbyPage } from "./LobbyPage.ts"
 
 export class CreateGamePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/create" })
@@ -64,8 +65,9 @@ export class CreateGamePage {
     }
   }
 
-  public async submit(): Promise<void> {
+  public async submit(): Promise<LobbyPage> {
     await this.createButton.click()
+    return new LobbyPage(this.page)
   }
 
   public async signOut(): Promise<void> {

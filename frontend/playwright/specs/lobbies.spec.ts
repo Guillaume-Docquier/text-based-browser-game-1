@@ -3,7 +3,6 @@ import { expect, test } from "../fixtures.ts"
 import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
-import { LobbyPage } from "../pages/LobbyPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
 const DETERMINISTIC_GALAXY_SEED = 1234
@@ -38,17 +37,13 @@ test.describe("authenticated user", () => {
     const createGamePage = await CreateGamePage.goto(page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
     const gameName = `Playwright game ${Date.now()}`
 
-    await test.step("Configure the game", async () => {
+    const lobbyPage = await test.step("Configure and create the game", async () => {
       await createGamePage.setGameName(gameName)
       await createGamePage.setMaxPlayers(3)
       await createGamePage.setTurnLength({ value: 2, unit: "hours" })
+      return await createGamePage.submit()
     })
 
-    await test.step("Create the game", async () => {
-      await createGamePage.submit()
-    })
-
-    const lobbyPage = new LobbyPage(page)
     await test.step("Verify the lobby configuration", async () => {
       await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
       await expect(lobbyPage.configurationValue("Number of seats")).toHaveText("3 players")

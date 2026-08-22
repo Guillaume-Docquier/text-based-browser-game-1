@@ -20,7 +20,8 @@ import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { ActionDefinitionIdSchema } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
+import { ResourceType, ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
@@ -373,10 +374,11 @@ export const GalaxyDto = z.object({
   ),
 })
 
+const TargetIdSchema = z.string()
 const ActionSubmissionDto = z.object({
   id: z.string(),
-  actionDefinitionId: z.string(),
-  targets: z.record(z.string(), z.string()),
+  actionDefinitionId: ActionDefinitionIdSchema,
+  targets: z.object({ self: TargetIdSchema }).catchall(TargetIdSchema) satisfies z.ZodType<ActionSubmission["targets"]>,
 })
 type ActionSubmissionDto = z.infer<typeof ActionSubmissionDto>
 
@@ -391,7 +393,7 @@ export const PlayerViewDto = z.object({
   galaxy: GalaxyDto,
   turn: z.number(),
   nextTurnAt: z.date(),
-  resources: z.record(z.enum(ResourceType), z.number()),
+  resources: z.record(ResourceTypeSchema, z.number()),
   ruleset: RulesetSchema,
   availableActions: z.array(AvailableActionDto),
 })
