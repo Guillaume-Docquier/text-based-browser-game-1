@@ -67,6 +67,21 @@ test.describe("authenticated user", () => {
       await expect(galaxyPage.map).toBeVisible()
     })
 
+    await test.step("Display resources in their canonical order", async () => {
+      // Arrange
+      const topBarResources = page.locator(
+        'header [aria-label$="Influence"], header [aria-label$="Metal"], header [aria-label$="Energy"], header [aria-label$="Fuel"], header [aria-label$="Colony"]',
+      )
+
+      // Act
+      const resourceLabels = await Promise.all(
+        (await topBarResources.all()).map(async (resource) => await resource.getAttribute("aria-label")),
+      )
+
+      // Assert
+      expect(resourceLabels).toEqual(["3 Influence", "2 Metal", "0 Energy", "1 Fuel", "0 Colony"])
+    })
+
     await test.step("Center and fit a Galaxy region", async () => {
       const galaxyPage = new GalaxyPage(page)
       const selectedRegion = galaxyPage.regions.last()
@@ -163,6 +178,23 @@ test.describe("authenticated user", () => {
 
       await extractMetal.click()
       await expect(extractMetal).toHaveAttribute("aria-pressed", "false")
+    })
+
+    await test.step("Display Action costs in their canonical order", async () => {
+      // Arrange
+      const actionsPage = new ActionsPage(page)
+      const actionCosts = actionsPage.action("Win The Game").locator('[aria-label="Costs"] > [aria-label]')
+
+      // Act
+      const costLabels = await Promise.all((await actionCosts.all()).map(async (cost) => await cost.getAttribute("aria-label")))
+
+      // Assert
+      expect(costLabels).toEqual([
+        "10 Influence, cannot afford",
+        "5 Metal, cannot afford",
+        "5 Energy, cannot afford",
+        "5 Fuel, cannot afford",
+      ])
     })
   })
 

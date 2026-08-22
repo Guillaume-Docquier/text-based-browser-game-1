@@ -3,7 +3,7 @@ import { Clock3, Crown, RefreshCw, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import { Button } from "@/components/button.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
-import { RESOURCE_ICONS, RESOURCE_TYPES } from "@/features/play/components/resourceIcons.ts"
+import { RESOURCE_ICONS, sortResources } from "@/features/play/components/resourceIcons.ts"
 import { formatRulesetTerm } from "@/features/play/mechanicToRulesText.ts"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
@@ -58,23 +58,23 @@ function TurnFact({ turn }: { turn: PlayerView["turn"] }): ReactElement {
 }
 
 function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): ReactElement {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries preserves the keys of the typed resource record at runtime.
+  const resourceEntries = Object.entries(resources) as Array<[keyof typeof resources, number]>
+  const sortedResources = sortResources(resourceEntries.map(([resourceType, quantity]) => ({ resourceType, quantity })))
+
   return (
     <div className="group/resources relative">
       <div className="flex min-h-11 items-center rounded-md border border-border/70 bg-card/45 px-3 py-1.5">
         <div>
           <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Resources</div>
           <div className="flex gap-x-3">
-            {RESOURCE_TYPES.map((resourceType) => {
+            {sortedResources.map(({ resourceType, quantity }) => {
               const ResourceIcon = RESOURCE_ICONS[resourceType]
               const resourceName = formatRulesetTerm(resourceType)
 
               return (
-                <div
-                  key={resourceType}
-                  className="flex items-center gap-1 text-sm font-medium"
-                  aria-label={`${resources[resourceType]} ${resourceName}`}
-                >
-                  <span>{resources[resourceType]}</span>
+                <div key={resourceType} className="flex items-center gap-1 text-sm font-medium" aria-label={`${quantity} ${resourceName}`}>
+                  <span>{quantity}</span>
                   <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
                 </div>
               )
@@ -84,12 +84,12 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
       </div>
       <div className="invisible absolute top-full right-0 z-20 w-full pt-2 opacity-0 transition-opacity group-hover/resources:visible group-hover/resources:opacity-100">
         <div className="grid grid-cols-[max-content_1rem_max-content] justify-start gap-x-1 gap-y-1 rounded-md border border-border/70 bg-card px-3 py-2 shadow-lg">
-          {RESOURCE_TYPES.map((resourceType) => {
+          {sortedResources.map(({ resourceType, quantity }) => {
             const ResourceIcon = RESOURCE_ICONS[resourceType]
 
             return (
               <div key={resourceType} className="col-span-3 grid grid-cols-subgrid items-center text-sm font-medium">
-                <span className="text-right">{resources[resourceType]}</span>
+                <span className="text-right">{quantity}</span>
                 <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
                 <span className="text-left">{formatRulesetTerm(resourceType)}</span>
               </div>

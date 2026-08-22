@@ -2,7 +2,7 @@ import type { ActionDefinition, PlayerView } from "@api-types"
 import { Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import type { ReactElement } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
-import { RESOURCE_ICONS } from "@/features/play/components/resourceIcons.ts"
+import { RESOURCE_ICONS, sortResources } from "@/features/play/components/resourceIcons.ts"
 import { formatRulesetTerm, mechanicsToRulesText } from "@/features/play/mechanicToRulesText.ts"
 import { cn } from "@/lib/cn.ts"
 
@@ -125,7 +125,7 @@ export function ActionCard({
 }
 
 function ActionCosts({ costs, resources }: { costs: ActionDefinition["costs"]; resources: PlayerView["resources"] }): ReactElement {
-  const costsByResource = Map.groupBy(costs, ({ resourceType }) => resourceType)
+  const costsByResource = Map.groupBy(sortResources(costs), ({ resourceType }) => resourceType)
 
   return (
     <div className="flex flex-col items-end gap-1" aria-label="Costs">
