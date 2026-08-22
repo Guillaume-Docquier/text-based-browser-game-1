@@ -21,8 +21,8 @@ importers:
         specifier: ^1.0.5
         version: 1.0.5(oxfmt@0.63.0)
       '@guillaume-docquier/oxlint':
-        specifier: ^1.2.3
-        version: 1.2.3(oxlint-tsgolint@7.0.2001)(oxlint@1.78.0(oxlint-tsgolint@7.0.2001))
+        specifier: ^1.3.0
+        version: 1.3.0(oxlint-tsgolint@7.0.2001)(oxlint@1.78.0(oxlint-tsgolint@7.0.2001))
       '@guillaume-docquier/show-me':
         specifier: ^1.7.1
         version: 1.7.1(graphology-types@0.24.8)
@@ -1066,8 +1066,8 @@ packages:
     peerDependencies:
       oxfmt: '>=0.57.0'
 
-  '@guillaume-docquier/oxlint@1.2.3':
-    resolution: {integrity: sha512-gSFTAB67enyG5TL9iGJco+TfXd0HwhjH3Clvz2BzWazv3No7R1VBWQZSH2s6GWcoxYTyGg7dSXnJPY+N4CPHXA==}
+  '@guillaume-docquier/oxlint@1.3.0':
+    resolution: {integrity: sha512-AFecwfZG1wT94vvDHArn5hKJ0nJzg5Ws6i/vGRf61BCHsuDSen+1Hcn742Y1GK+M0gEG4TFo4ctCZbekx+4IjA==}
     peerDependencies:
       oxlint: ^1.75.0
       oxlint-tsgolint: ^7.0.2001
@@ -8091,7 +8091,7 @@ snapshots:
     dependencies:
       oxfmt: 0.63.0
 
-  '@guillaume-docquier/oxlint@1.2.3(oxlint-tsgolint@7.0.2001)(oxlint@1.78.0(oxlint-tsgolint@7.0.2001))':
+  '@guillaume-docquier/oxlint@1.3.0(oxlint-tsgolint@7.0.2001)(oxlint@1.78.0(oxlint-tsgolint@7.0.2001))':
     dependencies:
       oxlint: 1.78.0(oxlint-tsgolint@7.0.2001)
       oxlint-tsgolint: 7.0.2001

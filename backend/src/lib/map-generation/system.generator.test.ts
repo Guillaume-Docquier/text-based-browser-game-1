@@ -49,7 +49,6 @@ describe("systemGenerator", () => {
         const orbitInLightYears = Distance.create(Math.hypot(planet.x - origin.x, planet.y - origin.y), UnitOfDistance.LIGHT_YEARS)
         return Math.round(Distance.convert(orbitInLightYears, UnitOfDistance.ASTRONOMICAL_UNITS).value)
       })
-      // oxlint-disable-next-line unicorn/no-array-sort -- We're working on a controlled copy, we don't need another one
       .sort((left, right) => left - right)
 
     // Assert

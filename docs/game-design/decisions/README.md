@@ -11,17 +11,17 @@ These decisions describe intended game philosophy and mechanics that are not yet
 | [002-bounded-game-length](002-bounded-game-length.md)         | Every game has a known fixed duration; a conclusive public hard-win achievement may end it early.             | You design victory conditions, game duration, or an early-ending achievement.              |
 | [004-legacy-as-win-condition](004-legacy-as-win-condition.md) | The winner is the empire with the greatest Legacy, built through galactic impact rather than player conquest. | You design Legacy scoring, Legacy Projects, warfare, or victory conditions.                |
 | [005-ideological-axes](005-ideological-axes.md)               | An empire's position on ideological axes determines its available actions and strategic specialization.       | You design ideological alignment, action availability, specialization, or strategic paths. |
-| [006-card-like-actions](006-card-like-actions.md)             | Actions share a card-like model and form a per-turn pool constrained by prerequisites and costs.              | You design actions, action pools, prerequisites, costs, tiers, or the action codex.        |
 | [007-asymmetric-play](007-asymmetric-play.md)                 | A chosen, changeable Political Regime modifies action costs and efficiency to create asymmetric play.         | You design Political Regimes, asymmetric strategies, or action balance.                    |
-| [008-thematic-resources](008-thematic-resources.md)           | Multiple thematic resources create economic specialization, scarcity, and inter-empire exchange.              | You design resources, production, scarcity, trade, contracts, or specialization.           |
 
 ## Partially Implemented decisions
 
 These decisions describe game design that the game partially follows. Some aspects have been implemented, but the full scope is not yet realized.
 
-| GDDR                                | Summary                                                                                                                                                                                   | Use when                                       |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| [003-turn-based](003-turn-based.md) | Players submit Actions during a fixed Turn window, without requiring player-to-player acknowledgement nor large time investment. If all players are ready, the Turn resolves immediately. | You design Turn Resolution, Action submission. |
+| GDDR                                                | Summary                                                                                                                                                                                   | Use when                                                                            |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [003-turn-based](003-turn-based.md)                 | Players submit Actions during a fixed Turn window, without requiring player-to-player acknowledgement nor large time investment. If all players are ready, the Turn resolves immediately. | You design Turn Resolution, Action submission.                                      |
+| [006-card-like-actions](006-card-like-actions.md)   | Actions share a card-like model and form a per-turn pool constrained by prerequisites and costs.                                                                                          | You design actions, action pools, prerequisites, costs, tiers, or the action codex. |
+| [008-thematic-resources](008-thematic-resources.md) | Multiple thematic resources create economic specialization, scarcity, and inter-empire exchange.                                                                                          | You design resources, production, scarcity, trade, contracts, or specialization.    |
 
 ## Implemented decisions
 

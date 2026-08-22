@@ -1,8 +1,8 @@
 import { authenticatedUser } from "../authenticatedUser.ts"
 import { expect, test } from "../fixtures.ts"
+import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
-import { LobbyPage } from "../pages/LobbyPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
 const DETERMINISTIC_GALAXY_SEED = 1234
@@ -37,37 +37,41 @@ test.describe("authenticated user", () => {
     const createGamePage = await CreateGamePage.goto(page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
     const gameName = `Playwright game ${Date.now()}`
 
-    await test.step("Configure the game", async () => {
+    const lobbyPage = await test.step("Configure and create the game", async () => {
       await createGamePage.setGameName(gameName)
       await createGamePage.setMaxPlayers(3)
       await createGamePage.setTurnLength({ value: 2, unit: "hours" })
+      return await createGamePage.submit()
     })
 
-    await test.step("Create the game", async () => {
-      await createGamePage.submit()
-    })
-
-    const lobbyPage = new LobbyPage(page)
     await test.step("Verify the lobby configuration", async () => {
       await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
       await expect(lobbyPage.configurationValue("Number of seats")).toHaveText("3 players")
       await expect(lobbyPage.configurationValue("Time per turn")).toHaveText("2 hr")
     })
 
-    await test.step("Start and open the game", async () => {
+    const galaxyPage = await test.step("Start and open the game", async () => {
       await lobbyPage.startGame()
-      await lobbyPage.openGame()
+      return await lobbyPage.openGame()
     })
 
     await test.step("Verify the Galaxy opens", async () => {
-      const galaxyPage = new GalaxyPage(page)
       await expect(page).toHaveURL(GalaxyPage.urlPattern)
       await expect(galaxyPage.heading).toBeVisible()
       await expect(galaxyPage.map).toBeVisible()
     })
 
+    await test.step("Display resources in their canonical order", async () => {
+      const topBarResources = galaxyPage.resources
+
+      const resourceLabels = await Promise.all(
+        (await topBarResources.all()).map(async (resource) => await resource.getAttribute("aria-label")),
+      )
+
+      expect(resourceLabels).toEqual(["3 Influence", "2 Metal", "0 Energy", "1 Fuel", "0 Colony"])
+    })
+
     await test.step("Center and fit a Galaxy region", async () => {
-      const galaxyPage = new GalaxyPage(page)
       const selectedRegion = galaxyPage.regions.last()
 
       await selectedRegion.click()
@@ -85,84 +89,112 @@ test.describe("authenticated user", () => {
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBe(1)
     })
 
-    await test.step("Inspect a Star System", async () => {
-      const galaxyPage = new GalaxyPage(page)
-      const selectedStar = galaxyPage.stars.first()
+    const cameraScaleBeforeInspecting = await test.step("Zoom the Galaxy before inspecting a Star System", async () => {
       const initialCameraScale = await galaxyPage.getGalaxyCameraScale()
       await galaxyPage.zoomGalaxyOut()
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).not.toBe(initialCameraScale)
-      const cameraScaleBeforeInspecting = await galaxyPage.getGalaxyCameraScale()
+      return await galaxyPage.getGalaxyCameraScale()
+    })
 
-      await selectedStar.press("Enter")
+    const selectedStar = await test.step("Open a Star System with the mouse", async () => {
+      const star = galaxyPage.stars.first()
+      await star.click()
       await expect(galaxyPage.starSystemMap).toBeVisible()
+      return star
+    })
 
+    await test.step("Open the first Planet profile with the mouse", async () => {
       const firstPlanet = galaxyPage.planets.first()
-      const secondPlanet = galaxyPage.planets.nth(1)
       const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
-      const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
+      await firstPlanet.click()
       expect(firstPlanetName).toBe("planet 122350")
-      expect(secondPlanetName).toBe("planet 983117")
-
-      await firstPlanet.press("Enter")
       await expect(galaxyPage.planetDetailsPane).toBeVisible()
       await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: firstPlanetName })).toBeVisible()
       await expect(galaxyPage.planetDetailsPane).toContainText("Planet attributes")
       await expect(galaxyPage.planetDetailsPane).toContainText("Fertility")
       await expect(galaxyPage.planetDetailsPane).toContainText("Max population")
       await expect(galaxyPage.planetDetailsPane).toContainText("Coordinates")
+    })
 
+    await test.step("Switch to the second Planet profile with the mouse", async () => {
+      const secondPlanet = galaxyPage.planets.nth(1)
+      const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
       await secondPlanet.click()
+      expect(secondPlanetName).toBe("planet 983117")
       await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: secondPlanetName })).toBeVisible()
+    })
 
+    await test.step("Close the Planet profile by clicking the map", async () => {
       await galaxyPage.starSystemMap.click({ position: { x: 10, y: 10 } })
       await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
+    })
 
+    await test.step("Pan the Star System away from its center", async () => {
       await galaxyPage.panStarSystem({ deltaX: 60, deltaY: 40 })
       expect(await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeGreaterThan(20)
+    })
+
+    await test.step("Recenter and return to the Galaxy from a panned Star System", async () => {
       await galaxyPage.starSystemStar.click()
       expect(await galaxyPage.starSystemMap.getAttribute("aria-busy")).toBe("true")
       await expect(galaxyPage.heading).not.toBeVisible()
       await expect.poll(async () => await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeLessThan(1)
-
       await expect(galaxyPage.heading).toBeVisible()
       expect(await galaxyPage.getGalaxyCameraScale()).toBeCloseTo(cameraScaleBeforeInspecting)
       expect(await galaxyPage.getGalaxyStarDistanceFromCenter(selectedStar)).toBeLessThan(1)
+    })
 
-      await selectedStar.press("Enter")
+    await test.step("Reopen the same Star System with the mouse", async () => {
+      await selectedStar.click()
       expect(await galaxyPage.starSystemMap.count()).toBe(1)
       await expect(galaxyPage.starSystemMap).toBeVisible()
+    })
+
+    await test.step("Return to the Galaxy from a centered Star System", async () => {
       await galaxyPage.starSystemStar.click()
       expect(await galaxyPage.starSystemMap.getAttribute("aria-busy")).not.toBe("true")
       await expect(galaxyPage.heading).toBeVisible()
     })
-  })
 
-  test("opens, switches, and closes the Planet profile pane", async ({ page }) => {
-    const createGamePage = await CreateGamePage.goto(page)
-    await createGamePage.setGameName(`Planet profile ${Date.now()}`)
-    await createGamePage.submit()
+    await test.step("Choose an Action from the Ruleset", async () => {
+      const actionsPage = await galaxyPage.openActions()
 
-    const lobbyPage = new LobbyPage(page)
-    await lobbyPage.startGame()
-    await lobbyPage.openGame()
+      await expect(page).toHaveURL(ActionsPage.urlPattern)
+      await expect(actionsPage.heading).toBeVisible()
 
-    const galaxyPage = new GalaxyPage(page)
-    await galaxyPage.stars.first().click()
-    await expect(galaxyPage.starSystemMap).toBeVisible()
+      const extractMetal = actionsPage.action("Extract Metal")
+      await expect(extractMetal).toContainText("Standard Directive")
+      await expect(extractMetal).toContainText("1 Influence")
+      await expect(extractMetal).toContainText("Gain 5 Metal.")
 
-    const firstPlanet = galaxyPage.planets.first()
-    const secondPlanet = galaxyPage.planets.nth(1)
-    const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
-    const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
+      const winTheGame = actionsPage.action("Win The Game")
+      await expect(winTheGame).toContainText("Exceptional Program")
+      await expect(winTheGame).toContainText("10 Influence")
+      await expect(winTheGame).toContainText("Win the game.")
+      await expect(winTheGame).toHaveAttribute("aria-disabled", "true")
+      await expect(winTheGame.locator("[data-unaffordable-overlay]")).toBeVisible()
+      await expect(winTheGame.locator('[aria-label="10 Influence, cannot afford"]')).toHaveClass(/text-red-400/)
+      await expect(winTheGame).not.toContainText("Unavailable")
 
-    await firstPlanet.click()
-    await expect(galaxyPage.planetDetailsPane).toBeVisible()
-    await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: firstPlanetName })).toBeVisible()
+      await extractMetal.click()
+      await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
 
-    await secondPlanet.press("Enter")
-    await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: secondPlanetName })).toBeVisible()
+      await extractMetal.click()
+      await expect(extractMetal).toHaveAttribute("aria-pressed", "false")
+    })
 
-    await galaxyPage.starSystemMap.click({ position: { x: 10, y: 10 } })
-    await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
+    await test.step("Display Action costs in their canonical order", async () => {
+      const actionsPage = new ActionsPage(page)
+      const actionCosts = actionsPage.action("Win The Game").locator('[aria-label="Costs"] > [aria-label]')
+
+      const costLabels = await Promise.all((await actionCosts.all()).map(async (cost) => await cost.getAttribute("aria-label")))
+
+      expect(costLabels).toEqual([
+        "10 Influence, cannot afford",
+        "5 Metal, cannot afford",
+        "5 Energy, cannot afford",
+        "5 Fuel, cannot afford",
+      ])
+    })
   })
 })

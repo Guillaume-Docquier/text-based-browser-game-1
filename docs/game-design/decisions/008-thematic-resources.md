@@ -2,9 +2,10 @@
 
 ## Status
 
-Planned
+Partially Implemented
 
-- [ ] Resource catalogue
+- [x] Resource catalogue and empire stockpiles
+- [x] Action costs and gains
 - [ ] Resource production and scarcity
 - [ ] Resource uses and balance
 
@@ -14,7 +15,7 @@ A single abstract economy would make empire development and strategic choices to
 
 ## Decision
 
-The game will use multiple distinct, thematic resources rather than one generic resource. Energy, Metal, Colony, and Influence are current examples; the final resource catalogue remains open.
+The game will use multiple distinct, thematic resources rather than one generic resource. The current catalogue is Influence, Metal, Fuel, Energy, and Colony. The catalogue will evolve as the game develops.
 
 Resources will have different production methods and uses. Their availability may depend on Planet attributes, geography, and Ideological Alignment. Advanced or extreme Alignments may give an empire much stronger access to particular resources, while a balanced empire may only obtain them slowly, situationally, or not at all from its own territory.
 

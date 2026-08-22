@@ -1,4 +1,5 @@
-import type { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import z from "zod"
+import { TargetTypeSchema, type TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 
 export type TargetDefinition =
   | {
@@ -27,3 +28,16 @@ export const TargetDefinitionSelf = {
   tag: "self",
   type: "SELF",
 } as const
+
+export const TargetDefinitionSelfSchema = z.object({
+  tag: z.literal(TargetDefinitionSelf.tag),
+  type: z.literal(TargetDefinitionSelf.type),
+}) satisfies z.ZodType<TargetDefinitionSelf>
+
+export const TargetDefinitionSchema = z.union([
+  z.object({
+    tag: z.string(),
+    type: TargetTypeSchema,
+  }),
+  TargetDefinitionSelfSchema,
+]) satisfies z.ZodType<TargetDefinition>

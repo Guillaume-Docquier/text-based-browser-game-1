@@ -2,7 +2,15 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
+
+- [x] Data-driven Action Definitions
+- [x] Agenda, Directive, and Program presentation
+- [x] Action tier, cost, effect, and affordability presentation
+- [x] Available Action pool
+- [x] Single Action submission
+- [ ] Multiple Action submissions
+- [ ] Ideology-driven Action pools
 
 ## Purpose
 
@@ -46,6 +54,10 @@ Relates to:
 | Program                   | An Action to achieve a Legacy Project. See [System 002-legacy](./002-legacy.md).                                                                                                |
 | Effect                    | Player-facing shorthand for what an Action does; the Rules Engine produces concrete Effects from the Action Definition's composed Mechanics.                                    |
 | Influence                 | Resource that all Actions cost. See [System 005-political-regime](./005-political-regime.md).                                                                                   |
+
+## Current Implementation
+
+The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, Mechanic text, and affordability.
 
 ## Rules
 

@@ -158,7 +158,7 @@ We test the production code. We do not use `vitest.mock()`.
 
 We prefer end-to-end and integration tests. We use unit tests sparingly for complex scenarios (algorithm verification, validating race conditions, regression tests, etc.)
 
-Always structure tests using Arrange, Act, Assert (AAA), with explicit `// Arrange`, `// Act`, and `// Assert` sections in that order.
+Always structure unit and integration tests using Arrange, Act, Assert (AAA), with explicit `// Arrange`, `// Act`, and `// Assert` sections in that order. Do not use AAA sections in end-to-end tests; organize them with descriptive `test.step()` blocks that reflect user behavior.
 
 Optimize assertions for useful failure output: compare semantic values instead of opaque IDs, sort unordered collections before comparison, keep test setup control flow straightforward, etc.
 

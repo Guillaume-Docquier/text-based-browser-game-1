@@ -5,24 +5,28 @@ import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
-export const MakeMoreMoney: ActionDefinition = {
-  id: "MAKE_MORE_MONEY",
-  name: "Make More Money",
+export const GainEnergy: ActionDefinition = {
+  id: "GAIN_ENERGY",
+  name: "Generate Power",
   type: ActionType.DIRECTIVE,
-  tier: ActionTier.STANDARD,
+  tier: ActionTier.IMPROVED,
   targets: {
     self: "",
   },
   costs: [
     ResourceLossMechanic.create({
-      quantity: 2,
-      resourceType: ResourceType.MONEY,
+      quantity: 3,
+      resourceType: ResourceType.INFLUENCE,
+    }),
+    ResourceLossMechanic.create({
+      quantity: 1,
+      resourceType: ResourceType.FUEL,
     }),
   ],
   mechanics: [
     ResourceGainMechanic.create({
       quantity: 5,
-      resourceType: ResourceType.MONEY,
+      resourceType: ResourceType.ENERGY,
     }),
   ],
 }

@@ -1,4 +1,5 @@
 import type { Locator, Page } from "@playwright/test"
+import { GalaxyPage } from "./GalaxyPage.ts"
 
 export class LobbyPage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId" })
@@ -34,7 +35,8 @@ export class LobbyPage {
     await this.startGameButton.click()
   }
 
-  public async openGame(): Promise<void> {
+  public async openGame(): Promise<GalaxyPage> {
     await this.openGameButton.click()
+    return new GalaxyPage(this.page)
   }
 }

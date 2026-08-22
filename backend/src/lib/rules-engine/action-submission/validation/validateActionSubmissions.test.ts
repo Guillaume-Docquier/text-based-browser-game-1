@@ -3,12 +3,13 @@ import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/
 import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 
 const actionDefinition = createActionDefinitionStub({
-  costs: [ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY })],
+  costs: [ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE })],
 })
 
 const ruleset: Ruleset = {
@@ -33,9 +34,7 @@ describe("validateActionSubmissions", () => {
       players: {
         [playerId]: {
           id: playerId,
-          resources: {
-            [ResourceType.MONEY]: 5,
-          },
+          resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }),
         },
       },
     })
@@ -63,9 +62,7 @@ describe("validateActionSubmissions", () => {
       players: {
         [playerId]: {
           id: playerId,
-          resources: {
-            [ResourceType.MONEY]: 5,
-          },
+          resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }),
         },
       },
     })
@@ -92,9 +89,7 @@ describe("validateActionSubmissions", () => {
       players: {
         [playerId]: {
           id: playerId,
-          resources: {
-            [ResourceType.MONEY]: 4,
-          },
+          resources: createResourcesStub({ [ResourceType.INFLUENCE]: 4 }),
         },
       },
     })
@@ -111,7 +106,7 @@ describe("validateActionSubmissions", () => {
         actionDefinitionName: actionDefinition.name,
       },
       {
-        issue: "Missing 1 MONEY",
+        issue: "Missing 1 INFLUENCE",
         actionSubmissionId: actionSubmission.id,
         actionDefinitionId: actionSubmission.actionDefinitionId,
         actionDefinitionName: actionDefinition.name,
@@ -176,9 +171,7 @@ describe("validateActionSubmissions", () => {
         players: {
           [playerId]: {
             id: playerId,
-            resources: {
-              [ResourceType.MONEY]: 5,
-            },
+            resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }),
           },
         },
       })
@@ -212,9 +205,7 @@ describe("validateActionSubmissions", () => {
         players: {
           [playerId]: {
             id: playerId,
-            resources: {
-              [ResourceType.MONEY]: 5,
-            },
+            resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }),
           },
         },
       })
@@ -280,15 +271,11 @@ describe("validateActionSubmissions", () => {
         players: {
           [firstPlayerId]: {
             id: firstPlayerId,
-            resources: {
-              [ResourceType.MONEY]: 5,
-            },
+            resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }),
           },
           [secondPlayerId]: {
             id: secondPlayerId,
-            resources: {
-              [ResourceType.MONEY]: 4,
-            },
+            resources: createResourcesStub({ [ResourceType.INFLUENCE]: 4 }),
           },
         },
       })
@@ -299,7 +286,7 @@ describe("validateActionSubmissions", () => {
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
-          issue: "Missing 1 MONEY",
+          issue: "Missing 1 INFLUENCE",
           actionSubmissionId: secondPlayerActionSubmission.id,
           actionDefinitionId: secondPlayerActionSubmission.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -312,8 +299,8 @@ describe("validateActionSubmissions", () => {
       const playerId = "player-id"
       const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
         costs: [
-          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
-          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
+          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
+          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
         ],
       })
       const rulesetWithMultipleCosts: Ruleset = {
@@ -333,9 +320,7 @@ describe("validateActionSubmissions", () => {
         players: {
           [playerId]: {
             id: playerId,
-            resources: {
-              [ResourceType.MONEY]: 7,
-            },
+            resources: createResourcesStub({ [ResourceType.INFLUENCE]: 7 }),
           },
         },
       })
@@ -346,7 +331,7 @@ describe("validateActionSubmissions", () => {
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
-          issue: "Missing 3 MONEY",
+          issue: "Missing 3 INFLUENCE",
           actionSubmissionId: actionSubmission.id,
           actionDefinitionId: actionSubmission.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
@@ -359,8 +344,8 @@ describe("validateActionSubmissions", () => {
       const playerId = "player-id"
       const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
         costs: [
-          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
-          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
+          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
+          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
         ],
       })
       const rulesetWithMultipleCosts: Ruleset = {
@@ -386,9 +371,7 @@ describe("validateActionSubmissions", () => {
         players: {
           [playerId]: {
             id: playerId,
-            resources: {
-              [ResourceType.MONEY]: 14,
-            },
+            resources: createResourcesStub({ [ResourceType.INFLUENCE]: 14 }),
           },
         },
       })
@@ -399,7 +382,7 @@ describe("validateActionSubmissions", () => {
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
-          issue: "Missing 6 MONEY",
+          issue: "Missing 6 INFLUENCE",
           actionSubmissionId: actionSubmission2.id,
           actionDefinitionId: actionSubmission2.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
@@ -412,8 +395,8 @@ describe("validateActionSubmissions", () => {
       const playerId = "player-id"
       const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
         costs: [
-          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
-          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.MONEY }),
+          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
+          ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
         ],
       })
       const rulesetWithMultipleCosts: Ruleset = {
@@ -439,9 +422,7 @@ describe("validateActionSubmissions", () => {
         players: {
           [playerId]: {
             id: playerId,
-            resources: {
-              [ResourceType.MONEY]: 7,
-            },
+            resources: createResourcesStub({ [ResourceType.INFLUENCE]: 7 }),
           },
         },
       })
@@ -452,13 +433,13 @@ describe("validateActionSubmissions", () => {
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
-          issue: "Missing 3 MONEY",
+          issue: "Missing 3 INFLUENCE",
           actionSubmissionId: actionSubmission1.id,
           actionDefinitionId: actionSubmission1.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
         },
         {
-          issue: "Missing 10 MONEY",
+          issue: "Missing 10 INFLUENCE",
           actionSubmissionId: actionSubmission2.id,
           actionDefinitionId: actionSubmission2.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,

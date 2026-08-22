@@ -2,7 +2,15 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
+
+- [x] Five-Resource catalogue
+- [x] Per-player stockpiles and starting amounts
+- [x] Action costs, gains, and affordability
+- [x] Frontend Resource presentation
+- [ ] Planetary production and scarcity
+- [ ] Political Regime Influence rules
+- [ ] Trade and other Resource-specific behavior
 
 ## Purpose
 
@@ -33,13 +41,17 @@ Relates to:
 
 ## Resource Catalogue
 
-| Resource  | Current role                                                                                                  |
+| Resource  | Role                                                                                                          |
 | --------- | ------------------------------------------------------------------------------------------------------------- |
 | Influence | The resource required to play every Action. Each Turn, it resets to the fixed amount set by Political Regime. |
 | Metal     | Supports construction, including Fleets and Infrastructure.                                                   |
 | Fuel      | Supports Fleet movement.                                                                                      |
 | Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.           |
 | Colony    | Supports colonizing additional Planets. It is fractional and produced in low amounts.                         |
+
+## Current Implementation
+
+Each player currently has integer stockpiles for all five Resources and starts with placeholder amounts. Standard Ruleset Actions can gain Influence, Metal, Fuel, and Energy and spend those Resources as configured costs. Colony is stored and displayed but has no current source or use. The frontend displays the stockpiles, Action costs, and affordability.
 
 ## Rules
 

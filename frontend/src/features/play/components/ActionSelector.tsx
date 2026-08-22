@@ -1,135 +1,67 @@
-import type * as ApiTypes from "@api-types"
-import type { PlayerView } from "@api-types"
-import { AlertTriangle, CheckCircle2, Coins } from "lucide-react"
-import type { KeyboardEvent, ReactElement } from "react"
+import type { ActionSubmission, ActionTier, GameId, PlayerView } from "@api-types"
+import { Sort } from "@guillaume-docquier/tools-ts"
+import { AlertTriangle } from "lucide-react"
+import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
+import { ActionCard } from "@/features/play/components/ActionCard.tsx"
 import { useSetCurrentActionMutation } from "@/lib/api/useSetCurrentActionMutation.ts"
-import { cn } from "@/lib/cn.ts"
 
-const PLAYER_ACTIONS = [
-  {
-    actionType: "MAKE_MORE_MONEY",
-    label: "Make More Money",
-    description: "Turn 2 money into 5 extra money after the normal turn income.",
-    costMoney: 2,
-    rewardMoney: 5,
-  },
-  {
-    actionType: "WIN_THE_GAME",
-    label: "Win The Game",
-    description: "Spend 10 money and immediately end the game in your favor.",
-    costMoney: 10,
-    rewardMoney: 0,
-  },
-] as const satisfies Array<{
-  actionType: ApiTypes.ActionDto["actionType"]
-  label: string
-  description: string
-  costMoney: number
-  rewardMoney: number
-}>
+// This should probably be data driven
+export const ActionTierRank = {
+  BASIC: 1, // Worst
+  STANDARD: 2,
+  IMPROVED: 3,
+  ADVANCED: 4,
+  EXCEPTIONAL: 5, // Best
+} as const satisfies Record<ActionTier, number>
 
 export function ActionSelector({
   gameId,
   playerView,
   currentAction,
 }: {
-  gameId: ApiTypes.GameId
+  gameId: GameId
   playerView: PlayerView
-  currentAction: ApiTypes.ActionDto | null
+  currentAction: ActionSubmission | null
 }): ReactElement {
   const setCurrentAction = useSetCurrentActionMutation()
 
   return (
     <section className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Actions</div>
-          <h2 className="font-heading text-2xl font-semibold text-foreground">Choose your action</h2>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Your selection applies to turn {playerView.turn} only. Click the selected action again to clear it.
-          </p>
-        </div>
-        <div className="flex h-10 w-fit items-center gap-2 rounded-md border border-border/70 bg-card/45 px-3 text-sm font-medium text-foreground">
-          <Coins className="size-4 text-primary" />
-          {playerView.resources.money} money
-        </div>
+      <div className="space-y-1">
+        <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Actions</div>
+        <h2 className="font-heading text-2xl font-semibold text-foreground">Choose your action</h2>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Your selection applies to turn {playerView.turn} only. Click the selected action again to clear it.
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {PLAYER_ACTIONS.map((action) => {
-          const isSelected = currentAction?.actionType === action.actionType
-          const hasEnoughMoney = playerView.resources.money >= action.costMoney
-          const disabledReason = !hasEnoughMoney && !isSelected ? `Requires ${action.costMoney} money.` : undefined
-          const canSubmitAction = !setCurrentAction.isPending && (hasEnoughMoney || isSelected)
-
-          return (
-            <Card
-              key={action.actionType}
-              role="button"
-              tabIndex={canSubmitAction ? 0 : -1}
-              aria-pressed={isSelected}
-              aria-disabled={!canSubmitAction}
-              className={cn("border text-left transition-colors", {
-                "border-primary/50 bg-primary/5": isSelected,
-                "border-border/60": !isSelected,
-                "cursor-pointer hover:bg-muted/30": canSubmitAction,
-                "cursor-not-allowed opacity-80": !canSubmitAction,
-              })}
-              onClick={() => {
-                if (!canSubmitAction) {
-                  return
-                }
-
-                setCurrentAction.mutate({
-                  gameId,
-                  turn: playerView.turn,
-                  actionType: isSelected ? null : action.actionType,
-                })
-              }}
-              onKeyDown={(event) => {
-                handleActionCardKeyDown({
-                  event,
-                  canSubmitAction,
-                  onSelect: () => {
-                    setCurrentAction.mutate({
-                      gameId,
-                      turn: playerView.turn,
-                      actionType: isSelected ? null : action.actionType,
-                    })
-                  },
-                })
-              }}
-            >
-              <CardHeader className="gap-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">{action.label}</CardTitle>
-                    <CardDescription>{action.description}</CardDescription>
-                  </div>
-                  {isSelected ? <CheckCircle2 className="size-5 text-primary" /> : null}
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="text-sm text-muted-foreground">
-                  Cost: {action.costMoney} money
-                  {action.rewardMoney > 0
-                    ? ` | Effect: +${action.rewardMoney} money after paying the cost`
-                    : " | Effect: End the game immediately"}
-                </div>
-                {disabledReason === undefined ? null : (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="size-4" />
-                    <AlertTitle>Unavailable</AlertTitle>
-                    <AlertDescription>{disabledReason}</AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-          )
-        })}
+      <div className="flex flex-wrap items-stretch gap-6 px-4 pt-4">
+        {playerView.availableActions
+          .map((action) => ({ action, definition: playerView.ruleset.actionDefinitions[action.actionDefinitionId] }))
+          .sort((action1, action2) => Sort.byAscending(ActionTierRank[action1.definition.tier], ActionTierRank[action2.definition.tier]))
+          .map(({ action, definition }) => {
+            const isSelected = currentAction?.actionDefinitionId === action.actionDefinitionId
+            const selectAction = (): void => {
+              setCurrentAction.mutate({
+                gameId,
+                turn: playerView.turn,
+                actionSubmission: isSelected ? null : action,
+              })
+            }
+            return (
+              <ActionCard
+                key={action.id}
+                actionDefinition={definition}
+                resources={playerView.resources}
+                canAfford={action.canAfford}
+                isSelected={isSelected}
+                disabled={setCurrentAction.isPending || (!action.canAfford && !isSelected)}
+                onSelect={selectAction}
+              />
+            )
+          })}
       </div>
 
       {setCurrentAction.isError ? (
@@ -146,35 +78,15 @@ export function ActionSelector({
 export function ActionSelectorSkeleton(): ReactElement {
   return (
     <section className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-4 w-full max-w-xl" />
-        </div>
-        <Skeleton className="h-10 w-28" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-4 w-full max-w-xl" />
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Skeleton className="h-56 w-full" />
-        <Skeleton className="h-56 w-full" />
+      <div className="flex flex-wrap gap-6 px-4 pt-4">
+        <Skeleton className="h-64 w-full sm:w-80" />
+        <Skeleton className="h-64 w-full sm:w-80" />
       </div>
     </section>
   )
-}
-
-function handleActionCardKeyDown({
-  event,
-  canSubmitAction,
-  onSelect,
-}: {
-  event: KeyboardEvent<HTMLDivElement>
-  canSubmitAction: boolean
-  onSelect: () => void
-}): void {
-  if (!canSubmitAction || (event.key !== "Enter" && event.key !== " ")) {
-    return
-  }
-
-  event.preventDefault()
-  onSelect()
 }

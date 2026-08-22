@@ -12,13 +12,13 @@ const validActionDefinition = createActionDefinitionStub({
   costs: [
     ResourceLossMechanic.create({
       quantity: 2,
-      resourceType: ResourceType.MONEY,
+      resourceType: ResourceType.INFLUENCE,
     }),
   ],
   mechanics: [
     ResourceGainMechanic.create({
       quantity: 5,
-      resourceType: ResourceType.MONEY,
+      resourceType: ResourceType.INFLUENCE,
     }),
   ],
 })
@@ -70,13 +70,13 @@ describe("validateRuleset", () => {
       costs: [
         ResourceLossMechanic.create({
           quantity: 2,
-          resourceType: ResourceType.MONEY,
+          resourceType: ResourceType.INFLUENCE,
         }),
       ],
       mechanics: [
         ResourceGainMechanic.create({
           quantity: 5,
-          resourceType: ResourceType.MONEY,
+          resourceType: ResourceType.INFLUENCE,
         }),
       ],
     })
