@@ -1,4 +1,5 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
+import z from "zod"
 
 export type ResourceType = Enumify<typeof ResourceType>
 export const ResourceType = {
@@ -8,3 +9,5 @@ export const ResourceType = {
   ENERGY: "ENERGY",
   COLONY: "COLONY",
 } as const
+
+export const ResourceTypeSchema = z.enum(ResourceType)

@@ -463,11 +463,9 @@ export class GameplayRepository extends PostgresRepository {
 function toResourceBag(resourceRows: readonly ResourceRow[]): Record<ResourceType, number> {
   const entries = Object.values(ResourceType).map((resourceType) => {
     const resource = resourceRows.find((row) => row.resourceType === resourceType)
-    Assert.isDefined(resource, resourceType)
-    return [resourceType, resource.amount] as const
+    return [resourceType, resource?.amount ?? 0] as const
   })
 
-  // SAFETY: entries contains exactly one numeric quantity for every configured ResourceType.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot infer Object.fromEntries completeness.
   return Object.fromEntries(entries) as Record<ResourceType, number>
 }

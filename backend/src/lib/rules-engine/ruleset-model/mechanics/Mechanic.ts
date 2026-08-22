@@ -1,19 +1,14 @@
-import type { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
-import type { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
-import type { VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
-import type { TargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
-
-/**
- * The role of the target for this mechanic, such as "player", "defendingFleet" or "planet".
- */
-type TargetRole = string
-
-export type AbstractMechanic = {
-  readonly type: string
-  /**
-   * Maps target roles to their actual target.
-   */
-  readonly targets: Record<TargetRole, TargetDefinition>
-}
+import z from "zod"
+import {
+  ResourceGainMechanicSchema,
+  type ResourceGainMechanic,
+} from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
+import {
+  ResourceLossMechanicSchema,
+  type ResourceLossMechanic,
+} from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
+import { VictoryMechanicSchema, type VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
 
 export type Mechanic = ResourceLossMechanic | ResourceGainMechanic | VictoryMechanic
+
+export const MechanicSchema = z.discriminatedUnion("type", [ResourceLossMechanicSchema, ResourceGainMechanicSchema, VictoryMechanicSchema])

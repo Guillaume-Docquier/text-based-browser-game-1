@@ -184,9 +184,9 @@ describe("gameplay.router", () => {
           },
           {
             id: expect.any(String),
-            actionDefinitionId: GainMetal.id,
+            actionDefinitionId: WinTheGame.id,
             targets: { self: player.account.id },
-            canAfford: true,
+            canAfford: false,
           },
           {
             id: expect.any(String),
@@ -202,9 +202,9 @@ describe("gameplay.router", () => {
           },
           {
             id: expect.any(String),
-            actionDefinitionId: WinTheGame.id,
+            actionDefinitionId: GainMetal.id,
             targets: { self: player.account.id },
-            canAfford: false,
+            canAfford: true,
           },
         ],
       })

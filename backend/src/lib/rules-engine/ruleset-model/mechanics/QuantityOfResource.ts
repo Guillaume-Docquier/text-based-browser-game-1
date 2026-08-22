@@ -1,4 +1,5 @@
-import { type ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import z from "zod"
+import { ResourceTypeSchema, type ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
 export type QuantityOfResource = {
   /**
@@ -10,3 +11,8 @@ export type QuantityOfResource = {
    */
   resourceType: ResourceType
 }
+
+export const QuantityOfResourceSchema = z.object({
+  quantity: z.number(),
+  resourceType: ResourceTypeSchema,
+})

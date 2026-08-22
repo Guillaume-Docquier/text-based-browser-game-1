@@ -20,10 +20,8 @@ import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
-import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
-import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 import { UInt32 } from "#lib/UInt32.ts"
@@ -375,52 +373,13 @@ export const GalaxyDto = z.object({
   ),
 })
 
-const TargetDefinitionDto = z.object({
-  tag: z.string(),
-  type: z.enum([...Object.values(TargetType), "SELF"]),
-})
-
-const MechanicTargetsDto = z.record(z.string(), TargetDefinitionDto)
-const QuantityOfResourceDto = {
-  quantity: z.number(),
-  resourceType: z.enum(ResourceType),
-}
-const ResourceLossMechanicDto = z.object({
-  type: z.literal("RESOURCE_LOSS"),
-  targets: MechanicTargetsDto,
-  ...QuantityOfResourceDto,
-})
-const MechanicDto = z.discriminatedUnion("type", [
-  ResourceLossMechanicDto,
-  z.object({
-    type: z.literal("RESOURCE_GAIN"),
-    targets: MechanicTargetsDto,
-    ...QuantityOfResourceDto,
-  }),
-  z.object({
-    type: z.literal("VICTORY"),
-    targets: MechanicTargetsDto,
-  }),
-])
-const ActionDefinitionDto = z.object({
-  id: z.string(),
-  name: z.string(),
-  type: z.enum(ActionType),
-  tier: z.enum(ActionTier),
-  targets: z.record(z.string(), z.literal("")),
-  costs: z.array(ResourceLossMechanicDto),
-  mechanics: z.array(MechanicDto),
-})
-const RulesetDto = z.object({
-  name: z.string(),
-  actionDefinitions: z.record(z.string(), ActionDefinitionDto),
-})
 const ActionSubmissionDto = z.object({
   id: z.string(),
   actionDefinitionId: z.string(),
   targets: z.record(z.string(), z.string()),
 })
 type ActionSubmissionDto = z.infer<typeof ActionSubmissionDto>
+
 const AvailableActionDto = ActionSubmissionDto.extend({ canAfford: z.boolean() })
 type AvailableActionDto = z.infer<typeof AvailableActionDto>
 
@@ -433,7 +392,7 @@ export const PlayerViewDto = z.object({
   turn: z.number(),
   nextTurnAt: z.date(),
   resources: z.record(z.enum(ResourceType), z.number()),
-  ruleset: RulesetDto,
+  ruleset: RulesetSchema,
   availableActions: z.array(AvailableActionDto),
 })
 
