@@ -157,7 +157,7 @@ function createSoloGameSession(ruleset: Ruleset): SoloGameSession {
       players: {
         [SOLO_PLAYER_ID]: {
           id: SOLO_PLAYER_ID,
-          resources: ruleset.startingResources,
+          resources: structuredClone(ruleset.startingResources),
         },
       },
       winnerPlayerId: undefined,
