@@ -4,12 +4,12 @@ import { select } from "@inquirer/prompts"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
 import type { ResolvedAction } from "#lib/rules-engine/turn-resolution/ResolvedAction.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
-import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 const SOLO_PLAYER_ID = "solo-player"
 const UI_WIDTH = 72
@@ -54,6 +54,7 @@ type SoloGameSession = {
 type PlaySoloOptions = {
   readonly prompt?: (options: SoloGamePromptOptions) => Promise<SoloGameSelection>
   readonly rng?: Rng
+  readonly ruleset: Ruleset
   readonly writeLine?: (line: string) => void
 }
 
@@ -68,7 +69,7 @@ type TurnDashboardState =
     }
 
 /**
- * Runs a complete in-memory solo game against StandardRuleset.
+ * Runs a complete in-memory solo game against a Ruleset.
  *
  * @param options - Optional CLI boundaries used to prompt, generate deterministic random values, and render output.
  * @returns The final in-memory session after the player wins or quits.
@@ -76,26 +77,27 @@ type TurnDashboardState =
 export async function playSolo({
   prompt = promptWithInquirer,
   rng = createSeededRng(),
+  ruleset,
   writeLine = (line) => {
     console.log(line)
   },
-}: PlaySoloOptions = {}): Promise<SoloGameSession> {
-  const session = createSoloGameSession()
+}: PlaySoloOptions): Promise<SoloGameSession> {
+  const session = createSoloGameSession(ruleset)
   let nextActionSubmissionNumber = 1
   let highlightedChoiceIndex = 0
   let turnResolutionError: ResolveTurnError | undefined
 
   writeLine("")
-  writeLine(UiStyle.accent(`✦  COSMIC EMPIRES  ·  ${StandardRuleset.name.toUpperCase()} PLAYTEST  ✦`))
+  writeLine(UiStyle.accent(`✦  COSMIC EMPIRES  ·  ${ruleset.name.toUpperCase()} PLAYTEST  ✦`))
   writeLine(UiStyle.muted("Interactive in-memory rules-engine session"))
   writeLine("")
 
   while (session.state.winnerPlayerId === undefined) {
-    const choices = createChoices(session)
+    const choices = createChoices(session, ruleset)
     const highlightedChoice = choices[Math.min(highlightedChoiceIndex, choices.length - 1)]
     Assert.isDefined(highlightedChoice)
     const selection = await prompt({
-      message: formatTurnDashboard(session, { status: "open", turnResolutionError }).join("\n"),
+      message: formatTurnDashboard(session, { status: "open", turnResolutionError }, ruleset).join("\n"),
       choices,
       default: highlightedChoice.value,
     })
@@ -105,7 +107,7 @@ export async function playSolo({
 
     switch (selection.command) {
       case "ADD_ACTION":
-        addAction(session, selection.actionDefinitionId, nextActionSubmissionNumber)
+        addAction(session, selection.actionDefinitionId, nextActionSubmissionNumber, ruleset)
         nextActionSubmissionNumber += 1
         turnResolutionError = undefined
         break
@@ -115,14 +117,14 @@ export async function playSolo({
         break
       case "SUBMIT_TURN": {
         const submittedTurn = structuredClone(session)
-        const result = resolveTurn(session.state, StandardRuleset, rng)
+        const result = resolveTurn(session.state, ruleset, rng)
         if (Result.isFailure(result)) {
           turnResolutionError = result.error
           break
         }
 
         submittedTurn.state.winnerPlayerId = result.value.winnerPlayerId
-        writeResolvedTurn(submittedTurn, result.value.resolvedActions, writeLine)
+        writeResolvedTurn(submittedTurn, result.value.resolvedActions, ruleset, writeLine)
         session.state = {
           actionSubmissions: [],
           players: result.value.players,
@@ -147,7 +149,7 @@ export async function playSolo({
   return session
 }
 
-function createSoloGameSession(): SoloGameSession {
+function createSoloGameSession(ruleset: Ruleset): SoloGameSession {
   return {
     turn: 1,
     state: {
@@ -155,7 +157,7 @@ function createSoloGameSession(): SoloGameSession {
       players: {
         [SOLO_PLAYER_ID]: {
           id: SOLO_PLAYER_ID,
-          resources: StandardRuleset.startingResources,
+          resources: ruleset.startingResources,
         },
       },
       winnerPlayerId: undefined,
@@ -203,8 +205,8 @@ function getSelectionKey(selection: SoloGameSelection): string {
   }
 }
 
-function createChoices(session: SoloGameSession): SoloGameChoice[] {
-  const addActionChoices = Object.values(StandardRuleset.actionDefinitions).map((actionDefinition) => ({
+function createChoices(session: SoloGameSession, ruleset: Ruleset): SoloGameChoice[] {
+  const addActionChoices = Object.values(ruleset.actionDefinitions).map((actionDefinition) => ({
     name: UiStyle.positive(`+ ${actionDefinition.name}`),
     description: formatActionDescription(actionDefinition),
     value: {
@@ -214,7 +216,7 @@ function createChoices(session: SoloGameSession): SoloGameChoice[] {
   }))
   const actionCounts = new Map<string, number>()
   const removeActionChoices = session.state.actionSubmissions.map((actionSubmission) => {
-    const actionDefinition = StandardRuleset.actionDefinitions[actionSubmission.actionDefinitionId]
+    const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
     Assert.isDefined(actionDefinition)
     const actionCount = (actionCounts.get(actionDefinition.id) ?? 0) + 1
     actionCounts.set(actionDefinition.id, actionCount)
@@ -244,9 +246,9 @@ function createChoices(session: SoloGameSession): SoloGameChoice[] {
   ]
 }
 
-function addAction(session: SoloGameSession, actionDefinitionId: string, actionSubmissionNumber: number): void {
+function addAction(session: SoloGameSession, actionDefinitionId: string, actionSubmissionNumber: number, ruleset: Ruleset): void {
   const player = getSoloPlayer(session)
-  const actionDefinition = StandardRuleset.actionDefinitions[actionDefinitionId]
+  const actionDefinition = ruleset.actionDefinitions[actionDefinitionId]
   Assert.isDefined(actionDefinition)
 
   session.state = {
@@ -282,14 +284,14 @@ function getSoloPlayer(session: SoloGameSession): TurnState["players"][string] {
   return player
 }
 
-function formatTurnDashboard(session: SoloGameSession, dashboardState: TurnDashboardState): string[] {
+function formatTurnDashboard(session: SoloGameSession, dashboardState: TurnDashboardState, ruleset: Ruleset): string[] {
   const player = getSoloPlayer(session)
   const isOpen = dashboardState.status === "open"
   const statusBadge = isOpen ? UiStyle.warning("● OPEN") : UiStyle.positive("✓ RESOLVED")
   const lines = [
     ...createPanel(
       isOpen ? "CURRENT TURN" : "RESOLVED TURN",
-      [alignSides(UiStyle.accent(`TURN ${session.turn.toString().padStart(2, "0")}`), statusBadge), UiStyle.muted(StandardRuleset.name)],
+      [alignSides(UiStyle.accent(`TURN ${session.turn.toString().padStart(2, "0")}`), statusBadge), UiStyle.muted(ruleset.name)],
       isOpen ? "cyan" : "green",
     ),
     "",
@@ -306,7 +308,7 @@ function formatTurnDashboard(session: SoloGameSession, dashboardState: TurnDashb
     actionLines.push(UiStyle.muted("No orders selected"))
   } else {
     for (const [index, actionSubmission] of session.state.actionSubmissions.entries()) {
-      const actionDefinition = StandardRuleset.actionDefinitions[actionSubmission.actionDefinitionId]
+      const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
       Assert.isDefined(actionDefinition)
       const orderNumber = (index + 1).toString().padStart(2, "0")
       actionLines.push(`${UiStyle.action(orderNumber)}  ${styleText("bold", actionDefinition.name)}`)
@@ -388,8 +390,13 @@ function formatTurnResolutionFailure(error: ResolveTurnError): string[] {
   }
 }
 
-function writeResolvedTurn(session: SoloGameSession, resolvedActions: readonly ResolvedAction[], writeLine: (line: string) => void): void {
-  for (const line of formatTurnDashboard(session, { status: "resolved", resolvedActions })) {
+function writeResolvedTurn(
+  session: SoloGameSession,
+  resolvedActions: readonly ResolvedAction[],
+  ruleset: Ruleset,
+  writeLine: (line: string) => void,
+): void {
+  for (const line of formatTurnDashboard(session, { status: "resolved", resolvedActions }, ruleset)) {
     writeLine(UiStyle.history(line))
   }
 

@@ -6,7 +6,6 @@ import { rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
-import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 import { ElapsedTimeContextProvider } from "#turn-processing/ElapsedTimeContextProvider.ts"
 import { type ProcessedTurnModel, type TurnsRepository, type TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 
@@ -131,7 +130,7 @@ export class TurnProcessor {
         players: turnToProcess.players,
         winnerPlayerId: undefined,
       },
-      StandardRuleset,
+      turnToProcess.ruleset,
       rng,
     )
     if (Result.isFailure(resolvedTurnResult)) {

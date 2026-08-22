@@ -11,6 +11,8 @@ import { actionSubmissionsTable, gameStatesTable, gamesTable, playersTable, reso
 import { couldNot } from "#lib/errors.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
@@ -38,19 +40,20 @@ export type StartTurnProcessingModel = {
  * The full game data for turn processing.
  */
 export type TurnToProcessModel = {
-  gameId: GameId
-  turn: number
-  scheduledFor: Date
-  turnInterval: Time
-  rngState: RngState<number>
-  actionSubmissions: ActionSubmission[]
-  players: Record<
+  readonly gameId: GameId
+  readonly turn: number
+  readonly scheduledFor: Date
+  readonly turnInterval: Time
+  readonly rngState: RngState<number>
+  readonly actionSubmissions: ActionSubmission[]
+  readonly players: Record<
     PlayerId,
     {
       id: PlayerId
       resources: Record<ResourceType, number>
     }
   >
+  readonly ruleset: Ruleset
 }
 
 export type ProcessedTurnModel = {
@@ -357,5 +360,6 @@ function toTurnToProcessModel({
       }
       return playersById
     }, {}),
+    ruleset: StandardRuleset, // Eventually should be stored in DB
   }
 }

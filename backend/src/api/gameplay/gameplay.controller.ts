@@ -23,7 +23,6 @@ import { ActionDefinitionIdSchema } from "#lib/rules-engine/ruleset-model/action
 import { ResourceType, ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
-import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { type GalaxyModel, type GameplayRepository, type PlayerViewModel } from "./gameplay.repository.ts"
 
@@ -70,7 +69,7 @@ export class GameplayController {
 
       const startingResources = Object.values(ResourceType).map((resourceType) => ({
         resourceType,
-        amount: StandardRuleset.startingResources[resourceType],
+        amount: gameForStart.value.ruleset.startingResources[resourceType],
       }))
       const playerResources = gameForStart.value.playerIds.flatMap((playerId) =>
         startingResources.map((resource) => ({ playerId, ...resource })),
@@ -187,7 +186,7 @@ export class GameplayController {
         resources: activeGameResult.value.resources,
         actionSubmissions: [actionSubmission],
       })
-      const issues = validateActionSubmissions(turnState.actionSubmissions, StandardRuleset, turnState)
+      const issues = validateActionSubmissions(turnState.actionSubmissions, activeGameResult.value.ruleset, turnState)
       if (issues.length > 0) {
         throw new TransactionRollback(issues.map(({ issue }) => issue).join("\n"))
       }
@@ -262,7 +261,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     turn: playerViewModel.turn,
     nextTurnAt: playerViewModel.nextTurnAt,
     resources: playerViewModel.resources,
-    ruleset: StandardRuleset,
+    ruleset: playerViewModel.ruleset,
     availableActions: createAvailableActions(playerViewModel),
   }
 }
@@ -274,7 +273,7 @@ function createAvailableActions(playerViewModel: PlayerViewModel): AvailableActi
     actionSubmissions: [],
   })
 
-  return Object.values(StandardRuleset.actionDefinitions).map((actionDefinition) => {
+  return Object.values(playerViewModel.ruleset.actionDefinitions).map((actionDefinition) => {
     const availableAction = {
       id: v4(),
       actionDefinitionId: actionDefinition.id,
@@ -284,7 +283,7 @@ function createAvailableActions(playerViewModel: PlayerViewModel): AvailableActi
       ...availableAction,
       submittedByPlayerId: playerViewModel.player.id,
     } as const satisfies ActionSubmission
-    const affordabilityResult = validateCosts([actionSubmission], StandardRuleset, turnState)
+    const affordabilityResult = validateCosts([actionSubmission], playerViewModel.ruleset, turnState)
     Assert.isSuccess(affordabilityResult)
 
     return { ...availableAction, canAfford: affordabilityResult.value.length === 0 }

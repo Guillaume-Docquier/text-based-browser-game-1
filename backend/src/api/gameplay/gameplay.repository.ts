@@ -25,6 +25,8 @@ import {
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type ActionSubmissionRow = typeof actionSubmissionsTable.$inferSelect
@@ -50,8 +52,9 @@ export type ActionSubmissionModel = {
  * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
  */
 export type ActionContextModel = {
-  turn: number
-  resources: Record<ResourceType, number>
+  readonly turn: number
+  readonly resources: Record<ResourceType, number>
+  readonly ruleset: Ruleset
 }
 
 type PlayerViewPlayerModel = {
@@ -60,13 +63,14 @@ type PlayerViewPlayerModel = {
 }
 
 export type PlayerViewModel = {
-  gameId: number
-  player: PlayerViewPlayerModel
-  opponents: Record<PlayerId, PlayerViewPlayerModel>
-  galaxy: GalaxyModel
-  turn: number
-  nextTurnAt: Date
-  resources: Record<ResourceType, number>
+  readonly gameId: number
+  readonly player: PlayerViewPlayerModel
+  readonly opponents: Record<PlayerId, PlayerViewPlayerModel>
+  readonly galaxy: GalaxyModel
+  readonly turn: number
+  readonly nextTurnAt: Date
+  readonly resources: Record<ResourceType, number>
+  readonly ruleset: Ruleset
 }
 
 /**
@@ -81,6 +85,7 @@ export type GameForStart = Branded<
     readonly status: GameStatus
     readonly turnInterval: Time
     readonly playerIds: readonly PlayerId[]
+    readonly ruleset: Ruleset
   },
   "GameForStart"
 >
@@ -200,6 +205,7 @@ export class GameplayRepository extends PostgresRepository {
         status: gameForStart.status,
         turnInterval: Time.create(gameForStart.turnIntervalSeconds, UnitOfTime.SECONDS),
         playerIds,
+        ruleset: StandardRuleset, // Eventually should be stored in DB
       }),
     )
   }
@@ -290,6 +296,7 @@ export class GameplayRepository extends PostgresRepository {
           opponents,
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
+          ruleset: StandardRuleset, // Eventually should be stored in DB
         }
       }),
     )
@@ -367,6 +374,7 @@ export class GameplayRepository extends PostgresRepository {
         return {
           turn: gameStates[0].turn,
           resources: toResourceBag(resourceRows),
+          ruleset: StandardRuleset, // Eventually should be stored in DB
         }
       }),
     )
