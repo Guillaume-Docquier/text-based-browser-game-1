@@ -9,7 +9,6 @@ import { StarCoordinates, toStarCoordinates } from "#api/shared/StarCoordinates.
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
@@ -71,7 +70,7 @@ export class GameplayController {
 
       const startingResources = Object.values(ResourceType).map((resourceType) => ({
         resourceType,
-        amount: STARTING_RESOURCE_AMOUNTS[resourceType],
+        amount: StandardRuleset.startingResources[resourceType],
       }))
       const playerResources = gameForStart.value.playerIds.flatMap((playerId) =>
         startingResources.map((resource) => ({ playerId, ...resource })),

@@ -5,19 +5,23 @@ import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/acti
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { createRulesetStub } from "#lib/rules-engine/ruleset-model/Ruleset.stub.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 
 const actionDefinition = createActionDefinitionStub({
   costs: [ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE })],
 })
 
-const ruleset: Ruleset = {
-  name: "Test Ruleset",
+const ruleset = createRulesetStub({
   actionDefinitions: {
     [actionDefinition.id]: actionDefinition,
   },
-}
+  startingResources: createResourcesStub({
+    [ResourceType.INFLUENCE]: 3,
+    [ResourceType.METAL]: 2,
+    [ResourceType.FUEL]: 1,
+  }),
+})
 
 describe("validateActionSubmissions", () => {
   it("should not mutate the turnState", () => {
@@ -123,10 +127,7 @@ describe("validateActionSubmissions", () => {
           self: "player-id",
         },
       })
-      const emptyRuleset: Ruleset = {
-        name: "Empty Ruleset",
-        actionDefinitions: {},
-      }
+      const emptyRuleset = createRulesetStub({ actionDefinitions: {} })
       const turnState = createTurnStateStub()
 
       // Act
@@ -154,12 +155,11 @@ describe("validateActionSubmissions", () => {
           targetPlayer: "",
         },
       })
-      const rulesetWithRequiredTarget: Ruleset = {
-        name: "Test Ruleset",
+      const rulesetWithRequiredTarget = createRulesetStub({
         actionDefinitions: {
           [actionDefinitionWithRequiredTarget.id]: actionDefinitionWithRequiredTarget,
         },
-      }
+      })
       const actionSubmission = createActionSubmissionStub({
         actionDefinitionId: actionDefinitionWithRequiredTarget.id,
         targets: {
@@ -303,12 +303,11 @@ describe("validateActionSubmissions", () => {
           ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
         ],
       })
-      const rulesetWithMultipleCosts: Ruleset = {
-        name: "Test Ruleset",
+      const rulesetWithMultipleCosts = createRulesetStub({
         actionDefinitions: {
           [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
         },
-      }
+      })
       const actionSubmission = createActionSubmissionStub({
         actionDefinitionId: actionDefinitionWithMultipleCosts.id,
         targets: {
@@ -348,12 +347,11 @@ describe("validateActionSubmissions", () => {
           ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
         ],
       })
-      const rulesetWithMultipleCosts: Ruleset = {
-        name: "Test Ruleset",
+      const rulesetWithMultipleCosts = createRulesetStub({
         actionDefinitions: {
           [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
         },
-      }
+      })
       const actionSubmission1 = createActionSubmissionStub({
         actionDefinitionId: actionDefinitionWithMultipleCosts.id,
         targets: {
@@ -399,12 +397,11 @@ describe("validateActionSubmissions", () => {
           ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
         ],
       })
-      const rulesetWithMultipleCosts: Ruleset = {
-        name: "Test Ruleset",
+      const rulesetWithMultipleCosts = createRulesetStub({
         actionDefinitions: {
           [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
         },
-      }
+      })
       const actionSubmission1 = createActionSubmissionStub({
         actionDefinitionId: actionDefinitionWithMultipleCosts.id,
         targets: {

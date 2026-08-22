@@ -2,7 +2,6 @@ import { stripVTControlCharacters, styleText } from "node:util"
 import { Assert, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { select } from "@inquirer/prompts"
 import { createSeededRng } from "#lib/createSeededRng.ts"
-import { STARTING_RESOURCE_AMOUNTS } from "#lib/db/gameplay/gameResources.ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
@@ -156,7 +155,7 @@ function createSoloGameSession(): SoloGameSession {
       players: {
         [SOLO_PLAYER_ID]: {
           id: SOLO_PLAYER_ID,
-          resources: STARTING_RESOURCE_AMOUNTS,
+          resources: StandardRuleset.startingResources,
         },
       },
       winnerPlayerId: undefined,

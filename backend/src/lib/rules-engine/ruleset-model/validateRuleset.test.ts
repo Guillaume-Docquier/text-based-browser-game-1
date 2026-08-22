@@ -3,7 +3,7 @@ import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/acti
 import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { createRulesetStub } from "#lib/rules-engine/ruleset-model/Ruleset.stub.ts"
 import { validateRuleset } from "#lib/rules-engine/ruleset-model/validateRuleset.ts"
 
 const validActionDefinition = createActionDefinitionStub({
@@ -26,12 +26,11 @@ const validActionDefinition = createActionDefinitionStub({
 describe("validateRuleset", () => {
   it("should validate a Ruleset with correctly indexed Action Definitions and all required target slots", () => {
     // Arrange
-    const ruleset: Ruleset = {
-      name: "Test Ruleset",
+    const ruleset = createRulesetStub({
       actionDefinitions: {
         [validActionDefinition.id]: validActionDefinition,
       },
-    }
+    })
 
     // Act
     const validationIssues = validateRuleset(ruleset)
@@ -42,12 +41,11 @@ describe("validateRuleset", () => {
 
   it("should report an Action Definition indexed under an id other than its own", () => {
     // Arrange
-    const ruleset: Ruleset = {
-      name: "Test Ruleset",
+    const ruleset = createRulesetStub({
       actionDefinitions: {
         "incorrect-index": validActionDefinition,
       },
-    }
+    })
 
     // Act
     const validationIssues = validateRuleset(ruleset)
@@ -80,12 +78,12 @@ describe("validateRuleset", () => {
         }),
       ],
     })
-    const ruleset: Ruleset = {
+    const ruleset = createRulesetStub({
       name: "Test Ruleset",
       actionDefinitions: {
         [actionDefinitionWithoutSelfTarget.id]: actionDefinitionWithoutSelfTarget,
       },
-    }
+    })
 
     // Act
     const validationIssues = validateRuleset(ruleset)
