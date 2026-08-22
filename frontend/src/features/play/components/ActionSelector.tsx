@@ -1,5 +1,5 @@
-import type { ActionSubmission, GameId, PlayerView } from "@api-types"
-import { Assert } from "@guillaume-docquier/tools-ts"
+import type { ActionSubmission, ActionTier, GameId, PlayerView } from "@api-types"
+import { Sort } from "@guillaume-docquier/tools-ts"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
@@ -7,6 +7,15 @@ import { Skeleton } from "@/components/skeleton.tsx"
 import { ActionCard } from "@/features/play/components/ActionCard.tsx"
 import { formatRulesetTerm } from "@/features/play/mechanicToRulesText.ts"
 import { useSetCurrentActionMutation } from "@/lib/api/useSetCurrentActionMutation.ts"
+
+// This should probably be data driven
+export const ActionTierRank = {
+  BASIC: 1, // Worst
+  STANDARD: 2,
+  IMPROVED: 3,
+  ADVANCED: 4,
+  EXCEPTIONAL: 5, // Best
+} as const satisfies Record<ActionTier, number>
 
 export function ActionSelector({
   gameId,
@@ -39,29 +48,30 @@ export function ActionSelector({
       </div>
 
       <div className="flex flex-wrap items-stretch gap-6 px-4 pt-4">
-        {playerView.availableActions.map((action) => {
-          const actionDefinition = playerView.ruleset.actionDefinitions[action.actionDefinitionId]
-          Assert.isDefined(actionDefinition)
-          const isSelected = currentAction?.actionDefinitionId === action.actionDefinitionId
-          const selectAction = (): void => {
-            setCurrentAction.mutate({
-              gameId,
-              turn: playerView.turn,
-              actionSubmission: isSelected ? null : action,
-            })
-          }
-          return (
-            <ActionCard
-              key={action.id}
-              actionDefinition={actionDefinition}
-              resources={playerView.resources}
-              canAfford={action.canAfford}
-              isSelected={isSelected}
-              disabled={setCurrentAction.isPending || (!action.canAfford && !isSelected)}
-              onSelect={selectAction}
-            />
-          )
-        })}
+        {playerView.availableActions
+          .map((action) => ({ action, definition: playerView.ruleset.actionDefinitions[action.actionDefinitionId] }))
+          .sort((action1, action2) => Sort.byAscending(ActionTierRank[action1.definition.tier], ActionTierRank[action2.definition.tier]))
+          .map(({ action, definition }) => {
+            const isSelected = currentAction?.actionDefinitionId === action.actionDefinitionId
+            const selectAction = (): void => {
+              setCurrentAction.mutate({
+                gameId,
+                turn: playerView.turn,
+                actionSubmission: isSelected ? null : action,
+              })
+            }
+            return (
+              <ActionCard
+                key={action.id}
+                actionDefinition={definition}
+                resources={playerView.resources}
+                canAfford={action.canAfford}
+                isSelected={isSelected}
+                disabled={setCurrentAction.isPending || (!action.canAfford && !isSelected)}
+                onSelect={selectAction}
+              />
+            )
+          })}
       </div>
 
       {setCurrentAction.isError ? (

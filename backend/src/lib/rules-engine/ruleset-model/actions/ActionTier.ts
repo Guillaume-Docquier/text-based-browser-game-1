@@ -11,11 +11,3 @@ export const ActionTier = {
   ADVANCED: "ADVANCED",
   EXCEPTIONAL: "EXCEPTIONAL", // Best
 } as const
-
-export const ActionTierRank = {
-  [ActionTier.BASIC]: 1, // Worst
-  [ActionTier.STANDARD]: 2,
-  [ActionTier.IMPROVED]: 3,
-  [ActionTier.ADVANCED]: 4,
-  [ActionTier.EXCEPTIONAL]: 5, // Best
-} as const satisfies Record<ActionTier, number>

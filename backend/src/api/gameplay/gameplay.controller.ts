@@ -1,4 +1,4 @@
-import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer, Sort } from "@guillaume-docquier/tools-ts"
+import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import z from "zod"
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
@@ -20,7 +20,7 @@ import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
-import { ActionTier, ActionTierRank } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
+import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
@@ -276,28 +276,21 @@ function createAvailableActions(playerViewModel: PlayerViewModel): AvailableActi
     actionSubmissions: [],
   })
 
-  return (
-    Object.values(StandardRuleset.actionDefinitions)
-      // oxlint-disable-next-line unicorn/no-array-sort -- We control the array
-      .sort((actionDef1, actionDef2) => {
-        return Sort.byAscending(ActionTierRank[actionDef1.tier], ActionTierRank[actionDef2.tier])
-      })
-      .map((actionDefinition) => {
-        const availableAction = {
-          id: v4(),
-          actionDefinitionId: actionDefinition.id,
-          targets: { self: playerViewModel.player.id },
-        }
-        const actionSubmission = {
-          ...availableAction,
-          submittedByPlayerId: playerViewModel.player.id,
-        } as const satisfies ActionSubmission
-        const affordabilityResult = validateCosts([actionSubmission], StandardRuleset, turnState)
-        Assert.isSuccess(affordabilityResult)
+  return Object.values(StandardRuleset.actionDefinitions).map((actionDefinition) => {
+    const availableAction = {
+      id: v4(),
+      actionDefinitionId: actionDefinition.id,
+      targets: { self: playerViewModel.player.id },
+    }
+    const actionSubmission = {
+      ...availableAction,
+      submittedByPlayerId: playerViewModel.player.id,
+    } as const satisfies ActionSubmission
+    const affordabilityResult = validateCosts([actionSubmission], StandardRuleset, turnState)
+    Assert.isSuccess(affordabilityResult)
 
-        return { ...availableAction, canAfford: affordabilityResult.value.length === 0 }
-      })
-  )
+    return { ...availableAction, canAfford: affordabilityResult.value.length === 0 }
+  })
 }
 
 function toActionSubmissionDto(actionSubmission: ActionSubmission): ActionSubmissionDto {

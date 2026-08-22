@@ -468,7 +468,6 @@ describe("TurnProcessor", () => {
 
       // Assert
       // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
-      // oxlint-disable-next-line unicorn/no-array-sort -- We're working on a controlled copy, we don't need another one
       const expectedWinnerId = [creator.account.id, joiner.account.id].sort()[0]
 
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })

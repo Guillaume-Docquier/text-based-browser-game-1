@@ -1,7 +1,7 @@
 import { v4 } from "uuid"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 
-export function createActionSubmissionStub(overrides: Partial<ActionSubmission> = {}): ActionSubmission {
+export function createActionSubmissionStub(overrides?: Partial<ActionSubmission>): ActionSubmission {
   const submittedByPlayerId = v4()
 
   return {

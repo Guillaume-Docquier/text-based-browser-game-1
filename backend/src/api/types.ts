@@ -29,6 +29,7 @@ export type ActionSubmission = NonNullable<CurrentActionOutput["action"]>
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
 export type Ruleset = PlayerView["ruleset"]
 export type ActionDefinition = Ruleset["actionDefinitions"][string]
+export type ActionTier = ActionDefinition["tier"]
 export type Mechanic = ActionDefinition["costs"][number] | ActionDefinition["mechanics"][number]
 export type AvailableAction = PlayerView["availableActions"][number]
 export type Galaxy = PlayerView["galaxy"]
