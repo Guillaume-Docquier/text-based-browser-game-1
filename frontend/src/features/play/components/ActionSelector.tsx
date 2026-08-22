@@ -5,7 +5,6 @@ import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
 import { ActionCard } from "@/features/play/components/ActionCard.tsx"
-import { formatRulesetTerm } from "@/features/play/mechanicToRulesText.ts"
 import { useSetCurrentActionMutation } from "@/lib/api/useSetCurrentActionMutation.ts"
 
 // This should probably be data driven
@@ -30,21 +29,12 @@ export function ActionSelector({
 
   return (
     <section className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Actions</div>
-          <h2 className="font-heading text-2xl font-semibold text-foreground">Choose your action</h2>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Your selection applies to turn {playerView.turn} only. Click the selected action again to clear it.
-          </p>
-        </div>
-        <div className="flex h-10 w-fit items-center gap-3 rounded-md border border-border/70 bg-card/45 px-3 text-sm font-medium text-foreground">
-          {Object.entries(playerView.resources).map(([resourceType, quantity]) => (
-            <span key={resourceType}>
-              {quantity} {formatRulesetTerm(resourceType)}
-            </span>
-          ))}
-        </div>
+      <div className="space-y-1">
+        <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Actions</div>
+        <h2 className="font-heading text-2xl font-semibold text-foreground">Choose your action</h2>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Your selection applies to turn {playerView.turn} only. Click the selected action again to clear it.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-stretch gap-6 px-4 pt-4">
@@ -88,13 +78,10 @@ export function ActionSelector({
 export function ActionSelectorSkeleton(): ReactElement {
   return (
     <section className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-4 w-full max-w-xl" />
-        </div>
-        <Skeleton className="h-10 w-28" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-4 w-full max-w-xl" />
       </div>
       <div className="flex flex-wrap gap-6 px-4 pt-4">
         <Skeleton className="h-64 w-full sm:w-80" />

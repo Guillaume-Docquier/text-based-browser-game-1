@@ -1,7 +1,8 @@
 import type { ActionDefinition, PlayerView } from "@api-types"
-import { InspectionPanel, Earth, Compass, Crosshair, Award, LucideDroplets, Landmark, type LucideIcon, Zap } from "lucide-react"
+import { Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import type { ReactElement } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
+import { RESOURCE_ICONS } from "@/features/play/components/resourceIcons.ts"
 import { formatRulesetTerm, mechanicsToRulesText } from "@/features/play/mechanicToRulesText.ts"
 import { cn } from "@/lib/cn.ts"
 
@@ -38,15 +39,6 @@ const ACTION_TYPE_ICONS = {
   DIRECTIVE: Crosshair,
   PROGRAM: Landmark,
 } as const satisfies Record<ActionDefinition["type"], LucideIcon>
-
-type ResourceType = ActionDefinition["costs"][number]["resourceType"]
-const RESOURCE_ICONS = {
-  INFLUENCE: Award,
-  METAL: InspectionPanel,
-  FUEL: LucideDroplets,
-  ENERGY: Zap,
-  COLONY: Earth,
-} as const satisfies Record<ResourceType, LucideIcon>
 
 /**
  * Displays a selectable Action Definition using its tier, costs, and mechanics.

@@ -3,6 +3,8 @@ import { Clock3, Crown, RefreshCw, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import { Button } from "@/components/button.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
+import { RESOURCE_ICONS, RESOURCE_TYPES } from "@/features/play/components/resourceIcons.ts"
+import { formatRulesetTerm } from "@/features/play/mechanicToRulesText.ts"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
@@ -19,18 +21,9 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <TopBarFact
-            icon={
-              <span
-                aria-hidden="true"
-                className="size-4 rounded-full border border-foreground/30"
-                style={{ backgroundColor: PLAYER_COLOR_HEX[playerView.player.color] }}
-              />
-            }
-            label={formatPlayerColor(playerView.player.color)}
-            value={getPlayerLabel(game, playerView.player.id)}
-          />
-          <TopBarFact icon={<TimerReset className="size-4" />} label="Turn" value={playerView.turn.toString()} />
+          <PlayerFact game={game} player={playerView.player} />
+          <ResourcesFact resources={playerView.resources} />
+          <TurnFact turn={playerView.turn} />
           <NextTurnFact targetTimestamp={playerView.nextTurnAt} />
         </div>
       </div>
@@ -41,6 +34,70 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
         </div>
       )}
     </header>
+  )
+}
+
+function PlayerFact({ game, player }: { game: Lobby; player: PlayerView["player"] }): ReactElement {
+  return (
+    <TopBarFact
+      icon={
+        <span
+          aria-hidden="true"
+          className="size-4 rounded-full border border-foreground/30"
+          style={{ backgroundColor: PLAYER_COLOR_HEX[player.color] }}
+        />
+      }
+      label={formatPlayerColor(player.color)}
+      value={getPlayerLabel(game, player.id)}
+    />
+  )
+}
+
+function TurnFact({ turn }: { turn: PlayerView["turn"] }): ReactElement {
+  return <TopBarFact icon={<TimerReset className="size-4" />} label="Turn" value={turn.toString()} />
+}
+
+function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): ReactElement {
+  return (
+    <div className="group/resources relative">
+      <div className="flex min-h-11 items-center rounded-md border border-border/70 bg-card/45 px-3 py-1.5">
+        <div>
+          <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Resources</div>
+          <div className="flex gap-x-3">
+            {RESOURCE_TYPES.map((resourceType) => {
+              const ResourceIcon = RESOURCE_ICONS[resourceType]
+              const resourceName = formatRulesetTerm(resourceType)
+
+              return (
+                <div
+                  key={resourceType}
+                  className="flex items-center gap-1 text-sm font-medium"
+                  aria-label={`${resources[resourceType]} ${resourceName}`}
+                >
+                  <span>{resources[resourceType]}</span>
+                  <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+      <div className="invisible absolute top-full right-0 z-20 w-full pt-2 opacity-0 transition-opacity group-hover/resources:visible group-hover/resources:opacity-100">
+        <div className="grid grid-cols-[max-content_1rem_max-content] justify-start gap-x-1 gap-y-1 rounded-md border border-border/70 bg-card px-3 py-2 shadow-lg">
+          {RESOURCE_TYPES.map((resourceType) => {
+            const ResourceIcon = RESOURCE_ICONS[resourceType]
+
+            return (
+              <div key={resourceType} className="col-span-3 grid grid-cols-subgrid items-center text-sm font-medium">
+                <span className="text-right">{resources[resourceType]}</span>
+                <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
+                <span className="text-left">{formatRulesetTerm(resourceType)}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
   )
 }
 
