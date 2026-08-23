@@ -1,30 +1,15 @@
 import { RefreshCw } from "lucide-react"
-import { type ReactElement, useState } from "react"
+import type { ReactElement } from "react"
 import { Badge } from "@/components/badge.tsx"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
-import { useLogger } from "@/lib/LoggerContext.tsx"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function PlayersPage(): ReactElement {
-  const logger = useLogger()
   const { game, playerView } = usePlayGameContext()
   const refreshClientData = useRefreshClientData()
-  const [isRefreshing, setIsRefreshing] = useState(false)
-
-  async function refreshPlayers(): Promise<void> {
-    setIsRefreshing(true)
-
-    try {
-      await refreshClientData()
-    } catch (error: unknown) {
-      logger.error("Could not refresh players", { error: error instanceof Error ? error.message : String(error) })
-    } finally {
-      setIsRefreshing(false)
-    }
-  }
 
   return (
     <section className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
@@ -38,13 +23,12 @@ export function PlayersPage(): ReactElement {
         <Button
           type="button"
           variant="outline"
-          disabled={isRefreshing}
           onClick={() => {
-            void refreshPlayers()
+            void refreshClientData()
           }}
         >
-          <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
-          {isRefreshing ? "Refreshing..." : "Refresh players"}
+          <RefreshCw />
+          Refresh players
         </Button>
       </div>
       <Card>
