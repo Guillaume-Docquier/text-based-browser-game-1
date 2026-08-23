@@ -8,7 +8,6 @@ import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
-import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -166,16 +165,13 @@ describe("gameplay.router", () => {
           date: clock.now(),
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
-        resources: createResourcesStub({
-          [ResourceType.INFLUENCE]: 3,
-          [ResourceType.METAL]: 2,
-          [ResourceType.FUEL]: 1,
-        }),
-        uncommittedResources: createResourcesStub({
-          [ResourceType.INFLUENCE]: 3,
-          [ResourceType.METAL]: 2,
-          [ResourceType.FUEL]: 1,
-        }),
+        resources: {
+          [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
+          [ResourceType.METAL]: { uncommitted: 2, total: 2 },
+          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
+          [ResourceType.ENERGY]: { uncommitted: 0, total: 0 },
+          [ResourceType.COLONY]: { uncommitted: 0, total: 0 },
+        },
         ruleset: StandardRuleset,
         availableActions: [
           {
@@ -235,20 +231,13 @@ describe("gameplay.router", () => {
       Assert.isDefined(generatePower)
 
       // Assert
-      expect(playerView.resources).toEqual(
-        createResourcesStub({
-          [ResourceType.INFLUENCE]: 3,
-          [ResourceType.METAL]: 2,
-          [ResourceType.FUEL]: 1,
-        }),
-      )
-      expect(playerView.uncommittedResources).toEqual(
-        createResourcesStub({
-          [ResourceType.INFLUENCE]: 2,
-          [ResourceType.METAL]: 2,
-          [ResourceType.FUEL]: 1,
-        }),
-      )
+      expect(playerView.resources).toEqual({
+        [ResourceType.INFLUENCE]: { uncommitted: 2, total: 3 },
+        [ResourceType.METAL]: { uncommitted: 2, total: 2 },
+        [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
+        [ResourceType.ENERGY]: { uncommitted: 0, total: 0 },
+        [ResourceType.COLONY]: { uncommitted: 0, total: 0 },
+      })
       expect(generatePower.canAfford).toBe(false)
     })
 

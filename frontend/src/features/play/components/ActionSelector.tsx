@@ -54,7 +54,7 @@ export function ActionSelector({
               <ActionCard
                 key={action.id}
                 actionDefinition={definition}
-                uncommittedResources={playerView.uncommittedResources}
+                resources={playerView.resources}
                 canAfford={action.canAfford}
                 isSelected={isSelected}
                 disabled={setCurrentAction.isPending || (!action.canAfford && !isSelected)}

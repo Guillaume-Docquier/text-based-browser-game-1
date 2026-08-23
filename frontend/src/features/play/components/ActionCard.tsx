@@ -45,14 +45,14 @@ const ACTION_TYPE_ICONS = {
  */
 export function ActionCard({
   actionDefinition,
-  uncommittedResources,
+  resources,
   canAfford,
   isSelected,
   disabled,
   onSelect,
 }: {
   actionDefinition: ActionDefinition
-  uncommittedResources: PlayerView["uncommittedResources"]
+  resources: PlayerView["resources"]
   canAfford: boolean
   isSelected: boolean
   disabled: boolean
@@ -112,7 +112,7 @@ export function ActionCard({
               {formatRulesetTerm(actionDefinition.tier)} {formatRulesetTerm(actionDefinition.type)}
             </CardDescription>
           </div>
-          <ActionCosts costs={actionDefinition.costs} uncommittedResources={uncommittedResources} />
+          <ActionCosts costs={actionDefinition.costs} resources={resources} />
         </div>
       </CardHeader>
       <CardContent className="relative z-10 flex min-h-36 flex-1 flex-col gap-4 border-t border-border/70 px-5 py-5">
@@ -124,20 +124,14 @@ export function ActionCard({
   )
 }
 
-function ActionCosts({
-  costs,
-  uncommittedResources,
-}: {
-  costs: ActionDefinition["costs"]
-  uncommittedResources: PlayerView["uncommittedResources"]
-}): ReactElement {
+function ActionCosts({ costs, resources }: { costs: ActionDefinition["costs"]; resources: PlayerView["resources"] }): ReactElement {
   const costsByResource = Map.groupBy(sortResources(costs), ({ resourceType }) => resourceType)
 
   return (
     <div className="flex flex-col items-end gap-1" aria-label="Costs">
       {[...costsByResource].map(([resourceType, resourceCosts]) => {
         const quantity = resourceCosts.reduce((total, cost) => total + cost.quantity, 0)
-        const cannotAfford = quantity > uncommittedResources[resourceType]
+        const cannotAfford = quantity > resources[resourceType].uncommitted
         const ResourceIcon = RESOURCE_ICONS[resourceType]
         return (
           <div

@@ -262,8 +262,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     },
     turn: playerViewModel.turn,
     nextTurnAt: playerViewModel.nextTurnAt,
-    resources: playerViewModel.resources,
-    uncommittedResources,
+    resources: toResourcesDto(playerViewModel.resources, uncommittedResources),
     ruleset: playerViewModel.ruleset,
     availableActions: createAvailableActions(playerViewModel, uncommittedResources),
   }
@@ -277,11 +276,26 @@ function getUncommittedResources(playerViewModel: PlayerViewModel): Record<Resou
     Assert.isDefined(actionDefinition)
 
     for (const cost of actionDefinition.costs) {
-      uncommittedResources[cost.resourceType] = Math.max(0, uncommittedResources[cost.resourceType] - cost.quantity)
+      const uncommittedQuantity = uncommittedResources[cost.resourceType] - cost.quantity
+      Assert.isTrue(uncommittedQuantity >= 0)
+      uncommittedResources[cost.resourceType] = uncommittedQuantity
     }
   }
 
   return uncommittedResources
+}
+
+function toResourcesDto(
+  totalResources: Record<ResourceType, number>,
+  uncommittedResources: Record<ResourceType, number>,
+): PlayerViewDto["resources"] {
+  const resourceEntries = Object.values(ResourceType).map((resourceType) => [
+    resourceType,
+    { uncommitted: uncommittedResources[resourceType], total: totalResources[resourceType] },
+  ])
+
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: resourceEntries contains exactly one entry for every ResourceType.
+  return Object.fromEntries(resourceEntries) as PlayerViewDto["resources"]
 }
 
 function createAvailableActions(
@@ -404,6 +418,8 @@ type ActionSubmissionDto = z.infer<typeof ActionSubmissionDto>
 const AvailableActionDto = ActionSubmissionDto.extend({ canAfford: z.boolean() })
 type AvailableActionDto = z.infer<typeof AvailableActionDto>
 
+const ResourceAmountsDto = z.object({ uncommitted: z.number(), total: z.number() })
+
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
 export const PlayerViewDto = z.object({
   gameId: GameId,
@@ -412,8 +428,7 @@ export const PlayerViewDto = z.object({
   galaxy: GalaxyDto,
   turn: z.number(),
   nextTurnAt: z.date(),
-  resources: z.record(ResourceTypeSchema, z.number()),
-  uncommittedResources: z.record(ResourceTypeSchema, z.number()),
+  resources: z.record(ResourceTypeSchema, ResourceAmountsDto),
   ruleset: RulesetSchema,
   availableActions: z.array(AvailableActionDto),
 })

@@ -22,7 +22,7 @@ import {
   starsTable,
   turnsTable,
 } from "#lib/db/schema.ts"
-import { couldNot, TransactionRollback } from "#lib/errors.ts"
+import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
@@ -288,8 +288,16 @@ export class GameplayRepository extends PostgresRepository {
           .from(resourcesTable)
           .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
 
-        const currentActionResult = await this.getCurrentAction({ gameId, playerId, turn: gameState.turn }, tx)
-        Assert.isSuccess(currentActionResult)
+        const games = await tx.select({ status: gamesTable.status }).from(gamesTable).where(eq(gamesTable.id, gameId))
+        Assert.isTrue(games.length === 1)
+        Assert.isDefined(games[0])
+
+        let currentAction: ActionSubmission | null = null
+        if (games[0].status !== GameStatus.ENDED) {
+          const currentActionResult = await this.getCurrentAction({ gameId, playerId, turn: gameState.turn }, tx)
+          rollbackOnFailure(currentActionResult, "Failed to get current action")
+          currentAction = currentActionResult.value?.actionSubmission ?? null
+        }
 
         const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
         const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
@@ -300,7 +308,7 @@ export class GameplayRepository extends PostgresRepository {
           opponents,
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
-          actionSubmissions: currentActionResult.value === null ? [] : [currentActionResult.value.actionSubmission],
+          actionSubmissions: currentAction === null ? [] : [currentAction],
           ruleset: StandardRuleset, // Eventually should be stored in DB
         }
       }),
