@@ -150,6 +150,39 @@ describe("TurnProcessor", () => {
       })
     })
 
+    it("should process a turn early when all players are ready and reset their readiness", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const clock = new ControlledClock({ startDate: new Date(0) })
+      const { api, accountsRepository } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 2, turnIntervalSeconds: 1_000 }),
+      })
+      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      await creator.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })
+      await joiner.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })
+      await joiner.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: false })
+      const firstProcessingOutcome = await turnProcessor.processNextDueTurn()
+      await joiner.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })
+      const secondProcessingOutcome = await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(firstProcessingOutcome).toBe("idle")
+      expect(secondProcessingOutcome).toBe("processed")
+      expect(await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+        turn: 1,
+        player: { ready: false },
+        opponents: { [joiner.account.id]: { ready: false } },
+      })
+    })
+
     it.each([
       { turnInterval: Time.create(100, UnitOfTime.SECONDS), timeIncrement: Time.create(116, UnitOfTime.SECONDS) },
       { turnInterval: Time.create(100, UnitOfTime.MINUTES), timeIncrement: Time.create(103, UnitOfTime.MINUTES) },

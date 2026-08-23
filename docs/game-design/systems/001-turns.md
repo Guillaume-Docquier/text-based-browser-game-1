@@ -2,7 +2,11 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
+
+- [x] Scheduled Turn windows and Turn Resolution
+- [x] Public, reversible Readiness and early Turn Resolution
+- [ ] Automatic retry after failed Turn Resolution
 
 ## Purpose
 

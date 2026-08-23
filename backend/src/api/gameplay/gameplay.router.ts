@@ -3,7 +3,15 @@ import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import { GameId } from "#api/shared/GameId.ts"
 import type { Trpc } from "#api/trpc.ts"
-import { CurrentActionDto, PlayerViewDto, type GameplayController, SetCurrentActionDto, StartedGameDto } from "./gameplay.controller.ts"
+import {
+  CurrentActionDto,
+  PlayerViewDto,
+  ReadyStateDto,
+  type GameplayController,
+  SetCurrentActionDto,
+  SetReadyDto,
+  StartedGameDto,
+} from "./gameplay.controller.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGameplayRouter({
@@ -73,6 +81,21 @@ export function createGameplayRouter({
 
       return getByIdResult.value
     }),
+
+    setReady: inGameProcedure
+      .input(SetReadyDto.omit({ playerId: true }))
+      .output(ReadyStateDto)
+      .mutation(async ({ input, ctx: { account } }) => {
+        const setReadyResult = await gameplayController.setReady({ ...input, playerId: account.id })
+        if (Result.isFailure(setReadyResult)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: setReadyResult.error,
+          })
+        }
+
+        return setReadyResult.value
+      }),
 
     getCurrentAction: inGameProcedure.output(CurrentActionDto).query(async ({ input, ctx: { account } }) => {
       const getCurrentActionResult = await gameplayController.getCurrentAction({ ...input, playerId: account.id })

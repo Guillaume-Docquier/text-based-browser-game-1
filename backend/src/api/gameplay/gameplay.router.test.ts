@@ -31,6 +31,7 @@ describe("gameplay.router", () => {
     const expectedError = { data: { code: "FORBIDDEN" } }
     await expect(nonPlayer.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(nonPlayer.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(nonPlayer.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })).rejects.toMatchObject(expectedError)
     await expect(nonPlayer.client.gameplay.getCurrentAction.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(
       nonPlayer.client.gameplay.setCurrentAction.mutate({
@@ -158,7 +159,7 @@ describe("gameplay.router", () => {
       // Assert
       expect(getByIdResult).toEqual<typeof getByIdResult>({
         gameId: createdGameId,
-        player: { id: player.account.id, color: PlayerColor.WHITE },
+        player: { id: player.account.id, color: PlayerColor.WHITE, ready: false },
         opponents: {},
         galaxy: expect.any(Object), // Verified by the snapshot test
         turn: 0,
@@ -254,15 +255,16 @@ describe("gameplay.router", () => {
       await secondOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
 
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await firstOpponent.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })
 
       // Act
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(playerView.player).toEqual({ id: creator.account.id, color: PlayerColor.WHITE })
+      expect(playerView.player).toEqual({ id: creator.account.id, color: PlayerColor.WHITE, ready: false })
       expect(playerView.opponents).toEqual({
-        [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.RED },
-        [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.BLUE },
+        [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.RED, ready: true },
+        [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.BLUE, ready: false },
       })
     })
 
@@ -369,6 +371,40 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+    })
+
+    it("should lock the current action while ready and allow changes after becoming unready", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const action = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      Assert.isDefined(action)
+      await player.client.gameplay.setCurrentAction.mutate({ gameId: createdGameId, turn: playerView.turn, actionSubmission: action })
+      await player.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })
+
+      // Act
+      const lockedActionChange = player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: playerView.turn,
+        actionSubmission: null,
+      })
+
+      // Assert
+      await expect(lockedActionChange).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+
+      // Act
+      await player.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: false })
+      const clearedAction = await player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: playerView.turn,
+        actionSubmission: null,
+      })
+
+      // Assert
+      expect(clearedAction).toEqual({ action: null })
     })
   })
 

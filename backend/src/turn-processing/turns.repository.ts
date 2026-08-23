@@ -1,5 +1,5 @@
 import { Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
+import { and, asc, eq, isNull, lte, notExists, or, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -102,9 +102,23 @@ export class TurnsRepository extends PostgresRepository {
         .select({
           gameId: turnsTable.gameId,
           turn: turnsTable.turn,
+          scheduledFor: turnsTable.scheduledFor,
         })
         .from(turnsTable)
-        .where(and(lte(turnsTable.scheduledFor, since), isNull(turnsTable.processingStartedAt)))
+        .where(
+          and(
+            isNull(turnsTable.processingStartedAt),
+            or(
+              lte(turnsTable.scheduledFor, since),
+              notExists(
+                tx
+                  .select()
+                  .from(playersTable)
+                  .where(and(eq(playersTable.gameId, turnsTable.gameId), eq(playersTable.ready, false))),
+              ),
+            ),
+          ),
+        )
         .orderBy(asc(turnsTable.scheduledFor))
         .limit(1)
         .for("no key update", { skipLocked: true })
@@ -121,6 +135,17 @@ export class TurnsRepository extends PostgresRepository {
         .where(eq(gamesTable.id, turnToProcess.gameId))
         .for("no key update")
       Assert.isDefined(gameToProcessRows[0])
+
+      if (turnToProcess.scheduledFor > since) {
+        const unreadyPlayers = await tx
+          .select({ playerId: playersTable.playerId })
+          .from(playersTable)
+          .where(and(eq(playersTable.gameId, turnToProcess.gameId), eq(playersTable.ready, false)))
+          .limit(1)
+        if (unreadyPlayers.length > 0) {
+          return undefined
+        }
+      }
 
       return branded<TurnForProcessing>({
         gameId: turnToProcess.gameId,
@@ -271,6 +296,8 @@ export class TurnsRepository extends PostgresRepository {
           .where(eq(gamesTable.id, processedTurnModel.gameId))
           .returning()
         Assert.isTrue(updatedGames.length === 1)
+
+        await tx.update(playersTable).set({ ready: false }).where(eq(playersTable.gameId, processedTurnModel.gameId))
 
         // Poor man's batch update using upsert
         // Drizzle doesn't handle this, the alternative is raw SQL... maybe if this is a performance bottleneck

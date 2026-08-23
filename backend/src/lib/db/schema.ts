@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   foreignKey,
   index,
   integer,
@@ -94,6 +95,7 @@ export const playersTable = pgTable(
       .notNull()
       .references(() => accountsTable.id, { onDelete: "cascade" }),
     color: playerColorEnum("color").notNull(),
+    ready: boolean("ready").notNull().default(false),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
   (table) => [

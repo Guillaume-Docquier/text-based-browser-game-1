@@ -124,6 +124,22 @@ export class GameplayController {
     return Result.Success(toPlayerViewDto(playerViewResult.value))
   }
 
+  public async setReady({ gameId, playerId, ready }: SetReadyDto): Promise<Result<ReadyStateDto, string>> {
+    const setReadyResult = await this.createTransaction(async (tx) => {
+      const readyResult = await this.gameplayRepository.setPlayerReady({ gameId, playerId, ready }, tx)
+      rollbackOnFailure(readyResult, "Failed to set player readiness")
+
+      return { ready: readyResult.value }
+    })
+
+    if (Result.isFailure(setReadyResult)) {
+      this.logger.error("Failed to set player readiness", { gameId, playerId, ready, error: setReadyResult.error })
+      return Result.Failure(setReadyResult.error.message)
+    }
+
+    return Result.Success(setReadyResult.value)
+  }
+
   /**
    * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
    */
@@ -165,6 +181,10 @@ export class GameplayController {
     const setActionResult = await this.createTransaction(async (tx) => {
       const activeGameResult = await this.gameplayRepository.getActionContext({ gameId, playerId }, tx)
       rollbackOnFailure(activeGameResult, "Failed to resolve action context")
+
+      if (activeGameResult.value.ready) {
+        throw new TransactionRollback("Unready before changing your action.")
+      }
 
       if (activeGameResult.value.turn !== turn) {
         throw new TransactionRollback(
@@ -376,7 +396,17 @@ export const GetPlayerViewDto = z.object({
 })
 
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
-export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
+export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor), ready: z.boolean() })
+
+export type SetReadyDto = z.infer<typeof SetReadyDto>
+export const SetReadyDto = z.object({
+  gameId: GameId,
+  playerId: PlayerId,
+  ready: z.boolean(),
+})
+
+export type ReadyStateDto = z.infer<typeof ReadyStateDto>
+export const ReadyStateDto = z.object({ ready: z.boolean() })
 
 export const StarDto = z.object({
   id: z.number(),

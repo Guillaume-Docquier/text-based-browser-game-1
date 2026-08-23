@@ -53,6 +53,7 @@ export type ActionSubmissionModel = {
  */
 export type ActionContextModel = {
   readonly turn: number
+  readonly ready: boolean
   readonly resources: Record<ResourceType, number>
   readonly ruleset: Ruleset
 }
@@ -60,6 +61,7 @@ export type ActionContextModel = {
 type PlayerViewPlayerModel = {
   id: PlayerId
   color: PlayerColor
+  ready: boolean
 }
 
 export type PlayerViewModel = {
@@ -279,7 +281,7 @@ export class GameplayRepository extends PostgresRepository {
         }
 
         const players = await tx
-          .select({ id: playersTable.playerId, color: playersTable.color })
+          .select({ id: playersTable.playerId, color: playersTable.color, ready: playersTable.ready })
           .from(playersTable)
           .where(eq(playersTable.gameId, gameId))
         const player = players.find(({ id }) => id === playerId)
@@ -316,6 +318,32 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return playerViewResult
+  }
+
+  public async setPlayerReady(
+    params: { gameId: GameId; playerId: PlayerId; ready: boolean },
+    tx: Transaction,
+  ): Promise<Result<boolean, string>> {
+    const setReadyResult = await Result.tryCatch(async () => {
+      await lockGameCollectingActions({ gameId: params.gameId }, tx)
+
+      const players = await tx
+        .update(playersTable)
+        .set({ ready: params.ready })
+        .where(and(eq(playersTable.gameId, params.gameId), eq(playersTable.playerId, params.playerId)))
+        .returning({ ready: playersTable.ready })
+      Assert.isTrue(players.length === 1)
+      Assert.isDefined(players[0])
+
+      return players[0].ready
+    })
+
+    if (Result.isFailure(setReadyResult)) {
+      this.logger.error("Could not set player readiness", { ...params, error: setReadyResult.error })
+      return Result.Failure(couldNot("set player readiness"))
+    }
+
+    return setReadyResult
   }
 
   /**
@@ -359,12 +387,13 @@ export class GameplayRepository extends PostgresRepository {
         await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
         const joinedPlayers = await tx
-          .select({ playerId: playersTable.playerId })
+          .select({ playerId: playersTable.playerId, ready: playersTable.ready })
           .from(playersTable)
           .where(and(eq(playersTable.gameId, params.gameId), eq(playersTable.playerId, params.playerId)))
         if (joinedPlayers.length !== 1) {
           throw new TransactionRollback("Player is not in this game.")
         }
+        Assert.isDefined(joinedPlayers[0])
 
         const gameStates = await tx
           .select({ turn: gameStatesTable.turn })
@@ -382,6 +411,7 @@ export class GameplayRepository extends PostgresRepository {
 
         return {
           turn: gameStates[0].turn,
+          ready: joinedPlayers[0].ready,
           resources: toResourceBag(resourceRows),
           ruleset: StandardRuleset, // Eventually should be stored in DB
         }

@@ -8,6 +8,7 @@ These Systems have live mechanics, but some documented rules remain planned.
 
 | System                                    | Summary                                                                                   |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [001-turns](./001-turns.md)               | How simultaneous turns are timed, played, ended, and resolved.                            |
 | [003-actions](./003-actions.md)           | How players use card-like Agendas, Directives, and Programs to affect the game each Turn. |
 | [008-planets](./008-planets.md)           | How Planets, their Attributes, and Colonization shape expansion.                          |
 | [014-resources](./014-resources.md)       | How distinct thematic resources are acquired, held, spent, and made scarce.               |
@@ -19,7 +20,6 @@ These Systems describe intended rules that are not yet implemented in the game.
 
 | System                                                      | Summary                                                                          |
 | ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| [001-turns](./001-turns.md)                                 | How simultaneous turns are timed, played, ended, and resolved.                   |
 | [002-legacy](./002-legacy.md)                               | How empires score Legacy through events and game-changing projects.              |
 | [004-ideological-alignment](./004-ideological-alignment.md) | How an empire's ideological position shapes its available actions.               |
 | [005-political-regime](./005-political-regime.md)           | How an empire's Political Regime changes the cost and efficiency of its actions. |

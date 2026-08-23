@@ -20,6 +20,7 @@ export function PlayersPage(): ReactElement {
           {game.players.map((player) => {
             const colorLabel = formatPlayerColor(player.color)
             const isCurrentPlayer = player.id === playerView.player.id
+            const isReady = isCurrentPlayer ? playerView.player.ready : playerView.opponents[player.id]?.ready
 
             return (
               <div key={player.id} className="flex items-center gap-3 rounded-3xl border border-border/60 bg-muted/20 px-4 py-3">
@@ -32,6 +33,7 @@ export function PlayersPage(): ReactElement {
                   <div className="flex items-center gap-2">
                     <div className="truncate font-medium text-foreground">{player.alias ?? `Player ${player.id}`}</div>
                     {isCurrentPlayer ? <Badge variant="secondary">You</Badge> : null}
+                    <Badge variant={isReady ? "default" : "outline"}>{isReady ? "Ready" : "Not ready"}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground">{colorLabel}</div>
                 </div>
