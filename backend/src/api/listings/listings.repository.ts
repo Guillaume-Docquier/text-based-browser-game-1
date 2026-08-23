@@ -1,6 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { count, eq } from "drizzle-orm"
+import { count, eq, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
+import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { gamesTable, playersTable } from "#lib/db/schema.ts"
@@ -9,6 +10,7 @@ import { couldNot } from "#lib/errors.ts"
 export type ListingModel = {
   id: GameId
   name: string
+  hasJoined: boolean
   nbPlayers: number
   nbSeats: number
   status: GameStatus
@@ -28,12 +30,17 @@ export class ListingsRepository extends PostgresRepository {
   /**
    * Gets ALL the game listings. This only makes sense until we have real traffic, at which point we'll need pagination, queries, etc.
    */
-  public async getListings(db: PostgresRepository["db"] = this.db): Promise<Result<ListingModel[], string>> {
+  public async getListings(
+    { playerId }: { playerId: AccountId | undefined },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<ListingModel[], string>> {
     const listingsResults: Result<ListingModel[], Error> = await Result.tryCatch(
       db
         .select({
           id: gamesTable.id,
           name: gamesTable.name,
+          hasJoined:
+            playerId === undefined ? sql<boolean>`false` : sql<boolean>`coalesce(bool_or(${playersTable.playerId} = ${playerId}), false)`,
           nbPlayers: count(playersTable.playerId),
           nbSeats: gamesTable.nbSeats,
           createdAt: gamesTable.createdAt,

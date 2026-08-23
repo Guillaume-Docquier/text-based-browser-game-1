@@ -1,6 +1,7 @@
 import type * as ApiTypes from "@api-types"
+import { useAuth } from "@clerk/react"
 import { Link } from "@tanstack/react-router"
-import { Search } from "lucide-react"
+import { Search, UserRoundCheck } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
@@ -14,6 +15,8 @@ import { timeAgo } from "@/lib/timeAgo.ts"
 
 export function GamesBrowserPage(): ReactElement {
   const [gameNameFilter, setGameNameFilter] = useState("")
+  const [showOnlyMyGames, setShowOnlyMyGames] = useState(false)
+  const { isSignedIn } = useAuth()
   const listingsQuery = useListingsQuery()
 
   if (listingsQuery.isPending) {
@@ -40,7 +43,11 @@ export function GamesBrowserPage(): ReactElement {
     )
   }
 
-  const listings = listingsQuery.data.filter((listing) => listing.name.includes(gameNameFilter))
+  const onlyMyGamesFilter = showOnlyMyGames && isSignedIn === true
+  const listings = listingsQuery.data.filter(
+    (listing) => listing.name.includes(gameNameFilter) && (!onlyMyGamesFilter || listing.hasJoined),
+  )
+  const hasFilter = gameNameFilter !== "" || onlyMyGamesFilter
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -56,23 +63,38 @@ export function GamesBrowserPage(): ReactElement {
       <Card className="border border-border/60">
         <CardHeader className="gap-4">
           <CardTitle>Find a game</CardTitle>
-          <CardDescription>Search by game name. Existing filter behavior is preserved.</CardDescription>
+          <CardDescription>Search by game name or show only games you have joined.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={gameNameFilter}
-              onChange={(event) => {
-                setGameNameFilter(event.target.value)
-              }}
-              placeholder="Search for games"
-              className="pl-9"
-            />
+          <div className="flex max-w-xl flex-col gap-2 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={gameNameFilter}
+                onChange={(event) => {
+                  setGameNameFilter(event.target.value)
+                }}
+                placeholder="Search for games"
+                className="pl-9"
+              />
+            </div>
+            {isSignedIn === true ? (
+              <Button
+                type="button"
+                variant={showOnlyMyGames ? "secondary" : "outline"}
+                aria-pressed={showOnlyMyGames}
+                onClick={() => {
+                  setShowOnlyMyGames((isShown) => !isShown)
+                }}
+              >
+                <UserRoundCheck />
+                My games
+              </Button>
+            ) : null}
           </div>
           <div className="grid gap-3">
             {listings.length === 0 ? (
-              <GamesEmptyState hasFilter={gameNameFilter !== ""} />
+              <GamesEmptyState hasFilter={hasFilter} />
             ) : (
               listings.map((listing) => <GameSummary key={listing.id} listing={listing} />)
             )}
@@ -137,7 +159,7 @@ function GamesEmptyState({ hasFilter }: { hasFilter: boolean }): ReactElement {
       <CardContent className="space-y-2">
         <div className="font-medium text-foreground">{hasFilter ? "No matching games" : "No games yet"}</div>
         <p className="text-sm text-muted-foreground">
-          {hasFilter ? "Try a different search term or create a new game." : "Create the first lobby to start playing."}
+          {hasFilter ? "Try adjusting your filters or create a new game." : "Create the first lobby to start playing."}
         </p>
       </CardContent>
     </Card>

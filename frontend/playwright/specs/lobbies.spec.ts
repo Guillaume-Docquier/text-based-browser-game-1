@@ -3,6 +3,7 @@ import { expect, test } from "../fixtures.ts"
 import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
+import { GamesPage } from "../pages/GamesPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
 const DETERMINISTIC_GALAXY_SEED = 1234
@@ -31,6 +32,24 @@ test.describe("authenticated user", () => {
 
     await createGamePage.setMaxPlayers(16)
     await expect(createGamePage.createButton).toBeEnabled()
+  })
+
+  test("filters to games the player joined", async ({ page }) => {
+    const gameName = `Playwright game ${Date.now()}`
+
+    await test.step("Create a game", async () => {
+      const createGamePage = await CreateGamePage.goto(page)
+      await createGamePage.setGameName(gameName)
+      const lobbyPage = await createGamePage.submit()
+      await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
+    })
+
+    await test.step("Show only the player's games", async () => {
+      const gamesPage = await GamesPage.goto(page)
+      await gamesPage.myGamesButton.click()
+      await expect(gamesPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
+      await expect(gamesPage.game(gameName)).toBeVisible()
+    })
   })
 
   test("creates and starts a game", async ({ page }) => {
