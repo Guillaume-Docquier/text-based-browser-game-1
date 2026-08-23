@@ -214,7 +214,7 @@ describe("TurnProcessor", () => {
       },
     )
 
-    it("should fail the turn when a locked action submission is no longer affordable", async () => {
+    it("should keep the turn locked when a locked action submission is no longer affordable", async () => {
       // Arrange
       const db = await createDbMock()
       const { api, accountsRepository, logger, clock } = await createApiStub({ db })
@@ -245,9 +245,13 @@ describe("TurnProcessor", () => {
 
       // Act
       const result = await turnProcessor.processNextDueTurn()
+      const lateReadinessChangeError = await player.client.gameplay.setReady
+        .mutate({ gameId: createdGameId, ready: true })
+        .catch((error: unknown) => error)
 
       // Assert
       expect(result).toBe("failed")
+      expect(lateReadinessChangeError).toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should process only the earliest scheduled turn in one invocation", async () => {

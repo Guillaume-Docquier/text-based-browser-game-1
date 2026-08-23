@@ -1,19 +1,51 @@
-import type { ReactElement } from "react"
+import { RefreshCw } from "lucide-react"
+import { type ReactElement, useState } from "react"
 import { Badge } from "@/components/badge.tsx"
+import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
+import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
+import { useLogger } from "@/lib/LoggerContext.tsx"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function PlayersPage(): ReactElement {
+  const logger = useLogger()
   const { game, playerView } = usePlayGameContext()
+  const refreshClientData = useRefreshClientData()
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  async function refreshPlayers(): Promise<void> {
+    setIsRefreshing(true)
+
+    try {
+      await refreshClientData()
+    } catch (error: unknown) {
+      logger.error("Could not refresh players", { error: error instanceof Error ? error.message : String(error) })
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   return (
     <section className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
-      <div className="mb-5">
-        <h2 className="font-heading text-2xl font-semibold text-foreground">Players</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {game.players.length} {game.players.length === 1 ? "player" : "players"} in this game.
-        </p>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-heading text-2xl font-semibold text-foreground">Players</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {game.players.length} {game.players.length === 1 ? "player" : "players"} in this game.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isRefreshing}
+          onClick={() => {
+            void refreshPlayers()
+          }}
+        >
+          <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
+          {isRefreshing ? "Refreshing..." : "Refresh players"}
+        </Button>
       </div>
       <Card>
         <CardContent className="grid gap-2">
