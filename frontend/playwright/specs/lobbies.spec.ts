@@ -187,17 +187,20 @@ test.describe("authenticated user", () => {
       await expect(winTheGame).toHaveAttribute("aria-disabled", "true")
       await expect(winTheGame.locator("[data-unaffordable-overlay]")).toBeVisible()
       await expect(winTheGame.locator('[aria-label="10 Influence, cannot afford"]')).toHaveClass(/text-red-400/)
-      await expect(winTheGame).not.toContainText("Unavailable")
 
-      await actionsPage.toggleAction("Extract Metal")
-      await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
-      await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "2 available of 3 Influence")
-      await expect(actionsPage.action("Generate Power")).toHaveAttribute("aria-disabled", "true")
-    })
+      const generatePower = actionsPage.action("Generate Power")
+      await actionsPage.toggleAction("Generate Power")
+      await expect(generatePower).toHaveAttribute("aria-pressed", "true")
+      await expect(generatePower).toHaveAttribute("aria-disabled", "false")
+      await expect(generatePower.locator("[data-unaffordable-overlay]")).not.toBeVisible()
+      await expect(generatePower.locator('[aria-label="3 Influence"]')).not.toHaveClass(/text-red-400/)
+      await expect(generatePower.locator('[aria-label="1 Fuel"]')).not.toHaveClass(/text-red-400/)
 
-    await test.step("Deselect the Action and release its resources", async () => {
-      await actionsPage.toggleAction("Extract Metal")
-      await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "false")
+      await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "0 available of 3 Influence")
+      await expect(extractMetal).toHaveAttribute("aria-disabled", "true")
+
+      await actionsPage.toggleAction("Generate Power")
+      await expect(generatePower).toHaveAttribute("aria-pressed", "false")
       await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "3 available of 3 Influence")
     })
 

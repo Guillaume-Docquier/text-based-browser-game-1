@@ -15,9 +15,8 @@ CREATE TABLE "action_submissions" (
 	"submitted_by_player_id" uuid NOT NULL,
 	"turn" integer NOT NULL,
 	"action_definition_id" text NOT NULL,
-	"targets" jsonb NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "action_submissions_game_id_player_id_turn_unique" UNIQUE("game_id","submitted_by_player_id","turn")
+	"targets" jsonb,
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "game_states" (

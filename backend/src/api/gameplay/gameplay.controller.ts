@@ -1,5 +1,4 @@
 import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
-import { v4 } from "uuid"
 import z from "zod"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
@@ -20,6 +19,7 @@ import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
+import { computeAvailableActions } from "#lib/rules-engine/available-actions/computeAvailableActions.ts"
 import { ActionDefinitionIdSchema } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
@@ -89,6 +89,10 @@ export class GameplayController {
           // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           playerResources,
+          availableActions: computeAvailableActions({
+            playerIds: gameForStart.value.playerIds,
+            ruleset: gameForStart.value.ruleset,
+          }),
           galaxy,
         },
         tx,
@@ -267,15 +271,19 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     nextTurnAt: playerViewModel.nextTurnAt,
     resources: toResourcesDto(playerViewModel.resources, uncommittedResources),
     ruleset: playerViewModel.ruleset,
-    availableActions: createAvailableActions(playerViewModel, uncommittedResources),
+    availableActions: toAvailableActionDtos(playerViewModel, uncommittedResources),
   }
 }
 
 function getUncommittedResources(playerViewModel: PlayerViewModel): Record<ResourceType, number> {
   const uncommittedResources = { ...playerViewModel.resources }
 
-  for (const actionSubmission of playerViewModel.actions) {
-    const actionDefinition = playerViewModel.ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+  for (const action of playerViewModel.actions) {
+    if (action.targets === null) {
+      continue
+    }
+
+    const actionDefinition = playerViewModel.ruleset.actionDefinitions[action.actionDefinitionId]
     Assert.isDefined(actionDefinition)
 
     for (const cost of actionDefinition.costs) {
@@ -302,21 +310,17 @@ function toResourcesDto(
   }, {})
 }
 
-function createAvailableActions(
-  playerViewModel: PlayerViewModel,
-  uncommittedResources: Record<ResourceType, number>,
-): AvailableActionDto[] {
+function toAvailableActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Record<ResourceType, number>): AvailableActionDto[] {
   const turnState = createTurnState({
     playerId: playerViewModel.player.id,
     resources: uncommittedResources,
     actionSubmissions: [],
   })
 
-  return Object.values(playerViewModel.ruleset.actionDefinitions).map((actionDefinition) => {
+  return playerViewModel.actions.map((action) => {
     const availableAction = {
-      id: v4(),
-      actionDefinitionId: actionDefinition.id,
-      targets: { self: playerViewModel.player.id },
+      ...action,
+      targets: action.targets ?? { self: playerViewModel.player.id },
     }
     const actionSubmission = {
       ...availableAction,
@@ -325,7 +329,7 @@ function createAvailableActions(
     const affordabilityResult = validateCosts([actionSubmission], playerViewModel.ruleset, turnState)
     Assert.isSuccess(affordabilityResult)
 
-    return { ...availableAction, canAfford: affordabilityResult.value.length === 0 }
+    return { ...availableAction, canAfford: action.targets !== null || affordabilityResult.value.length === 0 }
   })
 }
 

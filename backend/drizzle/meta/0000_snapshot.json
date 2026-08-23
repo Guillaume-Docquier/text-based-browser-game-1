@@ -1,5 +1,5 @@
 {
-  "id": "11bc6bfa-5b6b-4cc5-8ffa-eb342f951751",
+  "id": "e0815eb4-096a-4024-960a-3806699a05fb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -97,7 +97,7 @@
           "name": "targets",
           "type": "jsonb",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "updated_at": {
           "name": "updated_at",
@@ -120,13 +120,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "action_submissions_game_id_player_id_turn_unique": {
-          "name": "action_submissions_game_id_player_id_turn_unique",
-          "nullsNotDistinct": false,
-          "columns": ["game_id", "submitted_by_player_id", "turn"]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

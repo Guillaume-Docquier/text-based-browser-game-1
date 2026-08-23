@@ -154,6 +154,7 @@ describe("gameplay.router", () => {
 
       // Act
       const getByIdResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const repeatedGetByIdResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
       expect(getByIdResult).toEqual<typeof getByIdResult>({
@@ -205,6 +206,7 @@ describe("gameplay.router", () => {
           },
         ],
       })
+      expect(repeatedGetByIdResult.availableActions).toEqual(getByIdResult.availableActions)
     })
 
     it("should expose uncommitted resources and use them to determine Action affordability", async () => {
@@ -215,29 +217,32 @@ describe("gameplay.router", () => {
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const extractMetal = initialPlayerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainMetal.id)
-      Assert.isDefined(extractMetal)
+      const generatePower = initialPlayerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
+      Assert.isDefined(generatePower)
 
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: initialPlayerView.turn,
-        actionSubmission: extractMetal,
+        actionSubmission: generatePower,
       })
 
       // Act
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const generatePower = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
-      Assert.isDefined(generatePower)
+      const selectedGeneratePower = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
+      const extractMetal = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainMetal.id)
+      Assert.isDefined(selectedGeneratePower)
+      Assert.isDefined(extractMetal)
 
       // Assert
       expect(playerView.resources).toEqual<typeof playerView.resources>(
         createResourcesDtoStub({
-          [ResourceType.INFLUENCE]: { uncommitted: 2, total: 3 },
+          [ResourceType.INFLUENCE]: { uncommitted: 0, total: 3 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
-          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
+          [ResourceType.FUEL]: { uncommitted: 0, total: 1 },
         }),
       )
-      expect(generatePower.canAfford).toBe(false)
+      expect(selectedGeneratePower.canAfford).toBe(true)
+      expect(extractMetal.canAfford).toBe(false)
     })
 
     it("should expose the current player and every opponent with their colors", async () => {
@@ -365,6 +370,27 @@ describe("gameplay.router", () => {
         gameId: createdGameId,
         turn: 0,
         actionSubmission: winTheGame,
+      })
+
+      // Assert
+      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+    })
+
+    it("should reject an action that is not available to the player", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const makeMoreMoney = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      Assert.isDefined(makeMoreMoney)
+
+      // Act
+      const setActionPromise = player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: 0,
+        actionSubmission: { ...makeMoreMoney, id: "unavailable-action" },
       })
 
       // Assert

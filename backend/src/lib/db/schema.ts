@@ -148,7 +148,7 @@ export const gameStatesTable = pgTable("game_states", {
 })
 
 /**
- * Actions submitted for a specific game turn.
+ * Actions available for a specific game turn.
  * Rows are kept as append-only history across turns.
  */
 export const actionSubmissionsTable = pgTable(
@@ -159,11 +159,10 @@ export const actionSubmissionsTable = pgTable(
     submittedByPlayerId: playerId("submitted_by_player_id").notNull(),
     turn: integer("turn").notNull(),
     actionDefinitionId: text("action_definition_id").notNull(),
-    targets: jsonb("targets").$type<ResolvedTargets>().notNull(),
+    targets: jsonb("targets").$type<ResolvedTargets>(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
-    unique("action_submissions_game_id_player_id_turn_unique").on(table.gameId, table.submittedByPlayerId, table.turn),
     foreignKey({
       columns: [table.gameId, table.submittedByPlayerId],
       foreignColumns: [playersTable.gameId, playersTable.playerId],

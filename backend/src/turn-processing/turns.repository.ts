@@ -10,6 +10,7 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { actionSubmissionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { AvailableAction } from "#lib/rules-engine/available-actions/computeAvailableActions.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
@@ -69,6 +70,7 @@ export type ProcessedTurnModel = {
   gameStatus: GameStatus // We could discriminate on gameStatus, but in the current shape of things it makes the code a lot more complicated
   winnerAccountId?: AccountId
   nextTurn: number
+  availableActions: AvailableAction[]
   /**
    * Not defined when endedAt is set
    */
@@ -297,6 +299,16 @@ export class TurnsRepository extends PostgresRepository {
           Assert.isTrue(insertedTurns.length === 1)
         }
 
+        const availableActions = processedTurnModel.availableActions.map((availableAction) => ({
+          ...availableAction,
+          gameId: processedTurnModel.gameId,
+          turn: processedTurnModel.nextTurn,
+          targets: null,
+        }))
+        if (availableActions.length > 0) {
+          await tx.insert(actionSubmissionsTable).values(availableActions)
+        }
+
         const updatedGameStates = await tx
           .update(gameStatesTable)
           .set({
@@ -344,12 +356,9 @@ function toTurnToProcessModel({
     scheduledFor,
     turnInterval,
     rngState,
-    actionSubmissions: actionSubmissions.map(({ id, submittedByPlayerId, actionDefinitionId, targets }) => ({
-      id,
-      submittedByPlayerId,
-      actionDefinitionId,
-      targets,
-    })),
+    actionSubmissions: actionSubmissions.flatMap(({ id, submittedByPlayerId, actionDefinitionId, targets }) =>
+      targets === null ? [] : [{ id, submittedByPlayerId, actionDefinitionId, targets }],
+    ),
     players: players.reduce<TurnToProcessModel["players"]>((playersById, { playerId }) => {
       const resourcesForPlayer = resourcesByPlayerId.get(playerId)
       Assert.isDefined(resourcesForPlayer)

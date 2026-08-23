@@ -1,5 +1,5 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
-import { and, eq } from "drizzle-orm"
+import { and, eq, isNotNull } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
@@ -22,13 +22,16 @@ import {
   starsTable,
   turnsTable,
 } from "#lib/db/schema.ts"
-import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
+import { couldNot, TransactionRollback } from "#lib/errors.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { AvailableAction } from "#lib/rules-engine/available-actions/computeAvailableActions.ts"
+import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
+type NewActionSubmissionRow = typeof actionSubmissionsTable.$inferInsert
 type ActionSubmissionRow = typeof actionSubmissionsTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type ResourceRow = typeof resourcesTable.$inferSelect
@@ -73,7 +76,11 @@ export type PlayerViewModel = {
   /**
    * All the available actions, with their targets if submitted.
    */
-  readonly actions: readonly ActionSubmission[]
+  readonly actions: ReadonlyArray<{
+    readonly id: string
+    readonly actionDefinitionId: ActionSubmission["actionDefinitionId"]
+    readonly targets: ResolvedTargets | null
+  }>
   readonly ruleset: Ruleset
 }
 
@@ -108,6 +115,7 @@ export type StartGameModel = {
     readonly resourceType: ResourceType
     readonly amount: number
   }>
+  readonly availableActions: readonly AvailableAction[]
   readonly galaxy: GalaxyModel
 }
 
@@ -236,6 +244,12 @@ export class GameplayRepository extends PostgresRepository {
       ...playerResource,
       gameId: startGameModel.game.id,
     }))
+    const availableActions: NewActionSubmissionRow[] = startGameModel.availableActions.map((availableAction) => ({
+      ...availableAction,
+      gameId: startGameModel.game.id,
+      turn: gameState.turn,
+      targets: null,
+    }))
     const stars = startGameModel.galaxy.systems.map(({ star }) => ({
       gameId: startGameModel.game.id,
       ...star,
@@ -262,6 +276,9 @@ export class GameplayRepository extends PostgresRepository {
     }
     await tx.insert(gameStatesTable).values(gameState)
     await tx.insert(turnsTable).values(gameTurn)
+    if (availableActions.length > 0) {
+      await tx.insert(actionSubmissionsTable).values(availableActions)
+    }
   }
 
   public async getPlayerView(
@@ -291,9 +308,22 @@ export class GameplayRepository extends PostgresRepository {
           .from(resourcesTable)
           .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
 
-        const currentActionResult = await this.getCurrentAction({ gameId, playerId, turn: gameState.turn }, tx)
-        rollbackOnFailure(currentActionResult, "Failed to get current action")
-        const currentAction = currentActionResult.value?.actionSubmission
+        const availableActionRows = await tx
+          .select()
+          .from(actionSubmissionsTable)
+          .where(
+            and(
+              eq(actionSubmissionsTable.gameId, gameId),
+              eq(actionSubmissionsTable.submittedByPlayerId, playerId),
+              eq(actionSubmissionsTable.turn, gameState.turn),
+            ),
+          )
+          .orderBy(actionSubmissionsTable.id)
+        // ponytail: Rulesets are tiny; index persisted Actions if this becomes a measured hot path.
+        const orderedAvailableActionRows = Object.values(StandardRuleset.actionDefinitions).flatMap(({ id }) =>
+          availableActionRows.filter(({ actionDefinitionId }) => actionDefinitionId === id),
+        )
+        Assert.isTrue(orderedAvailableActionRows.length === availableActionRows.length)
 
         const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
         const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
@@ -304,7 +334,11 @@ export class GameplayRepository extends PostgresRepository {
           opponents,
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
-          actions: currentAction === undefined ? [] : [currentAction],
+          actions: orderedAvailableActionRows.map((row) => ({
+            id: row.id,
+            actionDefinitionId: row.actionDefinitionId,
+            targets: row.targets,
+          })),
           ruleset: StandardRuleset, // Eventually should be stored in DB
         }
       }),
@@ -334,6 +368,7 @@ export class GameplayRepository extends PostgresRepository {
             eq(actionSubmissionsTable.gameId, params.gameId),
             eq(actionSubmissionsTable.submittedByPlayerId, params.playerId),
             eq(actionSubmissionsTable.turn, params.turn),
+            isNotNull(actionSubmissionsTable.targets),
           ),
         ),
     )
@@ -408,29 +443,35 @@ export class GameplayRepository extends PostgresRepository {
         await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
         const updatedAt = this.clock.now()
+        await tx
+          .update(actionSubmissionsTable)
+          .set({ targets: null, updatedAt })
+          .where(
+            and(
+              eq(actionSubmissionsTable.gameId, params.gameId),
+              eq(actionSubmissionsTable.submittedByPlayerId, params.actionSubmission.submittedByPlayerId),
+              eq(actionSubmissionsTable.turn, params.turn),
+              isNotNull(actionSubmissionsTable.targets),
+            ),
+          )
+
         const actionSubmissions = await tx
-          .insert(actionSubmissionsTable)
-          .values({
-            id: params.actionSubmission.id,
-            gameId: params.gameId,
-            turn: params.turn,
-            submittedByPlayerId: params.actionSubmission.submittedByPlayerId,
-            actionDefinitionId: params.actionSubmission.actionDefinitionId,
-            targets: params.actionSubmission.targets,
-            updatedAt,
-          })
-          .onConflictDoUpdate({
-            target: [actionSubmissionsTable.gameId, actionSubmissionsTable.submittedByPlayerId, actionSubmissionsTable.turn],
-            set: {
-              id: params.actionSubmission.id,
-              actionDefinitionId: params.actionSubmission.actionDefinitionId,
-              targets: params.actionSubmission.targets,
-              updatedAt,
-            },
-          })
+          .update(actionSubmissionsTable)
+          .set({ targets: params.actionSubmission.targets, updatedAt })
+          .where(
+            and(
+              eq(actionSubmissionsTable.id, params.actionSubmission.id),
+              eq(actionSubmissionsTable.gameId, params.gameId),
+              eq(actionSubmissionsTable.submittedByPlayerId, params.actionSubmission.submittedByPlayerId),
+              eq(actionSubmissionsTable.turn, params.turn),
+              eq(actionSubmissionsTable.actionDefinitionId, params.actionSubmission.actionDefinitionId),
+            ),
+          )
           .returning()
 
-        Assert.isTrue(actionSubmissions.length === 1)
+        if (actionSubmissions.length !== 1) {
+          throw new TransactionRollback("Action is not available for this player and Turn.")
+        }
         Assert.isDefined(actionSubmissions[0])
 
         return toActionSubmissionModel(actionSubmissions[0])
@@ -438,8 +479,8 @@ export class GameplayRepository extends PostgresRepository {
     )
 
     if (Result.isFailure(upsertResult)) {
-      this.logger.error("Could not upsert action", { ...params, error: upsertResult.error })
-      return Result.Failure(couldNot("upsert action"))
+      this.logger.error("Could not select action", { ...params, error: upsertResult.error })
+      return Result.Failure(couldNot("select action"))
     }
 
     return upsertResult
@@ -452,12 +493,13 @@ export class GameplayRepository extends PostgresRepository {
     params: { gameId: GameId; playerId: PlayerId; turn: number },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<true, string>> {
-    const deleteResult = await Result.tryCatch(
+    const clearResult = await Result.tryCatch(
       db.transaction(async (tx) => {
         await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
         await tx
-          .delete(actionSubmissionsTable)
+          .update(actionSubmissionsTable)
+          .set({ targets: null, updatedAt: this.clock.now() })
           .where(
             and(
               eq(actionSubmissionsTable.gameId, params.gameId),
@@ -468,9 +510,9 @@ export class GameplayRepository extends PostgresRepository {
       }),
     )
 
-    if (Result.isFailure(deleteResult)) {
-      this.logger.error("Could not delete action", { ...params, error: deleteResult.error })
-      return Result.Failure(couldNot("delete action"))
+    if (Result.isFailure(clearResult)) {
+      this.logger.error("Could not clear action", { ...params, error: clearResult.error })
+      return Result.Failure(couldNot("clear action"))
     }
 
     return Result.Success(true)
@@ -491,13 +533,19 @@ function toActionSubmissionModel(row: ActionSubmissionRow): ActionSubmissionMode
   return {
     gameId: row.gameId,
     turn: row.turn,
-    actionSubmission: {
-      id: row.id,
-      submittedByPlayerId: row.submittedByPlayerId,
-      actionDefinitionId: row.actionDefinitionId,
-      targets: row.targets,
-    },
+    actionSubmission: toActionSubmission(row),
     updatedAt: row.updatedAt,
+  }
+}
+
+function toActionSubmission(row: ActionSubmissionRow): ActionSubmission {
+  Assert.isDefined(row.targets)
+
+  return {
+    id: row.id,
+    submittedByPlayerId: row.submittedByPlayerId,
+    actionDefinitionId: row.actionDefinitionId,
+    targets: row.targets,
   }
 }
 

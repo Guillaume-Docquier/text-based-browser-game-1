@@ -137,6 +137,7 @@ describe("TurnProcessor", () => {
 
       // Assert
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const repeatedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toEqual<typeof playerView>({
         ...initialPlayerView,
         turn: 1,
@@ -148,6 +149,8 @@ describe("TurnProcessor", () => {
         }),
         availableActions: expect.any(Array),
       })
+      expect(playerView.availableActions.map(({ id }) => id)).not.toEqual(initialPlayerView.availableActions.map(({ id }) => id))
+      expect(repeatedPlayerView.availableActions).toEqual(playerView.availableActions)
     })
 
     it.each([
@@ -476,6 +479,7 @@ describe("TurnProcessor", () => {
           [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
         },
       })
+      expect(creatorView.availableActions).toHaveLength(5)
 
       const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(joinerView).toMatchObject({
