@@ -1,6 +1,7 @@
 import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
+import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
@@ -52,12 +53,12 @@ describe("TurnProcessor", () => {
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: firstGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: secondGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -96,12 +97,12 @@ describe("TurnProcessor", () => {
       // No turns were processed because turns in error block, this will be resolved by https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/278
       expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
         turn: 0,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
         turn: 0,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
   })
@@ -140,13 +141,11 @@ describe("TurnProcessor", () => {
         ...initialPlayerView,
         turn: 1,
         nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
-        resources: {
+        resources: createResourcesDtoStub({
           [ResourceType.INFLUENCE]: { uncommitted: 8, total: 8 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
-          [ResourceType.ENERGY]: { uncommitted: 0, total: 0 },
-          [ResourceType.COLONY]: { uncommitted: 0, total: 0 },
-        },
+        }),
         availableActions: expect.any(Array),
       })
     })
@@ -248,12 +247,12 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
         turn: 0,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -282,7 +281,7 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
         turn: 2,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -309,7 +308,7 @@ describe("TurnProcessor", () => {
       expect(processingResults).toEqual<typeof processingResults>(["processed", "idle"])
       expect(await player.client.gameplay.getPlayerView.query({ gameId: processingGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -343,12 +342,12 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: failingGameId })).toMatchObject({
         turn: 0,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
         turn: 0,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -382,12 +381,12 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -414,7 +413,7 @@ describe("TurnProcessor", () => {
       // Assert
       expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3 } },
+        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
 
@@ -472,15 +471,17 @@ describe("TurnProcessor", () => {
 
       const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(creatorView).toMatchObject({
+        turn: 1,
         resources: {
-          [ResourceType.INFLUENCE]: { total: 3 },
+          [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
         },
       })
 
       const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(joinerView).toMatchObject({
+        turn: 1,
         resources: {
-          [ResourceType.INFLUENCE]: { total: 5 },
+          [ResourceType.INFLUENCE]: { total: 5, uncommitted: 5 },
         },
       })
     })
@@ -522,14 +523,14 @@ describe("TurnProcessor", () => {
       expect(playerViewAfterFailedSave).toMatchObject({
         turn: 0,
         resources: {
-          [ResourceType.INFLUENCE]: { total: 3 },
+          [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
         },
       })
       expect(retriedProcessingResult).toBe("processed")
       expect(playerViewAfterRetry).toMatchObject({
         turn: 1,
         resources: {
-          [ResourceType.INFLUENCE]: { total: 8 },
+          [ResourceType.INFLUENCE]: { total: 8, uncommitted: 8 },
         },
       })
     })

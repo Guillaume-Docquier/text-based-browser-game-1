@@ -1,6 +1,7 @@
 import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import z from "zod"
+import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlanetCoordinates, toPlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
@@ -20,7 +21,7 @@ import type { ActionSubmission } from "#lib/rules-engine/action-submission/Actio
 import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
 import { ActionDefinitionIdSchema } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
-import { ResourceType, ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { UInt32 } from "#lib/UInt32.ts"
@@ -115,6 +116,8 @@ export class GameplayController {
     }
 
     if (playerViewResult.value === undefined) {
+      // This is not a Failure because everything went right.
+      // It's a bad request, but not unexpected from here that no player view is found.
       return Result.Success(undefined)
     }
 
@@ -271,14 +274,13 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
 function getUncommittedResources(playerViewModel: PlayerViewModel): Record<ResourceType, number> {
   const uncommittedResources = { ...playerViewModel.resources }
 
-  for (const actionSubmission of playerViewModel.actionSubmissions) {
+  for (const actionSubmission of playerViewModel.actions) {
     const actionDefinition = playerViewModel.ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
     Assert.isDefined(actionDefinition)
 
     for (const cost of actionDefinition.costs) {
-      const uncommittedQuantity = uncommittedResources[cost.resourceType] - cost.quantity
-      Assert.isTrue(uncommittedQuantity >= 0)
-      uncommittedResources[cost.resourceType] = uncommittedQuantity
+      uncommittedResources[cost.resourceType] -= cost.quantity
+      Assert.isTrue(uncommittedResources[cost.resourceType] >= 0)
     }
   }
 
@@ -286,16 +288,18 @@ function getUncommittedResources(playerViewModel: PlayerViewModel): Record<Resou
 }
 
 function toResourcesDto(
-  totalResources: Record<ResourceType, number>,
-  uncommittedResources: Record<ResourceType, number>,
+  totalResources: Readonly<Record<ResourceType, number>>,
+  uncommittedResources: Readonly<Record<ResourceType, number>>,
 ): PlayerViewDto["resources"] {
-  const resourceEntries = Object.values(ResourceType).map((resourceType) => [
-    resourceType,
-    { uncommitted: uncommittedResources[resourceType], total: totalResources[resourceType] },
-  ])
-
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: resourceEntries contains exactly one entry for every ResourceType.
-  return Object.fromEntries(resourceEntries) as PlayerViewDto["resources"]
+  // string instead of ResourceType to satisfy TypeScript. Strange that it works, maybe even dangerous, but okay
+  return Object.entries(totalResources).reduce<Record<string, ResourceAmountsDto>>((resourcesDto, [resourceType, total]) => {
+    resourcesDto[resourceType] = {
+      total,
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries widens the key type.
+      uncommitted: uncommittedResources[resourceType as ResourceType] ?? 0,
+    }
+    return resourcesDto
+  }, {})
 }
 
 function createAvailableActions(
@@ -418,8 +422,6 @@ type ActionSubmissionDto = z.infer<typeof ActionSubmissionDto>
 const AvailableActionDto = ActionSubmissionDto.extend({ canAfford: z.boolean() })
 type AvailableActionDto = z.infer<typeof AvailableActionDto>
 
-const ResourceAmountsDto = z.object({ uncommitted: z.number(), total: z.number() })
-
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
 export const PlayerViewDto = z.object({
   gameId: GameId,
@@ -428,7 +430,7 @@ export const PlayerViewDto = z.object({
   galaxy: GalaxyDto,
   turn: z.number(),
   nextTurnAt: z.date(),
-  resources: z.record(ResourceTypeSchema, ResourceAmountsDto),
+  resources: ResourcesDtoSchema,
   ruleset: RulesetSchema,
   availableActions: z.array(AvailableActionDto),
 })

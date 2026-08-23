@@ -1,6 +1,7 @@
 import { Assert, Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
+import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
@@ -165,13 +166,11 @@ describe("gameplay.router", () => {
           date: clock.now(),
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
-        resources: {
+        resources: createResourcesDtoStub({
           [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
-          [ResourceType.ENERGY]: { uncommitted: 0, total: 0 },
-          [ResourceType.COLONY]: { uncommitted: 0, total: 0 },
-        },
+        }),
         ruleset: StandardRuleset,
         availableActions: [
           {
@@ -231,13 +230,13 @@ describe("gameplay.router", () => {
       Assert.isDefined(generatePower)
 
       // Assert
-      expect(playerView.resources).toEqual({
-        [ResourceType.INFLUENCE]: { uncommitted: 2, total: 3 },
-        [ResourceType.METAL]: { uncommitted: 2, total: 2 },
-        [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
-        [ResourceType.ENERGY]: { uncommitted: 0, total: 0 },
-        [ResourceType.COLONY]: { uncommitted: 0, total: 0 },
-      })
+      expect(playerView.resources).toEqual<typeof playerView.resources>(
+        createResourcesDtoStub({
+          [ResourceType.INFLUENCE]: { uncommitted: 2, total: 3 },
+          [ResourceType.METAL]: { uncommitted: 2, total: 2 },
+          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
+        }),
+      )
       expect(generatePower.canAfford).toBe(false)
     })
 

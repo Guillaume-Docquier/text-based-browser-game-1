@@ -70,7 +70,10 @@ export type PlayerViewModel = {
   readonly turn: number
   readonly nextTurnAt: Date
   readonly resources: Record<ResourceType, number>
-  readonly actionSubmissions: readonly ActionSubmission[]
+  /**
+   * All the available actions, with their targets if submitted.
+   */
+  readonly actions: readonly ActionSubmission[]
   readonly ruleset: Ruleset
 }
 
@@ -288,16 +291,9 @@ export class GameplayRepository extends PostgresRepository {
           .from(resourcesTable)
           .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
 
-        const games = await tx.select({ status: gamesTable.status }).from(gamesTable).where(eq(gamesTable.id, gameId))
-        Assert.isTrue(games.length === 1)
-        Assert.isDefined(games[0])
-
-        let currentAction: ActionSubmission | null = null
-        if (games[0].status !== GameStatus.ENDED) {
-          const currentActionResult = await this.getCurrentAction({ gameId, playerId, turn: gameState.turn }, tx)
-          rollbackOnFailure(currentActionResult, "Failed to get current action")
-          currentAction = currentActionResult.value?.actionSubmission ?? null
-        }
+        const currentActionResult = await this.getCurrentAction({ gameId, playerId, turn: gameState.turn }, tx)
+        rollbackOnFailure(currentActionResult, "Failed to get current action")
+        const currentAction = currentActionResult.value?.actionSubmission
 
         const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
         const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
@@ -308,7 +304,7 @@ export class GameplayRepository extends PostgresRepository {
           opponents,
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
-          actionSubmissions: currentAction === null ? [] : [currentAction],
+          actions: currentAction === undefined ? [] : [currentAction],
           ruleset: StandardRuleset, // Eventually should be stored in DB
         }
       }),
