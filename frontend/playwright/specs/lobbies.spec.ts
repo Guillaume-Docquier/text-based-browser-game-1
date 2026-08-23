@@ -1,9 +1,11 @@
+import { clerk } from "@clerk/testing/playwright"
 import { authenticatedUser } from "../authenticatedUser.ts"
 import { expect, test } from "../fixtures.ts"
 import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { GamesPage } from "../pages/GamesPage.ts"
+import { HomePage } from "../pages/HomePage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
 const DETERMINISTIC_GALAXY_SEED = 1234
@@ -34,7 +36,7 @@ test.describe("authenticated user", () => {
     await expect(createGamePage.createButton).toBeEnabled()
   })
 
-  test("filters to games the player joined", async ({ page }) => {
+  test("filters to games the player joined after signing in", async ({ clerkConfig, page }) => {
     const gameName = `Playwright game ${Date.now()}`
 
     await test.step("Create a game", async () => {
@@ -42,10 +44,19 @@ test.describe("authenticated user", () => {
       await createGamePage.setGameName(gameName)
       const lobbyPage = await createGamePage.submit()
       await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
+      await clerk.signOut({ page })
+      await expect(page).toHaveURL(HomePage.urlPattern)
     })
 
-    await test.step("Show only the player's games", async () => {
+    await test.step("Load the games anonymously", async () => {
       const gamesPage = await GamesPage.goto(page)
+      await expect(gamesPage.game(gameName)).toBeVisible()
+      await expect(gamesPage.myGamesButton).not.toBeVisible()
+    })
+
+    await test.step("Sign in and show only the player's games", async () => {
+      const gamesPage = new GamesPage(page)
+      await clerk.signIn({ page, emailAddress: clerkConfig.emailAddress })
       await gamesPage.myGamesButton.click()
       await expect(gamesPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
       await expect(gamesPage.game(gameName)).toBeVisible()
