@@ -68,7 +68,16 @@ test.describe("authenticated user", () => {
         (await topBarResources.all()).map(async (resource) => await resource.getAttribute("aria-label")),
       )
 
-      expect(resourceLabels).toEqual(["3 Influence", "2 Metal", "0 Energy", "1 Fuel", "0 Colony"])
+      expect(resourceLabels).toEqual([
+        "3 available of 3 Influence",
+        "2 available of 2 Metal",
+        "0 available of 0 Energy",
+        "1 available of 1 Fuel",
+        "0 available of 0 Colony",
+      ])
+
+      await topBarResources.first().hover()
+      await expect(galaxyPage.gameTopBar.getByText("3 available of 3", { exact: true })).toBeVisible()
     })
 
     await test.step("Center and fit a Galaxy region", async () => {
@@ -178,9 +187,12 @@ test.describe("authenticated user", () => {
 
       await extractMetal.click()
       await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
+      await expect(actionsPage.resources.first()).toHaveAttribute("aria-label", "2 available of 3 Influence")
+      await expect(actionsPage.action("Generate Power")).toHaveAttribute("aria-disabled", "true")
 
       await extractMetal.click()
       await expect(extractMetal).toHaveAttribute("aria-pressed", "false")
+      await expect(actionsPage.resources.first()).toHaveAttribute("aria-label", "3 available of 3 Influence")
     })
 
     await test.step("Display Action costs in their canonical order", async () => {

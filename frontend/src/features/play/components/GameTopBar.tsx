@@ -59,8 +59,14 @@ function TurnFact({ turn }: { turn: PlayerView["turn"] }): ReactElement {
 
 function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): ReactElement {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries preserves the keys of the typed resource record at runtime.
-  const resourceEntries = Object.entries(resources) as Array<[keyof typeof resources, number]>
-  const sortedResources = sortResources(resourceEntries.map(([resourceType, quantity]) => ({ resourceType, quantity })))
+  const resourceEntries = Object.entries(resources) as Array<[keyof typeof resources, (typeof resources)[keyof typeof resources]]>
+  const sortedResources = sortResources(
+    resourceEntries.map(([resourceType, { total, uncommitted }]) => ({
+      resourceType,
+      total,
+      uncommitted,
+    })),
+  )
 
   return (
     <div className="group/resources relative">
@@ -68,13 +74,19 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
         <div>
           <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Resources</div>
           <div className="flex gap-x-3">
-            {sortedResources.map(({ resourceType, quantity }) => {
+            {sortedResources.map(({ resourceType, total, uncommitted }) => {
               const ResourceIcon = RESOURCE_ICONS[resourceType]
               const resourceName = formatRulesetTerm(resourceType)
 
               return (
-                <div key={resourceType} className="flex items-center gap-1 text-sm font-medium" aria-label={`${quantity} ${resourceName}`}>
-                  <span>{quantity}</span>
+                <div
+                  key={resourceType}
+                  className="flex items-center gap-1 text-sm font-medium"
+                  aria-label={`${uncommitted} available of ${total} ${resourceName}`}
+                >
+                  <span>
+                    {uncommitted} / {total}
+                  </span>
                   <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
                 </div>
               )
@@ -84,12 +96,14 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
       </div>
       <div className="invisible absolute top-full right-0 z-20 w-full pt-2 opacity-0 transition-opacity group-hover/resources:visible group-hover/resources:opacity-100">
         <div className="grid grid-cols-[max-content_1rem_max-content] justify-start gap-x-1 gap-y-1 rounded-md border border-border/70 bg-card px-3 py-2 shadow-lg">
-          {sortedResources.map(({ resourceType, quantity }) => {
+          {sortedResources.map(({ resourceType, total, uncommitted }) => {
             const ResourceIcon = RESOURCE_ICONS[resourceType]
 
             return (
               <div key={resourceType} className="col-span-3 grid grid-cols-subgrid items-center text-sm font-medium">
-                <span className="text-right">{quantity}</span>
+                <span className="text-right">
+                  {uncommitted} available of {total}
+                </span>
                 <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
                 <span className="text-left">{formatRulesetTerm(resourceType)}</span>
               </div>

@@ -141,6 +141,7 @@ export class TurnProcessor {
     const turnResult: Omit<ProcessedTurnModel, "gameStatus"> = {
       gameId: turnToProcess.gameId,
       turn: turnToProcess.turn,
+      nextTurn: turnToProcess.turn + 1,
       processedAt,
       rngState: rng.getState(),
       playerResources: Object.values(resolvedTurnResult.value.players).flatMap((player) =>
@@ -156,14 +157,11 @@ export class TurnProcessor {
       return Result.Success({
         ...turnResult,
         gameStatus: GameStatus.COLLECTING_ACTIONS,
-        nextTurn: {
-          turn: turnToProcess.turn + 1,
-          scheduledFor: getNextTurnScheduledFor({
-            scheduledFor: turnToProcess.scheduledFor,
-            processedAt,
-            turnInterval: turnToProcess.turnInterval,
-          }),
-        },
+        nextTurnScheduledFor: getNextTurnScheduledFor({
+          scheduledFor: turnToProcess.scheduledFor,
+          processedAt,
+          turnInterval: turnToProcess.turnInterval,
+        }),
       })
     }
 

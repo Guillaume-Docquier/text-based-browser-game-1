@@ -66,13 +66,17 @@ export type ProcessedTurnModel = {
     resourceType: ResourceType
     amount: number
   }>
-  gameStatus: GameStatus
+  gameStatus: GameStatus // We could discriminate on gameStatus, but in the current shape of things it makes the code a lot more complicated
   winnerAccountId?: AccountId
+  nextTurn: number
+  /**
+   * Not defined when endedAt is set
+   */
+  nextTurnScheduledFor?: Date
+  /**
+   * Not defined when nextTurnScheduledFor is set
+   */
   endedAt?: Date
-  nextTurn?: {
-    turn: number
-    scheduledFor: Date
-  }
 }
 
 export class TurnsRepository extends PostgresRepository {
@@ -281,29 +285,29 @@ export class TurnsRepository extends PostgresRepository {
             },
           })
 
-        if (processedTurnModel.nextTurn !== undefined) {
+        if (processedTurnModel.nextTurnScheduledFor !== undefined) {
           const insertedTurns = await tx
             .insert(turnsTable)
             .values({
               gameId: processedTurnModel.gameId,
-              turn: processedTurnModel.nextTurn.turn,
-              scheduledFor: processedTurnModel.nextTurn.scheduledFor,
+              turn: processedTurnModel.nextTurn,
+              scheduledFor: processedTurnModel.nextTurnScheduledFor,
             })
             .returning()
           Assert.isTrue(insertedTurns.length === 1)
-
-          const updatedGameStates = await tx
-            .update(gameStatesTable)
-            .set({
-              turn: processedTurnModel.nextTurn.turn,
-              nextTurnAt: processedTurnModel.nextTurn.scheduledFor,
-              rngGeneratorState: processedTurnModel.rngState.generatorState,
-              rngSpareNormal: processedTurnModel.rngState.spareNormal,
-            })
-            .where(and(eq(gameStatesTable.gameId, processedTurnModel.gameId), eq(gameStatesTable.turn, processedTurnModel.turn)))
-            .returning()
-          Assert.isTrue(updatedGameStates.length === 1)
         }
+
+        const updatedGameStates = await tx
+          .update(gameStatesTable)
+          .set({
+            turn: processedTurnModel.nextTurn,
+            nextTurnAt: processedTurnModel.nextTurnScheduledFor,
+            rngGeneratorState: processedTurnModel.rngState.generatorState,
+            rngSpareNormal: processedTurnModel.rngState.spareNormal,
+          })
+          .where(and(eq(gameStatesTable.gameId, processedTurnModel.gameId), eq(gameStatesTable.turn, processedTurnModel.turn)))
+          .returning()
+        Assert.isTrue(updatedGameStates.length === 1)
       }),
     )
 

@@ -131,7 +131,7 @@ function ActionCosts({ costs, resources }: { costs: ActionDefinition["costs"]; r
     <div className="flex flex-col items-end gap-1" aria-label="Costs">
       {[...costsByResource].map(([resourceType, resourceCosts]) => {
         const quantity = resourceCosts.reduce((total, cost) => total + cost.quantity, 0)
-        const cannotAfford = quantity > resources[resourceType]
+        const cannotAfford = quantity > resources[resourceType].uncommitted
         const ResourceIcon = RESOURCE_ICONS[resourceType]
         return (
           <div

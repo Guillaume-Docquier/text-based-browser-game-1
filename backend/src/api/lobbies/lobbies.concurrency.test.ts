@@ -1,8 +1,8 @@
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
-import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 
@@ -70,11 +70,11 @@ describe("lobby concurrency", () => {
     for (const gameParticipant of gameParticipants) {
       Assert.isDefined(gameParticipant)
       const playerView = await gameParticipant.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView.resources).toEqual(
-        createResourcesStub({
-          [ResourceType.INFLUENCE]: 3,
-          [ResourceType.METAL]: 2,
-          [ResourceType.FUEL]: 1,
+      expect(playerView.resources).toEqual<typeof playerView.resources>(
+        createResourcesDtoStub({
+          [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
+          [ResourceType.METAL]: { uncommitted: 2, total: 2 },
+          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
         }),
       )
     }

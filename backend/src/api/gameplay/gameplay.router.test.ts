@@ -1,6 +1,7 @@
 import { Assert, Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
+import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
@@ -8,7 +9,6 @@ import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
-import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -166,10 +166,10 @@ describe("gameplay.router", () => {
           date: clock.now(),
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
-        resources: createResourcesStub({
-          [ResourceType.INFLUENCE]: 3,
-          [ResourceType.METAL]: 2,
-          [ResourceType.FUEL]: 1,
+        resources: createResourcesDtoStub({
+          [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
+          [ResourceType.METAL]: { uncommitted: 2, total: 2 },
+          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
         }),
         ruleset: StandardRuleset,
         availableActions: [
@@ -205,6 +205,39 @@ describe("gameplay.router", () => {
           },
         ],
       })
+    })
+
+    it("should expose uncommitted resources and use them to determine Action affordability", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const extractMetal = initialPlayerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainMetal.id)
+      Assert.isDefined(extractMetal)
+
+      await player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: initialPlayerView.turn,
+        actionSubmission: extractMetal,
+      })
+
+      // Act
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const generatePower = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
+      Assert.isDefined(generatePower)
+
+      // Assert
+      expect(playerView.resources).toEqual<typeof playerView.resources>(
+        createResourcesDtoStub({
+          [ResourceType.INFLUENCE]: { uncommitted: 2, total: 3 },
+          [ResourceType.METAL]: { uncommitted: 2, total: 2 },
+          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
+        }),
+      )
+      expect(generatePower.canAfford).toBe(false)
     })
 
     it("should expose the current player and every opponent with their colors", async () => {

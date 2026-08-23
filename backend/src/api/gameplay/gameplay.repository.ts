@@ -22,7 +22,7 @@ import {
   starsTable,
   turnsTable,
 } from "#lib/db/schema.ts"
-import { couldNot, TransactionRollback } from "#lib/errors.ts"
+import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
@@ -70,6 +70,10 @@ export type PlayerViewModel = {
   readonly turn: number
   readonly nextTurnAt: Date
   readonly resources: Record<ResourceType, number>
+  /**
+   * All the available actions, with their targets if submitted.
+   */
+  readonly actions: readonly ActionSubmission[]
   readonly ruleset: Ruleset
 }
 
@@ -287,6 +291,10 @@ export class GameplayRepository extends PostgresRepository {
           .from(resourcesTable)
           .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
 
+        const currentActionResult = await this.getCurrentAction({ gameId, playerId, turn: gameState.turn }, tx)
+        rollbackOnFailure(currentActionResult, "Failed to get current action")
+        const currentAction = currentActionResult.value?.actionSubmission
+
         const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
         const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
 
@@ -296,6 +304,7 @@ export class GameplayRepository extends PostgresRepository {
           opponents,
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
+          actions: currentAction === undefined ? [] : [currentAction],
           ruleset: StandardRuleset, // Eventually should be stored in DB
         }
       }),
