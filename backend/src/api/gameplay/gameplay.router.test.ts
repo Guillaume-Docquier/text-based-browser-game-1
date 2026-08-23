@@ -171,6 +171,11 @@ describe("gameplay.router", () => {
           [ResourceType.METAL]: 2,
           [ResourceType.FUEL]: 1,
         }),
+        uncommittedResources: createResourcesStub({
+          [ResourceType.INFLUENCE]: 3,
+          [ResourceType.METAL]: 2,
+          [ResourceType.FUEL]: 1,
+        }),
         ruleset: StandardRuleset,
         availableActions: [
           {
@@ -205,6 +210,46 @@ describe("gameplay.router", () => {
           },
         ],
       })
+    })
+
+    it("should expose uncommitted resources and use them to determine Action affordability", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const extractMetal = initialPlayerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainMetal.id)
+      Assert.isDefined(extractMetal)
+
+      await player.client.gameplay.setCurrentAction.mutate({
+        gameId: createdGameId,
+        turn: initialPlayerView.turn,
+        actionSubmission: extractMetal,
+      })
+
+      // Act
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const generatePower = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
+      Assert.isDefined(generatePower)
+
+      // Assert
+      expect(playerView.resources).toEqual(
+        createResourcesStub({
+          [ResourceType.INFLUENCE]: 3,
+          [ResourceType.METAL]: 2,
+          [ResourceType.FUEL]: 1,
+        }),
+      )
+      expect(playerView.uncommittedResources).toEqual(
+        createResourcesStub({
+          [ResourceType.INFLUENCE]: 2,
+          [ResourceType.METAL]: 2,
+          [ResourceType.FUEL]: 1,
+        }),
+      )
+      expect(generatePower.canAfford).toBe(false)
     })
 
     it("should expose the current player and every opponent with their colors", async () => {

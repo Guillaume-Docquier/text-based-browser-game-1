@@ -51,7 +51,7 @@ Relates to:
 
 ## Current Implementation
 
-Each player currently has integer stockpiles for all five Resources and starts with placeholder amounts. Standard Ruleset Actions can gain Influence, Metal, Fuel, and Energy and spend those Resources as configured costs. Colony is stored and displayed but has no current source or use. The frontend displays the stockpiles, Action costs, and affordability.
+Each player currently has integer stockpiles for all five Resources and starts with placeholder amounts. Standard Ruleset Actions can gain Influence, Metal, Fuel, and Energy and spend those Resources as configured costs. Colony is stored and displayed but has no current source or use. The player view exposes both total and uncommitted Resources, and the frontend displays them with Action costs and affordability.
 
 ## Rules
 

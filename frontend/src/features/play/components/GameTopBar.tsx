@@ -22,7 +22,7 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
         </div>
         <div className="flex flex-wrap gap-2">
           <PlayerFact game={game} player={playerView.player} />
-          <ResourcesFact resources={playerView.resources} />
+          <ResourcesFact resources={playerView.resources} uncommittedResources={playerView.uncommittedResources} />
           <TurnFact turn={playerView.turn} />
           <NextTurnFact targetTimestamp={playerView.nextTurnAt} />
         </div>
@@ -57,10 +57,22 @@ function TurnFact({ turn }: { turn: PlayerView["turn"] }): ReactElement {
   return <TopBarFact icon={<TimerReset className="size-4" />} label="Turn" value={turn.toString()} />
 }
 
-function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): ReactElement {
+function ResourcesFact({
+  resources,
+  uncommittedResources,
+}: {
+  resources: PlayerView["resources"]
+  uncommittedResources: PlayerView["uncommittedResources"]
+}): ReactElement {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries preserves the keys of the typed resource record at runtime.
   const resourceEntries = Object.entries(resources) as Array<[keyof typeof resources, number]>
-  const sortedResources = sortResources(resourceEntries.map(([resourceType, quantity]) => ({ resourceType, quantity })))
+  const sortedResources = sortResources(
+    resourceEntries.map(([resourceType, quantity]) => ({
+      resourceType,
+      quantity,
+      uncommittedQuantity: uncommittedResources[resourceType],
+    })),
+  )
 
   return (
     <div className="group/resources relative">
@@ -68,13 +80,19 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
         <div>
           <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Resources</div>
           <div className="flex gap-x-3">
-            {sortedResources.map(({ resourceType, quantity }) => {
+            {sortedResources.map(({ resourceType, quantity, uncommittedQuantity }) => {
               const ResourceIcon = RESOURCE_ICONS[resourceType]
               const resourceName = formatRulesetTerm(resourceType)
 
               return (
-                <div key={resourceType} className="flex items-center gap-1 text-sm font-medium" aria-label={`${quantity} ${resourceName}`}>
-                  <span>{quantity}</span>
+                <div
+                  key={resourceType}
+                  className="flex items-center gap-1 text-sm font-medium"
+                  aria-label={`${uncommittedQuantity} available of ${quantity} ${resourceName}`}
+                >
+                  <span>
+                    {uncommittedQuantity} / {quantity}
+                  </span>
                   <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
                 </div>
               )
@@ -84,12 +102,14 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
       </div>
       <div className="invisible absolute top-full right-0 z-20 w-full pt-2 opacity-0 transition-opacity group-hover/resources:visible group-hover/resources:opacity-100">
         <div className="grid grid-cols-[max-content_1rem_max-content] justify-start gap-x-1 gap-y-1 rounded-md border border-border/70 bg-card px-3 py-2 shadow-lg">
-          {sortedResources.map(({ resourceType, quantity }) => {
+          {sortedResources.map(({ resourceType, quantity, uncommittedQuantity }) => {
             const ResourceIcon = RESOURCE_ICONS[resourceType]
 
             return (
               <div key={resourceType} className="col-span-3 grid grid-cols-subgrid items-center text-sm font-medium">
-                <span className="text-right">{quantity}</span>
+                <span className="text-right">
+                  {uncommittedQuantity} available of {quantity}
+                </span>
                 <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
                 <span className="text-left">{formatRulesetTerm(resourceType)}</span>
               </div>

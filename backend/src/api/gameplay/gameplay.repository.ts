@@ -70,6 +70,7 @@ export type PlayerViewModel = {
   readonly turn: number
   readonly nextTurnAt: Date
   readonly resources: Record<ResourceType, number>
+  readonly actionSubmissions: readonly ActionSubmission[]
   readonly ruleset: Ruleset
 }
 
@@ -287,6 +288,9 @@ export class GameplayRepository extends PostgresRepository {
           .from(resourcesTable)
           .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
 
+        const currentActionResult = await this.getCurrentAction({ gameId, playerId, turn: gameState.turn }, tx)
+        Assert.isSuccess(currentActionResult)
+
         const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
         const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
 
@@ -296,6 +300,7 @@ export class GameplayRepository extends PostgresRepository {
           opponents,
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
+          actionSubmissions: currentActionResult.value === null ? [] : [currentActionResult.value.actionSubmission],
           ruleset: StandardRuleset, // Eventually should be stored in DB
         }
       }),

@@ -146,6 +146,11 @@ describe("TurnProcessor", () => {
           [ResourceType.METAL]: 2,
           [ResourceType.FUEL]: 1,
         }),
+        uncommittedResources: createResourcesStub({
+          [ResourceType.INFLUENCE]: 8,
+          [ResourceType.METAL]: 2,
+          [ResourceType.FUEL]: 1,
+        }),
         availableActions: expect.any(Array),
       })
     })

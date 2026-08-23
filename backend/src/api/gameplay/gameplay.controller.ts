@@ -248,6 +248,8 @@ function createGalaxy(seed: number): GalaxyModel {
 }
 
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
+  const uncommittedResources = getUncommittedResources(playerViewModel)
+
   return {
     gameId: playerViewModel.gameId,
     player: playerViewModel.player,
@@ -261,15 +263,34 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     turn: playerViewModel.turn,
     nextTurnAt: playerViewModel.nextTurnAt,
     resources: playerViewModel.resources,
+    uncommittedResources,
     ruleset: playerViewModel.ruleset,
-    availableActions: createAvailableActions(playerViewModel),
+    availableActions: createAvailableActions(playerViewModel, uncommittedResources),
   }
 }
 
-function createAvailableActions(playerViewModel: PlayerViewModel): AvailableActionDto[] {
+function getUncommittedResources(playerViewModel: PlayerViewModel): Record<ResourceType, number> {
+  const uncommittedResources = { ...playerViewModel.resources }
+
+  for (const actionSubmission of playerViewModel.actionSubmissions) {
+    const actionDefinition = playerViewModel.ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+    Assert.isDefined(actionDefinition)
+
+    for (const cost of actionDefinition.costs) {
+      uncommittedResources[cost.resourceType] = Math.max(0, uncommittedResources[cost.resourceType] - cost.quantity)
+    }
+  }
+
+  return uncommittedResources
+}
+
+function createAvailableActions(
+  playerViewModel: PlayerViewModel,
+  uncommittedResources: Record<ResourceType, number>,
+): AvailableActionDto[] {
   const turnState = createTurnState({
     playerId: playerViewModel.player.id,
-    resources: playerViewModel.resources,
+    resources: uncommittedResources,
     actionSubmissions: [],
   })
 
@@ -392,6 +413,7 @@ export const PlayerViewDto = z.object({
   turn: z.number(),
   nextTurnAt: z.date(),
   resources: z.record(ResourceTypeSchema, z.number()),
+  uncommittedResources: z.record(ResourceTypeSchema, z.number()),
   ruleset: RulesetSchema,
   availableActions: z.array(AvailableActionDto),
 })
