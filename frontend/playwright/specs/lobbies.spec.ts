@@ -1,4 +1,4 @@
-import { aliceUser } from "../authenticatedUser.ts"
+import { aliceUser } from "../auth.ts"
 import { expect, test } from "../fixtures.ts"
 import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"

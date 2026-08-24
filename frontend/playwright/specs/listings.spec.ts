@@ -1,5 +1,5 @@
 import { clerk } from "@clerk/testing/playwright"
-import { aliceUser } from "../authenticatedUser.ts"
+import { aliceUser, users } from "../auth.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GamesBrowserPage } from "../pages/GamesBrowserPage.ts"
@@ -8,7 +8,7 @@ import { HomePage } from "../pages/HomePage.ts"
 test.describe("authenticated user", () => {
   test.use(aliceUser)
 
-  test("filters to games the player joined after signing in", async ({ clerkConfig, page }) => {
+  test("filters to games the player joined after signing in", async ({ page }) => {
     const gameName = `Playwright game ${Date.now()}`
 
     await test.step("Create a game", async () => {
@@ -28,7 +28,7 @@ test.describe("authenticated user", () => {
 
     await test.step("Sign in and show only the player's games", async () => {
       const gamesBrowserPage = new GamesBrowserPage(page)
-      await clerk.signIn({ page, emailAddress: clerkConfig.emails.alice })
+      await clerk.signIn({ page, emailAddress: users.alice.email })
       await gamesBrowserPage.myGamesButton.click()
       await expect(gamesBrowserPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
       await expect(gamesBrowserPage.game(gameName)).toBeVisible()

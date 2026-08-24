@@ -1,15 +1,16 @@
 import { clerk } from "@clerk/testing/playwright"
+import { users } from "../auth.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GamesBrowserPage } from "../pages/GamesBrowserPage.ts"
 import { HomePage } from "../pages/HomePage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
-test("transition the page through logins and logouts", async ({ clerkConfig, page }) => {
+test("transition the page through logins and logouts", async ({ page }) => {
   const homePage = await HomePage.goto(page)
 
   await test.step("Sign in without navigating", async () => {
-    await clerk.signIn({ page, emailAddress: clerkConfig.emails.alice })
+    await clerk.signIn({ page, emailAddress: users.alice.email })
 
     await expect(homePage.userMenuButton).toBeVisible()
     await expect(homePage.signInLink).not.toBeVisible()
@@ -41,9 +42,9 @@ test("transition the page through logins and logouts", async ({ clerkConfig, pag
     const signInPage = new SignInPage(page)
 
     // We log in via verification code because the test users can't use passwords
-    await signInPage.submitEmailAddress(clerkConfig.emails.alice)
+    await signInPage.submitEmailAddress(users.alice.email)
     await signInPage.chooseAnotherMethod()
-    await signInPage.requestEmailCode(clerkConfig.emails.alice)
+    await signInPage.requestEmailCode(users.alice.email)
     await signInPage.enterVerificationCode("424242")
 
     await expect(page).toHaveURL(CreateGamePage.urlPattern)

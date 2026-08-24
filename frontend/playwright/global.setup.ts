@@ -1,14 +1,8 @@
 import { clerk, clerkSetup } from "@clerk/testing/playwright"
-import { aliceAuthFilePath, bobAuthFilePath, charlieAuthFilePath } from "./authenticatedUser.ts"
+import { users } from "./auth.ts"
 import { expect, test as setup } from "./fixtures.ts"
 import { CreateGamePage } from "./pages/CreateGamePage.ts"
 import { HomePage } from "./pages/HomePage.ts"
-
-const authenticatedUsers = [
-  { authFilePath: aliceAuthFilePath, emailAddress: "alice", name: "Alice" },
-  { authFilePath: bobAuthFilePath, emailAddress: "bob", name: "Bob" },
-  { authFilePath: charlieAuthFilePath, emailAddress: "charlie", name: "Charlie" },
-] as const
 
 // Based on Clerk's docs: https://clerk.com/docs/guides/development/testing/playwright/test-authenticated-flows
 setup.describe.configure({ mode: "serial" })
@@ -17,11 +11,11 @@ setup("configure Clerk testing", async ({ clerkConfig }) => {
   await clerkSetup(clerkConfig)
 })
 
-for (const { authFilePath, emailAddress, name } of authenticatedUsers) {
-  setup(`authenticate ${name}`, async ({ clerkConfig, page }) => {
+for (const [name, { email, authFilePath }] of Object.entries(users)) {
+  setup(`authenticate ${name}`, async ({ page }) => {
     await setup.step(`Sign in ${name}`, async () => {
       await HomePage.goto(page)
-      await clerk.signIn({ page, emailAddress: clerkConfig.emails[emailAddress] })
+      await clerk.signIn({ page, emailAddress: email })
     })
 
     await setup.step("Verify access to a protected page", async () => {
