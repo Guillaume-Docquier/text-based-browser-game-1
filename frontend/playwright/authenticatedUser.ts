@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url"
 
 const playwrightDirectory = dirname(fileURLToPath(import.meta.url))
 
-export const authFilePath = resolve(playwrightDirectory, ".clerk/user.json")
+export const aliceAuthFilePath = resolve(playwrightDirectory, ".clerk/alice.json")
+export const bobAuthFilePath = resolve(playwrightDirectory, ".clerk/bob.json")
+export const charlieAuthFilePath = resolve(playwrightDirectory, ".clerk/charlie.json")
 
 /**
  * Use when you need an authenticated user.
@@ -11,14 +13,14 @@ export const authFilePath = resolve(playwrightDirectory, ".clerk/user.json")
  * @example
  * ```ts
  * test.describe("authenticated user", () => {
- *   test.use(authenticatedUser)
+ *   test.use(aliceUser)
  *
  *   test("edits profile", () => {
- *     // user will be authenticated
+ *     // authenticated as Alice
  *   })
  * })
  * ```
  */
-export const authenticatedUser = {
-  storageState: authFilePath,
+export const aliceUser = {
+  storageState: aliceAuthFilePath,
 }

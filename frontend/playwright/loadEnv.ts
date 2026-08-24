@@ -17,11 +17,6 @@ export const PlaywrightEnv = z.object({
   CLERK_SECRET_KEY: z.string(),
 
   /**
-   * Identifies the existing Clerk development user used by authenticated tests.
-   */
-  E2E_CLERK_USER_EMAIL: z.string(),
-
-  /**
    * Identifies the Postgres database used by the backend during the tests.
    */
   DATABASE_URL: z.string().default("postgres://user:pwd@localhost:5432/cosmic-empires"),

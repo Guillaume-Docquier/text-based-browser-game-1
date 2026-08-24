@@ -1,7 +1,7 @@
 import { clerk } from "@clerk/testing/playwright"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
-import { GamesPage } from "../pages/GamesPage.ts"
+import { GamesBrowserPage } from "../pages/GamesBrowserPage.ts"
 import { HomePage } from "../pages/HomePage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
@@ -9,7 +9,7 @@ test("transition the page through logins and logouts", async ({ clerkConfig, pag
   const homePage = await HomePage.goto(page)
 
   await test.step("Sign in without navigating", async () => {
-    await clerk.signIn({ page, emailAddress: clerkConfig.emailAddress })
+    await clerk.signIn({ page, emailAddress: clerkConfig.emails.alice })
 
     await expect(homePage.userMenuButton).toBeVisible()
     await expect(homePage.signInLink).not.toBeVisible()
@@ -26,8 +26,8 @@ test("transition the page through logins and logouts", async ({ clerkConfig, pag
 
   await test.step("Try to create a game while signed out and get redirected to login", async () => {
     await homePage.playForFreeLink.click()
-    const gamesPage = new GamesPage(page)
-    await expect(page).toHaveURL(GamesPage.urlPattern)
+    const gamesPage = new GamesBrowserPage(page)
+    await expect(page).toHaveURL(GamesBrowserPage.urlPattern)
     await expect(gamesPage.heading).toBeVisible()
     await gamesPage.createGameLink.click()
 
@@ -41,9 +41,9 @@ test("transition the page through logins and logouts", async ({ clerkConfig, pag
     const signInPage = new SignInPage(page)
 
     // We log in via verification code because the test users can't use passwords
-    await signInPage.submitEmailAddress(clerkConfig.emailAddress)
+    await signInPage.submitEmailAddress(clerkConfig.emails.alice)
     await signInPage.chooseAnotherMethod()
-    await signInPage.requestEmailCode(clerkConfig.emailAddress)
+    await signInPage.requestEmailCode(clerkConfig.emails.alice)
     await signInPage.enterVerificationCode("424242")
 
     await expect(page).toHaveURL(CreateGamePage.urlPattern)

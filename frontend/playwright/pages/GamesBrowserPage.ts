@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test"
 
-export class GamesPage {
+export class GamesBrowserPage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games" })
 
   private readonly page: Page
@@ -16,14 +16,13 @@ export class GamesPage {
     this.myGamesButton = page.getByRole("button", { name: "My games" })
   }
 
-  public static async goto(page: Page): Promise<GamesPage> {
-    const gamesPage = new GamesPage(page)
-    await gamesPage.goto()
-    return gamesPage
+  public static async goto(page: Page): Promise<GamesBrowserPage> {
+    return await new GamesBrowserPage(page).goto()
   }
 
-  public async goto(): Promise<void> {
-    await this.page.goto(GamesPage.urlPattern.pathname)
+  public async goto(): Promise<GamesBrowserPage> {
+    await this.page.goto(GamesBrowserPage.urlPattern.pathname)
+    return this
   }
 
   public game(name: string): Locator {

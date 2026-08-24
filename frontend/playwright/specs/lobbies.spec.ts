@@ -1,4 +1,4 @@
-import { authenticatedUser } from "../authenticatedUser.ts"
+import { aliceUser } from "../authenticatedUser.ts"
 import { expect, test } from "../fixtures.ts"
 import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
@@ -20,7 +20,7 @@ test.describe("anonymous user", () => {
 })
 
 test.describe("authenticated user", () => {
-  test.use(authenticatedUser)
+  test.use(aliceUser)
 
   test("enforces the maximum number of players", async ({ page }) => {
     const createGamePage = await CreateGamePage.goto(page)

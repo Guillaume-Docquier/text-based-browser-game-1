@@ -2,6 +2,11 @@ import { expect, test as base, type ConsoleMessage } from "@playwright/test"
 import { PlaywrightEnv } from "./loadEnv.ts"
 
 const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development keys\./]
+const clerkEmailAddresses = {
+  alice: "e2e-alice+clerk_test@example.com",
+  bob: "e2e-bob+clerk_test@example.com",
+  charlie: "e2e-charlie+clerk_test@example.com",
+} as const
 
 type Fixtures = {
   /**
@@ -15,10 +20,10 @@ type Fixtures = {
   env: PlaywrightEnv
 
   /**
-   * The user email configured in the Clerk test environment.
+   * The users and secrets configured in the Clerk test environment.
    */
   clerkConfig: {
-    emailAddress: string
+    emails: typeof clerkEmailAddresses
     publishableKey: string
     secretKey: string
   }
@@ -58,7 +63,7 @@ export const test = base.extend<Fixtures>({
   },
   clerkConfig: async ({ env }, use) => {
     await use({
-      emailAddress: env.E2E_CLERK_USER_EMAIL,
+      emails: clerkEmailAddresses,
       publishableKey: env.VITE_CLERK_PUBLISHABLE_KEY,
       secretKey: env.CLERK_SECRET_KEY,
     })
