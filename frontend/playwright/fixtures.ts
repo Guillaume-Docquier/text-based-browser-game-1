@@ -22,9 +22,7 @@ type Fixtures = {
 
   /**
    * The secrets configured in the Clerk test environment.
-   * Should only be used by the global setup.
-   *
-   * This is used to configure the users in `auth.ts`
+   * Should only be used to configure Clerk testing.
    */
   clerkConfig: {
     publishableKey: string

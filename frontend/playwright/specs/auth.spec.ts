@@ -1,4 +1,4 @@
-import { clerk } from "@clerk/testing/playwright"
+import { clerk, clerkSetup } from "@clerk/testing/playwright"
 import { users } from "../auth.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
@@ -6,7 +6,9 @@ import { GamesBrowserPage } from "../pages/GamesBrowserPage.ts"
 import { HomePage } from "../pages/HomePage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
-test("transition the page through logins and logouts", async ({ page }) => {
+test("logins and logouts redirects", async ({ clerkConfig, page }) => {
+  await clerkSetup(clerkConfig)
+
   const homePage = await HomePage.goto(page)
 
   await test.step("Sign in without navigating", async () => {
