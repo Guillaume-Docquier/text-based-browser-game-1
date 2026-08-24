@@ -6,12 +6,12 @@ import type { GalaxyPage } from "./GalaxyPage.ts"
 export abstract class GamePage {
   protected readonly page: Page
 
+  private readonly gameTopBar: Locator
   private readonly galaxyLink: Locator
   private readonly actionsLink: Locator
 
   public readonly gameNameHeading: Locator
   public readonly resources: Locator
-  public readonly gameTopBar: Locator
 
   protected constructor(page: Page) {
     this.page = page
@@ -25,6 +25,18 @@ export abstract class GamePage {
     const gameNavigation = page.getByRole("navigation", { name: "Game navigation" })
     this.galaxyLink = gameNavigation.getByRole("link", { name: "Galaxy", exact: true })
     this.actionsLink = gameNavigation.getByRole("link", { name: "Actions", exact: true })
+  }
+
+  public resource(name: string): Locator {
+    return this.gameTopBar.locator(`[aria-label$=" ${name}"]`)
+  }
+
+  public resourceDetails(name: string): Locator {
+    return this.gameTopBar.getByText(name, { exact: true }).locator("..")
+  }
+
+  public async showResourceDetails(): Promise<void> {
+    await this.resources.first().hover()
   }
 
   public async openGalaxy(): Promise<GalaxyPage> {

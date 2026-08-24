@@ -75,9 +75,14 @@ test.describe("authenticated user", () => {
         "1 available of 1 Fuel",
         "0 available of 0 Colony",
       ])
+    })
 
-      await topBarResources.first().hover()
-      await expect(galaxyPage.gameTopBar.getByText("3 available of 3", { exact: true })).toBeVisible()
+    await test.step("Display resource availability details on hover", async () => {
+      await galaxyPage.showResourceDetails()
+
+      const influenceDetails = galaxyPage.resourceDetails("Influence")
+      await expect(influenceDetails).toBeVisible()
+      await expect(influenceDetails).toContainText("3 available of 3")
     })
 
     await test.step("Center and fit a Galaxy region", async () => {
@@ -165,12 +170,11 @@ test.describe("authenticated user", () => {
       await expect(galaxyPage.heading).toBeVisible()
     })
 
-    await test.step("Choose an Action from the Ruleset", async () => {
-      const actionsPage = await galaxyPage.openActions()
+    const actionsPage = await galaxyPage.openActions()
+    await expect(page).toHaveURL(ActionsPage.urlPattern)
+    await expect(actionsPage.heading).toBeVisible()
 
-      await expect(page).toHaveURL(ActionsPage.urlPattern)
-      await expect(actionsPage.heading).toBeVisible()
-
+    await test.step("Choose an Action and reserve its resources", async () => {
       const extractMetal = actionsPage.action("Extract Metal")
       await expect(extractMetal).toContainText("Standard Directive")
       await expect(extractMetal).toContainText("1 Influence")
@@ -187,16 +191,17 @@ test.describe("authenticated user", () => {
 
       await actionsPage.toggleAction("Extract Metal")
       await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
-      await expect(actionsPage.resources.first()).toHaveAttribute("aria-label", "2 available of 3 Influence")
+      await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "2 available of 3 Influence")
       await expect(actionsPage.action("Generate Power")).toHaveAttribute("aria-disabled", "true")
+    })
 
+    await test.step("Deselect the Action and release its resources", async () => {
       await actionsPage.toggleAction("Extract Metal")
-      await expect(extractMetal).toHaveAttribute("aria-pressed", "false")
-      await expect(actionsPage.resources.first()).toHaveAttribute("aria-label", "3 available of 3 Influence")
+      await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "false")
+      await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "3 available of 3 Influence")
     })
 
     await test.step("Display Action costs in their canonical order", async () => {
-      const actionsPage = new ActionsPage(page)
       const actionCosts = actionsPage.action("Win The Game").locator('[aria-label="Costs"] > [aria-label]')
 
       const costLabels = await Promise.all((await actionCosts.all()).map(async (cost) => await cost.getAttribute("aria-label")))
