@@ -81,20 +81,20 @@ test.describe("authenticated user", () => {
     })
 
     await test.step("Center and fit a Galaxy region", async () => {
-      const selectedRegion = galaxyPage.regions.last()
+      const selectedRegion = galaxyPage.region("last")
 
-      await selectedRegion.click()
-      expect(await galaxyPage.map.getAttribute("aria-busy")).toBe("true")
+      await galaxyPage.centerRegion(selectedRegion)
+      await expect(galaxyPage.map).toHaveAttribute("aria-busy", "true")
       await expect.poll(async () => await galaxyPage.getGalaxyRegionDistanceFromCenter(selectedRegion)).toBeLessThan(1)
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
 
       await galaxyPage.zoomGalaxyOut()
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeGreaterThan(10.5)
-      await selectedRegion.click()
-      expect(await galaxyPage.map.getAttribute("aria-busy")).toBe("true")
+      await galaxyPage.centerRegion(selectedRegion)
+      await expect(galaxyPage.map).toHaveAttribute("aria-busy", "true")
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
 
-      await galaxyPage.resetViewButton.click()
+      await galaxyPage.resetView()
       await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBe(1)
     })
 
@@ -105,17 +105,17 @@ test.describe("authenticated user", () => {
       return await galaxyPage.getGalaxyCameraScale()
     })
 
-    const selectedStar = await test.step("Open a Star System with the mouse", async () => {
-      const star = galaxyPage.stars.first()
-      await star.click()
+    const selectedStar = galaxyPage.star(0)
+
+    await test.step("Open a Star System with the mouse", async () => {
+      await galaxyPage.openStarSystem(selectedStar)
       await expect(galaxyPage.starSystemMap).toBeVisible()
-      return star
     })
 
     await test.step("Open the first Planet profile with the mouse", async () => {
-      const firstPlanet = galaxyPage.planets.first()
+      const firstPlanet = galaxyPage.planet(0)
       const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
-      await firstPlanet.click()
+      await galaxyPage.openPlanetProfile(firstPlanet)
       expect(firstPlanetName).toBe("planet 122350")
       await expect(galaxyPage.planetDetailsPane).toBeVisible()
       await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: firstPlanetName })).toBeVisible()
@@ -126,15 +126,15 @@ test.describe("authenticated user", () => {
     })
 
     await test.step("Switch to the second Planet profile with the mouse", async () => {
-      const secondPlanet = galaxyPage.planets.nth(1)
+      const secondPlanet = galaxyPage.planet(1)
       const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
-      await secondPlanet.click()
+      await galaxyPage.openPlanetProfile(secondPlanet)
       expect(secondPlanetName).toBe("planet 983117")
       await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: secondPlanetName })).toBeVisible()
     })
 
     await test.step("Close the Planet profile by clicking the map", async () => {
-      await galaxyPage.starSystemMap.click({ position: { x: 10, y: 10 } })
+      await galaxyPage.clickOnTheMap()
       await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
     })
 
@@ -144,8 +144,8 @@ test.describe("authenticated user", () => {
     })
 
     await test.step("Recenter and return to the Galaxy from a panned Star System", async () => {
-      await galaxyPage.starSystemStar.click()
-      expect(await galaxyPage.starSystemMap.getAttribute("aria-busy")).toBe("true")
+      await galaxyPage.returnToGalaxy()
+      await expect(galaxyPage.starSystemMap).toHaveAttribute("aria-busy", "true")
       await expect(galaxyPage.heading).not.toBeVisible()
       await expect.poll(async () => await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeLessThan(1)
       await expect(galaxyPage.heading).toBeVisible()
@@ -154,14 +154,14 @@ test.describe("authenticated user", () => {
     })
 
     await test.step("Reopen the same Star System with the mouse", async () => {
-      await selectedStar.click()
-      expect(await galaxyPage.starSystemMap.count()).toBe(1)
+      await galaxyPage.openStarSystem(selectedStar)
+      await expect(galaxyPage.starSystemMap).toHaveCount(1)
       await expect(galaxyPage.starSystemMap).toBeVisible()
     })
 
     await test.step("Return to the Galaxy from a centered Star System", async () => {
-      await galaxyPage.starSystemStar.click()
-      expect(await galaxyPage.starSystemMap.getAttribute("aria-busy")).not.toBe("true")
+      await galaxyPage.returnToGalaxy()
+      await expect(galaxyPage.starSystemMap).not.toHaveAttribute("aria-busy", "true")
       await expect(galaxyPage.heading).toBeVisible()
     })
 
@@ -185,12 +185,12 @@ test.describe("authenticated user", () => {
       await expect(winTheGame.locator('[aria-label="10 Influence, cannot afford"]')).toHaveClass(/text-red-400/)
       await expect(winTheGame).not.toContainText("Unavailable")
 
-      await extractMetal.click()
+      await actionsPage.toggleAction("Extract Metal")
       await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
       await expect(actionsPage.resources.first()).toHaveAttribute("aria-label", "2 available of 3 Influence")
       await expect(actionsPage.action("Generate Power")).toHaveAttribute("aria-disabled", "true")
 
-      await extractMetal.click()
+      await actionsPage.toggleAction("Extract Metal")
       await expect(extractMetal).toHaveAttribute("aria-pressed", "false")
       await expect(actionsPage.resources.first()).toHaveAttribute("aria-label", "3 available of 3 Influence")
     })

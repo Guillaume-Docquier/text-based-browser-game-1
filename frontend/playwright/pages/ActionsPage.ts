@@ -14,4 +14,8 @@ export class ActionsPage extends GamePage {
   public action(name: string): Locator {
     return this.page.getByRole("button", { name: new RegExp(name) })
   }
+
+  public async toggleAction(name: string): Promise<void> {
+    await this.action(name).click()
+  }
 }

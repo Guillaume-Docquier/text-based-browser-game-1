@@ -5,9 +5,10 @@ import { WebsitePage } from "./WebsitePage.ts"
 export class LobbyPage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId" })
 
+  private readonly startGameButton: Locator
+  private readonly openGameButton: Locator
+
   public readonly gameNameHeading: Locator
-  public readonly startGameButton: Locator
-  public readonly openGameButton: Locator
 
   public constructor(page: Page) {
     super(page)

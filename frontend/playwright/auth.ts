@@ -21,7 +21,8 @@ export const users = {
 }
 
 /**
- * Use when you need an authenticated user.
+ * Use when you need an authenticated user for a whole suite.
+ * Use the alice and bob fixtures when you need multiple users.
  *
  * @example
  * ```ts

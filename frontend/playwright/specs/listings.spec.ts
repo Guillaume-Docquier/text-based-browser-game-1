@@ -29,7 +29,7 @@ test("filters to games the player joined after signing in", async ({ page, alice
 
   await test.step("Filter Alice's games", async () => {
     const gamesBrowserPage = await GamesBrowserPage.goto(alice.page)
-    await gamesBrowserPage.myGamesButton.click()
+    await gamesBrowserPage.filterToMyGames()
     await expect(gamesBrowserPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
     await expect(gamesBrowserPage.game(aliceGameName)).toBeVisible()
     await expect(gamesBrowserPage.game(bobGameName)).not.toBeVisible()
@@ -37,7 +37,7 @@ test("filters to games the player joined after signing in", async ({ page, alice
 
   await test.step("Filter Bob's games", async () => {
     const gamesBrowserPage = await GamesBrowserPage.goto(bob.page)
-    await gamesBrowserPage.myGamesButton.click()
+    await gamesBrowserPage.filterToMyGames()
     await expect(gamesBrowserPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
     await expect(gamesBrowserPage.game(aliceGameName)).not.toBeVisible()
     await expect(gamesBrowserPage.game(bobGameName)).toBeVisible()

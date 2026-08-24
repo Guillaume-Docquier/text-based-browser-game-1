@@ -5,8 +5,9 @@ import { WebsitePage } from "./WebsitePage.ts"
 export class GamesBrowserPage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games" })
 
-  public readonly heading: Locator
   private readonly createGameLink: Locator
+
+  public readonly heading: Locator
   public readonly myGamesButton: Locator
 
   public constructor(page: Page) {
@@ -27,6 +28,10 @@ export class GamesBrowserPage extends WebsitePage {
 
   public game(name: string): Locator {
     return this.page.getByRole("link").filter({ has: this.page.getByText(name, { exact: true }) })
+  }
+
+  public async filterToMyGames(): Promise<void> {
+    await this.myGamesButton.click()
   }
 
   /**

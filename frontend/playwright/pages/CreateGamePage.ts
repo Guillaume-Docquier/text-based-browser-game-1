@@ -6,11 +6,12 @@ import { WebsitePage } from "./WebsitePage.ts"
 export class CreateGamePage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/create" })
 
+  private readonly gameNameInput: Locator
+  private readonly maxPlayersInput: Locator
+  private readonly turnLengthInput: Locator
+  private readonly turnLengthUnitSelect: Locator
+
   public readonly heading: Locator
-  public readonly gameNameInput: Locator
-  public readonly maxPlayersInput: Locator
-  public readonly turnLengthInput: Locator
-  public readonly turnLengthUnitSelect: Locator
   public readonly createButton: Locator
 
   public constructor(page: Page) {

@@ -31,11 +31,27 @@ type Fixtures = {
 
   /**
    * Using this will sign in bob and give you a page for bob.
+   *
+   * @example
+   * ```ts
+   * test("filters to games the player joined after signing in", async ({ page, alice, bob }) => {
+   *   const aliceCreateGamePage = await CreateGamePage.goto(alice.page)
+   *   const bobCreateGamePage = await CreateGamePage.goto(bob.page)
+   * })
+   * ```
    */
   alice: AuthenticatedUserContext
 
   /**
    * Using this will sign in bob and give you a page for bob.
+   *
+   * @example
+   * ```ts
+   * test("filters to games the player joined after signing in", async ({ page, alice, bob }) => {
+   *   const aliceCreateGamePage = await CreateGamePage.goto(alice.page)
+   *   const bobCreateGamePage = await CreateGamePage.goto(bob.page)
+   * })
+   * ```
    */
   bob: AuthenticatedUserContext
 }

@@ -4,11 +4,12 @@ import { WebsitePage } from "./WebsitePage.ts"
 export class SignInPage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/sign-in" })
 
+  private readonly emailAddressInput: Locator
+  private readonly continueButton: Locator
+  private readonly useAnotherMethodLink: Locator
+  private readonly verificationCodeInput: Locator
+
   public readonly heading: Locator
-  public readonly emailAddressInput: Locator
-  public readonly continueButton: Locator
-  public readonly useAnotherMethodLink: Locator
-  public readonly verificationCodeInput: Locator
 
   public constructor(page: Page) {
     super(page)
