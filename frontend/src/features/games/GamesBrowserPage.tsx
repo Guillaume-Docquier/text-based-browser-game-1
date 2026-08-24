@@ -1,20 +1,24 @@
 import type * as ApiTypes from "@api-types"
+import { useAuth } from "@clerk/react"
 import { Link } from "@tanstack/react-router"
-import { Search } from "lucide-react"
-import { type ReactElement, useState } from "react"
+import { type ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
-import { Input } from "@/components/input.tsx"
+import { Card, CardContent, CardHeader } from "@/components/card.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
+import { useGameNameFilter } from "@/features/games/useGameNameFilter.tsx"
+import { useMyGamesFilter } from "@/features/games/useMyGamesFilter.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
 import { useListingsQuery } from "@/lib/api/useListingsQuery.ts"
 import { timeAgo } from "@/lib/timeAgo.ts"
 
 export function GamesBrowserPage(): ReactElement {
-  const [gameNameFilter, setGameNameFilter] = useState("")
+  const gameNameFilter = useGameNameFilter()
+  const myGamesFilter = useMyGamesFilter()
   const listingsQuery = useListingsQuery()
+  const { isSignedIn } = useAuth()
+  const filters = isSignedIn === true ? [gameNameFilter, myGamesFilter] : [gameNameFilter]
 
   if (listingsQuery.isPending) {
     return <GamesLoadingState />
@@ -40,13 +44,13 @@ export function GamesBrowserPage(): ReactElement {
     )
   }
 
-  const listings = listingsQuery.data.filter((listing) => listing.name.includes(gameNameFilter))
+  const listings = listingsQuery.data.filter((listing) => filters.every(({ predicate }) => predicate?.(listing) ?? true))
+  const hasFilter = filters.some(({ predicate }) => predicate !== undefined)
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <PageHeader
         title="Games"
-        description="Browse active lobbies, filter by name, and create a new game when you are ready to host."
         actions={
           <Button asChild>
             <Link to="/games/create">Create game</Link>
@@ -54,25 +58,11 @@ export function GamesBrowserPage(): ReactElement {
         }
       />
       <Card className="border border-border/60">
-        <CardHeader className="gap-4">
-          <CardTitle>Find a game</CardTitle>
-          <CardDescription>Search by game name. Existing filter behavior is preserved.</CardDescription>
-        </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={gameNameFilter}
-              onChange={(event) => {
-                setGameNameFilter(event.target.value)
-              }}
-              placeholder="Search for games"
-              className="pl-9"
-            />
-          </div>
+          <div className="flex max-w-xl flex-col gap-2 sm:flex-row">{filters.map(({ element }) => element)}</div>
           <div className="grid gap-3">
             {listings.length === 0 ? (
-              <GamesEmptyState hasFilter={gameNameFilter !== ""} />
+              <GamesEmptyState hasFilter={hasFilter} />
             ) : (
               listings.map((listing) => <GameSummary key={listing.id} listing={listing} />)
             )}
@@ -110,11 +100,7 @@ function GameSummary({ listing }: { listing: ApiTypes.Listing }): ReactElement {
 function GamesLoadingState(): ReactElement {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PageHeader
-        title="Games"
-        description="Browse active lobbies, filter by name, and create a new game when you are ready to host."
-        actions={<Skeleton className="h-9 w-28 rounded-4xl" />}
-      />
+      <PageHeader title="Games" actions={<Skeleton className="h-9 w-28 rounded-4xl" />} />
       <Card className="border border-border/60">
         <CardHeader className="gap-4">
           <Skeleton className="h-6 w-32" />
@@ -137,7 +123,7 @@ function GamesEmptyState({ hasFilter }: { hasFilter: boolean }): ReactElement {
       <CardContent className="space-y-2">
         <div className="font-medium text-foreground">{hasFilter ? "No matching games" : "No games yet"}</div>
         <p className="text-sm text-muted-foreground">
-          {hasFilter ? "Try a different search term or create a new game." : "Create the first lobby to start playing."}
+          {hasFilter ? "Try adjusting your filters or create a new game." : "Create the first lobby to start playing."}
         </p>
       </CardContent>
     </Card>

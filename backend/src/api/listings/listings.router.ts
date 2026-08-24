@@ -14,8 +14,8 @@ export function createListingsRouter({ trpc, listingsController }: { trpc: Trpc;
     /**
      * Gets all game listings, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getListings: trpc.publicProcedure.output(z.array(ListingDto)).query(async () => {
-      return await listingsController.getListings()
+    getListings: trpc.publicProcedure.output(z.array(ListingDto)).query(async ({ ctx: { account } }) => {
+      return await listingsController.getListings({ playerId: account?.id })
     }),
   })
 }

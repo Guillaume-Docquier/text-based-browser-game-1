@@ -72,7 +72,7 @@ jobs:
           --health-retries 30
 
     steps:
-      - name: Checkout ${{ github.ref_name }}
+      - name: Checkout ${{ github.head_ref || github.ref_name }}
         uses: actions/checkout@v7.0.1
 
       - name: Setting up pnpm
@@ -87,7 +87,6 @@ jobs:
           DATABASE_URL: "postgres://user:pwd@127.0.0.1:5432/cosmic-empires"
           VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          E2E_CLERK_USER_EMAIL: "e2e+clerk_test@example.com"
 
   backend:
     runs-on: ubuntu-latest

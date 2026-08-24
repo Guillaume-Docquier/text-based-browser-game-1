@@ -6,23 +6,37 @@ import type { GalaxyPage } from "./GalaxyPage.ts"
 export abstract class GamePage {
   protected readonly page: Page
 
-  public readonly gameTopBar: Locator
+  private readonly gameTopBar: Locator
+  private readonly galaxyLink: Locator
+  private readonly actionsLink: Locator
+
   public readonly gameNameHeading: Locator
   public readonly resources: Locator
-  public readonly gameNavigation: Locator
-  public readonly galaxyLink: Locator
-  public readonly actionsLink: Locator
 
   protected constructor(page: Page) {
     this.page = page
+
     this.gameTopBar = page.getByRole("banner")
     this.gameNameHeading = this.gameTopBar.getByRole("heading", { level: 1 })
     this.resources = this.gameTopBar.locator(
       '[aria-label$="Influence"], [aria-label$="Metal"], [aria-label$="Energy"], [aria-label$="Fuel"], [aria-label$="Colony"]',
     )
-    this.gameNavigation = page.getByRole("navigation", { name: "Game navigation" })
-    this.galaxyLink = this.gameNavigation.getByRole("link", { name: "Galaxy", exact: true })
-    this.actionsLink = this.gameNavigation.getByRole("link", { name: "Actions", exact: true })
+
+    const gameNavigation = page.getByRole("navigation", { name: "Game navigation" })
+    this.galaxyLink = gameNavigation.getByRole("link", { name: "Galaxy", exact: true })
+    this.actionsLink = gameNavigation.getByRole("link", { name: "Actions", exact: true })
+  }
+
+  public resource(name: string): Locator {
+    return this.gameTopBar.locator(`[aria-label$=" ${name}"]`)
+  }
+
+  public resourceDetails(name: string): Locator {
+    return this.gameTopBar.getByText(name, { exact: true }).locator("..")
+  }
+
+  public async showResourceDetails(): Promise<void> {
+    await this.resources.first().hover()
   }
 
   public async openGalaxy(): Promise<GalaxyPage> {

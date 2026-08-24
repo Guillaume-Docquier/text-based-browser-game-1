@@ -2,19 +2,21 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import { GamePage } from "./GamePage.ts"
 
+type LocatorIndex = number | "last"
+
 export class GalaxyPage extends GamePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId/play/galaxy" })
 
+  private readonly regions: Locator
+  private readonly stars: Locator
+  private readonly starSystemStar: Locator
+  private readonly planets: Locator
+  private readonly resetViewButton: Locator
+
   public readonly heading: Locator
   public readonly map: Locator
-  public readonly regions: Locator
-  public readonly stars: Locator
   public readonly starSystemMap: Locator
-  public readonly starSystemStar: Locator
-  public readonly planets: Locator
   public readonly planetDetailsPane: Locator
-  public readonly backToGalaxyButton: Locator
-  public readonly resetViewButton: Locator
 
   public constructor(page: Page) {
     super(page)
@@ -26,8 +28,43 @@ export class GalaxyPage extends GamePage {
     this.starSystemStar = page.getByRole("button", { name: /^Return to Galaxy from / })
     this.planets = page.getByRole("button", { name: /^View .+ details$/ })
     this.planetDetailsPane = page.getByRole("complementary", { name: / details$/ })
-    this.backToGalaxyButton = page.getByRole("button", { name: "Galaxy", exact: true })
     this.resetViewButton = page.getByRole("button", { name: "Reset view", exact: true })
+  }
+
+  public region(index: LocatorIndex): Locator {
+    return index === "last" ? this.regions.last() : this.regions.nth(index)
+  }
+
+  public async centerRegion(region: Locator): Promise<void> {
+    await region.click()
+  }
+
+  public star(index: LocatorIndex): Locator {
+    return index === "last" ? this.stars.last() : this.stars.nth(index)
+  }
+
+  public async openStarSystem(star: Locator): Promise<void> {
+    await star.click()
+  }
+
+  public planet(index: LocatorIndex): Locator {
+    return index === "last" ? this.planets.last() : this.planets.nth(index)
+  }
+
+  public async openPlanetProfile(planet: Locator): Promise<void> {
+    await planet.click()
+  }
+
+  public async resetView(): Promise<void> {
+    await this.resetViewButton.click()
+  }
+
+  public async clickOnTheMap(): Promise<void> {
+    await this.starSystemMap.click({ position: { x: 10, y: 10 } })
+  }
+
+  public async returnToGalaxy(): Promise<void> {
+    await this.starSystemStar.click()
   }
 
   public async zoomGalaxyOut(): Promise<void> {

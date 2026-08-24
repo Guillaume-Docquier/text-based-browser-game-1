@@ -1,24 +1,22 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import { LobbyPage } from "./LobbyPage.ts"
+import { WebsitePage } from "./WebsitePage.ts"
 
-export class CreateGamePage {
+export class CreateGamePage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/create" })
 
-  private readonly page: Page
+  private readonly gameNameInput: Locator
+  private readonly maxPlayersInput: Locator
+  private readonly turnLengthInput: Locator
+  private readonly turnLengthUnitSelect: Locator
 
   public readonly heading: Locator
-  public readonly userMenuButton: Locator
-  public readonly gameNameInput: Locator
-  public readonly maxPlayersInput: Locator
-  public readonly turnLengthInput: Locator
-  public readonly turnLengthUnitSelect: Locator
   public readonly createButton: Locator
 
   public constructor(page: Page) {
-    this.page = page
+    super(page)
     this.heading = page.getByRole("heading", { name: "Create a new game" })
-    this.userMenuButton = page.getByRole("button", { name: "Open user menu" })
     this.gameNameInput = page.getByRole("textbox", { name: "Game name" })
     this.maxPlayersInput = page.getByRole("spinbutton", { name: "Max number of players" })
     this.turnLengthInput = page.getByRole("spinbutton", { name: "Turn length" })
@@ -27,14 +25,13 @@ export class CreateGamePage {
   }
 
   public static async goto(page: Page, options?: { mapGenerationSeed: number }): Promise<CreateGamePage> {
-    const createGamePage = new CreateGamePage(page)
-    await createGamePage.goto(options)
-    return createGamePage
+    return await new CreateGamePage(page).goto(options)
   }
 
-  public async goto(options?: { mapGenerationSeed: number }): Promise<void> {
+  public async goto(options?: { mapGenerationSeed: number }): Promise<CreateGamePage> {
     const seedSearch = options === undefined ? "" : `?mapGenerationSeed=${options.mapGenerationSeed}`
     await this.page.goto(`${CreateGamePage.urlPattern.pathname}${seedSearch}`)
+    return this
   }
 
   public async setGameName(name: string): Promise<void> {
@@ -68,11 +65,6 @@ export class CreateGamePage {
   public async submit(): Promise<LobbyPage> {
     await this.createButton.click()
     return new LobbyPage(this.page)
-  }
-
-  public async signOut(): Promise<void> {
-    await this.userMenuButton.click()
-    await this.page.getByRole("group", { name: "Account actions" }).getByRole("button").last().click()
   }
 
   private async getSliderValue(slider: Locator): Promise<number> {

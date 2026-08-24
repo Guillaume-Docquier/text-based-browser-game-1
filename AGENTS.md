@@ -158,11 +158,24 @@ We test the production code. We do not use `vitest.mock()`.
 
 We prefer end-to-end and integration tests. We use unit tests sparingly for complex scenarios (algorithm verification, validating race conditions, regression tests, etc.)
 
-Always structure unit and integration tests using Arrange, Act, Assert (AAA), with explicit `// Arrange`, `// Act`, and `// Assert` sections in that order. Do not use AAA sections in end-to-end tests; organize them with descriptive `test.step()` blocks that reflect user behavior.
+Always structure unit and integration tests using Arrange, Act, Assert (AAA), with explicit `// Arrange`, `// Act`, and `// Assert` sections in that order.
 
 Optimize assertions for useful failure output: compare semantic values instead of opaque IDs, sort unordered collections before comparison, keep test setup control flow straightforward, etc.
 
 Do not reimplement the logic in the test to create the expected result. Be explicit and create the expected state by hand instead of computing it. This is often more code, but it avoids encoding bugs in the test.
+
+### End-to-end tests
+
+Structure end-to-end tests with descriptive test.step() blocks reflecting user behavior. Do not use AAA sections.
+
+Use Playwright page objects to separate interaction mechanics from test intent:
+
+- POMs own selectors, reusable interactions, and routes. Tests use intent-revealing methods (e.g. page.navbar.signOut()); navigation methods return the destination POM.
+- Use component objects for cohesive shared UI, not individual elements.
+- Expose semantic locators for assertions only. Tests must not interact with locators directly; add a POM method instead.
+- Keep all expect calls and test.step() blocks in tests. POMs expose actions and observable state, not assertions.
+- Prefer locator assertions over boolean state methods for automatic waiting and diagnostics.
+- Prefer role-based locators; use test IDs only when no stable semantic locator exists.
 
 ## Verification
 
@@ -177,6 +190,7 @@ Minimum verification for meaningful changes:
 ## Commits And PRs
 
 - Never commit, push, or open a pull request unless the human explicitly asks for it. A request to change code or tests does not imply permission to commit, push, or open a PR.
+- When asked to open a PR, always respect the PR template defined in the repository.
 - Pre-commit runs `pnpm lint-staged`, for linting and formatting
 - If a change affects schema, env usage, or deployment behavior, call that out explicitly in the PR.
 

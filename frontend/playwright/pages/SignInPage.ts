@@ -1,18 +1,18 @@
 import type { Locator, Page } from "@playwright/test"
+import { WebsitePage } from "./WebsitePage.ts"
 
-export class SignInPage {
+export class SignInPage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/sign-in" })
 
-  private readonly page: Page
+  private readonly emailAddressInput: Locator
+  private readonly continueButton: Locator
+  private readonly useAnotherMethodLink: Locator
+  private readonly verificationCodeInput: Locator
 
   public readonly heading: Locator
-  public readonly emailAddressInput: Locator
-  public readonly continueButton: Locator
-  public readonly useAnotherMethodLink: Locator
-  public readonly verificationCodeInput: Locator
 
   public constructor(page: Page) {
-    this.page = page
+    super(page)
     this.heading = page.getByRole("heading", { name: "Welcome back", level: 1 })
     this.emailAddressInput = page.getByRole("textbox", { name: "Email address", exact: true })
     this.continueButton = page.getByRole("button", { name: "Continue", exact: true })
@@ -21,13 +21,12 @@ export class SignInPage {
   }
 
   public static async goto(page: Page): Promise<SignInPage> {
-    const signInPage = new SignInPage(page)
-    await signInPage.goto()
-    return signInPage
+    return await new SignInPage(page).goto()
   }
 
-  public async goto(): Promise<void> {
+  public async goto(): Promise<SignInPage> {
     await this.page.goto(SignInPage.urlPattern.pathname)
+    return this
   }
 
   public async submitEmailAddress(emailAddress: string): Promise<void> {

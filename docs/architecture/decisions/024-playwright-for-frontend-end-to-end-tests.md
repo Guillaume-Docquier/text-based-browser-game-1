@@ -7,6 +7,7 @@ Accepted
 ### Amendment history
 
 - 2026-08-09: Added CI execution using GitHub hosted Postgres service
+- 2026-08-23: Added 3 test users instead of just 1 to handle multi-user tests
 
 ## Context
 
@@ -21,7 +22,8 @@ The e2e tests should test real user flows with real authentication, real backend
 Run the e2e tests in CI using a GitHub Actions Postgres service. Playwright starts the backend and frontend, and the backend applies migrations on boot. The tests create their own scenario data, so the
 database does not need a separate seed step.
 
-We've set up the `e2e+clerk_test@example.com` in the Clerk dev env for use in tests.
+We've set up `e2e-alice+clerk_test@example.com`, `e2e-bob+clerk_test@example.com`, and
+`e2e-charlie+clerk_test@example.com` in the Clerk dev env for use in tests.
 
 ### Guidelines
 

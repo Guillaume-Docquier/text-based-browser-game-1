@@ -1,30 +1,29 @@
 import type { Locator, Page } from "@playwright/test"
 import { GalaxyPage } from "./GalaxyPage.ts"
+import { WebsitePage } from "./WebsitePage.ts"
 
-export class LobbyPage {
+export class LobbyPage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId" })
 
-  private readonly page: Page
+  private readonly startGameButton: Locator
+  private readonly openGameButton: Locator
 
   public readonly gameNameHeading: Locator
-  public readonly startGameButton: Locator
-  public readonly openGameButton: Locator
 
   public constructor(page: Page) {
-    this.page = page
+    super(page)
     this.gameNameHeading = page.getByRole("heading", { level: 1 })
     this.startGameButton = page.getByRole("button", { name: "Start game" })
     this.openGameButton = page.getByRole("button", { name: "Open game" })
   }
 
   public static async goto(page: Page, gameId: number): Promise<LobbyPage> {
-    const lobbyPage = new LobbyPage(page)
-    await lobbyPage.goto(gameId)
-    return lobbyPage
+    return await new LobbyPage(page).goto(gameId)
   }
 
-  public async goto(gameId: number): Promise<void> {
+  public async goto(gameId: number): Promise<LobbyPage> {
     await this.page.goto(`/games/${gameId}`)
+    return this
   }
 
   public configurationValue(label: string): Locator {

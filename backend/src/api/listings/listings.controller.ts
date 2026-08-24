@@ -1,6 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { GameId } from "#api/shared/GameId.ts"
+import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { ListingsRepository } from "./listings.repository.ts"
 
@@ -16,8 +17,8 @@ export class ListingsController {
   /**
    * Gets ALL the game listings. This only makes sense until we have real traffic.
    */
-  public async getListings(): Promise<ListingDto[]> {
-    const getListingsResults = await this.listingsRepository.getListings()
+  public async getListings({ playerId }: { playerId: AccountId | undefined }): Promise<ListingDto[]> {
+    const getListingsResults = await this.listingsRepository.getListings({ playerId })
     if (Result.isFailure(getListingsResults)) {
       this.logger.error("Could not get game listings, returning empty array", { error: getListingsResults.error })
       return []
@@ -31,6 +32,7 @@ export type ListingDto = z.infer<typeof ListingDto>
 export const ListingDto = z.object({
   id: GameId,
   name: z.string(),
+  hasJoined: z.boolean(),
   nbPlayers: z.number(),
   nbSeats: z.number(),
   status: z.enum(GameStatus),

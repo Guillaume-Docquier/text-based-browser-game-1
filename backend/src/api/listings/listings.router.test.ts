@@ -9,9 +9,10 @@ describe("listings.router", () => {
     it("should get listings when anonymous", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
-      const creator = await apiServer.createClient({ authenticated: true })
+
       const anonymous = await apiServer.createClient({ authenticated: false })
 
+      const creator = await apiServer.createClient({ authenticated: true })
       const newGameSettings = createGameConfigurationDtoStub()
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
@@ -24,6 +25,7 @@ describe("listings.router", () => {
           id: createdGameId,
           createdAt: expect.any(String),
           endedAt: null,
+          hasJoined: false,
           startedAt: null,
           status: GameStatus.WAITING_FOR_PLAYERS,
           name: newGameSettings.name,
@@ -36,10 +38,14 @@ describe("listings.router", () => {
     it("should get listings when authenticated", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
-      const creator = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createGameConfigurationDtoStub()
-      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joinedGameSettings = createGameConfigurationDtoStub({ name: "Joined game" })
+      const { createdGameId: joinedGameId } = await creator.client.lobbies.create.mutate({ configuration: joinedGameSettings })
+
+      const otherCreator = await apiServer.createClient({ authenticated: true })
+      const notJoinedGameSettings = createGameConfigurationDtoStub({ name: "Not joined game" })
+      const { createdGameId: notJoinedGameId } = await otherCreator.client.lobbies.create.mutate({ configuration: notJoinedGameSettings })
 
       // Act
       const getListingsResult = await creator.client.listings.getListings.query()
@@ -47,14 +53,26 @@ describe("listings.router", () => {
       // Assert
       expect(getListingsResult).toEqual<typeof getListingsResult>([
         {
-          id: createdGameId,
+          id: notJoinedGameId,
           createdAt: expect.any(String),
           endedAt: null,
+          hasJoined: false,
           startedAt: null,
           status: GameStatus.WAITING_FOR_PLAYERS,
-          name: newGameSettings.name,
+          name: notJoinedGameSettings.name,
           nbPlayers: 1,
-          nbSeats: newGameSettings.nbSeats,
+          nbSeats: notJoinedGameSettings.nbSeats,
+        },
+        {
+          id: joinedGameId,
+          createdAt: expect.any(String),
+          endedAt: null,
+          hasJoined: true,
+          startedAt: null,
+          status: GameStatus.WAITING_FOR_PLAYERS,
+          name: joinedGameSettings.name,
+          nbPlayers: 1,
+          nbSeats: joinedGameSettings.nbSeats,
         },
       ])
     })

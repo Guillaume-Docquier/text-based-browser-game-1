@@ -65,9 +65,10 @@ function App(): ReactElement {
 
   useEffect(() => {
     if (auth.isLoaded) {
+      queryClient.clear()
       void router.invalidate()
     }
-  }, [auth.isLoaded, auth.isSignedIn, router])
+  }, [auth.isLoaded, auth.isSignedIn, auth.userId, router])
 
   if (!auth.isLoaded) {
     return <></>
