@@ -1,14 +1,12 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import { LobbyPage } from "./LobbyPage.ts"
+import { WebsitePage } from "./WebsitePage.ts"
 
-export class CreateGamePage {
+export class CreateGamePage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/create" })
 
-  private readonly page: Page
-
   public readonly heading: Locator
-  public readonly userMenuButton: Locator
   public readonly gameNameInput: Locator
   public readonly maxPlayersInput: Locator
   public readonly turnLengthInput: Locator
@@ -16,9 +14,8 @@ export class CreateGamePage {
   public readonly createButton: Locator
 
   public constructor(page: Page) {
-    this.page = page
+    super(page)
     this.heading = page.getByRole("heading", { name: "Create a new game" })
-    this.userMenuButton = page.getByRole("button", { name: "Open user menu" })
     this.gameNameInput = page.getByRole("textbox", { name: "Game name" })
     this.maxPlayersInput = page.getByRole("spinbutton", { name: "Max number of players" })
     this.turnLengthInput = page.getByRole("spinbutton", { name: "Turn length" })
@@ -67,11 +64,6 @@ export class CreateGamePage {
   public async submit(): Promise<LobbyPage> {
     await this.createButton.click()
     return new LobbyPage(this.page)
-  }
-
-  public async signOut(): Promise<void> {
-    await this.userMenuButton.click()
-    await this.page.getByRole("group", { name: "Account actions" }).getByRole("button").last().click()
   }
 
   private async getSliderValue(slider: Locator): Promise<number> {

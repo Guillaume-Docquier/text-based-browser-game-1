@@ -1,9 +1,8 @@
 import type { Locator, Page } from "@playwright/test"
+import { WebsitePage } from "./WebsitePage.ts"
 
-export class SignInPage {
+export class SignInPage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/sign-in" })
-
-  private readonly page: Page
 
   public readonly heading: Locator
   public readonly emailAddressInput: Locator
@@ -12,7 +11,7 @@ export class SignInPage {
   public readonly verificationCodeInput: Locator
 
   public constructor(page: Page) {
-    this.page = page
+    super(page)
     this.heading = page.getByRole("heading", { name: "Welcome back", level: 1 })
     this.emailAddressInput = page.getByRole("textbox", { name: "Email address", exact: true })
     this.continueButton = page.getByRole("button", { name: "Continue", exact: true })
