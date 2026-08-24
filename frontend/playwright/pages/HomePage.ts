@@ -23,12 +23,11 @@ export class HomePage {
   }
 
   public static async goto(page: Page): Promise<HomePage> {
-    const homePage = new HomePage(page)
-    await homePage.goto()
-    return homePage
+    return await new HomePage(page).goto()
   }
 
-  public async goto(): Promise<void> {
+  public async goto(): Promise<HomePage> {
     await this.page.goto(HomePage.urlPattern.pathname)
+    return this
   }
 }

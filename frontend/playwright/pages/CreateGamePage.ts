@@ -27,14 +27,13 @@ export class CreateGamePage {
   }
 
   public static async goto(page: Page, options?: { mapGenerationSeed: number }): Promise<CreateGamePage> {
-    const createGamePage = new CreateGamePage(page)
-    await createGamePage.goto(options)
-    return createGamePage
+    return await new CreateGamePage(page).goto(options)
   }
 
-  public async goto(options?: { mapGenerationSeed: number }): Promise<void> {
+  public async goto(options?: { mapGenerationSeed: number }): Promise<CreateGamePage> {
     const seedSearch = options === undefined ? "" : `?mapGenerationSeed=${options.mapGenerationSeed}`
     await this.page.goto(`${CreateGamePage.urlPattern.pathname}${seedSearch}`)
+    return this
   }
 
   public async setGameName(name: string): Promise<void> {

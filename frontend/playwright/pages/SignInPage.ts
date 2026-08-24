@@ -21,13 +21,12 @@ export class SignInPage {
   }
 
   public static async goto(page: Page): Promise<SignInPage> {
-    const signInPage = new SignInPage(page)
-    await signInPage.goto()
-    return signInPage
+    return await new SignInPage(page).goto()
   }
 
-  public async goto(): Promise<void> {
+  public async goto(): Promise<SignInPage> {
     await this.page.goto(SignInPage.urlPattern.pathname)
+    return this
   }
 
   public async submitEmailAddress(emailAddress: string): Promise<void> {

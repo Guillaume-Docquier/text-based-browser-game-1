@@ -18,13 +18,12 @@ export class LobbyPage {
   }
 
   public static async goto(page: Page, gameId: number): Promise<LobbyPage> {
-    const lobbyPage = new LobbyPage(page)
-    await lobbyPage.goto(gameId)
-    return lobbyPage
+    return await new LobbyPage(page).goto(gameId)
   }
 
-  public async goto(gameId: number): Promise<void> {
+  public async goto(gameId: number): Promise<LobbyPage> {
     await this.page.goto(`/games/${gameId}`)
+    return this
   }
 
   public configurationValue(label: string): Locator {
