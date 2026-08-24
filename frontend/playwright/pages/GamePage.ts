@@ -11,13 +11,14 @@ export abstract class GamePage {
 
   public readonly gameNameHeading: Locator
   public readonly resources: Locator
+  public readonly gameTopBar: Locator
 
   protected constructor(page: Page) {
     this.page = page
 
-    const gameTopBar = page.getByRole("banner")
-    this.gameNameHeading = gameTopBar.getByRole("heading", { level: 1 })
-    this.resources = gameTopBar.locator(
+    this.gameTopBar = page.getByRole("banner")
+    this.gameNameHeading = this.gameTopBar.getByRole("heading", { level: 1 })
+    this.resources = this.gameTopBar.locator(
       '[aria-label$="Influence"], [aria-label$="Metal"], [aria-label$="Energy"], [aria-label$="Fuel"], [aria-label$="Colony"]',
     )
 
