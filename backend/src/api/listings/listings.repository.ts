@@ -10,6 +10,10 @@ import { couldNot } from "#lib/errors.ts"
 export type ListingModel = {
   id: GameId
   name: string
+  /**
+   * True if the user requesting the listing has joined the game.
+   * Always false for anonymous users.
+   */
   hasJoined: boolean
   nbPlayers: number
   nbSeats: number
