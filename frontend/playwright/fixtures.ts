@@ -1,7 +1,13 @@
-import { expect, test as base, type ConsoleMessage } from "@playwright/test"
+import { expect, test as base, type ConsoleMessage, type Page } from "@playwright/test"
+import { users } from "./auth.ts"
 import { PlaywrightEnv } from "./loadEnv.ts"
 
 const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development keys\./]
+
+type AuthenticatedUserContext = {
+  email: string
+  page: Page
+}
 
 type Fixtures = {
   /**
@@ -24,6 +30,16 @@ type Fixtures = {
     publishableKey: string
     secretKey: string
   }
+
+  /**
+   * Using this will sign in bob and give you a page for bob.
+   */
+  alice: AuthenticatedUserContext
+
+  /**
+   * Using this will sign in bob and give you a page for bob.
+   */
+  bob: AuthenticatedUserContext
 }
 
 export const test = base.extend<Fixtures>({
@@ -63,6 +79,23 @@ export const test = base.extend<Fixtures>({
       publishableKey: env.VITE_CLERK_PUBLISHABLE_KEY,
       secretKey: env.CLERK_SECRET_KEY,
     })
+  },
+  // I would make reusable code for alice and bob, but the type shenanigans I'd have to do...
+  alice: async ({ browser }, use) => {
+    const context = await browser.newContext({ storageState: users.alice.authFilePath })
+    const page = await context.newPage()
+
+    await use({ email: users.alice.email, page })
+
+    await context.close()
+  },
+  bob: async ({ browser }, use) => {
+    const context = await browser.newContext({ storageState: users.bob.authFilePath })
+    const page = await context.newPage()
+
+    await use({ email: users.bob.email, page })
+
+    await context.close()
   },
 })
 

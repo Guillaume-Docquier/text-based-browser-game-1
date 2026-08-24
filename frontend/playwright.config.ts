@@ -55,7 +55,7 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
       },
-      dependencies: ["setup"],
+      dependencies: isCI ? ["setup"] : [],
     },
   ],
 })
