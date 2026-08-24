@@ -6,7 +6,7 @@ import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
  * An Action Definition offered to one player for a Turn.
  */
 export type AvailableAction = Readonly<{
-  submittedByPlayerId: PlayerId
+  playerId: PlayerId
   actionDefinitionId: ActionDefinition["id"]
 }>
 
@@ -14,9 +14,9 @@ export type AvailableAction = Readonly<{
  * Computes the Action instances available to every player for a Turn.
  */
 export function computeAvailableActions({ playerIds, ruleset }: { playerIds: readonly PlayerId[]; ruleset: Ruleset }): AvailableAction[] {
-  return playerIds.flatMap((submittedByPlayerId) =>
+  return playerIds.flatMap((playerId) =>
     Object.values(ruleset.actionDefinitions).map(({ id: actionDefinitionId }) => ({
-      submittedByPlayerId,
+      playerId,
       actionDefinitionId,
     })),
   )

@@ -7,7 +7,7 @@ import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { actionSubmissionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
+import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
 import type { AvailableAction } from "#lib/rules-engine/available-actions/computeAvailableActions.ts"
@@ -17,7 +17,7 @@ import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
-type ActionSubmissionRow = typeof actionSubmissionsTable.$inferSelect
+type ActionSubmissionRow = typeof actionsTable.$inferSelect
 
 /**
  * Owning a TurnForProcessing within a transaction guarantees that the turn and the game are locked, exist and need processing at this time.
@@ -183,14 +183,11 @@ export class TurnsRepository extends PostgresRepository {
           .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
         tx
           .select()
-          .from(actionSubmissionsTable)
+          .from(actionsTable)
           .where(
-            and(
-              eq(actionSubmissionsTable.gameId, startTurnProcessingModel.turn.gameId),
-              eq(actionSubmissionsTable.turn, startTurnProcessingModel.turn.turn),
-            ),
+            and(eq(actionsTable.gameId, startTurnProcessingModel.turn.gameId), eq(actionsTable.turn, startTurnProcessingModel.turn.turn)),
           )
-          .orderBy(asc(actionSubmissionsTable.submittedByPlayerId)),
+          .orderBy(asc(actionsTable.playerId)),
       ])
       Assert.isTrue(gameStates.length === 1)
       Assert.isDefined(gameStates[0])
@@ -306,7 +303,7 @@ export class TurnsRepository extends PostgresRepository {
           targets: null,
         }))
         if (availableActions.length > 0) {
-          await tx.insert(actionSubmissionsTable).values(availableActions)
+          await tx.insert(actionsTable).values(availableActions)
         }
 
         const updatedGameStates = await tx
@@ -356,8 +353,8 @@ function toTurnToProcessModel({
     scheduledFor,
     turnInterval,
     rngState,
-    actionSubmissions: actionSubmissions.flatMap(({ id, submittedByPlayerId, actionDefinitionId, targets }) =>
-      targets === null ? [] : [{ id, submittedByPlayerId, actionDefinitionId, targets }],
+    actionSubmissions: actionSubmissions.flatMap(({ id, playerId, actionDefinitionId, targets }) =>
+      targets === null ? [] : [{ id, playerId, actionDefinitionId, targets }],
     ),
     players: players.reduce<TurnToProcessModel["players"]>((playersById, { playerId }) => {
       const resourcesForPlayer = resourcesByPlayerId.get(playerId)

@@ -7,7 +7,7 @@ import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/Re
  */
 export type ActionSubmission = Readonly<{
   id: string
-  submittedByPlayerId: PlayerId
+  playerId: PlayerId
   actionDefinitionId: ActionDefinition["id"]
   /**
    * Contains the targets to fill required by the ActionDefinition.

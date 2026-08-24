@@ -89,7 +89,7 @@ export class GameplayController {
           // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           playerResources,
-          availableActions: computeAvailableActions({
+          actions: computeAvailableActions({
             playerIds: gameForStart.value.playerIds,
             ruleset: gameForStart.value.ruleset,
           }),
@@ -185,7 +185,7 @@ export class GameplayController {
 
       const actionSubmission = {
         ...submittedAction,
-        submittedByPlayerId: playerId,
+        playerId,
         targets: { ...submittedAction.targets, self: playerId },
       } satisfies ActionSubmission
       const turnState = createTurnState({
@@ -321,14 +321,12 @@ function toAvailableActionDtos(playerViewModel: PlayerViewModel, uncommittedReso
     const availableAction = {
       ...action,
       targets: action.targets ?? { self: playerViewModel.player.id },
+      playerId: playerViewModel.player.id,
     }
-    const actionSubmission = {
-      ...availableAction,
-      submittedByPlayerId: playerViewModel.player.id,
-    } as const satisfies ActionSubmission
-    const affordabilityResult = validateCosts([actionSubmission], playerViewModel.ruleset, turnState)
+    const affordabilityResult = validateCosts([availableAction], playerViewModel.ruleset, turnState)
     Assert.isSuccess(affordabilityResult)
 
+    // If the action is submitted already (targets are defined), then the action is affordable because it's been committed already
     return { ...availableAction, canAfford: action.targets !== null || affordabilityResult.value.length === 0 }
   })
 }

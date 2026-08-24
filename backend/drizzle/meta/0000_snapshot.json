@@ -1,5 +1,5 @@
 {
-  "id": "e0815eb4-096a-4024-960a-3806699a05fb",
+  "id": "84591186-3647-4cfd-8513-a149ca7423d7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -58,8 +58,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.action_submissions": {
-      "name": "action_submissions",
+    "public.actions": {
+      "name": "actions",
       "schema": "",
       "columns": {
         "id": {
@@ -75,8 +75,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "submitted_by_player_id": {
-          "name": "submitted_by_player_id",
+        "player_id": {
+          "name": "player_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -109,11 +109,11 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "action_submissions_gameId_playerId_game_players_fk": {
-          "name": "action_submissions_gameId_playerId_game_players_fk",
-          "tableFrom": "action_submissions",
+        "actions_gameId_playerId_game_players_fk": {
+          "name": "actions_gameId_playerId_game_players_fk",
+          "tableFrom": "actions",
           "tableTo": "players",
-          "columnsFrom": ["game_id", "submitted_by_player_id"],
+          "columnsFrom": ["game_id", "player_id"],
           "columnsTo": ["game_id", "player_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"

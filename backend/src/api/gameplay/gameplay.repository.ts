@@ -13,7 +13,7 @@ import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
-  actionSubmissionsTable,
+  actionsTable,
   gameStatesTable,
   gamesTable,
   planetsTable,
@@ -31,8 +31,8 @@ import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
-type NewActionSubmissionRow = typeof actionSubmissionsTable.$inferInsert
-type ActionSubmissionRow = typeof actionSubmissionsTable.$inferSelect
+type NewActionSubmissionRow = typeof actionsTable.$inferInsert
+type ActionSubmissionRow = typeof actionsTable.$inferSelect
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type ResourceRow = typeof resourcesTable.$inferSelect
 type NewTurnRow = typeof turnsTable.$inferInsert
@@ -115,7 +115,7 @@ export type StartGameModel = {
     readonly resourceType: ResourceType
     readonly amount: number
   }>
-  readonly availableActions: readonly AvailableAction[]
+  readonly actions: readonly AvailableAction[]
   readonly galaxy: GalaxyModel
 }
 
@@ -244,7 +244,7 @@ export class GameplayRepository extends PostgresRepository {
       ...playerResource,
       gameId: startGameModel.game.id,
     }))
-    const availableActions: NewActionSubmissionRow[] = startGameModel.availableActions.map((availableAction) => ({
+    const availableActions: NewActionSubmissionRow[] = startGameModel.actions.map((availableAction) => ({
       ...availableAction,
       gameId: startGameModel.game.id,
       turn: gameState.turn,
@@ -277,7 +277,7 @@ export class GameplayRepository extends PostgresRepository {
     await tx.insert(gameStatesTable).values(gameState)
     await tx.insert(turnsTable).values(gameTurn)
     if (availableActions.length > 0) {
-      await tx.insert(actionSubmissionsTable).values(availableActions)
+      await tx.insert(actionsTable).values(availableActions)
     }
   }
 
@@ -310,15 +310,9 @@ export class GameplayRepository extends PostgresRepository {
 
         const availableActionRows = await tx
           .select()
-          .from(actionSubmissionsTable)
-          .where(
-            and(
-              eq(actionSubmissionsTable.gameId, gameId),
-              eq(actionSubmissionsTable.submittedByPlayerId, playerId),
-              eq(actionSubmissionsTable.turn, gameState.turn),
-            ),
-          )
-          .orderBy(actionSubmissionsTable.id)
+          .from(actionsTable)
+          .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, gameState.turn)))
+          .orderBy(actionsTable.id)
         // ponytail: Rulesets are tiny; index persisted Actions if this becomes a measured hot path.
         const orderedAvailableActionRows = Object.values(StandardRuleset.actionDefinitions).flatMap(({ id }) =>
           availableActionRows.filter(({ actionDefinitionId }) => actionDefinitionId === id),
@@ -362,13 +356,13 @@ export class GameplayRepository extends PostgresRepository {
     const getResult = await Result.tryCatch(
       db
         .select()
-        .from(actionSubmissionsTable)
+        .from(actionsTable)
         .where(
           and(
-            eq(actionSubmissionsTable.gameId, params.gameId),
-            eq(actionSubmissionsTable.submittedByPlayerId, params.playerId),
-            eq(actionSubmissionsTable.turn, params.turn),
-            isNotNull(actionSubmissionsTable.targets),
+            eq(actionsTable.gameId, params.gameId),
+            eq(actionsTable.playerId, params.playerId),
+            eq(actionsTable.turn, params.turn),
+            isNotNull(actionsTable.targets),
           ),
         ),
     )
@@ -444,27 +438,27 @@ export class GameplayRepository extends PostgresRepository {
 
         const updatedAt = this.clock.now()
         await tx
-          .update(actionSubmissionsTable)
+          .update(actionsTable)
           .set({ targets: null, updatedAt })
           .where(
             and(
-              eq(actionSubmissionsTable.gameId, params.gameId),
-              eq(actionSubmissionsTable.submittedByPlayerId, params.actionSubmission.submittedByPlayerId),
-              eq(actionSubmissionsTable.turn, params.turn),
-              isNotNull(actionSubmissionsTable.targets),
+              eq(actionsTable.gameId, params.gameId),
+              eq(actionsTable.playerId, params.actionSubmission.playerId),
+              eq(actionsTable.turn, params.turn),
+              isNotNull(actionsTable.targets),
             ),
           )
 
         const actionSubmissions = await tx
-          .update(actionSubmissionsTable)
+          .update(actionsTable)
           .set({ targets: params.actionSubmission.targets, updatedAt })
           .where(
             and(
-              eq(actionSubmissionsTable.id, params.actionSubmission.id),
-              eq(actionSubmissionsTable.gameId, params.gameId),
-              eq(actionSubmissionsTable.submittedByPlayerId, params.actionSubmission.submittedByPlayerId),
-              eq(actionSubmissionsTable.turn, params.turn),
-              eq(actionSubmissionsTable.actionDefinitionId, params.actionSubmission.actionDefinitionId),
+              eq(actionsTable.id, params.actionSubmission.id),
+              eq(actionsTable.gameId, params.gameId),
+              eq(actionsTable.playerId, params.actionSubmission.playerId),
+              eq(actionsTable.turn, params.turn),
+              eq(actionsTable.actionDefinitionId, params.actionSubmission.actionDefinitionId),
             ),
           )
           .returning()
@@ -498,14 +492,10 @@ export class GameplayRepository extends PostgresRepository {
         await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
         await tx
-          .update(actionSubmissionsTable)
+          .update(actionsTable)
           .set({ targets: null, updatedAt: this.clock.now() })
           .where(
-            and(
-              eq(actionSubmissionsTable.gameId, params.gameId),
-              eq(actionSubmissionsTable.submittedByPlayerId, params.playerId),
-              eq(actionSubmissionsTable.turn, params.turn),
-            ),
+            and(eq(actionsTable.gameId, params.gameId), eq(actionsTable.playerId, params.playerId), eq(actionsTable.turn, params.turn)),
           )
       }),
     )
@@ -543,7 +533,7 @@ function toActionSubmission(row: ActionSubmissionRow): ActionSubmission {
 
   return {
     id: row.id,
-    submittedByPlayerId: row.submittedByPlayerId,
+    playerId: row.playerId,
     actionDefinitionId: row.actionDefinitionId,
     targets: row.targets,
   }

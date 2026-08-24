@@ -151,12 +151,12 @@ export const gameStatesTable = pgTable("game_states", {
  * Actions available for a specific game turn.
  * Rows are kept as append-only history across turns.
  */
-export const actionSubmissionsTable = pgTable(
-  "action_submissions",
+export const actionsTable = pgTable(
+  "actions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     gameId: gameId("game_id").notNull(),
-    submittedByPlayerId: playerId("submitted_by_player_id").notNull(),
+    playerId: playerId("player_id").notNull(),
     turn: integer("turn").notNull(),
     actionDefinitionId: text("action_definition_id").notNull(),
     targets: jsonb("targets").$type<ResolvedTargets>(),
@@ -164,9 +164,9 @@ export const actionSubmissionsTable = pgTable(
   },
   (table) => [
     foreignKey({
-      columns: [table.gameId, table.submittedByPlayerId],
+      columns: [table.gameId, table.playerId],
       foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "action_submissions_gameId_playerId_game_players_fk",
+      name: "actions_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
   ],
 )
