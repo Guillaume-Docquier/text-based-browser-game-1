@@ -190,6 +190,7 @@ Minimum verification for meaningful changes:
 ## Commits And PRs
 
 - Never commit, push, or open a pull request unless the human explicitly asks for it. A request to change code or tests does not imply permission to commit, push, or open a PR.
+- When asked to open a PR, always respect the PR template defined in the repository.
 - Pre-commit runs `pnpm lint-staged`, for linting and formatting
 - If a change affects schema, env usage, or deployment behavior, call that out explicitly in the PR.
 
