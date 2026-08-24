@@ -27,12 +27,24 @@ test("filters to games the player joined after signing in", async ({ page, alice
     await expect(gamesBrowserPage.myGamesButton).not.toBeVisible()
   })
 
-  await test.step("Filter Alice's games", async () => {
-    const gamesBrowserPage = await GamesBrowserPage.goto(alice.page)
-    await gamesBrowserPage.filterToMyGames()
-    await expect(gamesBrowserPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
-    await expect(gamesBrowserPage.game(aliceGameName)).toBeVisible()
-    await expect(gamesBrowserPage.game(bobGameName)).not.toBeVisible()
+  const aliceGamesBrowserPage = await GamesBrowserPage.goto(alice.page)
+  await test.step("Filter Alice's games by name", async () => {
+    await aliceGamesBrowserPage.filterByName(bobGameName)
+    await expect(aliceGamesBrowserPage.game(aliceGameName)).not.toBeVisible()
+    await expect(aliceGamesBrowserPage.game(bobGameName)).toBeVisible()
+  })
+
+  await test.step("... and by my games", async () => {
+    await aliceGamesBrowserPage.filterToMyGames()
+    await expect(aliceGamesBrowserPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
+    await expect(aliceGamesBrowserPage.game(aliceGameName)).not.toBeVisible()
+    await expect(aliceGamesBrowserPage.game(bobGameName)).not.toBeVisible()
+  })
+
+  await test.step("... by my games only", async () => {
+    await aliceGamesBrowserPage.filterByName("")
+    await expect(aliceGamesBrowserPage.game(aliceGameName)).toBeVisible()
+    await expect(aliceGamesBrowserPage.game(bobGameName)).not.toBeVisible()
   })
 
   await test.step("Filter Bob's games", async () => {

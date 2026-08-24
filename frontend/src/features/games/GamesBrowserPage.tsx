@@ -1,23 +1,24 @@
 import type * as ApiTypes from "@api-types"
 import { useAuth } from "@clerk/react"
 import { Link } from "@tanstack/react-router"
-import { Search, UserRoundCheck } from "lucide-react"
-import { type ReactElement, useState } from "react"
+import { type ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
-import { Input } from "@/components/input.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
+import { useGameNameFilter } from "@/features/games/useGameNameFilter.tsx"
+import { useMyGamesFilter } from "@/features/games/useMyGamesFilter.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
 import { useListingsQuery } from "@/lib/api/useListingsQuery.ts"
 import { timeAgo } from "@/lib/timeAgo.ts"
 
 export function GamesBrowserPage(): ReactElement {
-  const [gameNameFilter, setGameNameFilter] = useState("")
-  const [showOnlyMyGames, setShowOnlyMyGames] = useState(false)
-  const { isSignedIn } = useAuth()
+  const gameNameFilter = useGameNameFilter()
+  const myGamesFilter = useMyGamesFilter()
   const listingsQuery = useListingsQuery()
+  const { isSignedIn } = useAuth()
+  const filters = isSignedIn === true ? [gameNameFilter, myGamesFilter] : [gameNameFilter]
 
   if (listingsQuery.isPending) {
     return <GamesLoadingState />
@@ -43,11 +44,8 @@ export function GamesBrowserPage(): ReactElement {
     )
   }
 
-  const onlyMyGamesFilter = showOnlyMyGames && isSignedIn === true
-  const listings = listingsQuery.data.filter(
-    (listing) => listing.name.includes(gameNameFilter) && (!onlyMyGamesFilter || listing.hasJoined),
-  )
-  const hasFilter = gameNameFilter !== "" || onlyMyGamesFilter
+  const listings = listingsQuery.data.filter((listing) => filters.every(({ predicate }) => predicate?.(listing) ?? true))
+  const hasFilter = filters.some(({ predicate }) => predicate !== undefined)
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -66,32 +64,7 @@ export function GamesBrowserPage(): ReactElement {
           <CardDescription>Search by game name or show only games you have joined.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex max-w-xl flex-col gap-2 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={gameNameFilter}
-                onChange={(event) => {
-                  setGameNameFilter(event.target.value)
-                }}
-                placeholder="Search for games"
-                className="pl-9"
-              />
-            </div>
-            {isSignedIn === true ? (
-              <Button
-                type="button"
-                variant={showOnlyMyGames ? "secondary" : "outline"}
-                aria-pressed={showOnlyMyGames}
-                onClick={() => {
-                  setShowOnlyMyGames((isShown) => !isShown)
-                }}
-              >
-                <UserRoundCheck />
-                My games
-              </Button>
-            ) : null}
-          </div>
+          <div className="flex max-w-xl flex-col gap-2 sm:flex-row">{filters.map(({ element }) => element)}</div>
           <div className="grid gap-3">
             {listings.length === 0 ? (
               <GamesEmptyState hasFilter={hasFilter} />

@@ -6,6 +6,7 @@ export class GamesBrowserPage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games" })
 
   private readonly createGameLink: Locator
+  private readonly gameNameFilter: Locator
 
   public readonly heading: Locator
   public readonly myGamesButton: Locator
@@ -14,6 +15,7 @@ export class GamesBrowserPage extends WebsitePage {
     super(page)
     this.heading = page.getByRole("heading", { name: "Games", level: 1 })
     this.createGameLink = page.getByRole("link", { name: "Create game" })
+    this.gameNameFilter = page.getByPlaceholder("Search for games")
     this.myGamesButton = page.getByRole("button", { name: "My games" })
   }
 
@@ -32,6 +34,10 @@ export class GamesBrowserPage extends WebsitePage {
 
   public async filterToMyGames(): Promise<void> {
     await this.myGamesButton.click()
+  }
+
+  public async filterByName(name: string): Promise<void> {
+    await this.gameNameFilter.fill(name)
   }
 
   /**
