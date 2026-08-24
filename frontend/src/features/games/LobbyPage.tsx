@@ -2,7 +2,7 @@ import type * as ApiTypes from "@api-types"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { Button } from "@/components/button.tsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/card.tsx"
 import { Separator } from "@/components/separator.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
@@ -47,7 +47,6 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
       <Card className="border border-border/60">
         <CardHeader>
           <CardTitle>Lobby details</CardTitle>
-          <CardDescription>Review the roster, join or leave the lobby, and start once the game is ready.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <div className="grid gap-4 md:grid-cols-2">

@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { type ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
+import { Card, CardContent, CardHeader } from "@/components/card.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
 import { useGameNameFilter } from "@/features/games/useGameNameFilter.tsx"
 import { useMyGamesFilter } from "@/features/games/useMyGamesFilter.tsx"
@@ -51,7 +51,6 @@ export function GamesBrowserPage(): ReactElement {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <PageHeader
         title="Games"
-        description="Browse active lobbies, filter by name, and create a new game when you are ready to host."
         actions={
           <Button asChild>
             <Link to="/games/create">Create game</Link>
@@ -59,10 +58,6 @@ export function GamesBrowserPage(): ReactElement {
         }
       />
       <Card className="border border-border/60">
-        <CardHeader className="gap-4">
-          <CardTitle>Find a game</CardTitle>
-          <CardDescription>Search by game name or show only games you have joined.</CardDescription>
-        </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex max-w-xl flex-col gap-2 sm:flex-row">{filters.map(({ element }) => element)}</div>
           <div className="grid gap-3">
@@ -105,11 +100,7 @@ function GameSummary({ listing }: { listing: ApiTypes.Listing }): ReactElement {
 function GamesLoadingState(): ReactElement {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PageHeader
-        title="Games"
-        description="Browse active lobbies, filter by name, and create a new game when you are ready to host."
-        actions={<Skeleton className="h-9 w-28 rounded-4xl" />}
-      />
+      <PageHeader title="Games" actions={<Skeleton className="h-9 w-28 rounded-4xl" />} />
       <Card className="border border-border/60">
         <CardHeader className="gap-4">
           <Skeleton className="h-6 w-32" />
