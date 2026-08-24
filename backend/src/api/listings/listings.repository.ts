@@ -40,7 +40,7 @@ export class ListingsRepository extends PostgresRepository {
           id: gamesTable.id,
           name: gamesTable.name,
           hasJoined:
-            playerId === undefined ? sql<boolean>`false` : sql<boolean>`coalesce(bool_or(${playersTable.playerId} = ${playerId}), false)`,
+            playerId === undefined ? sql<boolean>`false` : sql<boolean>`count(*) filter (where ${playersTable.playerId} = ${playerId}) > 0`,
           nbPlayers: count(playersTable.playerId),
           nbSeats: gamesTable.nbSeats,
           createdAt: gamesTable.createdAt,
