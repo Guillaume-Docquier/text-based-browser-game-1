@@ -5,6 +5,10 @@ export type Database = ReturnType<typeof createDb>
 export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0]
 
 export type CreateTransaction = <T>(operation: (tx: Transaction) => Promise<T>) => Promise<Result<T, Error>>
+
+/**
+ * This method does not throw. Any error thrown inside the operation callback will abort the transaction and then be caught.
+ */
 export function createCreateTransaction(db: Database): CreateTransaction {
   return async (operation) => await Result.tryCatch(db.transaction(operation))
 }

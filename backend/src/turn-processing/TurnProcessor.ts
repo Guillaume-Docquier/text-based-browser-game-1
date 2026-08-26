@@ -39,9 +39,14 @@ export class TurnProcessor {
    * Processes due turns until there is no more immediate work, then schedules the next check.
    */
   public async processTurnsForever({ interval }: { interval: Time }): Promise<void> {
-    let turnProcessingOutcome = await this.processNextDueTurn()
-    while (turnProcessingOutcome === "processed") {
-      turnProcessingOutcome = await this.processNextDueTurn()
+    const markDueTurnsResult = await this.turnsRepository.markDueTurnsAwaitingProcessing({ since: this.clock.now() })
+    if (Result.isFailure(markDueTurnsResult)) {
+      this.logger.error("Could not mark due turns awaiting processing", { error: markDueTurnsResult.error })
+    } else {
+      let turnProcessingOutcome = await this.processNextDueTurn()
+      while (turnProcessingOutcome === "processed") {
+        turnProcessingOutcome = await this.processNextDueTurn()
+      }
     }
 
     setTimeout(
@@ -60,16 +65,16 @@ export class TurnProcessor {
     const processingLogger = this.logger.child({ scope: "processNextDueTurn", contextProviders: [new ElapsedTimeContextProvider()] })
 
     const turnToProcessResult = await this.createTransaction(async (tx) => {
-      const nextTurnToProcessResult = await this.turnsRepository.getNextTurnForProcessing({ since: this.clock.now() }, tx)
+      const nextTurnToProcessResult = await this.turnsRepository.getNextTurnForProcessing(tx)
       rollbackOnFailure(nextTurnToProcessResult, "Could not get next turn to process")
 
       if (nextTurnToProcessResult.value === undefined) {
         return undefined
       }
 
-      if (nextTurnToProcessResult.value.gameStatus !== GameStatus.COLLECTING_ACTIONS) {
+      if (nextTurnToProcessResult.value.gameStatus !== GameStatus.AWAITING_PROCESSING) {
         throw new TransactionRollback("Game cannot be processed in its current status", {
-          cause: { status: nextTurnToProcessResult.value.gameStatus, expected: GameStatus.COLLECTING_ACTIONS },
+          cause: { status: nextTurnToProcessResult.value.gameStatus, expected: GameStatus.AWAITING_PROCESSING },
         })
       }
 

@@ -45,7 +45,7 @@ Turns have a constant and fixed duration determined before the game starts. The 
 
 At every moment, all players know how much time is left before the Turn ends. During a Turn, players can submit and revise Actions. All players play simultaneously, and their submitted Actions remain secret until resolution.
 
-During a Turn, players can declare themselves Ready. This is public information. When all players are Ready, the Turn ends. This is the only way that a Turn can take less time than the Turn duration determined before the game starts.
+During a Turn, players can declare themselves Ready. This is public information. When all players are Ready, the Turn ends and enters Awaiting Processing. Readiness and Action Submissions are locked from that point. This is the only way that a Turn can take less time than the Turn duration determined before the game starts.
 
 When a Turn ends, all Action Submissions are locked in and Turn Resolution begins. Players cannot submit or revise them during Turn Resolution. The server validates locked submissions and the [System 015-rules-engine](./015-rules-engine.md) turns their composed Mechanics into Effects.
 

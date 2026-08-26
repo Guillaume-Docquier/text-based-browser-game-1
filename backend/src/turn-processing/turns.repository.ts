@@ -1,5 +1,5 @@
 import { Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { and, asc, eq, isNull, lte, notExists, or, sql } from "drizzle-orm"
+import { and, asc, eq, exists, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -90,67 +90,68 @@ export class TurnsRepository extends PostgresRepository {
   }
 
   /**
-   * The next turn to process row will be locked during the transaction.
+   * Marks every scheduled Turn that is due as awaiting processing.
    */
-  public async getNextTurnForProcessing(
+  public async markDueTurnsAwaitingProcessing(
     { since }: { since: Date },
-    tx: Transaction,
-  ): Promise<Result<TurnForProcessing | undefined, string>> {
-    const turnToProcessResult = await Result.tryCatch(async () => {
-      // Find and lock the turn
-      const turnToProcessRows = await tx
-        .select({
-          gameId: turnsTable.gameId,
-          turn: turnsTable.turn,
-          scheduledFor: turnsTable.scheduledFor,
-        })
-        .from(turnsTable)
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Result<true, string>> {
+    const updateResult = await Result.tryCatch(async () => {
+      await db
+        .update(gamesTable)
+        .set({ status: GameStatus.AWAITING_PROCESSING })
         .where(
           and(
-            isNull(turnsTable.processingStartedAt),
-            or(
-              lte(turnsTable.scheduledFor, since),
-              notExists(
-                tx
-                  .select()
-                  .from(playersTable)
-                  .where(and(eq(playersTable.gameId, turnsTable.gameId), eq(playersTable.ready, false))),
-              ),
+            eq(gamesTable.status, GameStatus.COLLECTING_ACTIONS),
+            exists(
+              db
+                .select({ gameId: turnsTable.gameId })
+                .from(turnsTable)
+                .where(
+                  and(eq(turnsTable.gameId, gamesTable.id), isNull(turnsTable.processingStartedAt), lte(turnsTable.scheduledFor, since)),
+                ),
             ),
           ),
         )
+
+      return true as const
+    })
+
+    if (Result.isFailure(updateResult)) {
+      this.logger.error("Could not mark due turns awaiting processing", { since, error: updateResult.error })
+      return Result.Failure(couldNot("mark due turns awaiting processing"))
+    }
+
+    return updateResult
+  }
+
+  /**
+   * The next game awaiting processing will be locked during the transaction.
+   */
+  public async getNextTurnForProcessing(tx: Transaction): Promise<Result<TurnForProcessing | undefined, string>> {
+    const turnToProcessResult = await Result.tryCatch(async () => {
+      const turnToProcessRows = await tx
+        .select({
+          gameId: gamesTable.id,
+          turn: turnsTable.turn,
+          gameStatus: gamesTable.status,
+        })
+        .from(gamesTable)
+        .innerJoin(turnsTable, eq(turnsTable.gameId, gamesTable.id))
+        .where(and(eq(gamesTable.status, GameStatus.AWAITING_PROCESSING), isNull(turnsTable.processingStartedAt)))
         .orderBy(asc(turnsTable.scheduledFor))
         .limit(1)
-        .for("no key update", { skipLocked: true })
+        .for("no key update", { of: gamesTable, skipLocked: true })
 
       const turnToProcess = turnToProcessRows[0]
       if (turnToProcess === undefined) {
         return turnToProcess
       }
 
-      // Lock the game, it is expected to exist
-      const gameToProcessRows = await tx
-        .select({ status: gamesTable.status })
-        .from(gamesTable)
-        .where(eq(gamesTable.id, turnToProcess.gameId))
-        .for("no key update")
-      Assert.isDefined(gameToProcessRows[0])
-
-      if (turnToProcess.scheduledFor > since) {
-        const unreadyPlayers = await tx
-          .select({ playerId: playersTable.playerId })
-          .from(playersTable)
-          .where(and(eq(playersTable.gameId, turnToProcess.gameId), eq(playersTable.ready, false)))
-          .limit(1)
-        if (unreadyPlayers.length > 0) {
-          return undefined
-        }
-      }
-
       return branded<TurnForProcessing>({
         gameId: turnToProcess.gameId,
         turn: turnToProcess.turn,
-        gameStatus: gameToProcessRows[0].status,
+        gameStatus: turnToProcess.gameStatus,
       })
     })
 
@@ -259,7 +260,7 @@ export class TurnsRepository extends PostgresRepository {
 
         const games = await tx
           .update(gamesTable)
-          .set({ status: GameStatus.COLLECTING_ACTIONS })
+          .set({ status: GameStatus.AWAITING_PROCESSING })
           .where(and(eq(gamesTable.id, turn.gameId), eq(gamesTable.status, GameStatus.PROCESSING_TURN)))
           .returning()
         Assert.isTrue(games.length === 1)

@@ -7,6 +7,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
+import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
@@ -292,6 +293,32 @@ describe("gameplay.router", () => {
     })
   })
 
+  describe("setReady", () => {
+    it("should lock the turn when all players are ready", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 2 }),
+      })
+      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await creator.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })
+
+      // Act
+      await joiner.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })
+      const unreadyError = await joiner.client.gameplay.setReady
+        .mutate({ gameId: createdGameId, ready: false })
+        .catch((error: unknown) => error)
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+
+      // Assert
+      expect(unreadyError).toMatchObject({ data: { code: "BAD_REQUEST" } })
+      expect(lobby).toMatchObject({ status: GameStatus.AWAITING_PROCESSING, canOpen: true })
+    })
+  })
+
   describe("setCurrentAction", () => {
     it("should set the current action for the authenticated player and override server-owned targets", async () => {
       // Arrange
@@ -377,7 +404,11 @@ describe("gameplay.router", () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
       const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const otherPlayer = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ nbSeats: 2 }),
+      })
+      await otherPlayer.client.lobbies.join.mutate({ gameId: createdGameId })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const action = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)

@@ -129,7 +129,12 @@ export class GameplayController {
       const readyResult = await this.gameplayRepository.setPlayerReady({ gameId, playerId, ready }, tx)
       rollbackOnFailure(readyResult, "Failed to set player readiness")
 
-      return { ready: readyResult.value }
+      if (readyResult.value.allPlayersReady) {
+        const awaitingProcessingResult = await this.gameplayRepository.markGameAwaitingProcessing({ gameId }, tx)
+        rollbackOnFailure(awaitingProcessingResult, "Failed to mark game awaiting processing")
+      }
+
+      return { ready: readyResult.value.ready }
     })
 
     if (Result.isFailure(setReadyResult)) {

@@ -15,6 +15,13 @@
       "when": 1787527533706,
       "tag": "0001_player-ready-state",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787691106899,
+      "tag": "0002_awaiting-processing-status",
+      "breakpoints": true
     }
   ]
 }

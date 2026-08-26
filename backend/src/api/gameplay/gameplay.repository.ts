@@ -323,7 +323,7 @@ export class GameplayRepository extends PostgresRepository {
   public async setPlayerReady(
     params: { gameId: GameId; playerId: PlayerId; ready: boolean },
     tx: Transaction,
-  ): Promise<Result<boolean, string>> {
+  ): Promise<Result<{ ready: boolean; allPlayersReady: boolean }, string>> {
     const setReadyResult = await Result.tryCatch(async () => {
       await lockGameCollectingActions({ gameId: params.gameId }, tx)
 
@@ -335,7 +335,13 @@ export class GameplayRepository extends PostgresRepository {
       Assert.isTrue(players.length === 1)
       Assert.isDefined(players[0])
 
-      return players[0].ready
+      const unreadyPlayers = await tx
+        .select({ playerId: playersTable.playerId })
+        .from(playersTable)
+        .where(and(eq(playersTable.gameId, params.gameId), eq(playersTable.ready, false)))
+        .limit(1)
+
+      return { ready: players[0].ready, allPlayersReady: unreadyPlayers.length === 0 }
     })
 
     if (Result.isFailure(setReadyResult)) {
@@ -344,6 +350,26 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return setReadyResult
+  }
+
+  public async markGameAwaitingProcessing({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<true, string>> {
+    const updateResult = await Result.tryCatch(async () => {
+      const games = await tx
+        .update(gamesTable)
+        .set({ status: GameStatus.AWAITING_PROCESSING })
+        .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.COLLECTING_ACTIONS)))
+        .returning({ id: gamesTable.id })
+      Assert.isTrue(games.length === 1)
+
+      return true as const
+    })
+
+    if (Result.isFailure(updateResult)) {
+      this.logger.error("Could not mark game awaiting processing", { gameId, error: updateResult.error })
+      return Result.Failure(couldNot("mark game awaiting processing"))
+    }
+
+    return updateResult
   }
 
   /**
