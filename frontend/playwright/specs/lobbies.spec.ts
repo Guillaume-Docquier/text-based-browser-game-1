@@ -213,5 +213,18 @@ test.describe("authenticated user", () => {
         "5 Fuel, cannot afford",
       ])
     })
+
+    await test.step("Toggle readiness from the Players page", async () => {
+      const playersPage = await actionsPage.openPlayers()
+      await expect(playersPage.heading).toBeVisible()
+
+      await expect(playersPage.readyButton).toHaveAttribute("aria-pressed", "false")
+      await expect(playersPage.readyButton).toHaveAccessibleName("Mark yourself ready")
+
+      await playersPage.toggleReady()
+
+      await expect(playersPage.readyButton).toHaveAttribute("aria-pressed", "true")
+      await expect(playersPage.readyButton).toHaveAccessibleName("Mark yourself not ready")
+    })
   })
 })
