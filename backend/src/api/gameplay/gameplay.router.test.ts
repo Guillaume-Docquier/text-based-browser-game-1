@@ -297,7 +297,7 @@ describe("gameplay.router", () => {
   })
 
   describe("updateActionSubmission", () => {
-    it("should set the current action for the authenticated player and override server-owned targets", async () => {
+    it("should update the action for the authenticated player and override server-owned targets", async () => {
       // Arrange
       const db = await createDbMock()
       const { api, accountsRepository } = await createApiStub({ db })
@@ -322,6 +322,112 @@ describe("gameplay.router", () => {
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const submittedActions = playerView.actions.filter((action) => action.targets !== null)
       expect(submittedActions).toEqual<typeof submittedActions>([{ ...gainInfluence, targets: { self: playerView.player.id } }])
+    })
+
+    it("should submit and deselect multiple actions", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const gainFuel = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainFuel.id)
+      const gainMetal = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainMetal.id)
+      Assert.isDefined(gainFuel)
+      Assert.isDefined(gainMetal)
+
+      // Act
+      for (const action of [gainFuel, gainMetal]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: initialPlayerView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, targets: {} }),
+        })
+      }
+      const selectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      for (const action of [gainFuel, gainMetal]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: initialPlayerView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, targets: null }),
+        })
+      }
+      const deselectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Assert
+      expect(selectedPlayerView.actions).toEqual(
+        expect.arrayContaining([
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainInfluence.id,
+            targets: null,
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: WinTheGame.id,
+            targets: null,
+            canAfford: false,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainEnergy.id,
+            targets: null,
+            canAfford: false,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainFuel.id,
+            targets: { self: player.account.id },
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainMetal.id,
+            targets: { self: player.account.id },
+            canAfford: true,
+          },
+        ]),
+      )
+      expect(selectedPlayerView.actions).toHaveLength(5)
+
+      expect(deselectedPlayerView.actions).toEqual(
+        expect.arrayContaining([
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainInfluence.id,
+            targets: null,
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: WinTheGame.id,
+            targets: null,
+            canAfford: false,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainEnergy.id,
+            targets: null,
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainFuel.id,
+            targets: null,
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainMetal.id,
+            targets: null,
+            canAfford: true,
+          },
+        ]),
+      )
+      expect(deselectedPlayerView.actions).toHaveLength(5)
     })
 
     it("should reject setting an action for a stale turn", async () => {

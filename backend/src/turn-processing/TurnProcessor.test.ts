@@ -8,6 +8,7 @@ import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
@@ -26,7 +27,7 @@ describe("TurnProcessor", () => {
     it("should process all currently due turns before waiting", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -67,7 +68,7 @@ describe("TurnProcessor", () => {
     it("should wait before retrying when the selected turn processing fails", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
@@ -113,7 +114,7 @@ describe("TurnProcessor", () => {
     it("should process the current turn and queue the next one", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       const { api, accountsRepository } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
@@ -155,6 +156,44 @@ describe("TurnProcessor", () => {
       expect(repeatedPlayerView.actions).toEqual(playerView.actions)
     })
 
+    it("should process multiple submitted actions", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      for (const actionDefinitionId of [GainFuel.id, GainMetal.id]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: initialPlayerView.turn,
+          submittedActionTargets: getActionToSubmit(initialPlayerView, actionDefinitionId),
+        })
+      }
+
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+        turn: 1,
+        resources: createResourcesDtoStub({
+          [ResourceType.METAL]: { uncommitted: 5, total: 5 },
+          [ResourceType.FUEL]: { uncommitted: 6, total: 6 },
+        }),
+      })
+    })
+
     it.each([
       { turnInterval: Time.create(100, UnitOfTime.SECONDS), timeIncrement: Time.create(116, UnitOfTime.SECONDS) },
       { turnInterval: Time.create(100, UnitOfTime.MINUTES), timeIncrement: Time.create(103, UnitOfTime.MINUTES) },
@@ -163,7 +202,7 @@ describe("TurnProcessor", () => {
       async ({ turnInterval, timeIncrement }) => {
         // Arrange
         const db = await createDbMock()
-        const clock = new ControlledClock({ startDate: new Date(0) })
+        const clock = new ControlledClock()
         using apiServer = new ApiServer(await createApiStub({ db, clock }))
         const player = await apiServer.createClient({ authenticated: true })
 
@@ -225,7 +264,7 @@ describe("TurnProcessor", () => {
     it("should process only the earliest scheduled turn in one invocation", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -264,7 +303,7 @@ describe("TurnProcessor", () => {
     it("should be able to process the same turn over time", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -293,7 +332,7 @@ describe("TurnProcessor", () => {
     it("should skip turns that are already processing", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -320,7 +359,7 @@ describe("TurnProcessor", () => {
     it("should not process another turn when the selected turn processing fails", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
@@ -359,7 +398,7 @@ describe("TurnProcessor", () => {
     it("should be able to process turns in parallel", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -398,7 +437,7 @@ describe("TurnProcessor", () => {
     it("should do nothing if there are no turns left when processing turns in parallel", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -495,7 +534,7 @@ describe("TurnProcessor", () => {
     it("should not do anything in case of failure", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })

@@ -7,7 +7,7 @@ Partially Implemented
 - [x] Card-like Action Definitions with types and tiers
 - [x] Data-driven Action presentation
 - [x] Per-Turn Available Action pool
-- [ ] Multiple Action selection
+- [x] Multiple Action selection
 - [ ] Ideology-driven Action pools
 
 ## Context
