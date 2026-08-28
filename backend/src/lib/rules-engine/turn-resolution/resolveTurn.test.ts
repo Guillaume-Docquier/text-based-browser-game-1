@@ -1,7 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
-import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
+import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
@@ -17,12 +17,12 @@ describe("resolveTurn", () => {
 
   it("should not resolve the turn when the player cannot afford an Action", () => {
     // Arrange
-    const actionSubmission = createActionSubmissionStub({
+    const submittedAction = createSubmittedActionStub({
       actionDefinitionId: WinTheGame.id,
       targets: { self: playerId },
     })
     const turnState = createTurnStateStub({
-      actionSubmissions: [actionSubmission],
+      submittedActions: [submittedAction],
       players: {
         [playerId]: {
           id: playerId,
@@ -44,26 +44,26 @@ describe("resolveTurn", () => {
         ResolveTurnError.InvalidSubmissions({
           issues: [
             {
-              actionSubmissionId: actionSubmission.id,
+              submittedActionId: submittedAction.id,
               actionDefinitionId: WinTheGame.id,
               // oxlint-disable-next-line typescript/no-non-null-assertion -- It's there
-              actionDefinitionName: StandardRuleset.actionDefinitions[actionSubmission.actionDefinitionId]!.name,
+              actionDefinitionName: StandardRuleset.actionDefinitions[submittedAction.actionDefinitionId]!.name,
               issue: "Missing 7 INFLUENCE",
             },
             {
-              actionSubmissionId: actionSubmission.id,
+              submittedActionId: submittedAction.id,
               actionDefinitionId: WinTheGame.id,
               actionDefinitionName: WinTheGame.name,
               issue: "Missing 3 METAL",
             },
             {
-              actionSubmissionId: actionSubmission.id,
+              submittedActionId: submittedAction.id,
               actionDefinitionId: WinTheGame.id,
               actionDefinitionName: WinTheGame.name,
               issue: "Missing 4 FUEL",
             },
             {
-              actionSubmissionId: actionSubmission.id,
+              submittedActionId: submittedAction.id,
               actionDefinitionId: WinTheGame.id,
               actionDefinitionName: WinTheGame.name,
               issue: "Missing 5 ENERGY",
@@ -76,12 +76,12 @@ describe("resolveTurn", () => {
 
   it("should gain influence", () => {
     // Arrange
-    const actionSubmission = createActionSubmissionStub({
+    const submittedAction = createSubmittedActionStub({
       actionDefinitionId: GainInfluence.id,
       targets: { self: playerId },
     })
     const turnState = createTurnStateStub({
-      actionSubmissions: [actionSubmission],
+      submittedActions: [submittedAction],
       players: {
         [playerId]: {
           id: playerId,
@@ -112,7 +112,7 @@ describe("resolveTurn", () => {
         },
         resolvedActions: [
           {
-            actionSubmission,
+            submittedAction,
             actionOutcomes: [EffectOutcome.Resolved({ result: `Player "${playerId}" gained 5 INFLUENCE` })],
           },
         ],
@@ -125,16 +125,16 @@ describe("resolveTurn", () => {
     // Arrange
     const firstPlayerId = "first-player-id"
     const secondPlayerId = "second-player-id"
-    const firstPlayerActionSubmission = createActionSubmissionStub({
+    const firstPlayerSubmittedAction = createSubmittedActionStub({
       actionDefinitionId: GainInfluence.id,
       targets: { self: firstPlayerId },
     })
-    const secondPlayerActionSubmission = createActionSubmissionStub({
+    const secondPlayerSubmittedAction = createSubmittedActionStub({
       actionDefinitionId: WinTheGame.id,
       targets: { self: secondPlayerId },
     })
     const turnState = createTurnStateStub({
-      actionSubmissions: [firstPlayerActionSubmission, secondPlayerActionSubmission],
+      submittedActions: [firstPlayerSubmittedAction, secondPlayerSubmittedAction],
       players: {
         [firstPlayerId]: {
           id: firstPlayerId,
@@ -178,11 +178,11 @@ describe("resolveTurn", () => {
         },
         resolvedActions: [
           {
-            actionSubmission: firstPlayerActionSubmission,
+            submittedAction: firstPlayerSubmittedAction,
             actionOutcomes: [EffectOutcome.Resolved({ result: `Player "${firstPlayerId}" gained 5 INFLUENCE` })],
           },
           {
-            actionSubmission: secondPlayerActionSubmission,
+            submittedAction: secondPlayerSubmittedAction,
             actionOutcomes: [
               EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 10 INFLUENCE` }),
               EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 5 METAL` }),
@@ -199,12 +199,12 @@ describe("resolveTurn", () => {
 
   it("should win the game when the player can afford it", () => {
     // Arrange
-    const actionSubmission = createActionSubmissionStub({
+    const submittedAction = createSubmittedActionStub({
       actionDefinitionId: WinTheGame.id,
       targets: { self: playerId },
     })
     const turnState = createTurnStateStub({
-      actionSubmissions: [actionSubmission],
+      submittedActions: [submittedAction],
       players: {
         [playerId]: {
           id: playerId,
@@ -232,7 +232,7 @@ describe("resolveTurn", () => {
         },
         resolvedActions: [
           {
-            actionSubmission,
+            submittedAction,
             actionOutcomes: [
               EffectOutcome.Resolved({ result: `Player "${playerId}" spent 10 INFLUENCE` }),
               EffectOutcome.Resolved({ result: `Player "${playerId}" spent 5 METAL` }),

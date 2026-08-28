@@ -1,7 +1,7 @@
 import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { DeepReadonly } from "utility-types"
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
+import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
+import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
 import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
@@ -10,28 +10,28 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
  * Validates that the target slots for the action submission are filled and valid.
  */
 export function validateTargets(
-  actionSubmissions: readonly ActionSubmission[],
+  submittedActions: readonly SubmittedAction[],
   ruleset: Ruleset,
   turnState: DeepReadonly<TurnState>,
-): Result<ActionSubmissionIssue[], string> {
-  const issues: ActionSubmissionIssue[] = []
+): Result<SubmittedActionIssue[], string> {
+  const issues: SubmittedActionIssue[] = []
 
-  for (const actionSubmission of actionSubmissions) {
-    const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+  for (const submittedAction of submittedActions) {
+    const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
     if (actionDefinition === undefined) {
       return Result.Failure(
-        `Cannot validate targets for action submission ${actionSubmission.id}, there is no action definition ${actionSubmission.actionDefinitionId}`,
+        `Cannot validate targets for action submission ${submittedAction.id}, there is no action definition ${submittedAction.actionDefinitionId}`,
       )
     }
 
     const missingTargetSlots = Object.keys(actionDefinition.targets).filter(
-      (targetSlot) => actionSubmission.targets[targetSlot] === undefined,
+      (targetSlot) => submittedAction.targets[targetSlot] === undefined,
     )
     for (const missingTargetSlot of missingTargetSlots) {
       issues.push(
-        ActionSubmissionIssue.create({
+        SubmittedActionIssue.create({
           issue: `Missing target slot "${missingTargetSlot}"`,
-          actionSubmission,
+          submittedAction,
           actionDefinitionName: actionDefinition.name,
         }),
       )
@@ -46,13 +46,13 @@ export function validateTargets(
     )
     allTargetDefinitions.set(TargetDefinitionSelf.tag, TargetDefinitionSelf.type) // Self is always required, even if no mechanic mentions it
 
-    for (const [targetSlot, targetId] of Object.entries(actionSubmission.targets)) {
+    for (const [targetSlot, targetId] of Object.entries(submittedAction.targets)) {
       const issue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
       if (issue !== null) {
         issues.push(
-          ActionSubmissionIssue.create({
+          SubmittedActionIssue.create({
             issue,
-            actionSubmission,
+            submittedAction,
             actionDefinitionName: actionDefinition.name,
           }),
         )

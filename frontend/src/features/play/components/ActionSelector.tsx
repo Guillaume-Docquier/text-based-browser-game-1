@@ -1,4 +1,4 @@
-import type { ActionSubmission, ActionTier, GameId, PlayerView } from "@api-types"
+import type { SubmittedAction, ActionTier, GameId, PlayerView } from "@api-types"
 import { Sort } from "@guillaume-docquier/tools-ts"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
@@ -23,7 +23,7 @@ export function ActionSelector({
 }: {
   gameId: GameId
   playerView: PlayerView
-  currentAction: ActionSubmission | null
+  currentAction: SubmittedAction | null
 }): ReactElement {
   const setCurrentAction = useSetCurrentActionMutation()
 
@@ -47,7 +47,7 @@ export function ActionSelector({
               setCurrentAction.mutate({
                 gameId,
                 turn: playerView.turn,
-                actionSubmission: isSelected ? null : action,
+                submittedAction: isSelected ? null : action,
               })
             }
             return (

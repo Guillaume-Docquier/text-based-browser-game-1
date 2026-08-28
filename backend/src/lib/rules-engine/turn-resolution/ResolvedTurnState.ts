@@ -4,6 +4,6 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 /**
  * The state of the turn after resolution.
  */
-export type ResolvedTurnState = Omit<TurnState, "actionSubmissions"> & {
+export type ResolvedTurnState = Omit<TurnState, "submittedActions"> & {
   readonly resolvedActions: readonly ResolvedAction[]
 }

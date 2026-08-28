@@ -1,5 +1,5 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
-import { and, eq, isNotNull } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
@@ -23,16 +23,14 @@ import {
   turnsTable,
 } from "#lib/db/schema.ts"
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { AvailableAction } from "#lib/rules-engine/available-actions/computeAvailableActions.ts"
+import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
-type NewActionSubmissionRow = typeof actionsTable.$inferInsert
-type ActionSubmissionRow = typeof actionsTable.$inferSelect
+type NewSubmittedActionRow = typeof actionsTable.$inferInsert
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type ResourceRow = typeof resourcesTable.$inferSelect
 type NewTurnRow = typeof turnsTable.$inferInsert
@@ -44,20 +42,27 @@ type NewTurnRow = typeof turnsTable.$inferInsert
  */
 const PLANET_INSERT_BATCH_SIZE = 1_000
 
-export type ActionSubmissionModel = {
-  readonly gameId: GameId
-  readonly turn: number
-  readonly actionSubmission: ActionSubmission
-  readonly updatedAt: Date
-}
+export type ActionSubmissionsForUpdate = Branded<
+  {
+    readonly gameId: GameId
+    readonly playerId: PlayerId
+    readonly turn: number
+    readonly resources: Record<ResourceType, number>
+    readonly actions: Action[]
+    readonly ruleset: Ruleset
+  },
+  "ActionsForSubmission"
+>
 
-/**
- * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
- */
-export type ActionContextModel = {
-  readonly turn: number
-  readonly resources: Record<ResourceType, number>
-  readonly ruleset: Ruleset
+export type UpdateActionSubmissionsModel = {
+  /**
+   * The ActionsForSubmission must be acquired in the same transaction.
+   */
+  readonly context: ActionSubmissionsForUpdate
+  /**
+   * The actions to update, can be newly selected, target updates or de-selected.
+   */
+  readonly actions: Array<Pick<Action, "id" | "targets">>
 }
 
 type PlayerViewPlayerModel = {
@@ -78,7 +83,7 @@ export type PlayerViewModel = {
    */
   readonly actions: ReadonlyArray<{
     readonly id: string
-    readonly actionDefinitionId: ActionSubmission["actionDefinitionId"]
+    readonly actionDefinitionId: SubmittedAction["actionDefinitionId"]
     readonly targets: ResolvedTargets | null
   }>
   readonly ruleset: Ruleset
@@ -90,7 +95,7 @@ export type PlayerViewModel = {
  */
 export type GameForStart = Branded<
   {
-    readonly id: GameId
+    readonly gameId: GameId
     readonly createdByAccountId: AccountId
     readonly mapGenerationSeed: number
     readonly status: GameStatus
@@ -105,7 +110,7 @@ export type StartGameModel = {
   /**
    * The GameForStart must be acquired in the same transaction
    */
-  readonly game: GameForStart
+  readonly context: GameForStart
   readonly status: GameStatus
   readonly startedAt: Date
   readonly nextTurnAt: Date
@@ -211,7 +216,7 @@ export class GameplayRepository extends PostgresRepository {
 
     return Result.Success(
       branded<GameForStart>({
-        id: gameForStart.id,
+        gameId: gameForStart.id,
         createdByAccountId: gameForStart.createdByAccountId,
         mapGenerationSeed: gameForStart.mapGenerationSeed,
         status: gameForStart.status,
@@ -227,7 +232,7 @@ export class GameplayRepository extends PostgresRepository {
    */
   public async startGame(startGameModel: StartGameModel, tx: Transaction): Promise<void> {
     const gameState = {
-      gameId: startGameModel.game.id,
+      gameId: startGameModel.context.gameId,
       turn: 0,
       nextTurnAt: startGameModel.nextTurnAt,
       rngGeneratorState: startGameModel.rngState.generatorState,
@@ -235,28 +240,28 @@ export class GameplayRepository extends PostgresRepository {
     } as const satisfies NewGameStateRow
 
     const gameTurn: NewTurnRow = {
-      gameId: startGameModel.game.id,
+      gameId: startGameModel.context.gameId,
       turn: gameState.turn,
       scheduledFor: startGameModel.nextTurnAt,
     }
 
     const resources: NewResourceRow[] = startGameModel.playerResources.map((playerResource) => ({
       ...playerResource,
-      gameId: startGameModel.game.id,
+      gameId: startGameModel.context.gameId,
     }))
-    const availableActions: NewActionSubmissionRow[] = startGameModel.actions.map((availableAction) => ({
+    const availableActions: NewSubmittedActionRow[] = startGameModel.actions.map((availableAction) => ({
       ...availableAction,
-      gameId: startGameModel.game.id,
+      gameId: startGameModel.context.gameId,
       turn: gameState.turn,
       targets: null,
     }))
     const stars = startGameModel.galaxy.systems.map(({ star }) => ({
-      gameId: startGameModel.game.id,
+      gameId: startGameModel.context.gameId,
       ...star,
     }))
     const planets = startGameModel.galaxy.systems.flatMap(({ star, planets: systemPlanets }) =>
       systemPlanets.map((planet) => ({
-        gameId: startGameModel.game.id,
+        gameId: startGameModel.context.gameId,
         starId: star.id,
         ...planet,
       })),
@@ -265,7 +270,7 @@ export class GameplayRepository extends PostgresRepository {
     const updatedGames = await tx
       .update(gamesTable)
       .set({ startedAt: startGameModel.startedAt, status: startGameModel.status })
-      .where(and(eq(gamesTable.id, startGameModel.game.id)))
+      .where(and(eq(gamesTable.id, startGameModel.context.gameId)))
       .returning({ id: gamesTable.id })
     Assert.isTrue(updatedGames.length === 1)
 
@@ -346,166 +351,49 @@ export class GameplayRepository extends PostgresRepository {
     return playerViewResult
   }
 
-  /**
-   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
-   */
-  public async getCurrentAction(
-    params: { gameId: GameId; playerId: PlayerId; turn: number },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<ActionSubmissionModel | null, string>> {
-    const getResult = await Result.tryCatch(
-      db
-        .select()
-        .from(actionsTable)
-        .where(
-          and(
-            eq(actionsTable.gameId, params.gameId),
-            eq(actionsTable.playerId, params.playerId),
-            eq(actionsTable.turn, params.turn),
-            isNotNull(actionsTable.targets),
-          ),
-        ),
-    )
-
-    if (Result.isFailure(getResult)) {
-      this.logger.error("Could not get action", { ...params, error: getResult.error })
-      return Result.Failure(couldNot("get action"))
+  public async getActionSubmissionsForUpdate(
+    { gameId, playerId, turn }: { gameId: GameId; playerId: PlayerId; turn: number },
+    tx: Transaction,
+  ): Promise<ActionSubmissionsForUpdate> {
+    const games = await tx
+      .select({ id: gamesTable.id })
+      .from(gamesTable)
+      .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.COLLECTING_ACTIONS)))
+      .for("no key update")
+    if (games.length !== 1) {
+      throw new TransactionRollback("Cannot submit actions in the current game status")
     }
 
-    Assert.isTrue(getResult.value.length <= 1)
-    return Result.Success(getResult.value[0] === undefined ? null : toActionSubmissionModel(getResult.value[0]))
+    const resourceRows = await tx
+      .select()
+      .from(resourcesTable)
+      .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
+
+    const actions = await tx
+      .select()
+      .from(actionsTable)
+      .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn)))
+
+    return branded<ActionSubmissionsForUpdate>({
+      gameId,
+      playerId,
+      turn,
+      resources: toResourceBag(resourceRows),
+      actions,
+      ruleset: StandardRuleset, // Eventually should be stored in DB
+    })
   }
 
-  /**
-   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
-   */
-  public async getActionContext(
-    params: { gameId: GameId; playerId: PlayerId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<ActionContextModel, string>> {
-    const contextResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
-        await lockGameCollectingActions({ gameId: params.gameId }, tx)
+  // oxlint-disable-next-line no-unused-vars -- context is required here as a proof that these actions can be updated, because to get the context you had to check. It's not a super strong enforcement, but the spirit is there.
+  public async updateActionSubmissions({ context, actions }: UpdateActionSubmissionsModel, tx: Transaction): Promise<void> {
+    const updatedAt = this.clock.now()
 
-        const joinedPlayers = await tx
-          .select({ playerId: playersTable.playerId })
-          .from(playersTable)
-          .where(and(eq(playersTable.gameId, params.gameId), eq(playersTable.playerId, params.playerId)))
-        if (joinedPlayers.length !== 1) {
-          throw new TransactionRollback("Player is not in this game.")
-        }
-
-        const gameStates = await tx
-          .select({ turn: gameStatesTable.turn })
-          .from(gameStatesTable)
-          .where(eq(gameStatesTable.gameId, params.gameId))
-        if (gameStates.length !== 1) {
-          throw new TransactionRollback("Game state does not exist.")
-        }
-        Assert.isDefined(gameStates[0])
-
-        const resourceRows = await tx
-          .select()
-          .from(resourcesTable)
-          .where(and(eq(resourcesTable.gameId, params.gameId), eq(resourcesTable.playerId, params.playerId)))
-
-        return {
-          turn: gameStates[0].turn,
-          resources: toResourceBag(resourceRows),
-          ruleset: StandardRuleset, // Eventually should be stored in DB
-        }
-      }),
+    // Not super great, drizzle doesn't support batch updates very well, could use sql statements probably
+    await Promise.all(
+      actions.map(
+        async (action) => await tx.update(actionsTable).set({ targets: action.targets, updatedAt }).where(eq(actionsTable.id, action.id)),
+      ),
     )
-
-    if (Result.isFailure(contextResult)) {
-      this.logger.error("Could not get player action context", { ...params, error: contextResult.error })
-      return Result.Failure(couldNot("get player action context"))
-    }
-
-    return contextResult
-  }
-
-  /**
-   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
-   */
-  public async setCurrentAction(
-    params: { gameId: GameId; turn: number; actionSubmission: ActionSubmission },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<ActionSubmissionModel, string>> {
-    const upsertResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
-        await lockGameCollectingActions({ gameId: params.gameId }, tx)
-
-        const updatedAt = this.clock.now()
-        await tx
-          .update(actionsTable)
-          .set({ targets: null, updatedAt })
-          .where(
-            and(
-              eq(actionsTable.gameId, params.gameId),
-              eq(actionsTable.playerId, params.actionSubmission.playerId),
-              eq(actionsTable.turn, params.turn),
-              isNotNull(actionsTable.targets),
-            ),
-          )
-
-        const actionSubmissions = await tx
-          .update(actionsTable)
-          .set({ targets: params.actionSubmission.targets, updatedAt })
-          .where(
-            and(
-              eq(actionsTable.id, params.actionSubmission.id),
-              eq(actionsTable.gameId, params.gameId),
-              eq(actionsTable.playerId, params.actionSubmission.playerId),
-              eq(actionsTable.turn, params.turn),
-              eq(actionsTable.actionDefinitionId, params.actionSubmission.actionDefinitionId),
-            ),
-          )
-          .returning()
-
-        if (actionSubmissions.length !== 1) {
-          throw new TransactionRollback("Action is not available for this player and Turn.")
-        }
-        Assert.isDefined(actionSubmissions[0])
-
-        return toActionSubmissionModel(actionSubmissions[0])
-      }),
-    )
-
-    if (Result.isFailure(upsertResult)) {
-      this.logger.error("Could not select action", { ...params, error: upsertResult.error })
-      return Result.Failure(couldNot("select action"))
-    }
-
-    return upsertResult
-  }
-
-  /**
-   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
-   */
-  public async clearCurrentAction(
-    params: { gameId: GameId; playerId: PlayerId; turn: number },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<true, string>> {
-    const clearResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
-        await lockGameCollectingActions({ gameId: params.gameId }, tx)
-
-        await tx
-          .update(actionsTable)
-          .set({ targets: null, updatedAt: this.clock.now() })
-          .where(
-            and(eq(actionsTable.gameId, params.gameId), eq(actionsTable.playerId, params.playerId), eq(actionsTable.turn, params.turn)),
-          )
-      }),
-    )
-
-    if (Result.isFailure(clearResult)) {
-      this.logger.error("Could not clear action", { ...params, error: clearResult.error })
-      return Result.Failure(couldNot("clear action"))
-    }
-
-    return Result.Success(true)
   }
 }
 
@@ -517,26 +405,6 @@ function toResourceBag(resourceRows: readonly ResourceRow[]): Record<ResourceTyp
 
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot infer Object.fromEntries completeness.
   return Object.fromEntries(entries) as Record<ResourceType, number>
-}
-
-function toActionSubmissionModel(row: ActionSubmissionRow): ActionSubmissionModel {
-  return {
-    gameId: row.gameId,
-    turn: row.turn,
-    actionSubmission: toActionSubmission(row),
-    updatedAt: row.updatedAt,
-  }
-}
-
-function toActionSubmission(row: ActionSubmissionRow): ActionSubmission {
-  Assert.isDefined(row.targets)
-
-  return {
-    id: row.id,
-    playerId: row.playerId,
-    actionDefinitionId: row.actionDefinitionId,
-    targets: row.targets,
-  }
 }
 
 function toGalaxyModel({
@@ -553,19 +421,4 @@ function toGalaxyModel({
   }))
 
   return { systems }
-}
-
-/**
- * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
- */
-async function lockGameCollectingActions({ gameId }: { gameId: GameId }, db: PostgresRepository["db"]): Promise<void> {
-  const games = await db
-    .select({ id: gamesTable.id })
-    .from(gamesTable)
-    .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.COLLECTING_ACTIONS)))
-    .for("no key update")
-
-  if (games.length !== 1) {
-    throw new TransactionRollback("Cannot submit actions in the current game status")
-  }
 }

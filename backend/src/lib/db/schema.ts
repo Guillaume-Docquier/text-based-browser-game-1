@@ -159,6 +159,9 @@ export const actionsTable = pgTable(
     playerId: playerId("player_id").notNull(),
     turn: integer("turn").notNull(),
     actionDefinitionId: text("action_definition_id").notNull(),
+    /**
+     * non-null when selected, empty object ({}) if the action is selected and has no targets at all
+     */
     targets: jsonb("targets").$type<ResolvedTargets>(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -168,6 +171,7 @@ export const actionsTable = pgTable(
       foreignColumns: [playersTable.gameId, playersTable.playerId],
       name: "actions_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
+    index().on(table.gameId, table.playerId, table.turn),
   ],
 )
 

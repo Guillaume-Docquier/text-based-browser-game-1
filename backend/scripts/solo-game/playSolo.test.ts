@@ -20,7 +20,7 @@ describe("playSolo", () => {
     const selections: SoloGameSelection[] = [
       { command: "ADD_ACTION", actionDefinitionId: WinTheGame.id },
       { command: "SUBMIT_TURN" },
-      { command: "REMOVE_ACTION", actionSubmissionId: "turn-1-WIN_THE_GAME-1" },
+      { command: "REMOVE_ACTION", submittedActionId: "turn-1-WIN_THE_GAME-1" },
       { command: "ADD_ACTION", actionDefinitionId: GainInfluence.id },
       { command: "ADD_ACTION", actionDefinitionId: GainInfluence.id },
       { command: "ADD_ACTION", actionDefinitionId: GainInfluence.id },
@@ -79,7 +79,7 @@ describe("playSolo", () => {
     expect(session).toEqual({
       turn: 4,
       state: {
-        actionSubmissions: [],
+        submittedActions: [],
         players: {
           "solo-player": {
             id: "solo-player",

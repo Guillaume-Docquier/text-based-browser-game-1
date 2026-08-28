@@ -1,4 +1,4 @@
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
 
 /**
@@ -8,7 +8,7 @@ export type ResolvedAction = Readonly<{
   /**
    * The original action submission
    */
-  actionSubmission: ActionSubmission
+  submittedAction: SubmittedAction
   /**
    * Every outcome related to the action submission
    */

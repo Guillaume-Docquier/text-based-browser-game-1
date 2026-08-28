@@ -56,7 +56,7 @@ type PlayerForJoin = {
  */
 export type LobbyForJoin = Branded<
   {
-    readonly id: GameId
+    readonly gameId: GameId
     readonly status: GameStatus
     readonly nbSeats: number
     readonly players: readonly PlayerForJoin[]
@@ -68,7 +68,7 @@ export type JoinLobbyModel = {
   /**
    * The LobbyForJoin must be acquired in the same transaction.
    */
-  readonly lobby: LobbyForJoin
+  readonly context: LobbyForJoin
   readonly accountId: AccountId
   readonly color: PlayerColor
   readonly status: typeof GameStatus.WAITING_FOR_PLAYERS | typeof GameStatus.READY_TO_START
@@ -80,7 +80,7 @@ export type JoinLobbyModel = {
  */
 export type LobbyForLeave = Branded<
   {
-    readonly id: GameId
+    readonly gameId: GameId
     readonly status: GameStatus
     readonly createdByAccountId: AccountId
     readonly playerIds: readonly PlayerId[]
@@ -92,7 +92,7 @@ export type LeaveLobbyModel = {
   /**
    * The LobbyForLeave must be acquired in the same transaction.
    */
-  readonly lobby: LobbyForLeave
+  readonly context: LobbyForLeave
   readonly accountId: AccountId
   readonly status: typeof GameStatus.WAITING_FOR_PLAYERS
 }
@@ -171,7 +171,7 @@ export class LobbiesRepository extends PostgresRepository {
 
   public async getLobbyForJoin({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyForJoin, string>> {
     const games = await tx
-      .select({ id: gamesTable.id, status: gamesTable.status, nbSeats: gamesTable.nbSeats })
+      .select({ gameId: gamesTable.id, status: gamesTable.status, nbSeats: gamesTable.nbSeats })
       .from(gamesTable)
       .where(eq(gamesTable.id, gameId))
       .for("no key update")
@@ -201,13 +201,13 @@ export class LobbiesRepository extends PostgresRepository {
   /**
    * The only failure mode for this method is throwing to rollback the transaction.
    */
-  public async joinLobby({ lobby, accountId, color, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
-    const gamePlayers = await tx.insert(playersTable).values({ gameId: lobby.id, playerId: accountId, color }).returning()
+  public async joinLobby({ context, accountId, color, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
+    const gamePlayers = await tx.insert(playersTable).values({ gameId: context.gameId, playerId: accountId, color }).returning()
     Assert.isTrue(gamePlayers.length === 1)
     Assert.isDefined(gamePlayers[0])
 
-    if (status !== lobby.status) {
-      const updatedGames = await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, lobby.id)).returning()
+    if (status !== context.status) {
+      const updatedGames = await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, context.gameId)).returning()
       Assert.isTrue(updatedGames.length === 1)
     }
 
@@ -216,7 +216,7 @@ export class LobbiesRepository extends PostgresRepository {
 
   public async getLobbyForLeave({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyForLeave, string>> {
     const games = await tx
-      .select({ id: gamesTable.id, status: gamesTable.status, createdByAccountId: gamesTable.createdByAccountId })
+      .select({ gameId: gamesTable.id, status: gamesTable.status, createdByAccountId: gamesTable.createdByAccountId })
       .from(gamesTable)
       .where(eq(gamesTable.id, gameId))
       .for("no key update")
@@ -240,15 +240,15 @@ export class LobbiesRepository extends PostgresRepository {
   /**
    * The only failure mode for this method is throwing to rollback the transaction.
    */
-  public async leaveLobby({ lobby, accountId, status }: LeaveLobbyModel, tx: Transaction): Promise<void> {
+  public async leaveLobby({ context, accountId, status }: LeaveLobbyModel, tx: Transaction): Promise<void> {
     const deletedPlayers = await tx
       .delete(playersTable)
-      .where(and(eq(playersTable.gameId, lobby.id), eq(playersTable.playerId, accountId)))
+      .where(and(eq(playersTable.gameId, context.gameId), eq(playersTable.playerId, accountId)))
       .returning()
     Assert.isTrue(deletedPlayers.length === 1)
 
-    if (status !== lobby.status) {
-      const updatedGames = await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, lobby.id)).returning()
+    if (status !== context.status) {
+      const updatedGames = await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, context.gameId)).returning()
       Assert.isTrue(updatedGames.length === 1)
     }
   }

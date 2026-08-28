@@ -9,15 +9,14 @@ import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import type { AvailableAction } from "#lib/rules-engine/available-actions/computeAvailableActions.ts"
+import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
-type ActionSubmissionRow = typeof actionsTable.$inferSelect
+type SubmittedActionRow = typeof actionsTable.$inferSelect
 
 /**
  * Owning a TurnForProcessing within a transaction guarantees that the turn and the game are locked, exist and need processing at this time.
@@ -46,7 +45,7 @@ export type TurnToProcessModel = {
   readonly scheduledFor: Date
   readonly turnInterval: Time
   readonly rngState: RngState<number>
-  readonly actionSubmissions: ActionSubmission[]
+  readonly submittedActions: SubmittedAction[]
   readonly players: Record<
     PlayerId,
     {
@@ -163,7 +162,7 @@ export class TurnsRepository extends PostgresRepository {
       Assert.isTrue(games.length === 1)
       Assert.isDefined(games[0])
 
-      const [gameStates, players, resources, actionSubmissions] = await Promise.all([
+      const [gameStates, players, resources, submittedActions] = await Promise.all([
         tx
           .select({
             rngGeneratorState: gameStatesTable.rngGeneratorState,
@@ -202,7 +201,7 @@ export class TurnsRepository extends PostgresRepository {
         },
         players,
         resources,
-        actionSubmissions,
+        submittedActions,
       })
     })
 
@@ -336,7 +335,7 @@ function toTurnToProcessModel({
   rngState,
   players,
   resources,
-  actionSubmissions,
+  submittedActions,
 }: {
   turnForProcessing: TurnForProcessing
   scheduledFor: Date
@@ -344,7 +343,7 @@ function toTurnToProcessModel({
   rngState: RngState<number>
   players: PlayerRow[]
   resources: ResourceRow[]
-  actionSubmissions: ActionSubmissionRow[]
+  submittedActions: SubmittedActionRow[]
 }): TurnToProcessModel {
   const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
 
@@ -353,7 +352,7 @@ function toTurnToProcessModel({
     scheduledFor,
     turnInterval,
     rngState,
-    actionSubmissions: actionSubmissions.flatMap(({ id, playerId, actionDefinitionId, targets }) =>
+    submittedActions: submittedActions.flatMap(({ id, playerId, actionDefinitionId, targets }) =>
       targets === null ? [] : [{ id, playerId, actionDefinitionId, targets }],
     ),
     players: players.reduce<TurnToProcessModel["players"]>((playersById, { playerId }) => {

@@ -1,7 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { DeepReadonly } from "utility-types"
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
-import { ActionSubmissionIssue } from "#lib/rules-engine/action-submission/validation/ActionSubmissionIssue.ts"
+import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
+import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
@@ -9,28 +9,26 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
  * Validates that all the action submission costs can be paid.
  */
 export function validateCosts(
-  actionSubmissions: readonly ActionSubmission[],
+  submittedActions: readonly SubmittedAction[],
   ruleset: Ruleset,
   turnState: DeepReadonly<TurnState>,
-): Result<ActionSubmissionIssue[], string> {
+): Result<SubmittedActionIssue[], string> {
   const turnStateCopy = structuredClone(turnState) as TurnState
-  const issues: ActionSubmissionIssue[] = []
+  const issues: SubmittedActionIssue[] = []
 
-  for (const actionSubmission of actionSubmissions) {
-    const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+  for (const submittedAction of submittedActions) {
+    const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
     if (actionDefinition === undefined) {
       return Result.Failure(
-        `Cannot validate costs for action submission ${actionSubmission.id}, there is no action definition ${actionSubmission.actionDefinitionId}`,
+        `Cannot validate costs for action submission ${submittedAction.id}, there is no action definition ${submittedAction.actionDefinitionId}`,
       )
     }
 
-    const targets = actionSubmission.targets
+    const targets = submittedAction.targets
 
     const player = turnStateCopy.players[targets.self]
     if (player === undefined) {
-      return Result.Failure(
-        `Cannot validate costs for action submission ${actionSubmission.id}, there is no player with id ${targets.self}`,
-      )
+      return Result.Failure(`Cannot validate costs for action submission ${submittedAction.id}, there is no player with id ${targets.self}`)
     }
 
     for (const resource in player.resources) {
@@ -52,9 +50,9 @@ export function validateCosts(
       ...Object.entries(player.resources)
         .filter(([_, resourceCount]) => resourceCount < 0)
         .map(([resourceType, resourceCount]) =>
-          ActionSubmissionIssue.create({
+          SubmittedActionIssue.create({
             issue: `Missing ${Math.abs(resourceCount)} ${resourceType}`,
-            actionSubmission,
+            submittedAction,
             actionDefinitionName: actionDefinition.name,
           }),
         ),

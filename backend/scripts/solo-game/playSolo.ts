@@ -30,7 +30,7 @@ const UiStyle = {
 /** A command selected from the interactive solo-game prompt. */
 export type SoloGameSelection =
   | { readonly command: "ADD_ACTION"; readonly actionDefinitionId: string }
-  | { readonly command: "REMOVE_ACTION"; readonly actionSubmissionId: string }
+  | { readonly command: "REMOVE_ACTION"; readonly submittedActionId: string }
   | { readonly command: "SUBMIT_TURN" }
   | { readonly command: "QUIT" }
 
@@ -83,7 +83,7 @@ export async function playSolo({
   },
 }: PlaySoloOptions): Promise<SoloGameSession> {
   const session = createSoloGameSession(ruleset)
-  let nextActionSubmissionNumber = 1
+  let nextSubmittedActionNumber = 1
   let highlightedChoiceIndex = 0
   let turnResolutionError: ResolveTurnError | undefined
 
@@ -107,12 +107,12 @@ export async function playSolo({
 
     switch (selection.command) {
       case "ADD_ACTION":
-        addAction(session, selection.actionDefinitionId, nextActionSubmissionNumber, ruleset)
-        nextActionSubmissionNumber += 1
+        addAction(session, selection.actionDefinitionId, nextSubmittedActionNumber, ruleset)
+        nextSubmittedActionNumber += 1
         turnResolutionError = undefined
         break
       case "REMOVE_ACTION":
-        removeAction(session, selection.actionSubmissionId)
+        removeAction(session, selection.submittedActionId)
         turnResolutionError = undefined
         break
       case "SUBMIT_TURN": {
@@ -126,7 +126,7 @@ export async function playSolo({
         submittedTurn.state.winnerPlayerId = result.value.winnerPlayerId
         writeResolvedTurn(submittedTurn, result.value.resolvedActions, ruleset, writeLine)
         session.state = {
-          actionSubmissions: [],
+          submittedActions: [],
           players: result.value.players,
           winnerPlayerId: result.value.winnerPlayerId,
         }
@@ -153,7 +153,7 @@ function createSoloGameSession(ruleset: Ruleset): SoloGameSession {
   return {
     turn: 1,
     state: {
-      actionSubmissions: [],
+      submittedActions: [],
       players: {
         [SOLO_PLAYER_ID]: {
           id: SOLO_PLAYER_ID,
@@ -195,7 +195,7 @@ function getSelectionKey(selection: SoloGameSelection): string {
     case "ADD_ACTION":
       return `${selection.command}:${selection.actionDefinitionId}`
     case "REMOVE_ACTION":
-      return `${selection.command}:${selection.actionSubmissionId}`
+      return `${selection.command}:${selection.submittedActionId}`
     case "SUBMIT_TURN":
     case "QUIT":
       return selection.command
@@ -215,8 +215,8 @@ function createChoices(session: SoloGameSession, ruleset: Ruleset): SoloGameChoi
     },
   }))
   const actionCounts = new Map<string, number>()
-  const removeActionChoices = session.state.actionSubmissions.map((actionSubmission) => {
-    const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+  const removeActionChoices = session.state.submittedActions.map((submittedAction) => {
+    const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
     Assert.isDefined(actionDefinition)
     const actionCount = (actionCounts.get(actionDefinition.id) ?? 0) + 1
     actionCounts.set(actionDefinition.id, actionCount)
@@ -225,7 +225,7 @@ function createChoices(session: SoloGameSession, ruleset: Ruleset): SoloGameChoi
       name: UiStyle.warning(`− #${actionCount} ${actionDefinition.name}`),
       value: {
         command: "REMOVE_ACTION" as const,
-        actionSubmissionId: actionSubmission.id,
+        submittedActionId: submittedAction.id,
       },
     }
   })
@@ -233,7 +233,7 @@ function createChoices(session: SoloGameSession, ruleset: Ruleset): SoloGameChoi
   return [
     {
       name: UiStyle.accent(`▶ Resolve Turn ${session.turn}`),
-      description: `${session.state.actionSubmissions.length} selected ${session.state.actionSubmissions.length === 1 ? "action" : "actions"} will be submitted to the rules engine`,
+      description: `${session.state.submittedActions.length} selected ${session.state.submittedActions.length === 1 ? "action" : "actions"} will be submitted to the rules engine`,
       value: { command: "SUBMIT_TURN" },
     },
     ...addActionChoices,
@@ -246,17 +246,17 @@ function createChoices(session: SoloGameSession, ruleset: Ruleset): SoloGameChoi
   ]
 }
 
-function addAction(session: SoloGameSession, actionDefinitionId: string, actionSubmissionNumber: number, ruleset: Ruleset): void {
+function addAction(session: SoloGameSession, actionDefinitionId: string, submittedActionNumber: number, ruleset: Ruleset): void {
   const player = getSoloPlayer(session)
   const actionDefinition = ruleset.actionDefinitions[actionDefinitionId]
   Assert.isDefined(actionDefinition)
 
   session.state = {
     ...session.state,
-    actionSubmissions: [
-      ...session.state.actionSubmissions,
+    submittedActions: [
+      ...session.state.submittedActions,
       {
-        id: `turn-${session.turn}-${actionDefinition.id}-${actionSubmissionNumber}`,
+        id: `turn-${session.turn}-${actionDefinition.id}-${submittedActionNumber}`,
         playerId: player.id,
         actionDefinitionId: actionDefinition.id,
         targets: {
@@ -267,14 +267,14 @@ function addAction(session: SoloGameSession, actionDefinitionId: string, actionS
   }
 }
 
-function removeAction(session: SoloGameSession, actionSubmissionId: string): void {
-  const actionSubmissions = session.state.actionSubmissions
-  const actionSubmissionIndex = actionSubmissions.findIndex((actionSubmission) => actionSubmission.id === actionSubmissionId)
-  Assert.isTrue(actionSubmissionIndex >= 0)
+function removeAction(session: SoloGameSession, submittedActionId: string): void {
+  const submittedActions = session.state.submittedActions
+  const submittedActionIndex = submittedActions.findIndex((submittedAction) => submittedAction.id === submittedActionId)
+  Assert.isTrue(submittedActionIndex >= 0)
 
   session.state = {
     ...session.state,
-    actionSubmissions: actionSubmissions.filter((_, index) => index !== actionSubmissionIndex),
+    submittedActions: submittedActions.filter((_, index) => index !== submittedActionIndex),
   }
 }
 
@@ -304,23 +304,23 @@ function formatTurnDashboard(session: SoloGameSession, dashboardState: TurnDashb
   lines.push(...createPanel("EMPIRE STATE", resourceLines, "blue"), "")
 
   const actionLines: string[] = []
-  if (session.state.actionSubmissions.length === 0) {
+  if (session.state.submittedActions.length === 0) {
     actionLines.push(UiStyle.muted("No orders selected"))
   } else {
-    for (const [index, actionSubmission] of session.state.actionSubmissions.entries()) {
-      const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+    for (const [index, submittedAction] of session.state.submittedActions.entries()) {
+      const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
       Assert.isDefined(actionDefinition)
       const orderNumber = (index + 1).toString().padStart(2, "0")
       actionLines.push(`${UiStyle.action(orderNumber)}  ${styleText("bold", actionDefinition.name)}`)
 
       if (dashboardState.status === "resolved") {
-        const resolvedAction = dashboardState.resolvedActions.find((candidate) => candidate.actionSubmission.id === actionSubmission.id)
+        const resolvedAction = dashboardState.resolvedActions.find((candidate) => candidate.submittedAction.id === submittedAction.id)
         Assert.isDefined(resolvedAction)
         actionLines.push(...resolvedAction.actionOutcomes.map((outcome) => `    ${formatActionOutcome(outcome)}`))
       }
     }
   }
-  const actionPanelTitle = `${isOpen ? "SELECTED ACTIONS" : "SUBMITTED ACTIONS"}  ·  ${session.state.actionSubmissions.length}`
+  const actionPanelTitle = `${isOpen ? "SELECTED ACTIONS" : "SUBMITTED ACTIONS"}  ·  ${session.state.submittedActions.length}`
   lines.push(...createPanel(actionPanelTitle, actionLines, "magenta"))
 
   if (session.state.winnerPlayerId !== undefined) {

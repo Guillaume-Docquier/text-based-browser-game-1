@@ -1,8 +1,10 @@
 import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
+import { type SubmittedActionTargetsDto } from "#api/gameplay/gameplay.controller.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
+import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
@@ -128,7 +130,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: getAvailableAction(initialPlayerView, GainInfluence.id),
+        submittedActionTargets: getActionToSubmit(initialPlayerView, GainInfluence.id),
       })
 
       // Act
@@ -147,10 +149,10 @@ describe("TurnProcessor", () => {
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
         }),
-        availableActions: expect.any(Array),
+        actions: expect.any(Array),
       })
-      expect(playerView.availableActions.map(({ id }) => id)).not.toEqual(initialPlayerView.availableActions.map(({ id }) => id))
-      expect(repeatedPlayerView.availableActions).toEqual(playerView.availableActions)
+      expect(playerView.actions.map(({ id }) => id)).not.toEqual(initialPlayerView.actions.map(({ id }) => id))
+      expect(repeatedPlayerView.actions).toEqual(playerView.actions)
     })
 
     it.each([
@@ -202,7 +204,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: getAvailableAction(initialPlayerView, GainMetal.id),
+        submittedActionTargets: getActionToSubmit(initialPlayerView, GainMetal.id),
       })
       Assert.isSuccess(
         await resourcesRepository.updateResource({
@@ -455,7 +457,7 @@ describe("TurnProcessor", () => {
         await player.client.gameplay.setCurrentAction.mutate({
           gameId: createdGameId,
           turn: 0,
-          actionSubmission: getAvailableAction(playerView, WinTheGame.id),
+          submittedActionTargets: getActionToSubmit(playerView, WinTheGame.id),
         })
       }
 
@@ -479,7 +481,7 @@ describe("TurnProcessor", () => {
           [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
         },
       })
-      expect(creatorView.availableActions).toHaveLength(5)
+      expect(creatorView.actions).toHaveLength(5)
 
       const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(joinerView).toMatchObject({
@@ -507,7 +509,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.setCurrentAction.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: getAvailableAction(playerView, GainInfluence.id),
+        submittedActionTargets: getActionToSubmit(playerView, GainInfluence.id),
       })
 
       const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId: createdGameId })
@@ -541,13 +543,16 @@ describe("TurnProcessor", () => {
   })
 })
 
-function getAvailableAction<TPlayerView extends { availableActions: ReadonlyArray<{ actionDefinitionId: string }> }>(
-  playerView: TPlayerView,
-  actionDefinitionId: string,
-): TPlayerView["availableActions"][number] {
-  const action = playerView.availableActions.find((availableAction) => availableAction.actionDefinitionId === actionDefinitionId)
+/**
+ * @deprecated This is not very good, some actions will require real targets and this won't be the way
+ */
+function getActionToSubmit(playerView: PlayerView, actionDefinitionId: string): SubmittedActionTargetsDto {
+  const action = playerView.actions.find((availableAction) => availableAction.actionDefinitionId === actionDefinitionId)
   Assert.isDefined(action)
-  return action
+  return {
+    actionId: action.id,
+    targets: { self: playerView.player.id }, // bad
+  }
 }
 
 class FailingTurnsRepository extends TurnsRepository {

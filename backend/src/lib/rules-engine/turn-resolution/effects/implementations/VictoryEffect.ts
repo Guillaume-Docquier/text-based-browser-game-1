@@ -1,5 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { EffectError } from "#lib/rules-engine/turn-resolution/effects/EffectError.ts"
@@ -9,9 +9,9 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
 export class VictoryEffect extends Effect {
   private readonly targetPlayerId: string
 
-  public constructor(id: number, mechanic: VictoryMechanic, actionSubmission: ActionSubmission) {
-    super(id, mechanic.type, actionSubmission)
-    this.targetPlayerId = actionSubmission.targets[mechanic.targets.player.tag]
+  public constructor(id: number, mechanic: VictoryMechanic, submittedAction: SubmittedAction) {
+    super(id, mechanic.type, submittedAction)
+    this.targetPlayerId = submittedAction.targets[mechanic.targets.player.tag]
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {

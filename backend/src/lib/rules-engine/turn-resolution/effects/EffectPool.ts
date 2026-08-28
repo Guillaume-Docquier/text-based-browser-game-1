@@ -1,4 +1,4 @@
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 import { type Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import { type EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
@@ -10,7 +10,7 @@ export class EffectPool {
   private readonly effects: Set<Effect>
 
   // maybe this shouldn't live in the effect pool
-  private readonly outcomes = new Map<ActionSubmission, EffectOutcome[]>()
+  private readonly outcomes = new Map<SubmittedAction, EffectOutcome[]>()
 
   public constructor(effects: Effect[]) {
     this.effects = new Set(effects)
@@ -39,10 +39,10 @@ export class EffectPool {
 
   public recordOutcome(effect: Effect, outcome: EffectOutcome): void {
     this.effects.delete(effect)
-    this.outcomes.getOrInsert(effect.actionSubmission, []).push(outcome)
+    this.outcomes.getOrInsert(effect.submittedAction, []).push(outcome)
   }
 
-  public getOutcomes(actionSubmission: ActionSubmission): readonly EffectOutcome[] {
-    return this.outcomes.getOrInsert(actionSubmission, [])
+  public getOutcomes(submittedAction: SubmittedAction): readonly EffectOutcome[] {
+    return this.outcomes.getOrInsert(submittedAction, [])
   }
 }

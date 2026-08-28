@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
-import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
+import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
+import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
@@ -23,18 +23,18 @@ const ruleset = createRulesetStub({
   }),
 })
 
-describe("validateActionSubmissions", () => {
+describe("validateSubmittedActions", () => {
   it("should not mutate the turnState", () => {
     // Arrange
     const playerId = "player-id"
-    const actionSubmission = createActionSubmissionStub({
+    const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       targets: {
         self: playerId,
       },
     })
     const turnState = createTurnStateStub({
-      actionSubmissions: [actionSubmission],
+      submittedActions: [submittedAction],
       players: {
         [playerId]: {
           id: playerId,
@@ -46,7 +46,7 @@ describe("validateActionSubmissions", () => {
     const originalTurnState = structuredClone(turnState)
 
     // Act
-    validateActionSubmissions([actionSubmission], ruleset, turnState)
+    validateSubmittedActions([submittedAction], ruleset, turnState)
 
     // Assert
     expect(turnState).toEqual(originalTurnState)
@@ -55,14 +55,14 @@ describe("validateActionSubmissions", () => {
   it("should return no issues for a valid Action Submission", () => {
     // Arrange
     const playerId = "player-id"
-    const actionSubmission = createActionSubmissionStub({
+    const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       targets: {
         self: playerId,
       },
     })
     const turnState = createTurnStateStub({
-      actionSubmissions: [actionSubmission],
+      submittedActions: [submittedAction],
       players: {
         [playerId]: {
           id: playerId,
@@ -72,7 +72,7 @@ describe("validateActionSubmissions", () => {
     })
 
     // Act
-    const issues = validateActionSubmissions([actionSubmission], ruleset, turnState)
+    const issues = validateSubmittedActions([submittedAction], ruleset, turnState)
 
     // Assert
     expect(issues).toEqual([])
@@ -81,7 +81,7 @@ describe("validateActionSubmissions", () => {
   it("should collect target and cost issues from the complete validation pipeline", () => {
     // Arrange
     const playerId = "player-id"
-    const actionSubmission = createActionSubmissionStub({
+    const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       targets: {
         self: playerId,
@@ -89,7 +89,7 @@ describe("validateActionSubmissions", () => {
       },
     })
     const turnState = createTurnStateStub({
-      actionSubmissions: [actionSubmission],
+      submittedActions: [submittedAction],
       players: {
         [playerId]: {
           id: playerId,
@@ -99,20 +99,20 @@ describe("validateActionSubmissions", () => {
     })
 
     // Act
-    const issues = validateActionSubmissions([actionSubmission], ruleset, turnState)
+    const issues = validateSubmittedActions([submittedAction], ruleset, turnState)
 
     // Assert
     expect(issues).toEqual<typeof issues>([
       {
         issue: 'Unexpected target slot "fleet"',
-        actionSubmissionId: actionSubmission.id,
-        actionDefinitionId: actionSubmission.actionDefinitionId,
+        submittedActionId: submittedAction.id,
+        actionDefinitionId: submittedAction.actionDefinitionId,
         actionDefinitionName: actionDefinition.name,
       },
       {
         issue: "Missing 1 INFLUENCE",
-        actionSubmissionId: actionSubmission.id,
-        actionDefinitionId: actionSubmission.actionDefinitionId,
+        submittedActionId: submittedAction.id,
+        actionDefinitionId: submittedAction.actionDefinitionId,
         actionDefinitionName: actionDefinition.name,
       },
     ])
@@ -121,7 +121,7 @@ describe("validateActionSubmissions", () => {
   describe("action definition", () => {
     it("should report an Action Definition that does not exist in the Ruleset", () => {
       // Arrange
-      const actionSubmission = createActionSubmissionStub({
+      const submittedAction = createSubmittedActionStub({
         actionDefinitionId: "UNKNOWN_ACTION",
         targets: {
           self: "player-id",
@@ -131,14 +131,14 @@ describe("validateActionSubmissions", () => {
       const turnState = createTurnStateStub()
 
       // Act
-      const issues = validateActionSubmissions([actionSubmission], emptyRuleset, turnState)
+      const issues = validateSubmittedActions([submittedAction], emptyRuleset, turnState)
 
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
           issue: "Action definition does not exist in the Ruleset",
-          actionSubmissionId: actionSubmission.id,
-          actionDefinitionId: actionSubmission.actionDefinitionId,
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: undefined,
         },
       ])
@@ -160,14 +160,14 @@ describe("validateActionSubmissions", () => {
           [actionDefinitionWithRequiredTarget.id]: actionDefinitionWithRequiredTarget,
         },
       })
-      const actionSubmission = createActionSubmissionStub({
+      const submittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinitionWithRequiredTarget.id,
         targets: {
           self: playerId,
         },
       })
       const turnState = createTurnStateStub({
-        actionSubmissions: [actionSubmission],
+        submittedActions: [submittedAction],
         players: {
           [playerId]: {
             id: playerId,
@@ -177,14 +177,14 @@ describe("validateActionSubmissions", () => {
       })
 
       // Act
-      const issues = validateActionSubmissions([actionSubmission], rulesetWithRequiredTarget, turnState)
+      const issues = validateSubmittedActions([submittedAction], rulesetWithRequiredTarget, turnState)
 
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
           issue: 'Missing target slot "targetPlayer"',
-          actionSubmissionId: actionSubmission.id,
-          actionDefinitionId: actionSubmission.actionDefinitionId,
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithRequiredTarget.name,
         },
       ])
@@ -193,7 +193,7 @@ describe("validateActionSubmissions", () => {
     it("should report unexpected target slots", () => {
       // Arrange
       const playerId = "player-id"
-      const actionSubmission = createActionSubmissionStub({
+      const submittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinition.id,
         targets: {
           self: playerId,
@@ -201,7 +201,7 @@ describe("validateActionSubmissions", () => {
         },
       })
       const turnState = createTurnStateStub({
-        actionSubmissions: [actionSubmission],
+        submittedActions: [submittedAction],
         players: {
           [playerId]: {
             id: playerId,
@@ -211,14 +211,14 @@ describe("validateActionSubmissions", () => {
       })
 
       // Act
-      const issues = validateActionSubmissions([actionSubmission], ruleset, turnState)
+      const issues = validateSubmittedActions([submittedAction], ruleset, turnState)
 
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
           issue: 'Unexpected target slot "fleet"',
-          actionSubmissionId: actionSubmission.id,
-          actionDefinitionId: actionSubmission.actionDefinitionId,
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
         },
       ])
@@ -226,7 +226,7 @@ describe("validateActionSubmissions", () => {
 
     it("should report empty target slots", () => {
       // Arrange
-      const actionSubmission = createActionSubmissionStub({
+      const submittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinition.id,
         targets: {
           self: "",
@@ -235,14 +235,14 @@ describe("validateActionSubmissions", () => {
       const turnState = createTurnStateStub()
 
       // Act
-      const issues = validateActionSubmissions([actionSubmission], ruleset, turnState)
+      const issues = validateSubmittedActions([submittedAction], ruleset, turnState)
 
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
           issue: 'Target slot "self" must be set to a SELF id',
-          actionSubmissionId: actionSubmission.id,
-          actionDefinitionId: actionSubmission.actionDefinitionId,
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
         },
       ])
@@ -254,20 +254,20 @@ describe("validateActionSubmissions", () => {
       // Arrange
       const firstPlayerId = "first-player-id"
       const secondPlayerId = "second-player-id"
-      const firstPlayerActionSubmission = createActionSubmissionStub({
+      const firstPlayerSubmittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinition.id,
         targets: {
           self: firstPlayerId,
         },
       })
-      const secondPlayerActionSubmission = createActionSubmissionStub({
+      const secondPlayerSubmittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinition.id,
         targets: {
           self: secondPlayerId,
         },
       })
       const turnState = createTurnStateStub({
-        actionSubmissions: [firstPlayerActionSubmission, secondPlayerActionSubmission],
+        submittedActions: [firstPlayerSubmittedAction, secondPlayerSubmittedAction],
         players: {
           [firstPlayerId]: {
             id: firstPlayerId,
@@ -281,14 +281,14 @@ describe("validateActionSubmissions", () => {
       })
 
       // Act
-      const issues = validateActionSubmissions([firstPlayerActionSubmission, secondPlayerActionSubmission], ruleset, turnState)
+      const issues = validateSubmittedActions([firstPlayerSubmittedAction, secondPlayerSubmittedAction], ruleset, turnState)
 
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
           issue: "Missing 1 INFLUENCE",
-          actionSubmissionId: secondPlayerActionSubmission.id,
-          actionDefinitionId: secondPlayerActionSubmission.actionDefinitionId,
+          submittedActionId: secondPlayerSubmittedAction.id,
+          actionDefinitionId: secondPlayerSubmittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
         },
       ])
@@ -308,14 +308,14 @@ describe("validateActionSubmissions", () => {
           [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
         },
       })
-      const actionSubmission = createActionSubmissionStub({
+      const submittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinitionWithMultipleCosts.id,
         targets: {
           self: playerId,
         },
       })
       const turnState = createTurnStateStub({
-        actionSubmissions: [actionSubmission],
+        submittedActions: [submittedAction],
         players: {
           [playerId]: {
             id: playerId,
@@ -325,14 +325,14 @@ describe("validateActionSubmissions", () => {
       })
 
       // Act
-      const issues = validateActionSubmissions([actionSubmission], rulesetWithMultipleCosts, turnState)
+      const issues = validateSubmittedActions([submittedAction], rulesetWithMultipleCosts, turnState)
 
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
           issue: "Missing 3 INFLUENCE",
-          actionSubmissionId: actionSubmission.id,
-          actionDefinitionId: actionSubmission.actionDefinitionId,
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
         },
       ])
@@ -352,20 +352,20 @@ describe("validateActionSubmissions", () => {
           [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
         },
       })
-      const actionSubmission1 = createActionSubmissionStub({
+      const submittedAction1 = createSubmittedActionStub({
         actionDefinitionId: actionDefinitionWithMultipleCosts.id,
         targets: {
           self: playerId,
         },
       })
-      const actionSubmission2 = createActionSubmissionStub({
+      const submittedAction2 = createSubmittedActionStub({
         actionDefinitionId: actionDefinitionWithMultipleCosts.id,
         targets: {
           self: playerId,
         },
       })
       const turnState = createTurnStateStub({
-        actionSubmissions: [actionSubmission1, actionSubmission2],
+        submittedActions: [submittedAction1, submittedAction2],
         players: {
           [playerId]: {
             id: playerId,
@@ -375,14 +375,14 @@ describe("validateActionSubmissions", () => {
       })
 
       // Act
-      const issues = validateActionSubmissions([actionSubmission1, actionSubmission2], rulesetWithMultipleCosts, turnState)
+      const issues = validateSubmittedActions([submittedAction1, submittedAction2], rulesetWithMultipleCosts, turnState)
 
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
           issue: "Missing 6 INFLUENCE",
-          actionSubmissionId: actionSubmission2.id,
-          actionDefinitionId: actionSubmission2.actionDefinitionId,
+          submittedActionId: submittedAction2.id,
+          actionDefinitionId: submittedAction2.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
         },
       ])
@@ -402,20 +402,20 @@ describe("validateActionSubmissions", () => {
           [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
         },
       })
-      const actionSubmission1 = createActionSubmissionStub({
+      const submittedAction1 = createSubmittedActionStub({
         actionDefinitionId: actionDefinitionWithMultipleCosts.id,
         targets: {
           self: playerId,
         },
       })
-      const actionSubmission2 = createActionSubmissionStub({
+      const submittedAction2 = createSubmittedActionStub({
         actionDefinitionId: actionDefinitionWithMultipleCosts.id,
         targets: {
           self: playerId,
         },
       })
       const turnState = createTurnStateStub({
-        actionSubmissions: [actionSubmission1, actionSubmission2],
+        submittedActions: [submittedAction1, submittedAction2],
         players: {
           [playerId]: {
             id: playerId,
@@ -425,20 +425,20 @@ describe("validateActionSubmissions", () => {
       })
 
       // Act
-      const issues = validateActionSubmissions([actionSubmission1, actionSubmission2], rulesetWithMultipleCosts, turnState)
+      const issues = validateSubmittedActions([submittedAction1, submittedAction2], rulesetWithMultipleCosts, turnState)
 
       // Assert
       expect(issues).toEqual<typeof issues>([
         {
           issue: "Missing 3 INFLUENCE",
-          actionSubmissionId: actionSubmission1.id,
-          actionDefinitionId: actionSubmission1.actionDefinitionId,
+          submittedActionId: submittedAction1.id,
+          actionDefinitionId: submittedAction1.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
         },
         {
           issue: "Missing 10 INFLUENCE",
-          actionSubmissionId: actionSubmission2.id,
-          actionDefinitionId: actionSubmission2.actionDefinitionId,
+          submittedActionId: submittedAction2.id,
+          actionDefinitionId: submittedAction2.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
         },
       ])

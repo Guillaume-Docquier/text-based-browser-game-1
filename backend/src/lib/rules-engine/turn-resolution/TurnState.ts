@@ -1,5 +1,5 @@
 import type { PlayerId } from "#api/shared/PlayerId.ts"
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
 /**
@@ -7,7 +7,7 @@ import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Res
  * This is generally mutated.
  */
 export type TurnState = {
-  readonly actionSubmissions: readonly ActionSubmission[]
+  readonly submittedActions: readonly SubmittedAction[]
   readonly players: Readonly<
     Record<
       PlayerId,
