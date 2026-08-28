@@ -1,4 +1,4 @@
-import type { SubmittedAction, ActionTier, GameId, PlayerView } from "@api-types"
+import type { ActionTier, GameId, PlayerView } from "@api-types"
 import { Sort } from "@guillaume-docquier/tools-ts"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
@@ -16,15 +16,7 @@ export const ActionTierRank = {
   EXCEPTIONAL: 5, // Best
 } as const satisfies Record<ActionTier, number>
 
-export function ActionSelector({
-  gameId,
-  playerView,
-  currentAction,
-}: {
-  gameId: GameId
-  playerView: PlayerView
-  currentAction: SubmittedAction | null
-}): ReactElement {
+export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerView: PlayerView }): ReactElement {
   const setCurrentAction = useSetCurrentActionMutation()
 
   return (
@@ -38,16 +30,19 @@ export function ActionSelector({
       </div>
 
       <div className="flex flex-wrap items-stretch gap-6 px-4 pt-4">
-        {playerView.availableActions
+        {playerView.actions
           .map((action) => ({ action, definition: playerView.ruleset.actionDefinitions[action.actionDefinitionId] }))
           .sort((action1, action2) => Sort.byAscending(ActionTierRank[action1.definition.tier], ActionTierRank[action2.definition.tier]))
           .map(({ action, definition }) => {
-            const isSelected = currentAction?.actionDefinitionId === action.actionDefinitionId
+            const isSelected = action.targets !== null
             const selectAction = (): void => {
               setCurrentAction.mutate({
                 gameId,
                 turn: playerView.turn,
-                submittedAction: isSelected ? null : action,
+                submittedActionTargets: {
+                  actionId: action.id,
+                  targets: isSelected ? null : {}, // no targets to select yet
+                },
               })
             }
             return (

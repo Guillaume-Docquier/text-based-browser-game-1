@@ -25,6 +25,7 @@ export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 
 // Gameplay router
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
+export type Action = PlayerView["actions"][number]
 export type ResourceType = keyof PlayerView["resources"]
 export type Ruleset = PlayerView["ruleset"]
 export type ActionDefinition = Ruleset["actionDefinitions"][string]
