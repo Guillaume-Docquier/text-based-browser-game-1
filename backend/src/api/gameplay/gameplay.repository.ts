@@ -306,7 +306,10 @@ export class GameplayRepository extends PostgresRepository {
         }
 
         const players = await tx
-          .select({ id: playersTable.playerId, color: playersTable.color })
+          .select({
+            id: playersTable.playerId,
+            color: playersTable.color,
+          })
           .from(playersTable)
           .where(eq(playersTable.gameId, gameId))
         const player = players.find(({ id }) => id === playerId)
@@ -319,7 +322,11 @@ export class GameplayRepository extends PostgresRepository {
           .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
 
         const availableActionRows = await tx
-          .select()
+          .select({
+            id: actionsTable.id,
+            actionDefinitionId: actionsTable.actionDefinitionId,
+            targets: actionsTable.targets,
+          })
           .from(actionsTable)
           .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, gameState.turn)))
           .orderBy(actionsTable.id)
@@ -333,7 +340,7 @@ export class GameplayRepository extends PostgresRepository {
           opponents,
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
-          actions: toPlayerViewActionModel(availableActionRows),
+          actions: availableActionRows,
           ruleset: StandardRuleset, // Eventually should be stored in DB
         }
       }),
@@ -417,12 +424,4 @@ function toGalaxyModel({
   }))
 
   return { systems }
-}
-
-function toPlayerViewActionModel(actions: ReadonlyArray<typeof actionsTable.$inferSelect>): PlayerViewActionModel[] {
-  return actions.map((action) => ({
-    id: action.id,
-    actionDefinitionId: action.actionDefinitionId,
-    targets: action.targets,
-  }))
 }
