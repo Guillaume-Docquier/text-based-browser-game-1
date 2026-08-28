@@ -1,5 +1,5 @@
 import { Result, type Rng } from "@guillaume-docquier/tools-ts"
-import { validateActionSubmissions } from "#lib/rules-engine/action-submission/validation/validateActionSubmissions.ts"
+import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { EffectFactory } from "#lib/rules-engine/turn-resolution/effects/EffectFactory.ts"
 import { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
@@ -21,18 +21,18 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
     effectPool: new EffectPool([]),
     ruleset,
   }
-  const actionSubmissions = turnState.actionSubmissions
+  const submittedActions = turnState.submittedActions
 
   // Validate submissions
-  const actionSubmissionIssues = validateActionSubmissions(actionSubmissions, ruleset, turnState)
-  if (actionSubmissionIssues.length > 0) {
-    return Result.Failure(ResolveTurnError.InvalidSubmissions({ issues: actionSubmissionIssues }))
+  const submittedActionIssues = validateSubmittedActions(submittedActions, ruleset, turnState)
+  if (submittedActionIssues.length > 0) {
+    return Result.Failure(ResolveTurnError.InvalidSubmissions({ issues: submittedActionIssues }))
   }
 
   // Create effects
   const monotonicIdFactory = MonotonicIdFactory.create()
   context.effectPool.addMany(
-    actionSubmissions.flatMap((actionSubmission) => EffectFactory.fromActionSubmission(actionSubmission, ruleset, monotonicIdFactory)),
+    submittedActions.flatMap((submittedAction) => EffectFactory.fromSubmittedAction(submittedAction, ruleset, monotonicIdFactory)),
   )
 
   // Resolve effects
@@ -47,9 +47,9 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
   }
 
   return Result.Success({
-    resolvedActions: context.turnState.actionSubmissions.map((actionSubmission) => ({
-      actionSubmission,
-      actionOutcomes: context.effectPool.getOutcomes(actionSubmission),
+    resolvedActions: context.turnState.submittedActions.map((submittedAction) => ({
+      submittedAction,
+      actionOutcomes: context.effectPool.getOutcomes(submittedAction),
     })),
     players: context.turnState.players,
     winnerPlayerId: context.turnState.winnerPlayerId,

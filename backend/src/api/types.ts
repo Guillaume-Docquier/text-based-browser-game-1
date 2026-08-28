@@ -24,14 +24,14 @@ export type LobbyCreationSettings = TrpcRouterOutput["lobbies"]["getCreationSett
 export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
 
 // Gameplay router
-type CurrentActionOutput = TrpcRouterOutput["gameplay"]["getCurrentAction"]
-export type ActionSubmission = NonNullable<CurrentActionOutput["action"]>
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
+export type Action = PlayerView["actions"][number]
+export type ResourceType = keyof PlayerView["resources"]
 export type Ruleset = PlayerView["ruleset"]
 export type ActionDefinition = Ruleset["actionDefinitions"][string]
 export type ActionTier = ActionDefinition["tier"]
 export type Mechanic = ActionDefinition["costs"][number] | ActionDefinition["mechanics"][number]
-export type AvailableAction = PlayerView["availableActions"][number]
+export type Actions = PlayerView["actions"][number]
 export type Galaxy = PlayerView["galaxy"]
 export type StarSystem = Galaxy["systems"][number]
 export type Planet = StarSystem["planets"][number]

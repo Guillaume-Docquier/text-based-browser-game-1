@@ -99,7 +99,7 @@ export class LobbiesController {
       const color = Object.values(PlayerColor).find((candidateColor) => !usedColors.has(candidateColor))
       Assert.isDefined(color)
 
-      return await this.lobbiesRepository.joinLobby({ lobby: lobbyForJoin.value, accountId, color, status }, tx)
+      return await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, accountId, color, status }, tx)
     })
 
     if (Result.isFailure(joinGameResult)) {
@@ -131,7 +131,7 @@ export class LobbiesController {
         throw new TransactionRollback("Cannot leave a lobby as its creator.")
       }
 
-      await this.lobbiesRepository.leaveLobby({ lobby: lobbyForLeave.value, accountId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
+      await this.lobbiesRepository.leaveLobby({ context: lobbyForLeave.value, accountId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
     })
 
     if (Result.isFailure(leaveGameResult)) {

@@ -4,6 +4,7 @@
 <!-- - fixes https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/000 -->
 <!-- - part of https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/000 -->
 <!-- The bullet point makes github show the issue title instead of just the number -->
+<!-- Include the full url, not just #ISSUE_NUMBER -->
 
 ## Description
 
@@ -15,3 +16,9 @@
 ## Screenshots
 
 <!-- Add relevant screenshots when UI is involved -->
+
+## Deployment
+
+<!-- Are there deployment steps to follow? -->
+<!-- Is a DB wipe necessary? -->
+<!-- Do we need to set up new infra? -->

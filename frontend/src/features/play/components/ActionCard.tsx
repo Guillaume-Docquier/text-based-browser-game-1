@@ -2,7 +2,7 @@ import type { ActionDefinition, PlayerView } from "@api-types"
 import { Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import type { ReactElement } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
-import { RESOURCE_ICONS, sortResources } from "@/features/play/components/resourceIcons.ts"
+import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
 import { formatRulesetTerm, mechanicsToRulesText } from "@/features/play/mechanicToRulesText.ts"
 import { cn } from "@/lib/cn.ts"
 
@@ -112,7 +112,7 @@ export function ActionCard({
               {formatRulesetTerm(actionDefinition.tier)} {formatRulesetTerm(actionDefinition.type)}
             </CardDescription>
           </div>
-          <ActionCosts costs={actionDefinition.costs} resources={resources} />
+          <ActionCosts costs={actionDefinition.costs} resources={resources} canAfford={canAfford} />
         </div>
       </CardHeader>
       <CardContent className="relative z-10 flex min-h-36 flex-1 flex-col gap-4 border-t border-border/70 px-5 py-5">
@@ -124,14 +124,22 @@ export function ActionCard({
   )
 }
 
-function ActionCosts({ costs, resources }: { costs: ActionDefinition["costs"]; resources: PlayerView["resources"] }): ReactElement {
-  const costsByResource = Map.groupBy(sortResources(costs), ({ resourceType }) => resourceType)
+function ActionCosts({
+  costs,
+  resources,
+  canAfford,
+}: {
+  costs: ActionDefinition["costs"]
+  resources: PlayerView["resources"]
+  canAfford: boolean
+}): ReactElement {
+  const costsByResource = Map.groupBy(sortCostsByResource(costs), ({ resourceType }) => resourceType)
 
   return (
     <div className="flex flex-col items-end gap-1" aria-label="Costs">
       {[...costsByResource].map(([resourceType, resourceCosts]) => {
         const quantity = resourceCosts.reduce((total, cost) => total + cost.quantity, 0)
-        const cannotAfford = quantity > resources[resourceType].uncommitted
+        const cannotAfford = !canAfford && quantity > resources[resourceType].uncommitted
         const ResourceIcon = RESOURCE_ICONS[resourceType]
         return (
           <div

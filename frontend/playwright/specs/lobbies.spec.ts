@@ -174,7 +174,7 @@ test.describe("authenticated user", () => {
     await expect(page).toHaveURL(ActionsPage.urlPattern)
     await expect(actionsPage.heading).toBeVisible()
 
-    await test.step("Choose an Action and reserve its resources", async () => {
+    await test.step("Select multiple affordable Actions and deselect them", async () => {
       const extractMetal = actionsPage.action("Extract Metal")
       await expect(extractMetal).toContainText("Standard Directive")
       await expect(extractMetal).toContainText("1 Influence")
@@ -187,18 +187,30 @@ test.describe("authenticated user", () => {
       await expect(winTheGame).toHaveAttribute("aria-disabled", "true")
       await expect(winTheGame.locator("[data-unaffordable-overlay]")).toBeVisible()
       await expect(winTheGame.locator('[aria-label="10 Influence, cannot afford"]')).toHaveClass(/text-red-400/)
-      await expect(winTheGame).not.toContainText("Unavailable")
 
+      const refineFuel = actionsPage.action("Refine Fuel")
+      const generatePower = actionsPage.action("Generate Power")
       await actionsPage.toggleAction("Extract Metal")
       await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
+      await expect(refineFuel).toHaveAttribute("aria-disabled", "false")
+      await expect(generatePower).toHaveAttribute("aria-disabled", "true")
       await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "2 available of 3 Influence")
-      await expect(actionsPage.action("Generate Power")).toHaveAttribute("aria-disabled", "true")
-    })
 
-    await test.step("Deselect the Action and release its resources", async () => {
+      await actionsPage.toggleAction("Refine Fuel")
+      await expect(refineFuel).toHaveAttribute("aria-pressed", "true")
+      await expect(extractMetal).toHaveAttribute("aria-disabled", "false")
+      await expect(refineFuel).toHaveAttribute("aria-disabled", "false")
+      await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "0 available of 3 Influence")
+      await expect(actionsPage.resource("Metal")).toHaveAttribute("aria-label", "0 available of 2 Metal")
+
+      await actionsPage.toggleAction("Refine Fuel")
+      await expect(refineFuel).toHaveAttribute("aria-pressed", "false")
+      await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
       await actionsPage.toggleAction("Extract Metal")
-      await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "false")
+      await expect(extractMetal).toHaveAttribute("aria-pressed", "false")
       await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "3 available of 3 Influence")
+      await expect(actionsPage.resource("Metal")).toHaveAttribute("aria-label", "2 available of 2 Metal")
+      await expect(generatePower).toHaveAttribute("aria-disabled", "false")
     })
 
     await test.step("Display Action costs in their canonical order", async () => {

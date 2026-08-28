@@ -2,13 +2,13 @@ import { Assert, Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
+import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
-import { createActionSubmissionStub } from "#lib/rules-engine/action-submission/ActionSubmission.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -31,12 +31,11 @@ describe("gameplay.router", () => {
     const expectedError = { data: { code: "FORBIDDEN" } }
     await expect(nonPlayer.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(nonPlayer.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
-    await expect(nonPlayer.client.gameplay.getCurrentAction.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(
-      nonPlayer.client.gameplay.setCurrentAction.mutate({
+      nonPlayer.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: createActionSubmissionStub({ id: "unavailable-action" }),
+        submittedActionTargets: createSubmittedActionTargetsDtoStub(),
       }),
     ).rejects.toMatchObject(expectedError)
   })
@@ -140,7 +139,7 @@ describe("gameplay.router", () => {
     })
   })
 
-  describe("getById", () => {
+  describe("getPlayerView", () => {
     it("should get the authenticated player's state for a started game", async () => {
       // Arrange
       const clock = new ControlledClock()
@@ -153,10 +152,43 @@ describe("gameplay.router", () => {
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act
-      const getByIdResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const getPlayerViewResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const repeatedGetPlayerViewResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(getByIdResult).toEqual<typeof getByIdResult>({
+      const expectedActions = [
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainInfluence.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: WinTheGame.id,
+          targets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainEnergy.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainFuel.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainMetal.id,
+          targets: null,
+          canAfford: true,
+        },
+      ]
+      expect(getPlayerViewResult).toEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
         player: { id: player.account.id, color: PlayerColor.WHITE },
         opponents: {},
@@ -172,39 +204,10 @@ describe("gameplay.router", () => {
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
         }),
         ruleset: StandardRuleset,
-        availableActions: [
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainInfluence.id,
-            targets: { self: player.account.id },
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: WinTheGame.id,
-            targets: { self: player.account.id },
-            canAfford: false,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainEnergy.id,
-            targets: { self: player.account.id },
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainFuel.id,
-            targets: { self: player.account.id },
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainMetal.id,
-            targets: { self: player.account.id },
-            canAfford: true,
-          },
-        ],
+        actions: expect.arrayContaining(expectedActions),
       })
+      expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)
+      expect(repeatedGetPlayerViewResult.actions).toEqual(getPlayerViewResult.actions)
     })
 
     it("should expose uncommitted resources and use them to determine Action affordability", async () => {
@@ -215,29 +218,32 @@ describe("gameplay.router", () => {
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const extractMetal = initialPlayerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainMetal.id)
-      Assert.isDefined(extractMetal)
+      const generatePower = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
+      Assert.isDefined(generatePower)
 
-      await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: initialPlayerView.turn,
-        actionSubmission: extractMetal,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: generatePower.id, targets: {} }),
       })
 
       // Act
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const generatePower = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
-      Assert.isDefined(generatePower)
+      const selectedGeneratePower = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
+      const extractMetal = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainMetal.id)
+      Assert.isDefined(selectedGeneratePower)
+      Assert.isDefined(extractMetal)
 
       // Assert
       expect(playerView.resources).toEqual<typeof playerView.resources>(
         createResourcesDtoStub({
-          [ResourceType.INFLUENCE]: { uncommitted: 2, total: 3 },
+          [ResourceType.INFLUENCE]: { uncommitted: 0, total: 3 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
-          [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
+          [ResourceType.FUEL]: { uncommitted: 0, total: 1 },
         }),
       )
-      expect(generatePower.canAfford).toBe(false)
+      expect(selectedGeneratePower.canAfford).toBe(true)
+      expect(extractMetal.canAfford).toBe(false)
     })
 
     it("should expose the current player and every opponent with their colors", async () => {
@@ -290,8 +296,8 @@ describe("gameplay.router", () => {
     })
   })
 
-  describe("setCurrentAction", () => {
-    it("should set the current action for the authenticated player and override server-owned targets", async () => {
+  describe("updateActionSubmission", () => {
+    it("should update the action for the authenticated player and override server-owned targets", async () => {
       // Arrange
       const db = await createDbMock()
       const { api, accountsRepository } = await createApiStub({ db })
@@ -300,31 +306,128 @@ describe("gameplay.router", () => {
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const makeMoreMoney = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
-      Assert.isDefined(makeMoreMoney)
+
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const gainInfluence = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      Assert.isDefined(gainInfluence)
+
       // Act
-      const setCurrentActionResult = await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: {
-          ...makeMoreMoney,
-          targets: { self: "not self" },
-        },
-      })
-      const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
-        gameId: createdGameId,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: gainInfluence.id, targets: { self: "not self" } }),
       })
 
       // Assert
-      expect(setCurrentActionResult).toEqual<typeof setCurrentActionResult>({
-        action: {
-          id: makeMoreMoney.id,
-          actionDefinitionId: GainInfluence.id,
-          targets: { self: player.account.id },
-        },
-      })
-      expect(getCurrentActionResult).toEqual<typeof getCurrentActionResult>(setCurrentActionResult)
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const submittedActions = playerView.actions.filter((action) => action.targets !== null)
+      expect(submittedActions).toEqual<typeof submittedActions>([{ ...gainInfluence, targets: { self: playerView.player.id } }])
+    })
+
+    it("should submit and deselect multiple actions", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const gainFuel = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainFuel.id)
+      const gainMetal = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainMetal.id)
+      Assert.isDefined(gainFuel)
+      Assert.isDefined(gainMetal)
+
+      // Act
+      for (const action of [gainFuel, gainMetal]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: initialPlayerView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, targets: {} }),
+        })
+      }
+      const selectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      for (const action of [gainFuel, gainMetal]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: initialPlayerView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, targets: null }),
+        })
+      }
+      const deselectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Assert
+      expect(selectedPlayerView.actions).toEqual(
+        expect.arrayContaining([
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainInfluence.id,
+            targets: null,
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: WinTheGame.id,
+            targets: null,
+            canAfford: false,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainEnergy.id,
+            targets: null,
+            canAfford: false,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainFuel.id,
+            targets: { self: player.account.id },
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainMetal.id,
+            targets: { self: player.account.id },
+            canAfford: true,
+          },
+        ]),
+      )
+      expect(selectedPlayerView.actions).toHaveLength(5)
+
+      expect(deselectedPlayerView.actions).toEqual(
+        expect.arrayContaining([
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainInfluence.id,
+            targets: null,
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: WinTheGame.id,
+            targets: null,
+            canAfford: false,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainEnergy.id,
+            targets: null,
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainFuel.id,
+            targets: null,
+            canAfford: true,
+          },
+          {
+            id: expect.any(String),
+            actionDefinitionId: GainMetal.id,
+            targets: null,
+            canAfford: true,
+          },
+        ]),
+      )
+      expect(deselectedPlayerView.actions).toHaveLength(5)
     })
 
     it("should reject setting an action for a stale turn", async () => {
@@ -335,15 +438,15 @@ describe("gameplay.router", () => {
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const makeMoreMoney = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
       Assert.isDefined(makeMoreMoney)
 
       // Act & Assert
       await expect(
-        player.client.gameplay.setCurrentAction.mutate({
+        player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: 1,
-          actionSubmission: makeMoreMoney,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
         }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
@@ -357,51 +460,39 @@ describe("gameplay.router", () => {
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const winTheGame = playerView.availableActions.find(({ actionDefinitionId }) => actionDefinitionId === WinTheGame.id)
+      const winTheGame = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === WinTheGame.id)
       Assert.isDefined(winTheGame)
 
       // Act
-      const setActionPromise = player.client.gameplay.setCurrentAction.mutate({
+      const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: winTheGame,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: winTheGame.id, targets: {} }),
       })
 
       // Assert
       await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
-  })
 
-  describe("getCurrentAction", () => {
-    it("should get the current action for the authenticated player", async () => {
+    it("should reject an action that is not available to the player", async () => {
       // Arrange
-      const db = await createDbMock()
-      const { api, accountsRepository } = await createApiStub({ db })
-      using apiServer = new ApiServer({ api, accountsRepository })
+      using apiServer = new ApiServer(await createApiStub())
       const player = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub(),
-      })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      Assert.isDefined(makeMoreMoney)
+
       // Act
-      const getCurrentActionResult = await player.client.gameplay.getCurrentAction.query({
+      const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
+        turn: 0,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: "unavailable-action", targets: {} }),
       })
 
       // Assert
-      expect(getCurrentActionResult).toEqual<typeof getCurrentActionResult>({ action: null })
-    })
-
-    it("should reject anonymous action reads", async () => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub())
-      const anonymous = await apiServer.createClient({ authenticated: false })
-
-      // Act & Assert
-      await expect(anonymous.client.gameplay.getCurrentAction.query({ gameId: 1 })).rejects.toMatchObject({
-        data: { code: "UNAUTHORIZED" },
-      })
+      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
   })
 })

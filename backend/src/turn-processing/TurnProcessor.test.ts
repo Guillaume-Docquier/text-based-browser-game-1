@@ -2,10 +2,13 @@ import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
+import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
+import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
@@ -24,7 +27,7 @@ describe("TurnProcessor", () => {
     it("should process all currently due turns before waiting", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -65,7 +68,7 @@ describe("TurnProcessor", () => {
     it("should wait before retrying when the selected turn processing fails", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
@@ -111,7 +114,7 @@ describe("TurnProcessor", () => {
     it("should process the current turn and queue the next one", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       const { api, accountsRepository } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
@@ -125,10 +128,10 @@ describe("TurnProcessor", () => {
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       const { turnProcessor } = await createTurnProcessorStub({ db, clock })
-      await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: getAvailableAction(initialPlayerView, GainInfluence.id),
+        submittedActionTargets: getActionToSubmit(initialPlayerView, GainInfluence.id),
       })
 
       // Act
@@ -137,6 +140,7 @@ describe("TurnProcessor", () => {
 
       // Assert
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const repeatedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toEqual<typeof playerView>({
         ...initialPlayerView,
         turn: 1,
@@ -146,7 +150,47 @@ describe("TurnProcessor", () => {
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
         }),
-        availableActions: expect.any(Array),
+        actions: expect.any(Array),
+      })
+      expect(playerView.actions.map(({ id }) => id)).not.toEqual(initialPlayerView.actions.map(({ id }) => id))
+      expect(repeatedPlayerView.actions).toEqual(playerView.actions)
+    })
+
+    it("should process multiple submitted actions", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createGameConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      for (const actionDefinitionId of [GainFuel.id, GainMetal.id]) {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: initialPlayerView.turn,
+          submittedActionTargets: getActionToSubmit(initialPlayerView, actionDefinitionId),
+        })
+      }
+
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
+        turn: 1,
+        resources: createResourcesDtoStub({
+          [ResourceType.METAL]: { uncommitted: 5, total: 5 },
+          [ResourceType.FUEL]: { uncommitted: 6, total: 6 },
+        }),
       })
     })
 
@@ -158,7 +202,7 @@ describe("TurnProcessor", () => {
       async ({ turnInterval, timeIncrement }) => {
         // Arrange
         const db = await createDbMock()
-        const clock = new ControlledClock({ startDate: new Date(0) })
+        const clock = new ControlledClock()
         using apiServer = new ApiServer(await createApiStub({ db, clock }))
         const player = await apiServer.createClient({ authenticated: true })
 
@@ -196,10 +240,10 @@ describe("TurnProcessor", () => {
       const resourcesRepository = new ResourcesRepository({ db, logger })
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
-      await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: getAvailableAction(initialPlayerView, GainMetal.id),
+        submittedActionTargets: getActionToSubmit(initialPlayerView, GainMetal.id),
       })
       Assert.isSuccess(
         await resourcesRepository.updateResource({
@@ -220,7 +264,7 @@ describe("TurnProcessor", () => {
     it("should process only the earliest scheduled turn in one invocation", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -259,7 +303,7 @@ describe("TurnProcessor", () => {
     it("should be able to process the same turn over time", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -288,7 +332,7 @@ describe("TurnProcessor", () => {
     it("should skip turns that are already processing", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -315,7 +359,7 @@ describe("TurnProcessor", () => {
     it("should not process another turn when the selected turn processing fails", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
@@ -354,7 +398,7 @@ describe("TurnProcessor", () => {
     it("should be able to process turns in parallel", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -393,7 +437,7 @@ describe("TurnProcessor", () => {
     it("should do nothing if there are no turns left when processing turns in parallel", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -449,10 +493,10 @@ describe("TurnProcessor", () => {
         }
         const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
-        await player.client.gameplay.setCurrentAction.mutate({
+        await player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: 0,
-          actionSubmission: getAvailableAction(playerView, WinTheGame.id),
+          submittedActionTargets: getActionToSubmit(playerView, WinTheGame.id),
         })
       }
 
@@ -476,6 +520,7 @@ describe("TurnProcessor", () => {
           [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
         },
       })
+      expect(creatorView.actions).toHaveLength(5)
 
       const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(joinerView).toMatchObject({
@@ -489,7 +534,7 @@ describe("TurnProcessor", () => {
     it("should not do anything in case of failure", async () => {
       // Arrange
       const db = await createDbMock()
-      const clock = new ControlledClock({ startDate: new Date(0) })
+      const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
@@ -500,10 +545,10 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
-      await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
-        actionSubmission: getAvailableAction(playerView, GainInfluence.id),
+        submittedActionTargets: getActionToSubmit(playerView, GainInfluence.id),
       })
 
       const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId: createdGameId })
@@ -537,13 +582,16 @@ describe("TurnProcessor", () => {
   })
 })
 
-function getAvailableAction<TPlayerView extends { availableActions: ReadonlyArray<{ actionDefinitionId: string }> }>(
-  playerView: TPlayerView,
-  actionDefinitionId: string,
-): TPlayerView["availableActions"][number] {
-  const action = playerView.availableActions.find((availableAction) => availableAction.actionDefinitionId === actionDefinitionId)
+/**
+ * @deprecated This is not very good, some actions will require real targets and this won't be the way
+ */
+function getActionToSubmit(playerView: PlayerView, actionDefinitionId: string): SubmittedActionTargetsDto {
+  const action = playerView.actions.find((availableAction) => availableAction.actionDefinitionId === actionDefinitionId)
   Assert.isDefined(action)
-  return action
+  return {
+    actionId: action.id,
+    targets: { self: playerView.player.id }, // bad
+  }
 }
 
 class FailingTurnsRepository extends TurnsRepository {

@@ -1,5 +1,5 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import type { ActionSubmission } from "#lib/rules-engine/action-submission/ActionSubmission.ts"
+import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
@@ -15,25 +15,25 @@ export const EffectFactory = {
   /**
    * Creates all effects for an action submission
    */
-  fromActionSubmission: (actionSubmission: ActionSubmission, ruleset: Ruleset, monotonicIdFactory: MonotonicIdFactory): Effect[] => {
-    const actionDefinition = ruleset.actionDefinitions[actionSubmission.actionDefinitionId]
+  fromSubmittedAction: (submittedAction: SubmittedAction, ruleset: Ruleset, monotonicIdFactory: MonotonicIdFactory): Effect[] => {
+    const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
     Assert.isDefined(actionDefinition)
 
     const mechanics = [...actionDefinition.costs, ...actionDefinition.mechanics]
 
-    return mechanics.map((mechanic) => EffectFactory.fromMechanic(monotonicIdFactory(), mechanic, actionSubmission))
+    return mechanics.map((mechanic) => EffectFactory.fromMechanic(monotonicIdFactory(), mechanic, submittedAction))
   },
   /**
    * Creates an effect for a mechanic
    */
-  fromMechanic: (id: number, mechanic: Mechanic, actionSubmission: ActionSubmission): Effect => {
+  fromMechanic: (id: number, mechanic: Mechanic, submittedAction: SubmittedAction): Effect => {
     switch (mechanic.type) {
       case ResourceLossMechanic.type:
-        return new ResourceLossEffect(id, mechanic, actionSubmission)
+        return new ResourceLossEffect(id, mechanic, submittedAction)
       case ResourceGainMechanic.type:
-        return new ResourceGainEffect(id, mechanic, actionSubmission)
+        return new ResourceGainEffect(id, mechanic, submittedAction)
       case VictoryMechanic.type:
-        return new VictoryEffect(id, mechanic, actionSubmission)
+        return new VictoryEffect(id, mechanic, submittedAction)
     }
   },
 }

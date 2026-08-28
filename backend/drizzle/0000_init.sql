@@ -9,15 +9,14 @@ CREATE TABLE "accounts" (
 	"alias" text
 );
 --> statement-breakpoint
-CREATE TABLE "action_submissions" (
+CREATE TABLE "actions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"game_id" integer NOT NULL,
-	"submitted_by_player_id" uuid NOT NULL,
+	"player_id" uuid NOT NULL,
 	"turn" integer NOT NULL,
 	"action_definition_id" text NOT NULL,
-	"targets" jsonb NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "action_submissions_game_id_player_id_turn_unique" UNIQUE("game_id","submitted_by_player_id","turn")
+	"targets" jsonb,
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "game_states" (
@@ -97,7 +96,7 @@ CREATE TABLE "turns" (
 	CONSTRAINT "turns_game_id_turn_pk" PRIMARY KEY("game_id","turn")
 );
 --> statement-breakpoint
-ALTER TABLE "action_submissions" ADD CONSTRAINT "action_submissions_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","submitted_by_player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "actions" ADD CONSTRAINT "actions_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "game_states" ADD CONSTRAINT "game_states_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_created_by_account_id_accounts_id_fk" FOREIGN KEY ("created_by_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_winner_account_id_accounts_id_fk" FOREIGN KEY ("winner_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint

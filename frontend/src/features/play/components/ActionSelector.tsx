@@ -1,11 +1,11 @@
-import type { ActionSubmission, ActionTier, GameId, PlayerView } from "@api-types"
+import type { ActionTier, GameId, PlayerView } from "@api-types"
 import { Sort } from "@guillaume-docquier/tools-ts"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
 import { ActionCard } from "@/features/play/components/ActionCard.tsx"
-import { useSetCurrentActionMutation } from "@/lib/api/useSetCurrentActionMutation.ts"
+import { useUpdateActionSubmission } from "@/lib/api/useUpdateActionSubmission.ts"
 
 // This should probably be data driven
 export const ActionTierRank = {
@@ -16,16 +16,8 @@ export const ActionTierRank = {
   EXCEPTIONAL: 5, // Best
 } as const satisfies Record<ActionTier, number>
 
-export function ActionSelector({
-  gameId,
-  playerView,
-  currentAction,
-}: {
-  gameId: GameId
-  playerView: PlayerView
-  currentAction: ActionSubmission | null
-}): ReactElement {
-  const setCurrentAction = useSetCurrentActionMutation()
+export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerView: PlayerView }): ReactElement {
+  const updateActionSubmission = useUpdateActionSubmission()
 
   return (
     <section className="flex flex-col gap-5">
@@ -38,16 +30,19 @@ export function ActionSelector({
       </div>
 
       <div className="flex flex-wrap items-stretch gap-6 px-4 pt-4">
-        {playerView.availableActions
+        {playerView.actions
           .map((action) => ({ action, definition: playerView.ruleset.actionDefinitions[action.actionDefinitionId] }))
           .sort((action1, action2) => Sort.byAscending(ActionTierRank[action1.definition.tier], ActionTierRank[action2.definition.tier]))
           .map(({ action, definition }) => {
-            const isSelected = currentAction?.actionDefinitionId === action.actionDefinitionId
+            const isSelected = action.targets !== null
             const selectAction = (): void => {
-              setCurrentAction.mutate({
+              updateActionSubmission.mutate({
                 gameId,
                 turn: playerView.turn,
-                actionSubmission: isSelected ? null : action,
+                submittedActionTargets: {
+                  actionId: action.id,
+                  targets: isSelected ? null : {}, // no targets to select yet
+                },
               })
             }
             return (
@@ -57,18 +52,18 @@ export function ActionSelector({
                 resources={playerView.resources}
                 canAfford={action.canAfford}
                 isSelected={isSelected}
-                disabled={setCurrentAction.isPending || (!action.canAfford && !isSelected)}
+                disabled={updateActionSubmission.isPending || (!action.canAfford && !isSelected)}
                 onSelect={selectAction}
               />
             )
           })}
       </div>
 
-      {setCurrentAction.isError ? (
+      {updateActionSubmission.isError ? (
         <Alert variant="destructive">
           <AlertTriangle className="size-4" />
           <AlertTitle>Could not update action</AlertTitle>
-          <AlertDescription>{setCurrentAction.error.message}</AlertDescription>
+          <AlertDescription>{updateActionSubmission.error.message}</AlertDescription>
         </Alert>
       ) : null}
     </section>

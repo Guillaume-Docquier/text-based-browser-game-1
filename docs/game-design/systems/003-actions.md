@@ -8,8 +8,7 @@ Partially Implemented
 - [x] Agenda, Directive, and Program presentation
 - [x] Action tier, cost, effect, and affordability presentation
 - [x] Available Action pool
-- [x] Single Action submission
-- [ ] Multiple Action submissions
+- [x] Multiple Action submissions
 - [ ] Ideology-driven Action pools
 
 ## Purpose

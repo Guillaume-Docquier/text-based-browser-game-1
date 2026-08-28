@@ -3,6 +3,7 @@ import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
+import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
@@ -126,7 +127,7 @@ export class TurnProcessor {
     const rng = Rng.fromState(turnToProcess.rngState, mulberry32Prng)
     const resolvedTurnResult = resolveTurn(
       {
-        actionSubmissions: turnToProcess.actionSubmissions,
+        submittedActions: turnToProcess.submittedActions,
         players: turnToProcess.players,
         winnerPlayerId: undefined,
       },
@@ -142,6 +143,10 @@ export class TurnProcessor {
       gameId: turnToProcess.gameId,
       turn: turnToProcess.turn,
       nextTurn: turnToProcess.turn + 1,
+      availableActions: computeAvailableActions({
+        playerIds: Object.values(resolvedTurnResult.value.players).map(({ id }) => id),
+        ruleset: turnToProcess.ruleset,
+      }),
       processedAt,
       rngState: rng.getState(),
       playerResources: Object.values(resolvedTurnResult.value.players).flatMap((player) =>
