@@ -25,6 +25,7 @@ import {
 import { couldNot, TransactionRollback } from "#lib/errors.ts"
 import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
+import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
@@ -47,7 +48,7 @@ export type ActionSubmissionsForUpdate = Branded<
     readonly gameId: GameId
     readonly playerId: PlayerId
     readonly turn: number
-    readonly resources: Record<ResourceType, number>
+    readonly resources: Resources
     readonly actions: Action[]
     readonly ruleset: Ruleset
   },
@@ -83,7 +84,7 @@ export type PlayerViewModel = {
   readonly galaxy: GalaxyModel
   readonly turn: number
   readonly nextTurnAt: Date
-  readonly resources: Record<ResourceType, number>
+  readonly resources: Resources
   /**
    * All the available actions, with their targets if submitted.
    */
@@ -400,14 +401,14 @@ export class GameplayRepository extends PostgresRepository {
   }
 }
 
-function toResourceBag(resourceRows: readonly ResourceRow[]): Record<ResourceType, number> {
+function toResourceBag(resourceRows: readonly ResourceRow[]): Resources {
   const entries = Object.values(ResourceType).map((resourceType) => {
     const resource = resourceRows.find((row) => row.resourceType === resourceType)
     return [resourceType, resource?.amount ?? 0] as const
   })
 
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot infer Object.fromEntries completeness.
-  return Object.fromEntries(entries) as Record<ResourceType, number>
+  return Object.fromEntries(entries) as Resources
 }
 
 function toGalaxyModel({

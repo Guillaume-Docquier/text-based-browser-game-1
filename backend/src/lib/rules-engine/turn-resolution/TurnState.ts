@@ -1,6 +1,6 @@
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 
 /**
  * The current state of the turn.
@@ -13,7 +13,7 @@ export type TurnState = {
       PlayerId,
       {
         id: PlayerId
-        resources: Record<ResourceType, number>
+        resources: Resources
       }
     >
   >

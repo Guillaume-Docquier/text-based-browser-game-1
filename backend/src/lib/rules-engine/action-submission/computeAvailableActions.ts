@@ -4,6 +4,8 @@ import type { AvailableAction } from "#lib/rules-engine/action-submission/Action
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 /**
+ * I don't like the shape of this, but it definitely lives under rules-engine/
+ *
  * Computes the Action instances available to every player for a Turn.
  * For now this is simplistic, in the long run this will involve picking actions from the ruleset based on Ideological Alignments
  */

@@ -4,7 +4,8 @@ import {
   ActionDefinitionIdSchema,
   ActionDefinitionSchema,
 } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
-import { type ResourceType, ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
+import { ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
 /**
  * The complete data-driven rules for a game.
@@ -15,7 +16,7 @@ export type Ruleset = Readonly<{
    */
   name: string
   actionDefinitions: Readonly<Record<ActionDefinition["id"], ActionDefinition>>
-  startingResources: Readonly<Record<ResourceType, number>>
+  startingResources: Readonly<Resources>
 }>
 
 export const RulesetSchema = z.object({

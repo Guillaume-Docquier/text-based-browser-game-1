@@ -3,7 +3,7 @@ import { Clock3, Crown, RefreshCw, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import { Button } from "@/components/button.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
-import { RESOURCE_ICONS, sortResources } from "@/features/play/components/resourceIcons.ts"
+import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
 import { formatRulesetTerm } from "@/features/play/mechanicToRulesText.ts"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
@@ -60,7 +60,7 @@ function TurnFact({ turn }: { turn: PlayerView["turn"] }): ReactElement {
 function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): ReactElement {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries preserves the keys of the typed resource record at runtime.
   const resourceEntries = Object.entries(resources) as Array<[keyof typeof resources, (typeof resources)[keyof typeof resources]]>
-  const sortedResources = sortResources(
+  const sortedResources = sortCostsByResource(
     resourceEntries.map(([resourceType, { total, uncommitted }]) => ({
       resourceType,
       total,

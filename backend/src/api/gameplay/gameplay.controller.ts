@@ -19,9 +19,11 @@ import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
+import { getUncommittedResources } from "#lib/rules-engine/action-submission/getUncommittedResources.ts"
 import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
 import { ActionDefinitionIdSchema } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
+import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
@@ -216,7 +218,11 @@ function createGalaxy(seed: number): GalaxyModel {
 }
 
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
-  const uncommittedResources = getUncommittedResources(playerViewModel)
+  const uncommittedResources = getUncommittedResources({
+    resources: playerViewModel.resources,
+    actions: playerViewModel.actions.filter((action) => action.targets !== null),
+    ruleset: playerViewModel.ruleset,
+  })
 
   return {
     gameId: playerViewModel.gameId,
@@ -236,30 +242,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
   }
 }
 
-function getUncommittedResources(playerViewModel: PlayerViewModel): Record<ResourceType, number> {
-  const uncommittedResources = { ...playerViewModel.resources }
-
-  for (const action of playerViewModel.actions) {
-    if (action.targets === null) {
-      continue
-    }
-
-    const actionDefinition = playerViewModel.ruleset.actionDefinitions[action.actionDefinitionId]
-    Assert.isDefined(actionDefinition)
-
-    for (const cost of actionDefinition.costs) {
-      uncommittedResources[cost.resourceType] -= cost.quantity
-      Assert.isTrue(uncommittedResources[cost.resourceType] >= 0)
-    }
-  }
-
-  return uncommittedResources
-}
-
-function toResourcesDto(
-  totalResources: Readonly<Record<ResourceType, number>>,
-  uncommittedResources: Readonly<Record<ResourceType, number>>,
-): PlayerViewDto["resources"] {
+function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResources: Readonly<Resources>): PlayerViewDto["resources"] {
   // string instead of ResourceType to satisfy TypeScript. Strange that it works, maybe even dangerous, but okay
   return Object.entries(totalResources).reduce<Record<string, ResourceAmountsDto>>((resourcesDto, [resourceType, total]) => {
     resourcesDto[resourceType] = {
@@ -271,7 +254,7 @@ function toResourcesDto(
   }, {})
 }
 
-function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Record<ResourceType, number>): ActionDto[] {
+function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Resources): ActionDto[] {
   const turnState = createTurnState({
     playerId: playerViewModel.player.id,
     resources: uncommittedResources,
@@ -315,7 +298,7 @@ function createTurnState({
   submittedActions,
 }: {
   playerId: PlayerId
-  resources: Record<ResourceType, number>
+  resources: Resources
   submittedActions: readonly SubmittedAction[]
 }): TurnState {
   return {

@@ -10,6 +10,7 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
+import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
@@ -50,7 +51,7 @@ export type TurnToProcessModel = {
     PlayerId,
     {
       id: PlayerId
-      resources: Record<ResourceType, number>
+      resources: Resources
     }
   >
   readonly ruleset: Ruleset
