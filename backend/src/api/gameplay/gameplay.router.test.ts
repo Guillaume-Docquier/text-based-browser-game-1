@@ -156,6 +156,38 @@ describe("gameplay.router", () => {
       const repeatedGetPlayerViewResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
+      const expectedActions = [
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainInfluence.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: WinTheGame.id,
+          targets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainEnergy.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainFuel.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainMetal.id,
+          targets: null,
+          canAfford: true,
+        },
+      ]
       expect(getPlayerViewResult).toEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
         player: { id: player.account.id, color: PlayerColor.WHITE },
@@ -172,39 +204,9 @@ describe("gameplay.router", () => {
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
         }),
         ruleset: StandardRuleset,
-        actions: [
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainInfluence.id,
-            targets: null,
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: WinTheGame.id,
-            targets: null,
-            canAfford: false,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainEnergy.id,
-            targets: null,
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainFuel.id,
-            targets: null,
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainMetal.id,
-            targets: null,
-            canAfford: true,
-          },
-        ],
+        actions: expect.arrayContaining(expectedActions),
       })
+      expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)
       expect(repeatedGetPlayerViewResult.actions).toEqual(getPlayerViewResult.actions)
     })
 

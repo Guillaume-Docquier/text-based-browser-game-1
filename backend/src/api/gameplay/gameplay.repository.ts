@@ -70,6 +70,12 @@ type PlayerViewPlayerModel = {
   color: PlayerColor
 }
 
+type PlayerViewActionModel = {
+  readonly id: string
+  readonly actionDefinitionId: SubmittedAction["actionDefinitionId"]
+  readonly targets: ResolvedTargets | null
+}
+
 export type PlayerViewModel = {
   readonly gameId: number
   readonly player: PlayerViewPlayerModel
@@ -81,11 +87,7 @@ export type PlayerViewModel = {
   /**
    * All the available actions, with their targets if submitted.
    */
-  readonly actions: ReadonlyArray<{
-    readonly id: string
-    readonly actionDefinitionId: SubmittedAction["actionDefinitionId"]
-    readonly targets: ResolvedTargets | null
-  }>
+  readonly actions: readonly PlayerViewActionModel[]
   readonly ruleset: Ruleset
 }
 
@@ -321,11 +323,6 @@ export class GameplayRepository extends PostgresRepository {
           .from(actionsTable)
           .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, gameState.turn)))
           .orderBy(actionsTable.id)
-        // ponytail: Rulesets are tiny; index persisted Actions if this becomes a measured hot path.
-        const orderedAvailableActionRows = Object.values(StandardRuleset.actionDefinitions).flatMap(({ id }) =>
-          availableActionRows.filter(({ actionDefinitionId }) => actionDefinitionId === id),
-        )
-        Assert.isTrue(orderedAvailableActionRows.length === availableActionRows.length)
 
         const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
         const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
@@ -336,11 +333,7 @@ export class GameplayRepository extends PostgresRepository {
           opponents,
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
-          actions: orderedAvailableActionRows.map((row) => ({
-            id: row.id,
-            actionDefinitionId: row.actionDefinitionId,
-            targets: row.targets,
-          })),
+          actions: toPlayerViewActionModel(availableActionRows),
           ruleset: StandardRuleset, // Eventually should be stored in DB
         }
       }),
@@ -424,4 +417,12 @@ function toGalaxyModel({
   }))
 
   return { systems }
+}
+
+function toPlayerViewActionModel(actions: ReadonlyArray<typeof actionsTable.$inferSelect>): PlayerViewActionModel[] {
+  return actions.map((action) => ({
+    id: action.id,
+    actionDefinitionId: action.actionDefinitionId,
+    targets: action.targets,
+  }))
 }
