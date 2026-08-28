@@ -139,7 +139,7 @@ describe("gameplay.router", () => {
     })
   })
 
-  describe("getById", () => {
+  describe("getPlayerView", () => {
     it("should get the authenticated player's state for a started game", async () => {
       // Arrange
       const clock = new ControlledClock()
@@ -152,11 +152,11 @@ describe("gameplay.router", () => {
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act
-      const getByIdResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const repeatedGetByIdResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const getPlayerViewResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const repeatedGetPlayerViewResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(getByIdResult).toEqual<typeof getByIdResult>({
+      expect(getPlayerViewResult).toEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
         player: { id: player.account.id, color: PlayerColor.WHITE },
         opponents: {},
@@ -205,7 +205,7 @@ describe("gameplay.router", () => {
           },
         ],
       })
-      expect(repeatedGetByIdResult.actions).toEqual(getByIdResult.actions)
+      expect(repeatedGetPlayerViewResult.actions).toEqual(getPlayerViewResult.actions)
     })
 
     it("should expose uncommitted resources and use them to determine Action affordability", async () => {

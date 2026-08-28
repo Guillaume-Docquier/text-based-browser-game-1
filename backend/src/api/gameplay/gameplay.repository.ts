@@ -30,7 +30,7 @@ import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
-type NewSubmittedActionRow = typeof actionsTable.$inferInsert
+type NewActionRow = typeof actionsTable.$inferInsert
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type ResourceRow = typeof resourcesTable.$inferSelect
 type NewTurnRow = typeof turnsTable.$inferInsert
@@ -120,7 +120,10 @@ export type StartGameModel = {
     readonly resourceType: ResourceType
     readonly amount: number
   }>
-  readonly actions: readonly AvailableAction[]
+  /**
+   * Eventually will probably be per player, might not all have the same starting conditions
+   */
+  readonly availableActions: readonly AvailableAction[]
   readonly galaxy: GalaxyModel
 }
 
@@ -249,7 +252,7 @@ export class GameplayRepository extends PostgresRepository {
       ...playerResource,
       gameId: startGameModel.context.gameId,
     }))
-    const availableActions: NewSubmittedActionRow[] = startGameModel.actions.map((availableAction) => ({
+    const availableActions: NewActionRow[] = startGameModel.availableActions.map((availableAction) => ({
       ...availableAction,
       gameId: startGameModel.context.gameId,
       turn: gameState.turn,

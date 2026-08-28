@@ -90,7 +90,7 @@ export class GameplayController {
           // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           playerResources,
-          actions: computeAvailableActions({
+          availableActions: computeAvailableActions({
             playerIds: gameForStart.value.playerIds,
             ruleset: gameForStart.value.ruleset,
           }),
