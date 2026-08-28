@@ -32,7 +32,7 @@ describe("gameplay.router", () => {
     await expect(nonPlayer.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(nonPlayer.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(
-      nonPlayer.client.gameplay.setCurrentAction.mutate({
+      nonPlayer.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
         submittedActionTargets: createSubmittedActionTargetsDtoStub(),
@@ -221,7 +221,7 @@ describe("gameplay.router", () => {
       const generatePower = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
       Assert.isDefined(generatePower)
 
-      await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: initialPlayerView.turn,
         submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: generatePower.id, targets: {} }),
@@ -296,7 +296,7 @@ describe("gameplay.router", () => {
     })
   })
 
-  describe("setCurrentAction", () => {
+  describe("updateActionSubmission", () => {
     it("should set the current action for the authenticated player and override server-owned targets", async () => {
       // Arrange
       const db = await createDbMock()
@@ -312,7 +312,7 @@ describe("gameplay.router", () => {
       Assert.isDefined(gainInfluence)
 
       // Act
-      await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
         submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: gainInfluence.id, targets: { self: "not self" } }),
@@ -337,7 +337,7 @@ describe("gameplay.router", () => {
 
       // Act & Assert
       await expect(
-        player.client.gameplay.setCurrentAction.mutate({
+        player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: 1,
           submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
@@ -358,7 +358,7 @@ describe("gameplay.router", () => {
       Assert.isDefined(winTheGame)
 
       // Act
-      const setActionPromise = player.client.gameplay.setCurrentAction.mutate({
+      const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
         submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: winTheGame.id, targets: {} }),
@@ -379,7 +379,7 @@ describe("gameplay.router", () => {
       Assert.isDefined(makeMoreMoney)
 
       // Act
-      const setActionPromise = player.client.gameplay.setCurrentAction.mutate({
+      const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
         submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: "unavailable-action", targets: {} }),

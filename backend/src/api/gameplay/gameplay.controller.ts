@@ -132,9 +132,14 @@ export class GameplayController {
   }
 
   /**
-   * @deprecated Temporary POC implementation, it's bad and I don't care because we'll throw it all away
+   * Long term we'll probably want a batch submission
    */
-  public async setCurrentAction({ gameId, playerId, turn, submittedActionTargets }: SetCurrentActionDto): Promise<Result<void, string>> {
+  public async updateActionSubmission({
+    gameId,
+    playerId,
+    turn,
+    submittedActionTargets,
+  }: UpdateActionSubmissionDto): Promise<Result<void, string>> {
     const setActionResult = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
       const actionsById = new Map(Array.from(context.actions, (action) => [action.id, action]))
@@ -387,8 +392,8 @@ export const PlayerViewDto = z.object({
   actions: z.array(ActionDto),
 })
 
-export type SetCurrentActionDto = z.infer<typeof SetCurrentActionDto>
-export const SetCurrentActionDto = z.object({
+export type UpdateActionSubmissionDto = z.infer<typeof UpdateActionSubmissionDto>
+export const UpdateActionSubmissionDto = z.object({
   gameId: z.coerce.number(),
   playerId: PlayerId,
   turn: z.coerce.number(),

@@ -127,7 +127,7 @@ describe("TurnProcessor", () => {
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       const { turnProcessor } = await createTurnProcessorStub({ db, clock })
-      await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
         submittedActionTargets: getActionToSubmit(initialPlayerView, GainInfluence.id),
@@ -201,7 +201,7 @@ describe("TurnProcessor", () => {
       const resourcesRepository = new ResourcesRepository({ db, logger })
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
-      await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
         submittedActionTargets: getActionToSubmit(initialPlayerView, GainMetal.id),
@@ -454,7 +454,7 @@ describe("TurnProcessor", () => {
         }
         const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
-        await player.client.gameplay.setCurrentAction.mutate({
+        await player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: 0,
           submittedActionTargets: getActionToSubmit(playerView, WinTheGame.id),
@@ -506,7 +506,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
-      await player.client.gameplay.setCurrentAction.mutate({
+      await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
         submittedActionTargets: getActionToSubmit(playerView, GainInfluence.id),

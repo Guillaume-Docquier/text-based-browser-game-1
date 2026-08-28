@@ -5,7 +5,7 @@ import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
 import { ActionCard } from "@/features/play/components/ActionCard.tsx"
-import { useSetCurrentActionMutation } from "@/lib/api/useSetCurrentActionMutation.ts"
+import { useUpdateActionSubmission } from "@/lib/api/useUpdateActionSubmission.ts"
 
 // This should probably be data driven
 export const ActionTierRank = {
@@ -17,7 +17,7 @@ export const ActionTierRank = {
 } as const satisfies Record<ActionTier, number>
 
 export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerView: PlayerView }): ReactElement {
-  const setCurrentAction = useSetCurrentActionMutation()
+  const updateActionSubmission = useUpdateActionSubmission()
 
   return (
     <section className="flex flex-col gap-5">
@@ -36,7 +36,7 @@ export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerV
           .map(({ action, definition }) => {
             const isSelected = action.targets !== null
             const selectAction = (): void => {
-              setCurrentAction.mutate({
+              updateActionSubmission.mutate({
                 gameId,
                 turn: playerView.turn,
                 submittedActionTargets: {
@@ -52,18 +52,18 @@ export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerV
                 resources={playerView.resources}
                 canAfford={action.canAfford}
                 isSelected={isSelected}
-                disabled={setCurrentAction.isPending || (!action.canAfford && !isSelected)}
+                disabled={updateActionSubmission.isPending || (!action.canAfford && !isSelected)}
                 onSelect={selectAction}
               />
             )
           })}
       </div>
 
-      {setCurrentAction.isError ? (
+      {updateActionSubmission.isError ? (
         <Alert variant="destructive">
           <AlertTriangle className="size-4" />
           <AlertTitle>Could not update action</AlertTitle>
-          <AlertDescription>{setCurrentAction.error.message}</AlertDescription>
+          <AlertDescription>{updateActionSubmission.error.message}</AlertDescription>
         </Alert>
       ) : null}
     </section>
