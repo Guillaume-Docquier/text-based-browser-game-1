@@ -16,7 +16,7 @@ describe("planetGenerator", () => {
     const secondPlanet = planetGenerator(starPosition, orbitDistance, createSeededRng())
 
     // Assert
-    expect(firstPlanet).toEqual(secondPlanet)
+    expect(firstPlanet).toStrictEqual(secondPlanet)
     expect(Math.hypot(firstPlanet.x - starPosition.x, firstPlanet.y - starPosition.y)).toBeCloseTo(orbitDistance, 5)
   })
 
@@ -30,7 +30,7 @@ describe("planetGenerator", () => {
     const planet = planetGenerator(starPosition, orbitDistance, quarterTurnRng)
 
     // Assert
-    expect(planet.y).toEqual(starPosition.y + orbitDistance)
+    expect(planet.y).toStrictEqual(starPosition.y + orbitDistance)
     expect(Math.hypot(planet.x - starPosition.x, planet.y - starPosition.y)).toBeCloseTo(orbitDistance, 5)
   })
 
@@ -42,7 +42,7 @@ describe("planetGenerator", () => {
     const planets = Array.from({ length: 5_000 }, () => planetGenerator({ x: 0, y: 0 }, 8, rng))
 
     // Assert
-    expect(new Set(planets.map((planet) => planet.biome))).toEqual(new Set(Object.values(PlanetBiome)))
+    expect(new Set(planets.map((planet) => planet.biome))).toStrictEqual(new Set(Object.values(PlanetBiome)))
     for (const biome of Object.values(PlanetBiome)) {
       const biomePlanets = planets.filter((planet) => planet.biome === biome)
       const limits = BIOME_ATTRIBUTE_RANGES[biome]
@@ -62,7 +62,7 @@ describe("planetGenerator", () => {
     const planets = Array.from({ length: 5_000 }, () => planetGenerator({ x: 0, y: 0 }, 8, rng))
 
     // Assert
-    expect(new Set(planets.map((planet) => planet.size))).toEqual(new Set(Object.values(PlanetSize)))
+    expect(new Set(planets.map((planet) => planet.size))).toStrictEqual(new Set(Object.values(PlanetSize)))
     for (const size of Object.values(PlanetSize)) {
       const sizePlanets = planets.filter((planet) => planet.size === size)
       const limits = SIZE_ATTRIBUTE_RANGES[size]
@@ -86,7 +86,7 @@ describe("planetGenerator", () => {
     const translatedPlanet = planetGenerator(translatedStarPosition, 8, createSeededRng())
 
     // Assert
-    expect(translatedPlanet).toEqual({
+    expect(translatedPlanet).toStrictEqual({
       ...planet,
       x: expect.closeTo(planet.x + translation.x, 10),
       y: expect.closeTo(planet.y + translation.y, 10),
@@ -107,6 +107,6 @@ function getObservedRange(values: readonly number[]): NumericRange {
 }
 
 function expectToMatchLimits(observed: NumericRange, limits: NumericRange): void {
-  expect(observed.min).toEqual(limits.min)
-  expect(observed.max).toEqual(limits.max)
+  expect(observed.min).toStrictEqual(limits.min)
+  expect(observed.max).toStrictEqual(limits.max)
 }

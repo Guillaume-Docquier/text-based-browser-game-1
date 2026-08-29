@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import path from "node:path"
 import type { XY } from "@guillaume-docquier/tools-ts"
 import type { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import type { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
@@ -44,7 +44,7 @@ type RenderOptions = {
 /** Renders centered star-system previews measured in astronomical units. */
 export const SystemSvgRenderer = {
   renderToFile: async (options: RenderOptions): Promise<void> => {
-    await mkdir(dirname(options.outputPath), { recursive: true })
+    await mkdir(path.dirname(options.outputPath), { recursive: true })
     await writeFile(options.outputPath, renderSvg(options), "utf8")
 
     console.log(`Wrote ${options.outputPath}`)

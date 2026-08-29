@@ -1,4 +1,4 @@
-import { react, typescript } from "@guillaume-docquier/oxlint"
+import { react, typescript, vitest } from "@guillaume-docquier/oxlint"
 import { defineConfig } from "oxlint"
 
 export default defineConfig({
@@ -14,6 +14,10 @@ export default defineConfig({
       env: {
         node: true,
       },
+    },
+    {
+      ...vitest,
+      files: ["**/*.test.ts"],
     },
     {
       files: ["backend/src/**/*.ts"],
@@ -32,10 +36,6 @@ export default defineConfig({
       ...react,
       files: ["frontend/**/*.{ts,tsx}"],
       excludeFiles: ["frontend/playwright/**/*"],
-      rules: {
-        ...react.rules,
-        "react/refs": "off", // creates too many false positives because of an old and still open bug: https://github.com/react/react/issues/34775
-      },
     },
   ],
 })

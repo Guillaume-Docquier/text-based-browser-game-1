@@ -12,7 +12,7 @@ describe("starGenerator", () => {
     const star = starGenerator(position, createSeededRng())
 
     // Assert
-    expect(star).toEqual({
+    expect(star).toStrictEqual({
       x: 10,
       y: -20,
       name: "star 74220",
@@ -28,7 +28,7 @@ describe("starGenerator", () => {
     const secondStar = starGenerator(position, createSeededRng())
 
     // Assert
-    expect({ firstStar, secondStar }).toEqual({
+    expect({ firstStar, secondStar }).toStrictEqual({
       firstStar: { x: 10, y: -20, name: "star 74220" },
       secondStar: { x: 10, y: -20, name: "star 74220" },
     })
@@ -39,6 +39,6 @@ describe("starGenerator", () => {
     const star = starGenerator({ x: 10, y: -20 }, Rng.create(createGeneratorStub(0)))
 
     // Assert
-    expect(star).toEqual({ x: 10, y: -20, name: "star 999" })
+    expect(star).toStrictEqual({ x: 10, y: -20, name: "star 999" })
   })
 })

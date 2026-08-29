@@ -20,7 +20,7 @@ describe("galaxyGenerator", () => {
     })
 
     // Assert
-    expect(galaxy).toEqual<typeof galaxy>({
+    expect(galaxy).toStrictEqual<typeof galaxy>({
       width: 10,
       height: 10,
       systems: [
@@ -52,7 +52,7 @@ describe("galaxyGenerator", () => {
     })
 
     // Assert
-    expect(galaxy.systems).toEqual<typeof galaxy.systems>([
+    expect(galaxy.systems).toStrictEqual<typeof galaxy.systems>([
       {
         star: { x: 0, y: 0, name: expect.any(String) },
         planets: expect.any(Array),
@@ -77,7 +77,7 @@ describe("galaxyGenerator", () => {
     })
 
     // Assert
-    expect(galaxy.systems).toEqual<typeof galaxy.systems>([
+    expect(galaxy.systems).toStrictEqual<typeof galaxy.systems>([
       {
         star: { x: 1.9, y: 2.9, name: expect.any(String) },
         planets: expect.any(Array),
@@ -106,7 +106,7 @@ describe("galaxyGenerator", () => {
 
     // Assert
     expect(firstGalaxy.systems.length).toBeGreaterThan(0)
-    expect(secondGalaxy).toEqual(firstGalaxy)
+    expect(secondGalaxy).toStrictEqual(firstGalaxy)
   })
 
   it("should match the default realistic spiral galaxy", () => {

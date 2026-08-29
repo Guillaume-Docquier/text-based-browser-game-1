@@ -70,7 +70,7 @@ describe("lobby concurrency", () => {
     for (const gameParticipant of gameParticipants) {
       Assert.isDefined(gameParticipant)
       const playerView = await gameParticipant.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView.resources).toEqual<typeof playerView.resources>(
+      expect(playerView.resources).toStrictEqual<typeof playerView.resources>(
         createResourcesDtoStub({
           [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },

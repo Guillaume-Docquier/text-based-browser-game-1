@@ -11,6 +11,6 @@ describe("StandardRuleset", () => {
     const validationIssues = validateRuleset(ruleset)
 
     // Assert
-    expect(validationIssues).toEqual([])
+    expect(validationIssues).toStrictEqual([])
   })
 })

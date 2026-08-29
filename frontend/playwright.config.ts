@@ -1,13 +1,13 @@
-import { dirname, resolve } from "node:path"
+import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { defineConfig, devices } from "@playwright/test"
 import { loadEnv } from "./playwright/loadEnv.ts"
 
-const frontendDirectory = dirname(fileURLToPath(import.meta.url))
-const backendDirectory = resolve(frontendDirectory, "../backend")
+const frontendDirectory = path.dirname(fileURLToPath(import.meta.url))
+const backendDirectory = path.resolve(frontendDirectory, "../backend")
 const isCI = process.env.CI === "true"
 
-const env = loadEnv({ envFilePath: isCI ? undefined : resolve(frontendDirectory, ".env") })
+const env = loadEnv({ envFilePath: isCI ? undefined : path.resolve(frontendDirectory, ".env") })
 const backendUrl = `http://127.0.0.1:${env.E2E_BACKEND_PORT}`
 const frontendUrl = `http://127.0.0.1:${env.E2E_FRONTEND_PORT}`
 

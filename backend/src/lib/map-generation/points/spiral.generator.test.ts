@@ -16,7 +16,7 @@ describe("spiralGenerator", () => {
     const secondPoints = spiralGenerator({ ...DEFAULT_OPTIONS, rng: createSeededRng() })
 
     // Assert
-    expect(firstPoints).toEqual(secondPoints)
+    expect(firstPoints).toStrictEqual(secondPoints)
   })
 
   it("should translate the generated spiral with its origin", () => {

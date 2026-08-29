@@ -49,7 +49,7 @@ describe("validateSubmittedActions", () => {
     validateSubmittedActions([submittedAction], ruleset, turnState)
 
     // Assert
-    expect(turnState).toEqual(originalTurnState)
+    expect(turnState).toStrictEqual(originalTurnState)
   })
 
   it("should return no issues for a valid Action Submission", () => {
@@ -75,7 +75,7 @@ describe("validateSubmittedActions", () => {
     const issues = validateSubmittedActions([submittedAction], ruleset, turnState)
 
     // Assert
-    expect(issues).toEqual([])
+    expect(issues).toStrictEqual([])
   })
 
   it("should collect target and cost issues from the complete validation pipeline", () => {
@@ -102,7 +102,7 @@ describe("validateSubmittedActions", () => {
     const issues = validateSubmittedActions([submittedAction], ruleset, turnState)
 
     // Assert
-    expect(issues).toEqual<typeof issues>([
+    expect(issues).toStrictEqual<typeof issues>([
       {
         issue: 'Unexpected target slot "fleet"',
         submittedActionId: submittedAction.id,
@@ -134,7 +134,7 @@ describe("validateSubmittedActions", () => {
       const issues = validateSubmittedActions([submittedAction], emptyRuleset, turnState)
 
       // Assert
-      expect(issues).toEqual<typeof issues>([
+      expect(issues).toStrictEqual<typeof issues>([
         {
           issue: "Action definition does not exist in the Ruleset",
           submittedActionId: submittedAction.id,
@@ -180,7 +180,7 @@ describe("validateSubmittedActions", () => {
       const issues = validateSubmittedActions([submittedAction], rulesetWithRequiredTarget, turnState)
 
       // Assert
-      expect(issues).toEqual<typeof issues>([
+      expect(issues).toStrictEqual<typeof issues>([
         {
           issue: 'Missing target slot "targetPlayer"',
           submittedActionId: submittedAction.id,
@@ -214,7 +214,7 @@ describe("validateSubmittedActions", () => {
       const issues = validateSubmittedActions([submittedAction], ruleset, turnState)
 
       // Assert
-      expect(issues).toEqual<typeof issues>([
+      expect(issues).toStrictEqual<typeof issues>([
         {
           issue: 'Unexpected target slot "fleet"',
           submittedActionId: submittedAction.id,
@@ -238,7 +238,7 @@ describe("validateSubmittedActions", () => {
       const issues = validateSubmittedActions([submittedAction], ruleset, turnState)
 
       // Assert
-      expect(issues).toEqual<typeof issues>([
+      expect(issues).toStrictEqual<typeof issues>([
         {
           issue: 'Target slot "self" must be set to a SELF id',
           submittedActionId: submittedAction.id,
@@ -284,7 +284,7 @@ describe("validateSubmittedActions", () => {
       const issues = validateSubmittedActions([firstPlayerSubmittedAction, secondPlayerSubmittedAction], ruleset, turnState)
 
       // Assert
-      expect(issues).toEqual<typeof issues>([
+      expect(issues).toStrictEqual<typeof issues>([
         {
           issue: "Missing 1 INFLUENCE",
           submittedActionId: secondPlayerSubmittedAction.id,
@@ -328,7 +328,7 @@ describe("validateSubmittedActions", () => {
       const issues = validateSubmittedActions([submittedAction], rulesetWithMultipleCosts, turnState)
 
       // Assert
-      expect(issues).toEqual<typeof issues>([
+      expect(issues).toStrictEqual<typeof issues>([
         {
           issue: "Missing 3 INFLUENCE",
           submittedActionId: submittedAction.id,
@@ -378,7 +378,7 @@ describe("validateSubmittedActions", () => {
       const issues = validateSubmittedActions([submittedAction1, submittedAction2], rulesetWithMultipleCosts, turnState)
 
       // Assert
-      expect(issues).toEqual<typeof issues>([
+      expect(issues).toStrictEqual<typeof issues>([
         {
           issue: "Missing 6 INFLUENCE",
           submittedActionId: submittedAction2.id,
@@ -428,7 +428,7 @@ describe("validateSubmittedActions", () => {
       const issues = validateSubmittedActions([submittedAction1, submittedAction2], rulesetWithMultipleCosts, turnState)
 
       // Assert
-      expect(issues).toEqual<typeof issues>([
+      expect(issues).toStrictEqual<typeof issues>([
         {
           issue: "Missing 3 INFLUENCE",
           submittedActionId: submittedAction1.id,

@@ -18,7 +18,7 @@ describe("lobbies.router", () => {
       const creationSettings = await player.client.lobbies.getCreationSettings.query()
 
       // Assert
-      expect(creationSettings).toEqual<typeof creationSettings>({ maxNbSeats: MAX_NB_SEATS })
+      expect(creationSettings).toStrictEqual<typeof creationSettings>({ maxNbSeats: MAX_NB_SEATS })
     })
   })
 
@@ -34,7 +34,7 @@ describe("lobbies.router", () => {
       })
 
       // Assert
-      expect(createLobbyResult).toEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
+      expect(createLobbyResult).toStrictEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
     })
 
     it.each([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (mapGenerationSeed) => {
@@ -61,12 +61,12 @@ describe("lobbies.router", () => {
       const createLobbyResult = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Assert
-      expect(createLobbyResult).toEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
+      expect(createLobbyResult).toStrictEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
 
       const createdGame = await creator.client.lobbies.getById.query({ gameId: createLobbyResult.createdGameId })
       const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
 
-      expect(createdGame).toEqual<typeof createdGame>({
+      expect(createdGame).toStrictEqual<typeof createdGame>({
         id: createLobbyResult.createdGameId,
         createdAt: expect.any(String),
         configuration: newGameSettings,
@@ -159,7 +159,7 @@ describe("lobbies.router", () => {
 
       // Assert
       const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
-      expect(lobby).toEqual<typeof lobby>({
+      expect(lobby).toStrictEqual<typeof lobby>({
         id: createdGameId,
         createdAt: expect.any(String),
         endedAt: null,
@@ -190,7 +190,7 @@ describe("lobbies.router", () => {
 
       // Assert
       const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
-      expect(lobby).toEqual<typeof lobby>({
+      expect(lobby).toStrictEqual<typeof lobby>({
         id: createdGameId,
         createdAt: expect.any(String),
         endedAt: null,
@@ -227,7 +227,7 @@ describe("lobbies.router", () => {
         player: { status: playerLobby.status, canOpen: playerLobby.canOpen },
         nonPlayer: { status: nonPlayerLobby.status, canOpen: nonPlayerLobby.canOpen },
         anonymous: { status: anonymousLobby.status, canOpen: anonymousLobby.canOpen },
-      }).toEqual({
+      }).toStrictEqual({
         player: { status: GameStatus.COLLECTING_ACTIONS, canOpen: true },
         nonPlayer: { status: GameStatus.COLLECTING_ACTIONS, canOpen: false },
         anonymous: { status: GameStatus.COLLECTING_ACTIONS, canOpen: false },
@@ -263,7 +263,7 @@ describe("lobbies.router", () => {
 
       // Assert
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
-      expect(new Set(lobby.players.map(({ color }) => color))).toEqual(new Set(Object.values(PlayerColor)))
+      expect(new Set(lobby.players.map(({ color }) => color))).toStrictEqual(new Set(Object.values(PlayerColor)))
     })
 
     it("should assign every player color in a maximum sized lobby as players leave and rejoin", async () => {
@@ -288,7 +288,7 @@ describe("lobbies.router", () => {
 
       // Assert
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
-      expect(new Set(lobby.players.map(({ color }) => color))).toEqual(new Set(Object.values(PlayerColor)))
+      expect(new Set(lobby.players.map(({ color }) => color))).toStrictEqual(new Set(Object.values(PlayerColor)))
     })
 
     it("should join a game", async () => {
@@ -304,13 +304,13 @@ describe("lobbies.router", () => {
       const joinGameResult = await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(joinGameResult).toEqual<typeof joinGameResult>({ playerId: joiner.account.id })
+      expect(joinGameResult).toStrictEqual<typeof joinGameResult>({ playerId: joiner.account.id })
 
       const joinedLobby = await joiner.client.lobbies.getById.query({ gameId: createdGameId })
       const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
       const expectedJoiner: LobbyPlayerDto = { id: joiner.account.id, alias: joiner.account.alias, color: PlayerColor.RED }
 
-      expect(joinedLobby).toEqual<typeof joinedLobby>({
+      expect(joinedLobby).toStrictEqual<typeof joinedLobby>({
         id: createdGameId,
         createdAt: expect.any(String),
         endedAt: null,
@@ -383,7 +383,7 @@ describe("lobbies.router", () => {
       const joinResult = await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(joinResult).toEqual({ playerId: joiner.account.id })
+      expect(joinResult).toStrictEqual({ playerId: joiner.account.id })
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(2)
       expect(lobby.status).toBe(GameStatus.WAITING_FOR_PLAYERS)
@@ -417,12 +417,12 @@ describe("lobbies.router", () => {
       const leaveGameResult = await leaver.client.lobbies.leave.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(leaveGameResult).toEqual<typeof leaveGameResult>(true)
+      expect(leaveGameResult).toBe<typeof leaveGameResult>(true)
 
       const leftLobby = await leaver.client.lobbies.getById.query({ gameId: createdGameId })
       const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
 
-      expect(leftLobby).toEqual<typeof leftLobby>({
+      expect(leftLobby).toStrictEqual<typeof leftLobby>({
         id: createdGameId,
         createdAt: expect.any(String),
         endedAt: null,

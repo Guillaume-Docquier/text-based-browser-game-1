@@ -6,7 +6,7 @@ import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
-import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
+import { couldNot, rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
 
@@ -89,7 +89,7 @@ export class LobbiesController {
       }
 
       if (lobbyForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
-        throw new TransactionRollback("Cannot join lobby, it is full.")
+        throw new TransactionRollbackError("Cannot join lobby, it is full.")
       }
 
       const status =
@@ -124,11 +124,11 @@ export class LobbiesController {
       }
 
       if (lobbyForLeave.value.status !== GameStatus.WAITING_FOR_PLAYERS && lobbyForLeave.value.status !== GameStatus.READY_TO_START) {
-        throw new TransactionRollback("Cannot leave a lobby that has started.")
+        throw new TransactionRollbackError("Cannot leave a lobby that has started.")
       }
 
       if (lobbyForLeave.value.createdByAccountId === accountId) {
-        throw new TransactionRollback("Cannot leave a lobby as its creator.")
+        throw new TransactionRollbackError("Cannot leave a lobby as its creator.")
       }
 
       await this.lobbiesRepository.leaveLobby({ context: lobbyForLeave.value, accountId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)

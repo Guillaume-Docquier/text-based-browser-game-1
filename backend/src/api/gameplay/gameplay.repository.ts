@@ -22,7 +22,7 @@ import {
   starsTable,
   turnsTable,
 } from "#lib/db/schema.ts"
-import { couldNot, TransactionRollback } from "#lib/errors.ts"
+import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
@@ -365,7 +365,7 @@ export class GameplayRepository extends PostgresRepository {
       .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.COLLECTING_ACTIONS)))
       .for("no key update")
     if (games.length !== 1) {
-      throw new TransactionRollback("Cannot submit actions in the current game status")
+      throw new TransactionRollbackError("Cannot submit actions in the current game status")
     }
 
     const resourceRows = await tx

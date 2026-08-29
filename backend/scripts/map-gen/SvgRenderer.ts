@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import path from "node:path"
 import type { XY } from "@guillaume-docquier/tools-ts"
 
 const SVG_WIDTH = 900
@@ -22,7 +22,7 @@ type RenderOptions = {
 /** Renders map generator previews as SVG files. */
 export const SvgRenderer = {
   renderToFile: async (options: RenderOptions): Promise<void> => {
-    await mkdir(dirname(options.outputPath), { recursive: true })
+    await mkdir(path.dirname(options.outputPath), { recursive: true })
     await writeFile(options.outputPath, renderSvg(options), "utf8")
 
     console.log(`Wrote ${options.outputPath}`)

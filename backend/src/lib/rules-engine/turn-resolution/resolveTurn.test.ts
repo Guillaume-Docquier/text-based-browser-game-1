@@ -39,7 +39,7 @@ describe("resolveTurn", () => {
     const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
 
     // Assert
-    expect(result).toEqual<typeof result>(
+    expect(result).toStrictEqual<typeof result>(
       Result.Failure(
         ResolveTurnError.InvalidSubmissions({
           issues: [
@@ -98,7 +98,7 @@ describe("resolveTurn", () => {
     const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
 
     // Assert
-    expect(result).toEqual<typeof result>(
+    expect(result).toStrictEqual<typeof result>(
       Result.Success({
         players: {
           [playerId]: {
@@ -160,7 +160,7 @@ describe("resolveTurn", () => {
     const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
 
     // Assert
-    expect(result).toEqual<typeof result>(
+    expect(result).toStrictEqual<typeof result>(
       Result.Success({
         players: {
           [firstPlayerId]: {
@@ -222,7 +222,7 @@ describe("resolveTurn", () => {
     const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
 
     // Assert
-    expect(result).toEqual<typeof result>(
+    expect(result).toStrictEqual<typeof result>(
       Result.Success({
         players: {
           [playerId]: {

@@ -36,7 +36,7 @@ describe("validateRuleset", () => {
     const validationIssues = validateRuleset(ruleset)
 
     // Assert
-    expect(validationIssues).toEqual([])
+    expect(validationIssues).toStrictEqual([])
   })
 
   it("should report an Action Definition indexed under an id other than its own", () => {
@@ -51,7 +51,7 @@ describe("validateRuleset", () => {
     const validationIssues = validateRuleset(ruleset)
 
     // Assert
-    expect(validationIssues).toEqual<typeof validationIssues>([
+    expect(validationIssues).toStrictEqual<typeof validationIssues>([
       {
         issue: `Action Definition ${validActionDefinition.name} is indexed under incorrect-index instead of ${validActionDefinition.id}`,
       },
@@ -89,7 +89,7 @@ describe("validateRuleset", () => {
     const validationIssues = validateRuleset(ruleset)
 
     // Assert
-    expect(validationIssues).toEqual<typeof validationIssues>([
+    expect(validationIssues).toStrictEqual<typeof validationIssues>([
       {
         issue: `Action Definition ${actionDefinitionWithoutSelfTarget.name} is missing target slot self required by ${ResourceLossMechanic.type}`,
       },

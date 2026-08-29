@@ -13,7 +13,7 @@ describe("systemGenerator", () => {
     const secondSystem = systemGenerator(origin, createSeededRng())
 
     // Assert
-    expect(firstSystem).toEqual(secondSystem)
+    expect(firstSystem).toStrictEqual(secondSystem)
     expect(firstSystem.star).toMatchObject(origin)
   })
 
@@ -25,7 +25,7 @@ describe("systemGenerator", () => {
     const system = systemGenerator(origin, createSeededRng(2))
 
     // Assert
-    expect(system).toEqual<typeof system>({
+    expect(system).toStrictEqual<typeof system>({
       star: expect.objectContaining(origin),
       planets: [
         expect.objectContaining({ x: expect.closeTo(origin.x), y: expect.closeTo(origin.y) }),
@@ -52,6 +52,6 @@ describe("systemGenerator", () => {
       .sort((left, right) => left - right)
 
     // Assert
-    expect(orbitsInAstronomicalUnits).toEqual([5, 10, 30, 40, 45, 50])
+    expect(orbitsInAstronomicalUnits).toStrictEqual([5, 10, 30, 40, 45, 50])
   })
 })
