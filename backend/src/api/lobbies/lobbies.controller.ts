@@ -1,5 +1,5 @@
 import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import z from "zod"
+import { z } from "zod"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"

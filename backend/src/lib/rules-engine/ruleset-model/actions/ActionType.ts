@@ -1,5 +1,5 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import z from "zod"
+import { z } from "zod"
 
 export type ActionType = Enumify<typeof ActionType>
 export const ActionType = {

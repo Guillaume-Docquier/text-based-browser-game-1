@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import { TargetTypeSchema, type TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 
 export type TargetDefinition =

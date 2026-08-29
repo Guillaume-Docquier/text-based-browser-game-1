@@ -1,5 +1,5 @@
 import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
-import z from "zod"
+import { z } from "zod"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
 import { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"

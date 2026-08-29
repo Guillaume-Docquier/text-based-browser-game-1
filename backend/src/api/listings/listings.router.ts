@@ -1,5 +1,5 @@
 import { type Logger } from "@guillaume-docquier/tools-ts"
-import z from "zod"
+import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
 import { type ListingsController, ListingDto } from "./listings.controller.ts"
 

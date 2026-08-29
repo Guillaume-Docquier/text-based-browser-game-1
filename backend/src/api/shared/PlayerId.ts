@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import { type playersTable } from "#lib/db/schema.ts"
 
 export type PlayerId = z.infer<typeof PlayerId>

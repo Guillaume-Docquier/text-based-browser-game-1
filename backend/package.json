@@ -22,7 +22,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.61",
+    "@clerk/express": "^2.1.63",
     "@guillaume-docquier/tools-ts": "catalog:",
     "@trpc/server": "^11.18.0",
     "drizzle-orm": "^0.45.2",
@@ -35,18 +35,18 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.5",
-    "@inquirer/prompts": "^8.5.2",
+    "@electric-sql/pglite": "^0.5.8",
+    "@inquirer/prompts": "^8.7.0",
     "@testcontainers/postgresql": "^12.1.0",
     "@trpc/client": "^11.18.0",
     "@types/express": "^5.0.6",
-    "@types/node": "^26.2.0",
-    "@types/pg": "^8.21.0",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@types/node": "^26.4.0",
+    "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "^4.1.11",
     "commander": "^15.0.0",
     "drizzle-kit": "^0.31.10",
     "testcontainers": "^12.1.0",
     "typescript": "catalog:",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }

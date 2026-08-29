@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics/AbstractMechanic.ts"
 import { TargetDefinitionSelf, TargetDefinitionSelfSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 
