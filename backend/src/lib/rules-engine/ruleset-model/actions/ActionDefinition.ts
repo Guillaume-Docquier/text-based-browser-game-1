@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
 import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
 import {

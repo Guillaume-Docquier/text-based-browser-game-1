@@ -1,5 +1,5 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import z from "zod"
+import { z } from "zod"
 
 /**
  * Not every Action will implement every Tier.

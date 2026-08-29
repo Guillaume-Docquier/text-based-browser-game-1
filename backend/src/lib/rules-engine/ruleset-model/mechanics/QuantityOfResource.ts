@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import { ResourceTypeSchema, type ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 
 export type QuantityOfResource = {

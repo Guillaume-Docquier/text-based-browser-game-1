@@ -1,6 +1,6 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
-import z from "zod"
+import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
 import {
   CreatedLobbyDto,

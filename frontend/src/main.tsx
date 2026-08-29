@@ -68,6 +68,7 @@ function App(): ReactElement {
       queryClient.clear()
       void router.invalidate()
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- We need the extra deps to ensure proper invalidations on auth changes
   }, [auth.isLoaded, auth.isSignedIn, auth.userId, router])
 
   if (!auth.isLoaded) {

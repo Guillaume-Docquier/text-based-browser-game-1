@@ -1,4 +1,4 @@
-import z from "zod"
+import { z } from "zod"
 import { type planetsTable } from "#lib/db/schema.ts"
 
 export type PlanetId = z.infer<typeof PlanetId>
