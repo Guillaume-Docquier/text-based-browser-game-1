@@ -14,7 +14,7 @@ import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
-import { couldNot, rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
+import { couldNot, rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
@@ -59,11 +59,11 @@ export class GameplayController {
       rollbackOnFailure(gameForStart, "Game cannot start")
 
       if (gameForStart.value.createdByAccountId !== requesterAccountId) {
-        throw new TransactionRollback("Only the game creator can start it.")
+        throw new TransactionRollbackError("Only the game creator can start it.")
       }
 
       if (gameForStart.value.status !== GameStatus.WAITING_FOR_PLAYERS && gameForStart.value.status !== GameStatus.READY_TO_START) {
-        throw new TransactionRollback("The game cannot start in its current status.", {
+        throw new TransactionRollbackError("The game cannot start in its current status.", {
           cause: { status: gameForStart.value.status, expected: [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START] },
         })
       }
@@ -145,7 +145,7 @@ export class GameplayController {
       const actionsById = new Map(Array.from(context.actions, (action) => [action.id, action]))
       const action = actionsById.get(submittedActionTargets.actionId)
       if (action === undefined) {
-        throw new TransactionRollback("Invalid action id")
+        throw new TransactionRollbackError("Invalid action id")
       }
 
       if (submittedActionTargets.targets === null) {
@@ -166,7 +166,7 @@ export class GameplayController {
       const turnState = createTurnState({ playerId, resources: context.resources, submittedActions: [submittedAction] })
       const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
       if (issues.length > 0) {
-        throw new TransactionRollback(issues.map(({ issue }) => issue).join("\n"))
+        throw new TransactionRollbackError(issues.map(({ issue }) => issue).join("\n"))
       }
 
       await this.gameplayRepository.updateActionSubmissions({ context, actions: [submittedAction] }, tx)

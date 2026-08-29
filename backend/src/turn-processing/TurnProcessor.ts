@@ -2,7 +2,7 @@ import { Datetime, type Logger, mulberry32Prng, Result, Rng, Time, UnitOfTime } 
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
-import { rollbackOnFailure, TransactionRollback } from "#lib/errors.ts"
+import { rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
 import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
@@ -69,7 +69,7 @@ export class TurnProcessor {
       }
 
       if (nextTurnToProcessResult.value.gameStatus !== GameStatus.COLLECTING_ACTIONS) {
-        throw new TransactionRollback("Game cannot be processed in its current status", {
+        throw new TransactionRollbackError("Game cannot be processed in its current status", {
           cause: { status: nextTurnToProcessResult.value.gameStatus, expected: GameStatus.COLLECTING_ACTIONS },
         })
       }
