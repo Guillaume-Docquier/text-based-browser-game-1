@@ -108,6 +108,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
     isCenteringRef.current = false
     pointers.current.clear()
     pointerOrigins.current.clear()
+    // oxlint-disable-next-line react/set-state-in-effect -- this is safe. If you touch this code, fix it
     setCenteringDurationMs(0)
     setIsCentering(false)
     setIsPanning(false)
@@ -118,6 +119,7 @@ export function useMapPanZoom({ resetSignal, viewportCenter }: { resetSignal: nu
         clearTimeout(centeringTimer.current)
       }
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Cheap way to trigger the useEffect. If you touch this code, fix it
   }, [resetSignal])
 
   function onPointerDown(event: PointerEvent<SVGSVGElement>): void {
