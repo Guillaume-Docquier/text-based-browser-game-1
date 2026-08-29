@@ -97,7 +97,7 @@ Key Directories:
 | backend/src/api | All code for the API organized by vertical slices of router-controller-repository. |
 | backend/src/lib | Shared code between API and turn processing, mostly DB schemas.                    |
 
-There is no build for the backend, we run TypeScript natively on node 24+. This means we require isolated modules and cannot use certain features like enums or decorators.
+There is no build for the backend, we run TypeScript natively on node 26+. This means we require isolated modules and cannot use certain features like enums or decorators.
 
 ### Backend Turn Processing
 
@@ -105,7 +105,7 @@ The turn processing module runs in a TypeScript worker hosted by the API process
 
 It runs there for simplicity of deployment, but is designed to be isolated so we can scale the number of workers, or extract the workers into its own runtime, or even re-write in another language.
 
-The code is in `backend/src/turn-processing` and runs TypeScript natively on node 24+ just like the API.
+The code is in `backend/src/turn-processing` and runs TypeScript natively on node 26+ just like the API.
 
 ## Coding standards
 
