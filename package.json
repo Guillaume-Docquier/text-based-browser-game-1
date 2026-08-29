@@ -41,15 +41,11 @@
     ]
   },
   "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "11.24.0",
-      "onFail": "download"
-    },
     "runtime": {
       "name": "node",
       "version": "26.8.1",
       "onFail": "download"
     }
-  }
+  },
+  "packageManager": "pnpm@11.24.0"
 }
