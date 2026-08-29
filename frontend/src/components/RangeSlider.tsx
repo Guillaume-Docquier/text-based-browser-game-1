@@ -26,7 +26,7 @@ export function RangeSlider({
           data-slot="range-slider-thumb"
           aria-label={thumbLabels[index]}
           className="block size-4 shrink-0 rounded-full border border-primary bg-background shadow-sm ring-ring/30 transition-shadow hover:ring-4 focus-visible:ring-4 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-          key={index}
+          key={thumbLabels[index]}
         />
       ))}
     </SliderPrimitive.Root>

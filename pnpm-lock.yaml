@@ -7,8 +7,8 @@ settings:
 catalogs:
   default:
     '@guillaume-docquier/tools-ts':
-      specifier: ^7.3.0
-      version: 7.3.0
+      specifier: ^7.3.1
+      version: 7.3.1
     typescript:
       specifier: ~7.0.2
       version: 7.0.2
@@ -18,11 +18,11 @@ importers:
   .:
     devDependencies:
       '@guillaume-docquier/oxfmt':
-        specifier: ^1.0.5
-        version: 1.0.5(oxfmt@0.65.0)
+        specifier: ^1.0.6
+        version: 1.0.6(oxfmt@0.65.0)
       '@guillaume-docquier/oxlint':
-        specifier: ^1.3.0
-        version: 1.3.0(oxlint-tsgolint@7.0.2001)(oxlint@1.80.0(oxlint-tsgolint@7.0.2001))
+        specifier: ^1.4.2
+        version: 1.4.2(oxlint-tsgolint@7.0.2001)(oxlint@1.80.0(oxlint-tsgolint@7.0.2001))
       '@guillaume-docquier/show-me':
         specifier: ^1.7.1
         version: 1.7.1(graphology-types@0.24.8)
@@ -52,7 +52,7 @@ importers:
         version: 2.1.63(express@5.2.1(supports-color@8.1.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 7.3.0
+        version: 7.3.1
       '@trpc/server':
         specifier: ^11.18.0
         version: 11.18.0(typescript@7.0.2)
@@ -134,7 +134,7 @@ importers:
         version: 5.3.0
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 7.3.0
+        version: 7.3.1
       '@tanstack/react-query':
         specifier: ^5.102.8
         version: 5.102.8(react@19.2.8)
@@ -1067,15 +1067,15 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  '@guillaume-docquier/oxfmt@1.0.5':
-    resolution: {integrity: sha512-35gRnis9mJzm20WzVKg92tc2z8WmZC2asgOXbT6OpHT/Mm8BF8TzqTZtY2aZ51M5rXhxFLMjFsWcb9vNetVjkg==}
+  '@guillaume-docquier/oxfmt@1.0.6':
+    resolution: {integrity: sha512-ygSCcdH7RWzULjMWFe57uopq5ytj0USKrCcuDovSmciTSZCCAWdGXJRD1+DsDdRjsFEwBeNctUNKNXc9f5mmuA==}
     peerDependencies:
-      oxfmt: '>=0.57.0'
+      oxfmt: '>=0.65.0'
 
-  '@guillaume-docquier/oxlint@1.3.0':
-    resolution: {integrity: sha512-AFecwfZG1wT94vvDHArn5hKJ0nJzg5Ws6i/vGRf61BCHsuDSen+1Hcn742Y1GK+M0gEG4TFo4ctCZbekx+4IjA==}
+  '@guillaume-docquier/oxlint@1.4.2':
+    resolution: {integrity: sha512-5awGVad+bOyFMCisRAuvgTaZMRd7YZGxtHS/w/q2P1mf1xUQSUuMCtVXhShFbMwhP7y0q5F7t0LQ/hTJsukDOg==}
     peerDependencies:
-      oxlint: ^1.75.0
+      oxlint: ^1.80.0
       oxlint-tsgolint: ^7.0.2001
 
   '@guillaume-docquier/show-me@1.7.1':
@@ -1085,8 +1085,8 @@ packages:
   '@guillaume-docquier/tools-ts@6.7.0':
     resolution: {integrity: sha512-fXuAUfNI6Eo9Ea+UGA1poW+LiluCTB7FIo8ZfHwsRWv2PEA+bJnXG8hMALBlrg9tS/k6pBarhk7/9Lswu3IK4g==}
 
-  '@guillaume-docquier/tools-ts@7.3.0':
-    resolution: {integrity: sha512-PGFn77IXMpv/N5EpOkv9xEXHgP0FZP2RNUTIlXOGXOderja9TDjuzl4Eo9pb4bx5Y89j7Wkp2Unbj4IjpoKiGA==}
+  '@guillaume-docquier/tools-ts@7.3.1':
+    resolution: {integrity: sha512-MwGlZxFI/0AGMPXLNUov+LKnZGKS4gzNwS4G/xM1e1jgjqT4FUv2D7pWVyy4gTtaoZYXcNVr4U4SLVoMOog1Ag==}
 
   '@hono/node-server@2.1.1':
     resolution: {integrity: sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg==}
@@ -1266,8 +1266,8 @@ packages:
   '@jridgewell/source-map@0.3.11':
     resolution: {integrity: sha512-ZMp1V8ZFcPG5dIWnQLr3NSI1MiCU7UETdS/A0G8V/XWHvJv3ZsFqutJn1Y5RPmAPX6F3BiE397OqveU/9NCuIA==}
 
-  '@jridgewell/sourcemap-codec@1.5.5':
-    resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
+  '@jridgewell/sourcemap-codec@1.6.0':
+    resolution: {integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==}
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
@@ -4336,8 +4336,8 @@ packages:
   base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
-  baseline-browser-mapping@2.11.19:
-    resolution: {integrity: sha512-Grytf1xOxOEMTGRwx6rLGKkTabd4vMg3VrKdj/7joCmV0qgh4QwMMO6xh34YEXQqirAuUdgQGa5orJQQ+69RBw==}
+  baseline-browser-mapping@2.11.20:
+    resolution: {integrity: sha512-H0ulySigv6icDJ1F7SjtdCD6PrhTpdYCmP0CactWy1+ekh0AFd0o1Wn5T8b+hnTmdBx19u9yhL6wvCylXMY7zw==}
     engines: {node: '>=6.0.0'}
     hasBin: true
 
@@ -5060,8 +5060,8 @@ packages:
   fast-wrap-ansi@0.2.2:
     resolution: {integrity: sha512-7F2Fl+TjRSenLqlU3UjSH0iyqopqoZIu7eZVpEirP2g1GtWa2G/ecEmBdgz31+Mxr+ELclgg6sokpSFIQiZ02Q==}
 
-  fastq@1.20.1:
-    resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
+  fastq@1.20.2:
+    resolution: {integrity: sha512-UpGiiODyCGprM8EPP6JodP6jC9Rws6TCuiDOD+nn0CJhR8guI3g/ozo4ugL0vJ+Yz1UtJuuRPqvQuybVOF1VQA==}
 
   fb-dotslash@0.5.8:
     resolution: {integrity: sha512-XHYLKk9J4BupDxi9bSEhkfss0m+Vr9ChTrjhf9l2iw3jB5C7BnY4GVPoMcqbrTutsKJso6yj2nAB6BI/F2oZaA==}
@@ -8251,11 +8251,11 @@ snapshots:
       protobufjs: 7.6.6
       yargs: 17.7.3
 
-  '@guillaume-docquier/oxfmt@1.0.5(oxfmt@0.65.0)':
+  '@guillaume-docquier/oxfmt@1.0.6(oxfmt@0.65.0)':
     dependencies:
       oxfmt: 0.65.0
 
-  '@guillaume-docquier/oxlint@1.3.0(oxlint-tsgolint@7.0.2001)(oxlint@1.80.0(oxlint-tsgolint@7.0.2001))':
+  '@guillaume-docquier/oxlint@1.4.2(oxlint-tsgolint@7.0.2001)(oxlint@1.80.0(oxlint-tsgolint@7.0.2001))':
     dependencies:
       oxlint: 1.80.0(oxlint-tsgolint@7.0.2001)
       oxlint-tsgolint: 7.0.2001
@@ -8282,7 +8282,7 @@ snapshots:
       '@logtape/logtape': 2.3.2
       '@logtape/redaction': 2.3.2(@logtape/logtape@2.3.2)
 
-  '@guillaume-docquier/tools-ts@7.3.0':
+  '@guillaume-docquier/tools-ts@7.3.1':
     dependencies:
       '@logtape/logtape': 2.3.2
       '@logtape/redaction': 2.3.2(@logtape/logtape@2.3.2)
@@ -8444,7 +8444,7 @@ snapshots:
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.6.0
       '@jridgewell/trace-mapping': 0.3.31
 
   '@jridgewell/remapping@2.3.5':
@@ -8459,12 +8459,12 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
 
-  '@jridgewell/sourcemap-codec@1.5.5': {}
+  '@jridgewell/sourcemap-codec@1.6.0': {}
 
   '@jridgewell/trace-mapping@0.3.31':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.6.0
 
   '@js-sdsl/ordered-map@4.4.2': {}
 
@@ -8545,7 +8545,7 @@ snapshots:
   '@nodelib/fs.walk@1.2.8':
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
-      fastq: 1.20.1
+      fastq: 1.20.2
 
   '@oxc-parser/binding-android-arm-eabi@0.127.0':
     optional: true
@@ -11372,7 +11372,7 @@ snapshots:
 
   base64-js@1.5.1: {}
 
-  baseline-browser-mapping@2.11.19: {}
+  baseline-browser-mapping@2.11.20: {}
 
   bcrypt-pbkdf@1.0.2:
     dependencies:
@@ -11420,7 +11420,7 @@ snapshots:
 
   browserslist@4.28.8:
     dependencies:
-      baseline-browser-mapping: 2.11.19
+      baseline-browser-mapping: 2.11.20
       caniuse-lite: 1.0.30001810
       electron-to-chromium: 1.5.415
       node-releases: 2.0.54
@@ -12078,7 +12078,7 @@ snapshots:
     dependencies:
       fast-string-width: 3.0.2
 
-  fastq@1.20.1:
+  fastq@1.20.2:
     dependencies:
       reusify: 1.1.0
 
@@ -12692,7 +12692,7 @@ snapshots:
 
   magic-string@0.30.21:
     dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
+      '@jridgewell/sourcemap-codec': 1.6.0
 
   magicast@0.5.4:
     dependencies:
