@@ -29,7 +29,7 @@ describe("clusterGenerator", () => {
     })
 
     // Assert
-    expect(points).toEqual([
+    expect(points).toStrictEqual([
       { x: 5.622176817322515, y: -21.319382299011856 },
       { x: 9.833640711187641, y: -19.111258152436452 },
       { x: 13.408752794522321, y: -16.266248239075466 },
@@ -96,6 +96,6 @@ describe("clusterGenerator", () => {
     })
 
     // Assert
-    expect(points).toEqual([])
+    expect(points).toStrictEqual([])
   })
 })

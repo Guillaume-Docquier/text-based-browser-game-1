@@ -76,7 +76,7 @@ describe("playSolo", () => {
     // Assert
     const plainPromptMessages = promptMessages.map(stripVTControlCharacters)
     const plainOutput = output.map(stripVTControlCharacters)
-    expect(session).toEqual({
+    expect(session).toStrictEqual({
       turn: 4,
       state: {
         submittedActions: [],
@@ -94,7 +94,7 @@ describe("playSolo", () => {
         winnerPlayerId: "solo-player",
       },
     })
-    expect(selections).toEqual([])
+    expect(selections).toStrictEqual([])
     expect(plainPromptMessages).toContainEqual(expect.stringContaining("TURN REJECTED"))
     expect(plainPromptMessages).toContainEqual(expect.stringContaining(`Missing 7 ${ResourceType.INFLUENCE}`))
     expect(plainPromptMessages).toContainEqual(expect.stringContaining("SELECTED ACTIONS  ·  2"))
@@ -110,8 +110,9 @@ describe("playSolo", () => {
       name: `− #1 ${GainInfluence.name}`,
       description: undefined,
     })
+    // oxlint-disable-next-line vitest/no-conditional-in-test -- This is bad and should be fixed
     expect(promptChoices.flat().every((choice) => !choice.name.includes("Queue") && !choice.name.includes("Remove"))).toBe(true)
-    expect(promptPositions.slice(0, 2)).toEqual([
+    expect(promptPositions.slice(0, 2)).toStrictEqual([
       { defaultIndex: 0, selectedIndex: 2 },
       { defaultIndex: 2, selectedIndex: 0 },
     ])
@@ -121,6 +122,7 @@ describe("playSolo", () => {
     expect(plainOutput).not.toContainEqual(expect.stringContaining("CURRENT TURN"))
     const firstResolvedTurnIndex = plainOutput.findIndex((line) => line.includes("RESOLVED TURN"))
     const firstResolvedTurnSeparatorIndex = plainOutput.findIndex(
+      // oxlint-disable-next-line vitest/no-conditional-in-test -- This is bad and should be fixed
       (line, index) => index > firstResolvedTurnIndex && line.trim() === "━".repeat(72),
     )
     const firstResolvedTurnOutput = plainOutput.slice(firstResolvedTurnIndex, firstResolvedTurnSeparatorIndex).join("\n")
@@ -129,6 +131,7 @@ describe("playSolo", () => {
     expect(firstResolvedTurnOutput).toContain('✓ Player "solo-player" spent')
     expect(firstResolvedTurnOutput).toContain('✓ Player "solo-player" gained')
     expect(plainOutput.at(-1)).toBe("You won on turn 4.")
+    // oxlint-disable-next-line vitest/no-conditional-in-test -- This is bad and should be fixed
     const firstSeparatorIndex = terminalEvents.findIndex((event) => event.type === "output" && event.value.trim() === "━".repeat(72))
     expect(terminalEvents[firstSeparatorIndex + 1]).toMatchObject({
       type: "prompt",

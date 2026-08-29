@@ -10,6 +10,6 @@ describe("MonotonicIdFactory", () => {
     const ids = [monotonicIdFactory(), monotonicIdFactory(), monotonicIdFactory()]
 
     // Assert
-    expect(ids).toEqual<typeof ids>([0, 1, 2])
+    expect(ids).toStrictEqual<typeof ids>([0, 1, 2])
   })
 })

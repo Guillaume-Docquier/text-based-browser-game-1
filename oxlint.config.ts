@@ -1,4 +1,4 @@
-import { react, typescript } from "@guillaume-docquier/oxlint"
+import { react, typescript, vitest } from "@guillaume-docquier/oxlint"
 import { defineConfig } from "oxlint"
 
 export default defineConfig({
@@ -14,6 +14,10 @@ export default defineConfig({
       env: {
         node: true,
       },
+    },
+    {
+      ...vitest,
+      files: ["**/*.test.ts"],
     },
     {
       files: ["backend/src/**/*.ts"],

@@ -21,7 +21,7 @@ export function couldNot(operationName: string): string {
  * However, TS doesn't know that it throws and breaks the control flow semantics, notably when dealing with Results.
  */
 export class TransactionRollbackError extends Error {
-  public constructor(message: string, options: ErrorOptions) {
+  public constructor(message: string, options?: ErrorOptions) {
     super(message, options)
     this.name = "TransactionRollbackError"
   }

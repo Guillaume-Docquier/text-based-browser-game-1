@@ -11,7 +11,7 @@ describe("RangeDto", () => {
     const parsedRange = RangeDto.parse(range)
 
     // Assert
-    expect(parsedRange).toEqual(range)
+    expect(parsedRange).toStrictEqual(range)
   })
 
   it("should return the Range validation error as a Zod error", () => {
@@ -25,7 +25,7 @@ describe("RangeDto", () => {
 
     // Assert
     Assert.isTrue(!parseResult.success)
-    expect(parseResult.error.issues).toEqual([
+    expect(parseResult.error.issues).toStrictEqual([
       expect.objectContaining({
         code: "custom",
         message: "Min must be smaller than the exclusive max",

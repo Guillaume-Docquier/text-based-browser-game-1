@@ -141,7 +141,7 @@ describe("TurnProcessor", () => {
       // Assert
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const repeatedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView).toEqual<typeof playerView>({
+      expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
         turn: 1,
         nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
@@ -152,8 +152,8 @@ describe("TurnProcessor", () => {
         }),
         actions: expect.any(Array),
       })
-      expect(playerView.actions.map(({ id }) => id)).not.toEqual(initialPlayerView.actions.map(({ id }) => id))
-      expect(repeatedPlayerView.actions).toEqual(playerView.actions)
+      expect(playerView.actions.map(({ id }) => id)).not.toStrictEqual(initialPlayerView.actions.map(({ id }) => id))
+      expect(repeatedPlayerView.actions).toStrictEqual(playerView.actions)
     })
 
     it("should process multiple submitted actions", async () => {
@@ -349,7 +349,7 @@ describe("TurnProcessor", () => {
       const processingResults = await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
 
       // Assert
-      expect(processingResults).toEqual<typeof processingResults>(["processed", "idle"])
+      expect(processingResults).toStrictEqual<typeof processingResults>(["processed", "idle"])
       expect(await player.client.gameplay.getPlayerView.query({ gameId: processingGameId })).toMatchObject({
         turn: 1,
         resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },

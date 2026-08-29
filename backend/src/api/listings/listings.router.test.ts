@@ -20,7 +20,7 @@ describe("listings.router", () => {
       const getListingsResult = await anonymous.client.listings.getListings.query()
 
       // Assert
-      expect(getListingsResult).toEqual<typeof getListingsResult>([
+      expect(getListingsResult).toStrictEqual<typeof getListingsResult>([
         {
           id: createdGameId,
           createdAt: expect.any(String),
@@ -51,7 +51,7 @@ describe("listings.router", () => {
       const getListingsResult = await creator.client.listings.getListings.query()
 
       // Assert
-      expect(getListingsResult).toEqual<typeof getListingsResult>([
+      expect(getListingsResult).toStrictEqual<typeof getListingsResult>([
         {
           id: notJoinedGameId,
           createdAt: expect.any(String),

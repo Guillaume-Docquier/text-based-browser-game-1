@@ -57,7 +57,7 @@ describe("gameplay.router", () => {
       // quick sanity checks
       expect(playerView.galaxy.systems.length).toBeGreaterThan(500) // enough systems are generated
       expect(playerView.galaxy.systems.flatMap(({ planets }) => planets).length).toBeGreaterThan(1500) // enough planets are generated
-      expect(playerView.galaxy.systems[1]?.planets[1]).toEqual({
+      expect(playerView.galaxy.systems[1]?.planets[1]).toStrictEqual({
         coordinates: "44:76:35", // coordinates make sense
         x: 46.42101792976603,
         y: 47.21423492967076,
@@ -74,10 +74,10 @@ describe("gameplay.router", () => {
       })
 
       const allStars = playerView.galaxy.systems.map(({ star }) => star)
-      expect(new Set(allStars.map((star) => star.coordinates)).size).toEqual(allStars.length) // unique coordinates
+      expect(new Set(allStars.map((star) => star.coordinates)).size).toStrictEqual(allStars.length) // unique coordinates
 
       const allPlanets = playerView.galaxy.systems.flatMap(({ planets }) => planets)
-      expect(new Set(allPlanets.map((planet) => planet.coordinates)).size).toEqual(allPlanets.length) // unique coordinates
+      expect(new Set(allPlanets.map((planet) => planet.coordinates)).size).toStrictEqual(allPlanets.length) // unique coordinates
 
       expect(playerView.galaxy).toMatchSnapshot()
     })
@@ -94,7 +94,7 @@ describe("gameplay.router", () => {
       const startGameResult = await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(startGameResult).toEqual<typeof startGameResult>({ nextTurnAt: expect.any(String) }) // trpc serializes the date to string
+      expect(startGameResult).toStrictEqual<typeof startGameResult>({ nextTurnAt: expect.any(String) }) // trpc serializes the date to string
       expect(new Date(startGameResult.nextTurnAt).toString()).not.toBe("Invalid Date")
     })
 
@@ -188,7 +188,7 @@ describe("gameplay.router", () => {
           canAfford: true,
         },
       ]
-      expect(getPlayerViewResult).toEqual<typeof getPlayerViewResult>({
+      expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
         player: { id: player.account.id, color: PlayerColor.WHITE },
         opponents: {},
@@ -207,7 +207,7 @@ describe("gameplay.router", () => {
         actions: expect.arrayContaining(expectedActions),
       })
       expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)
-      expect(repeatedGetPlayerViewResult.actions).toEqual(getPlayerViewResult.actions)
+      expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
     })
 
     it("should expose uncommitted resources and use them to determine Action affordability", async () => {
@@ -235,7 +235,7 @@ describe("gameplay.router", () => {
       Assert.isDefined(extractMetal)
 
       // Assert
-      expect(playerView.resources).toEqual<typeof playerView.resources>(
+      expect(playerView.resources).toStrictEqual<typeof playerView.resources>(
         createResourcesDtoStub({
           [ResourceType.INFLUENCE]: { uncommitted: 0, total: 3 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
@@ -265,8 +265,8 @@ describe("gameplay.router", () => {
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(playerView.player).toEqual({ id: creator.account.id, color: PlayerColor.WHITE })
-      expect(playerView.opponents).toEqual({
+      expect(playerView.player).toStrictEqual({ id: creator.account.id, color: PlayerColor.WHITE })
+      expect(playerView.opponents).toStrictEqual({
         [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.RED },
         [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.BLUE },
       })
@@ -321,7 +321,7 @@ describe("gameplay.router", () => {
       // Assert
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const submittedActions = playerView.actions.filter((action) => action.targets !== null)
-      expect(submittedActions).toEqual<typeof submittedActions>([{ ...gainInfluence, targets: { self: playerView.player.id } }])
+      expect(submittedActions).toStrictEqual<typeof submittedActions>([{ ...gainInfluence, targets: { self: playerView.player.id } }])
     })
 
     it("should submit and deselect multiple actions", async () => {
@@ -357,7 +357,7 @@ describe("gameplay.router", () => {
       const deselectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(selectedPlayerView.actions).toEqual(
+      expect(selectedPlayerView.actions).toStrictEqual(
         expect.arrayContaining([
           {
             id: expect.any(String),
@@ -393,7 +393,7 @@ describe("gameplay.router", () => {
       )
       expect(selectedPlayerView.actions).toHaveLength(5)
 
-      expect(deselectedPlayerView.actions).toEqual(
+      expect(deselectedPlayerView.actions).toStrictEqual(
         expect.arrayContaining([
           {
             id: expect.any(String),
