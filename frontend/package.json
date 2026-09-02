@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",
-    "@clerk/testing": "^2.2.30",
+    "@clerk/testing": "^2.2.31",
     "@playwright/test": "^1.62.1",
     "@rolldown/plugin-babel": "^0.2.3",
     "@storybook/react-vite": "^10.5.10",
