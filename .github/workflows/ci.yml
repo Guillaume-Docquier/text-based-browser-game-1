@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Setting up pnpm
-        uses: pnpm/setup@v2.0.2
+        uses: pnpm/setup@v2.1.0
 
       - name: Validate peer dependencies
         run: pnpm peers check
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Setting up pnpm
-        uses: pnpm/setup@v2.0.2
+        uses: pnpm/setup@v2.1.0
 
       - name: Build
         run: pnpm --filter frontend build
@@ -76,7 +76,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Setting up pnpm
-        uses: pnpm/setup@v2.0.2
+        uses: pnpm/setup@v2.1.0
 
       - name: Install Playwright browser
         run: pnpm --filter frontend e2e:install
@@ -96,7 +96,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Setting up pnpm
-        uses: pnpm/setup@v2.0.2
+        uses: pnpm/setup@v2.1.0
 
       - name: Typecheck
         run: pnpm --filter backend typecheck
