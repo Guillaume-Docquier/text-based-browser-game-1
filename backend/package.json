@@ -22,7 +22,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.63",
+    "@clerk/express": "^2.1.64",
     "@guillaume-docquier/tools-ts": "catalog:",
     "@trpc/server": "^11.18.0",
     "drizzle-orm": "^0.45.2",
@@ -32,7 +32,7 @@
     "transformation-matrix": "^3.1.0",
     "utility-types": "^3.11.0",
     "uuid": "^14.0.2",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
