@@ -1,8 +1,8 @@
 import { Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import type { GameConfigurationDto } from "#api/lobbies/lobbies.controller.ts"
+import type { CreateLobbyConfigurationDto } from "#api/lobbies/lobbies.controller.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 
-export function createGameConfigurationDtoStub(overrides?: Partial<GameConfigurationDto>): GameConfigurationDto {
+export function createLobbyConfigurationDtoStub(overrides?: Partial<CreateLobbyConfigurationDto>): CreateLobbyConfigurationDto {
   return {
     name: "game configuration",
     nbSeats: 5,

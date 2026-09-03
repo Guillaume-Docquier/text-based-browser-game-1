@@ -67,7 +67,7 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
           </div>
         </CardContent>
       </Card>
-      <GameConfiguration configuration={game.configuration} ruleset={game.ruleset} />
+      <GameConfiguration configuration={game.configuration} />
       <div className="flex flex-wrap gap-3">
         {game.canJoin && (
           <Button
@@ -116,13 +116,7 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
   )
 }
 
-function GameConfiguration({
-  configuration,
-  ruleset,
-}: {
-  configuration: ApiTypes.Lobby["configuration"]
-  ruleset: ApiTypes.RulesetSummary
-}): ReactElement {
+function GameConfiguration({ configuration }: { configuration: ApiTypes.Lobby["configuration"] }): ReactElement {
   return (
     <Card className="border border-border/60">
       <CardHeader>
@@ -132,7 +126,7 @@ function GameConfiguration({
         <div className="grid gap-4 md:grid-cols-2">
           <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
           <DetailBlock label="Time per turn" value={formatTurnInterval(configuration.turnIntervalSeconds)} />
-          <DetailBlock label="Ruleset" value={ruleset.name} />
+          <DetailBlock label="Ruleset" value={configuration.ruleset.name} />
         </div>
       </CardContent>
     </Card>
