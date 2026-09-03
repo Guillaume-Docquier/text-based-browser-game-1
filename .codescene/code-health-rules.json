@@ -45,6 +45,20 @@
       ]
     },
     {
+      "matching_content_path": "**/*.router.ts",
+      "rules": [],
+      "thresholds": [
+        {
+          "name": "function_complex_conditional_branches_warning",
+          "value": 3
+        },
+        {
+          "name": "function_cyclomatic_complexity_warning",
+          "value": 15
+        }
+      ]
+    },
+    {
       "matching_content_path": "**/*",
       "rules": [],
       "thresholds": [
