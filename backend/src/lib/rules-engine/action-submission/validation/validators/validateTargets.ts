@@ -1,5 +1,6 @@
 import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { DeepReadonly } from "utility-types"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
 import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
@@ -80,7 +81,7 @@ function validateTargetDefinition(
   switch (targetType) {
     case "PLAYER":
     case "SELF": {
-      if (turnState.players[targetId] === undefined) {
+      if (turnState.players[PlayerId.parse(targetId)] === undefined) {
         return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
       }
       return null

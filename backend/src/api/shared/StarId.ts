@@ -1,5 +1,8 @@
+import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import { type starsTable } from "#lib/db/schema.ts"
 
-export type StarId = z.infer<typeof StarId>
-export const StarId = z.number() satisfies z.ZodType<(typeof starsTable.$inferSelect)["id"]>
+/** The identifier of a star within a game. */
+export type StarId = Branded<number, "StarId">
+
+/** Parses a number as a star identifier. */
+export const StarId = z.number().transform(branded<StarId>)

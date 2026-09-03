@@ -1,4 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
@@ -17,7 +18,7 @@ export class ResourceLossEffect extends Effect {
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
-    const player = context.turnState.players[this.targetPlayerId]
+    const player = context.turnState.players[PlayerId.parse(this.targetPlayerId)]
     if (player === undefined) {
       return Result.Failure(EffectError.Failed({ error: `Could not resolve player with id "${this.targetPlayerId}"` }))
     }

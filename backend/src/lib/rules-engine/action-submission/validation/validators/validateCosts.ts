@@ -1,5 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { DeepReadonly } from "utility-types"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
@@ -26,7 +27,7 @@ export function validateCosts(
 
     const targets = submittedAction.targets
 
-    const player = turnStateCopy.players[targets.self]
+    const player = turnStateCopy.players[PlayerId.parse(targets.self)]
     if (player === undefined) {
       return Result.Failure(`Cannot validate costs for action submission ${submittedAction.id}, there is no player with id ${targets.self}`)
     }

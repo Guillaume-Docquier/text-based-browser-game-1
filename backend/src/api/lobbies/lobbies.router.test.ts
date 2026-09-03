@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { type LobbyPlayerDto, MAX_NB_SEATS, type RulesetSummaryDto } from "#api/lobbies/lobbies.controller.ts"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
@@ -87,7 +88,11 @@ describe("lobbies.router", () => {
       expect(createLobbyResult).toStrictEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
 
       const createdGame = await creator.client.lobbies.getById.query({ gameId: createLobbyResult.createdGameId })
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
+      const expectedCreator: LobbyPlayerDto = {
+        id: PlayerId.parse(creator.account.id),
+        alias: creator.account.alias,
+        color: PlayerColor.WHITE,
+      }
 
       expect(createdGame).toStrictEqual<typeof createdGame>({
         id: createLobbyResult.createdGameId,
@@ -186,7 +191,11 @@ describe("lobbies.router", () => {
       const lobby = await viewer.client.lobbies.getById.query({ gameId: createdGameId })
 
       // Assert
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
+      const expectedCreator: LobbyPlayerDto = {
+        id: PlayerId.parse(creator.account.id),
+        alias: creator.account.alias,
+        color: PlayerColor.WHITE,
+      }
       expect(lobby).toStrictEqual<typeof lobby>({
         id: createdGameId,
         createdAt: expect.any(String),
@@ -222,7 +231,11 @@ describe("lobbies.router", () => {
       const lobby = await anonymous.client.lobbies.getById.query({ gameId: createdGameId })
 
       // Assert
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
+      const expectedCreator: LobbyPlayerDto = {
+        id: PlayerId.parse(creator.account.id),
+        alias: creator.account.alias,
+        color: PlayerColor.WHITE,
+      }
       expect(lobby).toStrictEqual<typeof lobby>({
         id: createdGameId,
         createdAt: expect.any(String),
@@ -342,11 +355,15 @@ describe("lobbies.router", () => {
       const joinGameResult = await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(joinGameResult).toStrictEqual<typeof joinGameResult>({ playerId: joiner.account.id })
+      expect(joinGameResult).toStrictEqual<typeof joinGameResult>({ playerId: PlayerId.parse(joiner.account.id) })
 
       const joinedLobby = await joiner.client.lobbies.getById.query({ gameId: createdGameId })
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
-      const expectedJoiner: LobbyPlayerDto = { id: joiner.account.id, alias: joiner.account.alias, color: PlayerColor.RED }
+      const expectedCreator: LobbyPlayerDto = {
+        id: PlayerId.parse(creator.account.id),
+        alias: creator.account.alias,
+        color: PlayerColor.WHITE,
+      }
+      const expectedJoiner: LobbyPlayerDto = { id: PlayerId.parse(joiner.account.id), alias: joiner.account.alias, color: PlayerColor.RED }
 
       expect(joinedLobby).toStrictEqual<typeof joinedLobby>({
         id: createdGameId,
@@ -426,7 +443,7 @@ describe("lobbies.router", () => {
       const joinResult = await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(joinResult).toStrictEqual({ playerId: joiner.account.id })
+      expect(joinResult).toStrictEqual({ playerId: PlayerId.parse(joiner.account.id) })
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(2)
       expect(lobby.status).toBe(GameStatus.WAITING_FOR_PLAYERS)
@@ -463,7 +480,11 @@ describe("lobbies.router", () => {
       expect(leaveGameResult).toBe<typeof leaveGameResult>(true)
 
       const leftLobby = await leaver.client.lobbies.getById.query({ gameId: createdGameId })
-      const expectedCreator: LobbyPlayerDto = { id: creator.account.id, alias: creator.account.alias, color: PlayerColor.WHITE }
+      const expectedCreator: LobbyPlayerDto = {
+        id: PlayerId.parse(creator.account.id),
+        alias: creator.account.alias,
+        color: PlayerColor.WHITE,
+      }
 
       expect(leftLobby).toStrictEqual<typeof leftLobby>({
         id: createdGameId,

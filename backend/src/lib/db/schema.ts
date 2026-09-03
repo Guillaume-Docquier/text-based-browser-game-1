@@ -16,10 +16,16 @@ import {
   text,
   doublePrecision,
 } from "drizzle-orm/pg-core"
+import type { GameId } from "#api/shared/GameId.ts"
+import type { PlanetId } from "#api/shared/PlanetId.ts"
+import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { StarId } from "#api/shared/StarId.ts"
+import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import type { ActionId } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
@@ -37,12 +43,17 @@ export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
 
-const accountId = uuid
-const playerId = uuid
-const gameId = integer
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Preserve Drizzle's precise branded column builder inference.
+const accountId = (name: string) => uuid(name).$type<AccountId>()
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Preserve Drizzle's precise branded column builder inference.
+const playerId = (name: string) => uuid(name).$type<PlayerId>()
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Preserve Drizzle's precise branded column builder inference.
+const gameId = (name: string) => integer(name).$type<GameId>()
 const rulesetId = text
-const starId = integer
-const planetId = integer
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Preserve Drizzle's precise branded column builder inference.
+const starId = (name: string) => integer(name).$type<StarId>()
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Preserve Drizzle's precise branded column builder inference.
+const planetId = (name: string) => integer(name).$type<PlanetId>()
 
 export const rulesetsTable = pgTable(
   "rulesets",
@@ -176,7 +187,7 @@ export const gameStatesTable = pgTable("game_states", {
 export const actionsTable = pgTable(
   "actions",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").$type<ActionId>().primaryKey().defaultRandom(),
     gameId: gameId("game_id").notNull(),
     playerId: playerId("player_id").notNull(),
     turn: integer("turn").notNull(),

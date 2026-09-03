@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
@@ -26,7 +27,7 @@ const ruleset = createRulesetStub({
 describe("validateSubmittedActions", () => {
   it("should not mutate the turnState", () => {
     // Arrange
-    const playerId = "player-id"
+    const playerId = PlayerId.parse("player-id")
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       targets: {
@@ -54,7 +55,7 @@ describe("validateSubmittedActions", () => {
 
   it("should return no issues for a valid Action Submission", () => {
     // Arrange
-    const playerId = "player-id"
+    const playerId = PlayerId.parse("player-id")
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       targets: {
@@ -80,7 +81,7 @@ describe("validateSubmittedActions", () => {
 
   it("should collect target and cost issues from the complete validation pipeline", () => {
     // Arrange
-    const playerId = "player-id"
+    const playerId = PlayerId.parse("player-id")
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       targets: {
@@ -148,7 +149,7 @@ describe("validateSubmittedActions", () => {
   describe("targets", () => {
     it("should report a target slot required by the Action Definition but missing from the submission", () => {
       // Arrange
-      const playerId = "player-id"
+      const playerId = PlayerId.parse("player-id")
       const actionDefinitionWithRequiredTarget = createActionDefinitionStub({
         targets: {
           self: "",
@@ -192,7 +193,7 @@ describe("validateSubmittedActions", () => {
 
     it("should report unexpected target slots", () => {
       // Arrange
-      const playerId = "player-id"
+      const playerId = PlayerId.parse("player-id")
       const submittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinition.id,
         targets: {
@@ -252,8 +253,8 @@ describe("validateSubmittedActions", () => {
   describe("costs", () => {
     it("should validate each player's costs against their own resources", () => {
       // Arrange
-      const firstPlayerId = "first-player-id"
-      const secondPlayerId = "second-player-id"
+      const firstPlayerId = PlayerId.parse("first-player-id")
+      const secondPlayerId = PlayerId.parse("second-player-id")
       const firstPlayerSubmittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinition.id,
         targets: {
@@ -296,7 +297,7 @@ describe("validateSubmittedActions", () => {
 
     it("should aggregate costs for the same resource before reporting the shortage", () => {
       // Arrange
-      const playerId = "player-id"
+      const playerId = PlayerId.parse("player-id")
       const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
         costs: [
           ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
@@ -340,7 +341,7 @@ describe("validateSubmittedActions", () => {
 
     it("should return issues when the sum of the action costs can't be paid", () => {
       // Arrange
-      const playerId = "player-id"
+      const playerId = PlayerId.parse("player-id")
       const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
         costs: [
           ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
@@ -390,7 +391,7 @@ describe("validateSubmittedActions", () => {
 
     it("should return issues where the sum of missing resources of each issue is the total missing resources", () => {
       // Arrange
-      const playerId = "player-id"
+      const playerId = PlayerId.parse("player-id")
       const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
         costs: [
           ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),

@@ -1,7 +1,9 @@
 import { stripVTControlCharacters, styleText } from "node:util"
 import { Assert, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { select } from "@inquirer/prompts"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import { createSeededRng } from "#lib/createSeededRng.ts"
+import { ActionId } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
@@ -11,7 +13,7 @@ import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
-const SOLO_PLAYER_ID = "solo-player"
+const SOLO_PLAYER_ID = PlayerId.parse("solo-player")
 const UI_WIDTH = 72
 const PANEL_CONTENT_WIDTH = UI_WIDTH - 4
 const TURN_SEPARATOR = "\n" + "━".repeat(UI_WIDTH) + "\n"
@@ -256,7 +258,7 @@ function addAction(session: SoloGameSession, actionDefinitionId: string, submitt
     submittedActions: [
       ...session.state.submittedActions,
       {
-        id: `turn-${session.turn}-${actionDefinition.id}-${submittedActionNumber}`,
+        id: ActionId.parse(`turn-${session.turn}-${actionDefinition.id}-${submittedActionNumber}`),
         playerId: player.id,
         actionDefinitionId: actionDefinition.id,
         targets: {

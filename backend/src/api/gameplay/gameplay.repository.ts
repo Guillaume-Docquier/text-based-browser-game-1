@@ -2,8 +2,10 @@ import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfT
 import { and, eq } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
+import type { PlanetId } from "#api/shared/PlanetId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
+import type { StarId } from "#api/shared/StarId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
@@ -24,7 +26,7 @@ import {
   rulesetsTable,
 } from "#lib/db/schema.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
-import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
+import type { Action, ActionId, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
@@ -73,13 +75,13 @@ type PlayerViewPlayerModel = {
 }
 
 type PlayerViewActionModel = {
-  readonly id: string
+  readonly id: ActionId
   readonly actionDefinitionId: SubmittedAction["actionDefinitionId"]
   readonly targets: ResolvedTargets | null
 }
 
 export type PlayerViewModel = {
-  readonly gameId: number
+  readonly gameId: GameId
   readonly player: PlayerViewPlayerModel
   readonly opponents: Record<PlayerId, PlayerViewPlayerModel>
   readonly galaxy: GalaxyModel
@@ -132,7 +134,7 @@ export type StartGameModel = {
 }
 
 type StarModel = {
-  readonly id: number
+  readonly id: StarId
   readonly name: string
   readonly coordinates: StarCoordinates
   readonly x: number
@@ -140,7 +142,7 @@ type StarModel = {
 }
 
 type PlanetModel = {
-  readonly id: number
+  readonly id: PlanetId
   readonly name: string
   readonly coordinates: PlanetCoordinates
   readonly x: number

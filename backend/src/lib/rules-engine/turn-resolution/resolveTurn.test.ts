@@ -1,5 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
@@ -13,7 +14,7 @@ import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-ga
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 
 describe("resolveTurn", () => {
-  const playerId = "player-id"
+  const playerId = PlayerId.parse("player-id")
 
   it("should not resolve the turn when the player cannot afford an Action", () => {
     // Arrange
@@ -123,8 +124,8 @@ describe("resolveTurn", () => {
 
   it("should resolve Action Submissions from multiple players", () => {
     // Arrange
-    const firstPlayerId = "first-player-id"
-    const secondPlayerId = "second-player-id"
+    const firstPlayerId = PlayerId.parse("first-player-id")
+    const secondPlayerId = PlayerId.parse("second-player-id")
     const firstPlayerSubmittedAction = createSubmittedActionStub({
       actionDefinitionId: GainInfluence.id,
       targets: { self: firstPlayerId },

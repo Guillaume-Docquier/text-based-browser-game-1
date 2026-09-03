@@ -4,6 +4,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
@@ -248,7 +249,7 @@ describe("TurnProcessor", () => {
       Assert.isSuccess(
         await resourcesRepository.updateResource({
           gameId: createdGameId,
-          playerId: player.account.id,
+          playerId: PlayerId.parse(player.account.id),
           resourceType: ResourceType.INFLUENCE,
           amountDelta: -3,
         }),
@@ -485,7 +486,7 @@ describe("TurnProcessor", () => {
         for (const resourceType of [ResourceType.INFLUENCE, ResourceType.METAL, ResourceType.FUEL, ResourceType.ENERGY]) {
           const updateResourceResult = await resourcesRepository.updateResource({
             gameId: createdGameId,
-            playerId: player.account.id,
+            playerId: PlayerId.parse(player.account.id),
             resourceType,
             amountDelta,
           })

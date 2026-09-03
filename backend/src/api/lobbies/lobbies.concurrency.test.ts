@@ -62,7 +62,9 @@ describe("lobby concurrency", () => {
 
     // Assert
     const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
-    const participantsMap = new Map([creator, ...participants].map((participant) => [participant.account.id, participant]))
+    const participantsMap = new Map<string, (typeof participants)[number]>(
+      [creator, ...participants].map((participant) => [participant.account.id, participant]),
+    )
     const gameParticipants = lobby.players
       .toSorted((left, right) => left.id.localeCompare(right.id))
       .map((player) => participantsMap.get(player.id))

@@ -1,5 +1,8 @@
+import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import { type planetsTable } from "#lib/db/schema.ts"
 
-export type PlanetId = z.infer<typeof PlanetId>
-export const PlanetId = z.number() satisfies z.ZodType<(typeof planetsTable.$inferSelect)["id"]>
+/** The identifier of a planet within a game. */
+export type PlanetId = Branded<number, "PlanetId">
+
+/** Parses a number as a planet identifier. */
+export const PlanetId = z.number().transform(branded<PlanetId>)

@@ -10,7 +10,7 @@ export type TurnState = {
   readonly submittedActions: readonly SubmittedAction[]
   readonly players: Readonly<
     Record<
-      PlayerId,
+      string,
       {
         id: PlayerId
         resources: Resources

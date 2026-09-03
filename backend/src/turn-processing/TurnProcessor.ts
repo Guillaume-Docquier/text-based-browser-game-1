@@ -1,5 +1,6 @@
 import { Datetime, type Logger, mulberry32Prng, Result, Rng, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { Clock } from "#lib/Clock.ts"
+import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { TransactionRollbackError } from "#lib/errors.ts"
@@ -168,7 +169,7 @@ export class TurnProcessor {
     return Result.Success({
       ...turnResult,
       gameStatus: GameStatus.ENDED,
-      winnerAccountId: resolvedTurnResult.value.winnerPlayerId,
+      winnerAccountId: AccountId.parse(resolvedTurnResult.value.winnerPlayerId),
       endedAt: this.clock.now(),
     })
   }

@@ -85,13 +85,14 @@ export class LobbiesController {
    * This method is idempotent, joining an already joined game will return a success.
    */
   public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
+    const playerId = PlayerId.parse(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
       const lobbyForJoin = await this.lobbiesRepository.getLobbyForJoin({ gameId }, tx)
       rollbackOnFailure(lobbyForJoin, "Failed to get lobby.")
 
-      if (lobbyForJoin.value.players.find((player) => player.id === accountId) !== undefined) {
+      if (lobbyForJoin.value.players.find((player) => player.id === playerId) !== undefined) {
         // Already part of the game, return a success for idempotency
-        return { playerId: accountId }
+        return { playerId }
       }
 
       if (lobbyForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
@@ -124,7 +125,7 @@ export class LobbiesController {
       const lobbyForLeave = await this.lobbiesRepository.getLobbyForLeave({ gameId }, tx)
       rollbackOnFailure(lobbyForLeave, "Failed to get lobby.")
 
-      if (!lobbyForLeave.value.playerIds.includes(accountId)) {
+      if (!lobbyForLeave.value.playerIds.includes(PlayerId.parse(accountId))) {
         // Already not in the game, return a success for idempotency
         return
       }

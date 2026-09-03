@@ -1,7 +1,7 @@
 import { Assert, type Branded, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
-import type { PlayerId } from "#api/shared/PlayerId.ts"
+import { PlayerId } from "#api/shared/PlayerId.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { type GameStatus } from "#lib/db/lobbies/GameStatus.ts"
@@ -153,7 +153,7 @@ export class LobbiesRepository extends PostgresRepository {
 
         await tx.insert(playersTable).values({
           gameId: game.id,
-          playerId: createLobbyModel.createdByAccountId,
+          playerId: PlayerId.parse(createLobbyModel.createdByAccountId),
           color: createLobbyModel.creatorPlayerColor,
         })
 
@@ -250,7 +250,10 @@ export class LobbiesRepository extends PostgresRepository {
    * The only failure mode for this method is throwing to rollback the transaction.
    */
   public async joinLobby({ context, accountId, color, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
-    const gamePlayers = await tx.insert(playersTable).values({ gameId: context.gameId, playerId: accountId, color }).returning()
+    const gamePlayers = await tx
+      .insert(playersTable)
+      .values({ gameId: context.gameId, playerId: PlayerId.parse(accountId), color })
+      .returning()
     Assert.isTrue(gamePlayers.length === 1)
     Assert.isDefined(gamePlayers[0])
 
@@ -291,7 +294,7 @@ export class LobbiesRepository extends PostgresRepository {
   public async leaveLobby({ context, accountId, status }: LeaveLobbyModel, tx: Transaction): Promise<void> {
     const deletedPlayers = await tx
       .delete(playersTable)
-      .where(and(eq(playersTable.gameId, context.gameId), eq(playersTable.playerId, accountId)))
+      .where(and(eq(playersTable.gameId, context.gameId), eq(playersTable.playerId, PlayerId.parse(accountId))))
       .returning()
     Assert.isTrue(deletedPlayers.length === 1)
 
@@ -320,7 +323,7 @@ function toLobbyModel({
   ruleset: RulesetSummaryModel
   players: LobbyPlayerModel[]
 }): LobbyModel {
-  const creator = players.find((player) => player.id === gameRow.createdByAccountId)
+  const creator = players.find((player) => player.id === PlayerId.parse(gameRow.createdByAccountId))
   Assert.isDefined(creator)
 
   return {

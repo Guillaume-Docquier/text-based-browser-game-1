@@ -1,5 +1,8 @@
+import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import type { accountsTable } from "#lib/db/schema.ts"
 
-export type AccountId = z.infer<typeof AccountId>
-export const AccountId = z.string() satisfies z.ZodType<(typeof accountsTable.$inferSelect)["id"]>
+/** The identifier of an account. */
+export type AccountId = Branded<string, "AccountId">
+
+/** Parses a string as an account identifier. */
+export const AccountId = z.string().transform(branded<AccountId>)

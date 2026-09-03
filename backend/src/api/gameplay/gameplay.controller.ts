@@ -5,8 +5,10 @@ import { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsD
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
 import { GameId } from "#api/shared/GameId.ts"
 import { PlanetCoordinates, toPlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
+import { PlanetId } from "#api/shared/PlanetId.ts"
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { StarCoordinates, toStarCoordinates } from "#api/shared/StarCoordinates.ts"
+import { StarId } from "#api/shared/StarId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -17,7 +19,7 @@ import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
-import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
+import { ActionId, type SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
 import { getUncommittedResources } from "#lib/rules-engine/action-submission/getUncommittedResources.ts"
 import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
@@ -205,12 +207,12 @@ function createGalaxy(seed: number): GalaxyModel {
 
       return {
         star: {
-          id: starIndex + 1,
+          id: StarId.parse(starIndex + 1),
           ...system.star,
           coordinates: starCoordinates,
         },
         planets: system.planets.map((planet) => ({
-          id: nextPlanetId++,
+          id: PlanetId.parse(nextPlanetId++),
           ...planet,
           coordinates: toPlanetCoordinates({ starCoordinates, star: system.star, planet }),
         })),
@@ -317,7 +319,7 @@ function createTurnState({
 
 export type StartGameDto = z.infer<typeof StartGameDto>
 export const StartGameDto = z.object({
-  gameId: z.coerce.number(),
+  gameId: z.coerce.number().transform((value) => GameId.parse(value)),
   requesterAccountId: AccountId,
 })
 
@@ -328,7 +330,7 @@ export const StartedGameDto = z.object({
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
 export const GetPlayerViewDto = z.object({
-  gameId: z.coerce.number(),
+  gameId: z.coerce.number().transform((value) => GameId.parse(value)),
   playerId: PlayerId,
 })
 
@@ -336,7 +338,7 @@ export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
 export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
 
 export const StarDto = z.object({
-  id: z.number(),
+  id: StarId,
   name: z.string(),
   coordinates: StarCoordinates,
   x: z.number(),
@@ -344,7 +346,7 @@ export const StarDto = z.object({
 })
 
 export const PlanetDto = z.object({
-  id: z.number(),
+  id: PlanetId,
   name: z.string(),
   coordinates: PlanetCoordinates,
   x: z.number(),
@@ -370,7 +372,7 @@ export const GalaxyDto = z.object({
 
 type ActionDto = z.infer<typeof ActionDto>
 const ActionDto = z.object({
-  id: z.string(),
+  id: ActionId,
   actionDefinitionId: ActionDefinitionIdSchema,
   targets: z.record(z.string(), z.string()).nullable(),
   canAfford: z.boolean(),
@@ -391,7 +393,7 @@ export const PlayerViewDto = z.object({
 
 export type UpdateActionSubmissionDto = z.infer<typeof UpdateActionSubmissionDto>
 export const UpdateActionSubmissionDto = z.object({
-  gameId: z.coerce.number(),
+  gameId: z.coerce.number().transform((value) => GameId.parse(value)),
   playerId: PlayerId,
   turn: z.coerce.number(),
   submittedActionTargets: SubmittedActionTargetsDto,
