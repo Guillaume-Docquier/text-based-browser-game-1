@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
+import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 
@@ -13,7 +13,7 @@ describe("listings.router", () => {
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       const creator = await apiServer.createClient({ authenticated: true })
-      const newGameSettings = createGameConfigurationDtoStub()
+      const newGameSettings = createLobbyConfigurationDtoStub()
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -40,11 +40,11 @@ describe("listings.router", () => {
       using apiServer = new ApiServer(await createApiStub())
 
       const creator = await apiServer.createClient({ authenticated: true })
-      const joinedGameSettings = createGameConfigurationDtoStub({ name: "Joined game" })
+      const joinedGameSettings = createLobbyConfigurationDtoStub({ name: "Joined game" })
       const { createdGameId: joinedGameId } = await creator.client.lobbies.create.mutate({ configuration: joinedGameSettings })
 
       const otherCreator = await apiServer.createClient({ authenticated: true })
-      const notJoinedGameSettings = createGameConfigurationDtoStub({ name: "Not joined game" })
+      const notJoinedGameSettings = createLobbyConfigurationDtoStub({ name: "Not joined game" })
       const { createdGameId: notJoinedGameId } = await otherCreator.client.lobbies.create.mutate({ configuration: notJoinedGameSettings })
 
       // Act
