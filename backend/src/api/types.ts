@@ -19,6 +19,7 @@ export type Lobby = TrpcRouterOutput["lobbies"]["getById"]
 export type LobbyStatus = Lobby["status"]
 export type LobbyPlayer = Lobby["creator"]
 export type LobbyCreationSettings = TrpcRouterOutput["lobbies"]["getCreationSettings"]
+export type RulesetSummary = LobbyCreationSettings["rulesets"][number]
 
 // Listings
 export type Listing = TrpcRouterOutput["listings"]["getListings"][number]

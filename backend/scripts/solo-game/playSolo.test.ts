@@ -10,13 +10,13 @@ import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
-import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
+import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { playSolo, type SoloGameSelection } from "./playSolo.ts"
 
 describe("playSolo", () => {
   it("should collect actions and resolve turns until the player wins", async () => {
     // Arrange
-    const ruleset = { ...StandardRuleset, name: "Test Ruleset" }
+    const ruleset = TestRuleset
     const selections: SoloGameSelection[] = [
       { command: "ADD_ACTION", actionDefinitionId: WinTheGame.id },
       { command: "SUBMIT_TURN" },
@@ -118,7 +118,7 @@ describe("playSolo", () => {
     ])
     expect(plainOutput.filter((line) => line.trim() === "━".repeat(72))).toHaveLength(3)
     expect(plainOutput.filter((line) => line.includes("RESOLVED TURN"))).toHaveLength(4)
-    expect(plainOutput).toContainEqual(expect.stringContaining("TEST RULESET PLAYTEST"))
+    expect(plainOutput).toContainEqual(expect.stringContaining("TEST PLAYTEST"))
     expect(plainOutput).not.toContainEqual(expect.stringContaining("CURRENT TURN"))
     const firstResolvedTurnIndex = plainOutput.findIndex((line) => line.includes("RESOLVED TURN"))
     const firstResolvedTurnSeparatorIndex = plainOutput.findIndex(

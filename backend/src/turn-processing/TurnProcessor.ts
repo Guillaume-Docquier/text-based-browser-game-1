@@ -2,7 +2,7 @@ import { Datetime, type Logger, mulberry32Prng, Result, Rng, Time, UnitOfTime } 
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
-import { rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
+import { TransactionRollbackError } from "#lib/errors.ts"
 import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
@@ -61,30 +61,25 @@ export class TurnProcessor {
     const processingLogger = this.logger.child({ scope: "processNextDueTurn", contextProviders: [new ElapsedTimeContextProvider()] })
 
     const turnToProcessResult = await this.createTransaction(async (tx) => {
-      const nextTurnToProcessResult = await this.turnsRepository.getNextTurnForProcessing({ since: this.clock.now() }, tx)
-      rollbackOnFailure(nextTurnToProcessResult, "Could not get next turn to process")
-
-      if (nextTurnToProcessResult.value === undefined) {
+      const nextTurnToProcess = await this.turnsRepository.getNextTurnForProcessing({ since: this.clock.now() }, tx)
+      if (nextTurnToProcess === undefined) {
         return undefined
       }
 
-      if (nextTurnToProcessResult.value.gameStatus !== GameStatus.COLLECTING_ACTIONS) {
+      if (nextTurnToProcess.gameStatus !== GameStatus.COLLECTING_ACTIONS) {
         throw new TransactionRollbackError("Game cannot be processed in its current status", {
-          cause: { status: nextTurnToProcessResult.value.gameStatus, expected: GameStatus.COLLECTING_ACTIONS },
+          cause: { status: nextTurnToProcess.gameStatus, expected: GameStatus.COLLECTING_ACTIONS },
         })
       }
 
-      const turnToProcess = await this.turnsRepository.startTurnProcessing(
+      return await this.turnsRepository.startTurnProcessing(
         {
-          turn: nextTurnToProcessResult.value,
+          turn: nextTurnToProcess,
           processingStartedAt: this.clock.now(),
           gameStatus: GameStatus.PROCESSING_TURN,
         },
         tx,
       )
-      rollbackOnFailure(turnToProcess, "Could not start to process next turn")
-
-      return turnToProcess.value
     })
 
     if (Result.isFailure(turnToProcessResult)) {

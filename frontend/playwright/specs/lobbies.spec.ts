@@ -41,6 +41,7 @@ test.describe("authenticated user", () => {
       await createGamePage.setGameName(gameName)
       await createGamePage.setMaxPlayers(3)
       await createGamePage.setTurnLength({ value: 2, unit: "hours" })
+      await createGamePage.selectRuleset("Test")
       return await createGamePage.submit()
     })
 
@@ -48,6 +49,7 @@ test.describe("authenticated user", () => {
       await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
       await expect(lobbyPage.configurationValue("Number of seats")).toHaveText("3 players")
       await expect(lobbyPage.configurationValue("Time per turn")).toHaveText("2 hr")
+      await expect(lobbyPage.configurationValue("Ruleset")).toContainText("Test")
     })
 
     const galaxyPage = await test.step("Start and open the game", async () => {

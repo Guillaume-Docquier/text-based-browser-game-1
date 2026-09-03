@@ -17,6 +17,7 @@ import { type LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { createLobbiesRouter } from "#api/lobbies/lobbies.router.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
+import type { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { requestLoggerMiddleware } from "./requestLoggerMiddleware.ts"
 import { createTrpc, createTrpcContext } from "./trpc.ts"
 
@@ -42,6 +43,7 @@ export async function createApi({
   listingsRepository: ListingsRepository
   lobbiesRepository: LobbiesRepository
   gameplayRepository: GameplayRepository
+  rulesetsRepository: RulesetsRepository
 }): Promise<Express> {
   const controllerServices = { ...services, createTransaction }
   const controllers = {

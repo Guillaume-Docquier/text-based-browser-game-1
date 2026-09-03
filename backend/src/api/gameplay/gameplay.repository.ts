@@ -21,6 +21,7 @@ import {
   resourcesTable,
   starsTable,
   turnsTable,
+  rulesetsTable,
 } from "#lib/db/schema.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
@@ -28,7 +29,7 @@ import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/Re
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
+import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type NewActionRow = typeof actionsTable.$inferInsert
@@ -193,7 +194,7 @@ export class GameplayRepository extends PostgresRepository {
     return joinedGameResult
   }
 
-  public async getGameForStart({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<GameForStart, string>> {
+  public async getGameForStart({ gameId }: { gameId: GameId }, tx: Transaction): Promise<GameForStart> {
     const gamesForStart = await tx
       .select({
         id: gamesTable.id,
@@ -201,6 +202,7 @@ export class GameplayRepository extends PostgresRepository {
         mapGenerationSeed: gamesTable.mapGenerationSeed,
         status: gamesTable.status,
         turnIntervalSeconds: gamesTable.turnIntervalSeconds,
+        rulesetId: gamesTable.rulesetId,
       })
       .from(gamesTable)
       .where(eq(gamesTable.id, gameId))
@@ -209,7 +211,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const gameForStart = gamesForStart[0]
     if (gameForStart === undefined) {
-      return Result.Failure("The game does not exist.")
+      throw new TransactionRollbackError("The game does not exist.")
     }
 
     const playerIdRows = await tx
@@ -220,17 +222,20 @@ export class GameplayRepository extends PostgresRepository {
 
     const playerIds: readonly PlayerId[] = playerIdRows.map(({ playerId }) => playerId)
 
-    return Result.Success(
-      branded<GameForStart>({
-        gameId: gameForStart.id,
-        createdByAccountId: gameForStart.createdByAccountId,
-        mapGenerationSeed: gameForStart.mapGenerationSeed,
-        status: gameForStart.status,
-        turnInterval: Time.create(gameForStart.turnIntervalSeconds, UnitOfTime.SECONDS),
-        playerIds,
-        ruleset: StandardRuleset, // Eventually should be stored in DB
-      }),
-    )
+    const ruleset = await this.getRuleset({ rulesetId: gameForStart.rulesetId }, tx)
+    if (ruleset === undefined) {
+      throw new TransactionRollbackError("No ruleset found for this game")
+    }
+
+    return branded<GameForStart>({
+      gameId: gameForStart.id,
+      createdByAccountId: gameForStart.createdByAccountId,
+      mapGenerationSeed: gameForStart.mapGenerationSeed,
+      status: gameForStart.status,
+      turnInterval: Time.create(gameForStart.turnIntervalSeconds, UnitOfTime.SECONDS),
+      playerIds,
+      ruleset,
+    })
   }
 
   /**
@@ -306,6 +311,15 @@ export class GameplayRepository extends PostgresRepository {
           return undefined
         }
 
+        const gameRows = await tx.select({ rulesetId: gamesTable.rulesetId }).from(gamesTable).where(eq(gamesTable.id, gameId))
+        Assert.isTrue(gameRows.length === 1)
+        Assert.isDefined(gameRows[0])
+
+        const ruleset = await this.getRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
+        if (ruleset === undefined) {
+          throw new TransactionRollbackError("No ruleset found for this game")
+        }
+
         const players = await tx
           .select({
             id: playersTable.playerId,
@@ -342,7 +356,7 @@ export class GameplayRepository extends PostgresRepository {
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
           actions: availableActionRows,
-          ruleset: StandardRuleset, // Eventually should be stored in DB
+          ruleset,
         }
       }),
     )
@@ -360,12 +374,21 @@ export class GameplayRepository extends PostgresRepository {
     tx: Transaction,
   ): Promise<ActionSubmissionsForUpdate> {
     const games = await tx
-      .select({ id: gamesTable.id })
+      .select({
+        id: gamesTable.id,
+        rulesetId: gamesTable.rulesetId,
+      })
       .from(gamesTable)
       .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.COLLECTING_ACTIONS)))
       .for("no key update")
     if (games.length !== 1) {
       throw new TransactionRollbackError("Cannot submit actions in the current game status")
+    }
+    Assert.isDefined(games[0])
+
+    const ruleset = await this.getRuleset({ rulesetId: games[0].rulesetId }, tx)
+    if (ruleset === undefined) {
+      throw new TransactionRollbackError("No ruleset found for this game")
     }
 
     const resourceRows = await tx
@@ -384,7 +407,7 @@ export class GameplayRepository extends PostgresRepository {
       turn,
       resources: toResourceBag(resourceRows),
       actions,
-      ruleset: StandardRuleset, // Eventually should be stored in DB
+      ruleset,
     })
   }
 
@@ -398,6 +421,20 @@ export class GameplayRepository extends PostgresRepository {
         async (action) => await tx.update(actionsTable).set({ targets: action.targets, updatedAt }).where(eq(actionsTable.id, action.id)),
       ),
     )
+  }
+
+  /**
+   * Gets the ruleset by id.
+   * Does not assume that the ruleset must exist.
+   */
+  private async getRuleset({ rulesetId }: { rulesetId: string }, tx: Transaction): Promise<Ruleset | undefined> {
+    const rulesetRows = await tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, rulesetId))
+    Assert.isTrue(rulesetRows.length <= 1)
+    if (rulesetRows[0] === undefined) {
+      return undefined
+    }
+
+    return RulesetsRepository.toRuleset(rulesetRows[0])
   }
 }
 

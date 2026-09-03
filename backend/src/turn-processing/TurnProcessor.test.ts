@@ -84,7 +84,7 @@ describe("TurnProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId: successfulGameId })
 
-      const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId })
+      const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
 
       // Act
@@ -376,7 +376,7 @@ describe("TurnProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId: successfulGameId })
 
-      const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId })
+      const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
 
       // Act
@@ -551,7 +551,7 @@ describe("TurnProcessor", () => {
         submittedActionTargets: getActionToSubmit(playerView, GainInfluence.id),
       })
 
-      const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId: createdGameId })
+      const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId: createdGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
       const turnToProcess = { gameId: createdGameId, turn: 0 }
 
@@ -602,12 +602,11 @@ class FailingTurnsRepository extends TurnsRepository {
   public constructor({
     db,
     logger,
-    clock,
     failingGameId,
   }: ConstructorParameters<typeof TurnsRepository>[0] & {
     failingGameId: number
   }) {
-    super({ db, logger, clock })
+    super({ db, logger })
     this.failingGameId = failingGameId
   }
 

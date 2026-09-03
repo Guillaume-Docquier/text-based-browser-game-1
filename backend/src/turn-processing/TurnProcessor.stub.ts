@@ -23,7 +23,7 @@ export async function createTurnProcessorStub({
     logger,
     clock,
     createTransaction: createCreateTransaction(db),
-    turnsRepository: turnsRepository ?? new TurnsRepository({ logger, clock, db }),
+    turnsRepository: turnsRepository ?? new TurnsRepository({ logger, db }),
   } as const satisfies TurnProcessorServices
 
   const turnProcessor = new TurnProcessor(turnProcessorServices)

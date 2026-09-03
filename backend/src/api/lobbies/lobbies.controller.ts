@@ -54,10 +54,16 @@ export class LobbiesController {
     return createLobbyResult
   }
 
-  public getCreationSettings(): LobbyCreationSettingsDto {
-    return {
-      maxNbSeats: MAX_NB_SEATS,
+  public async getCreationSettings(): Promise<Result<LobbyCreationSettingsDto, string>> {
+    const lobbyCreationSettingsResult = await this.lobbiesRepository.getLobbyCreationSettings()
+    if (Result.isFailure(lobbyCreationSettingsResult)) {
+      return lobbyCreationSettingsResult
     }
+
+    return Result.Success({
+      maxNbSeats: MAX_NB_SEATS,
+      ...lobbyCreationSettingsResult.value,
+    })
   }
 
   public async getLobbyById({ gameId, playerId }: { gameId: GameId; playerId: PlayerId | undefined }): Promise<LobbyDto | undefined> {
@@ -181,6 +187,7 @@ export const GameConfigurationDto = z.object({
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
   mapGenerationSeed: z.number().exactOptional(),
+  rulesetId: z.string(),
 })
 
 export type CreateLobbyDto = z.infer<typeof CreateLobbyDto>
@@ -214,9 +221,17 @@ export const LeaveLobbyDto = z.object({
 export type LeftLobbyDto = z.infer<typeof LeftLobbyDto>
 export const LeftLobbyDto = z.literal(true)
 
+export type RulesetSummaryDto = z.infer<typeof RulesetSummaryDto>
+const RulesetSummaryDto = z.object({
+  id: z.string(),
+  name: z.string(),
+  isDefault: z.boolean(),
+})
+
 export type LobbyCreationSettingsDto = z.infer<typeof LobbyCreationSettingsDto>
 export const LobbyCreationSettingsDto = z.object({
   maxNbSeats: z.number(),
+  rulesets: z.array(RulesetSummaryDto).readonly(),
 })
 
 export type LobbyPlayerDto = z.infer<typeof LobbyPlayerDto>
@@ -231,11 +246,12 @@ export const LobbyDto = z.object({
   id: GameId,
   winnerAccountId: AccountId.nullable(),
   configuration: GameConfigurationDto,
+  ruleset: RulesetSummaryDto,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
   creator: LobbyPlayerDto,
-  players: z.array(LobbyPlayerDto),
+  players: z.array(LobbyPlayerDto).readonly(),
   status: z.enum(GameStatus),
   /**
    * Whether the current player can join the game.

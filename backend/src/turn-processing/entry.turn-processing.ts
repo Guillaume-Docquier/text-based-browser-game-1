@@ -43,8 +43,8 @@ if (!isMainThread) {
 
   logger.info("Creating services")
   const clock = Clock
-  const turnsRepository = new TurnsRepository({ db, logger, clock })
   const createTransaction = createCreateTransaction(db)
+  const turnsRepository = new TurnsRepository({ db, logger })
 
   const turnProcessor = new TurnProcessor({ logger, clock, createTransaction, turnsRepository })
 

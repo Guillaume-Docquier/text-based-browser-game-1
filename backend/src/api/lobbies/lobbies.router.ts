@@ -27,8 +27,16 @@ export function createLobbiesRouter({
   const lobbiesRouterLogger = others.logger.child({ scope: "lobbies-router" })
 
   return trpc.router({
-    getCreationSettings: trpc.privateProcedure.output(LobbyCreationSettingsDto).query(() => {
-      return lobbiesController.getCreationSettings()
+    getCreationSettings: trpc.privateProcedure.output(LobbyCreationSettingsDto).query(async () => {
+      const creationSettingsResult = await lobbiesController.getCreationSettings()
+      if (Result.isFailure(creationSettingsResult)) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Game creation settings could not be loaded.",
+        })
+      }
+
+      return creationSettingsResult.value
     }),
 
     create: trpc.privateProcedure

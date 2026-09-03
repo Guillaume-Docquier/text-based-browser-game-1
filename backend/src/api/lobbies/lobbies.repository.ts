@@ -7,27 +7,35 @@ import type { Transaction } from "#lib/db/createDb.ts"
 import { type GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { type PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { accountsTable, gamesTable, playersTable } from "#lib/db/schema.ts"
+import { accountsTable, gamesTable, playersTable, rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
 
-export type LobbyConfigurationModel = {
+export type RulesetSummaryModel = Pick<Ruleset, "id" | "name" | "isDefault">
+
+export type LobbyCreationSettingsModel = Readonly<{
+  rulesets: readonly RulesetSummaryModel[]
+}>
+
+export type LobbyConfigurationModel = Readonly<{
   name: string
   nbSeats: number
   turnIntervalSeconds: number
-}
+  rulesetId: string
+}>
 
-export type CreateLobbyModel = {
+export type CreateLobbyModel = Readonly<{
   createdByAccountId: AccountId
   mapGenerationSeed: number
   status: GameStatus
   configuration: LobbyConfigurationModel
   creatorPlayerColor: PlayerColor
-}
+}>
 
-export type LobbyModel = {
+export type LobbyModel = Readonly<{
   id: GameId
   createdAt: Date
   startedAt: Date | null
@@ -35,20 +43,21 @@ export type LobbyModel = {
   winnerAccountId: AccountId | null
   status: GameStatus
   configuration: LobbyConfigurationModel
+  ruleset: RulesetSummaryModel
   creator: LobbyPlayerModel
-  players: LobbyPlayerModel[]
-}
+  players: readonly LobbyPlayerModel[]
+}>
 
-export type LobbyPlayerModel = {
+export type LobbyPlayerModel = Readonly<{
   id: PlayerId
   alias: string | null
   color: PlayerColor
-}
+}>
 
-type PlayerForJoin = {
+type PlayerForJoin = Readonly<{
   id: PlayerId
   color: PlayerColor
-}
+}>
 
 /**
  * Owning a LobbyForJoin within a transaction guarantees that the game is locked and exists at this time.
@@ -105,6 +114,26 @@ export class LobbiesRepository extends PostgresRepository {
     this.logger = logger.child({ scope: "lobbies-repository" })
   }
 
+  public async getLobbyCreationSettings(db: PostgresRepository["db"] = this.db): Promise<Result<LobbyCreationSettingsModel, string>> {
+    const rulesetSummariesResult = await Result.tryCatch(
+      db
+        .select({
+          id: rulesetsTable.id,
+          name: rulesetsTable.name,
+          isDefault: rulesetsTable.isDefault,
+        })
+        .from(rulesetsTable),
+    )
+    if (Result.isFailure(rulesetSummariesResult)) {
+      this.logger.error("Could not get ruleset summaries", { error: rulesetSummariesResult.error })
+      return Result.Failure(couldNot("get ruleset summaries"))
+    }
+
+    return Result.Success({
+      rulesets: rulesetSummariesResult.value,
+    })
+  }
+
   public async createLobby(
     createLobbyModel: CreateLobbyModel,
     db: PostgresRepository["db"] = this.db,
@@ -138,15 +167,28 @@ export class LobbiesRepository extends PostgresRepository {
     { gameId }: { gameId: GameId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<LobbyModel | undefined, string>> {
-    const gameRowResult = await Result.tryCatch(db.select().from(gamesTable).where(eq(gamesTable.id, gameId)))
+    const gameRowResult = await Result.tryCatch(
+      db
+        .select({
+          game: gamesTable,
+          ruleset: {
+            id: rulesetsTable.id,
+            name: rulesetsTable.name,
+            isDefault: rulesetsTable.isDefault,
+          },
+        })
+        .from(gamesTable)
+        .innerJoin(rulesetsTable, eq(rulesetsTable.id, gamesTable.rulesetId))
+        .where(eq(gamesTable.id, gameId)),
+    )
     if (Result.isFailure(gameRowResult)) {
       this.logger.error("Failed to get game", { gameId, error: gameRowResult.error })
       return Result.Failure(couldNot("get game"))
     }
     Assert.isTrue(gameRowResult.value.length <= 1)
 
-    const gameRow = gameRowResult.value[0]
-    if (gameRow === undefined) {
+    const gameWithRuleset = gameRowResult.value[0]
+    if (gameWithRuleset === undefined) {
       return Result.Success(undefined)
     }
 
@@ -166,7 +208,7 @@ export class LobbiesRepository extends PostgresRepository {
       return Result.Failure(couldNot("get players in the lobby"))
     }
 
-    return Result.Success(toLobbyModel({ gameRow, players: playersResult.value }))
+    return Result.Success(toLobbyModel({ gameRow: gameWithRuleset.game, ruleset: gameWithRuleset.ruleset, players: playersResult.value }))
   }
 
   public async getLobbyForJoin({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyForJoin, string>> {
@@ -263,7 +305,15 @@ function toCreateGameRow(createLobbyModel: CreateLobbyModel): CreateGameRow {
   }
 }
 
-function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPlayerModel[] }): LobbyModel {
+function toLobbyModel({
+  gameRow,
+  ruleset,
+  players,
+}: {
+  gameRow: GameRow
+  ruleset: RulesetSummaryModel
+  players: LobbyPlayerModel[]
+}): LobbyModel {
   const creator = players.find((player) => player.id === gameRow.createdByAccountId)
   Assert.isDefined(creator)
 
@@ -278,7 +328,9 @@ function toLobbyModel({ gameRow, players }: { gameRow: GameRow; players: LobbyPl
       name: gameRow.name,
       nbSeats: gameRow.nbSeats,
       turnIntervalSeconds: gameRow.turnIntervalSeconds,
+      rulesetId: gameRow.rulesetId,
     },
+    ruleset,
     creator,
     players,
   }

@@ -6,6 +6,8 @@ Partially Implemented
 
 - [x] Data Driven Rules Engine
 - [x] Standard Ruleset
+- [x] Ruleset persistence
+- [x] Lobby Ruleset selection
 - [x] Effect Outcomes
 - [x] Production Turn Processing Integration
 - [x] Data-driven frontend Action presentation
@@ -69,11 +71,13 @@ An Action Definition is reusable rules content. An Available Action Instance is 
 
 ### Current Ruleset Scope
 
-Production Turn Resolution currently uses the developer-authored Standard Ruleset directly for every game. Persisting a fixed Ruleset snapshot per game remains planned for when the Ruleset will be a bit more mature. Lobby selection and player authoring are not part of the current scope.
+Developer-authored Rulesets are persisted and every game explicitly selects one during lobby creation. Standard is the default Ruleset, while Test provides stable automated-test content. Game start, player views, Action Submission validation, and Turn Resolution load the selected Ruleset from persistence.
+
+As a temporary exception to the immutable, versioned direction in GDDR 009, seeded Ruleset records remain mutable. Deploy-time seed updates therefore change the Ruleset used by waiting, active, and completed games. Ruleset snapshots and versioning remain future work; player authoring is not part of the current scope.
 
 ### Future Ruleset Capability
 
-The data-driven model leaves a future path for the engine to host multiple games simultaneously, each using a different alternate mode, including player-authored Rulesets. A single game still uses one fixed Ruleset. Ruleset definitions require validation and versioning before custom authoring can be safe.
+The engine can host games using different developer-authored Rulesets. A single game selects one Ruleset. Immutable snapshots, versioning, and validation at an authoring boundary are required before player-authored Rulesets can be safe.
 
 ### Effect Resolution
 
