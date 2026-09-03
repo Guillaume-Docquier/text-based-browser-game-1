@@ -24,13 +24,13 @@
     "wts": "pnpm ci && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
   },
   "devDependencies": {
-    "@guillaume-docquier/oxfmt": "^1.0.6",
-    "@guillaume-docquier/oxlint": "^1.7.3",
+    "@guillaume-docquier/oxfmt": "^1.0.7",
+    "@guillaume-docquier/oxlint": "^1.7.4",
     "@guillaume-docquier/show-me": "^1.7.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.4.1",
-    "oxfmt": ">=0.65.0",
-    "oxlint": "^1.80.0",
+    "oxfmt": ">=0.66.0",
+    "oxlint": "^1.81.0",
     "oxlint-tsgolint": "^7.0.2001"
   },
   "lint-staged": {
