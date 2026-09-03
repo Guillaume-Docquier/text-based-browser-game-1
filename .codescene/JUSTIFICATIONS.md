@@ -26,6 +26,7 @@
 | ----------------------------------------------- | ------: | ---------: | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `function_complex_conditional_branches_warning` |       2 |          3 | 2 is a bit too intense.                                                                                                                          |
 | `function_cyclomatic_complexity_warning`        |       9 |         15 | A `create*Router` function contains multiple route definitions, so CodeScene scores the whole router factory instead of each route individually. |
+| `function_lines_of_code_warning`                |      70 |        200 | A `create*Router` function contains multiple route definitions, so CodeScene scores the whole router factory instead of each route individually. |
 
 ## `**/*`
 

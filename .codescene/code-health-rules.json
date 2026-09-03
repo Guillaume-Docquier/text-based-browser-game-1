@@ -55,6 +55,10 @@
         {
           "name": "function_cyclomatic_complexity_warning",
           "value": 15
+        },
+        {
+          "name": "function_lines_of_code_warning",
+          "value": 200
         }
       ]
     },
