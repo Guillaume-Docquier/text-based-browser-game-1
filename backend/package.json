@@ -22,17 +22,17 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.63",
+    "@clerk/express": "^2.1.65",
     "@guillaume-docquier/tools-ts": "catalog:",
     "@trpc/server": "^11.18.0",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
-    "p-retry": "^8.0.0",
+    "p-retry": "^8.0.1",
     "pg": "^8.23.0",
     "transformation-matrix": "^3.1.0",
     "utility-types": "^3.11.0",
     "uuid": "^14.0.2",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
@@ -40,7 +40,7 @@
     "@testcontainers/postgresql": "^12.1.0",
     "@trpc/client": "^11.18.0",
     "@types/express": "^5.0.6",
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.4.1",
     "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
     "commander": "^15.0.0",
