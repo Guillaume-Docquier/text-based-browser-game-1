@@ -7,13 +7,13 @@ import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable } from "#lib/db/schema.ts"
+import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable, rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
+import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
@@ -84,134 +84,129 @@ export type ProcessedTurnModel = {
 export class TurnsRepository extends PostgresRepository {
   private readonly logger: Logger
   private readonly clock: Clock
+  private readonly rulesetsRepository: RulesetsRepository
 
-  public constructor({ logger, clock, db }: { logger: Logger; clock: Clock; db: PostgresRepository["db"] }) {
+  public constructor({
+    logger,
+    clock,
+    db,
+    rulesetsRepository,
+  }: {
+    logger: Logger
+    clock: Clock
+    db: PostgresRepository["db"]
+    rulesetsRepository: RulesetsRepository
+  }) {
     super({ db })
     this.logger = logger.child({ scope: "turns-repository" })
     this.clock = clock
+    this.rulesetsRepository = rulesetsRepository
   }
 
   /**
    * The next turn to process row will be locked during the transaction.
    */
-  public async getNextTurnForProcessing(
-    { since }: { since: Date },
-    tx: Transaction,
-  ): Promise<Result<TurnForProcessing | undefined, string>> {
-    const turnToProcessResult = await Result.tryCatch(async () => {
-      // Find and lock the turn
-      const turnToProcessRows = await tx
-        .select({
-          gameId: turnsTable.gameId,
-          turn: turnsTable.turn,
-        })
-        .from(turnsTable)
-        .where(and(lte(turnsTable.scheduledFor, since), isNull(turnsTable.processingStartedAt)))
-        .orderBy(asc(turnsTable.scheduledFor))
-        .limit(1)
-        .for("no key update", { skipLocked: true })
-
-      const turnToProcess = turnToProcessRows[0]
-      if (turnToProcess === undefined) {
-        return turnToProcess
-      }
-
-      // Lock the game, it is expected to exist
-      const gameToProcessRows = await tx
-        .select({ status: gamesTable.status })
-        .from(gamesTable)
-        .where(eq(gamesTable.id, turnToProcess.gameId))
-        .for("no key update")
-      Assert.isDefined(gameToProcessRows[0])
-
-      return branded<TurnForProcessing>({
-        gameId: turnToProcess.gameId,
-        turn: turnToProcess.turn,
-        gameStatus: gameToProcessRows[0].status,
+  public async getNextTurnForProcessing({ since }: { since: Date }, tx: Transaction): Promise<TurnForProcessing | undefined> {
+    // Find and lock the turn
+    const turnToProcessRows = await tx
+      .select({
+        gameId: turnsTable.gameId,
+        turn: turnsTable.turn,
       })
-    })
+      .from(turnsTable)
+      .where(and(lte(turnsTable.scheduledFor, since), isNull(turnsTable.processingStartedAt)))
+      .orderBy(asc(turnsTable.scheduledFor))
+      .limit(1)
+      .for("no key update", { skipLocked: true })
 
-    if (Result.isFailure(turnToProcessResult)) {
-      this.logger.error("Could not get next turn to process", { error: turnToProcessResult.error })
-      return Result.Failure(couldNot("get next turn to process"))
+    const turnToProcess = turnToProcessRows[0]
+    if (turnToProcess === undefined) {
+      return turnToProcess
     }
 
-    return turnToProcessResult
+    // Lock the game, it is expected to exist
+    const gameToProcessRows = await tx
+      .select({ status: gamesTable.status })
+      .from(gamesTable)
+      .where(eq(gamesTable.id, turnToProcess.gameId))
+      .for("no key update")
+    Assert.isDefined(gameToProcessRows[0])
+
+    return branded<TurnForProcessing>({
+      gameId: turnToProcess.gameId,
+      turn: turnToProcess.turn,
+      gameStatus: gameToProcessRows[0].status,
+    })
   }
 
   /**
    * Moves the game and turn to processing before reading the state used to process the turn.
    */
-  public async startTurnProcessing(
-    startTurnProcessingModel: StartTurnProcessingModel,
-    tx: Transaction,
-  ): Promise<Result<TurnToProcessModel, string>> {
-    const turnResult = await Result.tryCatch(async () => {
-      const turns = await tx
-        .update(turnsTable)
-        .set({ processingStartedAt: startTurnProcessingModel.processingStartedAt })
-        .where(and(eq(turnsTable.gameId, startTurnProcessingModel.turn.gameId), eq(turnsTable.turn, startTurnProcessingModel.turn.turn)))
-        .returning({ scheduledFor: turnsTable.scheduledFor })
-      Assert.isTrue(turns.length === 1)
-      Assert.isDefined(turns[0])
+  public async startTurnProcessing(startTurnProcessingModel: StartTurnProcessingModel, tx: Transaction): Promise<TurnToProcessModel> {
+    const turns = await tx
+      .update(turnsTable)
+      .set({ processingStartedAt: startTurnProcessingModel.processingStartedAt })
+      .where(and(eq(turnsTable.gameId, startTurnProcessingModel.turn.gameId), eq(turnsTable.turn, startTurnProcessingModel.turn.turn)))
+      .returning({ scheduledFor: turnsTable.scheduledFor })
+    Assert.isTrue(turns.length === 1)
+    Assert.isDefined(turns[0])
 
-      const games = await tx
-        .update(gamesTable)
-        .set({ status: startTurnProcessingModel.gameStatus })
-        .where(eq(gamesTable.id, startTurnProcessingModel.turn.gameId))
-        .returning({ turnIntervalSeconds: gamesTable.turnIntervalSeconds })
-      Assert.isTrue(games.length === 1)
-      Assert.isDefined(games[0])
+    const games = await tx
+      .update(gamesTable)
+      .set({ status: startTurnProcessingModel.gameStatus })
+      .where(eq(gamesTable.id, startTurnProcessingModel.turn.gameId))
+      .returning({ turnIntervalSeconds: gamesTable.turnIntervalSeconds, rulesetId: gamesTable.rulesetId })
+    Assert.isTrue(games.length === 1)
+    Assert.isDefined(games[0])
 
-      const [gameStates, players, resources, submittedActions] = await Promise.all([
-        tx
-          .select({
-            rngGeneratorState: gameStatesTable.rngGeneratorState,
-            rngSpareNormal: gameStatesTable.rngSpareNormal,
-          })
-          .from(gameStatesTable)
-          .where(eq(gameStatesTable.gameId, startTurnProcessingModel.turn.gameId)),
-        tx
-          .select()
-          .from(playersTable)
-          .where(eq(playersTable.gameId, startTurnProcessingModel.turn.gameId))
-          .orderBy(asc(playersTable.playerId)),
-        tx
-          .select()
-          .from(resourcesTable)
-          .where(eq(resourcesTable.gameId, startTurnProcessingModel.turn.gameId))
-          .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
-        tx
-          .select()
-          .from(actionsTable)
-          .where(
-            and(eq(actionsTable.gameId, startTurnProcessingModel.turn.gameId), eq(actionsTable.turn, startTurnProcessingModel.turn.turn)),
-          )
-          .orderBy(asc(actionsTable.playerId)),
-      ])
-      Assert.isTrue(gameStates.length === 1)
-      Assert.isDefined(gameStates[0])
+    const [gameStates, players, resources, submittedActions, rulesets] = await Promise.all([
+      tx
+        .select({
+          rngGeneratorState: gameStatesTable.rngGeneratorState,
+          rngSpareNormal: gameStatesTable.rngSpareNormal,
+        })
+        .from(gameStatesTable)
+        .where(eq(gameStatesTable.gameId, startTurnProcessingModel.turn.gameId)),
+      tx
+        .select()
+        .from(playersTable)
+        .where(eq(playersTable.gameId, startTurnProcessingModel.turn.gameId))
+        .orderBy(asc(playersTable.playerId)),
+      tx
+        .select()
+        .from(resourcesTable)
+        .where(eq(resourcesTable.gameId, startTurnProcessingModel.turn.gameId))
+        .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
+      tx
+        .select()
+        .from(actionsTable)
+        .where(
+          and(eq(actionsTable.gameId, startTurnProcessingModel.turn.gameId), eq(actionsTable.turn, startTurnProcessingModel.turn.turn)),
+        )
+        .orderBy(asc(actionsTable.playerId)),
+      tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, games[0].rulesetId)),
+    ])
+    Assert.isTrue(gameStates.length === 1)
+    Assert.isDefined(gameStates[0])
 
-      return toTurnToProcessModel({
-        turnForProcessing: startTurnProcessingModel.turn,
-        scheduledFor: turns[0].scheduledFor,
-        turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
-        rngState: {
-          generatorState: gameStates[0].rngGeneratorState,
-          spareNormal: gameStates[0].rngSpareNormal,
-        },
-        players,
-        resources,
-        submittedActions,
-      })
+    Assert.isTrue(rulesets.length === 1)
+    Assert.isDefined(rulesets[0])
+
+    const ruleset = RulesetsRepository.toRuleset(rulesets[0])
+
+    return toTurnToProcessModel({
+      turnForProcessing: startTurnProcessingModel.turn,
+      scheduledFor: turns[0].scheduledFor,
+      turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
+      rngState: {
+        generatorState: gameStates[0].rngGeneratorState,
+        spareNormal: gameStates[0].rngSpareNormal,
+      },
+      players,
+      resources,
+      submittedActions,
+      ruleset,
     })
-
-    if (Result.isFailure(turnResult)) {
-      this.logger.error("Could not start processing turn", { startTurnProcessingModel, error: turnResult.error })
-      return Result.Failure(couldNot("start processing turn"))
-    }
-
-    return turnResult
   }
 
   /**
@@ -337,6 +332,7 @@ function toTurnToProcessModel({
   players,
   resources,
   submittedActions,
+  ruleset,
 }: {
   turnForProcessing: TurnForProcessing
   scheduledFor: Date
@@ -345,6 +341,7 @@ function toTurnToProcessModel({
   players: PlayerRow[]
   resources: ResourceRow[]
   submittedActions: SubmittedActionRow[]
+  ruleset: Ruleset
 }): TurnToProcessModel {
   const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
 
@@ -370,6 +367,6 @@ function toTurnToProcessModel({
       }
       return playersById
     }, {}),
-    ruleset: StandardRuleset, // Eventually should be stored in DB
+    ruleset,
   }
 }

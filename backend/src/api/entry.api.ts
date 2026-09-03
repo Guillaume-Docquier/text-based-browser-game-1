@@ -1,5 +1,5 @@
 import type { AddressInfo } from "node:net"
-import { Logger } from "@guillaume-docquier/tools-ts"
+import { Assert, Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
@@ -15,6 +15,8 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
+import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
+import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
 import { createApi } from "./createApi.ts"
 
@@ -46,7 +48,11 @@ async function main(): Promise<void> {
     listingsRepository: new ListingsRepository({ db, logger }),
     lobbiesRepository: new LobbiesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger, clock }),
+    rulesetsRepository: new RulesetsRepository({ db, logger }),
   }
+
+  logger.info("Performing database seeding")
+  await seedDatabase({ rulesetsRepository: repositories.rulesetsRepository, logger })
 
   const authService = createAuthService({ authService: env.AUTH_SERVICE, logger })
 
@@ -78,8 +84,8 @@ async function main(): Promise<void> {
 
 /**
  * At the time of writing, the DB was in "serverless" mode, meaning it might be sleeping when we deploy the backend.
- * Retrying should quickly work that out.
- * Long term the DB won't be "serverless", so this issue should go away.
+ * Retrying quickly worked that out.
+ * The db is no longer serverless, but we're keeping this anyway, doesn't hurt.
  */
 async function migrateDatabase(db: Database, { migrationsFolder, logger }: { migrationsFolder: string; logger: Logger }): Promise<void> {
   await pRetry(
@@ -89,10 +95,27 @@ async function migrateDatabase(db: Database, { migrationsFolder, logger }: { mig
     {
       retries: 5,
       onFailedAttempt: ({ error, attemptNumber, retriesLeft }) => {
-        logger.info("Failed to migrate the database. It might not be awake, retrying", { error, attemptNumber, retriesLeft })
+        logger.info("Failed to migrate the database. It might not be reachable yet, retrying", { error, attemptNumber, retriesLeft })
       },
     },
   )
+}
+
+/**
+ * Seeding on backend boot might not be the smartest thing. If we start having replicas, that might be stupid?
+ * I'm not too sure what the ideal hook in Railway would be for this to seed on deploy only once, then boot all replicas.
+ * For now, this'll do.
+ */
+async function seedDatabase({ rulesetsRepository, logger }: { rulesetsRepository: RulesetsRepository; logger: Logger }): Promise<void> {
+  logger.debug("Rulesets")
+  logger.debug("├ Upserting core rulesets")
+
+  for (const ruleset of CoreRulesets) {
+    logger.debug(`├— ${ruleset.name}`)
+    Assert.isSuccess(await rulesetsRepository.upsertRuleset(ruleset))
+  }
+
+  logger.debug("└ Done")
 }
 
 function createAuthService({ authService, logger }: { authService: "clerk" | "test-header"; logger: Logger }): AuthService {

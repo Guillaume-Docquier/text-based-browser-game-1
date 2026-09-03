@@ -8,6 +8,7 @@ import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
@@ -604,10 +605,11 @@ class FailingTurnsRepository extends TurnsRepository {
     logger,
     clock,
     failingGameId,
-  }: ConstructorParameters<typeof TurnsRepository>[0] & {
+  }: Omit<ConstructorParameters<typeof TurnsRepository>[0], "rulesetsRepository"> & {
     failingGameId: number
   }) {
-    super({ db, logger, clock })
+    const rulesetsRepository = new RulesetsRepository({ db, logger })
+    super({ db, logger, clock, rulesetsRepository })
     this.failingGameId = failingGameId
   }
 

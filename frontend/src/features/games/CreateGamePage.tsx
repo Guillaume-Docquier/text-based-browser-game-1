@@ -47,8 +47,10 @@ function CreateGameForm({
   const [nbSeats, setNbSeats] = useState(5)
   const [turnIntervalMultiplier, setTurnIntervalMultiplier] = useState(1)
   const [turnIntervalUnit, setTurnIntervalUnit] = useState<TurnIntervalUnit>(TurnIntervalUnit.days)
+  const [rulesetId, setRulesetId] = useState(creationSettings.rulesets.find(({ isDefault }) => isDefault)?.id ?? "")
   const createGame = useCreateGameMutation()
-  const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > creationSettings.maxNbSeats
+  const selectedRuleset = creationSettings.rulesets.find(({ id }) => id === rulesetId)
+  const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > creationSettings.maxNbSeats || selectedRuleset === undefined
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
@@ -70,6 +72,21 @@ function CreateGameForm({
               }}
               placeholder="Galactic trade league"
             />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Ruleset</Label>
+            <Select value={rulesetId} onValueChange={setRulesetId}>
+              <SelectTrigger aria-label="Ruleset">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {creationSettings.rulesets.map((ruleset) => (
+                  <SelectItem key={ruleset.id} value={ruleset.id}>
+                    {ruleset.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="nb-seats">Max number of players</Label>
@@ -128,6 +145,7 @@ function CreateGameForm({
                 nbSeats,
                 turnIntervalSeconds: Temporal.Duration.from({ [turnIntervalUnit]: turnIntervalMultiplier }).total("seconds"),
                 mapGenerationSeed,
+                rulesetId,
               },
             })
           }}

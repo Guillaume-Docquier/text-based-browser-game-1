@@ -38,7 +38,8 @@ CREATE TABLE "games" (
 	"name" text NOT NULL,
 	"nb_seats" integer NOT NULL,
 	"turn_interval_seconds" integer NOT NULL,
-	"map_generation_seed" bigint NOT NULL
+	"map_generation_seed" bigint NOT NULL,
+	"ruleset_id" text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "planets" (
@@ -77,6 +78,13 @@ CREATE TABLE "resources" (
 	CONSTRAINT "resources_game_id_player_id_resource_type_pk" PRIMARY KEY("game_id","player_id","resource_type")
 );
 --> statement-breakpoint
+CREATE TABLE "rulesets" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"is_default" boolean NOT NULL,
+	"data" jsonb NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "stars" (
 	"game_id" integer NOT NULL,
 	"id" integer NOT NULL,
@@ -100,6 +108,7 @@ ALTER TABLE "actions" ADD CONSTRAINT "actions_gameId_playerId_game_players_fk" F
 ALTER TABLE "game_states" ADD CONSTRAINT "game_states_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_created_by_account_id_accounts_id_fk" FOREIGN KEY ("created_by_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_winner_account_id_accounts_id_fk" FOREIGN KEY ("winner_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "games" ADD CONSTRAINT "games_ruleset_id_rulesets_id_fk" FOREIGN KEY ("ruleset_id") REFERENCES "public"."rulesets"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "planets" ADD CONSTRAINT "planets_gameId_starId_planets_fk" FOREIGN KEY ("game_id","star_id") REFERENCES "public"."stars"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "players" ADD CONSTRAINT "players_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "players" ADD CONSTRAINT "players_player_id_accounts_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -107,4 +116,6 @@ ALTER TABLE "resources" ADD CONSTRAINT "resources_gameId_playerId_game_players_f
 ALTER TABLE "stars" ADD CONSTRAINT "stars_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "turns" ADD CONSTRAINT "turns_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "auth_id_idx" ON "accounts" USING btree ("auth_id");--> statement-breakpoint
+CREATE INDEX "actions_game_id_player_id_turn_index" ON "actions" USING btree ("game_id","player_id","turn");--> statement-breakpoint
+CREATE UNIQUE INDEX "rulesets_is_default_unique" ON "rulesets" USING btree ("is_default") WHERE "rulesets"."is_default";--> statement-breakpoint
 CREATE INDEX "turns_scheduled_for_index" ON "turns" USING btree ("scheduled_for");

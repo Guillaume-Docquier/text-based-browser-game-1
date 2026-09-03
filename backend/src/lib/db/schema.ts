@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm"
 import {
   bigint,
+  boolean,
   foreignKey,
   index,
   integer,
@@ -19,6 +21,7 @@ import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
+import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
 /**
  * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
@@ -37,8 +40,24 @@ export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
 const accountId = uuid
 const playerId = uuid
 const gameId = integer
+const rulesetId = text
 const starId = integer
 const planetId = integer
+
+export const rulesetsTable = pgTable(
+  "rulesets",
+  {
+    id: rulesetId("id").primaryKey(),
+    name: text("name").notNull(),
+    isDefault: boolean("is_default").notNull(),
+    rules: jsonb("data").$type<RulesetRulesJson>().notNull(),
+  },
+  (table) => [
+    uniqueIndex("rulesets_is_default_unique")
+      .on(table.isDefault)
+      .where(sql`${table.isDefault}`),
+  ],
+)
 
 /**
  * User accounts.
@@ -75,6 +94,9 @@ export const gamesTable = pgTable("games", {
   nbSeats: integer("nb_seats").notNull(),
   turnIntervalSeconds: integer("turn_interval_seconds").notNull(),
   mapGenerationSeed: bigint("map_generation_seed", { mode: "number" }).notNull(),
+  rulesetId: rulesetId("ruleset_id")
+    .notNull()
+    .references(() => rulesetsTable.id, { onDelete: "restrict" }),
 })
 
 /**

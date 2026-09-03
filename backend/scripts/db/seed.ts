@@ -10,6 +10,9 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { accountsTable, gamesTable } from "#lib/db/schema.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
+import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
+import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
+import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -73,6 +76,7 @@ async function main({ connectionString, user }: { connectionString: string; user
   logger.info(`Creating services`)
   const db = createDb({ databaseUrl: connectionString })
   const accountsRepository = new AccountsRepository({ db, logger })
+  const rulesetsRepository = new RulesetsRepository({ db, logger })
   const lobbiesController = new LobbiesController({
     logger,
     createTransaction: createCreateTransaction(db),
@@ -83,6 +87,9 @@ async function main({ connectionString, user }: { connectionString: string; user
   try {
     logger.info("")
     const accounts = await seedAccounts({ db, user, logger, accountsRepository })
+
+    logger.info("")
+    await seedRulesets({ rulesetsRepository, logger })
 
     logger.info("")
     await seedGames({ db, accounts, logger, lobbiesController })
@@ -160,6 +167,18 @@ async function seedAccounts({
   return accounts
 }
 
+async function seedRulesets({ rulesetsRepository, logger }: { rulesetsRepository: RulesetsRepository; logger: Logger }): Promise<void> {
+  logger.info("Rulesets")
+  logger.info("├ Upserting core rulesets")
+
+  for (const ruleset of CoreRulesets) {
+    logger.info(`├— ${ruleset.name}`)
+    Assert.isSuccess(await rulesetsRepository.upsertRuleset(ruleset))
+  }
+
+  logger.info("└ Done")
+}
+
 async function seedGames({
   db,
   accounts,
@@ -187,6 +206,7 @@ async function seedGames({
         name: "insanely fast game",
         nbSeats: 5,
         turnIntervalSeconds: 60,
+        rulesetId: StandardRuleset.id,
       },
     }),
   )
@@ -197,6 +217,7 @@ async function seedGames({
         name: "fast game",
         nbSeats: 10,
         turnIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+        rulesetId: StandardRuleset.id,
       },
     }),
   )

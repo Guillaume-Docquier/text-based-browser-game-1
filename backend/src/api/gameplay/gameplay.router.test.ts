@@ -15,7 +15,7 @@ import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
-import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
+import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 
 describe("gameplay.router", () => {
@@ -203,7 +203,7 @@ describe("gameplay.router", () => {
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
         }),
-        ruleset: StandardRuleset,
+        ruleset: TestRuleset,
         actions: expect.arrayContaining(expectedActions),
       })
       expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)

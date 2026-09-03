@@ -1,5 +1,5 @@
 {
-  "id": "84591186-3647-4cfd-8513-a149ca7423d7",
+  "id": "26881aa4-da4c-46bd-8491-5d5b46fd7875",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -107,7 +107,35 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "actions_game_id_player_id_turn_index": {
+          "name": "actions_game_id_player_id_turn_index",
+          "columns": [
+            {
+              "expression": "game_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "player_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "turn",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "actions_gameId_playerId_game_players_fk": {
           "name": "actions_gameId_playerId_game_players_fk",
@@ -262,6 +290,12 @@
           "type": "bigint",
           "primaryKey": false,
           "notNull": true
+        },
+        "ruleset_id": {
+          "name": "ruleset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -282,6 +316,15 @@
           "columnsFrom": ["winner_account_id"],
           "columnsTo": ["id"],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "games_ruleset_id_rulesets_id_fk": {
+          "name": "games_ruleset_id_rulesets_id_fk",
+          "tableFrom": "games",
+          "tableTo": "rulesets",
+          "columnsFrom": ["ruleset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -528,6 +571,60 @@
           "columns": ["game_id", "player_id", "resource_type"]
         }
       },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rulesets": {
+      "name": "rulesets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "rulesets_is_default_unique": {
+          "name": "rulesets_is_default_unique",
+          "columns": [
+            {
+              "expression": "is_default",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"rulesets\".\"is_default\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

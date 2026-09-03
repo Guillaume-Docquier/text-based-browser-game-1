@@ -10,7 +10,7 @@ import { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnE
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
-import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
+import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 
 describe("resolveTurn", () => {
   const playerId = "player-id"
@@ -36,7 +36,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
+    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -47,7 +47,7 @@ describe("resolveTurn", () => {
               submittedActionId: submittedAction.id,
               actionDefinitionId: WinTheGame.id,
               // oxlint-disable-next-line typescript/no-non-null-assertion -- It's there
-              actionDefinitionName: StandardRuleset.actionDefinitions[submittedAction.actionDefinitionId]!.name,
+              actionDefinitionName: TestRuleset.actionDefinitions[submittedAction.actionDefinitionId]!.name,
               issue: "Missing 7 INFLUENCE",
             },
             {
@@ -95,7 +95,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
+    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -157,7 +157,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
+    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -219,7 +219,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, StandardRuleset, createSeededRng())
+    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(

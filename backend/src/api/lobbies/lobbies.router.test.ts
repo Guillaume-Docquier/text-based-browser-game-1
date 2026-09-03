@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
-import { type LobbyPlayerDto, MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
+import { type LobbyPlayerDto, MAX_NB_SEATS, type RulesetSummaryDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
+
+const TEST_RULESET_SUMMARY: RulesetSummaryDto = {
+  id: TestRuleset.id,
+  name: TestRuleset.name,
+  isDefault: TestRuleset.isDefault,
+}
 
 describe("lobbies.router", () => {
   describe("getCreationSettings", () => {
@@ -18,7 +25,10 @@ describe("lobbies.router", () => {
       const creationSettings = await player.client.lobbies.getCreationSettings.query()
 
       // Assert
-      expect(creationSettings).toStrictEqual<typeof creationSettings>({ maxNbSeats: MAX_NB_SEATS })
+      expect(creationSettings).toStrictEqual<typeof creationSettings>({
+        maxNbSeats: MAX_NB_SEATS,
+        rulesets: [TEST_RULESET_SUMMARY],
+      })
     })
   })
 
@@ -50,6 +60,19 @@ describe("lobbies.router", () => {
       })
     })
 
+    it("should reject an unknown Ruleset", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      // Act & Assert
+      await expect(
+        creator.client.lobbies.create.mutate({
+          configuration: createGameConfigurationDtoStub({ rulesetId: "unknown" }),
+        }),
+      ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+    })
+
     it("should create a game for the authenticated player", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
@@ -70,6 +93,7 @@ describe("lobbies.router", () => {
         id: createLobbyResult.createdGameId,
         createdAt: expect.any(String),
         configuration: newGameSettings,
+        ruleset: TEST_RULESET_SUMMARY,
         endedAt: null,
         startedAt: null,
         winnerAccountId: null,
@@ -165,6 +189,7 @@ describe("lobbies.router", () => {
         endedAt: null,
         winnerAccountId: null,
         configuration: newGameSettings,
+        ruleset: TEST_RULESET_SUMMARY,
         startedAt: null,
         creator: expectedCreator,
         players: [expectedCreator],
@@ -196,6 +221,7 @@ describe("lobbies.router", () => {
         endedAt: null,
         winnerAccountId: null,
         configuration: newGameSettings,
+        ruleset: TEST_RULESET_SUMMARY,
         startedAt: null,
         creator: expectedCreator,
         players: [expectedCreator],
@@ -316,6 +342,7 @@ describe("lobbies.router", () => {
         endedAt: null,
         winnerAccountId: null,
         configuration: newGameSettings,
+        ruleset: TEST_RULESET_SUMMARY,
         startedAt: null,
         creator: expectedCreator,
         players: [expectedCreator, expectedJoiner],
@@ -428,6 +455,7 @@ describe("lobbies.router", () => {
         endedAt: null,
         winnerAccountId: null,
         configuration: newGameSettings,
+        ruleset: TEST_RULESET_SUMMARY,
         startedAt: null,
         creator: expectedCreator,
         players: [expectedCreator],

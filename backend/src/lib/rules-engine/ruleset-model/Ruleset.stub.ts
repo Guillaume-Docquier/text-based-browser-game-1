@@ -4,7 +4,9 @@ import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 export function createRulesetStub(overrides?: Partial<Ruleset>): Ruleset {
   return {
+    id: v4(),
     name: v4(),
+    isDefault: false,
     actionDefinitions: {},
     startingResources: createResourcesStub(),
     ...overrides,

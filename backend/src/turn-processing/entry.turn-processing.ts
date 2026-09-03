@@ -5,6 +5,7 @@ import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb } from "#lib/db/createDb.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
 import { envSchema, parseEnv } from "#lib/parseEnv.ts"
+import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
@@ -43,7 +44,8 @@ if (!isMainThread) {
 
   logger.info("Creating services")
   const clock = Clock
-  const turnsRepository = new TurnsRepository({ db, logger, clock })
+  const rulesetsRepository = new RulesetsRepository({ db, logger })
+  const turnsRepository = new TurnsRepository({ db, logger, clock, rulesetsRepository })
   const createTransaction = createCreateTransaction(db)
 
   const turnProcessor = new TurnProcessor({ logger, clock, createTransaction, turnsRepository })

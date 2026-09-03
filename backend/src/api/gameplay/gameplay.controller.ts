@@ -14,7 +14,7 @@ import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
-import { couldNot, rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
+import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
@@ -56,36 +56,33 @@ export class GameplayController {
   public async startGame({ gameId, requesterAccountId }: StartGameDto): Promise<Result<StartedGameDto, string>> {
     const startGameResult = await this.createTransaction(async (tx) => {
       const gameForStart = await this.gameplayRepository.getGameForStart({ gameId }, tx)
-      rollbackOnFailure(gameForStart, "Game cannot start")
 
-      if (gameForStart.value.createdByAccountId !== requesterAccountId) {
+      if (gameForStart.createdByAccountId !== requesterAccountId) {
         throw new TransactionRollbackError("Only the game creator can start it.")
       }
 
-      if (gameForStart.value.status !== GameStatus.WAITING_FOR_PLAYERS && gameForStart.value.status !== GameStatus.READY_TO_START) {
+      if (gameForStart.status !== GameStatus.WAITING_FOR_PLAYERS && gameForStart.status !== GameStatus.READY_TO_START) {
         throw new TransactionRollbackError("The game cannot start in its current status.", {
-          cause: { status: gameForStart.value.status, expected: [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START] },
+          cause: { status: gameForStart.status, expected: [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START] },
         })
       }
 
       const startedAt = this.clock.now()
-      const nextTurnAt = Datetime.increment({ date: startedAt, time: gameForStart.value.turnInterval })
+      const nextTurnAt = Datetime.increment({ date: startedAt, time: gameForStart.turnInterval })
 
       const startingResources = Object.values(ResourceType).map((resourceType) => ({
         resourceType,
-        amount: gameForStart.value.ruleset.startingResources[resourceType],
+        amount: gameForStart.ruleset.startingResources[resourceType],
       }))
-      const playerResources = gameForStart.value.playerIds.flatMap((playerId) =>
-        startingResources.map((resource) => ({ playerId, ...resource })),
-      )
+      const playerResources = gameForStart.playerIds.flatMap((playerId) => startingResources.map((resource) => ({ playerId, ...resource })))
 
       const startTime = Timer.start()
-      const galaxy = createGalaxy(gameForStart.value.mapGenerationSeed)
+      const galaxy = createGalaxy(gameForStart.mapGenerationSeed)
       this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
 
       await this.gameplayRepository.startGame(
         {
-          context: gameForStart.value,
+          context: gameForStart,
           status: GameStatus.COLLECTING_ACTIONS,
           startedAt,
           nextTurnAt,
@@ -93,8 +90,8 @@ export class GameplayController {
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           playerResources,
           availableActions: computeAvailableActions({
-            playerIds: gameForStart.value.playerIds,
-            ruleset: gameForStart.value.ruleset,
+            playerIds: gameForStart.playerIds,
+            ruleset: gameForStart.ruleset,
           }),
           galaxy,
         },

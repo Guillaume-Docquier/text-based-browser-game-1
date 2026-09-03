@@ -8,7 +8,12 @@ import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 
 export const StandardRuleset: Ruleset = {
-  name: "Standard Ruleset",
+  /**
+   * Stable id so that it is updated on deploy
+   */
+  id: "core_standard_v1",
+  name: "Standard V1",
+  isDefault: true,
   actionDefinitions: indexById([GainInfluence, WinTheGame, GainEnergy, GainFuel, GainMetal]),
   startingResources: {
     [ResourceType.INFLUENCE]: 3,
