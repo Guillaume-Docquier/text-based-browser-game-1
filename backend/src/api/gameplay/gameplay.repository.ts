@@ -222,12 +222,8 @@ export class GameplayRepository extends PostgresRepository {
 
     const playerIds: readonly PlayerId[] = playerIdRows.map(({ playerId }) => playerId)
 
-    const rulesetResult = await this.getRuleset({ rulesetId: gameForStart.rulesetId }, tx)
-    if (Result.isFailure(rulesetResult)) {
-      throw new TransactionRollbackError(rulesetResult.error)
-    }
-
-    if (rulesetResult.value === undefined) {
+    const ruleset = await this.getRuleset({ rulesetId: gameForStart.rulesetId }, tx)
+    if (ruleset === undefined) {
       throw new TransactionRollbackError("No ruleset found for this game")
     }
 
@@ -238,7 +234,7 @@ export class GameplayRepository extends PostgresRepository {
       status: gameForStart.status,
       turnInterval: Time.create(gameForStart.turnIntervalSeconds, UnitOfTime.SECONDS),
       playerIds,
-      ruleset: rulesetResult.value,
+      ruleset,
     })
   }
 
@@ -319,12 +315,8 @@ export class GameplayRepository extends PostgresRepository {
         Assert.isTrue(gameRows.length === 1)
         Assert.isDefined(gameRows[0])
 
-        const rulesetResult = await this.getRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
-        if (Result.isFailure(rulesetResult)) {
-          throw new TransactionRollbackError(rulesetResult.error)
-        }
-
-        if (rulesetResult.value === undefined) {
+        const ruleset = await this.getRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
+        if (ruleset === undefined) {
           throw new TransactionRollbackError("No ruleset found for this game")
         }
 
@@ -364,7 +356,7 @@ export class GameplayRepository extends PostgresRepository {
           galaxy: toGalaxyModel({ stars, planets }),
           resources: toResourceBag(playerResources),
           actions: availableActionRows,
-          ruleset: rulesetResult.value,
+          ruleset,
         }
       }),
     )
@@ -392,15 +384,10 @@ export class GameplayRepository extends PostgresRepository {
     if (games.length !== 1) {
       throw new TransactionRollbackError("Cannot submit actions in the current game status")
     }
-    const game = games[0]
-    Assert.isDefined(game)
+    Assert.isDefined(games[0])
 
-    const rulesetResult = await this.getRuleset({ rulesetId: game.rulesetId }, tx)
-    if (Result.isFailure(rulesetResult)) {
-      throw new TransactionRollbackError(rulesetResult.error)
-    }
-
-    if (rulesetResult.value === undefined) {
+    const ruleset = await this.getRuleset({ rulesetId: games[0].rulesetId }, tx)
+    if (ruleset === undefined) {
       throw new TransactionRollbackError("No ruleset found for this game")
     }
 
@@ -420,7 +407,7 @@ export class GameplayRepository extends PostgresRepository {
       turn,
       resources: toResourceBag(resourceRows),
       actions,
-      ruleset: rulesetResult.value,
+      ruleset,
     })
   }
 
@@ -436,22 +423,18 @@ export class GameplayRepository extends PostgresRepository {
     )
   }
 
-  private async getRuleset(
-    { rulesetId }: { rulesetId: string },
-    db: PostgresRepository["db"],
-  ): Promise<Result<Ruleset | undefined, string>> {
-    const rulesetRowsResult = await Result.tryCatch(db.select().from(rulesetsTable).where(eq(rulesetsTable.id, rulesetId)))
-    if (Result.isFailure(rulesetRowsResult)) {
-      this.logger.error("Failed to get ruleset", { rulesetId, error: rulesetRowsResult.error })
-      return Result.Failure("Failed to get ruleset")
+  /**
+   * Gets the ruleset by id.
+   * Does not assume that the ruleset must exist.
+   */
+  private async getRuleset({ rulesetId }: { rulesetId: string }, tx: Transaction): Promise<Ruleset | undefined> {
+    const rulesetRows = await tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, rulesetId))
+    Assert.isTrue(rulesetRows.length <= 1)
+    if (rulesetRows[0] === undefined) {
+      return undefined
     }
 
-    Assert.isTrue(rulesetRowsResult.value.length <= 1)
-    if (rulesetRowsResult.value[0] === undefined) {
-      return Result.Success(undefined)
-    }
-
-    return Result.Success(RulesetsRepository.toRuleset(rulesetRowsResult.value[0]))
+    return RulesetsRepository.toRuleset(rulesetRows[0])
   }
 }
 

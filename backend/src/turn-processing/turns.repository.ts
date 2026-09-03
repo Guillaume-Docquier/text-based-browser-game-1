@@ -2,7 +2,6 @@ import { Assert, branded, type Branded, type Logger, Result, type RngState, Time
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
-import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
@@ -83,24 +82,10 @@ export type ProcessedTurnModel = {
 
 export class TurnsRepository extends PostgresRepository {
   private readonly logger: Logger
-  private readonly clock: Clock
-  private readonly rulesetsRepository: RulesetsRepository
 
-  public constructor({
-    logger,
-    clock,
-    db,
-    rulesetsRepository,
-  }: {
-    logger: Logger
-    clock: Clock
-    db: PostgresRepository["db"]
-    rulesetsRepository: RulesetsRepository
-  }) {
+  public constructor({ logger, db }: { logger: Logger; db: PostgresRepository["db"] }) {
     super({ db })
     this.logger = logger.child({ scope: "turns-repository" })
-    this.clock = clock
-    this.rulesetsRepository = rulesetsRepository
   }
 
   /**

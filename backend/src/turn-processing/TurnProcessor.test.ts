@@ -8,7 +8,6 @@ import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
@@ -85,7 +84,7 @@ describe("TurnProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId: successfulGameId })
 
-      const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId })
+      const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
 
       // Act
@@ -377,7 +376,7 @@ describe("TurnProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId: successfulGameId })
 
-      const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId })
+      const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
 
       // Act
@@ -552,7 +551,7 @@ describe("TurnProcessor", () => {
         submittedActionTargets: getActionToSubmit(playerView, GainInfluence.id),
       })
 
-      const turnsRepository = new FailingTurnsRepository({ db, logger, clock, failingGameId: createdGameId })
+      const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId: createdGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
       const turnToProcess = { gameId: createdGameId, turn: 0 }
 
@@ -603,13 +602,11 @@ class FailingTurnsRepository extends TurnsRepository {
   public constructor({
     db,
     logger,
-    clock,
     failingGameId,
-  }: Omit<ConstructorParameters<typeof TurnsRepository>[0], "rulesetsRepository"> & {
+  }: ConstructorParameters<typeof TurnsRepository>[0] & {
     failingGameId: number
   }) {
-    const rulesetsRepository = new RulesetsRepository({ db, logger })
-    super({ db, logger, clock, rulesetsRepository })
+    super({ db, logger })
     this.failingGameId = failingGameId
   }
 

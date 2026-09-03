@@ -2,7 +2,6 @@ import { Logger } from "@guillaume-docquier/tools-ts"
 import { Clock } from "#lib/Clock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
-import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
@@ -19,13 +18,12 @@ export async function createTurnProcessorStub({
 > {
   const logger = Logger.get()
   db ??= await createDbMock()
-  const rulesetsRepository = new RulesetsRepository({ db, logger })
 
   const turnProcessorServices = {
     logger,
     clock,
     createTransaction: createCreateTransaction(db),
-    turnsRepository: turnsRepository ?? new TurnsRepository({ logger, clock, db, rulesetsRepository }),
+    turnsRepository: turnsRepository ?? new TurnsRepository({ logger, db }),
   } as const satisfies TurnProcessorServices
 
   const turnProcessor = new TurnProcessor(turnProcessorServices)

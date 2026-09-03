@@ -45,8 +45,8 @@ export class RulesetsRepository extends PostgresRepository {
         }),
     )
     if (Result.isFailure(insertResult)) {
-      this.logger.error("Could not insert ruleset", { rulesetId: ruleset.id, error: insertResult.error })
-      return Result.Failure(couldNot("insert ruleset"))
+      this.logger.error("Could not upsert ruleset", { rulesetId: ruleset.id, error: insertResult.error })
+      return Result.Failure(couldNot("upsert ruleset"))
     }
 
     return Result.Success(undefined)
