@@ -219,12 +219,13 @@ export class TurnsRepository extends PostgresRepository {
         Assert.isTrue(games.length === 1)
       }),
     )
-    if (Result.isFailure(turnResult)) {
-      this.logger.error("Could not reset turn processing", { turn, error: turnResult.error })
-      return Result.Failure(couldNot("reset turn processing"))
-    }
-
-    return Result.Success({ reset: true })
+    return Result.map(turnResult, {
+      success: () => ({ reset: true as const }),
+      failure: (error) => {
+        this.logger.error("Could not reset turn processing", { turn, error })
+        return couldNot("reset turn processing")
+      },
+    })
   }
 
   public async saveProcessedTurn(
@@ -300,12 +301,13 @@ export class TurnsRepository extends PostgresRepository {
       }),
     )
 
-    if (Result.isFailure(saveResult)) {
-      this.logger.error("Could not save processed turn", { processedTurn: processedTurnModel, error: saveResult.error })
-      return Result.Failure(couldNot("save processed turn"))
-    }
-
-    return Result.Success({ saved: true })
+    return Result.map(saveResult, {
+      success: () => ({ saved: true as const }),
+      failure: (error) => {
+        this.logger.error("Could not save processed turn", { processedTurn: processedTurnModel, error })
+        return couldNot("save processed turn")
+      },
+    })
   }
 }
 

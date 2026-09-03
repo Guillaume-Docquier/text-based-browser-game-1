@@ -130,13 +130,12 @@ export class LobbiesRepository extends PostgresRepository {
         })
         .from(rulesetsTable),
     )
-    if (Result.isFailure(rulesetSummariesResult)) {
-      this.logger.error("Could not get ruleset summaries", { error: rulesetSummariesResult.error })
-      return Result.Failure(couldNot("get ruleset summaries"))
-    }
-
-    return Result.Success({
-      rulesets: rulesetSummariesResult.value,
+    return Result.map(rulesetSummariesResult, {
+      success: (rulesets) => ({ rulesets }),
+      failure: (error) => {
+        this.logger.error("Could not get ruleset summaries", { error })
+        return couldNot("get ruleset summaries")
+      },
     })
   }
 
@@ -161,12 +160,12 @@ export class LobbiesRepository extends PostgresRepository {
       }),
     )
 
-    if (Result.isFailure(createLobbyResult)) {
-      this.logger.error("Could not create game lobby", { createLobbyModel, error: createLobbyResult.error })
-      return Result.Failure(couldNot("create game lobby"))
-    }
-
-    return createLobbyResult
+    return Result.map(createLobbyResult, {
+      failure: (error) => {
+        this.logger.error("Could not create game lobby", { createLobbyModel, error })
+        return couldNot("create game lobby")
+      },
+    })
   }
 
   public async getLobbyById(
@@ -209,12 +208,13 @@ export class LobbiesRepository extends PostgresRepository {
         .innerJoin(accountsTable, eq(accountsTable.id, playersTable.playerId))
         .where(eq(playersTable.gameId, gameId)),
     )
-    if (Result.isFailure(playersResult)) {
-      this.logger.error("Failed to get players in the lobby", { gameId, error: playersResult.error })
-      return Result.Failure(couldNot("get players in the lobby"))
-    }
-
-    return Result.Success(toLobbyModel({ gameRow: gameWithRuleset.game, ruleset: gameWithRuleset.ruleset, players: playersResult.value }))
+    return Result.map(playersResult, {
+      success: (players) => toLobbyModel({ gameRow: gameWithRuleset.game, ruleset: gameWithRuleset.ruleset, players }),
+      failure: (error) => {
+        this.logger.error("Failed to get players in the lobby", { gameId, error })
+        return couldNot("get players in the lobby")
+      },
+    })
   }
 
   public async getLobbyForJoin({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyForJoin, string>> {

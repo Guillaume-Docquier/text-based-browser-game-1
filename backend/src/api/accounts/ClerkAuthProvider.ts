@@ -31,14 +31,15 @@ export class ClerkAuthProvider implements AuthProvider {
 
   public async fetchUser({ authId }: { authId: string }): Promise<Result<User, string>> {
     const clerkUserResult = await Result.tryCatch(clerkClient.users.getUser(authId))
-    if (Result.isFailure(clerkUserResult)) {
-      this.logger.error("Could not get user data from clerk", { authId, error: clerkUserResult.error })
-      return Result.Failure(couldNot("get user data from clerk"))
-    }
-
-    return Result.Success({
-      email: clerkUserResult.value.primaryEmailAddress?.emailAddress,
-      alias: clerkUserResult.value.fullName,
+    return Result.map(clerkUserResult, {
+      success: (user) => ({
+        email: user.primaryEmailAddress?.emailAddress,
+        alias: user.fullName,
+      }),
+      failure: (error) => {
+        this.logger.error("Could not get user data from clerk", { authId, error })
+        return couldNot("get user data from clerk")
+      },
     })
   }
 }

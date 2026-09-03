@@ -41,28 +41,21 @@ export class LobbiesController {
     }
 
     const status = createLobbyDto.configuration.nbSeats <= 1 ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
-    const createLobbyResult = await this.lobbiesRepository.createLobby({
+    return await this.lobbiesRepository.createLobby({
       ...createLobbyDto,
       mapGenerationSeed: createLobbyDto.configuration.mapGenerationSeed ?? UInt32.random(),
       status,
       creatorPlayerColor: PlayerColor.WHITE,
     })
-    if (Result.isFailure(createLobbyResult)) {
-      return createLobbyResult
-    }
-
-    return createLobbyResult
   }
 
   public async getCreationSettings(): Promise<Result<LobbyCreationSettingsDto, string>> {
     const lobbyCreationSettingsResult = await this.lobbiesRepository.getLobbyCreationSettings()
-    if (Result.isFailure(lobbyCreationSettingsResult)) {
-      return lobbyCreationSettingsResult
-    }
-
-    return Result.Success({
-      maxNbSeats: MAX_NB_SEATS,
-      ...lobbyCreationSettingsResult.value,
+    return Result.map(lobbyCreationSettingsResult, {
+      success: (settings) => ({
+        maxNbSeats: MAX_NB_SEATS,
+        ...settings,
+      }),
     })
   }
 
@@ -108,12 +101,12 @@ export class LobbiesController {
       return await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, accountId, color, status }, tx)
     })
 
-    if (Result.isFailure(joinGameResult)) {
-      this.logger.error("Could not join game lobby", { gameId, playerId: accountId, error: joinGameResult.error })
-      return Result.Failure(couldNot("join game lobby"))
-    }
-
-    return joinGameResult
+    return Result.map(joinGameResult, {
+      failure: (error) => {
+        this.logger.error("Could not join game lobby", { gameId, playerId: accountId, error })
+        return couldNot("join game lobby")
+      },
+    })
   }
 
   /**
@@ -140,12 +133,13 @@ export class LobbiesController {
       await this.lobbiesRepository.leaveLobby({ context: lobbyForLeave.value, accountId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
     })
 
-    if (Result.isFailure(leaveGameResult)) {
-      this.logger.error("Could not leave game lobby", { gameId, accountId, error: leaveGameResult.error })
-      return Result.Failure(couldNot("leave game lobby"))
-    }
-
-    return Result.Success(true)
+    return Result.map(leaveGameResult, {
+      success: () => true,
+      failure: (error) => {
+        this.logger.error("Could not leave game lobby", { gameId, accountId, error })
+        return couldNot("leave game lobby")
+      },
+    })
   }
 }
 

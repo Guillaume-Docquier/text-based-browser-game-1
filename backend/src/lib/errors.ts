@@ -5,10 +5,12 @@ import { Result, type Success } from "@guillaume-docquier/tools-ts"
  *
  * @example
  * ```ts
- * if (Result.isFailure(createResult)) {
- *   this.logger.error("Could not create game", { newGame, error: createResult.error })
- *   return Result.Failure(couldNot("create game"))
- * }
+ * return Result.map(createResult, {
+ *   failure: (error) => {
+ *     this.logger.error("Could not create game", { newGame, error })
+ *     return couldNot("create game")
+ *   },
+ * })
  * ```
  */
 export function couldNot(operationName: string): string {

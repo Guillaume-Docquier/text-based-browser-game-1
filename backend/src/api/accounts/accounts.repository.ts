@@ -43,12 +43,12 @@ export class AccountsRepository extends PostgresRepository {
       return accounts[0]
     })
 
-    if (Result.isFailure(createAccountResult)) {
-      this.logger.error("Could not create account", { newAccount: newAccountModel, error: createAccountResult.error })
-      return Result.Failure(couldNot("create account"))
-    }
-
-    return createAccountResult
+    return Result.map(createAccountResult, {
+      failure: (error) => {
+        this.logger.error("Could not create account", { newAccount: newAccountModel, error })
+        return couldNot("create account")
+      },
+    })
   }
 
   /**
@@ -67,12 +67,12 @@ export class AccountsRepository extends PostgresRepository {
       return accounts[0]
     })
 
-    if (Result.isFailure(findByAuthIdResult)) {
-      this.logger.error("Could not get account by auth id", { authId, error: findByAuthIdResult.error })
-      return Result.Failure(couldNot("get account by auth id"))
-    }
-
-    return findByAuthIdResult
+    return Result.map(findByAuthIdResult, {
+      failure: (error) => {
+        this.logger.error("Could not get account by auth id", { authId, error })
+        return couldNot("get account by auth id")
+      },
+    })
   }
 }
 

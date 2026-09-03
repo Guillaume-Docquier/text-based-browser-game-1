@@ -56,11 +56,11 @@ export class ListingsRepository extends PostgresRepository {
         .leftJoin(playersTable, eq(playersTable.gameId, gamesTable.id))
         .groupBy(gamesTable.id),
     )
-    if (Result.isFailure(listingsResults)) {
-      this.logger.error("Failed to get listings", { error: listingsResults.error })
-      return Result.Failure(couldNot("get listings"))
-    }
-
-    return listingsResults
+    return Result.map(listingsResults, {
+      failure: (error) => {
+        this.logger.error("Failed to get listings", { error })
+        return couldNot("get listings")
+      },
+    })
   }
 }

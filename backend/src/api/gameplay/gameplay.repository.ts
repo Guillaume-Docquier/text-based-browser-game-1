@@ -186,12 +186,12 @@ export class GameplayRepository extends PostgresRepository {
       return rows.length === 1
     })
 
-    if (Result.isFailure(joinedGameResult)) {
-      this.logger.error("Could not check if player joined game", { gameId, playerId, error: joinedGameResult.error })
-      return Result.Failure(couldNot("check if player joined game"))
-    }
-
-    return joinedGameResult
+    return Result.map(joinedGameResult, {
+      failure: (error) => {
+        this.logger.error("Could not check if player joined game", { gameId, playerId, error })
+        return couldNot("check if player joined game")
+      },
+    })
   }
 
   public async getGameForStart({ gameId }: { gameId: GameId }, tx: Transaction): Promise<GameForStart> {
@@ -361,12 +361,12 @@ export class GameplayRepository extends PostgresRepository {
       }),
     )
 
-    if (Result.isFailure(playerViewResult)) {
-      this.logger.error("Could not get player game state by ids", { gameId, playerId, error: playerViewResult.error })
-      return Result.Failure(couldNot("get player game state by ids"))
-    }
-
-    return playerViewResult
+    return Result.map(playerViewResult, {
+      failure: (error) => {
+        this.logger.error("Could not get player game state by ids", { gameId, playerId, error })
+        return couldNot("get player game state by ids")
+      },
+    })
   }
 
   public async getActionSubmissionsForUpdate(

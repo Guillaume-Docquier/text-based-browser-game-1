@@ -101,12 +101,12 @@ export class GameplayController {
       return { nextTurnAt }
     })
 
-    if (Result.isFailure(startGameResult)) {
-      this.logger.error("Could not start game", { gameId, requesterAccountId, error: startGameResult.error })
-      return Result.Failure(couldNot("start game"))
-    }
-
-    return startGameResult
+    return Result.map(startGameResult, {
+      failure: (error) => {
+        this.logger.error("Could not start game", { gameId, requesterAccountId, error })
+        return couldNot("start game")
+      },
+    })
   }
 
   public async hasPlayerJoinedGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<boolean, string>> {
@@ -115,17 +115,10 @@ export class GameplayController {
 
   public async getPlayerView({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto | undefined, string>> {
     const playerViewResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
-    if (Result.isFailure(playerViewResult)) {
-      return playerViewResult
-    }
-
-    if (playerViewResult.value === undefined) {
-      // This is not a Failure because everything went right.
-      // It's a bad request, but not unexpected from here that no player view is found.
-      return Result.Success(undefined)
-    }
-
-    return Result.Success(toPlayerViewDto(playerViewResult.value))
+    return Result.map(playerViewResult, {
+      // An undefined value is not a Failure because the lookup succeeded; no player view is an expected result here.
+      success: (playerView) => (playerView === undefined ? undefined : toPlayerViewDto(playerView)),
+    })
   }
 
   /**
@@ -169,18 +162,19 @@ export class GameplayController {
       await this.gameplayRepository.updateActionSubmissions({ context, actions: [submittedAction] }, tx)
     })
 
-    if (Result.isFailure(setActionResult)) {
-      this.logger.error("Failed to set current action", {
-        gameId,
-        turn,
-        playerId,
-        actionId: submittedActionTargets.actionId,
-        error: setActionResult.error,
-      })
-      return Result.Failure(setActionResult.error.message)
-    }
-
-    return Result.Success(undefined)
+    return Result.map(setActionResult, {
+      success: () => undefined,
+      failure: (error) => {
+        this.logger.error("Failed to set current action", {
+          gameId,
+          turn,
+          playerId,
+          actionId: submittedActionTargets.actionId,
+          error,
+        })
+        return error.message
+      },
+    })
   }
 }
 

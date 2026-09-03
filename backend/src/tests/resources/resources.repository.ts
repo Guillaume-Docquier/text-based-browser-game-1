@@ -41,11 +41,11 @@ export class ResourcesRepository extends PostgresRepository {
       return true
     })
 
-    if (Result.isFailure(updateResourceResult)) {
-      this.logger.error("Could not update resource for game and player", { ...resourceUpdate, error: updateResourceResult.error })
-      return Result.Failure(couldNot("update resource for game and player"))
-    }
-
-    return updateResourceResult
+    return Result.map(updateResourceResult, {
+      failure: (error) => {
+        this.logger.error("Could not update resource for game and player", { ...resourceUpdate, error })
+        return couldNot("update resource for game and player")
+      },
+    })
   }
 }

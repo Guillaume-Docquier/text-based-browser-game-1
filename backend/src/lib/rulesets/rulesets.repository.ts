@@ -44,12 +44,13 @@ export class RulesetsRepository extends PostgresRepository {
           },
         }),
     )
-    if (Result.isFailure(insertResult)) {
-      this.logger.error("Could not upsert ruleset", { rulesetId: ruleset.id, error: insertResult.error })
-      return Result.Failure(couldNot("upsert ruleset"))
-    }
-
-    return Result.Success(undefined)
+    return Result.map(insertResult, {
+      success: () => undefined,
+      failure: (error) => {
+        this.logger.error("Could not upsert ruleset", { rulesetId: ruleset.id, error })
+        return couldNot("upsert ruleset")
+      },
+    })
   }
 
   public async getRuleset(
