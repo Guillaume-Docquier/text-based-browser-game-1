@@ -181,8 +181,8 @@ export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; p
   }
 }
 
-export type GameConfigurationDto = z.infer<typeof GameConfigurationDto>
-export const GameConfigurationDto = z.object({
+export type CreateLobbyConfigurationDto = z.infer<typeof CreateLobbyConfigurationDto>
+export const CreateLobbyConfigurationDto = z.object({
   name: z.string(),
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
@@ -193,7 +193,7 @@ export const GameConfigurationDto = z.object({
 export type CreateLobbyDto = z.infer<typeof CreateLobbyDto>
 export const CreateLobbyDto = z.object({
   createdByAccountId: AccountId,
-  configuration: GameConfigurationDto,
+  configuration: CreateLobbyConfigurationDto,
 })
 
 export type CreatedLobbyDto = z.infer<typeof CreatedLobbyDto>
@@ -241,12 +241,19 @@ export const LobbyPlayerDto = z.object({
   color: z.enum(PlayerColor),
 })
 
+export type LobbyConfigurationDto = z.infer<typeof LobbyConfigurationDto>
+export const LobbyConfigurationDto = z.object({
+  name: z.string(),
+  nbSeats: z.number(),
+  turnIntervalSeconds: z.number(),
+  ruleset: RulesetSummaryDto,
+})
+
 export type LobbyDto = z.infer<typeof LobbyDto>
 export const LobbyDto = z.object({
   id: GameId,
   winnerAccountId: AccountId.nullable(),
-  configuration: GameConfigurationDto,
-  ruleset: RulesetSummaryDto,
+  configuration: LobbyConfigurationDto,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),

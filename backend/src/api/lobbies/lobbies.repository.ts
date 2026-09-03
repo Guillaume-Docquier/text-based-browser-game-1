@@ -20,18 +20,25 @@ export type LobbyCreationSettingsModel = Readonly<{
   rulesets: readonly RulesetSummaryModel[]
 }>
 
-export type LobbyConfigurationModel = Readonly<{
+export type CreateLobbyConfigurationModel = Readonly<{
   name: string
   nbSeats: number
   turnIntervalSeconds: number
   rulesetId: string
 }>
 
+export type LobbyConfigurationModel = Readonly<{
+  name: string
+  nbSeats: number
+  turnIntervalSeconds: number
+  ruleset: RulesetSummaryModel
+}>
+
 export type CreateLobbyModel = Readonly<{
   createdByAccountId: AccountId
   mapGenerationSeed: number
   status: GameStatus
-  configuration: LobbyConfigurationModel
+  configuration: CreateLobbyConfigurationModel
   creatorPlayerColor: PlayerColor
 }>
 
@@ -43,7 +50,6 @@ export type LobbyModel = Readonly<{
   winnerAccountId: AccountId | null
   status: GameStatus
   configuration: LobbyConfigurationModel
-  ruleset: RulesetSummaryModel
   creator: LobbyPlayerModel
   players: readonly LobbyPlayerModel[]
 }>
@@ -328,9 +334,8 @@ function toLobbyModel({
       name: gameRow.name,
       nbSeats: gameRow.nbSeats,
       turnIntervalSeconds: gameRow.turnIntervalSeconds,
-      rulesetId: gameRow.rulesetId,
+      ruleset,
     },
-    ruleset,
     creator,
     players,
   }

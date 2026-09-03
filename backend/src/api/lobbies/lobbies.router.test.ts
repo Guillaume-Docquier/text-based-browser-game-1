@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
-import { createGameConfigurationDtoStub } from "#api/lobbies/GameConfigurationDto.stub.ts"
+import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { type LobbyPlayerDto, MAX_NB_SEATS, type RulesetSummaryDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
@@ -40,7 +40,7 @@ describe("lobbies.router", () => {
 
       // Act
       const createLobbyResult = await creator.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ mapGenerationSeed }),
+        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed }),
       })
 
       // Assert
@@ -54,7 +54,7 @@ describe("lobbies.router", () => {
 
       // Act & Assert
       await expect(
-        creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub({ mapGenerationSeed }) }),
+        creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed }) }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
@@ -68,7 +68,7 @@ describe("lobbies.router", () => {
       // Act & Assert
       await expect(
         creator.client.lobbies.create.mutate({
-          configuration: createGameConfigurationDtoStub({ rulesetId: "unknown" }),
+          configuration: createLobbyConfigurationDtoStub({ rulesetId: "unknown" }),
         }),
       ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
@@ -78,7 +78,7 @@ describe("lobbies.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createGameConfigurationDtoStub()
+      const newGameSettings = createLobbyConfigurationDtoStub()
 
       // Act
       const createLobbyResult = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
@@ -92,8 +92,12 @@ describe("lobbies.router", () => {
       expect(createdGame).toStrictEqual<typeof createdGame>({
         id: createLobbyResult.createdGameId,
         createdAt: expect.any(String),
-        configuration: newGameSettings,
-        ruleset: TEST_RULESET_SUMMARY,
+        configuration: {
+          name: newGameSettings.name,
+          nbSeats: newGameSettings.nbSeats,
+          turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
+          ruleset: TEST_RULESET_SUMMARY,
+        },
         endedAt: null,
         startedAt: null,
         winnerAccountId: null,
@@ -114,7 +118,7 @@ describe("lobbies.router", () => {
 
       // Act
       const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ nbSeats: 1 }),
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: 1 }),
       })
 
       // Assert
@@ -129,7 +133,7 @@ describe("lobbies.router", () => {
 
       // Act
       const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ nbSeats: MAX_NB_SEATS }),
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: MAX_NB_SEATS }),
       })
 
       // Assert
@@ -145,7 +149,7 @@ describe("lobbies.router", () => {
       // Act & Assert
       await expect(
         creator.client.lobbies.create.mutate({
-          configuration: createGameConfigurationDtoStub({ nbSeats: MAX_NB_SEATS + 1 }),
+          configuration: createLobbyConfigurationDtoStub({ nbSeats: MAX_NB_SEATS + 1 }),
         }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
@@ -160,7 +164,7 @@ describe("lobbies.router", () => {
       // Act & Assert
       await expect(
         anonymous.client.lobbies.create.mutate({
-          configuration: createGameConfigurationDtoStub(),
+          configuration: createLobbyConfigurationDtoStub(),
         }),
       ).rejects.toMatchObject({
         data: { code: "UNAUTHORIZED" },
@@ -175,7 +179,7 @@ describe("lobbies.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createGameConfigurationDtoStub()
+      const newGameSettings = createLobbyConfigurationDtoStub()
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -188,8 +192,12 @@ describe("lobbies.router", () => {
         createdAt: expect.any(String),
         endedAt: null,
         winnerAccountId: null,
-        configuration: newGameSettings,
-        ruleset: TEST_RULESET_SUMMARY,
+        configuration: {
+          name: newGameSettings.name,
+          nbSeats: newGameSettings.nbSeats,
+          turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
+          ruleset: TEST_RULESET_SUMMARY,
+        },
         startedAt: null,
         creator: expectedCreator,
         players: [expectedCreator],
@@ -207,7 +215,7 @@ describe("lobbies.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      const newGameSettings = createGameConfigurationDtoStub()
+      const newGameSettings = createLobbyConfigurationDtoStub()
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -220,8 +228,12 @@ describe("lobbies.router", () => {
         createdAt: expect.any(String),
         endedAt: null,
         winnerAccountId: null,
-        configuration: newGameSettings,
-        ruleset: TEST_RULESET_SUMMARY,
+        configuration: {
+          name: newGameSettings.name,
+          nbSeats: newGameSettings.nbSeats,
+          turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
+          ruleset: TEST_RULESET_SUMMARY,
+        },
         startedAt: null,
         creator: expectedCreator,
         players: [expectedCreator],
@@ -240,7 +252,7 @@ describe("lobbies.router", () => {
       const viewer = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act
@@ -281,7 +293,7 @@ describe("lobbies.router", () => {
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
       )
       const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ nbSeats: MAX_NB_SEATS }),
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: MAX_NB_SEATS }),
       })
 
       // Act
@@ -300,7 +312,7 @@ describe("lobbies.router", () => {
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
       )
       const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ nbSeats: MAX_NB_SEATS }),
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: MAX_NB_SEATS }),
       })
 
       await Promise.all(joiners.map(async (joiner) => await joiner.client.lobbies.join.mutate({ gameId: createdGameId })))
@@ -323,7 +335,7 @@ describe("lobbies.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createGameConfigurationDtoStub({ nbSeats: 2 })
+      const newGameSettings = createLobbyConfigurationDtoStub({ nbSeats: 2 })
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -341,8 +353,12 @@ describe("lobbies.router", () => {
         createdAt: expect.any(String),
         endedAt: null,
         winnerAccountId: null,
-        configuration: newGameSettings,
-        ruleset: TEST_RULESET_SUMMARY,
+        configuration: {
+          name: newGameSettings.name,
+          nbSeats: newGameSettings.nbSeats,
+          turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
+          ruleset: TEST_RULESET_SUMMARY,
+        },
         startedAt: null,
         creator: expectedCreator,
         players: [expectedCreator, expectedJoiner],
@@ -363,7 +379,7 @@ describe("lobbies.router", () => {
       const joiner = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ nbSeats: 2 }),
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: 2 }),
       })
 
       await player.client.lobbies.join.mutate({ gameId: createdGameId })
@@ -383,7 +399,7 @@ describe("lobbies.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Act & Assert
@@ -402,7 +418,7 @@ describe("lobbies.router", () => {
       const joiner = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createGameConfigurationDtoStub({ nbSeats: 3 }),
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: 3 }),
       })
       await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
@@ -435,7 +451,7 @@ describe("lobbies.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createGameConfigurationDtoStub({ nbSeats: 2 })
+      const newGameSettings = createLobbyConfigurationDtoStub({ nbSeats: 2 })
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       await leaver.client.lobbies.join.mutate({ gameId: createdGameId })
@@ -454,8 +470,12 @@ describe("lobbies.router", () => {
         createdAt: expect.any(String),
         endedAt: null,
         winnerAccountId: null,
-        configuration: newGameSettings,
-        ruleset: TEST_RULESET_SUMMARY,
+        configuration: {
+          name: newGameSettings.name,
+          nbSeats: newGameSettings.nbSeats,
+          turnIntervalSeconds: newGameSettings.turnIntervalSeconds,
+          ruleset: TEST_RULESET_SUMMARY,
+        },
         startedAt: null,
         creator: expectedCreator,
         players: [expectedCreator],
@@ -473,7 +493,7 @@ describe("lobbies.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await leaver.client.lobbies.join.mutate({ gameId: createdGameId })
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
@@ -488,7 +508,7 @@ describe("lobbies.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
 
       // Act & Assert
       await expect(player.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
@@ -502,7 +522,7 @@ describe("lobbies.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const nonPlayer = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createGameConfigurationDtoStub() })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
 
       // Act
       const leaveResult = await nonPlayer.client.lobbies.leave.mutate({ gameId: createdGameId })
