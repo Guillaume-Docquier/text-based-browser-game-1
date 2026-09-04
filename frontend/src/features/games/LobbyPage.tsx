@@ -1,4 +1,5 @@
 import type * as ApiTypes from "@api-types"
+import { branded } from "@guillaume-docquier/tools-ts"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { Button } from "@/components/button.tsx"
@@ -189,9 +190,14 @@ function LobbyLoadingState(): ReactElement {
 }
 
 function getWinnerLabel(game: ApiTypes.Lobby): string {
-  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerAccountId)
+  const winnerAccountId = game.winnerAccountId
+  if (winnerAccountId === null) {
+    return "Unknown player"
+  }
+
+  const winner = [game.creator, ...game.players].find((player) => player.id === branded<ApiTypes.PlayerId>(winnerAccountId))
   if (winner === undefined) {
-    return `Player ${game.winnerAccountId}`
+    return `Player ${winnerAccountId}`
   }
 
   return winner.alias ?? `Player ${winner.id}`

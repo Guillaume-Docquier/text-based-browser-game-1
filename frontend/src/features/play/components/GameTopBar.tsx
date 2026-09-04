@@ -1,4 +1,5 @@
 import type { Lobby, PlayerId, PlayerView } from "@api-types"
+import { branded } from "@guillaume-docquier/tools-ts"
 import { Clock3, Crown, RefreshCw, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import { Button } from "@/components/button.tsx"
@@ -219,10 +220,14 @@ function TopBarFact({ icon, label, value, detail }: { icon: ReactElement; label:
 }
 
 function getWinnerLabel(game: Lobby): string {
-  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerAccountId)
+  const winnerAccountId = game.winnerAccountId
+  if (winnerAccountId === null) {
+    return "Unknown player"
+  }
 
+  const winner = [game.creator, ...game.players].find((player) => player.id === branded<PlayerId>(winnerAccountId))
   if (winner === undefined) {
-    return `Player ${game.winnerAccountId}`
+    return `Player ${winnerAccountId}`
   }
 
   return winner.alias ?? `Player ${winner.id}`
