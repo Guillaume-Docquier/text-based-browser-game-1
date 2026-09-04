@@ -60,22 +60,22 @@ export function createGameplayRouter({
     }),
 
     getPlayerView: inGameProcedure.output(PlayerViewDto).query(async ({ input, ctx: { playerId } }) => {
-      const getByIdResult = await gameplayController.getPlayerView({ ...input, playerId })
-      if (Result.isFailure(getByIdResult)) {
+      const getPlayerViewResult = await gameplayController.getPlayerView({ ...input, playerId })
+      if (Result.isFailure(getPlayerViewResult)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: getByIdResult.error,
+          message: getPlayerViewResult.error,
         })
       }
 
-      if (getByIdResult.value === undefined) {
+      if (getPlayerViewResult.value === undefined) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "No view exists for this player and this game",
         })
       }
 
-      return getByIdResult.value
+      return getPlayerViewResult.value
     }),
 
     updateActionSubmission: inGameProcedure
