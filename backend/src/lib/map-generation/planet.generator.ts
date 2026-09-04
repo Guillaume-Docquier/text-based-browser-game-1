@@ -1,6 +1,6 @@
 import { Assert, Range, type Rng, type XY } from "@guillaume-docquier/tools-ts"
-import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
-import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
+import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
+import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 
 export type Planet = {
   readonly x: number

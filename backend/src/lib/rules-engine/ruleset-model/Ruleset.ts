@@ -1,5 +1,5 @@
-import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
+import { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   type ActionDefinition,
   ActionDefinitionIdSchema,
@@ -7,12 +7,6 @@ import {
 } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-
-/** The identifier of a Ruleset. */
-export type RulesetId = Branded<string, "RulesetId">
-
-/** Parses a string as a Ruleset identifier. */
-export const RulesetId = z.string().transform(branded<RulesetId>)
 
 /**
  * The complete data-driven rules for a game.

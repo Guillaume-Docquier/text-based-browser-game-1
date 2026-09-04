@@ -1,6 +1,5 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
-import type { GameId } from "#api/shared/GameId.ts"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import type { PlanetId } from "#api/shared/PlanetId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
@@ -9,11 +8,13 @@ import type { StarId } from "#api/shared/StarId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import type { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
-import type { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
-import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import type { GameId } from "#lib/db/games/GameId.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import type { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
+import type { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   actionsTable,
   gameStatesTable,
@@ -30,7 +31,7 @@ import type { Action, ActionId, AvailableAction, SubmittedAction } from "#lib/ru
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import type { Ruleset, RulesetId } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert

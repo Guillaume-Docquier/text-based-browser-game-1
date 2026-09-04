@@ -1,7 +1,7 @@
 import { branded, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { z } from "zod"
 import { type CreateLobbyConfigurationDto } from "#api/lobbies/lobbies.controller.ts"
-import type { RulesetId } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 
 export function createLobbyConfigurationDtoStub({

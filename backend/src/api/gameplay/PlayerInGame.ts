@@ -1,6 +1,6 @@
 import { type Branded, branded } from "@guillaume-docquier/tools-ts"
-import type { GameId } from "#api/shared/GameId.ts"
 import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { GameId } from "#lib/db/games/GameId.ts"
 
 /** A player and game pair whose membership relationship has been established. */
 export type PlayerInGame = Branded<{ readonly gameId: GameId; readonly playerId: PlayerId }, "PlayerInGame">

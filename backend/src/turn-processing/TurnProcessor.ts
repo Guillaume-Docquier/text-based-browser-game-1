@@ -2,7 +2,7 @@ import { Datetime, type Logger, mulberry32Prng, Result, Rng, Time, UnitOfTime } 
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { TransactionRollbackError } from "#lib/errors.ts"
 import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
