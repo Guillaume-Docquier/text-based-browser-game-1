@@ -1,5 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import { type PlayerId } from "#lib/db/players/PlayerId.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"

@@ -1,6 +1,6 @@
 import { branded } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { type PlayerId } from "#lib/db/players/PlayerId.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"

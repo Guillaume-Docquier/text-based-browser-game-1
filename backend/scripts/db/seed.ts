@@ -1,7 +1,7 @@
 import { Assert, type Logger, type Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
-import { type Table } from "drizzle-orm/table"
+import type { Table } from "drizzle-orm/table"
 import { z } from "zod"
 import { type AccountModel, AccountsRepository, type NewAccountModel } from "#api/accounts/accounts.repository.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"

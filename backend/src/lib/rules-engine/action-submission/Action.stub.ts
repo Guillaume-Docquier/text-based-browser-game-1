@@ -1,6 +1,6 @@
 import { branded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
-import { type PlayerId } from "#lib/db/players/PlayerId.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 
 export function createAvailableActionStub({

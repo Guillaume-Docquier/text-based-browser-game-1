@@ -1,5 +1,5 @@
 import { branded, Time, type UnbrandedProperties, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { type CreateLobbyConfigurationDto } from "#api/lobbies/lobbies.controller.ts"
+import type { CreateLobbyConfigurationDto } from "#api/lobbies/lobbies.controller.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 
 export function createLobbyConfigurationDtoStub({

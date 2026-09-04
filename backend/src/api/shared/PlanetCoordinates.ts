@@ -2,7 +2,7 @@ import type { XY } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { toOrbitCoordinates } from "#api/shared/OrbitCoordinates.ts"
 import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
-import { type planetsTable } from "#lib/db/schema.ts"
+import type { planetsTable } from "#lib/db/schema.ts"
 
 /**
  * Planet coordinates go from 00:00:00 to 99:99:49
