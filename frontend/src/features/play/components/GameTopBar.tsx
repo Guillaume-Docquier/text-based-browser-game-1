@@ -31,7 +31,7 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
       {game.winnerAccountId === null ? null : (
         <div className="mt-3 flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
           <Crown className="size-4" />
-          <span>{getWinnerLabel(game)} has won the game.</span>
+          <span>{getWinnerLabel(branded(game.winnerAccountId), game)} has won the game.</span>
         </div>
       )}
     </header>
@@ -219,15 +219,10 @@ function TopBarFact({ icon, label, value, detail }: { icon: ReactElement; label:
   )
 }
 
-function getWinnerLabel(game: Lobby): string {
-  const winnerAccountId = game.winnerAccountId
-  if (winnerAccountId === null) {
-    return "Unknown player"
-  }
-
-  const winner = [game.creator, ...game.players].find((player) => player.id === branded<PlayerId>(winnerAccountId))
+function getWinnerLabel(winnerPlayerId: PlayerId, game: Lobby): string {
+  const winner = [game.creator, ...game.players].find((player) => player.id === winnerPlayerId)
   if (winner === undefined) {
-    return `Player ${winnerAccountId}`
+    return `Player ${winnerPlayerId}`
   }
 
   return winner.alias ?? `Player ${winner.id}`

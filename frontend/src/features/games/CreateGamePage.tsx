@@ -81,7 +81,7 @@ function CreateGameForm({
             <Select
               value={rulesetId ?? ""}
               onValueChange={(value) => {
-                setRulesetId(branded<ApiTypes.RulesetId>(value))
+                setRulesetId(branded(value))
               }}
             >
               <SelectTrigger aria-label="Ruleset">

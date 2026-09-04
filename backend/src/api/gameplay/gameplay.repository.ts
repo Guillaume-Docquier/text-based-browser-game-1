@@ -191,7 +191,7 @@ export class GameplayRepository extends PostgresRepository {
     })
 
     if (Result.isFailure(playerIdResult)) {
-      this.logger.error("Could not check if player joined game", { gameId, playerId: accountId, error: playerIdResult.error })
+      this.logger.error("Could not check if player joined game", { gameId, accountId, error: playerIdResult.error })
       return Result.Failure(couldNot("check if player joined game"))
     }
 
@@ -231,7 +231,7 @@ export class GameplayRepository extends PostgresRepository {
       throw new TransactionRollbackError("No ruleset found for this game")
     }
 
-    return branded<GameForStart>({
+    return branded({
       gameId: gameForStart.id,
       createdByAccountId: gameForStart.createdByAccountId,
       mapGenerationSeed: gameForStart.mapGenerationSeed,
@@ -405,7 +405,7 @@ export class GameplayRepository extends PostgresRepository {
       .from(actionsTable)
       .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn)))
 
-    return branded<ActionSubmissionsForUpdate>({
+    return branded({
       gameId,
       playerId,
       turn,

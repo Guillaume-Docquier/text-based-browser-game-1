@@ -117,7 +117,7 @@ export class TurnsRepository extends PostgresRepository {
       .for("no key update")
     Assert.isDefined(gameToProcessRows[0])
 
-    return branded<TurnForProcessing>({
+    return branded({
       gameId: turnToProcess.gameId,
       turn: turnToProcess.turn,
       gameStatus: gameToProcessRows[0].status,

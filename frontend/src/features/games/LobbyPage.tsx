@@ -53,7 +53,9 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
           <div className="grid gap-4 md:grid-cols-2">
             <DetailBlock label="Creator" value={game.creator.alias ?? `Player ${game.creator.id}`} />
             <DetailBlock label="Created" value={timeAgo(game.createdAt)} />
-            {game.winnerAccountId !== null ? <DetailBlock label="Winner" value={getWinnerLabel(game)} /> : null}
+            {game.winnerAccountId !== null ? (
+              <DetailBlock label="Winner" value={getWinnerLabel(branded(game.winnerAccountId), game)} />
+            ) : null}
           </div>
           <Separator />
           <div className="space-y-3">
@@ -189,15 +191,10 @@ function LobbyLoadingState(): ReactElement {
   )
 }
 
-function getWinnerLabel(game: ApiTypes.Lobby): string {
-  const winnerAccountId = game.winnerAccountId
-  if (winnerAccountId === null) {
-    return "Unknown player"
-  }
-
-  const winner = [game.creator, ...game.players].find((player) => player.id === branded<ApiTypes.PlayerId>(winnerAccountId))
+function getWinnerLabel(winnerPlayerId: ApiTypes.PlayerId, game: ApiTypes.Lobby): string {
+  const winner = [game.creator, ...game.players].find((player) => player.id === winnerPlayerId)
   if (winner === undefined) {
-    return `Player ${winnerAccountId}`
+    return `Player ${winnerPlayerId}`
   }
 
   return winner.alias ?? `Player ${winner.id}`

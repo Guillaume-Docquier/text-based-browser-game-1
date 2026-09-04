@@ -1,5 +1,4 @@
 import { branded } from "@guillaume-docquier/tools-ts"
-import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
@@ -11,7 +10,7 @@ export const TestRuleset: Ruleset = {
   /**
    * Stable id so that it is updated on deploy
    */
-  id: branded<RulesetId>("test_default"),
+  id: branded("test_default"),
   name: "Test",
   isDefault: false,
 }

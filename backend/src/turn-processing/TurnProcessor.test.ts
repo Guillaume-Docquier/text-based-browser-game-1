@@ -7,7 +7,6 @@ import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigu
 import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { type PlayerId } from "#lib/db/players/PlayerId.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
@@ -249,7 +248,7 @@ describe("TurnProcessor", () => {
       Assert.isSuccess(
         await resourcesRepository.updateResource({
           gameId: createdGameId,
-          playerId: branded<PlayerId>(player.account.id),
+          playerId: branded(player.account.id),
           resourceType: ResourceType.INFLUENCE,
           amountDelta: -3,
         }),
@@ -486,7 +485,7 @@ describe("TurnProcessor", () => {
         for (const resourceType of [ResourceType.INFLUENCE, ResourceType.METAL, ResourceType.FUEL, ResourceType.ENERGY]) {
           const updateResourceResult = await resourcesRepository.updateResource({
             gameId: createdGameId,
-            playerId: branded<PlayerId>(player.account.id),
+            playerId: branded(player.account.id),
             resourceType,
             amountDelta,
           })

@@ -111,7 +111,7 @@ export class LobbiesController {
     })
 
     if (Result.isFailure(joinGameResult)) {
-      this.logger.error("Could not join game lobby", { gameId, playerId: accountId, error: joinGameResult.error })
+      this.logger.error("Could not join game lobby", { gameId, accountId, error: joinGameResult.error })
       return Result.Failure(couldNot("join game lobby"))
     }
 

@@ -240,7 +240,7 @@ export class LobbiesRepository extends PostgresRepository {
       .where(eq(playersTable.gameId, gameId))
 
     return Result.Success(
-      branded<LobbyForJoin>({
+      branded({
         ...game,
         players: playerRows,
       }),
@@ -282,7 +282,7 @@ export class LobbiesRepository extends PostgresRepository {
     const playerRows = await tx.select({ playerId: playersTable.playerId }).from(playersTable).where(eq(playersTable.gameId, gameId))
 
     return Result.Success(
-      branded<LobbyForLeave>({
+      branded({
         ...game,
         playerIds: playerRows.map(({ playerId }) => playerId),
       }),
