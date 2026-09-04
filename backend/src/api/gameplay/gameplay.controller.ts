@@ -1,4 +1,4 @@
-import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
+import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer, branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
 import { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
@@ -112,8 +112,8 @@ export class GameplayController {
     return startGameResult
   }
 
-  public async hasPlayerJoinedGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<boolean, string>> {
-    return await this.gameplayRepository.hasPlayerJoinedGame({ gameId, playerId })
+  public async getPlayerId({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<PlayerId | undefined, string>> {
+    return await this.gameplayRepository.getPlayerId({ gameId, accountId })
   }
 
   public async getPlayerView({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto | undefined, string>> {
@@ -208,12 +208,12 @@ function createGalaxy(seed: number): GalaxyModel {
 
       return {
         star: {
-          id: StarId.parse(starIndex + 1),
+          id: branded(starIndex + 1),
           ...system.star,
           coordinates: starCoordinates,
         },
         planets: system.planets.map((planet) => ({
-          id: PlanetId.parse(nextPlanetId++),
+          id: branded(nextPlanetId++),
           ...planet,
           coordinates: toPlanetCoordinates({ starCoordinates, star: system.star, planet }),
         })),
@@ -320,7 +320,7 @@ function createTurnState({
 
 export type StartGameDto = z.infer<typeof StartGameDto>
 export const StartGameDto = z.object({
-  gameId: z.coerce.number().transform((value) => GameId.parse(value)),
+  gameId: z.coerce.number().pipe(GameId),
   requesterAccountId: AccountId,
 })
 
@@ -331,7 +331,7 @@ export const StartedGameDto = z.object({
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
 export const GetPlayerViewDto = z.object({
-  gameId: z.coerce.number().transform((value) => GameId.parse(value)),
+  gameId: z.coerce.number().pipe(GameId),
   playerId: PlayerId,
 })
 
@@ -394,7 +394,7 @@ export const PlayerViewDto = z.object({
 
 export type UpdateActionSubmissionDto = z.infer<typeof UpdateActionSubmissionDto>
 export const UpdateActionSubmissionDto = z.object({
-  gameId: z.coerce.number().transform((value) => GameId.parse(value)),
+  gameId: z.coerce.number().pipe(GameId),
   playerId: PlayerId,
   turn: z.coerce.number(),
   submittedActionTargets: SubmittedActionTargetsDto,

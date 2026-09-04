@@ -184,7 +184,7 @@ Use branded/refined types for meaningful primitives, avoid passing raw strings/n
 - constrained numbers: `PositiveInt`, `Cents`, `Percentage`
 - units: `Milliseconds`, `Bytes`, `UsdCents`
 
-Use `Brand<>` and `branded()` from `@guillaume-docquier/tools-ts` for this. Construct branded values through zod parsers when one exists. `branded<T>(value)` should be used in rare cases.
+Use `Brand<>` and `branded()` from `@guillaume-docquier/tools-ts` for this. Construct branded values through zod parsers for untrusted code, and through `branded<T>(value)` for trusted code because `branded` is type safe with its argument while zod schemas are not (they accept unknown).
 
 Avoid optional/null/undefined values in functions that require a value. Push optionality outward. Branch or parse before calling.
 

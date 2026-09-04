@@ -1,27 +1,32 @@
+import { branded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
-import { ActionId } from "#lib/db/actions/ActionId.ts"
-import { PlayerId } from "#lib/db/players/PlayerId.ts"
+import { type ActionId } from "#lib/db/actions/ActionId.ts"
+import { type PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 
 export function createAvailableActionStub(overrides?: Partial<AvailableAction>): AvailableAction {
   return {
-    id: ActionId.parse(v4()),
-    playerId: PlayerId.parse(v4()),
+    id: branded<ActionId>(v4()),
+    playerId: branded<PlayerId>(v4()),
     actionDefinitionId: v4(),
     targets: null,
     ...overrides,
   }
 }
 
-export function createSubmittedActionStub(overrides?: Partial<SubmittedAction>): SubmittedAction {
-  const playerId = PlayerId.parse(v4())
+export function createSubmittedActionStub({
+  id = v4(),
+  playerId = v4(),
+  ...overrides
+}: Partial<UnbrandedProperties<SubmittedAction>> = {}): SubmittedAction {
+  const brandedPlayerId = branded<PlayerId>(playerId)
 
   return {
-    id: ActionId.parse(v4()),
-    playerId,
+    id: branded<ActionId>(id),
+    playerId: brandedPlayerId,
     actionDefinitionId: v4(),
     targets: {
-      self: playerId,
+      self: brandedPlayerId,
     },
     ...overrides,
   }

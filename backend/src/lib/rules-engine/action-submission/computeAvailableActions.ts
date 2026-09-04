@@ -1,5 +1,6 @@
+import { branded } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
-import { ActionId } from "#lib/db/actions/ActionId.ts"
+import type { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { AvailableAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
@@ -13,7 +14,7 @@ import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 export function computeAvailableActions({ playerIds, ruleset }: { playerIds: readonly PlayerId[]; ruleset: Ruleset }): AvailableAction[] {
   return playerIds.flatMap((playerId) =>
     Object.values(ruleset.actionDefinitions).map(({ id: actionDefinitionId }) => ({
-      id: ActionId.parse(v4()),
+      id: branded<ActionId>(v4()),
       playerId,
       actionDefinitionId,
       targets: null,

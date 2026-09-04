@@ -1,4 +1,4 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -86,7 +86,7 @@ export class LobbiesController {
    * This method is idempotent, joining an already joined game will return a success.
    */
   public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
-    const playerId = PlayerId.parse(accountId)
+    const playerId = branded<PlayerId>(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
       const lobbyForJoin = await this.lobbiesRepository.getLobbyForJoin({ gameId }, tx)
       rollbackOnFailure(lobbyForJoin, "Failed to get lobby.")
@@ -122,11 +122,12 @@ export class LobbiesController {
    * This method is idempotent, leaving an already left game will return a success.
    */
   public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
+    const playerId = branded<PlayerId>(accountId)
     const leaveGameResult = await this.createTransaction(async (tx) => {
       const lobbyForLeave = await this.lobbiesRepository.getLobbyForLeave({ gameId }, tx)
       rollbackOnFailure(lobbyForLeave, "Failed to get lobby.")
 
-      if (!lobbyForLeave.value.playerIds.includes(PlayerId.parse(accountId))) {
+      if (!lobbyForLeave.value.playerIds.includes(playerId)) {
         // Already not in the game, return a success for idempotency
         return
       }
@@ -139,7 +140,7 @@ export class LobbiesController {
         throw new TransactionRollbackError("Cannot leave a lobby as its creator.")
       }
 
-      await this.lobbiesRepository.leaveLobby({ context: lobbyForLeave.value, accountId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
+      await this.lobbiesRepository.leaveLobby({ context: lobbyForLeave.value, playerId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
     })
 
     if (Result.isFailure(leaveGameResult)) {

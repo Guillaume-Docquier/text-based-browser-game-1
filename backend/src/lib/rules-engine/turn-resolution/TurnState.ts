@@ -10,7 +10,7 @@ export type TurnState = {
   readonly submittedActions: readonly SubmittedAction[]
   readonly players: Readonly<
     Record<
-      string,
+      string, // can't use PlayerId here because of an interaction with DeepReadonly from utility-types that doesn't work with brands
       {
         id: PlayerId
         resources: Resources

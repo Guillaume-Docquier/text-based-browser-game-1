@@ -1,6 +1,4 @@
 import type { Enumify } from "@guillaume-docquier/tools-ts"
-import { pgEnum } from "drizzle-orm/pg-core"
-import { pgEnumify } from "#lib/db/pgEnumify.ts"
 
 /** Player colors in allocation-priority order. */
 export type PlayerColor = Enumify<typeof PlayerColor>
@@ -22,5 +20,3 @@ export const PlayerColor = {
   DARK_GREY: "DARK_GREY",
   PINK: "PINK",
 } as const
-
-export const playerColorColumn = pgEnum("player_color", pgEnumify(PlayerColor))

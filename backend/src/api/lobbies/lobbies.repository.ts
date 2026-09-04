@@ -5,7 +5,7 @@ import type { Transaction } from "#lib/db/createDb.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
 import { type GameStatus } from "#lib/db/games/GameStatus.ts"
 import { type PlayerColor } from "#lib/db/players/PlayerColor.ts"
-import { PlayerId } from "#lib/db/players/PlayerId.ts"
+import { type PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { accountsTable, gamesTable, playersTable, rulesetsTable } from "#lib/db/schema.ts"
@@ -109,7 +109,7 @@ export type LeaveLobbyModel = {
    * The LobbyForLeave must be acquired in the same transaction.
    */
   readonly context: LobbyForLeave
-  readonly accountId: AccountId
+  readonly playerId: PlayerId
   readonly status: typeof GameStatus.WAITING_FOR_PLAYERS
 }
 
@@ -154,7 +154,7 @@ export class LobbiesRepository extends PostgresRepository {
 
         await tx.insert(playersTable).values({
           gameId: game.id,
-          playerId: PlayerId.parse(createLobbyModel.createdByAccountId),
+          playerId: branded(createLobbyModel.createdByAccountId),
           color: createLobbyModel.creatorPlayerColor,
         })
 
@@ -253,7 +253,7 @@ export class LobbiesRepository extends PostgresRepository {
   public async joinLobby({ context, accountId, color, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
     const gamePlayers = await tx
       .insert(playersTable)
-      .values({ gameId: context.gameId, playerId: PlayerId.parse(accountId), color })
+      .values({ gameId: context.gameId, playerId: branded(accountId), color })
       .returning()
     Assert.isTrue(gamePlayers.length === 1)
     Assert.isDefined(gamePlayers[0])
@@ -292,10 +292,10 @@ export class LobbiesRepository extends PostgresRepository {
   /**
    * The only failure mode for this method is throwing to rollback the transaction.
    */
-  public async leaveLobby({ context, accountId, status }: LeaveLobbyModel, tx: Transaction): Promise<void> {
+  public async leaveLobby({ context, playerId, status }: LeaveLobbyModel, tx: Transaction): Promise<void> {
     const deletedPlayers = await tx
       .delete(playersTable)
-      .where(and(eq(playersTable.gameId, context.gameId), eq(playersTable.playerId, PlayerId.parse(accountId))))
+      .where(and(eq(playersTable.gameId, context.gameId), eq(playersTable.playerId, playerId)))
       .returning()
     Assert.isTrue(deletedPlayers.length === 1)
 
@@ -324,7 +324,7 @@ function toLobbyModel({
   ruleset: RulesetSummaryModel
   players: LobbyPlayerModel[]
 }): LobbyModel {
-  const creator = players.find((player) => player.id === PlayerId.parse(gameRow.createdByAccountId))
+  const creator = players.find((player) => player.id === branded(gameRow.createdByAccountId))
   Assert.isDefined(creator)
 
   return {

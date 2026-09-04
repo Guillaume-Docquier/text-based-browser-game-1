@@ -7,6 +7,7 @@ import {
   index,
   integer,
   jsonb,
+  pgEnum,
   pgTable,
   primaryKey,
   text,
@@ -17,16 +18,31 @@ import {
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
 import { actionIdColumn } from "#lib/db/actions/ActionId.ts"
 import { gameIdColumn } from "#lib/db/games/GameId.ts"
-import { GameStatus, gameStatusColumn } from "#lib/db/games/GameStatus.ts"
-import { planetBiomeColumn } from "#lib/db/planets/PlanetBiome.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
-import { planetSizeColumn } from "#lib/db/planets/PlanetSize.ts"
-import { playerColorColumn } from "#lib/db/players/PlayerColor.ts"
+import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
+import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
 import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
+
+/**
+ * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
+ * This is just type gymnastics
+ */
+export function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>): [TEnumLike, ...TEnumLike[]] {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- This is trusted code
+  return Object.values(enumLike) as [TEnumLike, ...TEnumLike[]]
+}
+
+// pgEnums need to be exported for Postgres to create the enums
+export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
+export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
+export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
+export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
 
 export const rulesetsTable = pgTable(
   "rulesets",
@@ -71,7 +87,7 @@ export const gamesTable = pgTable("games", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   endedAt: timestamp("ended_at"),
-  status: gameStatusColumn("status").notNull().default(GameStatus.WAITING_FOR_PLAYERS),
+  status: gameStatusEnum("status").notNull().default(GameStatus.WAITING_FOR_PLAYERS),
 
   // Game configuration
   name: text("name").notNull(),
@@ -99,7 +115,7 @@ export const playersTable = pgTable(
     playerId: playerIdColumn("player_id")
       .notNull()
       .references(() => accountsTable.id, { onDelete: "cascade" }),
-    color: playerColorColumn("color").notNull(),
+    color: playerColorEnum("color").notNull(),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
   (table) => [
@@ -232,8 +248,8 @@ export const planetsTable = pgTable(
     coordinates: text("coordinates").notNull(),
     x: doublePrecision("x").notNull(),
     y: doublePrecision("y").notNull(),
-    biome: planetBiomeColumn("biome").notNull(),
-    size: planetSizeColumn("size").notNull(),
+    biome: planetBiomeEnum("biome").notNull(),
+    size: planetSizeEnum("size").notNull(),
     fertility: integer("fertility").notNull(),
     metal: integer("metal").notNull(),
     fuel: integer("fuel").notNull(),

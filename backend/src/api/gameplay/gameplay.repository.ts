@@ -176,26 +176,26 @@ export class GameplayRepository extends PostgresRepository {
     this.clock = clock
   }
 
-  public async hasPlayerJoinedGame(
-    { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
+  public async getPlayerId(
+    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<boolean, string>> {
-    const joinedGameResult = await Result.tryCatch(async () => {
+  ): Promise<Result<PlayerId | undefined, string>> {
+    const playerIdResult = await Result.tryCatch(async () => {
       const rows = await db
         .select({ playerId: playersTable.playerId })
         .from(playersTable)
-        .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, playerId)))
+        .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, branded(accountId))))
       Assert.isTrue(rows.length <= 1)
 
-      return rows.length === 1
+      return rows[0]?.playerId
     })
 
-    if (Result.isFailure(joinedGameResult)) {
-      this.logger.error("Could not check if player joined game", { gameId, playerId, error: joinedGameResult.error })
+    if (Result.isFailure(playerIdResult)) {
+      this.logger.error("Could not check if player joined game", { gameId, playerId: accountId, error: playerIdResult.error })
       return Result.Failure(couldNot("check if player joined game"))
     }
 
-    return joinedGameResult
+    return playerIdResult
   }
 
   public async getGameForStart({ gameId }: { gameId: GameId }, tx: Transaction): Promise<GameForStart> {

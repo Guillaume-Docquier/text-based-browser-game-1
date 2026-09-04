@@ -1,5 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import { PlayerId } from "#lib/db/players/PlayerId.ts"
+import { type PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
@@ -8,7 +8,7 @@ import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectO
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 
 export class VictoryEffect extends Effect {
-  private readonly targetPlayerId: string
+  private readonly targetPlayerId: PlayerId
 
   public constructor(id: number, mechanic: VictoryMechanic, submittedAction: SubmittedAction) {
     super(id, mechanic.type, submittedAction)
@@ -22,7 +22,7 @@ export class VictoryEffect extends Effect {
       )
     }
 
-    context.turnState.winnerPlayerId = PlayerId.parse(this.targetPlayerId)
+    context.turnState.winnerPlayerId = this.targetPlayerId
     return Result.Success(EffectOutcome.Resolved({ result: `Player "${context.turnState.winnerPlayerId}" wins the game` }))
   }
 }
