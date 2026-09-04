@@ -3,8 +3,8 @@ import { branded } from "@guillaume-docquier/tools-ts"
 import { Clock3, Crown, RefreshCw, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import { Button } from "@/components/button.tsx"
-import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
 import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
+import { TurnStatusBadge } from "@/features/play/components/TurnStatusBadge.tsx"
 import { formatRulesetTerm } from "@/features/play/mechanicToRulesText.ts"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
@@ -18,7 +18,7 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Game #{game.id}</div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">{game.configuration.name}</h1>
-            <GameStatusBadge status={game.status} />
+            <TurnStatusBadge status={playerView.turnStatus} />
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

@@ -17,6 +17,7 @@ import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { StarId } from "#lib/db/stars/StarId.ts"
+import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
@@ -86,7 +87,7 @@ export class GameplayController {
       await this.gameplayRepository.startGame(
         {
           context: gameForStart,
-          status: GameStatus.COLLECTING_ACTIONS,
+          status: GameStatus.IN_PROGRESS,
           startedAt,
           nextTurnAt,
           // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
@@ -240,6 +241,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
       })),
     },
     turn: playerViewModel.turn,
+    turnStatus: playerViewModel.turnStatus,
     nextTurnAt: playerViewModel.nextTurnAt,
     resources: toResourcesDto(playerViewModel.resources, uncommittedResources),
     ruleset: playerViewModel.ruleset,
@@ -386,6 +388,7 @@ export const PlayerViewDto = z.object({
   opponents: z.record(PlayerId, PlayerViewPlayerDto),
   galaxy: GalaxyDto,
   turn: z.number(),
+  turnStatus: z.enum(TurnStatus),
   nextTurnAt: z.date(),
   resources: ResourcesDtoSchema,
   ruleset: RulesetSchema,

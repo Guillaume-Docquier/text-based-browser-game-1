@@ -6,7 +6,8 @@ import type { GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable, rulesetsTable } from "#lib/db/schema.ts"
+import { actionsTable, gamesTable, playersTable, resourcesTable, rulesetsTable, turnsProcessingTable, turnsTable } from "#lib/db/schema.ts"
+import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
@@ -19,13 +20,12 @@ type ResourceRow = typeof resourcesTable.$inferSelect
 type SubmittedActionRow = typeof actionsTable.$inferSelect
 
 /**
- * Owning a TurnForProcessing within a transaction guarantees that the turn and the game are locked, exist and need processing at this time.
+ * Owning a TurnForProcessing within a transaction guarantees that the turn and its processing row are locked and need processing.
  */
 export type TurnForProcessing = Branded<
   {
     gameId: GameId
     turn: number
-    gameStatus: GameStatus
   },
   "TurnForProcessing"
 >
@@ -33,7 +33,6 @@ export type TurnForProcessing = Branded<
 export type StartTurnProcessingModel = {
   turn: TurnForProcessing
   processingStartedAt: Date
-  gameStatus: GameStatus
 }
 
 /**
@@ -66,7 +65,6 @@ export type ProcessedTurnModel = {
     resourceType: ResourceType
     amount: number
   }>
-  gameStatus: GameStatus // We could discriminate on gameStatus, but in the current shape of things it makes the code a lot more complicated
   winnerAccountId?: AccountId
   nextTurn: number
   availableActions: AvailableAction[]
@@ -89,18 +87,37 @@ export class TurnsRepository extends PostgresRepository {
   }
 
   /**
+   * Claims every collecting turn whose action deadline has passed.
+   * The update waits for an in-flight action transaction holding the turn row lock,
+   * then re-checks the predicates before changing the status.
+   */
+  public async markDueTurnsAwaitingProcessing({ since }: { since: Date }, tx: Transaction): Promise<void> {
+    await tx
+      .update(turnsTable)
+      .set({ status: TurnStatus.AWAITING_PROCESSING })
+      .where(and(eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS), lte(turnsTable.endsAt, since)))
+  }
+
+  /**
    * The next turn to process row will be locked during the transaction.
    */
   public async getNextTurnForProcessing({ since }: { since: Date }, tx: Transaction): Promise<TurnForProcessing | undefined> {
-    // Find and lock the turn
     const turnToProcessRows = await tx
       .select({
-        gameId: turnsTable.gameId,
-        turn: turnsTable.turn,
+        gameId: turnsProcessingTable.gameId,
+        turn: turnsProcessingTable.turn,
       })
-      .from(turnsTable)
-      .where(and(lte(turnsTable.scheduledFor, since), isNull(turnsTable.processingStartedAt)))
-      .orderBy(asc(turnsTable.scheduledFor))
+      .from(turnsProcessingTable)
+      .innerJoin(turnsTable, and(eq(turnsProcessingTable.gameId, turnsTable.gameId), eq(turnsProcessingTable.turn, turnsTable.turn)))
+      .where(
+        and(
+          lte(turnsProcessingTable.scheduledFor, since),
+          isNull(turnsProcessingTable.processingStartedAt),
+          isNull(turnsProcessingTable.processingEndedAt),
+          eq(turnsTable.status, TurnStatus.AWAITING_PROCESSING),
+        ),
+      )
+      .orderBy(asc(turnsProcessingTable.scheduledFor))
       .limit(1)
       .for("no key update", { skipLocked: true })
 
@@ -109,49 +126,53 @@ export class TurnsRepository extends PostgresRepository {
       return turnToProcess
     }
 
-    // Lock the game, it is expected to exist
-    const gameToProcessRows = await tx
-      .select({ status: gamesTable.status })
-      .from(gamesTable)
-      .where(eq(gamesTable.id, turnToProcess.gameId))
-      .for("no key update")
-    Assert.isDefined(gameToProcessRows[0])
-
-    return branded({
-      gameId: turnToProcess.gameId,
-      turn: turnToProcess.turn,
-      gameStatus: gameToProcessRows[0].status,
-    })
+    return branded(turnToProcess)
   }
 
   /**
-   * Moves the game and turn to processing before reading the state used to process the turn.
+   * Moves the turn and processing row to processing before reading the state used to process the turn.
    */
   public async startTurnProcessing(startTurnProcessingModel: StartTurnProcessingModel, tx: Transaction): Promise<TurnToProcessModel> {
     const turns = await tx
       .update(turnsTable)
-      .set({ processingStartedAt: startTurnProcessingModel.processingStartedAt })
-      .where(and(eq(turnsTable.gameId, startTurnProcessingModel.turn.gameId), eq(turnsTable.turn, startTurnProcessingModel.turn.turn)))
-      .returning({ scheduledFor: turnsTable.scheduledFor })
+      .set({ status: TurnStatus.PROCESSING })
+      .where(
+        and(
+          eq(turnsTable.gameId, startTurnProcessingModel.turn.gameId),
+          eq(turnsTable.turn, startTurnProcessingModel.turn.turn),
+          eq(turnsTable.status, TurnStatus.AWAITING_PROCESSING),
+        ),
+      )
+      .returning({
+        rngGeneratorState: turnsTable.rngGeneratorState,
+        rngSpareNormal: turnsTable.rngSpareNormal,
+      })
     Assert.isTrue(turns.length === 1)
     Assert.isDefined(turns[0])
 
+    const processingRows = await tx
+      .update(turnsProcessingTable)
+      .set({ processingStartedAt: startTurnProcessingModel.processingStartedAt })
+      .where(
+        and(
+          eq(turnsProcessingTable.gameId, startTurnProcessingModel.turn.gameId),
+          eq(turnsProcessingTable.turn, startTurnProcessingModel.turn.turn),
+          isNull(turnsProcessingTable.processingStartedAt),
+          isNull(turnsProcessingTable.processingEndedAt),
+        ),
+      )
+      .returning({ scheduledFor: turnsProcessingTable.scheduledFor })
+    Assert.isTrue(processingRows.length === 1)
+    Assert.isDefined(processingRows[0])
+
     const games = await tx
-      .update(gamesTable)
-      .set({ status: startTurnProcessingModel.gameStatus })
+      .select({ turnIntervalSeconds: gamesTable.turnIntervalSeconds, rulesetId: gamesTable.rulesetId })
+      .from(gamesTable)
       .where(eq(gamesTable.id, startTurnProcessingModel.turn.gameId))
-      .returning({ turnIntervalSeconds: gamesTable.turnIntervalSeconds, rulesetId: gamesTable.rulesetId })
     Assert.isTrue(games.length === 1)
     Assert.isDefined(games[0])
 
-    const [gameStates, players, resources, submittedActions, rulesets] = await Promise.all([
-      tx
-        .select({
-          rngGeneratorState: gameStatesTable.rngGeneratorState,
-          rngSpareNormal: gameStatesTable.rngSpareNormal,
-        })
-        .from(gameStatesTable)
-        .where(eq(gameStatesTable.gameId, startTurnProcessingModel.turn.gameId)),
+    const [players, resources, submittedActions, rulesets] = await Promise.all([
       tx
         .select()
         .from(playersTable)
@@ -171,8 +192,6 @@ export class TurnsRepository extends PostgresRepository {
         .orderBy(asc(actionsTable.playerId)),
       tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, games[0].rulesetId)),
     ])
-    Assert.isTrue(gameStates.length === 1)
-    Assert.isDefined(gameStates[0])
 
     Assert.isTrue(rulesets.length === 1)
     Assert.isDefined(rulesets[0])
@@ -181,11 +200,11 @@ export class TurnsRepository extends PostgresRepository {
 
     return toTurnToProcessModel({
       turnForProcessing: startTurnProcessingModel.turn,
-      scheduledFor: turns[0].scheduledFor,
+      scheduledFor: processingRows[0].scheduledFor,
       turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
       rngState: {
-        generatorState: gameStates[0].rngGeneratorState,
-        spareNormal: gameStates[0].rngSpareNormal,
+        generatorState: turns[0].rngGeneratorState,
+        spareNormal: turns[0].rngSpareNormal,
       },
       players,
       resources,
@@ -204,19 +223,25 @@ export class TurnsRepository extends PostgresRepository {
   ): Promise<Result<{ reset: true }, string>> {
     const turnResult = await Result.tryCatch(
       db.transaction(async (tx) => {
+        const processingRows = await tx
+          .update(turnsProcessingTable)
+          .set({ processingStartedAt: null })
+          .where(
+            and(
+              eq(turnsProcessingTable.gameId, turn.gameId),
+              eq(turnsProcessingTable.turn, turn.turn),
+              isNull(turnsProcessingTable.processingEndedAt),
+            ),
+          )
+          .returning()
+        Assert.isTrue(processingRows.length === 1)
+
         const turns = await tx
           .update(turnsTable)
-          .set({ processingStartedAt: null })
-          .where(and(eq(turnsTable.gameId, turn.gameId), eq(turnsTable.turn, turn.turn), isNull(turnsTable.processingEndedAt)))
+          .set({ status: TurnStatus.AWAITING_PROCESSING })
+          .where(and(eq(turnsTable.gameId, turn.gameId), eq(turnsTable.turn, turn.turn), eq(turnsTable.status, TurnStatus.PROCESSING)))
           .returning()
         Assert.isTrue(turns.length === 1)
-
-        const games = await tx
-          .update(gamesTable)
-          .set({ status: GameStatus.COLLECTING_ACTIONS })
-          .where(and(eq(gamesTable.id, turn.gameId), eq(gamesTable.status, GameStatus.PROCESSING_TURN)))
-          .returning()
-        Assert.isTrue(games.length === 1)
       }),
     )
     if (Result.isFailure(turnResult)) {
@@ -235,21 +260,29 @@ export class TurnsRepository extends PostgresRepository {
       db.transaction(async (tx) => {
         const updatedTurns = await tx
           .update(turnsTable)
-          .set({ processingEndedAt: processedTurnModel.processedAt })
-          .where(and(eq(turnsTable.gameId, processedTurnModel.gameId), eq(turnsTable.turn, processedTurnModel.turn)))
+          .set({ status: TurnStatus.COMPLETED, completedAt: processedTurnModel.processedAt })
+          .where(
+            and(
+              eq(turnsTable.gameId, processedTurnModel.gameId),
+              eq(turnsTable.turn, processedTurnModel.turn),
+              eq(turnsTable.status, TurnStatus.PROCESSING),
+            ),
+          )
           .returning()
         Assert.isTrue(updatedTurns.length === 1)
 
-        const updatedGames = await tx
-          .update(gamesTable)
-          .set({
-            status: processedTurnModel.gameStatus,
-            winnerAccountId: processedTurnModel.winnerAccountId,
-            endedAt: processedTurnModel.endedAt,
-          })
-          .where(eq(gamesTable.id, processedTurnModel.gameId))
+        const updatedProcessingRows = await tx
+          .update(turnsProcessingTable)
+          .set({ processingEndedAt: processedTurnModel.processedAt })
+          .where(
+            and(
+              eq(turnsProcessingTable.gameId, processedTurnModel.gameId),
+              eq(turnsProcessingTable.turn, processedTurnModel.turn),
+              isNull(turnsProcessingTable.processingEndedAt),
+            ),
+          )
           .returning()
-        Assert.isTrue(updatedGames.length === 1)
+        Assert.isTrue(updatedProcessingRows.length === 1)
 
         // Poor man's batch update using upsert
         // Drizzle doesn't handle this, the alternative is raw SQL... maybe if this is a performance bottleneck
@@ -270,33 +303,43 @@ export class TurnsRepository extends PostgresRepository {
             .values({
               gameId: processedTurnModel.gameId,
               turn: processedTurnModel.nextTurn,
-              scheduledFor: processedTurnModel.nextTurnScheduledFor,
+              status: TurnStatus.COLLECTING_ACTIONS,
+              startedAt: processedTurnModel.processedAt,
+              endsAt: processedTurnModel.nextTurnScheduledFor,
+              rngGeneratorState: processedTurnModel.rngState.generatorState,
+              rngSpareNormal: processedTurnModel.rngState.spareNormal,
             })
             .returning()
           Assert.isTrue(insertedTurns.length === 1)
-        }
 
-        const availableActions = processedTurnModel.availableActions.map((availableAction) => ({
-          ...availableAction,
-          gameId: processedTurnModel.gameId,
-          turn: processedTurnModel.nextTurn,
-          targets: null,
-        }))
-        if (availableActions.length > 0) {
-          await tx.insert(actionsTable).values(availableActions)
-        }
-
-        const updatedGameStates = await tx
-          .update(gameStatesTable)
-          .set({
+          await tx.insert(turnsProcessingTable).values({
+            gameId: processedTurnModel.gameId,
             turn: processedTurnModel.nextTurn,
-            nextTurnAt: processedTurnModel.nextTurnScheduledFor,
-            rngGeneratorState: processedTurnModel.rngState.generatorState,
-            rngSpareNormal: processedTurnModel.rngState.spareNormal,
+            scheduledFor: processedTurnModel.nextTurnScheduledFor,
           })
-          .where(and(eq(gameStatesTable.gameId, processedTurnModel.gameId), eq(gameStatesTable.turn, processedTurnModel.turn)))
-          .returning()
-        Assert.isTrue(updatedGameStates.length === 1)
+
+          const availableActions = processedTurnModel.availableActions.map((availableAction) => ({
+            ...availableAction,
+            gameId: processedTurnModel.gameId,
+            turn: processedTurnModel.nextTurn,
+            targets: null,
+          }))
+          if (availableActions.length > 0) {
+            await tx.insert(actionsTable).values(availableActions)
+          }
+        } else {
+          Assert.isDefined(processedTurnModel.endedAt)
+          const updatedGames = await tx
+            .update(gamesTable)
+            .set({
+              status: GameStatus.ENDED,
+              winnerAccountId: processedTurnModel.winnerAccountId,
+              endedAt: processedTurnModel.endedAt,
+            })
+            .where(eq(gamesTable.id, processedTurnModel.gameId))
+            .returning()
+          Assert.isTrue(updatedGames.length === 1)
+        }
       }),
     )
 

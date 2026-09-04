@@ -2,7 +2,7 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
 
 ## Purpose
 
@@ -34,6 +34,7 @@ Relates to:
 | Tick              | An ordered precision sub-step inside the Movement Phase, used to sequence movement progress and arrivals. |
 | Readiness         | A public state a player can set. When all players are Ready, the Turn ends.                               |
 | Action Submission | A player's proposed use of an Available Action Instance, locked for processing when the Turn ends.        |
+| Turn Status       | The lifecycle of one Turn: collecting actions, awaiting processing, processing, or completed.             |
 
 ## Rules
 
@@ -43,7 +44,7 @@ At every moment, all players know how much time is left before the Turn ends. Du
 
 During a Turn, players can declare themselves Ready. This is public information. When all players are Ready, the Turn ends. This is the only way that a Turn can take less time than the Turn duration determined before the game starts.
 
-When a Turn ends, all Action Submissions are locked in and Turn Resolution begins. Players cannot submit or revise them during Turn Resolution. The server validates locked submissions and the [System 015-rules-engine](./015-rules-engine.md) turns their composed Mechanics into Effects.
+When a Turn ends, its status changes from `COLLECTING_ACTIONS` to `AWAITING_PROCESSING` and all Action Submissions are locked in. Players cannot submit or revise them during Turn Resolution. The server claims the Turn with a processing queue row, changes it to `PROCESSING`, validates locked submissions, and the [System 015-rules-engine](./015-rules-engine.md) turns their composed Mechanics into Effects.
 
 Turn Resolution processes Effects through the fixed, engine-owned Phase order: Pay Costs, Movement, Combat, Planet, Colonization, Income, then Victory. A Ruleset does not configure this sequence. Phases are coarse ordering boundaries and do not create additional player Turns or opportunities to react.
 
@@ -53,7 +54,9 @@ After the Movement Phase, Combat resolves from the final Fleet positions. The Pl
 
 If a locked Action Submission is invalid or an Effect fails to resolve, Turn Resolution does not complete. The Turn remains locked and is retried from the same pre-resolution state, Action Submissions, and deterministic random input. Partial state changes and Effect Outcomes from the failed attempt are discarded.
 
-When Turn Resolution completes, its resulting game state becomes the state from which players take their Actions in the next Turn.
+When Turn Resolution completes, the Turn becomes `COMPLETED`. If the game continues, the server creates the next `COLLECTING_ACTIONS` Turn with its own deadline, random-generator state, available Actions, and processing queue row. If the game ends, no next Turn or processing row is created.
+
+Action submission and Turn closure lock the same Turn row. This makes the deadline check and transition to `AWAITING_PROCESSING` atomic with respect to one another.
 
 ## Potential Flaws
 

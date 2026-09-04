@@ -1,8 +1,6 @@
 import { Datetime, type Logger, mulberry32Prng, Result, Rng, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { GameStatus } from "#lib/db/games/GameStatus.ts"
-import { TransactionRollbackError } from "#lib/errors.ts"
 import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
@@ -61,22 +59,17 @@ export class TurnProcessor {
     const processingLogger = this.logger.child({ scope: "processNextDueTurn", contextProviders: [new ElapsedTimeContextProvider()] })
 
     const turnToProcessResult = await this.createTransaction(async (tx) => {
-      const nextTurnToProcess = await this.turnsRepository.getNextTurnForProcessing({ since: this.clock.now() }, tx)
+      const since = this.clock.now()
+      await this.turnsRepository.markDueTurnsAwaitingProcessing({ since }, tx)
+      const nextTurnToProcess = await this.turnsRepository.getNextTurnForProcessing({ since }, tx)
       if (nextTurnToProcess === undefined) {
         return undefined
-      }
-
-      if (nextTurnToProcess.gameStatus !== GameStatus.COLLECTING_ACTIONS) {
-        throw new TransactionRollbackError("Game cannot be processed in its current status", {
-          cause: { status: nextTurnToProcess.gameStatus, expected: GameStatus.COLLECTING_ACTIONS },
-        })
       }
 
       return await this.turnsRepository.startTurnProcessing(
         {
           turn: nextTurnToProcess,
           processingStartedAt: this.clock.now(),
-          gameStatus: GameStatus.PROCESSING_TURN,
         },
         tx,
       )
@@ -134,7 +127,7 @@ export class TurnProcessor {
     }
 
     const processedAt = this.clock.now()
-    const turnResult: Omit<ProcessedTurnModel, "gameStatus"> = {
+    const turnResult: ProcessedTurnModel = {
       gameId: turnToProcess.gameId,
       turn: turnToProcess.turn,
       nextTurn: turnToProcess.turn + 1,
@@ -156,7 +149,6 @@ export class TurnProcessor {
     if (resolvedTurnResult.value.winnerPlayerId === undefined) {
       return Result.Success({
         ...turnResult,
-        gameStatus: GameStatus.COLLECTING_ACTIONS,
         nextTurnScheduledFor: getNextTurnScheduledFor({
           scheduledFor: turnToProcess.scheduledFor,
           processedAt,
@@ -167,9 +159,8 @@ export class TurnProcessor {
 
     return Result.Success({
       ...turnResult,
-      gameStatus: GameStatus.ENDED,
       winnerAccountId: branded(resolvedTurnResult.value.winnerPlayerId),
-      endedAt: this.clock.now(),
+      endedAt: processedAt,
     })
   }
 }

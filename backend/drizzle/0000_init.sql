@@ -1,7 +1,8 @@
-CREATE TYPE "public"."game_status" AS ENUM('WAITING_FOR_PLAYERS', 'READY_TO_START', 'COLLECTING_ACTIONS', 'PROCESSING_TURN', 'ENDED');--> statement-breakpoint
+CREATE TYPE "public"."game_status" AS ENUM('WAITING_FOR_PLAYERS', 'READY_TO_START', 'IN_PROGRESS', 'ENDED');--> statement-breakpoint
 CREATE TYPE "public"."planet_biome" AS ENUM('OCEANIC', 'METALLIC', 'FROZEN', 'VOLCANIC');--> statement-breakpoint
 CREATE TYPE "public"."planet_size" AS ENUM('SMALL', 'MEDIUM', 'LARGE');--> statement-breakpoint
 CREATE TYPE "public"."player_color" AS ENUM('WHITE', 'RED', 'BLUE', 'TEAL', 'PURPLE', 'YELLOW', 'ORANGE', 'GREEN', 'LIGHT_PINK', 'VIOLET', 'LIGHT_GREY', 'DARK_GREEN', 'BROWN', 'LIGHT_GREEN', 'DARK_GREY', 'PINK');--> statement-breakpoint
+CREATE TYPE "public"."turn_status" AS ENUM('COLLECTING_ACTIONS', 'AWAITING_PROCESSING', 'PROCESSING', 'COMPLETED');--> statement-breakpoint
 CREATE TABLE "accounts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"auth_id" text NOT NULL,
@@ -17,14 +18,6 @@ CREATE TABLE "actions" (
 	"action_definition_id" text NOT NULL,
 	"targets" jsonb,
 	"updated_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "game_states" (
-	"game_id" integer PRIMARY KEY NOT NULL,
-	"turn" integer DEFAULT 0 NOT NULL,
-	"next_turn_at" timestamp NOT NULL,
-	"rng_generator_state" bigint NOT NULL,
-	"rng_spare_normal" double precision
 );
 --> statement-breakpoint
 CREATE TABLE "games" (
@@ -95,17 +88,28 @@ CREATE TABLE "stars" (
 	CONSTRAINT "stars_game_id_id_pk" PRIMARY KEY("game_id","id")
 );
 --> statement-breakpoint
-CREATE TABLE "turns" (
+CREATE TABLE "turns_processing" (
 	"game_id" integer NOT NULL,
 	"turn" integer NOT NULL,
 	"scheduled_for" timestamp NOT NULL,
 	"processing_started_at" timestamp,
 	"processing_ended_at" timestamp,
+	CONSTRAINT "turns_processing_game_id_turn_pk" PRIMARY KEY("game_id","turn")
+);
+--> statement-breakpoint
+CREATE TABLE "turns" (
+	"game_id" integer NOT NULL,
+	"turn" integer NOT NULL,
+	"status" "turn_status" NOT NULL,
+	"started_at" timestamp NOT NULL,
+	"ends_at" timestamp NOT NULL,
+	"completed_at" timestamp,
+	"rng_generator_state" bigint NOT NULL,
+	"rng_spare_normal" double precision,
 	CONSTRAINT "turns_game_id_turn_pk" PRIMARY KEY("game_id","turn")
 );
 --> statement-breakpoint
 ALTER TABLE "actions" ADD CONSTRAINT "actions_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "game_states" ADD CONSTRAINT "game_states_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_created_by_account_id_accounts_id_fk" FOREIGN KEY ("created_by_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_winner_account_id_accounts_id_fk" FOREIGN KEY ("winner_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_ruleset_id_rulesets_id_fk" FOREIGN KEY ("ruleset_id") REFERENCES "public"."rulesets"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -114,8 +118,12 @@ ALTER TABLE "players" ADD CONSTRAINT "players_game_id_games_id_fk" FOREIGN KEY (
 ALTER TABLE "players" ADD CONSTRAINT "players_player_id_accounts_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "resources" ADD CONSTRAINT "resources_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "stars" ADD CONSTRAINT "stars_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "turns_processing" ADD CONSTRAINT "turns_processing_game_id_turn_turns_fk" FOREIGN KEY ("game_id","turn") REFERENCES "public"."turns"("game_id","turn") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "turns" ADD CONSTRAINT "turns_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "auth_id_idx" ON "accounts" USING btree ("auth_id");--> statement-breakpoint
 CREATE INDEX "actions_game_id_player_id_turn_index" ON "actions" USING btree ("game_id","player_id","turn");--> statement-breakpoint
 CREATE UNIQUE INDEX "rulesets_is_default_unique" ON "rulesets" USING btree ("is_default") WHERE "rulesets"."is_default";--> statement-breakpoint
-CREATE INDEX "turns_scheduled_for_index" ON "turns" USING btree ("scheduled_for");
+CREATE INDEX "turns_processing_scheduled_for_idx" ON "turns_processing" USING btree ("scheduled_for");--> statement-breakpoint
+CREATE UNIQUE INDEX "turns_one_open_turn_per_game_unique" ON "turns" USING btree ("game_id") WHERE "turns"."status" <> 'COMPLETED';--> statement-breakpoint
+CREATE INDEX "turns_game_id_started_at_idx" ON "turns" USING btree ("game_id","started_at");--> statement-breakpoint
+CREATE INDEX "turns_status_ends_at_idx" ON "turns" USING btree ("status","ends_at");

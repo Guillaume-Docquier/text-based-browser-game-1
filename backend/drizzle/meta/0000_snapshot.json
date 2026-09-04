@@ -1,5 +1,5 @@
 {
-  "id": "26881aa4-da4c-46bd-8491-5d5b46fd7875",
+  "id": "048bc52e-7364-4ccc-a1de-32e4c792a89a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -143,60 +143,6 @@
           "tableTo": "players",
           "columnsFrom": ["game_id", "player_id"],
           "columnsTo": ["game_id", "player_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.game_states": {
-      "name": "game_states",
-      "schema": "",
-      "columns": {
-        "game_id": {
-          "name": "game_id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "turn": {
-          "name": "turn",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "next_turn_at": {
-          "name": "next_turn_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rng_generator_state": {
-          "name": "rng_generator_state",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rng_spare_normal": {
-          "name": "rng_spare_normal",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "game_states_game_id_games_id_fk": {
-          "name": "game_states_game_id_games_id_fk",
-          "tableFrom": "game_states",
-          "tableTo": "games",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -694,8 +640,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.turns": {
-      "name": "turns",
+    "public.turns_processing": {
+      "name": "turns_processing",
       "schema": "",
       "columns": {
         "game_id": {
@@ -730,11 +676,147 @@
         }
       },
       "indexes": {
-        "turns_scheduled_for_index": {
-          "name": "turns_scheduled_for_index",
+        "turns_processing_scheduled_for_idx": {
+          "name": "turns_processing_scheduled_for_idx",
           "columns": [
             {
               "expression": "scheduled_for",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "turns_processing_game_id_turn_turns_fk": {
+          "name": "turns_processing_game_id_turn_turns_fk",
+          "tableFrom": "turns_processing",
+          "tableTo": "turns",
+          "columnsFrom": ["game_id", "turn"],
+          "columnsTo": ["game_id", "turn"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "turns_processing_game_id_turn_pk": {
+          "name": "turns_processing_game_id_turn_pk",
+          "columns": ["game_id", "turn"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.turns": {
+      "name": "turns",
+      "schema": "",
+      "columns": {
+        "game_id": {
+          "name": "game_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "turn": {
+          "name": "turn",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "turn_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_at": {
+          "name": "ends_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rng_generator_state": {
+          "name": "rng_generator_state",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rng_spare_normal": {
+          "name": "rng_spare_normal",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "turns_one_open_turn_per_game_unique": {
+          "name": "turns_one_open_turn_per_game_unique",
+          "columns": [
+            {
+              "expression": "game_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"turns\".\"status\" <> 'COMPLETED'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "turns_game_id_started_at_idx": {
+          "name": "turns_game_id_started_at_idx",
+          "columns": [
+            {
+              "expression": "game_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "turns_status_ends_at_idx": {
+          "name": "turns_status_ends_at_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ends_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -773,7 +855,7 @@
     "public.game_status": {
       "name": "game_status",
       "schema": "public",
-      "values": ["WAITING_FOR_PLAYERS", "READY_TO_START", "COLLECTING_ACTIONS", "PROCESSING_TURN", "ENDED"]
+      "values": ["WAITING_FOR_PLAYERS", "READY_TO_START", "IN_PROGRESS", "ENDED"]
     },
     "public.planet_biome": {
       "name": "planet_biome",
@@ -806,6 +888,11 @@
         "DARK_GREY",
         "PINK"
       ]
+    },
+    "public.turn_status": {
+      "name": "turn_status",
+      "schema": "public",
+      "values": ["COLLECTING_ACTIONS", "AWAITING_PROCESSING", "PROCESSING", "COMPLETED"]
     }
   },
   "schemas": {},

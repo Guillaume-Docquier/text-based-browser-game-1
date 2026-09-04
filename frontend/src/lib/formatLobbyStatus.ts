@@ -6,10 +6,8 @@ export function formatLobbyStatus(gameStatus: LobbyStatus): string {
       return "Waiting for more players"
     case "READY_TO_START":
       return "Ready to start"
-    case "COLLECTING_ACTIONS":
-      return "Collecting actions"
-    case "PROCESSING_TURN":
-      return "Processing turn"
+    case "IN_PROGRESS":
+      return "In progress"
     case "ENDED":
       return "Ended"
   }

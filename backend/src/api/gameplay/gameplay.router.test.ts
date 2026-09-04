@@ -194,6 +194,7 @@ describe("gameplay.router", () => {
         opponents: {},
         galaxy: expect.any(Object), // Verified by the snapshot test
         turn: 0,
+        turnStatus: "COLLECTING_ACTIONS",
         nextTurnAt: Datetime.increment({
           date: clock.now(),
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
@@ -446,6 +447,33 @@ describe("gameplay.router", () => {
         player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: 1,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
+        }),
+      ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
+    })
+
+    it("should reject setting an action after the turn deadline", async () => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
+      })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      Assert.isDefined(makeMoreMoney)
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+
+      // Act & Assert
+      await expect(
+        player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: playerView.turn,
           submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
         }),
       ).rejects.toMatchObject({

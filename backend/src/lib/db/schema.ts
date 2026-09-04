@@ -26,6 +26,7 @@ import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
 import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
+import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
@@ -40,6 +41,7 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
 
 // pgEnums need to be exported for Postgres to create the enums
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
+export const turnStatusEnum = pgEnum("turn_status", pgEnumify(TurnStatus))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
@@ -76,7 +78,7 @@ export const accountsTable = pgTable(
 
 /**
  * All games, past and present.
- * This is only the game configuration and metadata. Game state will exist in the {@link gameStatesTable}.
+ * This is only the game configuration and metadata. Turn state is stored in {@link turnsTable}.
  */
 export const gamesTable = pgTable("games", {
   id: gameIdColumn("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -151,25 +153,6 @@ export const resourcesTable = pgTable(
 )
 
 /**
- * The state of running games.
- */
-export const gameStatesTable = pgTable("game_states", {
-  gameId: gameIdColumn("game_id")
-    .primaryKey()
-    .references(() => gamesTable.id, { onDelete: "cascade" }),
-  turn: integer("turn").notNull().default(0),
-  nextTurnAt: timestamp("next_turn_at").notNull(),
-  /**
-   * The Rng state to use for the current turn resolution
-   */
-  rngGeneratorState: bigint("rng_generator_state", { mode: "number" }).notNull(),
-  /**
-   * The Rng state to use for the current turn resolution
-   */
-  rngSpareNormal: doublePrecision("rng_spare_normal"),
-})
-
-/**
  * Actions available for a specific game turn.
  * Rows are kept as append-only history across turns.
  */
@@ -207,6 +190,33 @@ export const turnsTable = pgTable(
       .notNull()
       .references(() => gamesTable.id, { onDelete: "cascade" }),
     turn: integer("turn").notNull(),
+    status: turnStatusEnum("status").notNull(),
+    startedAt: timestamp("started_at").notNull(),
+    endsAt: timestamp("ends_at").notNull(),
+    completedAt: timestamp("completed_at"),
+    rngGeneratorState: bigint("rng_generator_state", { mode: "number" }).notNull(),
+    rngSpareNormal: doublePrecision("rng_spare_normal"),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.gameId, table.turn],
+    }),
+    uniqueIndex("turns_one_open_turn_per_game_unique")
+      .on(table.gameId)
+      .where(sql`${table.status} <> 'COMPLETED'`),
+    index("turns_game_id_started_at_idx").on(table.gameId, table.startedAt),
+    index("turns_status_ends_at_idx").on(table.status, table.endsAt),
+  ],
+)
+
+/**
+ * The processing queue for turns.
+ */
+export const turnsProcessingTable = pgTable(
+  "turns_processing",
+  {
+    gameId: gameIdColumn("game_id").notNull(),
+    turn: integer("turn").notNull(),
     scheduledFor: timestamp("scheduled_for").notNull(),
     processingStartedAt: timestamp("processing_started_at"),
     processingEndedAt: timestamp("processing_ended_at"),
@@ -215,7 +225,12 @@ export const turnsTable = pgTable(
     primaryKey({
       columns: [table.gameId, table.turn],
     }),
-    index().on(table.scheduledFor),
+    foreignKey({
+      columns: [table.gameId, table.turn],
+      foreignColumns: [turnsTable.gameId, turnsTable.turn],
+      name: "turns_processing_game_id_turn_turns_fk",
+    }).onDelete("cascade"),
+    index("turns_processing_scheduled_for_idx").on(table.scheduledFor),
   ],
 )
 

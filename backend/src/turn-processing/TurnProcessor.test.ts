@@ -228,11 +228,12 @@ describe("TurnProcessor", () => {
     it("should fail the turn when a locked action submission is no longer affordable", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, accountsRepository, logger, clock } = await createApiStub({ db })
+      const clock = new ControlledClock()
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 0 }),
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
@@ -255,6 +256,7 @@ describe("TurnProcessor", () => {
       )
 
       // Act
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
       const result = await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -464,13 +466,14 @@ describe("TurnProcessor", () => {
     it("should fully process every player and select at most one deterministic winner", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, accountsRepository, logger, clock } = await createApiStub({ db })
+      const clock = new ControlledClock()
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 0 }),
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
       })
       await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
@@ -501,6 +504,7 @@ describe("TurnProcessor", () => {
       }
 
       // Act
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -515,16 +519,18 @@ describe("TurnProcessor", () => {
 
       const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(creatorView).toMatchObject({
-        turn: 1,
+        turn: 0,
+        turnStatus: "COMPLETED",
         resources: {
           [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
         },
       })
-      expect(creatorView.actions).toHaveLength(5)
+      expect(creatorView.actions).toHaveLength(0)
 
       const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(joinerView).toMatchObject({
-        turn: 1,
+        turn: 0,
+        turnStatus: "COMPLETED",
         resources: {
           [ResourceType.INFLUENCE]: { total: 5, uncommitted: 5 },
         },
@@ -540,7 +546,7 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 0 }),
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -556,6 +562,7 @@ describe("TurnProcessor", () => {
       const turnToProcess = { gameId: createdGameId, turn: 0 }
 
       // Act
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
       const failedProcessingResult = await turnProcessor.processNextDueTurn()
       const playerViewAfterFailedSave = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       turnsRepository.shouldFail = false
