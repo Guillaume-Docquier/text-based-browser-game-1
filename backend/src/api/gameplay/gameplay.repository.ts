@@ -1,17 +1,20 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
-import type { GameId } from "#api/shared/GameId.ts"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
-import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import type { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import type { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
-import type { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
-import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
-import type { PlayerColor } from "#lib/db/PlayerColor.ts"
+import type { GameId } from "#lib/db/games/GameId.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import type { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
+import type { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
+import type { PlayerColor } from "#lib/db/players/PlayerColor.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   actionsTable,
   gameStatesTable,
@@ -23,6 +26,7 @@ import {
   turnsTable,
   rulesetsTable,
 } from "#lib/db/schema.ts"
+import type { StarId } from "#lib/db/stars/StarId.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
@@ -73,13 +77,13 @@ type PlayerViewPlayerModel = {
 }
 
 type PlayerViewActionModel = {
-  readonly id: string
+  readonly id: ActionId
   readonly actionDefinitionId: SubmittedAction["actionDefinitionId"]
   readonly targets: ResolvedTargets | null
 }
 
 export type PlayerViewModel = {
-  readonly gameId: number
+  readonly gameId: GameId
   readonly player: PlayerViewPlayerModel
   readonly opponents: Record<PlayerId, PlayerViewPlayerModel>
   readonly galaxy: GalaxyModel
@@ -132,7 +136,7 @@ export type StartGameModel = {
 }
 
 type StarModel = {
-  readonly id: number
+  readonly id: StarId
   readonly name: string
   readonly coordinates: StarCoordinates
   readonly x: number
@@ -140,7 +144,7 @@ type StarModel = {
 }
 
 type PlanetModel = {
-  readonly id: number
+  readonly id: PlanetId
   readonly name: string
   readonly coordinates: PlanetCoordinates
   readonly x: number
@@ -172,26 +176,26 @@ export class GameplayRepository extends PostgresRepository {
     this.clock = clock
   }
 
-  public async hasPlayerJoinedGame(
-    { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
+  public async getPlayerId(
+    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<boolean, string>> {
-    const joinedGameResult = await Result.tryCatch(async () => {
+  ): Promise<Result<PlayerId | undefined, string>> {
+    const playerIdResult = await Result.tryCatch(async () => {
       const rows = await db
         .select({ playerId: playersTable.playerId })
         .from(playersTable)
-        .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, playerId)))
+        .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, branded(accountId))))
       Assert.isTrue(rows.length <= 1)
 
-      return rows.length === 1
+      return rows[0]?.playerId
     })
 
-    if (Result.isFailure(joinedGameResult)) {
-      this.logger.error("Could not check if player joined game", { gameId, playerId, error: joinedGameResult.error })
+    if (Result.isFailure(playerIdResult)) {
+      this.logger.error("Could not check if player joined game", { gameId, accountId, error: playerIdResult.error })
       return Result.Failure(couldNot("check if player joined game"))
     }
 
-    return joinedGameResult
+    return playerIdResult
   }
 
   public async getGameForStart({ gameId }: { gameId: GameId }, tx: Transaction): Promise<GameForStart> {
@@ -227,7 +231,7 @@ export class GameplayRepository extends PostgresRepository {
       throw new TransactionRollbackError("No ruleset found for this game")
     }
 
-    return branded<GameForStart>({
+    return branded({
       gameId: gameForStart.id,
       createdByAccountId: gameForStart.createdByAccountId,
       mapGenerationSeed: gameForStart.mapGenerationSeed,
@@ -401,7 +405,7 @@ export class GameplayRepository extends PostgresRepository {
       .from(actionsTable)
       .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn)))
 
-    return branded<ActionSubmissionsForUpdate>({
+    return branded({
       gameId,
       playerId,
       turn,
@@ -427,7 +431,7 @@ export class GameplayRepository extends PostgresRepository {
    * Gets the ruleset by id.
    * Does not assume that the ruleset must exist.
    */
-  private async getRuleset({ rulesetId }: { rulesetId: string }, tx: Transaction): Promise<Ruleset | undefined> {
+  private async getRuleset({ rulesetId }: { rulesetId: RulesetId }, tx: Transaction): Promise<Ruleset | undefined> {
     const rulesetRows = await tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, rulesetId))
     Assert.isTrue(rulesetRows.length <= 1)
     if (rulesetRows[0] === undefined) {

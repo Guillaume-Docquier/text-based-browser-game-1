@@ -1,8 +1,8 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import { z } from "zod"
-import { GameId } from "#api/shared/GameId.ts"
 import type { Trpc } from "#api/trpc.ts"
+import { GameId } from "#lib/db/games/GameId.ts"
 import { PlayerViewDto, type GameplayController, UpdateActionSubmissionDto, StartedGameDto } from "./gameplay.controller.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
@@ -19,12 +19,12 @@ export function createGameplayRouter({
   const inGameProcedure = trpc.privateProcedure
     .input(z.object({ gameId: GameId }))
     .use(async ({ input: { gameId }, ctx: { account }, next }) => {
-      const hasPlayerJoinedGameResult = await gameplayController.hasPlayerJoinedGame({ gameId, playerId: account.id })
-      if (Result.isFailure(hasPlayerJoinedGameResult)) {
+      const playerIdResult = await gameplayController.getPlayerId({ gameId, accountId: account.id })
+      if (Result.isFailure(playerIdResult)) {
         logger.error("Failed to determine if player has joined the game.", {
           gameId,
           accountId: account.id,
-          error: hasPlayerJoinedGameResult.error,
+          error: playerIdResult.error,
         })
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -32,14 +32,18 @@ export function createGameplayRouter({
         })
       }
 
-      if (!hasPlayerJoinedGameResult.value) {
+      if (playerIdResult.value === undefined) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You must join a game before you can participate in it.",
         })
       }
 
-      return await next()
+      return await next({
+        ctx: {
+          playerId: playerIdResult.value,
+        },
+      })
     })
 
   return trpc.router({
@@ -55,29 +59,29 @@ export function createGameplayRouter({
       return startResult.value
     }),
 
-    getPlayerView: inGameProcedure.output(PlayerViewDto).query(async ({ input, ctx: { account } }) => {
-      const getByIdResult = await gameplayController.getPlayerView({ ...input, playerId: account.id })
-      if (Result.isFailure(getByIdResult)) {
+    getPlayerView: inGameProcedure.output(PlayerViewDto).query(async ({ input, ctx: { playerId } }) => {
+      const getPlayerViewResult = await gameplayController.getPlayerView({ ...input, playerId })
+      if (Result.isFailure(getPlayerViewResult)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: getByIdResult.error,
+          message: getPlayerViewResult.error,
         })
       }
 
-      if (getByIdResult.value === undefined) {
+      if (getPlayerViewResult.value === undefined) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "No view exists for this player and this game",
         })
       }
 
-      return getByIdResult.value
+      return getPlayerViewResult.value
     }),
 
     updateActionSubmission: inGameProcedure
       .input(UpdateActionSubmissionDto.omit({ playerId: true }))
-      .mutation(async ({ input, ctx: { account } }) => {
-        const setCurrentActionResult = await gameplayController.updateActionSubmission({ ...input, playerId: account.id })
+      .mutation(async ({ input, ctx: { playerId } }) => {
+        const setCurrentActionResult = await gameplayController.updateActionSubmission({ ...input, playerId })
         if (Result.isFailure(setCurrentActionResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",

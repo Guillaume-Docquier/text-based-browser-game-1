@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   type ActionDefinition,
   ActionDefinitionIdSchema,
@@ -11,7 +12,7 @@ import { ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/Re
  * The complete data-driven rules for a game.
  */
 export type Ruleset = Readonly<{
-  id: string
+  id: RulesetId
   /**
    * The player-facing name of this Ruleset.
    */
@@ -25,7 +26,7 @@ export type Ruleset = Readonly<{
 }>
 
 export const RulesetSchema = z.object({
-  id: z.string(),
+  id: RulesetId,
   name: z.string(),
   isDefault: z.boolean(),
   actionDefinitions: z.record(ActionDefinitionIdSchema, ActionDefinitionSchema),

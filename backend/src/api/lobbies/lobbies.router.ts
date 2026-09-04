@@ -1,7 +1,8 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
+import { GameId } from "#lib/db/games/GameId.ts"
 import {
   CreatedLobbyDto,
   CreateLobbyDto,
@@ -56,10 +57,13 @@ export function createLobbiesRouter({
       }),
 
     getById: trpc.publicProcedure
-      .input(z.object({ gameId: z.coerce.number() }))
+      .input(z.object({ gameId: z.coerce.number().pipe(GameId) }))
       .output(LobbyDto)
       .query(async ({ input: { gameId }, ctx: { account } }) => {
-        const game = await lobbiesController.getLobbyById({ gameId, playerId: account?.id })
+        const game = await lobbiesController.getLobbyById({
+          gameId,
+          playerId: account === undefined ? undefined : branded(account.id),
+        })
         lobbiesRouterLogger.info(`GET game ${gameId}`, { game })
 
         if (game === undefined) {

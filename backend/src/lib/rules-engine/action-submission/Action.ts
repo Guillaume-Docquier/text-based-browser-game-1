@@ -1,11 +1,7 @@
-import { z } from "zod"
-import type { PlayerId } from "#api/shared/PlayerId.ts"
-import { type actionsTable } from "#lib/db/schema.ts"
+import type { ActionId } from "#lib/db/actions/ActionId.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
-
-export type ActionId = z.infer<typeof PlayerId>
-export const ActionId = z.string() satisfies z.ZodType<(typeof actionsTable.$inferSelect)["id"]>
 
 export type Action = AvailableAction | SubmittedAction
 

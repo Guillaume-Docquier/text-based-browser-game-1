@@ -1,8 +1,9 @@
-import { Assert, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 
@@ -62,7 +63,9 @@ describe("lobby concurrency", () => {
 
     // Assert
     const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
-    const participantsMap = new Map([creator, ...participants].map((participant) => [participant.account.id, participant]))
+    const participantsMap = new Map(
+      [creator, ...participants].map((participant) => [branded<PlayerId>(participant.account.id), participant]),
+    )
     const gameParticipants = lobby.players
       .toSorted((left, right) => left.id.localeCompare(right.id))
       .map((player) => participantsMap.get(player.id))

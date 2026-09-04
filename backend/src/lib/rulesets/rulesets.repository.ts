@@ -1,9 +1,10 @@
 import { Assert, type Logger, omit, Result } from "@guillaume-docquier/tools-ts"
 import { eq } from "drizzle-orm"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import { type Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 export type RulesetRulesJson = Omit<Ruleset, "id" | "name" | "isDefault">
 
@@ -53,7 +54,7 @@ export class RulesetsRepository extends PostgresRepository {
   }
 
   public async getRuleset(
-    { rulesetId }: { rulesetId: string },
+    { rulesetId }: { rulesetId: RulesetId },
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<Ruleset | undefined, string>> {
     const rulesetsResult = await Result.tryCatch(db.select().from(rulesetsTable).where(eq(rulesetsTable.id, rulesetId)))

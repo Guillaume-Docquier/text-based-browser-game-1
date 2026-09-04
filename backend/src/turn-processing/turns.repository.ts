@@ -1,10 +1,10 @@
 import { Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
-import type { GameId } from "#api/shared/GameId.ts"
-import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
+import type { GameId } from "#lib/db/games/GameId.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { actionsTable, gameStatesTable, gamesTable, playersTable, resourcesTable, turnsTable, rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
@@ -117,7 +117,7 @@ export class TurnsRepository extends PostgresRepository {
       .for("no key update")
     Assert.isDefined(gameToProcessRows[0])
 
-    return branded<TurnForProcessing>({
+    return branded({
       gameId: turnToProcess.gameId,
       turn: turnToProcess.turn,
       gameStatus: gameToProcessRows[0].status,

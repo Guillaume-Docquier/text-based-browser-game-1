@@ -1,19 +1,22 @@
-import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer } from "@guillaume-docquier/tools-ts"
+import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer, branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
 import { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
-import { GameId } from "#api/shared/GameId.ts"
 import { PlanetCoordinates, toPlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
-import { PlayerId } from "#api/shared/PlayerId.ts"
 import { StarCoordinates, toStarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
+import { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
-import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
-import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
-import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { GameId } from "#lib/db/games/GameId.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
+import { PlanetId } from "#lib/db/planets/PlanetId.ts"
+import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
+import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
+import { PlayerId } from "#lib/db/players/PlayerId.ts"
+import { StarId } from "#lib/db/stars/StarId.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
@@ -109,8 +112,8 @@ export class GameplayController {
     return startGameResult
   }
 
-  public async hasPlayerJoinedGame({ gameId, playerId }: { gameId: GameId; playerId: PlayerId }): Promise<Result<boolean, string>> {
-    return await this.gameplayRepository.hasPlayerJoinedGame({ gameId, playerId })
+  public async getPlayerId({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<PlayerId | undefined, string>> {
+    return await this.gameplayRepository.getPlayerId({ gameId, accountId })
   }
 
   public async getPlayerView({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto | undefined, string>> {
@@ -205,12 +208,12 @@ function createGalaxy(seed: number): GalaxyModel {
 
       return {
         star: {
-          id: starIndex + 1,
+          id: branded(starIndex + 1),
           ...system.star,
           coordinates: starCoordinates,
         },
         planets: system.planets.map((planet) => ({
-          id: nextPlanetId++,
+          id: branded(nextPlanetId++),
           ...planet,
           coordinates: toPlanetCoordinates({ starCoordinates, star: system.star, planet }),
         })),
@@ -317,7 +320,7 @@ function createTurnState({
 
 export type StartGameDto = z.infer<typeof StartGameDto>
 export const StartGameDto = z.object({
-  gameId: z.coerce.number(),
+  gameId: z.coerce.number().pipe(GameId),
   requesterAccountId: AccountId,
 })
 
@@ -328,7 +331,7 @@ export const StartedGameDto = z.object({
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
 export const GetPlayerViewDto = z.object({
-  gameId: z.coerce.number(),
+  gameId: z.coerce.number().pipe(GameId),
   playerId: PlayerId,
 })
 
@@ -336,7 +339,7 @@ export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
 export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
 
 export const StarDto = z.object({
-  id: z.number(),
+  id: StarId,
   name: z.string(),
   coordinates: StarCoordinates,
   x: z.number(),
@@ -344,7 +347,7 @@ export const StarDto = z.object({
 })
 
 export const PlanetDto = z.object({
-  id: z.number(),
+  id: PlanetId,
   name: z.string(),
   coordinates: PlanetCoordinates,
   x: z.number(),
@@ -370,7 +373,7 @@ export const GalaxyDto = z.object({
 
 type ActionDto = z.infer<typeof ActionDto>
 const ActionDto = z.object({
-  id: z.string(),
+  id: ActionId,
   actionDefinitionId: ActionDefinitionIdSchema,
   targets: z.record(z.string(), z.string()).nullable(),
   canAfford: z.boolean(),
@@ -391,7 +394,7 @@ export const PlayerViewDto = z.object({
 
 export type UpdateActionSubmissionDto = z.infer<typeof UpdateActionSubmissionDto>
 export const UpdateActionSubmissionDto = z.object({
-  gameId: z.coerce.number(),
+  gameId: z.coerce.number().pipe(GameId),
   playerId: PlayerId,
   turn: z.coerce.number(),
   submittedActionTargets: SubmittedActionTargetsDto,

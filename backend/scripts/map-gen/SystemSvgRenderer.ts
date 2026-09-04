@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
 import type { XY } from "@guillaume-docquier/tools-ts"
-import type { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
-import type { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
+import type { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
+import type { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import type { Planet } from "#lib/map-generation/planet.generator.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 

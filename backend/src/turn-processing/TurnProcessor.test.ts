@@ -1,4 +1,4 @@
-import { Assert, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Datetime, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
@@ -248,7 +248,7 @@ describe("TurnProcessor", () => {
       Assert.isSuccess(
         await resourcesRepository.updateResource({
           gameId: createdGameId,
-          playerId: player.account.id,
+          playerId: branded(player.account.id),
           resourceType: ResourceType.INFLUENCE,
           amountDelta: -3,
         }),
@@ -485,7 +485,7 @@ describe("TurnProcessor", () => {
         for (const resourceType of [ResourceType.INFLUENCE, ResourceType.METAL, ResourceType.FUEL, ResourceType.ENERGY]) {
           const updateResourceResult = await resourcesRepository.updateResource({
             gameId: createdGameId,
-            playerId: player.account.id,
+            playerId: branded(player.account.id),
             resourceType,
             amountDelta,
           })

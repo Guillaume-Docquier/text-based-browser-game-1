@@ -1,4 +1,5 @@
 import type * as ApiTypes from "@api-types"
+import { branded } from "@guillaume-docquier/tools-ts"
 import type { Enumify } from "@guillaume-docquier/tools-ts"
 import { type ReactElement, useState } from "react"
 import { Button } from "@/components/button.tsx"
@@ -47,7 +48,9 @@ function CreateGameForm({
   const [nbSeats, setNbSeats] = useState(5)
   const [turnIntervalMultiplier, setTurnIntervalMultiplier] = useState(1)
   const [turnIntervalUnit, setTurnIntervalUnit] = useState<TurnIntervalUnit>(TurnIntervalUnit.days)
-  const [rulesetId, setRulesetId] = useState(creationSettings.rulesets.find(({ isDefault }) => isDefault)?.id ?? "")
+  const [rulesetId, setRulesetId] = useState<ApiTypes.RulesetId | undefined>(
+    creationSettings.rulesets.find(({ isDefault }) => isDefault)?.id,
+  )
   const createGame = useCreateGameMutation()
   const selectedRuleset = creationSettings.rulesets.find(({ id }) => id === rulesetId)
   const isCreateDisabled = name === "" || nbSeats < 2 || nbSeats > creationSettings.maxNbSeats || selectedRuleset === undefined
@@ -75,7 +78,12 @@ function CreateGameForm({
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Ruleset</Label>
-            <Select value={rulesetId} onValueChange={setRulesetId}>
+            <Select
+              value={rulesetId ?? ""}
+              onValueChange={(value) => {
+                setRulesetId(branded(value))
+              }}
+            >
               <SelectTrigger aria-label="Ruleset">
                 <SelectValue />
               </SelectTrigger>
@@ -139,13 +147,17 @@ function CreateGameForm({
         <Button
           disabled={isCreateDisabled || createGame.isPending}
           onClick={() => {
+            if (selectedRuleset === undefined) {
+              return
+            }
+
             createGame.mutate({
               configuration: {
                 name,
                 nbSeats,
                 turnIntervalSeconds: Temporal.Duration.from({ [turnIntervalUnit]: turnIntervalMultiplier }).total("seconds"),
                 mapGenerationSeed,
-                rulesetId,
+                rulesetId: selectedRuleset.id,
               },
             })
           }}

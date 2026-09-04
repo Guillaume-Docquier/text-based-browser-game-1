@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm"
 import {
   bigint,
   boolean,
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -9,17 +10,22 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
+  text,
   timestamp,
   unique,
   uniqueIndex,
-  uuid,
-  text,
-  doublePrecision,
 } from "drizzle-orm/pg-core"
-import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
-import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
-import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
-import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
+import { actionIdColumn } from "#lib/db/actions/ActionId.ts"
+import { gameIdColumn } from "#lib/db/games/GameId.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
+import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
+import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
+import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
+import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
+import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
+import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
@@ -32,22 +38,16 @@ function pgEnumify<TEnumLike extends string>(enumLike: Record<string, TEnumLike>
   return Object.values(enumLike) as [TEnumLike, ...TEnumLike[]]
 }
 
+// pgEnums need to be exported for Postgres to create the enums
 export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
 
-const accountId = uuid
-const playerId = uuid
-const gameId = integer
-const rulesetId = text
-const starId = integer
-const planetId = integer
-
 export const rulesetsTable = pgTable(
   "rulesets",
   {
-    id: rulesetId("id").primaryKey(),
+    id: rulesetIdColumn("id").primaryKey(),
     name: text("name").notNull(),
     isDefault: boolean("is_default").notNull(),
     rules: jsonb("data").$type<RulesetRulesJson>().notNull(),
@@ -66,7 +66,7 @@ export const rulesetsTable = pgTable(
 export const accountsTable = pgTable(
   "accounts",
   {
-    id: accountId("id").primaryKey().defaultRandom(),
+    id: accountIdColumn("id").primaryKey().defaultRandom(),
     authId: text("auth_id").notNull(),
     email: text("email"),
     alias: text("alias"),
@@ -79,11 +79,11 @@ export const accountsTable = pgTable(
  * This is only the game configuration and metadata. Game state will exist in the {@link gameStatesTable}.
  */
 export const gamesTable = pgTable("games", {
-  id: gameId("id").primaryKey().generatedAlwaysAsIdentity(),
-  createdByAccountId: accountId("created_by_account_id")
+  id: gameIdColumn("id").primaryKey().generatedAlwaysAsIdentity(),
+  createdByAccountId: accountIdColumn("created_by_account_id")
     .notNull()
     .references(() => accountsTable.id, { onDelete: "cascade" }),
-  winnerAccountId: accountId("winner_account_id").references(() => accountsTable.id, { onDelete: "set null" }),
+  winnerAccountId: accountIdColumn("winner_account_id").references(() => accountsTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   endedAt: timestamp("ended_at"),
@@ -94,7 +94,7 @@ export const gamesTable = pgTable("games", {
   nbSeats: integer("nb_seats").notNull(),
   turnIntervalSeconds: integer("turn_interval_seconds").notNull(),
   mapGenerationSeed: bigint("map_generation_seed", { mode: "number" }).notNull(),
-  rulesetId: rulesetId("ruleset_id")
+  rulesetId: rulesetIdColumn("ruleset_id")
     .notNull()
     .references(() => rulesetsTable.id, { onDelete: "restrict" }),
 })
@@ -109,10 +109,10 @@ export const gamesTable = pgTable("games", {
 export const playersTable = pgTable(
   "players",
   {
-    gameId: gameId("game_id")
+    gameId: gameIdColumn("game_id")
       .notNull()
       .references(() => gamesTable.id, { onDelete: "cascade" }),
-    playerId: playerId("player_id")
+    playerId: playerIdColumn("player_id")
       .notNull()
       .references(() => accountsTable.id, { onDelete: "cascade" }),
     color: playerColorEnum("color").notNull(),
@@ -133,8 +133,8 @@ export const playersTable = pgTable(
 export const resourcesTable = pgTable(
   "resources",
   {
-    gameId: gameId("game_id").notNull(),
-    playerId: playerId("player_id").notNull(),
+    gameId: gameIdColumn("game_id").notNull(),
+    playerId: playerIdColumn("player_id").notNull(),
     resourceType: text("resource_type").notNull(),
     amount: integer("amount").notNull().default(0),
   },
@@ -154,7 +154,7 @@ export const resourcesTable = pgTable(
  * The state of running games.
  */
 export const gameStatesTable = pgTable("game_states", {
-  gameId: gameId("game_id")
+  gameId: gameIdColumn("game_id")
     .primaryKey()
     .references(() => gamesTable.id, { onDelete: "cascade" }),
   turn: integer("turn").notNull().default(0),
@@ -176,9 +176,9 @@ export const gameStatesTable = pgTable("game_states", {
 export const actionsTable = pgTable(
   "actions",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    gameId: gameId("game_id").notNull(),
-    playerId: playerId("player_id").notNull(),
+    id: actionIdColumn("id").primaryKey().defaultRandom(),
+    gameId: gameIdColumn("game_id").notNull(),
+    playerId: playerIdColumn("player_id").notNull(),
     turn: integer("turn").notNull(),
     actionDefinitionId: text("action_definition_id").notNull(),
     /**
@@ -203,7 +203,7 @@ export const actionsTable = pgTable(
 export const turnsTable = pgTable(
   "turns",
   {
-    gameId: gameId("game_id")
+    gameId: gameIdColumn("game_id")
       .notNull()
       .references(() => gamesTable.id, { onDelete: "cascade" }),
     turn: integer("turn").notNull(),
@@ -222,10 +222,10 @@ export const turnsTable = pgTable(
 export const starsTable = pgTable(
   "stars",
   {
-    gameId: gameId("game_id")
+    gameId: gameIdColumn("game_id")
       .notNull()
       .references(() => gamesTable.id, { onDelete: "cascade" }),
-    id: starId("id").notNull(),
+    id: starIdColumn("id").notNull(),
     name: text("name").notNull(),
     coordinates: text("coordinates").notNull(),
     x: doublePrecision("x").notNull(),
@@ -241,9 +241,9 @@ export const starsTable = pgTable(
 export const planetsTable = pgTable(
   "planets",
   {
-    gameId: gameId("game_id").notNull(),
-    starId: starId("star_id").notNull(),
-    id: planetId("id").notNull(),
+    gameId: gameIdColumn("game_id").notNull(),
+    starId: starIdColumn("star_id").notNull(),
+    id: planetIdColumn("id").notNull(),
     name: text("name").notNull(),
     coordinates: text("coordinates").notNull(),
     x: doublePrecision("x").notNull(),

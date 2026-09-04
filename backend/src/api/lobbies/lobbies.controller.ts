@@ -1,11 +1,12 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import { GameId } from "#api/shared/GameId.ts"
-import { PlayerId } from "#api/shared/PlayerId.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
-import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { GameId } from "#lib/db/games/GameId.ts"
+import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
+import { PlayerId } from "#lib/db/players/PlayerId.ts"
+import { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { couldNot, rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
@@ -85,13 +86,14 @@ export class LobbiesController {
    * This method is idempotent, joining an already joined game will return a success.
    */
   public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
+    const playerId = branded<PlayerId>(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
       const lobbyForJoin = await this.lobbiesRepository.getLobbyForJoin({ gameId }, tx)
       rollbackOnFailure(lobbyForJoin, "Failed to get lobby.")
 
-      if (lobbyForJoin.value.players.find((player) => player.id === accountId) !== undefined) {
+      if (lobbyForJoin.value.players.find((player) => player.id === playerId) !== undefined) {
         // Already part of the game, return a success for idempotency
-        return { playerId: accountId }
+        return { playerId }
       }
 
       if (lobbyForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
@@ -105,11 +107,11 @@ export class LobbiesController {
       const color = Object.values(PlayerColor).find((candidateColor) => !usedColors.has(candidateColor))
       Assert.isDefined(color)
 
-      return await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, accountId, color, status }, tx)
+      return await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, playerId, color, status }, tx)
     })
 
     if (Result.isFailure(joinGameResult)) {
-      this.logger.error("Could not join game lobby", { gameId, playerId: accountId, error: joinGameResult.error })
+      this.logger.error("Could not join game lobby", { gameId, accountId, error: joinGameResult.error })
       return Result.Failure(couldNot("join game lobby"))
     }
 
@@ -120,11 +122,12 @@ export class LobbiesController {
    * This method is idempotent, leaving an already left game will return a success.
    */
   public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
+    const playerId = branded<PlayerId>(accountId)
     const leaveGameResult = await this.createTransaction(async (tx) => {
       const lobbyForLeave = await this.lobbiesRepository.getLobbyForLeave({ gameId }, tx)
       rollbackOnFailure(lobbyForLeave, "Failed to get lobby.")
 
-      if (!lobbyForLeave.value.playerIds.includes(accountId)) {
+      if (!lobbyForLeave.value.playerIds.includes(playerId)) {
         // Already not in the game, return a success for idempotency
         return
       }
@@ -137,7 +140,7 @@ export class LobbiesController {
         throw new TransactionRollbackError("Cannot leave a lobby as its creator.")
       }
 
-      await this.lobbiesRepository.leaveLobby({ context: lobbyForLeave.value, accountId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
+      await this.lobbiesRepository.leaveLobby({ context: lobbyForLeave.value, playerId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
     })
 
     if (Result.isFailure(leaveGameResult)) {
@@ -187,7 +190,7 @@ export const CreateLobbyConfigurationDto = z.object({
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
   mapGenerationSeed: z.number().exactOptional(),
-  rulesetId: z.string(),
+  rulesetId: RulesetId,
 })
 
 export type CreateLobbyDto = z.infer<typeof CreateLobbyDto>
@@ -223,7 +226,7 @@ export const LeftLobbyDto = z.literal(true)
 
 export type RulesetSummaryDto = z.infer<typeof RulesetSummaryDto>
 const RulesetSummaryDto = z.object({
-  id: z.string(),
+  id: RulesetId,
   name: z.string(),
   isDefault: z.boolean(),
 })

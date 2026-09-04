@@ -1,4 +1,5 @@
 import type * as ApiTypes from "@api-types"
+import { branded } from "@guillaume-docquier/tools-ts"
 import { Navigate, useNavigate } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { Button } from "@/components/button.tsx"
@@ -52,7 +53,9 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
           <div className="grid gap-4 md:grid-cols-2">
             <DetailBlock label="Creator" value={game.creator.alias ?? `Player ${game.creator.id}`} />
             <DetailBlock label="Created" value={timeAgo(game.createdAt)} />
-            {game.winnerAccountId !== null ? <DetailBlock label="Winner" value={getWinnerLabel(game)} /> : null}
+            {game.winnerAccountId !== null ? (
+              <DetailBlock label="Winner" value={getWinnerLabel(branded(game.winnerAccountId), game)} />
+            ) : null}
           </div>
           <Separator />
           <div className="space-y-3">
@@ -188,10 +191,10 @@ function LobbyLoadingState(): ReactElement {
   )
 }
 
-function getWinnerLabel(game: ApiTypes.Lobby): string {
-  const winner = [game.creator, ...game.players].find((player) => player.id === game.winnerAccountId)
+function getWinnerLabel(winnerPlayerId: ApiTypes.PlayerId, game: ApiTypes.Lobby): string {
+  const winner = [game.creator, ...game.players].find((player) => player.id === winnerPlayerId)
   if (winner === undefined) {
-    return `Player ${game.winnerAccountId}`
+    return `Player ${winnerPlayerId}`
   }
 
   return winner.alias ?? `Player ${winner.id}`

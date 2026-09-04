@@ -1,4 +1,4 @@
-import { Assert, Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
@@ -6,9 +6,9 @@ import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActi
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
-import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
-import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
+import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
+import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -190,7 +190,7 @@ describe("gameplay.router", () => {
       ]
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
-        player: { id: player.account.id, color: PlayerColor.WHITE },
+        player: { id: branded(player.account.id), color: PlayerColor.WHITE },
         opponents: {},
         galaxy: expect.any(Object), // Verified by the snapshot test
         turn: 0,
