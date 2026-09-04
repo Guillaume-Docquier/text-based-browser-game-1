@@ -1,5 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import { PlayerId } from "#api/shared/PlayerId.ts"
+import { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"

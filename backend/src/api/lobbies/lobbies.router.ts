@@ -1,9 +1,9 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import { z } from "zod"
-import { PlayerId } from "#api/shared/PlayerId.ts"
 import type { Trpc } from "#api/trpc.ts"
 import { GameId } from "#lib/db/games/GameId.ts"
+import { PlayerId } from "#lib/db/players/PlayerId.ts"
 import {
   CreatedLobbyDto,
   CreateLobbyDto,

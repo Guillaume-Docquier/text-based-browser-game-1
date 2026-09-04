@@ -1,6 +1,6 @@
 import { v4 } from "uuid"
-import { PlayerId } from "#api/shared/PlayerId.ts"
 import { GameId } from "#lib/db/games/GameId.ts"
+import { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { ResourceUpdateModel } from "#tests/resources/resources.repository.ts"
 

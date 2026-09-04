@@ -1,4 +1,4 @@
-import type { PlayerId } from "#api/shared/PlayerId.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 

@@ -1,6 +1,6 @@
 import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { DeepReadonly } from "utility-types"
-import { PlayerId } from "#api/shared/PlayerId.ts"
+import { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
 import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"

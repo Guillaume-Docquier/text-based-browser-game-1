@@ -577,11 +577,11 @@ No arbitrary file-size limits. Prefer cohesion and discoverability over small fi
 
 ## Comments and JSDoc
 
-Comments should explain invariants, trade-offs, non-obvious domain rules, and safety justifications. Avoid comments that narrate obvious code.
+Every exported function, class, method, constant, and exported type typically should have JSDoc to help consumers understand how to use them.
 
-Every exported function, class, method, constant, and usually exported type should have JSDoc.
+Comments should explain invariants, trade-offs, non-obvious domain rules, and safety justifications. Avoid comments that narrate obvious code. Some exported code will not have JSDoc if the comment would be trivial and useless, that's okay.
 
-Use standard JSDoc syntax:
+Use standard JSDoc multiline syntax. Do no use single line JSDoc:
 
 ```ts
 /**
@@ -590,7 +590,15 @@ Use standard JSDoc syntax:
  * @param input - The untrusted string to parse.
  * @returns A parsed email address, or `InvalidEmailAddress` when the input is invalid.
  */
-export function parse(input: string): Result<EmailAddress, InvalidEmailAddress>
+export function parse(input: string): Result<EmailAddress, InvalidEmailAddress> {}
+
+/** Single line jsdoc, avoid this */
+export function doSomething(): void {}
+
+/**
+ * Multi line jsdoc, use this style
+ */
+export function doSomethingElse(): void {}
 ```
 
 For generics:
@@ -608,8 +616,6 @@ For generics:
  */
 export function map<T, U, E>(result: Result<T, E>, fn: (value: T) => U): Result<U, E>
 ```
-
-Use `@throws` only for unrecoverable defects, framework-required behavior, or temporary `notYetImplemented` paths. Do not document expected typed errors as throws.
 
 For complex exported object types, document fields when helpful:
 

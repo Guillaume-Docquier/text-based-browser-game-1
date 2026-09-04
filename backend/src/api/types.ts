@@ -10,7 +10,7 @@ type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 export type { TrpcRouter }
 
 export type { GameId } from "#lib/db/games/GameId.ts"
-export type { PlayerId } from "#api/shared/PlayerId.ts"
+export type { PlayerId } from "#lib/db/players/PlayerId.ts"
 export type { AccountId } from "#lib/db/accounts/AccountId.ts"
 export type { PlayerColor } from "#lib/db/PlayerColor.ts"
 export type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"

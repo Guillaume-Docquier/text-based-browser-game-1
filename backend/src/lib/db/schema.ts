@@ -16,16 +16,16 @@ import {
   text,
   doublePrecision,
 } from "drizzle-orm/pg-core"
-import type { PlanetId } from "#api/shared/PlanetId.ts"
-import type { PlayerId } from "#api/shared/PlayerId.ts"
-import type { StarId } from "#api/shared/StarId.ts"
-import type { AccountId } from "#lib/db/accounts/AccountId.ts"
-import type { GameId } from "#lib/db/games/GameId.ts"
+import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
+import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
+import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
 import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
+import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import type { ActionId } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
@@ -43,17 +43,6 @@ export const gameStatusEnum = pgEnum("game_status", pgEnumify(GameStatus))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
-
-// oxlint-disable-next-line typescript/explicit-function-return-type -- Let drizzle inference do the work
-const accountIdColumn = (name: string) => uuid(name).$type<AccountId>()
-// oxlint-disable-next-line typescript/explicit-function-return-type -- Let drizzle inference do the work
-const playerIdColumn = (name: string) => uuid(name).$type<PlayerId>()
-// oxlint-disable-next-line typescript/explicit-function-return-type -- Let drizzle inference do the work
-const gameIdColumn = (name: string) => integer(name).$type<GameId>()
-// oxlint-disable-next-line typescript/explicit-function-return-type -- Let drizzle inference do the work
-const starIdColumn = (name: string) => integer(name).$type<StarId>()
-// oxlint-disable-next-line typescript/explicit-function-return-type -- Let drizzle inference do the work
-const planetIdColumn = (name: string) => integer(name).$type<PlanetId>()
 
 export const rulesetsTable = pgTable(
   "rulesets",

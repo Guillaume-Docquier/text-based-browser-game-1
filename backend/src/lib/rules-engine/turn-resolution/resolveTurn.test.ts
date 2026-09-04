@@ -1,7 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { PlayerId } from "#api/shared/PlayerId.ts"
 import { createSeededRng } from "#lib/createSeededRng.ts"
+import { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"

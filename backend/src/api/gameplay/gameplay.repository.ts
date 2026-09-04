@@ -1,18 +1,17 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
-import type { PlanetId } from "#api/shared/PlanetId.ts"
-import type { PlayerId } from "#api/shared/PlayerId.ts"
 import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
-import type { StarId } from "#api/shared/StarId.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import type { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import type { PlayerColor } from "#lib/db/PlayerColor.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
@@ -26,6 +25,7 @@ import {
   turnsTable,
   rulesetsTable,
 } from "#lib/db/schema.ts"
+import type { StarId } from "#lib/db/stars/StarId.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import type { Action, ActionId, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
