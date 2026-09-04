@@ -3,11 +3,11 @@ import { v4 } from "uuid"
 import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 
 export function createSubmittedActionTargetsDtoStub({
-  actionId,
+  actionId = v4(),
   ...overrides
 }: Partial<UnbrandedProperties<SubmittedActionTargetsDto>> = {}): SubmittedActionTargetsDto {
   return {
-    actionId: branded(actionId ?? v4()),
+    actionId: branded(actionId),
     targets: null,
     ...overrides,
   }
