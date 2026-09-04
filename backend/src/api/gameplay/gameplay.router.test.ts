@@ -10,7 +10,6 @@ import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { PlanetBiome } from "#lib/db/gameplay/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/gameplay/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
-import { ActionId } from "#lib/rules-engine/action-submission/Action.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -490,7 +489,7 @@ describe("gameplay.router", () => {
       const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: ActionId.parse("unavailable-action"), targets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: "unavailable-action", targets: {} }),
       })
 
       // Assert
