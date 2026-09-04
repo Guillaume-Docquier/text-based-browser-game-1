@@ -27,6 +27,7 @@ import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import type { ActionId } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
+import type { RulesetId } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
 /**
@@ -49,7 +50,8 @@ const accountId = (name: string) => uuid(name).$type<AccountId>()
 const playerId = (name: string) => uuid(name).$type<PlayerId>()
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Preserve Drizzle's precise branded column builder inference.
 const gameId = (name: string) => integer(name).$type<GameId>()
-const rulesetId = text
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Preserve Drizzle's precise branded column builder inference.
+const rulesetId = (name: string) => text(name).$type<RulesetId>()
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Preserve Drizzle's precise branded column builder inference.
 const starId = (name: string) => integer(name).$type<StarId>()
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Preserve Drizzle's precise branded column builder inference.

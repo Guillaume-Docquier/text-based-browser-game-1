@@ -5,6 +5,7 @@ import { type LobbyPlayerDto, MAX_NB_SEATS, type RulesetSummaryDto } from "#api/
 import { PlayerId } from "#api/shared/PlayerId.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
+import { RulesetId } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
@@ -69,7 +70,7 @@ describe("lobbies.router", () => {
       // Act & Assert
       await expect(
         creator.client.lobbies.create.mutate({
-          configuration: createLobbyConfigurationDtoStub({ rulesetId: "unknown" }),
+          configuration: createLobbyConfigurationDtoStub({ rulesetId: RulesetId.parse("unknown") }),
         }),
       ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })

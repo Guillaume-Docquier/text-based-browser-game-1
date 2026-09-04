@@ -7,6 +7,7 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/lobbies/GameStatus.ts"
 import { PlayerColor } from "#lib/db/PlayerColor.ts"
 import { couldNot, rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
+import { RulesetId } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
 
@@ -188,7 +189,7 @@ export const CreateLobbyConfigurationDto = z.object({
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
   mapGenerationSeed: z.number().exactOptional(),
-  rulesetId: z.string(),
+  rulesetId: RulesetId,
 })
 
 export type CreateLobbyDto = z.infer<typeof CreateLobbyDto>
@@ -224,7 +225,7 @@ export const LeftLobbyDto = z.literal(true)
 
 export type RulesetSummaryDto = z.infer<typeof RulesetSummaryDto>
 const RulesetSummaryDto = z.object({
-  id: z.string(),
+  id: RulesetId,
   name: z.string(),
   isDefault: z.boolean(),
 })

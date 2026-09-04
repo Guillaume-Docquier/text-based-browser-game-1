@@ -9,7 +9,7 @@ import { type PlayerColor } from "#lib/db/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable, gamesTable, playersTable, rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Ruleset, RulesetId } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
@@ -24,7 +24,7 @@ export type CreateLobbyConfigurationModel = Readonly<{
   name: string
   nbSeats: number
   turnIntervalSeconds: number
-  rulesetId: string
+  rulesetId: RulesetId
 }>
 
 export type LobbyConfigurationModel = Readonly<{

@@ -101,7 +101,7 @@ Example:
 
 ```ts
 export class UserStoreUnavailable extends TaggedError {
-  public readonly _tag = "UserStoreUnavailable"
+  public readonly type = "UserStoreUnavailable"
   public readonly operation: "findActiveByEmail"
   public readonly provider = "postgres"
   public readonly cause: unknown
@@ -175,7 +175,7 @@ Use Zod as boundary parsers, not as ad-hoc validators sprinkled through core log
 
 Schema parsing should produce refined/domain types and typed custom errors where practical.
 
-## Branded types and correct construction (aspirational)
+## Branded types and correct construction
 
 Use branded/refined types for meaningful primitives:
 
@@ -184,7 +184,7 @@ Use branded/refined types for meaningful primitives:
 - constrained numbers: `PositiveInt`, `Cents`, `Percentage`
 - units: `Milliseconds`, `Bytes`, `UsdCents`
 
-Construct branded values through parsers or smart constructors. Avoid passing raw strings/numbers where a domain type exists.
+Use `Brand<>` and `branded()` from `@guillaume-docquier/tools-ts` for this. Construct branded values through parsers when validation matters or via `branded` for producers of simple values like ids that don't require validation. Avoid passing raw strings/numbers where a domain type exists.
 
 Avoid optional/null/undefined values in functions that require a value. Push optionality outward. Branch or parse before calling.
 
@@ -198,9 +198,9 @@ Prefer:
 
 ```ts
 type Invoice =
-  | { readonly _tag: "Draft"; readonly id: InvoiceId; readonly lines: NonEmptyArray<LineItem> }
-  | { readonly _tag: "Sent"; readonly id: InvoiceId; readonly sentAt: Instant }
-  | { readonly _tag: "Paid"; readonly id: InvoiceId; readonly paidAt: Instant }
+  | { readonly type: "Draft"; readonly id: InvoiceId; readonly lines: NonEmptyArray<LineItem> }
+  | { readonly type: "Sent"; readonly id: InvoiceId; readonly sentAt: Instant }
+  | { readonly type: "Paid"; readonly id: InvoiceId; readonly paidAt: Instant }
 ```
 
 Avoid:

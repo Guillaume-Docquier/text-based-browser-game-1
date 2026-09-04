@@ -1,5 +1,5 @@
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { RulesetId, type Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { indexById } from "#lib/rulesets/indexById.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -11,7 +11,7 @@ export const StandardRuleset: Ruleset = {
   /**
    * Stable id so that it is updated on deploy
    */
-  id: "core_standard_v1",
+  id: RulesetId.parse("core_standard_v1"),
   name: "Standard V1",
   isDefault: true,
   actionDefinitions: indexById([GainInfluence, WinTheGame, GainEnergy, GainFuel, GainMetal]),

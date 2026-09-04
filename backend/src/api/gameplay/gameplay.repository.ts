@@ -30,7 +30,7 @@ import type { Action, ActionId, AvailableAction, SubmittedAction } from "#lib/ru
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Ruleset, RulesetId } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type NewGameStateRow = typeof gameStatesTable.$inferInsert
@@ -429,7 +429,7 @@ export class GameplayRepository extends PostgresRepository {
    * Gets the ruleset by id.
    * Does not assume that the ruleset must exist.
    */
-  private async getRuleset({ rulesetId }: { rulesetId: string }, tx: Transaction): Promise<Ruleset | undefined> {
+  private async getRuleset({ rulesetId }: { rulesetId: RulesetId }, tx: Transaction): Promise<Ruleset | undefined> {
     const rulesetRows = await tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, rulesetId))
     Assert.isTrue(rulesetRows.length <= 1)
     if (rulesetRows[0] === undefined) {
