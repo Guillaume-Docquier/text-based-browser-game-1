@@ -1,7 +1,7 @@
-import { branded, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { z } from "zod"
 import { type CreateLobbyConfigurationDto } from "#api/lobbies/lobbies.controller.ts"
-import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
+import { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 
 export function createLobbyConfigurationDtoStub({
@@ -13,7 +13,7 @@ export function createLobbyConfigurationDtoStub({
     name: "game configuration",
     nbSeats: 5,
     turnIntervalSeconds: Time.in(Time.create(24, UnitOfTime.HOURS), UnitOfTime.SECONDS),
-    rulesetId: branded<RulesetId>(rulesetId ?? TestRuleset.id),
+    rulesetId: RulesetId.parse(rulesetId ?? TestRuleset.id),
     ...overrides,
   }
 }

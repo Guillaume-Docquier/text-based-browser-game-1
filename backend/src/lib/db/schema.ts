@@ -13,9 +13,9 @@ import {
   timestamp,
   unique,
   uniqueIndex,
-  uuid,
 } from "drizzle-orm/pg-core"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
+import { actionIdColumn } from "#lib/db/actions/ActionId.ts"
 import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { GameStatus, gameStatusColumn } from "#lib/db/games/GameStatus.ts"
 import { planetBiomeColumn } from "#lib/db/planets/PlanetBiome.ts"
@@ -25,7 +25,6 @@ import { playerColorColumn } from "#lib/db/players/PlayerColor.ts"
 import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
 import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
-import type { ActionId } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
@@ -161,7 +160,7 @@ export const gameStatesTable = pgTable("game_states", {
 export const actionsTable = pgTable(
   "actions",
   {
-    id: uuid("id").$type<ActionId>().primaryKey().defaultRandom(),
+    id: actionIdColumn("id").primaryKey().defaultRandom(),
     gameId: gameIdColumn("game_id").notNull(),
     playerId: playerIdColumn("player_id").notNull(),
     turn: integer("turn").notNull(),

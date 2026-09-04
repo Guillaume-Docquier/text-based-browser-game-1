@@ -1,6 +1,7 @@
 import { v4 } from "uuid"
+import { ActionId } from "#lib/db/actions/ActionId.ts"
 import { PlayerId } from "#lib/db/players/PlayerId.ts"
-import { ActionId, type AvailableAction, type SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
+import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 
 export function createAvailableActionStub(overrides?: Partial<AvailableAction>): AvailableAction {
   return {

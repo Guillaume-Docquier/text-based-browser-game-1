@@ -177,14 +177,14 @@ Schema parsing should produce refined/domain types and typed custom errors where
 
 ## Branded types and correct construction
 
-Use branded/refined types for meaningful primitives:
+Use branded/refined types for meaningful primitives, avoid passing raw strings/numbers where a domain type exists:
 
 - IDs: `UserId`, `OrgId`, `WorkflowId`
 - parsed strings: `EmailAddress`, `NonEmptyString`, `Url`
 - constrained numbers: `PositiveInt`, `Cents`, `Percentage`
 - units: `Milliseconds`, `Bytes`, `UsdCents`
 
-Use `Brand<>` and `branded()` from `@guillaume-docquier/tools-ts` for this. Construct branded values through parsers when validation matters or via `branded` for producers of simple values like ids that don't require validation. Avoid passing raw strings/numbers where a domain type exists.
+Use `Brand<>` and `branded()` from `@guillaume-docquier/tools-ts` for this. Construct branded values through zod parsers when one exists. `branded<T>(value)` should be used in rare cases.
 
 Avoid optional/null/undefined values in functions that require a value. Push optionality outward. Branch or parse before calling.
 

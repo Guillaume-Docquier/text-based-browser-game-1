@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ActionId } from "#lib/rules-engine/action-submission/Action.ts"
+import { ActionId } from "#lib/db/actions/ActionId.ts"
 
 export type SubmittedActionTargetsDto = z.infer<typeof SubmittedActionTargetsDto>
 export const SubmittedActionTargetsDto = z.object({

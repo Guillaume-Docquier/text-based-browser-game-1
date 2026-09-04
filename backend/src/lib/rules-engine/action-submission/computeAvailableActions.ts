@@ -1,6 +1,7 @@
 import { v4 } from "uuid"
+import { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import { ActionId, type AvailableAction } from "#lib/rules-engine/action-submission/Action.ts"
+import type { AvailableAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 /**
