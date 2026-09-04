@@ -1,4 +1,4 @@
-import { branded, Result } from "@guillaume-docquier/tools-ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import { type PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
@@ -9,7 +9,7 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
 
 export class ResourceGainEffect extends Effect {
   private readonly mechanic: ResourceGainMechanic
-  private readonly targetPlayerId: string
+  private readonly targetPlayerId: PlayerId
 
   public constructor(id: number, mechanic: ResourceGainMechanic, submittedAction: SubmittedAction) {
     super(id, mechanic.type, submittedAction)
@@ -18,7 +18,7 @@ export class ResourceGainEffect extends Effect {
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
-    const player = context.turnState.players[branded<PlayerId>(this.targetPlayerId)]
+    const player = context.turnState.players[this.targetPlayerId]
     if (player === undefined) {
       return Result.Failure(EffectError.Failed({ error: `Could not resolve player with id "${this.targetPlayerId}"` }))
     }
