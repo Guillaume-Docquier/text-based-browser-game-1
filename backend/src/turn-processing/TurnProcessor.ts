@@ -8,7 +8,7 @@ import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Resource
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import { ElapsedTimeContextProvider } from "#turn-processing/ElapsedTimeContextProvider.ts"
-import { type ProcessedTurnModel, type TurnsRepository, type TurnToProcessModel } from "#turn-processing/turns.repository.ts"
+import type { ProcessedTurnModel, TurnsRepository, TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 
 const SCHEDULE_DRIFT_RATIO = 0.15
 const MAX_SCHEDULE_DRIFT_MS = Time.in(Time.create(2, UnitOfTime.MINUTES), UnitOfTime.MILLISECONDS)

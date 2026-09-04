@@ -1,5 +1,5 @@
 import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client"
-import { type AccountModel, type AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import type { AccountModel, AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { AUTH_ID_HEADER } from "#api/accounts/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"

@@ -1,7 +1,7 @@
 import type * as ApiTypes from "@api-types"
 import { useAuth } from "@clerk/react"
 import { Link } from "@tanstack/react-router"
-import { type ReactElement } from "react"
+import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardHeader } from "@/components/card.tsx"

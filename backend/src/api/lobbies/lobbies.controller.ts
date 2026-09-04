@@ -9,7 +9,7 @@ import { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { couldNot, rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
 import { UInt32 } from "#lib/UInt32.ts"
-import { type LobbiesRepository, type LobbyModel } from "./lobbies.repository.ts"
+import type { LobbiesRepository, LobbyModel } from "./lobbies.repository.ts"
 
 export const MAX_NB_SEATS = 16
 
