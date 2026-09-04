@@ -85,7 +85,7 @@ export type JoinLobbyModel = {
    * The LobbyForJoin must be acquired in the same transaction.
    */
   readonly context: LobbyForJoin
-  readonly accountId: AccountId
+  readonly playerId: PlayerId
   readonly color: PlayerColor
   readonly status: typeof GameStatus.WAITING_FOR_PLAYERS | typeof GameStatus.READY_TO_START
 }
@@ -250,11 +250,8 @@ export class LobbiesRepository extends PostgresRepository {
   /**
    * The only failure mode for this method is throwing to rollback the transaction.
    */
-  public async joinLobby({ context, accountId, color, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
-    const gamePlayers = await tx
-      .insert(playersTable)
-      .values({ gameId: context.gameId, playerId: branded(accountId), color })
-      .returning()
+  public async joinLobby({ context, playerId, color, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
+    const gamePlayers = await tx.insert(playersTable).values({ gameId: context.gameId, playerId, color }).returning()
     Assert.isTrue(gamePlayers.length === 1)
     Assert.isDefined(gamePlayers[0])
 

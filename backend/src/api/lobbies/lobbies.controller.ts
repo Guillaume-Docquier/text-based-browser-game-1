@@ -107,7 +107,7 @@ export class LobbiesController {
       const color = Object.values(PlayerColor).find((candidateColor) => !usedColors.has(candidateColor))
       Assert.isDefined(color)
 
-      return await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, accountId, color, status }, tx)
+      return await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, playerId, color, status }, tx)
     })
 
     if (Result.isFailure(joinGameResult)) {
