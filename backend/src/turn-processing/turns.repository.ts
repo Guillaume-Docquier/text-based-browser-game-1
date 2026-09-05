@@ -87,12 +87,14 @@ export class TurnsRepository extends PostgresRepository {
   }
 
   /**
-   * Claims every collecting turn whose action deadline has passed.
-   * The update waits for an in-flight action transaction holding the turn row lock,
-   * then re-checks the predicates before changing the status.
+   * Moves all due turns to AWAITING_PROCESSING.
    */
-  public async markDueTurnsAwaitingProcessing({ since }: { since: Date }, tx: Transaction): Promise<void> {
-    await tx
+  public async markDueTurnsAwaitingProcessing({ since }: { since: Date }, db: PostgresRepository["db"] = this.db): Promise<void> {
+    // We can't do .for("no key update", { skipLocked: true }) on an update statement
+    // This will wait until all rows are unlocked
+    // It shouldn't happen a lot, and it should resolve really quickly
+    // But it's still a risk vector for... eventually
+    await db
       .update(turnsTable)
       .set({ status: TurnStatus.AWAITING_PROCESSING })
       .where(and(eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS), lte(turnsTable.endsAt, since)))
