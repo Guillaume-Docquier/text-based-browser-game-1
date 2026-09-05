@@ -31,6 +31,9 @@ export type TurnForProcessing = Branded<
 >
 
 export type StartTurnProcessingModel = {
+  /**
+   * The TurnForProcessing must be acquired in the same transaction.
+   */
   turn: TurnForProcessing
   processingStartedAt: Date
 }
@@ -110,15 +113,7 @@ export class TurnsRepository extends PostgresRepository {
         turn: turnsProcessingTable.turn,
       })
       .from(turnsProcessingTable)
-      .innerJoin(turnsTable, and(eq(turnsProcessingTable.gameId, turnsTable.gameId), eq(turnsProcessingTable.turn, turnsTable.turn)))
-      .where(
-        and(
-          lte(turnsProcessingTable.scheduledFor, since),
-          isNull(turnsProcessingTable.processingStartedAt),
-          isNull(turnsProcessingTable.processingEndedAt),
-          eq(turnsTable.status, TurnStatus.AWAITING_PROCESSING),
-        ),
-      )
+      .where(and(lte(turnsProcessingTable.scheduledFor, since), isNull(turnsProcessingTable.processingStartedAt)))
       .orderBy(asc(turnsProcessingTable.scheduledFor))
       .limit(1)
       .for("no key update", { skipLocked: true })
@@ -160,7 +155,6 @@ export class TurnsRepository extends PostgresRepository {
           eq(turnsProcessingTable.gameId, startTurnProcessingModel.turn.gameId),
           eq(turnsProcessingTable.turn, startTurnProcessingModel.turn.turn),
           isNull(turnsProcessingTable.processingStartedAt),
-          isNull(turnsProcessingTable.processingEndedAt),
         ),
       )
       .returning({ scheduledFor: turnsProcessingTable.scheduledFor })
