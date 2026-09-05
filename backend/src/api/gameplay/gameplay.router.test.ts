@@ -94,8 +94,8 @@ describe("gameplay.router", () => {
       const startGameResult = await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(startGameResult).toStrictEqual<typeof startGameResult>({ nextTurnAt: expect.any(String) }) // trpc serializes the date to string
-      expect(new Date(startGameResult.nextTurnAt).toString()).not.toBe("Invalid Date")
+      expect(startGameResult).toStrictEqual<typeof startGameResult>({ turnEndsAt: expect.any(String) }) // trpc serializes the date to string
+      expect(new Date(startGameResult.turnEndsAt).toString()).not.toBe("Invalid Date")
     })
 
     it("should reject starting a game as a non-creator", async () => {
@@ -194,7 +194,8 @@ describe("gameplay.router", () => {
         opponents: {},
         galaxy: expect.any(Object), // Verified by the snapshot test
         turn: 0,
-        nextTurnAt: Datetime.increment({
+        turnStatus: "COLLECTING_ACTIONS",
+        turnEndsAt: Datetime.increment({
           date: clock.now(),
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),
@@ -449,6 +450,34 @@ describe("gameplay.router", () => {
           submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
         }),
       ).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+      })
+    })
+
+    it("should reject setting an action after the turn deadline", async () => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
+      })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      Assert.isDefined(makeMoreMoney)
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+
+      // Act
+      const updateActionSubmission = player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: playerView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
+      })
+
+      // Assert
+      await expect(updateActionSubmission).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })

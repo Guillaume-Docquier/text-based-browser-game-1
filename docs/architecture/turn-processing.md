@@ -16,7 +16,7 @@ Players will be able to tweak any setting at will.
 
 The turn processing pipeline will:
 
-- take as input the game state and ruleset
+- take as input the current Turn state and ruleset
 - determine non-player actions that will occur
 - sort actions in the order that they should occur
 - apply actions to the game state
@@ -32,33 +32,18 @@ Tweaking numbers or the order of actions should require 0 backend changes, only 
 
 ```mermaid
 sequenceDiagram
-        participant P3@{ "type": "collections" } as TurnProcessor
-        participant P4 as processTurns
-        participant P1@{ "type": "database" } as GameTurnsRepository
-        participant P2@{ "type": "database" } as GameStatesRepository
-        participant P6@{ "type": "database" } as GameRulesetsRepository
-        participant P5 as processTurn
-        participant P8 as buildTurnPlan
-        participant P7@{ "type": "collections" } as GameStep
-        loop every second
-          P3->>P4: call
-          P4->>P1: getNextTurnToProcess()
-          P1->>P4: GameTurn | undefined
-          alt GameTurn found
-            P4->>P2: getGameState(gameId, turn)
-            P4->>P6: getGameRuleset(gameId)
-            P2->>P4: GameState
-            P6->>P4: GameRuleset
-            P4->>P5: call(gameState, gameRuleset)
-            P5->>P8: call(gameRuleset, gameState, playerCommands)
-            P8->>P5: Array<GameStep>
-            loop foreach GameStep
-              P5->>P7: execute(newGameState)
-            end
-            P5->>P4: newGameState
-            P4->>P2: insert(newGameState)
-            P4->>P1: insert(newTurn)
+        participant P3 as TurnProcessor
+        participant P1@{ "type": "database" } as TurnsRepository
+        participant P2@{ "type": "collections" } as resolveTurn
+        loop every worker check
+          P3->>P1: promote expired collecting Turns
+          P3->>P1: claim queued AWAITING_PROCESSING Turn
+          alt Turn found
+            P1->>P3: locked Turn state and processing row
+            P3->>P2: resolve locked submissions
+            P2->>P3: processed Turn and next state
+            P3->>P1: complete current Turn
+            P3->>P1: insert next Turn and processing row
           end
-          P4->>P3: void
         end
 ```

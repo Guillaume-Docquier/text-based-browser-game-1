@@ -169,10 +169,7 @@ export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; p
     (status === GameStatus.WAITING_FOR_PLAYERS || status === GameStatus.READY_TO_START) &&
     lobbyModel.creator.id === playerId
 
-  const canOpen =
-    playerId !== undefined &&
-    (status === GameStatus.COLLECTING_ACTIONS || status === GameStatus.PROCESSING_TURN) &&
-    lobbyModel.players.some((player) => player.id === playerId)
+  const canOpen = status === GameStatus.IN_PROGRESS && lobbyModel.players.some((player) => player.id === playerId)
 
   return {
     ...lobbyModel,

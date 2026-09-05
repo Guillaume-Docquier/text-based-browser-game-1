@@ -127,7 +127,7 @@ describe("TurnProcessor", () => {
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 0,
@@ -136,6 +136,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -144,7 +145,7 @@ describe("TurnProcessor", () => {
       expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
         turn: 1,
-        nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
+        turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
         resources: createResourcesDtoStub({
           [ResourceType.INFLUENCE]: { uncommitted: 8, total: 8 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
@@ -178,10 +179,11 @@ describe("TurnProcessor", () => {
         })
       }
 
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
       // Act
       clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -211,16 +213,17 @@ describe("TurnProcessor", () => {
         })
         await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-        const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+        const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
         // Act
         clock.increment({ time: timeIncrement })
+        await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
         await turnProcessor.processNextDueTurn()
 
         // Assert
         expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
           turn: 1,
-          nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
+          turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
         })
       },
     )
@@ -228,15 +231,16 @@ describe("TurnProcessor", () => {
     it("should fail the turn when a locked action submission is no longer affordable", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, accountsRepository, logger, clock } = await createApiStub({ db })
+      const clock = new ControlledClock()
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 0 }),
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
       const resourcesRepository = new ResourcesRepository({ db, logger })
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
@@ -255,6 +259,8 @@ describe("TurnProcessor", () => {
       )
 
       // Act
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       const result = await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -282,10 +288,11 @@ describe("TurnProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId: earlierGameId })
 
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
       // Act
       clock.increment({ time: Time.create(200, UnitOfTime.SECONDS) })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -313,13 +320,15 @@ describe("TurnProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId })
 
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
       // Act
       clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -336,7 +345,7 @@ describe("TurnProcessor", () => {
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
       const processingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
       const { createdGameId: processingGameId } = await player.client.lobbies.create.mutate({
@@ -346,6 +355,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: processingTurnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       const processingResults = await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
 
       // Assert
@@ -381,6 +391,7 @@ describe("TurnProcessor", () => {
 
       // Act
       clock.increment({ time: successfulTurnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -414,12 +425,13 @@ describe("TurnProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId: laterGameId })
 
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
       // Act
       clock.increment({ time: laterTurnInterval })
 
       // if rows are locked correctly, processing 2 turns concurrently should result in 2 different turns being processed
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
 
       // Assert
@@ -447,10 +459,11 @@ describe("TurnProcessor", () => {
       })
       await player.client.gameplay.startGame.mutate({ gameId })
 
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
       // Act
       clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       // if rows are locked correctly, processing 2 turns concurrently should result in 1 turn being processed and the other one will do nothing
       await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
 
@@ -464,18 +477,19 @@ describe("TurnProcessor", () => {
     it("should fully process every player and select at most one deterministic winner", async () => {
       // Arrange
       const db = await createDbMock()
-      const { api, accountsRepository, logger, clock } = await createApiStub({ db })
+      const clock = new ControlledClock()
+      const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 0 }),
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
       })
       await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
       const resourcesRepository = new ResourcesRepository({ db, logger })
 
       for (const { player, amountDelta } of [
@@ -500,7 +514,12 @@ describe("TurnProcessor", () => {
         })
       }
 
+      const creatorViewBeforeProcessing = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const joinerViewBeforeProcessing = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
       // Act
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       await turnProcessor.processNextDueTurn()
 
       // Assert
@@ -515,19 +534,22 @@ describe("TurnProcessor", () => {
 
       const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(creatorView).toMatchObject({
-        turn: 1,
+        turn: 0,
+        turnStatus: "COMPLETED",
         resources: {
           [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
         },
+        actions: creatorViewBeforeProcessing.actions, // We should see the submitted actions for that turn
       })
-      expect(creatorView.actions).toHaveLength(5)
 
       const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(joinerView).toMatchObject({
-        turn: 1,
+        turn: 0,
+        turnStatus: "COMPLETED",
         resources: {
           [ResourceType.INFLUENCE]: { total: 5, uncommitted: 5 },
         },
+        actions: joinerViewBeforeProcessing.actions, // We should see the submitted actions for that turn
       })
     })
 
@@ -540,7 +562,7 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 0 }),
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
       })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -556,8 +578,11 @@ describe("TurnProcessor", () => {
       const turnToProcess = { gameId: createdGameId, turn: 0 }
 
       // Act
+      clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
       const failedProcessingResult = await turnProcessor.processNextDueTurn()
       const playerViewAfterFailedSave = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
       turnsRepository.shouldFail = false
       await turnsRepository.resetProcessingAttempt(turnToProcess)
       const retriedProcessingResult = await turnProcessor.processNextDueTurn()

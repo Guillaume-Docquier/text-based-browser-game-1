@@ -1,5 +1,5 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
-import { and, eq } from "drizzle-orm"
+import { and, desc, eq, gt } from "drizzle-orm"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -7,7 +7,7 @@ import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
-import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import type { GameStatus } from "#lib/db/games/GameStatus.ts"
 import type { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
@@ -17,16 +17,17 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   actionsTable,
-  gameStatesTable,
   gamesTable,
   planetsTable,
   playersTable,
   resourcesTable,
   starsTable,
   turnsTable,
+  turnsProcessingTable,
   rulesetsTable,
 } from "#lib/db/schema.ts"
 import type { StarId } from "#lib/db/stars/StarId.ts"
+import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
@@ -35,11 +36,11 @@ import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Resource
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
-type NewGameStateRow = typeof gameStatesTable.$inferInsert
 type NewActionRow = typeof actionsTable.$inferInsert
 type NewResourceRow = typeof resourcesTable.$inferInsert
 type ResourceRow = typeof resourcesTable.$inferSelect
 type NewTurnRow = typeof turnsTable.$inferInsert
+type NewTurnProcessingRow = typeof turnsProcessingTable.$inferInsert
 
 /**
  * postgress has a limit of 32767 (int16) bind parameters for a query. Some sources say 65536 (int32), it's not clear.
@@ -88,7 +89,8 @@ export type PlayerViewModel = {
   readonly opponents: Record<PlayerId, PlayerViewPlayerModel>
   readonly galaxy: GalaxyModel
   readonly turn: number
-  readonly nextTurnAt: Date
+  readonly turnStatus: TurnStatus
+  readonly turnEndsAt: Date
   readonly resources: Resources
   /**
    * All the available actions, with their targets if submitted.
@@ -121,7 +123,13 @@ export type StartGameModel = {
   readonly context: GameForStart
   readonly status: GameStatus
   readonly startedAt: Date
-  readonly nextTurnAt: Date
+  /**
+   * When the first turn should end
+   */
+  readonly turnEndsAt: Date
+  /**
+   * The rng state to use for the first turn's processing
+   */
   readonly rngState: RngState<number>
   readonly playerResources: ReadonlyArray<{
     readonly playerId: PlayerId
@@ -246,18 +254,21 @@ export class GameplayRepository extends PostgresRepository {
    * The only failure mode for this method is throwing to rollback the transaction.
    */
   public async startGame(startGameModel: StartGameModel, tx: Transaction): Promise<void> {
-    const gameState = {
-      gameId: startGameModel.context.gameId,
-      turn: 0,
-      nextTurnAt: startGameModel.nextTurnAt,
-      rngGeneratorState: startGameModel.rngState.generatorState,
-      rngSpareNormal: startGameModel.rngState.spareNormal,
-    } as const satisfies NewGameStateRow
-
+    // Prepare data
     const gameTurn: NewTurnRow = {
       gameId: startGameModel.context.gameId,
-      turn: gameState.turn,
-      scheduledFor: startGameModel.nextTurnAt,
+      turn: 0,
+      status: TurnStatus.COLLECTING_ACTIONS,
+      startedAt: startGameModel.startedAt,
+      endsAt: startGameModel.turnEndsAt,
+      rngGeneratorState: startGameModel.rngState.generatorState,
+      rngSpareNormal: startGameModel.rngState.spareNormal,
+    }
+
+    const turnProcessing: NewTurnProcessingRow = {
+      gameId: startGameModel.context.gameId,
+      turn: gameTurn.turn,
+      scheduledFor: gameTurn.endsAt,
     }
 
     const resources: NewResourceRow[] = startGameModel.playerResources.map((playerResource) => ({
@@ -267,7 +278,7 @@ export class GameplayRepository extends PostgresRepository {
     const availableActions: NewActionRow[] = startGameModel.availableActions.map((availableAction) => ({
       ...availableAction,
       gameId: startGameModel.context.gameId,
-      turn: gameState.turn,
+      turn: gameTurn.turn,
       targets: null,
     }))
     const stars = startGameModel.galaxy.systems.map(({ star }) => ({
@@ -282,6 +293,7 @@ export class GameplayRepository extends PostgresRepository {
       })),
     )
 
+    // Update db
     const updatedGames = await tx
       .update(gamesTable)
       .set({ startedAt: startGameModel.startedAt, status: startGameModel.status })
@@ -289,15 +301,15 @@ export class GameplayRepository extends PostgresRepository {
       .returning({ id: gamesTable.id })
     Assert.isTrue(updatedGames.length === 1)
 
+    await tx.insert(turnsTable).values(gameTurn)
+    await tx.insert(turnsProcessingTable).values(turnProcessing)
     await tx.insert(resourcesTable).values(resources)
+    if (availableActions.length > 0) {
+      await tx.insert(actionsTable).values(availableActions)
+    }
     await tx.insert(starsTable).values(stars)
     for (let index = 0; index < planets.length; index += PLANET_INSERT_BATCH_SIZE) {
       await tx.insert(planetsTable).values(planets.slice(index, index + PLANET_INSERT_BATCH_SIZE))
-    }
-    await tx.insert(gameStatesTable).values(gameState)
-    await tx.insert(turnsTable).values(gameTurn)
-    if (availableActions.length > 0) {
-      await tx.insert(actionsTable).values(availableActions)
     }
   }
 
@@ -306,63 +318,78 @@ export class GameplayRepository extends PostgresRepository {
     db: PostgresRepository["db"] = this.db,
   ): Promise<Result<PlayerViewModel | undefined, string>> {
     const playerViewResult = await Result.tryCatch(
-      db.transaction(async (tx) => {
-        const gameStates = await tx.select().from(gameStatesTable).where(eq(gameStatesTable.gameId, gameId))
-        Assert.isTrue(gameStates.length === 1)
+      db.transaction(
+        async (tx) => {
+          const turns = await tx
+            .select({
+              turn: turnsTable.turn,
+              status: turnsTable.status,
+              endsAt: turnsTable.endsAt,
+            })
+            .from(turnsTable)
+            .where(eq(turnsTable.gameId, gameId))
+            .orderBy(desc(turnsTable.turn))
+            .limit(1)
+          Assert.isTrue(turns.length <= 1)
 
-        const gameState = gameStates[0]
-        if (gameState === undefined) {
-          return undefined
-        }
+          const turn = turns[0]
+          if (turn === undefined) {
+            return undefined
+          }
 
-        const gameRows = await tx.select({ rulesetId: gamesTable.rulesetId }).from(gamesTable).where(eq(gamesTable.id, gameId))
-        Assert.isTrue(gameRows.length === 1)
-        Assert.isDefined(gameRows[0])
+          const gameRows = await tx.select({ rulesetId: gamesTable.rulesetId }).from(gamesTable).where(eq(gamesTable.id, gameId))
+          Assert.isTrue(gameRows.length === 1)
+          Assert.isDefined(gameRows[0])
 
-        const ruleset = await this.getRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
-        if (ruleset === undefined) {
-          throw new TransactionRollbackError("No ruleset found for this game")
-        }
+          const ruleset = await this.getRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
+          if (ruleset === undefined) {
+            throw new TransactionRollbackError("No ruleset found for this game")
+          }
 
-        const players = await tx
-          .select({
-            id: playersTable.playerId,
-            color: playersTable.color,
-          })
-          .from(playersTable)
-          .where(eq(playersTable.gameId, gameId))
-        const player = players.find(({ id }) => id === playerId)
-        Assert.isDefined(player)
-        const opponents = Object.fromEntries(players.filter(({ id }) => id !== playerId).map((opponent) => [opponent.id, opponent]))
+          const players = await tx
+            .select({
+              id: playersTable.playerId,
+              color: playersTable.color,
+            })
+            .from(playersTable)
+            .where(eq(playersTable.gameId, gameId))
+          const player = players.find(({ id }) => id === playerId)
+          Assert.isDefined(player)
+          const opponents = Object.fromEntries(players.filter(({ id }) => id !== playerId).map((opponent) => [opponent.id, opponent]))
 
-        const playerResources = await tx
-          .select()
-          .from(resourcesTable)
-          .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
+          const playerResources = await tx
+            .select()
+            .from(resourcesTable)
+            .where(and(eq(resourcesTable.gameId, gameId), eq(resourcesTable.playerId, playerId)))
 
-        const availableActionRows = await tx
-          .select({
-            id: actionsTable.id,
-            actionDefinitionId: actionsTable.actionDefinitionId,
-            targets: actionsTable.targets,
-          })
-          .from(actionsTable)
-          .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, gameState.turn)))
-          .orderBy(actionsTable.id)
+          const availableActionRows = await tx
+            .select({
+              id: actionsTable.id,
+              actionDefinitionId: actionsTable.actionDefinitionId,
+              targets: actionsTable.targets,
+            })
+            .from(actionsTable)
+            .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn.turn)))
+            .orderBy(actionsTable.id)
 
-        const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
-        const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
+          const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
+          const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
 
-        return {
-          ...gameState,
-          player,
-          opponents,
-          galaxy: toGalaxyModel({ stars, planets }),
-          resources: toResourceBag(playerResources),
-          actions: availableActionRows,
-          ruleset,
-        }
-      }),
+          return {
+            player,
+            opponents,
+            galaxy: toGalaxyModel({ stars, planets }),
+            gameId,
+            turn: turn.turn,
+            turnStatus: turn.status,
+            turnEndsAt: turn.endsAt,
+            resources: toResourceBag(playerResources),
+            actions: availableActionRows,
+            ruleset,
+          }
+        },
+        { isolationLevel: "repeatable read" },
+      ),
     )
 
     if (Result.isFailure(playerViewResult)) {
@@ -377,17 +404,32 @@ export class GameplayRepository extends PostgresRepository {
     { gameId, playerId, turn }: { gameId: GameId; playerId: PlayerId; turn: number },
     tx: Transaction,
   ): Promise<ActionSubmissionsForUpdate> {
+    const gameTurns = await tx
+      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, endsAt: turnsTable.endsAt })
+      .from(turnsTable)
+      .where(
+        and(
+          eq(turnsTable.gameId, gameId),
+          eq(turnsTable.turn, turn),
+          eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS),
+          gt(turnsTable.endsAt, this.clock.now()),
+        ),
+      )
+      .for("no key update")
+    Assert.isTrue(gameTurns.length <= 1)
+
+    const gameTurn = gameTurns[0]
+    if (gameTurn === undefined) {
+      throw new TransactionRollbackError("Cannot submit actions for this turn")
+    }
+
     const games = await tx
       .select({
-        id: gamesTable.id,
         rulesetId: gamesTable.rulesetId,
       })
       .from(gamesTable)
-      .where(and(eq(gamesTable.id, gameId), eq(gamesTable.status, GameStatus.COLLECTING_ACTIONS)))
-      .for("no key update")
-    if (games.length !== 1) {
-      throw new TransactionRollbackError("Cannot submit actions in the current game status")
-    }
+      .where(eq(gamesTable.id, gameId))
+    Assert.isTrue(games.length === 1)
     Assert.isDefined(games[0])
 
     const ruleset = await this.getRuleset({ rulesetId: games[0].rulesetId }, tx)

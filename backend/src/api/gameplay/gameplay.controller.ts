@@ -17,6 +17,7 @@ import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { StarId } from "#lib/db/stars/StarId.ts"
+import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
@@ -71,7 +72,7 @@ export class GameplayController {
       }
 
       const startedAt = this.clock.now()
-      const nextTurnAt = Datetime.increment({ date: startedAt, time: gameForStart.turnInterval })
+      const turnEndsAt = Datetime.increment({ date: startedAt, time: gameForStart.turnInterval })
 
       const startingResources = Object.values(ResourceType).map((resourceType) => ({
         resourceType,
@@ -86,9 +87,9 @@ export class GameplayController {
       await this.gameplayRepository.startGame(
         {
           context: gameForStart,
-          status: GameStatus.COLLECTING_ACTIONS,
+          status: GameStatus.IN_PROGRESS,
           startedAt,
-          nextTurnAt,
+          turnEndsAt,
           // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           playerResources,
@@ -101,7 +102,7 @@ export class GameplayController {
         tx,
       )
 
-      return { nextTurnAt }
+      return { turnEndsAt }
     })
 
     if (Result.isFailure(startGameResult)) {
@@ -223,11 +224,14 @@ function createGalaxy(seed: number): GalaxyModel {
 }
 
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
-  const uncommittedResources = getUncommittedResources({
-    resources: playerViewModel.resources,
-    actions: playerViewModel.actions.filter((action) => action.targets !== null),
-    ruleset: playerViewModel.ruleset,
-  })
+  const uncommittedResources =
+    playerViewModel.turnStatus === TurnStatus.COMPLETED
+      ? playerViewModel.resources // When the turn is completed, at action costs have been spent already, so we don't need to compute commitments
+      : getUncommittedResources({
+          resources: playerViewModel.resources,
+          actions: playerViewModel.actions.filter((action) => action.targets !== null),
+          ruleset: playerViewModel.ruleset,
+        })
 
   return {
     gameId: playerViewModel.gameId,
@@ -240,7 +244,8 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
       })),
     },
     turn: playerViewModel.turn,
-    nextTurnAt: playerViewModel.nextTurnAt,
+    turnStatus: playerViewModel.turnStatus,
+    turnEndsAt: playerViewModel.turnEndsAt,
     resources: toResourcesDto(playerViewModel.resources, uncommittedResources),
     ruleset: playerViewModel.ruleset,
     actions: toActionDtos(playerViewModel, uncommittedResources),
@@ -326,7 +331,7 @@ export const StartGameDto = z.object({
 
 export type StartedGameDto = z.infer<typeof StartedGameDto>
 export const StartedGameDto = z.object({
-  nextTurnAt: z.date(),
+  turnEndsAt: z.date(),
 })
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
@@ -386,7 +391,8 @@ export const PlayerViewDto = z.object({
   opponents: z.record(PlayerId, PlayerViewPlayerDto),
   galaxy: GalaxyDto,
   turn: z.number(),
-  nextTurnAt: z.date(),
+  turnStatus: z.enum(TurnStatus),
+  turnEndsAt: z.date(),
   resources: ResourcesDtoSchema,
   ruleset: RulesetSchema,
   actions: z.array(ActionDto),

@@ -3,8 +3,8 @@ import { branded } from "@guillaume-docquier/tools-ts"
 import { Clock3, Crown, RefreshCw, TimerReset } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
 import { Button } from "@/components/button.tsx"
-import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
 import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
+import { TurnStatusBadge } from "@/features/play/components/TurnStatusBadge.tsx"
 import { formatRulesetTerm } from "@/features/play/mechanicToRulesText.ts"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
@@ -18,14 +18,14 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Game #{game.id}</div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">{game.configuration.name}</h1>
-            <GameStatusBadge status={game.status} />
+            <TurnStatusBadge status={playerView.turnStatus} />
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <PlayerFact game={game} player={playerView.player} />
           <ResourcesFact resources={playerView.resources} />
           <TurnFact turn={playerView.turn} />
-          <NextTurnFact targetTimestamp={playerView.nextTurnAt} />
+          <NextTurnFact targetTimestamp={playerView.turnEndsAt} />
         </div>
       </div>
       {game.winnerAccountId === null ? null : (
@@ -121,14 +121,14 @@ function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
   const refreshClientData = useRefreshClientData()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentTime, setCurrentTime] = useState(() => new Date())
-  const nextTurnAt = new Date(targetTimestamp)
-  const timeLeft = calculateTimeLeft({ past: currentTime, future: nextTurnAt })
-  const nextTurnAtLabel = new Intl.DateTimeFormat(undefined, {
+  const turnEndsAt = new Date(targetTimestamp)
+  const timeLeft = calculateTimeLeft({ past: currentTime, future: turnEndsAt })
+  const turnEndsAtLabel = new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(nextTurnAt)
+  }).format(turnEndsAt)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -155,7 +155,7 @@ function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
   if (timeLeft.noTimeLeft) {
     return (
       <NextTurnRefreshButton
-        detail={nextTurnAtLabel}
+        detail={turnEndsAtLabel}
         isRefreshing={isRefreshing}
         onRefresh={() => {
           void refreshGameData()
@@ -169,7 +169,7 @@ function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
       icon={<Clock3 className="size-4" />}
       label="Next turn"
       value={`${timeLeft.duration.days}d ${timeLeft.duration.hours}h ${timeLeft.duration.minutes}m ${timeLeft.duration.seconds}s`}
-      detail={nextTurnAtLabel}
+      detail={turnEndsAtLabel}
     />
   )
 }
