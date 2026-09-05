@@ -293,37 +293,7 @@ export class TurnsRepository extends PostgresRepository {
             },
           })
 
-        if (processedTurnModel.nextTurnScheduledFor !== undefined) {
-          const insertedTurns = await tx
-            .insert(turnsTable)
-            .values({
-              gameId: processedTurnModel.gameId,
-              turn: processedTurnModel.nextTurn,
-              status: TurnStatus.COLLECTING_ACTIONS,
-              startedAt: processedTurnModel.processedAt,
-              endsAt: processedTurnModel.nextTurnScheduledFor,
-              rngGeneratorState: processedTurnModel.rngState.generatorState,
-              rngSpareNormal: processedTurnModel.rngState.spareNormal,
-            })
-            .returning()
-          Assert.isTrue(insertedTurns.length === 1)
-
-          await tx.insert(turnsProcessingTable).values({
-            gameId: processedTurnModel.gameId,
-            turn: processedTurnModel.nextTurn,
-            scheduledFor: processedTurnModel.nextTurnScheduledFor,
-          })
-
-          const availableActions = processedTurnModel.availableActions.map((availableAction) => ({
-            ...availableAction,
-            gameId: processedTurnModel.gameId,
-            turn: processedTurnModel.nextTurn,
-            targets: null,
-          }))
-          if (availableActions.length > 0) {
-            await tx.insert(actionsTable).values(availableActions)
-          }
-        } else {
+        if (processedTurnModel.nextTurnScheduledFor === undefined) {
           Assert.isDefined(processedTurnModel.endedAt)
           const updatedGames = await tx
             .update(gamesTable)
@@ -335,6 +305,37 @@ export class TurnsRepository extends PostgresRepository {
             .where(eq(gamesTable.id, processedTurnModel.gameId))
             .returning()
           Assert.isTrue(updatedGames.length === 1)
+          return
+        }
+
+        const insertedTurns = await tx
+          .insert(turnsTable)
+          .values({
+            gameId: processedTurnModel.gameId,
+            turn: processedTurnModel.nextTurn,
+            status: TurnStatus.COLLECTING_ACTIONS,
+            startedAt: processedTurnModel.processedAt,
+            endsAt: processedTurnModel.nextTurnScheduledFor,
+            rngGeneratorState: processedTurnModel.rngState.generatorState,
+            rngSpareNormal: processedTurnModel.rngState.spareNormal,
+          })
+          .returning()
+        Assert.isTrue(insertedTurns.length === 1)
+
+        await tx.insert(turnsProcessingTable).values({
+          gameId: processedTurnModel.gameId,
+          turn: processedTurnModel.nextTurn,
+          scheduledFor: processedTurnModel.nextTurnScheduledFor,
+        })
+
+        const availableActions = processedTurnModel.availableActions.map((availableAction) => ({
+          ...availableAction,
+          gameId: processedTurnModel.gameId,
+          turn: processedTurnModel.nextTurn,
+          targets: null,
+        }))
+        if (availableActions.length > 0) {
+          await tx.insert(actionsTable).values(availableActions)
         }
       }),
     )
