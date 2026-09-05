@@ -3,7 +3,7 @@ packages:
   - frontend
 
 catalog:
-  "@guillaume-docquier/tools-ts": ^7.5.1
+  "@guillaume-docquier/tools-ts": ^7.5.2
   "typescript": ~7.0.2
 
 minimumReleaseAgeStrict: true
