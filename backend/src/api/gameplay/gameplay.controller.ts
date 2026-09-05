@@ -224,11 +224,14 @@ function createGalaxy(seed: number): GalaxyModel {
 }
 
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
-  const uncommittedResources = getUncommittedResources({
-    resources: playerViewModel.resources,
-    actions: playerViewModel.actions.filter((action) => action.targets !== null),
-    ruleset: playerViewModel.ruleset,
-  })
+  const uncommittedResources =
+    playerViewModel.turnStatus === TurnStatus.COMPLETED
+      ? playerViewModel.resources // When the turn is completed, at action costs have been spent already, so we don't need to compute commitments
+      : getUncommittedResources({
+          resources: playerViewModel.resources,
+          actions: playerViewModel.actions.filter((action) => action.targets !== null),
+          ruleset: playerViewModel.ruleset,
+        })
 
   return {
     gameId: playerViewModel.gameId,

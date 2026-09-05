@@ -503,6 +503,9 @@ describe("TurnProcessor", () => {
         })
       }
 
+      const creatorViewBeforeProcessing = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const joinerViewBeforeProcessing = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
       // Act
       clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
       await turnProcessor.processNextDueTurn()
@@ -524,8 +527,8 @@ describe("TurnProcessor", () => {
         resources: {
           [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 },
         },
+        actions: creatorViewBeforeProcessing.actions, // We should see the submitted actions for that turn
       })
-      expect(creatorView.actions).toHaveLength(0)
 
       const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(joinerView).toMatchObject({
@@ -534,6 +537,7 @@ describe("TurnProcessor", () => {
         resources: {
           [ResourceType.INFLUENCE]: { total: 5, uncommitted: 5 },
         },
+        actions: joinerViewBeforeProcessing.actions, // We should see the submitted actions for that turn
       })
     })
 

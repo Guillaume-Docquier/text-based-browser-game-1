@@ -192,9 +192,18 @@ export const turnsTable = pgTable(
     turn: integer("turn").notNull(),
     status: turnStatusEnum("status").notNull(),
     startedAt: timestamp("started_at").notNull(),
+    /**
+     * When the turn is set to end
+     */
     endsAt: timestamp("ends_at").notNull(),
     completedAt: timestamp("completed_at"),
+    /**
+     * The Rng state to use for the turn's resolution
+     */
     rngGeneratorState: bigint("rng_generator_state", { mode: "number" }).notNull(),
+    /**
+     * The Rng state to use for the turn's resolution
+     */
     rngSpareNormal: doublePrecision("rng_spare_normal"),
   },
   (table) => [

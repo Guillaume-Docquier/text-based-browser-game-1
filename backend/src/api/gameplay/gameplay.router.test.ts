@@ -469,14 +469,15 @@ describe("gameplay.router", () => {
       Assert.isDefined(makeMoreMoney)
       clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
 
-      // Act & Assert
-      await expect(
-        player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: playerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
-        }),
-      ).rejects.toMatchObject({
+      // Act
+      const updateActionSubmission = player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: playerView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
+      })
+
+      // Assert
+      await expect(updateActionSubmission).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
     })

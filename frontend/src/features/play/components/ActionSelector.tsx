@@ -3,7 +3,6 @@ import { Sort } from "@guillaume-docquier/tools-ts"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
-import { Skeleton } from "@/components/skeleton.tsx"
 import { ActionCard } from "@/features/play/components/ActionCard.tsx"
 import { useUpdateActionSubmission } from "@/lib/api/useUpdateActionSubmission.ts"
 
@@ -18,6 +17,7 @@ export const ActionTierRank = {
 
 export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerView: PlayerView }): ReactElement {
   const updateActionSubmission = useUpdateActionSubmission()
+  const isTurnLocked = playerView.turnStatus !== "COLLECTING_ACTIONS"
 
   return (
     <section className="flex flex-col gap-5">
@@ -52,7 +52,7 @@ export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerV
                 resources={playerView.resources}
                 canAfford={action.canAfford}
                 isSelected={isSelected}
-                disabled={updateActionSubmission.isPending || (!action.canAfford && !isSelected)}
+                disabled={isTurnLocked || updateActionSubmission.isPending || (!action.canAfford && !isSelected)}
                 onSelect={selectAction}
               />
             )
@@ -66,22 +66,6 @@ export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerV
           <AlertDescription>{updateActionSubmission.error.message}</AlertDescription>
         </Alert>
       ) : null}
-    </section>
-  )
-}
-
-export function ActionSelectorSkeleton(): ReactElement {
-  return (
-    <section className="flex flex-col gap-5">
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-4 w-full max-w-xl" />
-      </div>
-      <div className="flex flex-wrap gap-6 px-4 pt-4">
-        <Skeleton className="h-64 w-full sm:w-80" />
-        <Skeleton className="h-64 w-full sm:w-80" />
-      </div>
     </section>
   )
 }
