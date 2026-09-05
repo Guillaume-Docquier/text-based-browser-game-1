@@ -72,7 +72,7 @@ export class GameplayController {
       }
 
       const startedAt = this.clock.now()
-      const nextTurnAt = Datetime.increment({ date: startedAt, time: gameForStart.turnInterval })
+      const turnEndsAt = Datetime.increment({ date: startedAt, time: gameForStart.turnInterval })
 
       const startingResources = Object.values(ResourceType).map((resourceType) => ({
         resourceType,
@@ -89,7 +89,7 @@ export class GameplayController {
           context: gameForStart,
           status: GameStatus.IN_PROGRESS,
           startedAt,
-          nextTurnAt,
+          turnEndsAt,
           // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
           rngState: { generatorState: UInt32.random(), spareNormal: null },
           playerResources,
@@ -102,7 +102,7 @@ export class GameplayController {
         tx,
       )
 
-      return { nextTurnAt }
+      return { turnEndsAt }
     })
 
     if (Result.isFailure(startGameResult)) {
@@ -242,7 +242,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     },
     turn: playerViewModel.turn,
     turnStatus: playerViewModel.turnStatus,
-    nextTurnAt: playerViewModel.nextTurnAt,
+    turnEndsAt: playerViewModel.turnEndsAt,
     resources: toResourcesDto(playerViewModel.resources, uncommittedResources),
     ruleset: playerViewModel.ruleset,
     actions: toActionDtos(playerViewModel, uncommittedResources),
@@ -328,7 +328,7 @@ export const StartGameDto = z.object({
 
 export type StartedGameDto = z.infer<typeof StartedGameDto>
 export const StartedGameDto = z.object({
-  nextTurnAt: z.date(),
+  turnEndsAt: z.date(),
 })
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
@@ -389,7 +389,7 @@ export const PlayerViewDto = z.object({
   galaxy: GalaxyDto,
   turn: z.number(),
   turnStatus: z.enum(TurnStatus),
-  nextTurnAt: z.date(),
+  turnEndsAt: z.date(),
   resources: ResourcesDtoSchema,
   ruleset: RulesetSchema,
   actions: z.array(ActionDto),

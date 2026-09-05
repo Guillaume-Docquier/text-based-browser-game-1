@@ -144,7 +144,7 @@ describe("TurnProcessor", () => {
       expect(playerView).toStrictEqual<typeof playerView>({
         ...initialPlayerView,
         turn: 1,
-        nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
+        turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
         resources: createResourcesDtoStub({
           [ResourceType.INFLUENCE]: { uncommitted: 8, total: 8 },
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
@@ -220,7 +220,7 @@ describe("TurnProcessor", () => {
         // Assert
         expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toMatchObject({
           turn: 1,
-          nextTurnAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
+          turnEndsAt: Datetime.increment({ date: clock.now(), time: turnInterval }).toISOString(),
         })
       },
     )

@@ -25,7 +25,7 @@ export function GameTopBar({ game, playerView }: { game: Lobby; playerView: Play
           <PlayerFact game={game} player={playerView.player} />
           <ResourcesFact resources={playerView.resources} />
           <TurnFact turn={playerView.turn} />
-          <NextTurnFact targetTimestamp={playerView.nextTurnAt} />
+          <NextTurnFact targetTimestamp={playerView.turnEndsAt} />
         </div>
       </div>
       {game.winnerAccountId === null ? null : (
@@ -121,14 +121,14 @@ function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
   const refreshClientData = useRefreshClientData()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentTime, setCurrentTime] = useState(() => new Date())
-  const nextTurnAt = new Date(targetTimestamp)
-  const timeLeft = calculateTimeLeft({ past: currentTime, future: nextTurnAt })
-  const nextTurnAtLabel = new Intl.DateTimeFormat(undefined, {
+  const turnEndsAt = new Date(targetTimestamp)
+  const timeLeft = calculateTimeLeft({ past: currentTime, future: turnEndsAt })
+  const turnEndsAtLabel = new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(nextTurnAt)
+  }).format(turnEndsAt)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -155,7 +155,7 @@ function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
   if (timeLeft.noTimeLeft) {
     return (
       <NextTurnRefreshButton
-        detail={nextTurnAtLabel}
+        detail={turnEndsAtLabel}
         isRefreshing={isRefreshing}
         onRefresh={() => {
           void refreshGameData()
@@ -169,7 +169,7 @@ function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
       icon={<Clock3 className="size-4" />}
       label="Next turn"
       value={`${timeLeft.duration.days}d ${timeLeft.duration.hours}h ${timeLeft.duration.minutes}m ${timeLeft.duration.seconds}s`}
-      detail={nextTurnAtLabel}
+      detail={turnEndsAtLabel}
     />
   )
 }

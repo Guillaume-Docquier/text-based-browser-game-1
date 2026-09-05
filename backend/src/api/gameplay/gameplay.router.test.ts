@@ -94,8 +94,8 @@ describe("gameplay.router", () => {
       const startGameResult = await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(startGameResult).toStrictEqual<typeof startGameResult>({ nextTurnAt: expect.any(String) }) // trpc serializes the date to string
-      expect(new Date(startGameResult.nextTurnAt).toString()).not.toBe("Invalid Date")
+      expect(startGameResult).toStrictEqual<typeof startGameResult>({ turnEndsAt: expect.any(String) }) // trpc serializes the date to string
+      expect(new Date(startGameResult.turnEndsAt).toString()).not.toBe("Invalid Date")
     })
 
     it("should reject starting a game as a non-creator", async () => {
@@ -195,7 +195,7 @@ describe("gameplay.router", () => {
         galaxy: expect.any(Object), // Verified by the snapshot test
         turn: 0,
         turnStatus: "COLLECTING_ACTIONS",
-        nextTurnAt: Datetime.increment({
+        turnEndsAt: Datetime.increment({
           date: clock.now(),
           time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
         }).toISOString(),

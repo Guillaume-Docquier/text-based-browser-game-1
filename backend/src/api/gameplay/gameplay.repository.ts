@@ -90,7 +90,7 @@ export type PlayerViewModel = {
   readonly galaxy: GalaxyModel
   readonly turn: number
   readonly turnStatus: TurnStatus
-  readonly nextTurnAt: Date
+  readonly turnEndsAt: Date
   readonly resources: Resources
   /**
    * All the available actions, with their targets if submitted.
@@ -123,7 +123,13 @@ export type StartGameModel = {
   readonly context: GameForStart
   readonly status: GameStatus
   readonly startedAt: Date
-  readonly nextTurnAt: Date
+  /**
+   * When the first turn should end
+   */
+  readonly turnEndsAt: Date
+  /**
+   * The rng state to use for the first turn's processing
+   */
   readonly rngState: RngState<number>
   readonly playerResources: ReadonlyArray<{
     readonly playerId: PlayerId
@@ -248,12 +254,13 @@ export class GameplayRepository extends PostgresRepository {
    * The only failure mode for this method is throwing to rollback the transaction.
    */
   public async startGame(startGameModel: StartGameModel, tx: Transaction): Promise<void> {
+    // Prepare data
     const gameTurn: NewTurnRow = {
       gameId: startGameModel.context.gameId,
       turn: 0,
       status: TurnStatus.COLLECTING_ACTIONS,
       startedAt: startGameModel.startedAt,
-      endsAt: startGameModel.nextTurnAt,
+      endsAt: startGameModel.turnEndsAt,
       rngGeneratorState: startGameModel.rngState.generatorState,
       rngSpareNormal: startGameModel.rngState.spareNormal,
     }
@@ -261,7 +268,7 @@ export class GameplayRepository extends PostgresRepository {
     const turnProcessing: NewTurnProcessingRow = {
       gameId: startGameModel.context.gameId,
       turn: gameTurn.turn,
-      scheduledFor: startGameModel.nextTurnAt,
+      scheduledFor: startGameModel.turnEndsAt,
     }
 
     const resources: NewResourceRow[] = startGameModel.playerResources.map((playerResource) => ({
@@ -286,6 +293,7 @@ export class GameplayRepository extends PostgresRepository {
       })),
     )
 
+    // Update db
     const updatedGames = await tx
       .update(gamesTable)
       .set({ startedAt: startGameModel.startedAt, status: startGameModel.status })
@@ -293,15 +301,15 @@ export class GameplayRepository extends PostgresRepository {
       .returning({ id: gamesTable.id })
     Assert.isTrue(updatedGames.length === 1)
 
+    await tx.insert(turnsTable).values(gameTurn)
+    await tx.insert(turnsProcessingTable).values(turnProcessing)
     await tx.insert(resourcesTable).values(resources)
+    if (availableActions.length > 0) {
+      await tx.insert(actionsTable).values(availableActions)
+    }
     await tx.insert(starsTable).values(stars)
     for (let index = 0; index < planets.length; index += PLANET_INSERT_BATCH_SIZE) {
       await tx.insert(planetsTable).values(planets.slice(index, index + PLANET_INSERT_BATCH_SIZE))
-    }
-    await tx.insert(turnsTable).values(gameTurn)
-    await tx.insert(turnsProcessingTable).values(turnProcessing)
-    if (availableActions.length > 0) {
-      await tx.insert(actionsTable).values(availableActions)
     }
   }
 
@@ -376,7 +384,7 @@ export class GameplayRepository extends PostgresRepository {
           gameId,
           turn: turn.turn,
           turnStatus: turn.status,
-          nextTurnAt: turn.endsAt,
+          turnEndsAt: turn.endsAt,
           resources: toResourceBag(playerResources),
           actions: availableActionRows,
           ruleset,
