@@ -204,7 +204,6 @@ export const turnsTable = pgTable(
     uniqueIndex("turns_one_open_turn_per_game_unique")
       .on(table.gameId)
       .where(sql`${table.status} <> 'COMPLETED'`),
-    index("turns_game_id_started_at_idx").on(table.gameId, table.startedAt),
     index("turns_status_ends_at_idx").on(table.status, table.endsAt),
   ],
 )
