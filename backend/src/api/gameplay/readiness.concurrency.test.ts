@@ -20,8 +20,8 @@ describe("readiness concurrency", () => {
 
     // Act
     const [aliceReady, bobReady, submission] = await Promise.all([
-      Result.tryCatch(alice.client.gameplay.setReady.mutate({ gameId, turn: 0, isReady: true })),
-      Result.tryCatch(bob.client.gameplay.setReady.mutate({ gameId, turn: 0, isReady: true })),
+      Result.tryCatch(alice.client.gameplay.updateReadiness.mutate({ gameId, turn: 0, isReady: true })),
+      Result.tryCatch(bob.client.gameplay.updateReadiness.mutate({ gameId, turn: 0, isReady: true })),
       Result.tryCatch(
         alice.client.gameplay.updateActionSubmission.mutate({
           gameId,

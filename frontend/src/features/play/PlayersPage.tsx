@@ -6,12 +6,12 @@ import { Badge } from "@/components/badge.tsx"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
-import { useSetReady } from "@/lib/api/useSetReady.ts"
+import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function PlayersPage(): ReactElement {
   const { game, playerView } = usePlayGameContext()
-  const setReady = useSetReady()
+  const updateReadiness = useUpdateReadiness()
 
   return (
     <section className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
@@ -38,9 +38,9 @@ export function PlayersPage(): ReactElement {
                     size="icon"
                     aria-label="Ready"
                     aria-pressed={isReady}
-                    disabled={playerView.turnStatus !== "COLLECTING_ACTIONS" || setReady.isPending}
+                    disabled={playerView.turnStatus !== "COLLECTING_ACTIONS" || updateReadiness.isPending}
                     onClick={() => {
-                      setReady.mutate({ gameId: game.id, turn: playerView.turn, isReady: !isReady })
+                      updateReadiness.mutate({ gameId: game.id, turn: playerView.turn, isReady: !isReady })
                     }}
                   >
                     <ReadinessIcon isReady={isReady} />
@@ -67,10 +67,10 @@ export function PlayersPage(): ReactElement {
           })}
         </CardContent>
       </Card>
-      {setReady.isError ? (
+      {updateReadiness.isError ? (
         <Alert variant="destructive" className="mt-4">
           <AlertTitle>Could not change readiness</AlertTitle>
-          <AlertDescription>{setReady.error.message}</AlertDescription>
+          <AlertDescription>{updateReadiness.error.message}</AlertDescription>
         </Alert>
       ) : null}
     </section>

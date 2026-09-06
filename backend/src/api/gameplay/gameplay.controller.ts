@@ -187,21 +187,23 @@ export class GameplayController {
     return Result.Success(undefined)
   }
 
-  public async setReady({ gameId, playerId, turn, isReady }: SetReadyDto): Promise<Result<void, string>> {
-    // lock the turn
-    // set player ready
-    // if player is ready
-    // - if all players are ready
-    //   - move turn to awaiting processing
+  public async updateReadiness({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, string>> {
     const result = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getReadinessForUpdate({ gameId, playerId, turn }, tx)
-      const allPlayersReady = context.players.every((player) => (player.id === playerId ? isReady : player.isReady))
-      await this.gameplayRepository.updateReadiness({ context, isReady, closedAt: allPlayersReady ? this.clock.now() : undefined }, tx)
+
+      await this.gameplayRepository.updateReadiness({ context, isReady }, tx)
+
+      const allPlayersAreReady = context.players.every((player) => (player.id === playerId ? isReady : player.isReady))
+      if (allPlayersAreReady) {
+        await this.gameplayRepository.closeTurn({ context, closedAt: this.clock.now() }, tx)
+      }
     })
+
     if (Result.isFailure(result)) {
-      this.logger.error("Could not change readiness", { gameId, playerId, turn, error: result.error })
+      this.logger.error("Could not update readiness", { gameId, turn, playerId, error: result.error })
       return Result.Failure(result.error.message)
     }
+
     return Result.Success(undefined)
   }
 }
@@ -424,10 +426,10 @@ export const UpdateActionSubmissionDto = z.object({
   submittedActionTargets: SubmittedActionTargetsDto,
 })
 
-export type SetReadyDto = z.infer<typeof SetReadyDto>
-export const SetReadyDto = z.object({
+export type UpdateReadinessDto = z.infer<typeof UpdateReadinessDto>
+export const UpdateReadinessDto = z.object({
   gameId: z.coerce.number().pipe(GameId),
-  playerId: PlayerId,
   turn: z.coerce.number(),
+  playerId: PlayerId,
   isReady: z.boolean(),
 })

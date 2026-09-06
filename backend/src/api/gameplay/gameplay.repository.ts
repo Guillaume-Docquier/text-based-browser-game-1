@@ -456,11 +456,15 @@ export class GameplayRepository extends PostgresRepository {
   }
 
   public async getReadinessForUpdate(
-    { gameId, playerId, turn }: { gameId: GameId; playerId: PlayerId; turn: number },
+    { gameId, turn, playerId }: { gameId: GameId; turn: number; playerId: PlayerId },
     tx: Transaction,
   ): Promise<ReadinessForUpdate> {
     const gameTurns = await tx
-      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, endsAt: turnsTable.endsAt })
+      .select({
+        gameId: turnsTable.gameId,
+        turn: turnsTable.turn,
+        endsAt: turnsTable.endsAt,
+      })
       .from(turnsTable)
       .where(
         and(
@@ -475,40 +479,36 @@ export class GameplayRepository extends PostgresRepository {
 
     const gameTurn = gameTurns[0]
     if (gameTurn === undefined) {
-      throw new TransactionRollbackError("Cannot submit actions for this turn")
+      throw new TransactionRollbackError("Cannot submit actions for this game and turn", {})
     }
 
-    if (gameTurn.endsAt <= this.clock.now()) {
-      throw new TransactionRollbackError("This turn has ended")
-    }
     const players = await tx
       .select({ id: playersTable.playerId, color: playersTable.color, isReady: playersTable.isReady })
       .from(playersTable)
       .where(eq(playersTable.gameId, gameId))
-    if (!players.some((player) => player.id === playerId)) {
-      throw new TransactionRollbackError("Player is not in this game")
-    }
-    return branded({ gameId, playerId, turn, players })
+    Assert.isTrue(players.some((player) => player.id === playerId))
+
+    return branded({ gameId, turn, playerId, players })
   }
 
-  public async updateReadiness(
-    { context, isReady, closedAt }: { context: ReadinessForUpdate; isReady: boolean; closedAt: Date | undefined },
-    tx: Transaction,
-  ): Promise<void> {
+  public async updateReadiness({ context, isReady }: { context: ReadinessForUpdate; isReady: boolean }, tx: Transaction): Promise<void> {
     await tx
       .update(playersTable)
       .set({ isReady })
       .where(and(eq(playersTable.gameId, context.gameId), eq(playersTable.playerId, context.playerId)))
-    if (closedAt !== undefined) {
-      await tx
-        .update(turnsTable)
-        .set({ status: TurnStatus.AWAITING_PROCESSING, closedAt })
-        .where(and(eq(turnsTable.gameId, context.gameId), eq(turnsTable.turn, context.turn)))
-      await tx
-        .update(turnsProcessingTable)
-        .set({ scheduledFor: closedAt })
-        .where(and(eq(turnsProcessingTable.gameId, context.gameId), eq(turnsProcessingTable.turn, context.turn)))
-    }
+  }
+
+  public async closeTurn({ context, closedAt }: { context: ReadinessForUpdate; closedAt: Date }, tx: Transaction): Promise<void> {
+    // we close the turn before updating processing to avoid races where the turn processing would pick up a turn that's not yet marked as AWAITING_PROCESSING
+    await tx
+      .update(turnsTable)
+      .set({ closedAt, status: TurnStatus.AWAITING_PROCESSING })
+      .where(and(eq(turnsTable.gameId, context.gameId), eq(turnsTable.turn, context.turn)))
+
+    await tx
+      .update(turnsProcessingTable)
+      .set({ scheduledFor: closedAt })
+      .where(and(eq(turnsProcessingTable.gameId, context.gameId), eq(turnsProcessingTable.turn, context.turn)))
   }
 
   // oxlint-disable-next-line no-unused-vars -- context is required here as a proof that these actions can be updated, because to get the context you had to check. It's not a super strong enforcement, but the spirit is there.
