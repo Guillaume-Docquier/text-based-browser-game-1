@@ -47,57 +47,68 @@ type NewTurnProcessingRow = typeof turnsProcessingTable.$inferInsert
  * However, pglite has 32767 for sure as tests break when we bust it.
  * We'll batch insert planets to avoid the limit, as we can easily insert 3000+ planets with 15+ attributes each, leading to 45k+ bind paremeters.
  */
-const PLANET_INSERT_BATCH_SIZE = 1_000
+const PLANET_INSERT_BATCH_SIZE = 1_000 // ~15k/32k bind parameters (15 per planet)
 
 export type ActionSubmissionsForUpdate = Branded<
-  {
-    readonly gameId: GameId
-    readonly playerId: PlayerId
-    readonly turn: number
-    readonly resources: Resources
-    readonly actions: Action[]
-    readonly ruleset: Ruleset
-  },
+  Readonly<{
+    gameId: GameId
+    playerId: PlayerId
+    turn: number
+    resources: Readonly<Resources>
+    actions: readonly Action[]
+    ruleset: Ruleset
+  }>,
   "ActionsForSubmission"
 >
 
-export type UpdateActionSubmissionsModel = {
+export type UpdateActionSubmissionsModel = Readonly<{
   /**
    * The ActionsForSubmission must be acquired in the same transaction.
    */
-  readonly context: ActionSubmissionsForUpdate
+  context: ActionSubmissionsForUpdate
   /**
    * The actions to update, can be newly selected, target updates or de-selected.
    */
-  readonly actions: Array<Pick<Action, "id" | "targets">>
-}
+  actions: ReadonlyArray<Pick<Action, "id" | "targets">>
+}>
 
-type PlayerViewPlayerModel = {
+type PlayerViewPlayerModel = Readonly<{
   id: PlayerId
   color: PlayerColor
-}
+  isReady: boolean
+}>
 
-type PlayerViewActionModel = {
-  readonly id: ActionId
-  readonly actionDefinitionId: SubmittedAction["actionDefinitionId"]
-  readonly targets: ResolvedTargets | null
-}
+export type ReadinessForUpdate = Branded<
+  Readonly<{
+    gameId: GameId
+    playerId: PlayerId
+    turn: number
+    players: readonly PlayerViewPlayerModel[]
+  }>,
+  "ReadinessForUpdate"
+>
 
-export type PlayerViewModel = {
-  readonly gameId: GameId
-  readonly player: PlayerViewPlayerModel
-  readonly opponents: Record<PlayerId, PlayerViewPlayerModel>
-  readonly galaxy: GalaxyModel
-  readonly turn: number
-  readonly turnStatus: TurnStatus
-  readonly turnEndsAt: Date
-  readonly resources: Resources
+type PlayerViewActionModel = Readonly<{
+  id: ActionId
+  actionDefinitionId: SubmittedAction["actionDefinitionId"]
+  targets: ResolvedTargets | null
+}>
+
+export type PlayerViewModel = Readonly<{
+  gameId: GameId
+  player: PlayerViewPlayerModel
+  opponents: Readonly<Record<PlayerId, PlayerViewPlayerModel>>
+  galaxy: GalaxyModel
+  turn: number
+  turnStatus: TurnStatus
+  turnEndsAt: Date
+  resources: Resources
   /**
    * All the available actions, with their targets if submitted.
    */
-  readonly actions: readonly PlayerViewActionModel[]
-  readonly ruleset: Ruleset
-}
+  actions: readonly PlayerViewActionModel[]
+  ruleset: Ruleset
+}>
 
 /**
  * Owning a GameForStart within a transaction guarantees that the game is locked and exists at this time.
@@ -350,6 +361,7 @@ export class GameplayRepository extends PostgresRepository {
             .select({
               id: playersTable.playerId,
               color: playersTable.color,
+              isReady: playersTable.isReady,
             })
             .from(playersTable)
             .where(eq(playersTable.gameId, gameId))
@@ -423,6 +435,16 @@ export class GameplayRepository extends PostgresRepository {
       throw new TransactionRollbackError("Cannot submit actions for this turn")
     }
 
+    const players = await tx
+      .select({ isReady: playersTable.isReady })
+      .from(playersTable)
+      .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, playerId)))
+    Assert.isTrue(players.length === 1)
+    Assert.isDefined(players[0])
+    if (players[0].isReady) {
+      throw new TransactionRollbackError("Cannot submit actions while ready")
+    }
+
     const games = await tx
       .select({
         rulesetId: gamesTable.rulesetId,
@@ -455,6 +477,62 @@ export class GameplayRepository extends PostgresRepository {
       actions,
       ruleset,
     })
+  }
+
+  public async getReadinessForUpdate(
+    { gameId, turn, playerId }: { gameId: GameId; turn: number; playerId: PlayerId },
+    tx: Transaction,
+  ): Promise<ReadinessForUpdate> {
+    const gameTurns = await tx
+      .select({
+        gameId: turnsTable.gameId,
+        turn: turnsTable.turn,
+        endsAt: turnsTable.endsAt,
+      })
+      .from(turnsTable)
+      .where(
+        and(
+          eq(turnsTable.gameId, gameId),
+          eq(turnsTable.turn, turn),
+          eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS),
+          gt(turnsTable.endsAt, this.clock.now()),
+        ),
+      )
+      .for("no key update")
+    Assert.isTrue(gameTurns.length <= 1)
+
+    const gameTurn = gameTurns[0]
+    if (gameTurn === undefined) {
+      throw new TransactionRollbackError("Cannot submit actions for this game and turn", {})
+    }
+
+    const players = await tx
+      .select({ id: playersTable.playerId, color: playersTable.color, isReady: playersTable.isReady })
+      .from(playersTable)
+      .where(eq(playersTable.gameId, gameId))
+    Assert.isTrue(players.some((player) => player.id === playerId))
+
+    return branded({ gameId, turn, playerId, players })
+  }
+
+  public async updateReadiness({ context, isReady }: { context: ReadinessForUpdate; isReady: boolean }, tx: Transaction): Promise<void> {
+    await tx
+      .update(playersTable)
+      .set({ isReady })
+      .where(and(eq(playersTable.gameId, context.gameId), eq(playersTable.playerId, context.playerId)))
+  }
+
+  public async closeTurn({ context, closedAt }: { context: ReadinessForUpdate; closedAt: Date }, tx: Transaction): Promise<void> {
+    // we close the turn before updating processing to avoid races where the turn processing would pick up a turn that's not yet marked as AWAITING_PROCESSING
+    await tx
+      .update(turnsTable)
+      .set({ closedAt, status: TurnStatus.AWAITING_PROCESSING })
+      .where(and(eq(turnsTable.gameId, context.gameId), eq(turnsTable.turn, context.turn)))
+
+    await tx
+      .update(turnsProcessingTable)
+      .set({ scheduledFor: closedAt })
+      .where(and(eq(turnsProcessingTable.gameId, context.gameId), eq(turnsProcessingTable.turn, context.turn)))
   }
 
   // oxlint-disable-next-line no-unused-vars -- context is required here as a proof that these actions can be updated, because to get the context you had to check. It's not a super strong enforcement, but the spirit is there.

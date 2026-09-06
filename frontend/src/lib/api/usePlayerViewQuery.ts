@@ -6,5 +6,12 @@ import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 export function usePlayerViewQuery(gameId: GameId) {
   const backendApiClient = useBackendApiClient()
 
-  return useQuery(backendApiClient.gameplay.getPlayerView.queryOptions({ gameId }))
+  return useQuery(
+    backendApiClient.gameplay.getPlayerView.queryOptions(
+      { gameId },
+      {
+        refetchInterval: 5_000,
+      },
+    ),
+  )
 }

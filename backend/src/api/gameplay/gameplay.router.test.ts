@@ -1,4 +1,4 @@
-import { Assert, branded, Datetime, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
@@ -9,6 +9,8 @@ import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
+import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -17,6 +19,7 @@ import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
+import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
 describe("gameplay.router", () => {
   it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
@@ -190,7 +193,7 @@ describe("gameplay.router", () => {
       ]
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
-        player: { id: branded(player.account.id), color: PlayerColor.WHITE },
+        player: { id: branded(player.account.id), color: PlayerColor.WHITE, isReady: false },
         opponents: {},
         galaxy: expect.any(Object), // Verified by the snapshot test
         turn: 0,
@@ -266,10 +269,10 @@ describe("gameplay.router", () => {
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(playerView.player).toStrictEqual({ id: creator.account.id, color: PlayerColor.WHITE })
+      expect(playerView.player).toStrictEqual({ id: creator.account.id, color: PlayerColor.WHITE, isReady: false })
       expect(playerView.opponents).toStrictEqual({
-        [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.RED },
-        [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.BLUE },
+        [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.RED, isReady: false },
+        [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.BLUE, isReady: false },
       })
     })
 
@@ -522,6 +525,170 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+    })
+  })
+
+  describe("updateReadiness", () => {
+    it.each([true, false])("should set the player readiness to %s", async (isReady) => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
+      })
+      await player.client.lobbies.join.mutate({ gameId: createdGameId }) // 2nd player to avoid turn processing on ready
+
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Act
+      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: !isReady }) // Making sure the status will change
+      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady })
+
+      // Assert
+      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(playerView).toStrictEqual<typeof playerView>({
+        ...initialPlayerView,
+        player: {
+          ...initialPlayerView.player,
+          isReady,
+        },
+      })
+    })
+
+    it("should close the turn and submit for processing when all players are ready", async () => {
+      // Arrange
+      const logger = Logger.get()
+      const clock = new ControlledClock()
+      const db = await createDbMock()
+      const turnsRepository = new TurnsRepository({ db, logger })
+
+      const apiServices = await createApiStub({ db, clock })
+      using apiServer = new ApiServer(apiServices)
+      const creator = await apiServer.createClient({ authenticated: true })
+      const player = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
+      })
+      await player.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Act
+      await player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
+      const playerViewWithOnePlayerReady = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
+      const playerViewWithAllPlayersReady = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Assert
+      const playerId = branded<PlayerId>(player.account.id)
+      const initialPlayer = initialPlayerView.opponents[playerId]
+      Assert.isDefined(initialPlayer)
+
+      expect(playerViewWithOnePlayerReady).toStrictEqual<typeof playerViewWithAllPlayersReady>({
+        ...initialPlayerView,
+        opponents: {
+          [playerId]: {
+            ...initialPlayer,
+            isReady: true,
+          },
+        },
+      })
+      expect(playerViewWithAllPlayersReady).toStrictEqual<typeof playerViewWithAllPlayersReady>({
+        ...initialPlayerView,
+        turnStatus: TurnStatus.AWAITING_PROCESSING,
+        player: {
+          ...initialPlayerView.player,
+          isReady: true,
+        },
+        opponents: {
+          [playerId]: {
+            ...initialPlayer,
+            isReady: true,
+          },
+        },
+      })
+
+      const turnForProcessing = await apiServices.createTransaction(
+        async (tx) => await turnsRepository.getNextTurnForProcessing({ since: clock.now() }, tx),
+      )
+      expect(turnForProcessing).toStrictEqual<typeof turnForProcessing>(Result.Success(branded({ gameId: createdGameId, turn: 0 })))
+    })
+
+    it("should reject readiness for the wrong turn", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
+      })
+
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Act
+      const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
+
+      // Assert
+      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
+    })
+
+    it("should reject readiness past the deadline", async () => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ clock }))
+      const creator = await apiServer.createClient({ authenticated: true })
+
+      const turnInterval = Time.create(10, UnitOfTime.SECONDS)
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({
+          mapGenerationSeed: 1234,
+          turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
+        }),
+      })
+
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
+
+      // Assert
+      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
+    })
+
+    it("should reject readiness for players not in the game", async () => {
+      // Arrange
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ clock }))
+      const creator = await apiServer.createClient({ authenticated: true })
+      const player = await apiServer.createClient({ authenticated: true }) // not in the game
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
+      })
+
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Act
+      const updateReadiness = player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
+
+      // Assert
+      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "FORBIDDEN" } })
+      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
   })
 })

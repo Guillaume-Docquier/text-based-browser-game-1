@@ -20,7 +20,7 @@ type ResourceRow = typeof resourcesTable.$inferSelect
 type SubmittedActionRow = typeof actionsTable.$inferSelect
 
 /**
- * Owning a TurnForProcessing within a transaction guarantees that the turn and its processing row are locked and need processing.
+ * Owning a TurnForProcessing within a transaction guarantees that the Turn Processing row is locked and needs processing.
  */
 export type TurnForProcessing = Branded<
   {
@@ -44,7 +44,7 @@ export type StartTurnProcessingModel = {
 export type TurnToProcessModel = {
   readonly gameId: GameId
   readonly turn: number
-  readonly scheduledFor: Date
+  readonly closedAt: Date
   readonly turnInterval: Time
   readonly rngState: RngState<number>
   readonly submittedActions: SubmittedAction[]
@@ -99,7 +99,8 @@ export class TurnsRepository extends PostgresRepository {
     // But it's still a risk vector for... eventually
     await db
       .update(turnsTable)
-      .set({ status: TurnStatus.AWAITING_PROCESSING })
+      // Setting closedAt might happen later than endsAt if the worker is down / due to the poll, but that doesn't matter because the turn stopped accepting actions at endsAt.
+      .set({ status: TurnStatus.AWAITING_PROCESSING, closedAt: turnsTable.endsAt })
       .where(and(eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS), lte(turnsTable.endsAt, since)))
   }
 
@@ -143,9 +144,13 @@ export class TurnsRepository extends PostgresRepository {
       .returning({
         rngGeneratorState: turnsTable.rngGeneratorState,
         rngSpareNormal: turnsTable.rngSpareNormal,
+        closedAt: turnsTable.closedAt,
+        endsAt: turnsTable.endsAt,
       })
     Assert.isTrue(turns.length === 1)
-    Assert.isDefined(turns[0])
+    const turn = turns[0]
+    Assert.isDefined(turn)
+    Assert.isDefined(turn.closedAt)
 
     const processingRows = await tx
       .update(turnsProcessingTable)
@@ -196,11 +201,11 @@ export class TurnsRepository extends PostgresRepository {
 
     return toTurnToProcessModel({
       turnForProcessing: startTurnProcessingModel.turn,
-      scheduledFor: processingRows[0].scheduledFor,
+      closedAt: turn.closedAt,
       turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
       rngState: {
-        generatorState: turns[0].rngGeneratorState,
-        spareNormal: turns[0].rngSpareNormal,
+        generatorState: turn.rngGeneratorState,
+        spareNormal: turn.rngSpareNormal,
       },
       players,
       resources,
@@ -256,7 +261,7 @@ export class TurnsRepository extends PostgresRepository {
       db.transaction(async (tx) => {
         const updatedTurns = await tx
           .update(turnsTable)
-          .set({ status: TurnStatus.COMPLETED, completedAt: processedTurnModel.processedAt })
+          .set({ status: TurnStatus.COMPLETED })
           .where(
             and(
               eq(turnsTable.gameId, processedTurnModel.gameId),
@@ -308,6 +313,8 @@ export class TurnsRepository extends PostgresRepository {
           return
         }
 
+        await tx.update(playersTable).set({ isReady: false }).where(eq(playersTable.gameId, processedTurnModel.gameId))
+
         const insertedTurns = await tx
           .insert(turnsTable)
           .values({
@@ -351,7 +358,7 @@ export class TurnsRepository extends PostgresRepository {
 
 function toTurnToProcessModel({
   turnForProcessing,
-  scheduledFor,
+  closedAt,
   turnInterval,
   rngState,
   players,
@@ -360,7 +367,7 @@ function toTurnToProcessModel({
   ruleset,
 }: {
   turnForProcessing: TurnForProcessing
-  scheduledFor: Date
+  closedAt: Date
   turnInterval: Time
   rngState: RngState<number>
   players: PlayerRow[]
@@ -372,7 +379,7 @@ function toTurnToProcessModel({
 
   return {
     ...turnForProcessing,
-    scheduledFor,
+    closedAt,
     turnInterval,
     rngState,
     submittedActions: submittedActions.flatMap(({ id, playerId, actionDefinitionId, targets }) =>

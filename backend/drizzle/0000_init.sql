@@ -58,6 +58,7 @@ CREATE TABLE "players" (
 	"game_id" integer NOT NULL,
 	"player_id" uuid NOT NULL,
 	"color" "player_color" NOT NULL,
+	"is_ready" boolean DEFAULT false NOT NULL,
 	"joined_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "players_game_id_player_id_pk" PRIMARY KEY("game_id","player_id"),
 	CONSTRAINT "players_game_id_color_unique" UNIQUE("game_id","color")
@@ -103,7 +104,7 @@ CREATE TABLE "turns" (
 	"status" "turn_status" NOT NULL,
 	"started_at" timestamp NOT NULL,
 	"ends_at" timestamp NOT NULL,
-	"completed_at" timestamp,
+	"closed_at" timestamp,
 	"rng_generator_state" bigint NOT NULL,
 	"rng_spare_normal" double precision,
 	CONSTRAINT "turns_game_id_turn_pk" PRIMARY KEY("game_id","turn")
@@ -125,5 +126,4 @@ CREATE INDEX "actions_game_id_player_id_turn_index" ON "actions" USING btree ("g
 CREATE UNIQUE INDEX "rulesets_is_default_unique" ON "rulesets" USING btree ("is_default") WHERE "rulesets"."is_default";--> statement-breakpoint
 CREATE INDEX "turns_processing_scheduled_for_idx" ON "turns_processing" USING btree ("scheduled_for");--> statement-breakpoint
 CREATE UNIQUE INDEX "turns_one_open_turn_per_game_unique" ON "turns" USING btree ("game_id") WHERE "turns"."status" <> 'COMPLETED';--> statement-breakpoint
-CREATE INDEX "turns_game_id_started_at_idx" ON "turns" USING btree ("game_id","started_at");--> statement-breakpoint
 CREATE INDEX "turns_status_ends_at_idx" ON "turns" USING btree ("status","ends_at");

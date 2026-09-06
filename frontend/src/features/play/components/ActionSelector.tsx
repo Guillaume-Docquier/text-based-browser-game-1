@@ -17,7 +17,7 @@ export const ActionTierRank = {
 
 export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerView: PlayerView }): ReactElement {
   const updateActionSubmission = useUpdateActionSubmission()
-  const isTurnLocked = playerView.turnStatus !== "COLLECTING_ACTIONS"
+  const isTurnLocked = playerView.turnStatus !== "COLLECTING_ACTIONS" || playerView.player.isReady
 
   return (
     <section className="flex flex-col gap-5">

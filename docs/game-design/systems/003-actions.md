@@ -9,6 +9,7 @@ Partially Implemented
 - [x] Action tier, cost, effect, and affordability presentation
 - [x] Available Action pool
 - [x] Multiple Action submissions
+- [x] Readiness locks Action submissions until the player unreadies or the next Turn starts
 - [ ] Ideology-driven Action pools
 
 ## Purpose

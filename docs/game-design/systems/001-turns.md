@@ -4,6 +4,8 @@
 
 Partially Implemented
 
+Turn timing, lifecycle, Action locking, and public reversible Readiness are implemented. Some resolution mechanics described below remain planned.
+
 ## Purpose
 
 Turns are the main element of the game loop. Their frequency dictates the pace of the game.
@@ -44,7 +46,7 @@ At every moment, all players know how much time is left before the Turn ends. Du
 
 During a Turn, players can declare themselves Ready. This is public information. When all players are Ready, the Turn ends. This is the only way that a Turn can take less time than the Turn duration determined before the game starts.
 
-When a Turn ends, its status changes from `COLLECTING_ACTIONS` to `AWAITING_PROCESSING` and all Action Submissions are locked in. Players cannot submit or revise them during Turn Resolution. The server claims the Turn with a processing queue row, changes it to `PROCESSING`, validates locked submissions, and the [System 015-rules-engine](./015-rules-engine.md) turns their composed Mechanics into Effects.
+When a Turn ends, its status changes from `COLLECTING_ACTIONS` to `AWAITING_PROCESSING` and all Action Submissions are locked in. Players cannot submit or revise them during Turn Resolution. The server claims the Turn with a processing queue row, changes it to `PROCESSING`, validates locked submissions, and the [System 015-rules-engine](./015-rules-engine.md) resolves the turn.
 
 Turn Resolution processes Effects through the fixed, engine-owned Phase order: Pay Costs, Movement, Combat, Planet, Colonization, Income, then Victory. A Ruleset does not configure this sequence. Phases are coarse ordering boundaries and do not create additional player Turns or opportunities to react.
 

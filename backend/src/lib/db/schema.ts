@@ -118,6 +118,7 @@ export const playersTable = pgTable(
       .notNull()
       .references(() => accountsTable.id, { onDelete: "cascade" }),
     color: playerColorEnum("color").notNull(),
+    isReady: boolean("is_ready").notNull().default(false),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
   (table) => [
@@ -193,10 +194,13 @@ export const turnsTable = pgTable(
     status: turnStatusEnum("status").notNull(),
     startedAt: timestamp("started_at").notNull(),
     /**
-     * When the turn is set to end
+     * When the turn is set to end.
      */
     endsAt: timestamp("ends_at").notNull(),
-    completedAt: timestamp("completed_at"),
+    /**
+     * When Action collection ended, either via reaching endsAt or if all players were ready for the next turn.
+     */
+    closedAt: timestamp("closed_at"),
     /**
      * The Rng state to use for the turn's resolution
      */

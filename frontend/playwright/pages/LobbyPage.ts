@@ -3,7 +3,7 @@ import { GalaxyPage } from "./GalaxyPage.ts"
 import { WebsitePage } from "./WebsitePage.ts"
 
 export class LobbyPage extends WebsitePage {
-  public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId" })
+  public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId(\\d+)" })
 
   private readonly startGameButton: Locator
   private readonly openGameButton: Locator
@@ -32,6 +32,20 @@ export class LobbyPage extends WebsitePage {
 
   public async startGame(): Promise<void> {
     await this.startGameButton.click()
+  }
+
+  public async getGameId(): Promise<number> {
+    await this.page.waitForURL(LobbyPage.urlPattern)
+    return Number(LobbyPage.urlPattern.exec(this.page.url())?.pathname.groups.gameId)
+  }
+
+  public async reload(): Promise<void> {
+    await this.page.reload()
+  }
+
+  public async joinGame(): Promise<void> {
+    await this.page.getByRole("button", { name: "Join game", exact: true }).click()
+    await this.page.getByRole("button", { name: "Leave game", exact: true }).waitFor()
   }
 
   public async openGame(): Promise<GalaxyPage> {

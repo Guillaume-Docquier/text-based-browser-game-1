@@ -186,6 +186,26 @@ export class GameplayController {
 
     return Result.Success(undefined)
   }
+
+  public async updateReadiness({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, string>> {
+    const result = await this.createTransaction(async (tx) => {
+      const context = await this.gameplayRepository.getReadinessForUpdate({ gameId, playerId, turn }, tx)
+
+      await this.gameplayRepository.updateReadiness({ context, isReady }, tx)
+
+      const allPlayersAreReady = context.players.every((player) => (player.id === playerId ? isReady : player.isReady))
+      if (allPlayersAreReady) {
+        await this.gameplayRepository.closeTurn({ context, closedAt: this.clock.now() }, tx)
+      }
+    })
+
+    if (Result.isFailure(result)) {
+      this.logger.error("Could not update readiness", { gameId, turn, playerId, error: result.error })
+      return Result.Failure(result.error.message)
+    }
+
+    return Result.Success(undefined)
+  }
 }
 
 function createGalaxy(seed: number): GalaxyModel {
@@ -341,7 +361,11 @@ export const GetPlayerViewDto = z.object({
 })
 
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
-export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
+export const PlayerViewPlayerDto = z.object({
+  id: PlayerId,
+  color: z.enum(PlayerColor),
+  isReady: z.boolean(),
+})
 
 export const StarDto = z.object({
   id: StarId,
@@ -404,4 +428,12 @@ export const UpdateActionSubmissionDto = z.object({
   playerId: PlayerId,
   turn: z.coerce.number(),
   submittedActionTargets: SubmittedActionTargetsDto,
+})
+
+export type UpdateReadinessDto = z.infer<typeof UpdateReadinessDto>
+export const UpdateReadinessDto = z.object({
+  gameId: z.coerce.number().pipe(GameId),
+  turn: z.coerce.number(),
+  playerId: PlayerId,
+  isReady: z.boolean(),
 })
