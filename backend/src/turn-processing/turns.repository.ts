@@ -100,7 +100,7 @@ export class TurnsRepository extends PostgresRepository {
     // But it's still a risk vector for... eventually
     await db
       .update(turnsTable)
-      .set({ status: TurnStatus.AWAITING_PROCESSING, completedAt: turnsTable.endsAt })
+      .set({ status: TurnStatus.AWAITING_PROCESSING, closedAt: turnsTable.endsAt })
       .where(and(eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS), lte(turnsTable.endsAt, since)))
   }
 
@@ -154,11 +154,13 @@ export class TurnsRepository extends PostgresRepository {
       .returning({
         rngGeneratorState: turnsTable.rngGeneratorState,
         rngSpareNormal: turnsTable.rngSpareNormal,
-        completedAt: turnsTable.completedAt,
+        closedAt: turnsTable.closedAt,
         endsAt: turnsTable.endsAt,
       })
     Assert.isTrue(turns.length === 1)
-    Assert.isDefined(turns[0])
+    const turn = turns[0]
+    Assert.isDefined(turn)
+    Assert.isDefined(turn.closedAt)
 
     const processingRows = await tx
       .update(turnsProcessingTable)
@@ -209,11 +211,11 @@ export class TurnsRepository extends PostgresRepository {
 
     return toTurnToProcessModel({
       turnForProcessing: startTurnProcessingModel.turn,
-      scheduledFor: turns[0].completedAt ?? turns[0].endsAt,
+      scheduledFor: turn.closedAt,
       turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
       rngState: {
-        generatorState: turns[0].rngGeneratorState,
-        spareNormal: turns[0].rngSpareNormal,
+        generatorState: turn.rngGeneratorState,
+        spareNormal: turn.rngSpareNormal,
       },
       players,
       resources,

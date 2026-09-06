@@ -194,13 +194,13 @@ export const turnsTable = pgTable(
     status: turnStatusEnum("status").notNull(),
     startedAt: timestamp("started_at").notNull(),
     /**
-     * When the turn is set to end
+     * When the turn is set to end.
      */
     endsAt: timestamp("ends_at").notNull(),
     /**
-     * When Action collection ended: the deadline, or the final readiness update for an early Turn.
+     * When Action collection ended, either via reaching endsAt or if all players were ready for the next turn.
      */
-    completedAt: timestamp("completed_at"),
+    closedAt: timestamp("closed_at"),
     /**
      * The Rng state to use for the turn's resolution
      */

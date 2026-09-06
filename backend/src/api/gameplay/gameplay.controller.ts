@@ -188,10 +188,15 @@ export class GameplayController {
   }
 
   public async setReady({ gameId, playerId, turn, isReady }: SetReadyDto): Promise<Result<void, string>> {
+    // lock the turn
+    // set player ready
+    // if player is ready
+    // - if all players are ready
+    //   - move turn to awaiting processing
     const result = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getReadinessForUpdate({ gameId, playerId, turn }, tx)
       const allPlayersReady = context.players.every((player) => (player.id === playerId ? isReady : player.isReady))
-      await this.gameplayRepository.updateReadiness({ context, isReady, completedAt: allPlayersReady ? this.clock.now() : undefined }, tx)
+      await this.gameplayRepository.updateReadiness({ context, isReady, closedAt: allPlayersReady ? this.clock.now() : undefined }, tx)
     })
     if (Result.isFailure(result)) {
       this.logger.error("Could not change readiness", { gameId, playerId, turn, error: result.error })

@@ -1,5 +1,5 @@
 {
-  "id": "048bc52e-7364-4ccc-a1de-32e4c792a89a",
+  "id": "55bfc8c0-f34e-43e5-8015-7d27091faa96",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -423,6 +423,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "is_ready": {
+          "name": "is_ready",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "joined_at": {
           "name": "joined_at",
           "type": "timestamp",
@@ -749,8 +756,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "completed_at": {
-          "name": "completed_at",
+        "closed_at": {
+          "name": "closed_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
@@ -781,27 +788,6 @@
           ],
           "isUnique": true,
           "where": "\"turns\".\"status\" <> 'COMPLETED'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "turns_game_id_started_at_idx": {
-          "name": "turns_game_id_started_at_idx",
-          "columns": [
-            {
-              "expression": "game_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "started_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}

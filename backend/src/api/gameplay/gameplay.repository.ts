@@ -492,21 +492,21 @@ export class GameplayRepository extends PostgresRepository {
   }
 
   public async updateReadiness(
-    { context, isReady, completedAt }: { context: ReadinessForUpdate; isReady: boolean; completedAt: Date | undefined },
+    { context, isReady, closedAt }: { context: ReadinessForUpdate; isReady: boolean; closedAt: Date | undefined },
     tx: Transaction,
   ): Promise<void> {
     await tx
       .update(playersTable)
       .set({ isReady })
       .where(and(eq(playersTable.gameId, context.gameId), eq(playersTable.playerId, context.playerId)))
-    if (completedAt !== undefined) {
+    if (closedAt !== undefined) {
       await tx
         .update(turnsTable)
-        .set({ status: TurnStatus.AWAITING_PROCESSING, completedAt })
+        .set({ status: TurnStatus.AWAITING_PROCESSING, closedAt })
         .where(and(eq(turnsTable.gameId, context.gameId), eq(turnsTable.turn, context.turn)))
       await tx
         .update(turnsProcessingTable)
-        .set({ scheduledFor: completedAt })
+        .set({ scheduledFor: closedAt })
         .where(and(eq(turnsProcessingTable.gameId, context.gameId), eq(turnsProcessingTable.turn, context.turn)))
     }
   }

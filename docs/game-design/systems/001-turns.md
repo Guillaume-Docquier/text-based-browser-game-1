@@ -48,7 +48,7 @@ During a Turn, players can declare themselves Ready. This is public information.
 
 The Players tab shows a green checkmark for Ready players and an empty dotted circle otherwise. Players toggle their own icon to change Readiness while the Turn is collecting Actions. Ready players cannot change Actions until they unready. Readiness resets when the next Turn starts.
 
-The last Ready update atomically closes the Turn under its row lock, records `completedAt`, and schedules processing for now. Normal expiry records the deadline as `completedAt`. The next Turn is scheduled from this completion time, preserving the original deadline cadence for normal expiry and starting a fresh interval for early completion. Existing downtime recovery still schedules from processing time after a substantial delay.
+The last Ready update atomically closes the Turn under its row lock, records `closedAt`, and schedules processing for now. Normal expiry records the deadline as `closedAt`. The next Turn is scheduled from this completion time, preserving the original deadline cadence for normal expiry and starting a fresh interval for early completion. Existing downtime recovery still schedules from processing time after a substantial delay.
 
 When a Turn ends, its status changes from `COLLECTING_ACTIONS` to `AWAITING_PROCESSING` and all Action Submissions are locked in. Players cannot submit or revise them during Turn Resolution. The server claims the Turn with a processing queue row, changes it to `PROCESSING`, validates locked submissions, and the [System 015-rules-engine](./015-rules-engine.md) turns their composed Mechanics into Effects.
 
