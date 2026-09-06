@@ -157,6 +157,43 @@ describe("TurnProcessor", () => {
       expect(repeatedPlayerView.actions).toStrictEqual(playerView.actions)
     })
 
+    it("should schedule the next turn from early closure and reset readiness", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const clock = new ControlledClock()
+      const { api, accountsRepository } = await createApiStub({ db, clock })
+      using apiServer = new ApiServer({ api, accountsRepository })
+      const creator = await apiServer.createClient({ authenticated: true })
+      const opponent = await apiServer.createClient({ authenticated: true })
+      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({
+          nbSeats: 2,
+          turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
+        }),
+      })
+      await opponent.client.lobbies.join.mutate({ gameId: createdGameId })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await creator.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })
+      await opponent.client.gameplay.setReady.mutate({ gameId: createdGameId, ready: true })
+      const closedAt = clock.now()
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      clock.increment({ time: Time.create(1, UnitOfTime.SECONDS) })
+
+      // Act
+      const result = await turnProcessor.processNextDueTurn()
+
+      // Assert
+      expect(result).toBe("processed")
+      const nextTurnView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(nextTurnView).toMatchObject({
+        turn: 1,
+        turnEndsAt: Datetime.increment({ date: closedAt, time: turnInterval }).toISOString(),
+        player: { ready: false },
+      })
+      expect((await opponent.client.gameplay.getPlayerView.query({ gameId: createdGameId })).player.ready).toBe(false)
+    })
+
     it("should process multiple submitted actions", async () => {
       // Arrange
       const db = await createDbMock()

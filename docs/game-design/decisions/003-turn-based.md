@@ -2,10 +2,10 @@
 
 ## Status
 
-Partially implemented
+Implemented
 
 - [x] Turns
-- [ ] Readiness
+- [x] Readiness
 
 ## Context
 

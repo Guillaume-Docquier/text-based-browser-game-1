@@ -1,5 +1,5 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
-import { and, desc, eq, gt } from "drizzle-orm"
+import { and, desc, eq, isNull } from "drizzle-orm"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -75,6 +75,7 @@ export type UpdateActionSubmissionsModel = {
 type PlayerViewPlayerModel = {
   id: PlayerId
   color: PlayerColor
+  ready: boolean
 }
 
 type PlayerViewActionModel = {
@@ -350,6 +351,7 @@ export class GameplayRepository extends PostgresRepository {
             .select({
               id: playersTable.playerId,
               color: playersTable.color,
+              ready: playersTable.ready,
             })
             .from(playersTable)
             .where(eq(playersTable.gameId, gameId))
@@ -405,22 +407,25 @@ export class GameplayRepository extends PostgresRepository {
     tx: Transaction,
   ): Promise<ActionSubmissionsForUpdate> {
     const gameTurns = await tx
-      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, endsAt: turnsTable.endsAt })
+      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, status: turnsTable.status, endsAt: turnsTable.endsAt })
       .from(turnsTable)
-      .where(
-        and(
-          eq(turnsTable.gameId, gameId),
-          eq(turnsTable.turn, turn),
-          eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS),
-          gt(turnsTable.endsAt, this.clock.now()),
-        ),
-      )
+      .where(and(eq(turnsTable.gameId, gameId), eq(turnsTable.turn, turn)))
       .for("no key update")
     Assert.isTrue(gameTurns.length <= 1)
 
     const gameTurn = gameTurns[0]
-    if (gameTurn === undefined) {
+    if (gameTurn === undefined || gameTurn.status !== TurnStatus.COLLECTING_ACTIONS || gameTurn.endsAt <= this.clock.now()) {
       throw new TransactionRollbackError("Cannot submit actions for this turn")
+    }
+
+    const playerRows = await tx
+      .select({ ready: playersTable.ready })
+      .from(playersTable)
+      .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, playerId)))
+    Assert.isTrue(playerRows.length === 1)
+    Assert.isDefined(playerRows[0])
+    if (playerRows[0].ready) {
+      throw new TransactionRollbackError("Cannot submit actions after marking yourself ready")
     }
 
     const games = await tx
@@ -455,6 +460,77 @@ export class GameplayRepository extends PostgresRepository {
       actions,
       ruleset,
     })
+  }
+
+  public async setPlayerReady(
+    { gameId, playerId, ready }: { gameId: GameId; playerId: PlayerId; ready: boolean },
+    tx: Transaction,
+  ): Promise<{ ready: boolean }> {
+    const turns = await tx
+      .select({
+        gameId: turnsTable.gameId,
+        turn: turnsTable.turn,
+        status: turnsTable.status,
+        endsAt: turnsTable.endsAt,
+      })
+      .from(turnsTable)
+      .where(eq(turnsTable.gameId, gameId))
+      .orderBy(desc(turnsTable.turn))
+      .limit(1)
+      .for("no key update")
+    Assert.isTrue(turns.length <= 1)
+
+    const turn = turns[0]
+    if (turn === undefined || turn.status !== TurnStatus.COLLECTING_ACTIONS || turn.endsAt <= this.clock.now()) {
+      throw new TransactionRollbackError("Cannot update readiness for this turn")
+    }
+
+    const updatedPlayers = await tx
+      .update(playersTable)
+      .set({ ready })
+      .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, playerId)))
+      .returning({ ready: playersTable.ready })
+    Assert.isTrue(updatedPlayers.length === 1)
+    Assert.isDefined(updatedPlayers[0])
+
+    if (ready) {
+      const unreadyPlayers = await tx
+        .select({ playerId: playersTable.playerId })
+        .from(playersTable)
+        .where(and(eq(playersTable.gameId, gameId), eq(playersTable.ready, false)))
+        .limit(1)
+
+      if (unreadyPlayers.length === 0) {
+        const completedAt = this.clock.now()
+        if (turn.endsAt <= completedAt) {
+          throw new TransactionRollbackError("Cannot update readiness for this turn")
+        }
+
+        const updatedTurns = await tx
+          .update(turnsTable)
+          .set({ status: TurnStatus.AWAITING_PROCESSING, completedAt })
+          .where(
+            and(eq(turnsTable.gameId, turn.gameId), eq(turnsTable.turn, turn.turn), eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS)),
+          )
+          .returning({ turn: turnsTable.turn })
+        Assert.isTrue(updatedTurns.length === 1)
+
+        const updatedProcessingRows = await tx
+          .update(turnsProcessingTable)
+          .set({ scheduledFor: completedAt })
+          .where(
+            and(
+              eq(turnsProcessingTable.gameId, turn.gameId),
+              eq(turnsProcessingTable.turn, turn.turn),
+              isNull(turnsProcessingTable.processingStartedAt),
+            ),
+          )
+          .returning({ turn: turnsProcessingTable.turn })
+        Assert.isTrue(updatedProcessingRows.length === 1)
+      }
+    }
+
+    return { ready: updatedPlayers[0].ready }
   }
 
   // oxlint-disable-next-line no-unused-vars -- context is required here as a proof that these actions can be updated, because to get the context you had to check. It's not a super strong enforcement, but the spirit is there.

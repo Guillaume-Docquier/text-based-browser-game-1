@@ -184,7 +184,7 @@ Minimum verification for meaningful changes:
 - `pnpm checks` (when touching all projects)
 - `pnpm --filter backend checks` (when touching only backend)
 - `pnpm --filter frontend checks` (when touching only frontend)
-- Do not start Vite/Storybook for the user or attempt visual/browser verification. The project is not set up for agent-driven visual verification yet, and the user knows how to start the app.
+- Do not manually start Vite/Storybook for interactive visual inspection. Automated Playwright E2E tests are allowed and expected when relevant; run them through the configured test command (for example, `pnpm --filter frontend e2e`).
 - Call out relevant extra manual verification that the user should perform for the area changed
 
 ## Commits And PRs

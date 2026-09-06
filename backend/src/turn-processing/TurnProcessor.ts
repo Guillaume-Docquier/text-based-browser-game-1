@@ -155,7 +155,7 @@ export class TurnProcessor {
       return Result.Success({
         ...turnResult,
         nextTurnScheduledFor: getNextTurnScheduledFor({
-          scheduledFor: turnToProcess.scheduledFor,
+          completedAt: turnToProcess.completedAt,
           processedAt,
           turnInterval: turnToProcess.turnInterval,
         }),
@@ -175,17 +175,17 @@ export class TurnProcessor {
  * This avoids quick-firing turn processing if there is a server downtime.
  */
 function getNextTurnScheduledFor({
-  scheduledFor,
+  completedAt,
   processedAt,
   turnInterval,
 }: {
-  scheduledFor: Date
+  completedAt: Date
   processedAt: Date
   turnInterval: Time
 }): Date {
-  const scheduleDriftMilliseconds = processedAt.getTime() - scheduledFor.getTime()
+  const scheduleDriftMilliseconds = processedAt.getTime() - completedAt.getTime()
   const scheduleDriftThreshold = Math.min(Time.in(turnInterval, UnitOfTime.MILLISECONDS) * SCHEDULE_DRIFT_RATIO, MAX_SCHEDULE_DRIFT_MS)
-  const scheduleFrom = scheduleDriftMilliseconds > scheduleDriftThreshold ? processedAt : scheduledFor
+  const scheduleFrom = scheduleDriftMilliseconds > scheduleDriftThreshold ? processedAt : completedAt
 
   return Datetime.increment({
     date: scheduleFrom,

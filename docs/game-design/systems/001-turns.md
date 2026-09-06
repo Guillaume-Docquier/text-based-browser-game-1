@@ -24,6 +24,12 @@ Relates to:
 - [System 008-planets](./008-planets.md)
 - [System 015-rules-engine](./015-rules-engine.md)
 
+## Implementation Progress
+
+- [x] Scheduled Turn windows and Turn Resolution
+- [x] Public, reversible Readiness and early Turn Resolution
+- [ ] Automatic retry after failed Turn Resolution
+
 ## Core Concepts
 
 | Concept           | Definition                                                                                                |

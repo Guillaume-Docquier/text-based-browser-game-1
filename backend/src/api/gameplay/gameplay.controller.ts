@@ -132,6 +132,19 @@ export class GameplayController {
     return Result.Success(toPlayerViewDto(playerViewResult.value))
   }
 
+  public async setReady({ gameId, playerId, ready }: SetReadyDto): Promise<Result<SetReadyResultDto, string>> {
+    const setReadyResult = await this.createTransaction(async (tx) => {
+      return await this.gameplayRepository.setPlayerReady({ gameId, playerId, ready }, tx)
+    })
+
+    if (Result.isFailure(setReadyResult)) {
+      this.logger.error("Failed to update player readiness", { gameId, playerId, ready, error: setReadyResult.error })
+      return Result.Failure(setReadyResult.error.message)
+    }
+
+    return Result.Success(setReadyResult.value)
+  }
+
   /**
    * Long term we'll probably want a batch submission
    */
@@ -341,7 +354,7 @@ export const GetPlayerViewDto = z.object({
 })
 
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
-export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
+export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor), ready: z.boolean() })
 
 export const StarDto = z.object({
   id: StarId,
@@ -404,4 +417,16 @@ export const UpdateActionSubmissionDto = z.object({
   playerId: PlayerId,
   turn: z.coerce.number(),
   submittedActionTargets: SubmittedActionTargetsDto,
+})
+
+export type SetReadyDto = z.infer<typeof SetReadyDto>
+export const SetReadyDto = z.object({
+  gameId: z.coerce.number().pipe(GameId),
+  playerId: PlayerId,
+  ready: z.boolean(),
+})
+
+export type SetReadyResultDto = z.infer<typeof SetReadyResultDto>
+export const SetReadyResultDto = z.object({
+  ready: z.boolean(),
 })
