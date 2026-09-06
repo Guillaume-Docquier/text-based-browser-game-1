@@ -3,64 +3,77 @@ import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
 test("Alice and Bob can lock their choices and resolve a turn early", async ({ alice, bob }) => {
-  const aliceLobby = await test.step("Alice creates a two-player game with a long turn interval", async () => {
-    const create = await CreateGamePage.goto(alice.page)
-    await create.setGameName(`Readiness ${Date.now()}`)
-    await create.setMaxPlayers(2)
-    await create.setTurnLength({ value: 1, unit: "days" })
-    await create.selectRuleset("Test")
-    return await create.submit()
+  const aliceLobbyPage = await test.step("Alice creates a two-player game with a long turn interval", async () => {
+    const createGamePage = await CreateGamePage.goto(alice.page)
+    await createGamePage.setGameName(`Readiness ${Date.now()}`)
+    await createGamePage.setMaxPlayers(2)
+    await createGamePage.setTurnLength({ value: 1, unit: "days" })
+    await createGamePage.selectRuleset("Test")
+    return await createGamePage.submit()
   })
-  const bobLobby = await test.step("Bob joins Alice's lobby", async () => {
-    const lobby = await LobbyPage.goto(bob.page, await aliceLobby.getGameId())
-    await lobby.joinGame()
-    return lobby
+
+  const bobLobbyPage = await test.step("Bob joins Alice's lobby", async () => {
+    const lobbyPage = await LobbyPage.goto(bob.page, await aliceLobbyPage.getGameId())
+    await lobbyPage.joinGame()
+    return lobbyPage
   })
-  const alicePlayers = await test.step("Alice starts the game and selects an action", async () => {
-    await aliceLobby.reload()
-    await aliceLobby.startGame()
-    const galaxy = await aliceLobby.openGame()
-    const actions = await galaxy.openActions()
-    await actions.toggleAction("Extract Metal")
-    await expect(actions.action("Extract Metal")).toHaveAttribute("aria-pressed", "true")
-    return await actions.openPlayers()
+
+  const alicePlayersPage = await test.step("Alice starts the game and selects an action", async () => {
+    await aliceLobbyPage.reload()
+    await aliceLobbyPage.startGame()
+    const galaxyPage = await aliceLobbyPage.openGame()
+    const actionsPage = await galaxyPage.openActions()
+    await actionsPage.toggleAction("Extract Metal")
+    await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    return await actionsPage.openPlayers()
   })
-  const bobPlayers = await test.step("Bob opens the Players tab", async () => {
-    await bobLobby.reload()
-    const galaxy = await bobLobby.openGame()
-    const players = await galaxy.openPlayers()
-    await expect(players.readyButton).toHaveAttribute("aria-pressed", "false")
-    await expect(players.opponentNotReady).toBeVisible()
-    return players
+
+  const bobPlayersPage = await test.step("Bob opens the Players tab", async () => {
+    await bobLobbyPage.reload()
+    const galaxyPage = await bobLobbyPage.openGame()
+    const playersPage = await galaxyPage.openPlayers()
+    await expect(playersPage.readyButton).toHaveAttribute("aria-pressed", "false")
+    await expect(playersPage.opponentNotReady).toBeVisible()
+    return playersPage
   })
+
   await test.step("Alice readies and Bob sees her public status", async () => {
-    await alicePlayers.toggleReady()
-    await expect(alicePlayers.readyButton).toHaveAttribute("aria-pressed", "true")
-    await expect(bobPlayers.opponentReady).toBeVisible({ timeout: 15000 })
-    const actions = await alicePlayers.openActions()
-    await expect(actions.action("Extract Metal")).toHaveAttribute("aria-disabled", "true")
-    await expect(actions.action("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    await alicePlayersPage.toggleReady()
+    await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "true")
+    await expect(bobPlayersPage.opponentReady).toBeVisible({ timeout: 15000 })
   })
+
+  const aliceActionsPage = await test.step("Alice cannot change her actions while ready", async () => {
+    const actionsPage = await alicePlayersPage.openActions()
+    await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-disabled", "true")
+    await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    return actionsPage
+  })
+
   await test.step("Alice unreadies and can change her choices again", async () => {
-    await alicePlayers.openPlayers()
-    await alicePlayers.toggleReady()
-    await expect(alicePlayers.readyButton).toHaveAttribute("aria-pressed", "false")
-    const actions = await alicePlayers.openActions()
-    await expect(actions.action("Extract Metal")).toHaveAttribute("aria-disabled", "false")
-    await actions.toggleAction("Extract Metal")
-    await expect(actions.action("Extract Metal")).toHaveAttribute("aria-pressed", "false")
-    await actions.openPlayers()
-    await alicePlayers.toggleReady()
-    await expect(alicePlayers.readyButton).toHaveAttribute("aria-pressed", "true")
+    await aliceActionsPage.openPlayers()
+    await alicePlayersPage.toggleReady()
+    await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
+
+    await alicePlayersPage.openActions()
+    await expect(aliceActionsPage.action("Extract Metal")).toHaveAttribute("aria-disabled", "false")
+    await aliceActionsPage.toggleAction("Extract Metal")
+    await expect(aliceActionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "false")
+
+    await aliceActionsPage.openPlayers()
+    await alicePlayersPage.toggleReady()
+    await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "true")
   })
+
   await test.step("Bob readies and both players advance with readiness reset", async () => {
-    await bobPlayers.toggleReady()
-    await expect(bobPlayers.turn).toHaveText("Turn1", { timeout: 15000 })
-    await expect(alicePlayers.turn).toHaveText("Turn1", { timeout: 15000 })
-    await expect(alicePlayers.readyButton).toHaveAttribute("aria-pressed", "false")
-    await expect(bobPlayers.readyButton).toHaveAttribute("aria-pressed", "false")
-    await expect(alicePlayers.opponentNotReady).toBeVisible()
-    const actions = await alicePlayers.openActions()
-    await expect(actions.action("Extract Metal")).toHaveAttribute("aria-disabled", "false")
+    await bobPlayersPage.toggleReady()
+    await expect(bobPlayersPage.turn).toHaveText("Turn1", { timeout: 15000 })
+    await expect(alicePlayersPage.turn).toHaveText("Turn1", { timeout: 15000 })
+    await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
+    await expect(bobPlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
+    await expect(alicePlayersPage.opponentNotReady).toBeVisible()
+
+    await alicePlayersPage.openActions()
+    await expect(aliceActionsPage.action("Extract Metal")).toHaveAttribute("aria-disabled", "false")
   })
 })

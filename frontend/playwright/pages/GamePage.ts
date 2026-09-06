@@ -10,6 +10,7 @@ export abstract class GamePage {
   private readonly gameTopBar: Locator
   private readonly galaxyLink: Locator
   private readonly actionsLink: Locator
+  private readonly playersLink: Locator
 
   public readonly gameNameHeading: Locator
   public readonly resources: Locator
@@ -26,6 +27,7 @@ export abstract class GamePage {
     const gameNavigation = page.getByRole("navigation", { name: "Game navigation" })
     this.galaxyLink = gameNavigation.getByRole("link", { name: "Galaxy", exact: true })
     this.actionsLink = gameNavigation.getByRole("link", { name: "Actions", exact: true })
+    this.playersLink = gameNavigation.getByRole("link", { name: "Players", exact: true })
   }
 
   public resource(name: string): Locator {
@@ -53,8 +55,8 @@ export abstract class GamePage {
   }
 
   public async openPlayers(): Promise<PlayersPage> {
-    await this.page.getByRole("navigation", { name: "Game navigation" }).getByRole("link", { name: "Players", exact: true }).click()
-    const { PlayersPage } = await import("./PlayersPage.ts")
+    await this.playersLink.click()
+    const { PlayersPage } = await import("./PlayersPage.ts") // Avoids circular dependencies issues because GamePage is the base class
     return new PlayersPage(this.page)
   }
 }
