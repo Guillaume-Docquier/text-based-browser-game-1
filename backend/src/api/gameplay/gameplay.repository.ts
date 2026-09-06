@@ -47,68 +47,68 @@ type NewTurnProcessingRow = typeof turnsProcessingTable.$inferInsert
  * However, pglite has 32767 for sure as tests break when we bust it.
  * We'll batch insert planets to avoid the limit, as we can easily insert 3000+ planets with 15+ attributes each, leading to 45k+ bind paremeters.
  */
-const PLANET_INSERT_BATCH_SIZE = 1_000
+const PLANET_INSERT_BATCH_SIZE = 1_000 // ~15k/32k bind parameters (15 per planet)
 
 export type ActionSubmissionsForUpdate = Branded<
-  {
-    readonly gameId: GameId
-    readonly playerId: PlayerId
-    readonly turn: number
-    readonly resources: Resources
-    readonly actions: Action[]
-    readonly ruleset: Ruleset
-  },
+  Readonly<{
+    gameId: GameId
+    playerId: PlayerId
+    turn: number
+    resources: Readonly<Resources>
+    actions: readonly Action[]
+    ruleset: Ruleset
+  }>,
   "ActionsForSubmission"
 >
 
-export type UpdateActionSubmissionsModel = {
+export type UpdateActionSubmissionsModel = Readonly<{
   /**
    * The ActionsForSubmission must be acquired in the same transaction.
    */
-  readonly context: ActionSubmissionsForUpdate
+  context: ActionSubmissionsForUpdate
   /**
    * The actions to update, can be newly selected, target updates or de-selected.
    */
-  readonly actions: Array<Pick<Action, "id" | "targets">>
-}
+  actions: ReadonlyArray<Pick<Action, "id" | "targets">>
+}>
 
-type PlayerViewPlayerModel = {
+type PlayerViewPlayerModel = Readonly<{
   id: PlayerId
   color: PlayerColor
   isReady: boolean
-}
+}>
 
 export type ReadinessForUpdate = Branded<
-  {
-    readonly gameId: GameId
-    readonly playerId: PlayerId
-    readonly turn: number
-    readonly players: readonly PlayerViewPlayerModel[]
-  },
+  Readonly<{
+    gameId: GameId
+    playerId: PlayerId
+    turn: number
+    players: readonly PlayerViewPlayerModel[]
+  }>,
   "ReadinessForUpdate"
 >
 
-type PlayerViewActionModel = {
-  readonly id: ActionId
-  readonly actionDefinitionId: SubmittedAction["actionDefinitionId"]
-  readonly targets: ResolvedTargets | null
-}
+type PlayerViewActionModel = Readonly<{
+  id: ActionId
+  actionDefinitionId: SubmittedAction["actionDefinitionId"]
+  targets: ResolvedTargets | null
+}>
 
-export type PlayerViewModel = {
-  readonly gameId: GameId
-  readonly player: PlayerViewPlayerModel
-  readonly opponents: Record<PlayerId, PlayerViewPlayerModel>
-  readonly galaxy: GalaxyModel
-  readonly turn: number
-  readonly turnStatus: TurnStatus
-  readonly turnEndsAt: Date
-  readonly resources: Resources
+export type PlayerViewModel = Readonly<{
+  gameId: GameId
+  player: PlayerViewPlayerModel
+  opponents: Readonly<Record<PlayerId, PlayerViewPlayerModel>>
+  galaxy: GalaxyModel
+  turn: number
+  turnStatus: TurnStatus
+  turnEndsAt: Date
+  resources: Resources
   /**
    * All the available actions, with their targets if submitted.
    */
-  readonly actions: readonly PlayerViewActionModel[]
-  readonly ruleset: Ruleset
-}
+  actions: readonly PlayerViewActionModel[]
+  ruleset: Ruleset
+}>
 
 /**
  * Owning a GameForStart within a transaction guarantees that the game is locked and exists at this time.
@@ -416,9 +416,33 @@ export class GameplayRepository extends PostgresRepository {
     { gameId, playerId, turn }: { gameId: GameId; playerId: PlayerId; turn: number },
     tx: Transaction,
   ): Promise<ActionSubmissionsForUpdate> {
-    const context = await this.getReadinessForUpdate({ gameId, playerId, turn }, tx)
-    if (context.players.some((player) => player.id === playerId && player.isReady)) {
-      throw new TransactionRollbackError("Unready before changing actions")
+    const gameTurns = await tx
+      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, endsAt: turnsTable.endsAt })
+      .from(turnsTable)
+      .where(
+        and(
+          eq(turnsTable.gameId, gameId),
+          eq(turnsTable.turn, turn),
+          eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS),
+          gt(turnsTable.endsAt, this.clock.now()),
+        ),
+      )
+      .for("no key update")
+    Assert.isTrue(gameTurns.length <= 1)
+
+    const gameTurn = gameTurns[0]
+    if (gameTurn === undefined) {
+      throw new TransactionRollbackError("Cannot submit actions for this turn")
+    }
+
+    const players = await tx
+      .select({ isReady: playersTable.isReady })
+      .from(playersTable)
+      .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, playerId)))
+    Assert.isTrue(players.length === 1)
+    Assert.isDefined(players[0])
+    if (players[0].isReady) {
+      throw new TransactionRollbackError("Cannot submit actions while ready")
     }
 
     const games = await tx

@@ -361,7 +361,11 @@ export const GetPlayerViewDto = z.object({
 })
 
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
-export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor), isReady: z.boolean() })
+export const PlayerViewPlayerDto = z.object({
+  id: PlayerId,
+  color: z.enum(PlayerColor),
+  isReady: z.boolean(),
+})
 
 export const StarDto = z.object({
   id: StarId,
