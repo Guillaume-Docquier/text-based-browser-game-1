@@ -46,11 +46,7 @@ At every moment, all players know how much time is left before the Turn ends. Du
 
 During a Turn, players can declare themselves Ready. This is public information. When all players are Ready, the Turn ends. This is the only way that a Turn can take less time than the Turn duration determined before the game starts.
 
-The Players tab shows a green checkmark for Ready players and an empty dotted circle otherwise. Players toggle their own icon to change Readiness while the Turn is collecting Actions. Ready players cannot change Actions until they unready. Readiness resets when the next Turn starts.
-
-The last Ready update atomically closes the Turn under its row lock, records `closedAt`, and schedules processing for now. Normal expiry records the deadline as `closedAt`. The next Turn is scheduled from this completion time, preserving the original deadline cadence for normal expiry and starting a fresh interval for early completion. Existing downtime recovery still schedules from processing time after a substantial delay.
-
-When a Turn ends, its status changes from `COLLECTING_ACTIONS` to `AWAITING_PROCESSING` and all Action Submissions are locked in. Players cannot submit or revise them during Turn Resolution. The server claims the Turn with a processing queue row, changes it to `PROCESSING`, validates locked submissions, and the [System 015-rules-engine](./015-rules-engine.md) turns their composed Mechanics into Effects.
+When a Turn ends, its status changes from `COLLECTING_ACTIONS` to `AWAITING_PROCESSING` and all Action Submissions are locked in. Players cannot submit or revise them during Turn Resolution. The server claims the Turn with a processing queue row, changes it to `PROCESSING`, validates locked submissions, and the [System 015-rules-engine](./015-rules-engine.md) resolves the turn.
 
 Turn Resolution processes Effects through the fixed, engine-owned Phase order: Pay Costs, Movement, Combat, Planet, Colonization, Income, then Victory. A Ruleset does not configure this sequence. Phases are coarse ordering boundaries and do not create additional player Turns or opportunities to react.
 

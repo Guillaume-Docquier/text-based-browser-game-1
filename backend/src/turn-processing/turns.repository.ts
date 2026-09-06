@@ -20,8 +20,7 @@ type ResourceRow = typeof resourcesTable.$inferSelect
 type SubmittedActionRow = typeof actionsTable.$inferSelect
 
 /**
- * Owning a TurnForProcessing within a transaction guarantees that the Turn row is locked and needs processing.
- * Lock the Turn before updating its processing row, as readiness updates use the same order.
+ * Owning a TurnForProcessing within a transaction guarantees that the Turn Processing row is locked and needs processing.
  */
 export type TurnForProcessing = Branded<
   {
@@ -45,7 +44,7 @@ export type StartTurnProcessingModel = {
 export type TurnToProcessModel = {
   readonly gameId: GameId
   readonly turn: number
-  readonly scheduledFor: Date
+  readonly closedAt: Date
   readonly turnInterval: Time
   readonly rngState: RngState<number>
   readonly submittedActions: SubmittedAction[]
@@ -100,6 +99,7 @@ export class TurnsRepository extends PostgresRepository {
     // But it's still a risk vector for... eventually
     await db
       .update(turnsTable)
+      // Setting closedAt might happen later than endsAt if the worker is down / due to the poll, but that doesn't matter because the turn stopped accepting actions at endsAt.
       .set({ status: TurnStatus.AWAITING_PROCESSING, closedAt: turnsTable.endsAt })
       .where(and(eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS), lte(turnsTable.endsAt, since)))
   }
@@ -113,21 +113,11 @@ export class TurnsRepository extends PostgresRepository {
         gameId: turnsProcessingTable.gameId,
         turn: turnsProcessingTable.turn,
       })
-      .from(turnsTable)
-      .innerJoin(
-        turnsProcessingTable,
-        and(eq(turnsTable.gameId, turnsProcessingTable.gameId), eq(turnsTable.turn, turnsProcessingTable.turn)),
-      )
-      .where(
-        and(
-          eq(turnsTable.status, TurnStatus.AWAITING_PROCESSING),
-          lte(turnsProcessingTable.scheduledFor, since),
-          isNull(turnsProcessingTable.processingStartedAt),
-        ),
-      )
+      .from(turnsProcessingTable)
+      .where(and(lte(turnsProcessingTable.scheduledFor, since), isNull(turnsProcessingTable.processingStartedAt)))
       .orderBy(asc(turnsProcessingTable.scheduledFor))
       .limit(1)
-      .for("no key update", { of: turnsTable, skipLocked: true })
+      .for("no key update", { skipLocked: true })
 
     const turnToProcess = turnToProcessRows[0]
     if (turnToProcess === undefined) {
@@ -211,7 +201,7 @@ export class TurnsRepository extends PostgresRepository {
 
     return toTurnToProcessModel({
       turnForProcessing: startTurnProcessingModel.turn,
-      scheduledFor: turn.closedAt,
+      closedAt: turn.closedAt,
       turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
       rngState: {
         generatorState: turn.rngGeneratorState,
@@ -368,7 +358,7 @@ export class TurnsRepository extends PostgresRepository {
 
 function toTurnToProcessModel({
   turnForProcessing,
-  scheduledFor,
+  closedAt,
   turnInterval,
   rngState,
   players,
@@ -377,7 +367,7 @@ function toTurnToProcessModel({
   ruleset,
 }: {
   turnForProcessing: TurnForProcessing
-  scheduledFor: Date
+  closedAt: Date
   turnInterval: Time
   rngState: RngState<number>
   players: PlayerRow[]
@@ -389,7 +379,7 @@ function toTurnToProcessModel({
 
   return {
     ...turnForProcessing,
-    scheduledFor,
+    closedAt,
     turnInterval,
     rngState,
     submittedActions: submittedActions.flatMap(({ id, playerId, actionDefinitionId, targets }) =>
