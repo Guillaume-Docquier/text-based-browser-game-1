@@ -18,6 +18,7 @@ import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   actionsTable,
   gamesTable,
+  fleetsTable,
   planetsTable,
   playersTable,
   resourcesTable,
@@ -55,6 +56,7 @@ export type ActionSubmissionsForUpdate = Branded<
     playerId: PlayerId
     turn: number
     resources: Readonly<Resources>
+    planets: readonly PlanetId[]
     actions: readonly Action[]
     ruleset: Ruleset
   }>,
@@ -94,6 +96,13 @@ type PlayerViewActionModel = Readonly<{
   targets: ResolvedTargets | null
 }>
 
+type PlayerViewFleetModel = Readonly<{
+  id: typeof fleetsTable.$inferSelect.id
+  playerId: typeof fleetsTable.$inferSelect.playerId
+  strength: typeof fleetsTable.$inferSelect.strength
+  originPlanetId: typeof fleetsTable.$inferSelect.originPlanetId
+}>
+
 export type PlayerViewModel = Readonly<{
   gameId: GameId
   player: PlayerViewPlayerModel
@@ -103,6 +112,7 @@ export type PlayerViewModel = Readonly<{
   turnStatus: TurnStatus
   turnEndsAt: Date
   resources: Resources
+  fleets: readonly PlayerViewFleetModel[]
   /**
    * All the available actions, with their targets if submitted.
    */
@@ -386,6 +396,16 @@ export class GameplayRepository extends PostgresRepository {
 
           const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
           const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
+          const fleets = await tx
+            .select({
+              id: fleetsTable.id,
+              playerId: fleetsTable.playerId,
+              strength: fleetsTable.strength,
+              originPlanetId: fleetsTable.originPlanetId,
+            })
+            .from(fleetsTable)
+            .where(eq(fleetsTable.gameId, gameId))
+            .orderBy(fleetsTable.id)
 
           return {
             player,
@@ -396,6 +416,7 @@ export class GameplayRepository extends PostgresRepository {
             turnStatus: turn.status,
             turnEndsAt: turn.endsAt,
             resources: toResourceBag(playerResources),
+            fleets,
             actions: availableActionRows,
             ruleset,
           }
@@ -469,11 +490,14 @@ export class GameplayRepository extends PostgresRepository {
       .from(actionsTable)
       .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn)))
 
+    const planets = await tx.select({ id: planetsTable.id }).from(planetsTable).where(eq(planetsTable.gameId, gameId))
+
     return branded({
       gameId,
       playerId,
       turn,
       resources: toResourceBag(resourceRows),
+      planets: planets.map(({ id }) => id),
       actions,
       ruleset,
     })

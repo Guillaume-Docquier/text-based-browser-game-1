@@ -8,6 +8,7 @@ import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet-standard.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
@@ -194,6 +195,72 @@ describe("TurnProcessor", () => {
           [ResourceType.FUEL]: { uncommitted: 6, total: 6 },
         }),
       })
+    })
+
+    it("should resolve targeted fleet builds and expose fleets to every player", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const creator = await apiServer.createClient({ authenticated: true })
+      const joiner = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 1000, nbSeats: 2 }),
+      })
+      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const joinerView = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const targetPlanet = creatorView.galaxy.systems[0]?.planets[0]
+      Assert.isDefined(targetPlanet)
+
+      for (const { player, playerView } of [
+        { player: creator, playerView: creatorView },
+        { player: joiner, playerView: joinerView },
+      ]) {
+        const buildFleet = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+        Assert.isDefined(buildFleet)
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: playerView.turn,
+          submittedActionTargets: {
+            actionId: buildFleet.id,
+            targets: { self: playerView.player.id, planet: String(targetPlanet.id) },
+          },
+        })
+      }
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: Time.create(1000, UnitOfTime.SECONDS) })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      const creatorViewAfterProcessing = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const joinerViewAfterProcessing = await joiner.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const fleets = Object.values(creatorViewAfterProcessing.fleets)
+      expect(fleets).toHaveLength(2)
+      expect(fleets).toStrictEqual(
+        expect.arrayContaining([
+          {
+            id: expect.any(String),
+            playerId: creator.account.id,
+            strength: 10,
+            originPlanetId: targetPlanet.id,
+          },
+          {
+            id: expect.any(String),
+            playerId: joiner.account.id,
+            strength: 10,
+            originPlanetId: targetPlanet.id,
+          },
+        ]),
+      )
+      expect(joinerViewAfterProcessing.fleets).toStrictEqual(creatorViewAfterProcessing.fleets)
     })
 
     it.each([

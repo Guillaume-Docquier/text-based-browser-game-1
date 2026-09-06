@@ -1,11 +1,13 @@
 import type { Planet, StarSystem } from "@api-types"
 import { ArrowLeft, LocateFixed } from "lucide-react"
-import { type AnimationEvent, type MouseEvent, type ReactElement, useState } from "react"
+import { type AnimationEvent, type MouseEvent, type ReactElement, useEffect, useState } from "react"
 import { Button } from "@/components/button.tsx"
 import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
 import { PlanetDetailsPane } from "@/features/play/galaxy/PlanetDetailsPane.tsx"
 import { StarSystemMap } from "@/features/play/galaxy/StarSystemMap.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
+import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
+import { Route } from "@/routes/_game.games.$gameId.play.galaxy.tsx"
 
 type GalaxyView = { type: "galaxy" } | { type: "star-system"; system: StarSystem; transition: "entering" | "exiting" }
 type PlanetDetailsView = { planet: Planet; transition: "open" | "closing" }
@@ -21,9 +23,32 @@ export function GalaxyPage(): ReactElement {
   const [galaxyResetSignal, setGalaxyResetSignal] = useState(0)
   const [starSystemResetSignal, setStarSystemResetSignal] = useState(0)
   const { playerView } = usePlayGameContext()
+  const { planetId } = Route.useSearch()
   const selectedSystem = view.type === "star-system" ? view.system : undefined
   const isExitingStarSystem = view.type === "star-system" && view.transition === "exiting"
   const totalNbPlanets = playerView.galaxy.systems.flatMap((system) => system.planets).length
+  const playerColors = Object.fromEntries(
+    Object.entries({
+      [playerView.player.id]: playerView.player.color,
+      ...Object.fromEntries(Object.entries(playerView.opponents).map(([id, player]) => [id, player.color])),
+    }).map(([id, color]) => [id, PLAYER_COLOR_HEX[color]]),
+  )
+
+  useEffect(() => {
+    if (planetId === undefined) {
+      return
+    }
+
+    const system = playerView.galaxy.systems.find((candidate) => candidate.planets.some((planet) => planet.id === planetId))
+    const planet = system?.planets.find((candidate) => candidate.id === planetId)
+    if (system === undefined || planet === undefined) {
+      return
+    }
+
+    // oxlint-disable-next-line react/set-state-in-effect -- Synchronize the URL deep link with the interactive map view.
+    setView({ type: "star-system", system, transition: "entering" })
+    setPlanetDetailsView({ planet, transition: "open" })
+  }, [planetId, playerView.galaxy.systems])
 
   function resetView(): void {
     if (view.type === "galaxy") {
@@ -90,7 +115,13 @@ export function GalaxyPage(): ReactElement {
       <div role="presentation" className="relative min-h-[34rem] flex-1 overflow-hidden bg-[#05080f]" onClick={hidePlanetDetails}>
         <div className="absolute inset-0">
           <div className="size-full" inert={selectedSystem !== undefined}>
-            <GalaxyMap galaxy={playerView.galaxy} resetSignal={galaxyResetSignal} onSelectSystem={showStarSystem} />
+            <GalaxyMap
+              galaxy={playerView.galaxy}
+              fleets={Object.values(playerView.fleets)}
+              playerColors={playerColors}
+              resetSignal={galaxyResetSignal}
+              onSelectSystem={showStarSystem}
+            />
           </div>
           {selectedSystem !== undefined && (
             <div
@@ -106,6 +137,8 @@ export function GalaxyPage(): ReactElement {
               >
                 <StarSystemMap
                   system={selectedSystem}
+                  fleets={Object.values(playerView.fleets)}
+                  playerColors={playerColors}
                   resetSignal={starSystemResetSignal}
                   onSelectGalaxy={showGalaxy}
                   onSelectPlanet={showPlanetDetails}

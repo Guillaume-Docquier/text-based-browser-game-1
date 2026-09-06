@@ -11,6 +11,8 @@ export function mechanicToRulesText(mechanic: Mechanic): string {
       return `Gain ${mechanic.quantity} ${formatRulesetTerm(mechanic.resourceType)}`
     case "VICTORY":
       return "Win the game"
+    case "FLEET_BUILD":
+      return "Build a fleet with " + mechanic.strength + " strength"
   }
 }
 

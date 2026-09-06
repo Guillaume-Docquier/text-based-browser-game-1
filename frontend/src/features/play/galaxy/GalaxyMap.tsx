@@ -1,5 +1,6 @@
-import type { Galaxy, StarSystem } from "@api-types"
+import type { Fleet, Galaxy, StarSystem } from "@api-types"
 import type { KeyboardEvent, ReactElement } from "react"
+import { FleetMarkers } from "@/features/play/galaxy/FleetMarker.tsx"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const GALAXY_SIZE = 1_000
@@ -30,10 +31,14 @@ const MAJOR_GRID_LINES = Array.from({ length: REGION_COUNT_PER_AXIS + 1 }, (_, i
  */
 export function GalaxyMap({
   galaxy,
+  fleets,
+  playerColors,
   resetSignal,
   onSelectSystem,
 }: {
   galaxy: Galaxy
+  fleets: readonly Fleet[]
+  playerColors: Readonly<Record<string, string>>
   resetSignal: number
   onSelectSystem: (system: StarSystem) => void
 }): ReactElement {
@@ -90,7 +95,13 @@ export function GalaxyMap({
         <GalaxyGrid />
         <GalaxyRegions onSelect={selectRegion} />
         {galaxy.systems.map((system) => (
-          <GalaxyStar key={system.star.id} system={system} onSelect={selectSystem} />
+          <GalaxyStar
+            key={system.star.id}
+            system={system}
+            fleets={fleets.filter((fleet) => system.planets.some((planet) => planet.id === fleet.originPlanetId))}
+            playerColors={playerColors}
+            onSelect={selectSystem}
+          />
         ))}
       </g>
     </svg>
@@ -196,7 +207,17 @@ function GalaxyGridLine({
   )
 }
 
-function GalaxyStar({ system, onSelect }: { system: StarSystem; onSelect: (system: StarSystem) => void }): ReactElement {
+function GalaxyStar({
+  system,
+  fleets,
+  playerColors,
+  onSelect,
+}: {
+  system: StarSystem
+  fleets: readonly Fleet[]
+  playerColors: Readonly<Record<string, string>>
+  onSelect: (system: StarSystem) => void
+}): ReactElement {
   const x = system.star.x * LIGHT_YEAR_SIZE
   const y = system.star.y * LIGHT_YEAR_SIZE
 
@@ -223,6 +244,7 @@ function GalaxyStar({ system, onSelect }: { system: StarSystem; onSelect: (syste
         fill="url(#galaxy-star-glow)"
         className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-150 group-focus/star:scale-150"
       />
+      <FleetMarkers fleets={fleets} playerColors={playerColors} x={x} y={y + 12} />
       <circle
         cx={x}
         cy={y}

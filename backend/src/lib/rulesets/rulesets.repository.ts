@@ -5,6 +5,7 @@ import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { validateRuleset } from "#lib/rules-engine/ruleset-model/validateRuleset.ts"
 
 export type RulesetRulesJson = Omit<Ruleset, "id" | "name" | "isDefault">
 
@@ -26,6 +27,11 @@ export class RulesetsRepository extends PostgresRepository {
   }
 
   public async upsertRuleset(ruleset: Ruleset): Promise<Result<void, string>> {
+    const validationIssues = validateRuleset(ruleset)
+    if (validationIssues.length > 0) {
+      return Result.Failure("Invalid ruleset: " + validationIssues.map(({ issue }) => issue).join("; "))
+    }
+
     const rulesetRulesJson = toRulesetRulesJson(ruleset)
     const insertResult = await Result.tryCatch(
       this.db

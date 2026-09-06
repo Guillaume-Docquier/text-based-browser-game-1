@@ -1,3 +1,5 @@
+import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
@@ -17,8 +19,17 @@ export type TurnState = {
       }
     >
   >
+  readonly planets: Readonly<Record<string, { id: PlanetId }>>
+  readonly fleets: Record<string, FleetState>
   /**
    * If set, the game ends.
    */
   winnerPlayerId: PlayerId | undefined
+}
+
+export type FleetState = {
+  id: FleetId
+  playerId: PlayerId
+  strength: number
+  originPlanetId: PlanetId
 }

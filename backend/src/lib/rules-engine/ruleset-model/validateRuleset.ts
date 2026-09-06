@@ -19,5 +19,14 @@ export function validateRuleset(ruleset: Ruleset): RulesetValidationIssue[] {
     ),
   )
 
-  return [...invalidIndexIssues, ...missingTargetIssues]
+  const invalidFleetBuildIssues = Object.values(ruleset.actionDefinitions).flatMap((actionDefinition) =>
+    actionDefinition.mechanics
+      .filter((mechanic) => mechanic.type === "FLEET_BUILD")
+      .filter((mechanic) => !Number.isInteger(mechanic.strength) || mechanic.strength <= 0)
+      .map(() => ({
+        issue: "Action Definition " + actionDefinition.name + " has a FleetBuild strength that must be a positive integer",
+      })),
+  )
+
+  return [...invalidIndexIssues, ...missingTargetIssues, ...invalidFleetBuildIssues]
 }

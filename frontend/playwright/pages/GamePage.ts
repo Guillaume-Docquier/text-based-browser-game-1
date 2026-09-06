@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test"
 import type { ActionsPage } from "./ActionsPage.ts"
+import type { FleetsPage } from "./FleetsPage.ts"
 import type { GalaxyPage } from "./GalaxyPage.ts"
 import type { PlayersPage } from "./PlayersPage.ts"
 
@@ -11,6 +12,7 @@ export abstract class GamePage {
   private readonly galaxyLink: Locator
   private readonly actionsLink: Locator
   private readonly playersLink: Locator
+  private readonly fleetsLink: Locator
 
   public readonly gameNameHeading: Locator
   public readonly resources: Locator
@@ -28,6 +30,7 @@ export abstract class GamePage {
     this.galaxyLink = gameNavigation.getByRole("link", { name: "Galaxy", exact: true })
     this.actionsLink = gameNavigation.getByRole("link", { name: "Actions", exact: true })
     this.playersLink = gameNavigation.getByRole("link", { name: "Players", exact: true })
+    this.fleetsLink = gameNavigation.getByRole("link", { name: "Fleets", exact: true })
   }
 
   public resource(name: string): Locator {
@@ -58,5 +61,12 @@ export abstract class GamePage {
     await this.playersLink.click()
     const { PlayersPage } = await import("./PlayersPage.ts") // Avoids circular dependencies issues because GamePage is the base class
     return new PlayersPage(this.page)
+  }
+
+  public async openFleets(): Promise<FleetsPage> {
+    await this.fleetsLink.click({ noWaitAfter: true })
+    await this.page.waitForURL(/\/games\/\d+\/play\/fleets$/)
+    const { FleetsPage } = await import("./FleetsPage.ts") // Avoids circular dependencies issues because GamePage is the base class
+    return new FleetsPage(this.page)
   }
 }

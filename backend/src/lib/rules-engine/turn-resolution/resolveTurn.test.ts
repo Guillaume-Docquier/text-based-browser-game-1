@@ -111,6 +111,8 @@ describe("resolveTurn", () => {
             }),
           },
         },
+        planets: {},
+        fleets: {},
         resolvedActions: [
           {
             submittedAction,
@@ -177,6 +179,8 @@ describe("resolveTurn", () => {
             resources: createResourcesStub(),
           },
         },
+        planets: {},
+        fleets: {},
         resolvedActions: [
           {
             submittedAction: firstPlayerSubmittedAction,
@@ -231,6 +235,8 @@ describe("resolveTurn", () => {
             resources: createResourcesStub(),
           },
         },
+        planets: {},
+        fleets: {},
         resolvedActions: [
           {
             submittedAction,

@@ -1,5 +1,6 @@
-import type { Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
+import type { Fleet, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
+import { FleetMarkers } from "@/features/play/galaxy/FleetMarker.tsx"
 import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/planetBiomeColors.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
@@ -31,11 +32,15 @@ type PlanetViewModel = PlanetModel & {
  */
 export function StarSystemMap({
   system,
+  fleets,
+  playerColors,
   resetSignal,
   onSelectGalaxy,
   onSelectPlanet,
 }: {
   system: StarSystem
+  fleets: readonly Fleet[]
+  playerColors: Readonly<Record<string, string>>
   resetSignal: number
   onSelectGalaxy: () => void
   onSelectPlanet: (planet: PlanetModel) => void
@@ -81,7 +86,13 @@ export function StarSystemMap({
         ))}
         <Star name={system.star.name} onSelect={selectGalaxy} />
         {planets.map((planet) => (
-          <Planet key={planet.id} planet={planet} onSelect={onSelectPlanet} />
+          <Planet
+            key={planet.id}
+            planet={planet}
+            fleets={fleets.filter((fleet) => fleet.originPlanetId === planet.id)}
+            playerColors={playerColors}
+            onSelect={onSelectPlanet}
+          />
         ))}
       </g>
     </svg>
@@ -154,7 +165,17 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
   )
 }
 
-function Planet({ planet, onSelect }: { planet: PlanetViewModel; onSelect: (planet: PlanetModel) => void }): ReactElement {
+function Planet({
+  planet,
+  fleets,
+  playerColors,
+  onSelect,
+}: {
+  planet: PlanetViewModel
+  fleets: readonly Fleet[]
+  playerColors: Readonly<Record<string, string>>
+  onSelect: (planet: PlanetModel) => void
+}): ReactElement {
   function selectPlanet(event: MouseEvent<SVGGElement>): void {
     event.stopPropagation()
     onSelect(planet)
@@ -182,6 +203,7 @@ function Planet({ planet, onSelect }: { planet: PlanetViewModel; onSelect: (plan
         opacity="0"
         className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-hover/planet:opacity-25 group-focus/planet:scale-125 group-focus/planet:opacity-25"
       />
+      <FleetMarkers fleets={fleets} playerColors={playerColors} x={planet.x} y={planet.y + planet.radius + 12} />
       <circle
         cx={planet.x}
         cy={planet.y}

@@ -9,6 +9,7 @@ import type { Clock } from "#lib/Clock.ts"
 import { AccountId } from "#lib/db/accounts/AccountId.ts"
 import { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
+import { FleetId } from "#lib/db/fleets/FleetId.ts"
 import { GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
@@ -164,7 +165,12 @@ export class GameplayController {
         targets: { ...submittedActionTargets.targets, self: playerId },
       } satisfies SubmittedAction
 
-      const turnState = createTurnState({ playerId, resources: context.resources, submittedActions: [submittedAction] })
+      const turnState = createTurnState({
+        playerId,
+        resources: context.resources,
+        submittedActions: [submittedAction],
+        planetIds: context.planets,
+      })
       const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
       if (issues.length > 0) {
         throw new TransactionRollbackError(issues.map(({ issue }) => issue).join("\n"))
@@ -269,6 +275,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     resources: toResourcesDto(playerViewModel.resources, uncommittedResources),
     ruleset: playerViewModel.ruleset,
     actions: toActionDtos(playerViewModel, uncommittedResources),
+    fleets: Object.fromEntries(playerViewModel.fleets.map((fleet) => [fleet.id, fleet])),
   }
 }
 
@@ -289,6 +296,7 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
     playerId: playerViewModel.player.id,
     resources: uncommittedResources,
     submittedActions: [],
+    planetIds: playerViewModel.galaxy.systems.flatMap(({ planets }) => planets.map(({ id }) => id)),
   })
 
   return playerViewModel.actions.map((action) => {
@@ -297,6 +305,7 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
       return {
         ...action,
         canAfford: true,
+        targetOptions: getTargetOptions(playerViewModel, action.actionDefinitionId),
       }
     }
 
@@ -318,18 +327,39 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
     return {
       ...action,
       canAfford: affordabilityResult.value.length === 0,
+      targetOptions: getTargetOptions(playerViewModel, action.actionDefinitionId),
     }
   })
+}
+
+function getTargetOptions(playerViewModel: PlayerViewModel, actionDefinitionId: string): PlayerViewDto["actions"][number]["targetOptions"] {
+  const actionDefinition = playerViewModel.ruleset.actionDefinitions[actionDefinitionId]
+  Assert.isDefined(actionDefinition)
+
+  const planets = playerViewModel.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+  return Object.fromEntries(
+    Object.keys(actionDefinition.targets)
+      .filter((targetSlot) => targetSlot !== "self")
+      .map((targetSlot) => [
+        targetSlot,
+        planets.map((planet) => ({
+          id: String(planet.id),
+          label: planet.name,
+        })),
+      ]),
+  )
 }
 
 function createTurnState({
   playerId,
   resources,
   submittedActions,
+  planetIds,
 }: {
   playerId: PlayerId
   resources: Resources
   submittedActions: readonly SubmittedAction[]
+  planetIds: readonly PlanetId[]
 }): TurnState {
   return {
     submittedActions,
@@ -339,6 +369,8 @@ function createTurnState({
         resources,
       },
     },
+    planets: Object.fromEntries(planetIds.map((id) => [id, { id }])),
+    fleets: {},
     winnerPlayerId: undefined,
   }
 }
@@ -405,7 +437,15 @@ const ActionDto = z.object({
   id: ActionId,
   actionDefinitionId: ActionDefinitionIdSchema,
   targets: z.record(z.string(), z.string()).nullable(),
+  targetOptions: z.record(z.string(), z.array(z.object({ id: z.string(), label: z.string() }))),
   canAfford: z.boolean(),
+})
+
+const FleetDto = z.object({
+  id: FleetId,
+  playerId: PlayerId,
+  strength: z.number().int().positive(),
+  originPlanetId: PlanetId,
 })
 
 export type PlayerViewDto = z.infer<typeof PlayerViewDto>
@@ -420,6 +460,7 @@ export const PlayerViewDto = z.object({
   resources: ResourcesDtoSchema,
   ruleset: RulesetSchema,
   actions: z.array(ActionDto),
+  fleets: z.record(FleetId, FleetDto),
 })
 
 export type UpdateActionSubmissionDto = z.infer<typeof UpdateActionSubmissionDto>

@@ -3,6 +3,7 @@ import { validateSubmittedActions } from "#lib/rules-engine/action-submission/va
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { EffectFactory } from "#lib/rules-engine/turn-resolution/effects/EffectFactory.ts"
 import { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
+import { FleetIdFactory, type FleetIdFactory as FleetIdFactoryType } from "#lib/rules-engine/turn-resolution/FleetIdFactory.ts"
 import { MonotonicIdFactory } from "#lib/rules-engine/turn-resolution/MonotonicIdFactory.ts"
 import { resolvePhases } from "#lib/rules-engine/turn-resolution/phases/resolvePhases.ts"
 import type { ResolvedTurnState } from "#lib/rules-engine/turn-resolution/ResolvedTurnState.ts"
@@ -14,11 +15,17 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
  * Takes a turn state and applies all its actions on it, then returns it.
  * The turnState will be mutated. You should not provide an object that cannot / must not be mutated.
  */
-export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): Result<ResolvedTurnState, ResolveTurnError> {
+export function resolveTurn(
+  turnState: TurnState,
+  ruleset: Ruleset,
+  rng: Rng,
+  fleetIdFactory: FleetIdFactoryType = FleetIdFactory.create(),
+): Result<ResolvedTurnState, ResolveTurnError> {
   const context: TurnContext = {
     rng,
     turnState,
     effectPool: new EffectPool([]),
+    fleetIdFactory,
     ruleset,
   }
   const submittedActions = turnState.submittedActions
@@ -32,7 +39,9 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
   // Create effects
   const monotonicIdFactory = MonotonicIdFactory.create()
   context.effectPool.addMany(
-    submittedActions.flatMap((submittedAction) => EffectFactory.fromSubmittedAction(submittedAction, ruleset, monotonicIdFactory)),
+    submittedActions.flatMap((submittedAction) =>
+      EffectFactory.fromSubmittedAction(submittedAction, ruleset, monotonicIdFactory, fleetIdFactory),
+    ),
   )
 
   // Resolve effects
@@ -52,6 +61,8 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
       actionOutcomes: context.effectPool.getOutcomes(submittedAction),
     })),
     players: context.turnState.players,
+    planets: context.turnState.planets,
+    fleets: context.turnState.fleets,
     winnerPlayerId: context.turnState.winnerPlayerId,
   })
 }

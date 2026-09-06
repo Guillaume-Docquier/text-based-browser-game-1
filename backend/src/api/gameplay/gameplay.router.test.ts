@@ -165,30 +165,56 @@ describe("gameplay.router", () => {
           actionDefinitionId: GainInfluence.id,
           targets: null,
           canAfford: true,
+          targetOptions: {},
         },
         {
           id: expect.any(String),
           actionDefinitionId: WinTheGame.id,
           targets: null,
           canAfford: false,
+          targetOptions: {},
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainEnergy.id,
           targets: null,
           canAfford: true,
+          targetOptions: {},
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainFuel.id,
           targets: null,
           canAfford: true,
+          targetOptions: {},
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainMetal.id,
           targets: null,
           canAfford: true,
+          targetOptions: {},
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: "BUILD_FLEET_STANDARD",
+          targets: null,
+          canAfford: true,
+          targetOptions: { planet: expect.any(Array) },
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: "BUILD_FLEET_IMPROVED",
+          targets: null,
+          canAfford: false,
+          targetOptions: { planet: expect.any(Array) },
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: "BUILD_FLEET_EXCEPTIONAL",
+          targets: null,
+          canAfford: false,
+          targetOptions: { planet: expect.any(Array) },
         },
       ]
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
@@ -209,6 +235,7 @@ describe("gameplay.router", () => {
         }),
         ruleset: TestRuleset,
         actions: expect.arrayContaining(expectedActions),
+        fleets: {},
       })
       expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)
       expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
@@ -368,34 +395,39 @@ describe("gameplay.router", () => {
             actionDefinitionId: GainInfluence.id,
             targets: null,
             canAfford: true,
+            targetOptions: {},
           },
           {
             id: expect.any(String),
             actionDefinitionId: WinTheGame.id,
             targets: null,
             canAfford: false,
+            targetOptions: {},
           },
           {
             id: expect.any(String),
             actionDefinitionId: GainEnergy.id,
             targets: null,
             canAfford: false,
+            targetOptions: {},
           },
           {
             id: expect.any(String),
             actionDefinitionId: GainFuel.id,
             targets: { self: player.account.id },
             canAfford: true,
+            targetOptions: {},
           },
           {
             id: expect.any(String),
             actionDefinitionId: GainMetal.id,
             targets: { self: player.account.id },
             canAfford: true,
+            targetOptions: {},
           },
         ]),
       )
-      expect(selectedPlayerView.actions).toHaveLength(5)
+      expect(selectedPlayerView.actions).toHaveLength(8)
 
       expect(deselectedPlayerView.actions).toStrictEqual(
         expect.arrayContaining([
@@ -404,34 +436,39 @@ describe("gameplay.router", () => {
             actionDefinitionId: GainInfluence.id,
             targets: null,
             canAfford: true,
+            targetOptions: {},
           },
           {
             id: expect.any(String),
             actionDefinitionId: WinTheGame.id,
             targets: null,
             canAfford: false,
+            targetOptions: {},
           },
           {
             id: expect.any(String),
             actionDefinitionId: GainEnergy.id,
             targets: null,
             canAfford: true,
+            targetOptions: {},
           },
           {
             id: expect.any(String),
             actionDefinitionId: GainFuel.id,
             targets: null,
             canAfford: true,
+            targetOptions: {},
           },
           {
             id: expect.any(String),
             actionDefinitionId: GainMetal.id,
             targets: null,
             canAfford: true,
+            targetOptions: {},
           },
         ]),
       )
-      expect(deselectedPlayerView.actions).toHaveLength(5)
+      expect(deselectedPlayerView.actions).toHaveLength(8)
     })
 
     it("should reject setting an action for a stale turn", async () => {

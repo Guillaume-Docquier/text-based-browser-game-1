@@ -2,17 +2,20 @@ import { stripVTControlCharacters, styleText } from "node:util"
 import { Assert, branded, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { select } from "@inquirer/prompts"
 import { createSeededRng } from "#lib/createSeededRng.ts"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
+import { FleetIdFactory } from "#lib/rules-engine/turn-resolution/FleetIdFactory.ts"
 import type { ResolvedAction } from "#lib/rules-engine/turn-resolution/ResolvedAction.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 const SOLO_PLAYER_ID = branded<PlayerId>("solo-player")
+const SOLO_PLANET_ID = branded<PlanetId>(1)
 const UI_WIDTH = 72
 const PANEL_CONTENT_WIDTH = UI_WIDTH - 4
 const TURN_SEPARATOR = "\n" + "━".repeat(UI_WIDTH) + "\n"
@@ -30,7 +33,7 @@ const UiStyle = {
 
 /** A command selected from the interactive solo-game prompt. */
 export type SoloGameSelection =
-  | { readonly command: "ADD_ACTION"; readonly actionDefinitionId: string }
+  | { readonly command: "ADD_ACTION"; readonly actionDefinitionId: string; readonly planetId?: string }
   | { readonly command: "REMOVE_ACTION"; readonly submittedActionId: string }
   | { readonly command: "SUBMIT_TURN" }
   | { readonly command: "QUIT" }
@@ -108,7 +111,7 @@ export async function playSolo({
 
     switch (selection.command) {
       case "ADD_ACTION":
-        addAction(session, selection.actionDefinitionId, nextSubmittedActionNumber, ruleset)
+        addAction(session, selection.actionDefinitionId, selection.planetId, nextSubmittedActionNumber, ruleset)
         nextSubmittedActionNumber += 1
         turnResolutionError = undefined
         break
@@ -118,7 +121,7 @@ export async function playSolo({
         break
       case "SUBMIT_TURN": {
         const submittedTurn = structuredClone(session)
-        const result = resolveTurn(session.state, ruleset, rng)
+        const result = resolveTurn(session.state, ruleset, rng, FleetIdFactory.create({ turn: session.turn }))
         if (Result.isFailure(result)) {
           turnResolutionError = result.error
           break
@@ -129,6 +132,8 @@ export async function playSolo({
         session.state = {
           submittedActions: [],
           players: result.value.players,
+          planets: result.value.planets,
+          fleets: result.value.fleets,
           winnerPlayerId: result.value.winnerPlayerId,
         }
         turnResolutionError = undefined
@@ -161,6 +166,10 @@ function createSoloGameSession(ruleset: Ruleset): SoloGameSession {
           resources: structuredClone(ruleset.startingResources),
         },
       },
+      planets: {
+        [SOLO_PLANET_ID]: { id: SOLO_PLANET_ID },
+      },
+      fleets: {},
       winnerPlayerId: undefined,
     },
   }
@@ -194,7 +203,7 @@ async function promptWithInquirer({ message, choices, default: defaultSelection 
 function getSelectionKey(selection: SoloGameSelection): string {
   switch (selection.command) {
     case "ADD_ACTION":
-      return `${selection.command}:${selection.actionDefinitionId}`
+      return `${selection.command}:${selection.actionDefinitionId}:${selection.planetId ?? ""}`
     case "REMOVE_ACTION":
       return `${selection.command}:${selection.submittedActionId}`
     case "SUBMIT_TURN":
@@ -207,14 +216,20 @@ function getSelectionKey(selection: SoloGameSelection): string {
 }
 
 function createChoices(session: SoloGameSession, ruleset: Ruleset): SoloGameChoice[] {
-  const addActionChoices = Object.values(ruleset.actionDefinitions).map((actionDefinition) => ({
-    name: UiStyle.positive(`+ ${actionDefinition.name}`),
-    description: formatActionDescription(actionDefinition),
-    value: {
-      command: "ADD_ACTION" as const,
-      actionDefinitionId: actionDefinition.id,
-    },
-  }))
+  const addActionChoices = Object.values(ruleset.actionDefinitions).flatMap((actionDefinition) => {
+    const planetIds =
+      actionDefinition.targets.planet === undefined ? [undefined] : Object.values(session.state.planets).map((planet) => String(planet.id))
+
+    return planetIds.map((planetId) => ({
+      name: UiStyle.positive(`+ ${actionDefinition.name}${planetId === undefined ? "" : ` on Planet ${planetId}`}`),
+      description: formatActionDescription(actionDefinition),
+      value: {
+        command: "ADD_ACTION" as const,
+        actionDefinitionId: actionDefinition.id,
+        ...(planetId === undefined ? {} : { planetId }),
+      },
+    }))
+  })
   const actionCounts = new Map<string, number>()
   const removeActionChoices = session.state.submittedActions.map((submittedAction) => {
     const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
@@ -247,7 +262,13 @@ function createChoices(session: SoloGameSession, ruleset: Ruleset): SoloGameChoi
   ]
 }
 
-function addAction(session: SoloGameSession, actionDefinitionId: string, submittedActionNumber: number, ruleset: Ruleset): void {
+function addAction(
+  session: SoloGameSession,
+  actionDefinitionId: string,
+  planetId: string | undefined,
+  submittedActionNumber: number,
+  ruleset: Ruleset,
+): void {
   const player = getSoloPlayer(session)
   const actionDefinition = ruleset.actionDefinitions[actionDefinitionId]
   Assert.isDefined(actionDefinition)
@@ -262,6 +283,7 @@ function addAction(session: SoloGameSession, actionDefinitionId: string, submitt
         actionDefinitionId: actionDefinition.id,
         targets: {
           self: player.id,
+          ...(planetId === undefined ? {} : { planet: planetId }),
         },
       },
     ],
@@ -438,6 +460,8 @@ function formatMechanic(mechanic: Mechanic): string {
       return `gains ${mechanic.quantity} ${mechanic.resourceType}`
     case "VICTORY":
       return "wins the game"
+    case "FLEET_BUILD":
+      return `builds a fleet with ${mechanic.strength} strength`
   }
 }
 

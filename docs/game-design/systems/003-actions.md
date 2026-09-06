@@ -57,7 +57,7 @@ Relates to:
 
 ## Current Implementation
 
-The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, Mechanic text, and affordability.
+The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, Mechanic text, affordability, and server-provided target controls. Self targets are supplied by the server and are not shown as user-editable controls.
 
 ## Rules
 
@@ -138,8 +138,9 @@ Directives are targeted Actions, generally affecting a Planet or a Unit, that ha
 | Colonize Planet      | T1   | N/A        | Fleet          | Unclaimed Planet  | 25 Influence, 1 colony, 20 energy | Move at Speed 5, Range 5. Colonize on arrival. Develop at 200% for 10 Turns.                 |      |
 | Build Infrastructure | T4   | N/A        | Self           | Owned Planet      | 10 Influence, Infrastructure Cost | Build Standard or lower Infrastructure.                                                      | Yes  |
 | Build Infrastructure | T1   | N/A        | Self           | Owned Planet      | 10 Influence, Infrastructure Cost | Build Exceptional or lower Infrastructure.                                                   |      |
-| Build Fleet          | T4   | N/A        | Self           | Owned Planet      | 10 Influence, 5 Metal             | Build a Fleet with Strength 5.                                                               | Yes  |
-| Build Fleet          | T1   | N/A        | Self           | Owned Planet      | 10 Influence, 20 Metal            | Build a Fleet with Strength 20.                                                              |      |
+| Build Fleet          | T4   | N/A        | Self           | Planet            | 2 Influence, 1 metal              | Build a Fleet with Strength 10.                                                              | Yes  |
+| Build Fleet          | T3   | N/A        | Self           | Planet            | 6 Influence, 3 metal              | Build a Fleet with Strength 100.                                                             |      |
+| Build Fleet          | T1   | N/A        | Self           | Planet            | 10 Influence, 5 metal             | Build a Fleet with Strength 1000.                                                            |      |
 | ...                  | ...  | ...        | ...            | ...               | ...                               | ...                                                                                          |      |
 
 Note: Every Post Trade/Contract Action always comes with a Cancel Trade/Contract Action. It will not be explicitly written out in all documents to alleviate the text.

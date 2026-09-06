@@ -2,7 +2,7 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
 
 ## Purpose
 
@@ -28,11 +28,15 @@ Relates to:
 
 ## Rules
 
-A Fleet whose Total Strength reaches 0 disappears. Fleet Strength has no maximum. An empire has at most one Fleet at a given location. When fleets owned by the same empire meet at a location, they merge automatically into one Fleet with their combined Strength.
+A Fleet has a positive Strength, an owning Player, and an origin Planet that represents its current position until movement is implemented. Fleet Strength has no maximum in the current model.
+
+The Standard Ruleset provides Standard, Improved, and Exceptional Build Fleet Actions. Each Action targets a Planet and creates a stationary Fleet during the Fleet Build Phase. Building on a Planet where the same Player already has a Fleet merges the new Strength into that Fleet. Different Players receive separate Fleets at the same Planet.
+
+This slice does not validate Planet ownership. All Planets are valid build targets until ownership is implemented.
 
 To move a Fleet, the player selects a positive amount of its Strength. That Strength departs as the moving Fleet, while any remaining Strength stays at the origin.
 
-New Fleets can only be built at Planets owned by their empire. A new fleet can appear anywhere as a result of a split.
+Fleet movement, splitting, ownership restrictions, combat, and zero-strength deletion remain planned.
 
 ### Cloaking
 

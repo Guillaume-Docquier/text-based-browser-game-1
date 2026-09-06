@@ -1,6 +1,7 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { EffectPool } from "#lib/rules-engine/turn-resolution/effects/EffectPool.ts"
+import type { FleetIdFactory } from "#lib/rules-engine/turn-resolution/FleetIdFactory.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 export type TurnContext = Readonly<{
@@ -17,6 +18,7 @@ export type TurnContext = Readonly<{
    * All the Effects that need resolving, to mutate.
    */
   effectPool: EffectPool
+  fleetIdFactory: FleetIdFactory
   /**
    * The rules for this turn.
    */

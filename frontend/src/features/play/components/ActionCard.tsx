@@ -1,6 +1,6 @@
 import type { ActionDefinition, PlayerView } from "@api-types"
 import { Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
-import type { ReactElement } from "react"
+import type { ReactElement, ReactNode } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
 import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
 import { formatRulesetTerm, mechanicsToRulesText } from "@/features/play/mechanicToRulesText.ts"
@@ -49,22 +49,22 @@ export function ActionCard({
   canAfford,
   isSelected,
   disabled,
-  onSelect,
+  controls,
 }: {
   actionDefinition: ActionDefinition
   resources: PlayerView["resources"]
   canAfford: boolean
   isSelected: boolean
   disabled: boolean
-  onSelect: () => void
+  controls: ReactNode
 }): ReactElement {
   const tierStyle = ACTION_TIER_STYLES[actionDefinition.tier]
   const ActionIcon = ACTION_TYPE_ICONS[actionDefinition.type]
 
   return (
     <Card
-      role="button"
-      tabIndex={disabled ? -1 : 0}
+      role="group"
+      aria-label={actionDefinition.name}
       aria-pressed={isSelected}
       aria-disabled={disabled}
       className={cn(
@@ -72,24 +72,10 @@ export function ActionCard({
         tierStyle.card,
         {
           [tierStyle.selected]: isSelected,
-          "cursor-pointer hover:-translate-y-0.5": !disabled,
           "hover:shadow-xl": !disabled && !isSelected,
           "cursor-not-allowed opacity-80": disabled,
         },
       )}
-      onClick={() => {
-        if (!disabled) {
-          onSelect()
-        }
-      }}
-      onKeyDown={(event) => {
-        if (disabled || (event.key !== "Enter" && event.key !== " ")) {
-          return
-        }
-
-        event.preventDefault()
-        onSelect()
-      }}
     >
       <div
         className={cn("absolute -top-3 -left-4 z-10 grid size-14 place-items-center rounded-xl border-2 shadow-lg", tierStyle.icon)}
@@ -119,6 +105,7 @@ export function ActionCard({
         <p className={cn("leading-relaxed", canAfford ? "text-card-foreground" : "text-zinc-500")}>
           {mechanicsToRulesText(actionDefinition.mechanics)}
         </p>
+        {controls}
       </CardContent>
     </Card>
   )

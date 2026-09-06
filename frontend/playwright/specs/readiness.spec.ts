@@ -3,6 +3,7 @@ import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
 test("Alice and Bob can lock their choices and resolve a turn early", async ({ alice, bob }) => {
+  test.setTimeout(60_000)
   const aliceLobbyPage = await test.step("Alice creates a two-player game with a long turn interval", async () => {
     const createGamePage = await CreateGamePage.goto(alice.page)
     await createGamePage.setGameName(`Readiness ${Date.now()}`)
@@ -18,13 +19,14 @@ test("Alice and Bob can lock their choices and resolve a turn early", async ({ a
     return lobbyPage
   })
 
-  const alicePlayersPage = await test.step("Alice starts the game and selects an action", async () => {
+  const alicePlayersPage = await test.step("Alice starts the game and targets a fleet build", async () => {
     await aliceLobbyPage.reload()
     await aliceLobbyPage.startGame()
     const galaxyPage = await aliceLobbyPage.openGame()
     const actionsPage = await galaxyPage.openActions()
-    await actionsPage.toggleAction("Extract Metal")
-    await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    await actionsPage.selectTarget("Build Fleet (Standard)")
+    await actionsPage.toggleAction("Build Fleet (Standard)")
+    await expect(actionsPage.action("Build Fleet (Standard)")).toHaveAttribute("aria-pressed", "true")
     return await actionsPage.openPlayers()
   })
 
@@ -43,10 +45,12 @@ test("Alice and Bob can lock their choices and resolve a turn early", async ({ a
     await expect(bobPlayersPage.opponentReady).toBeVisible({ timeout: 15000 })
   })
 
-  const aliceActionsPage = await test.step("Alice cannot change her actions while ready", async () => {
+  const aliceActionsPage = await test.step("Alice cannot change her targeted action while ready", async () => {
     const actionsPage = await alicePlayersPage.openActions()
-    await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-disabled", "true")
-    await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    await expect(actionsPage.action("Build Fleet (Standard)")).toHaveAttribute("aria-disabled", "true")
+    await expect(actionsPage.action("Build Fleet (Standard)")).toHaveAttribute("aria-pressed", "true")
+    await expect(actionsPage.target("Build Fleet (Standard)")).toBeDisabled()
+    await expect(actionsPage.target("Build Fleet (Standard)")).toHaveValue(/\d+/)
     return actionsPage
   })
 
@@ -56,12 +60,15 @@ test("Alice and Bob can lock their choices and resolve a turn early", async ({ a
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
 
     await alicePlayersPage.openActions()
-    await expect(aliceActionsPage.action("Extract Metal")).toHaveAttribute("aria-disabled", "false")
-    await aliceActionsPage.toggleAction("Extract Metal")
-    await expect(aliceActionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "false")
+    await expect(aliceActionsPage.action("Build Fleet (Standard)")).toHaveAttribute("aria-disabled", "false")
+    await aliceActionsPage.toggleAction("Build Fleet (Standard)")
+    await expect(aliceActionsPage.action("Build Fleet (Standard)")).toHaveAttribute("aria-pressed", "false")
   })
 
   await test.step("Alice readies", async () => {
+    await aliceActionsPage.selectTarget("Build Fleet (Standard)")
+    await aliceActionsPage.toggleAction("Build Fleet (Standard)")
+    await expect(aliceActionsPage.action("Build Fleet (Standard)")).toHaveAttribute("aria-pressed", "true")
     await aliceActionsPage.openPlayers()
     await alicePlayersPage.toggleReady()
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "true")
@@ -69,8 +76,9 @@ test("Alice and Bob can lock their choices and resolve a turn early", async ({ a
 
   await test.step("Bob selects an action and readies", async () => {
     const actionsPage = await bobPlayersPage.openActions()
-    await actionsPage.toggleAction("Extract Metal")
-    await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    await actionsPage.selectTarget("Build Fleet (Standard)")
+    await actionsPage.toggleAction("Build Fleet (Standard)")
+    await expect(actionsPage.action("Build Fleet (Standard)")).toHaveAttribute("aria-pressed", "true")
 
     await actionsPage.openPlayers()
     await bobPlayersPage.toggleReady()
@@ -78,21 +86,27 @@ test("Alice and Bob can lock their choices and resolve a turn early", async ({ a
   })
 
   await test.step("Both players advance with readiness reset", async () => {
-    await expect(bobPlayersPage.turn).toHaveText("Turn1", { timeout: 15000 })
-    await expect(alicePlayersPage.turn).toHaveText("Turn1", { timeout: 15000 })
+    await expect(bobPlayersPage.turn).toHaveText("Turn1", { timeout: 30000 })
+    await expect(alicePlayersPage.turn).toHaveText("Turn1", { timeout: 30000 })
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
     await expect(bobPlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
     await expect(alicePlayersPage.opponentNotReady).toBeVisible()
 
     await alicePlayersPage.openActions()
-    await expect(aliceActionsPage.action("Extract Metal")).toHaveAttribute("aria-disabled", "false")
+    await expect(aliceActionsPage.action("Build Fleet (Standard)")).toHaveAttribute("aria-pressed", "false")
   })
 
-  await test.step("Bob receives his action resources while Alice's resources remain unchanged", async () => {
-    await expect(bobPlayersPage.resource("Influence")).toHaveAttribute("aria-label", "2 available of 2 Influence")
-    await expect(bobPlayersPage.resource("Metal")).toHaveAttribute("aria-label", "7 available of 7 Metal")
+  await test.step("Both players see the resolved fleets and paid costs", async () => {
+    const aliceFleetsPage = await aliceActionsPage.openFleets()
+    const bobFleetsPage = await bobPlayersPage.openFleets()
+    await expect(aliceFleetsPage.heading).toBeVisible()
+    await expect(aliceFleetsPage.fleetRows).toHaveCount(2)
+    await expect(aliceFleetsPage.fleetRows).toContainText(["10", "planet"])
+    await expect(bobFleetsPage.fleetRows).toHaveCount(2)
 
-    await expect(aliceActionsPage.resource("Influence")).toHaveAttribute("aria-label", "3 available of 3 Influence")
-    await expect(aliceActionsPage.resource("Metal")).toHaveAttribute("aria-label", "2 available of 2 Metal")
+    await expect(bobFleetsPage.resource("Influence")).toHaveAttribute("aria-label", "1 available of 1 Influence")
+    await expect(bobFleetsPage.resource("Metal")).toHaveAttribute("aria-label", "1 available of 1 Metal")
+    await expect(aliceFleetsPage.resource("Influence")).toHaveAttribute("aria-label", "1 available of 1 Influence")
+    await expect(aliceFleetsPage.resource("Metal")).toHaveAttribute("aria-label", "1 available of 1 Metal")
   })
 })

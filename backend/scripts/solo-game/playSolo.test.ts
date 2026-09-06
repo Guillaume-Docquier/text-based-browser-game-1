@@ -5,6 +5,7 @@ import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.t
 import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet-standard.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
@@ -35,6 +36,7 @@ describe("playSolo", () => {
       { command: "ADD_ACTION", actionDefinitionId: GainFuel.id },
       { command: "ADD_ACTION", actionDefinitionId: GainFuel.id },
       { command: "ADD_ACTION", actionDefinitionId: GainEnergy.id },
+      { command: "ADD_ACTION", actionDefinitionId: BuildFleetStandard.id, planetId: "1" },
       { command: "SUBMIT_TURN" },
       { command: "ADD_ACTION", actionDefinitionId: GainEnergy.id },
       { command: "SUBMIT_TURN" },
@@ -84,11 +86,22 @@ describe("playSolo", () => {
           "solo-player": {
             id: "solo-player",
             resources: createResourcesStub({
-              [ResourceType.INFLUENCE]: 8,
-              [ResourceType.METAL]: 6,
+              [ResourceType.INFLUENCE]: 6,
+              [ResourceType.METAL]: 5,
               [ResourceType.FUEL]: 9,
               [ResourceType.ENERGY]: 5,
             }),
+          },
+        },
+        planets: {
+          "1": { id: 1 },
+        },
+        fleets: {
+          "fleet:unscoped:2:0": {
+            id: "fleet:unscoped:2:0",
+            playerId: "solo-player",
+            strength: 10,
+            originPlanetId: 1,
           },
         },
         winnerPlayerId: "solo-player",
@@ -110,6 +123,10 @@ describe("playSolo", () => {
       name: `− #1 ${GainInfluence.name}`,
       description: undefined,
     })
+    expect(promptChoices.flat()).toContainEqual({
+      name: `+ ${BuildFleetStandard.name} on Planet 1`,
+      description: `${ActionTier.STANDARD} ${ActionType.DIRECTIVE}  ·  costs 2 INFLUENCE, 1 METAL  ·  builds a fleet with 10 strength`,
+    })
     // oxlint-disable-next-line vitest/no-conditional-in-test -- This is bad and should be fixed
     expect(promptChoices.flat().every((choice) => !choice.name.includes("Queue") && !choice.name.includes("Remove"))).toBe(true)
     expect(promptPositions.slice(0, 2)).toStrictEqual([
@@ -130,6 +147,7 @@ describe("playSolo", () => {
     expect(firstResolvedTurnOutput).toContain(`01  ${GainInfluence.name}`)
     expect(firstResolvedTurnOutput).toContain('✓ Player "solo-player" spent')
     expect(firstResolvedTurnOutput).toContain('✓ Player "solo-player" gained')
+    expect(plainOutput).toContainEqual(expect.stringContaining('built Fleet "fleet:unscoped:2:0" with 10'))
     expect(plainOutput.at(-1)).toBe("You won on turn 4.")
     // oxlint-disable-next-line vitest/no-conditional-in-test -- This is bad and should be fixed
     const firstSeparatorIndex = terminalEvents.findIndex((event) => event.type === "output" && event.value.trim() === "━".repeat(72))

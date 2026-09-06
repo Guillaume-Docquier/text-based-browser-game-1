@@ -6,18 +6,31 @@ import type { GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { actionsTable, gamesTable, playersTable, resourcesTable, rulesetsTable, turnsProcessingTable, turnsTable } from "#lib/db/schema.ts"
+import {
+  actionsTable,
+  fleetsTable,
+  gamesTable,
+  planetsTable,
+  playersTable,
+  resourcesTable,
+  rulesetsTable,
+  turnsProcessingTable,
+  turnsTable,
+} from "#lib/db/schema.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { FleetState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
 type SubmittedActionRow = typeof actionsTable.$inferSelect
+type PlanetRow = typeof planetsTable.$inferSelect
+type FleetRow = typeof fleetsTable.$inferSelect
 
 /**
  * Owning a TurnForProcessing within a transaction guarantees that the Turn Processing row is locked and needs processing.
@@ -55,6 +68,8 @@ export type TurnToProcessModel = {
       resources: Resources
     }
   >
+  readonly planets: Readonly<Record<string, { id: PlanetRow["id"] }>>
+  readonly fleets: Record<string, FleetState>
   readonly ruleset: Ruleset
 }
 
@@ -68,6 +83,7 @@ export type ProcessedTurnModel = {
     resourceType: ResourceType
     amount: number
   }>
+  fleets: FleetState[]
   winnerAccountId?: AccountId
   nextTurn: number
   availableActions: AvailableAction[]
@@ -173,7 +189,7 @@ export class TurnsRepository extends PostgresRepository {
     Assert.isTrue(games.length === 1)
     Assert.isDefined(games[0])
 
-    const [players, resources, submittedActions, rulesets] = await Promise.all([
+    const [players, resources, submittedActions, planets, fleets, rulesets] = await Promise.all([
       tx
         .select()
         .from(playersTable)
@@ -191,6 +207,12 @@ export class TurnsRepository extends PostgresRepository {
           and(eq(actionsTable.gameId, startTurnProcessingModel.turn.gameId), eq(actionsTable.turn, startTurnProcessingModel.turn.turn)),
         )
         .orderBy(asc(actionsTable.playerId)),
+      tx
+        .select({ id: planetsTable.id })
+        .from(planetsTable)
+        .where(eq(planetsTable.gameId, startTurnProcessingModel.turn.gameId))
+        .orderBy(asc(planetsTable.id)),
+      tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, startTurnProcessingModel.turn.gameId)).orderBy(asc(fleetsTable.id)),
       tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, games[0].rulesetId)),
     ])
 
@@ -210,6 +232,8 @@ export class TurnsRepository extends PostgresRepository {
       players,
       resources,
       submittedActions,
+      planets,
+      fleets,
       ruleset,
     })
   }
@@ -298,6 +322,20 @@ export class TurnsRepository extends PostgresRepository {
             },
           })
 
+        if (processedTurnModel.fleets.length > 0) {
+          await tx
+            .insert(fleetsTable)
+            .values(processedTurnModel.fleets.map((fleet) => ({ ...fleet, gameId: processedTurnModel.gameId })))
+            .onConflictDoUpdate({
+              target: fleetsTable.id,
+              set: {
+                strength: sql`excluded.strength`,
+                playerId: sql`excluded.player_id`,
+                originPlanetId: sql`excluded.origin_planet_id`,
+              },
+            })
+        }
+
         if (processedTurnModel.nextTurnScheduledFor === undefined) {
           Assert.isDefined(processedTurnModel.endedAt)
           const updatedGames = await tx
@@ -364,6 +402,8 @@ function toTurnToProcessModel({
   players,
   resources,
   submittedActions,
+  planets,
+  fleets,
   ruleset,
 }: {
   turnForProcessing: TurnForProcessing
@@ -373,9 +413,23 @@ function toTurnToProcessModel({
   players: PlayerRow[]
   resources: ResourceRow[]
   submittedActions: SubmittedActionRow[]
+  planets: Array<Pick<PlanetRow, "id">>
+  fleets: FleetRow[]
   ruleset: Ruleset
 }): TurnToProcessModel {
   const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
+  const planetsById = Object.fromEntries(planets.map((planet) => [planet.id, planet]))
+  const fleetsById = Object.fromEntries(
+    fleets.map((fleet) => [
+      fleet.id,
+      {
+        id: fleet.id,
+        playerId: fleet.playerId,
+        strength: fleet.strength,
+        originPlanetId: fleet.originPlanetId,
+      },
+    ]),
+  )
 
   return {
     ...turnForProcessing,
@@ -399,6 +453,8 @@ function toTurnToProcessModel({
       }
       return playersById
     }, {}),
+    planets: planetsById,
+    fleets: fleetsById,
     ruleset,
   }
 }

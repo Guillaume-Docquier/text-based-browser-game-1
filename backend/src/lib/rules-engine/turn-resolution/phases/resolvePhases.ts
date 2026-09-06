@@ -1,6 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { resolveColonizationPhase } from "#lib/rules-engine/turn-resolution/phases/implementations/resolveColonizationPhase.ts"
 import { resolveCombatPhase } from "#lib/rules-engine/turn-resolution/phases/implementations/resolveCombatPhase.ts"
+import { resolveFleetBuildPhase } from "#lib/rules-engine/turn-resolution/phases/implementations/resolveFleetBuildPhase.ts"
 import { resolveIncomePhase } from "#lib/rules-engine/turn-resolution/phases/implementations/resolveIncomePhase.ts"
 import { resolveMovementPhase } from "#lib/rules-engine/turn-resolution/phases/implementations/resolveMovementPhase.ts"
 import { resolvePayCostsPhase } from "#lib/rules-engine/turn-resolution/phases/implementations/resolvePayCostsPhase.ts"
@@ -13,6 +14,7 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
 const phaseResolvers: PhaseResolver[] = [
   resolvePayCostsPhase,
   resolveMovementPhase,
+  resolveFleetBuildPhase,
   resolveCombatPhase,
   resolvePlanetPhase,
   resolveColonizationPhase,

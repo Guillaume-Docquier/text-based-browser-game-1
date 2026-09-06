@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
+import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
 import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
@@ -95,6 +96,34 @@ describe("validateRuleset", () => {
       },
       {
         issue: `Action Definition ${actionDefinitionWithoutSelfTarget.name} is missing target slot self required by ${ResourceGainMechanic.type}`,
+      },
+    ])
+  })
+
+  it("should reject FleetBuild mechanics with a non-positive or fractional strength", () => {
+    // Arrange
+    const fleetBuildAction = createActionDefinitionStub({
+      id: "INVALID_FLEET_BUILD",
+      name: "Invalid Fleet Build",
+      targets: {
+        self: "",
+        planet: "",
+      },
+      mechanics: [FleetBuildMechanic.create({ strength: 0.5 })],
+    })
+    const ruleset = createRulesetStub({
+      actionDefinitions: {
+        [fleetBuildAction.id]: fleetBuildAction,
+      },
+    })
+
+    // Act
+    const validationIssues = validateRuleset(ruleset)
+
+    // Assert
+    expect(validationIssues).toStrictEqual([
+      {
+        issue: "Action Definition Invalid Fleet Build has a FleetBuild strength that must be a positive integer",
       },
     ])
   })

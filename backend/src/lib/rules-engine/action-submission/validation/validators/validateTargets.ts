@@ -87,7 +87,11 @@ function validateTargetDefinition(
     }
     case "FLEET":
       throw new NotImplementedError({ trackedBy: "not tracked" })
-    case "PLANET":
-      throw new NotImplementedError({ trackedBy: "not tracked" })
+    case "PLANET": {
+      if (turnState.planets[targetId] === undefined) {
+        return 'Target slot "' + targetSlot + '" references unknown Planet id "' + targetId + '"'
+      }
+      return null
+    }
   }
 }

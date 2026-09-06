@@ -3,6 +3,7 @@ import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { FleetIdFactory } from "#lib/rules-engine/turn-resolution/FleetIdFactory.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import type { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import { ElapsedTimeContextProvider } from "#turn-processing/ElapsedTimeContextProvider.ts"
@@ -122,10 +123,13 @@ export class TurnProcessor {
       {
         submittedActions: turnToProcess.submittedActions,
         players: turnToProcess.players,
+        planets: turnToProcess.planets,
+        fleets: turnToProcess.fleets,
         winnerPlayerId: undefined,
       },
       turnToProcess.ruleset,
       rng,
+      FleetIdFactory.create({ gameId: turnToProcess.gameId, turn: turnToProcess.turn }),
     )
     if (Result.isFailure(resolvedTurnResult)) {
       return resolvedTurnResult
@@ -149,6 +153,7 @@ export class TurnProcessor {
           amount: player.resources[resourceType],
         })),
       ),
+      fleets: Object.values(resolvedTurnResult.value.fleets),
     }
 
     if (resolvedTurnResult.value.winnerPlayerId === undefined) {
