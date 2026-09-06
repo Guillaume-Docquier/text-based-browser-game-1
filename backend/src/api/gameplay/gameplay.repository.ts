@@ -75,7 +75,18 @@ export type UpdateActionSubmissionsModel = {
 type PlayerViewPlayerModel = {
   id: PlayerId
   color: PlayerColor
+  isReady: boolean
 }
+
+export type ReadinessForUpdate = Branded<
+  {
+    readonly gameId: GameId
+    readonly playerId: PlayerId
+    readonly turn: number
+    readonly players: readonly PlayerViewPlayerModel[]
+  },
+  "ReadinessForUpdate"
+>
 
 type PlayerViewActionModel = {
   readonly id: ActionId
@@ -350,6 +361,7 @@ export class GameplayRepository extends PostgresRepository {
             .select({
               id: playersTable.playerId,
               color: playersTable.color,
+              isReady: playersTable.isReady,
             })
             .from(playersTable)
             .where(eq(playersTable.gameId, gameId))
@@ -404,23 +416,9 @@ export class GameplayRepository extends PostgresRepository {
     { gameId, playerId, turn }: { gameId: GameId; playerId: PlayerId; turn: number },
     tx: Transaction,
   ): Promise<ActionSubmissionsForUpdate> {
-    const gameTurns = await tx
-      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, endsAt: turnsTable.endsAt })
-      .from(turnsTable)
-      .where(
-        and(
-          eq(turnsTable.gameId, gameId),
-          eq(turnsTable.turn, turn),
-          eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS),
-          gt(turnsTable.endsAt, this.clock.now()),
-        ),
-      )
-      .for("no key update")
-    Assert.isTrue(gameTurns.length <= 1)
-
-    const gameTurn = gameTurns[0]
-    if (gameTurn === undefined) {
-      throw new TransactionRollbackError("Cannot submit actions for this turn")
+    const context = await this.getReadinessForUpdate({ gameId, playerId, turn }, tx)
+    if (context.players.some((player) => player.id === playerId && player.isReady)) {
+      throw new TransactionRollbackError("Unready before changing actions")
     }
 
     const games = await tx
@@ -455,6 +453,62 @@ export class GameplayRepository extends PostgresRepository {
       actions,
       ruleset,
     })
+  }
+
+  public async getReadinessForUpdate(
+    { gameId, playerId, turn }: { gameId: GameId; playerId: PlayerId; turn: number },
+    tx: Transaction,
+  ): Promise<ReadinessForUpdate> {
+    const gameTurns = await tx
+      .select({ gameId: turnsTable.gameId, turn: turnsTable.turn, endsAt: turnsTable.endsAt })
+      .from(turnsTable)
+      .where(
+        and(
+          eq(turnsTable.gameId, gameId),
+          eq(turnsTable.turn, turn),
+          eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS),
+          gt(turnsTable.endsAt, this.clock.now()),
+        ),
+      )
+      .for("no key update")
+    Assert.isTrue(gameTurns.length <= 1)
+
+    const gameTurn = gameTurns[0]
+    if (gameTurn === undefined) {
+      throw new TransactionRollbackError("Cannot submit actions for this turn")
+    }
+
+    if (gameTurn.endsAt <= this.clock.now()) {
+      throw new TransactionRollbackError("This turn has ended")
+    }
+    const players = await tx
+      .select({ id: playersTable.playerId, color: playersTable.color, isReady: playersTable.isReady })
+      .from(playersTable)
+      .where(eq(playersTable.gameId, gameId))
+    if (!players.some((player) => player.id === playerId)) {
+      throw new TransactionRollbackError("Player is not in this game")
+    }
+    return branded({ gameId, playerId, turn, players })
+  }
+
+  public async updateReadiness(
+    { context, isReady, completedAt }: { context: ReadinessForUpdate; isReady: boolean; completedAt: Date | undefined },
+    tx: Transaction,
+  ): Promise<void> {
+    await tx
+      .update(playersTable)
+      .set({ isReady })
+      .where(and(eq(playersTable.gameId, context.gameId), eq(playersTable.playerId, context.playerId)))
+    if (completedAt !== undefined) {
+      await tx
+        .update(turnsTable)
+        .set({ status: TurnStatus.AWAITING_PROCESSING, completedAt })
+        .where(and(eq(turnsTable.gameId, context.gameId), eq(turnsTable.turn, context.turn)))
+      await tx
+        .update(turnsProcessingTable)
+        .set({ scheduledFor: completedAt })
+        .where(and(eq(turnsProcessingTable.gameId, context.gameId), eq(turnsProcessingTable.turn, context.turn)))
+    }
   }
 
   // oxlint-disable-next-line no-unused-vars -- context is required here as a proof that these actions can be updated, because to get the context you had to check. It's not a super strong enforcement, but the spirit is there.

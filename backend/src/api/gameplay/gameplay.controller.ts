@@ -186,6 +186,19 @@ export class GameplayController {
 
     return Result.Success(undefined)
   }
+
+  public async setReady({ gameId, playerId, turn, isReady }: SetReadyDto): Promise<Result<void, string>> {
+    const result = await this.createTransaction(async (tx) => {
+      const context = await this.gameplayRepository.getReadinessForUpdate({ gameId, playerId, turn }, tx)
+      const allPlayersReady = context.players.every((player) => (player.id === playerId ? isReady : player.isReady))
+      await this.gameplayRepository.updateReadiness({ context, isReady, completedAt: allPlayersReady ? this.clock.now() : undefined }, tx)
+    })
+    if (Result.isFailure(result)) {
+      this.logger.error("Could not change readiness", { gameId, playerId, turn, error: result.error })
+      return Result.Failure(result.error.message)
+    }
+    return Result.Success(undefined)
+  }
 }
 
 function createGalaxy(seed: number): GalaxyModel {
@@ -341,7 +354,7 @@ export const GetPlayerViewDto = z.object({
 })
 
 export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
-export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor) })
+export const PlayerViewPlayerDto = z.object({ id: PlayerId, color: z.enum(PlayerColor), isReady: z.boolean() })
 
 export const StarDto = z.object({
   id: StarId,
@@ -404,4 +417,12 @@ export const UpdateActionSubmissionDto = z.object({
   playerId: PlayerId,
   turn: z.coerce.number(),
   submittedActionTargets: SubmittedActionTargetsDto,
+})
+
+export type SetReadyDto = z.infer<typeof SetReadyDto>
+export const SetReadyDto = z.object({
+  gameId: z.coerce.number().pipe(GameId),
+  playerId: PlayerId,
+  turn: z.coerce.number(),
+  isReady: z.boolean(),
 })

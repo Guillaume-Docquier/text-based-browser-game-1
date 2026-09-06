@@ -20,7 +20,8 @@ type ResourceRow = typeof resourcesTable.$inferSelect
 type SubmittedActionRow = typeof actionsTable.$inferSelect
 
 /**
- * Owning a TurnForProcessing within a transaction guarantees that the turn and its processing row are locked and need processing.
+ * Owning a TurnForProcessing within a transaction guarantees that the Turn row is locked and needs processing.
+ * Lock the Turn before updating its processing row, as readiness updates use the same order.
  */
 export type TurnForProcessing = Branded<
   {
@@ -99,7 +100,7 @@ export class TurnsRepository extends PostgresRepository {
     // But it's still a risk vector for... eventually
     await db
       .update(turnsTable)
-      .set({ status: TurnStatus.AWAITING_PROCESSING })
+      .set({ status: TurnStatus.AWAITING_PROCESSING, completedAt: turnsTable.endsAt })
       .where(and(eq(turnsTable.status, TurnStatus.COLLECTING_ACTIONS), lte(turnsTable.endsAt, since)))
   }
 
@@ -112,11 +113,21 @@ export class TurnsRepository extends PostgresRepository {
         gameId: turnsProcessingTable.gameId,
         turn: turnsProcessingTable.turn,
       })
-      .from(turnsProcessingTable)
-      .where(and(lte(turnsProcessingTable.scheduledFor, since), isNull(turnsProcessingTable.processingStartedAt)))
+      .from(turnsTable)
+      .innerJoin(
+        turnsProcessingTable,
+        and(eq(turnsTable.gameId, turnsProcessingTable.gameId), eq(turnsTable.turn, turnsProcessingTable.turn)),
+      )
+      .where(
+        and(
+          eq(turnsTable.status, TurnStatus.AWAITING_PROCESSING),
+          lte(turnsProcessingTable.scheduledFor, since),
+          isNull(turnsProcessingTable.processingStartedAt),
+        ),
+      )
       .orderBy(asc(turnsProcessingTable.scheduledFor))
       .limit(1)
-      .for("no key update", { skipLocked: true })
+      .for("no key update", { of: turnsTable, skipLocked: true })
 
     const turnToProcess = turnToProcessRows[0]
     if (turnToProcess === undefined) {
@@ -143,6 +154,8 @@ export class TurnsRepository extends PostgresRepository {
       .returning({
         rngGeneratorState: turnsTable.rngGeneratorState,
         rngSpareNormal: turnsTable.rngSpareNormal,
+        completedAt: turnsTable.completedAt,
+        endsAt: turnsTable.endsAt,
       })
     Assert.isTrue(turns.length === 1)
     Assert.isDefined(turns[0])
@@ -196,7 +209,7 @@ export class TurnsRepository extends PostgresRepository {
 
     return toTurnToProcessModel({
       turnForProcessing: startTurnProcessingModel.turn,
-      scheduledFor: processingRows[0].scheduledFor,
+      scheduledFor: turns[0].completedAt ?? turns[0].endsAt,
       turnInterval: Time.create(games[0].turnIntervalSeconds, UnitOfTime.SECONDS),
       rngState: {
         generatorState: turns[0].rngGeneratorState,
@@ -256,7 +269,7 @@ export class TurnsRepository extends PostgresRepository {
       db.transaction(async (tx) => {
         const updatedTurns = await tx
           .update(turnsTable)
-          .set({ status: TurnStatus.COMPLETED, completedAt: processedTurnModel.processedAt })
+          .set({ status: TurnStatus.COMPLETED })
           .where(
             and(
               eq(turnsTable.gameId, processedTurnModel.gameId),
@@ -307,6 +320,8 @@ export class TurnsRepository extends PostgresRepository {
           Assert.isTrue(updatedGames.length === 1)
           return
         }
+
+        await tx.update(playersTable).set({ isReady: false }).where(eq(playersTable.gameId, processedTurnModel.gameId))
 
         const insertedTurns = await tx
           .insert(turnsTable)

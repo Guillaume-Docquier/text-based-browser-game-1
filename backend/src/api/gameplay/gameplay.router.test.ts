@@ -190,7 +190,7 @@ describe("gameplay.router", () => {
       ]
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
-        player: { id: branded(player.account.id), color: PlayerColor.WHITE },
+        player: { id: branded(player.account.id), color: PlayerColor.WHITE, isReady: false },
         opponents: {},
         galaxy: expect.any(Object), // Verified by the snapshot test
         turn: 0,
@@ -266,10 +266,10 @@ describe("gameplay.router", () => {
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(playerView.player).toStrictEqual({ id: creator.account.id, color: PlayerColor.WHITE })
+      expect(playerView.player).toStrictEqual({ id: creator.account.id, color: PlayerColor.WHITE, isReady: false })
       expect(playerView.opponents).toStrictEqual({
-        [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.RED },
-        [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.BLUE },
+        [firstOpponent.account.id]: { id: firstOpponent.account.id, color: PlayerColor.RED, isReady: false },
+        [secondOpponent.account.id]: { id: secondOpponent.account.id, color: PlayerColor.BLUE, isReady: false },
       })
     })
 

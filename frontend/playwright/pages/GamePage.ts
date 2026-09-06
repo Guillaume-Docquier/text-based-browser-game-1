@@ -1,6 +1,7 @@
 import type { Locator, Page } from "@playwright/test"
 import type { ActionsPage } from "./ActionsPage.ts"
 import type { GalaxyPage } from "./GalaxyPage.ts"
+import type { PlayersPage } from "./PlayersPage.ts"
 
 /** Shared game layout and navigation available from every gameplay page. */
 export abstract class GamePage {
@@ -49,5 +50,11 @@ export abstract class GamePage {
     await this.actionsLink.click()
     const { ActionsPage } = await import("./ActionsPage.ts") // Avoids circular dependencies issues because GamePage is the base class
     return new ActionsPage(this.page)
+  }
+
+  public async openPlayers(): Promise<PlayersPage> {
+    await this.page.getByRole("navigation", { name: "Game navigation" }).getByRole("link", { name: "Players", exact: true }).click()
+    const { PlayersPage } = await import("./PlayersPage.ts")
+    return new PlayersPage(this.page)
   }
 }
