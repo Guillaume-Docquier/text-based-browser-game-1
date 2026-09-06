@@ -17,9 +17,6 @@ export function PlayersPage(): ReactElement {
     <section className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
       <div className="mb-5">
         <h2 className="font-heading text-2xl font-semibold text-foreground">Players</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {game.players.length} {game.players.length === 1 ? "player" : "players"} in this game.
-        </p>
       </div>
       <Card>
         <CardContent className="grid gap-2">

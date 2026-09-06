@@ -59,14 +59,25 @@ test("Alice and Bob can lock their choices and resolve a turn early", async ({ a
     await expect(aliceActionsPage.action("Extract Metal")).toHaveAttribute("aria-disabled", "false")
     await aliceActionsPage.toggleAction("Extract Metal")
     await expect(aliceActionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "false")
+  })
 
+  await test.step("Alice readies", async () => {
     await aliceActionsPage.openPlayers()
     await alicePlayersPage.toggleReady()
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "true")
   })
 
-  await test.step("Bob readies and both players advance with readiness reset", async () => {
+  await test.step("Bob selects an action and readies", async () => {
+    const actionsPage = await bobPlayersPage.openActions()
+    await actionsPage.toggleAction("Extract Metal")
+    await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+
+    await actionsPage.openPlayers()
     await bobPlayersPage.toggleReady()
+    await expect(bobPlayersPage.readyButton).toHaveAttribute("aria-pressed", "true")
+  })
+
+  await test.step("Both players advance with readiness reset", async () => {
     await expect(bobPlayersPage.turn).toHaveText("Turn1", { timeout: 15000 })
     await expect(alicePlayersPage.turn).toHaveText("Turn1", { timeout: 15000 })
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
@@ -75,5 +86,13 @@ test("Alice and Bob can lock their choices and resolve a turn early", async ({ a
 
     await alicePlayersPage.openActions()
     await expect(aliceActionsPage.action("Extract Metal")).toHaveAttribute("aria-disabled", "false")
+  })
+
+  await test.step("Bob receives his action resources while Alice's resources remain unchanged", async () => {
+    await expect(bobPlayersPage.resource("Influence")).toHaveAttribute("aria-label", "2 available of 2 Influence")
+    await expect(bobPlayersPage.resource("Metal")).toHaveAttribute("aria-label", "7 available of 7 Metal")
+
+    await expect(aliceActionsPage.resource("Influence")).toHaveAttribute("aria-label", "3 available of 3 Influence")
+    await expect(aliceActionsPage.resource("Metal")).toHaveAttribute("aria-label", "2 available of 2 Metal")
   })
 })
