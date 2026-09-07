@@ -4,6 +4,8 @@ export function createTurnStateStub(overrides?: Partial<TurnState>): TurnState {
   return {
     submittedActions: [],
     players: {},
+    planets: {},
+    fleets: {},
     winnerPlayerId: undefined,
     ...overrides,
   }

@@ -122,6 +122,8 @@ export class TurnProcessor {
       {
         submittedActions: turnToProcess.submittedActions,
         players: turnToProcess.players,
+        planets: turnToProcess.planets,
+        fleets: turnToProcess.fleets,
         winnerPlayerId: undefined,
       },
       turnToProcess.ruleset,

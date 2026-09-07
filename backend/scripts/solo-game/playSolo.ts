@@ -133,6 +133,8 @@ export async function playSolo({
         session.state = {
           submittedActions: [],
           players: result.value.players,
+          planets: {},
+          fleets: {},
           winnerPlayerId: result.value.winnerPlayerId,
         }
         turnResolutionError = undefined
@@ -165,6 +167,8 @@ function createSoloGameSession(ruleset: Ruleset): SoloGameSession {
           resources: structuredClone(ruleset.startingResources),
         },
       },
+      planets: {},
+      fleets: {},
       winnerPlayerId: undefined,
     },
   }

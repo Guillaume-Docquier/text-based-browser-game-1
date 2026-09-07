@@ -52,6 +52,8 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
       actionOutcomes: context.effectPool.getOutcomes(submittedAction),
     })),
     players: context.turnState.players,
+    planets: context.turnState.planets,
+    fleets: context.turnState.fleets,
     winnerPlayerId: context.turnState.winnerPlayerId,
   })
 }

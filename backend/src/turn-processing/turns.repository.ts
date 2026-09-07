@@ -2,20 +2,32 @@ import { Assert, branded, type Branded, type Logger, Result, type RngState, Time
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
+import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import { actionsTable, gamesTable, playersTable, resourcesTable, rulesetsTable, turnsProcessingTable, turnsTable } from "#lib/db/schema.ts"
+import {
+  actionsTable,
+  fleetsTable,
+  gamesTable,
+  planetsTable,
+  playersTable,
+  resourcesTable,
+  rulesetsTable,
+  turnsProcessingTable,
+  turnsTable,
+} from "#lib/db/schema.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
+import { indexById } from "#lib/indexById.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
-type PlayerRow = typeof playersTable.$inferSelect
 type ResourceRow = typeof resourcesTable.$inferSelect
 type SubmittedActionRow = typeof actionsTable.$inferSelect
 
@@ -48,14 +60,28 @@ export type TurnToProcessModel = {
   readonly turnInterval: Time
   readonly rngState: RngState<number>
   readonly submittedActions: SubmittedAction[]
-  readonly players: Record<
-    PlayerId,
-    {
-      id: PlayerId
-      resources: Resources
-    }
-  >
+  readonly players: Record<PlayerId, TurnToProcessPlayerModel>
+  readonly planets: Record<PlanetId, TurnToProcessPlanetModel>
+  readonly fleets: Record<FleetId, TurnToProcessFleetModel>
   readonly ruleset: Ruleset
+}
+
+type TurnToProcessPlayerModel = {
+  readonly id: PlayerId
+  readonly resources: Resources
+}
+
+type TurnToProcessPlanetModel = {
+  readonly id: PlanetId
+  readonly x: number
+  readonly y: number
+}
+
+type TurnToProcessFleetModel = {
+  readonly id: FleetId
+  readonly playerId: PlayerId
+  strength: number
+  readonly originPlanetId: PlanetId
 }
 
 export type ProcessedTurnModel = {
@@ -173,9 +199,9 @@ export class TurnsRepository extends PostgresRepository {
     Assert.isTrue(games.length === 1)
     Assert.isDefined(games[0])
 
-    const [players, resources, submittedActions, rulesets] = await Promise.all([
+    const [players, resources, submittedActions, rulesets, planets, fleets] = await Promise.all([
       tx
-        .select()
+        .select({ id: playersTable.playerId })
         .from(playersTable)
         .where(eq(playersTable.gameId, startTurnProcessingModel.turn.gameId))
         .orderBy(asc(playersTable.playerId)),
@@ -192,6 +218,19 @@ export class TurnsRepository extends PostgresRepository {
         )
         .orderBy(asc(actionsTable.playerId)),
       tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, games[0].rulesetId)),
+      tx
+        .select({ id: planetsTable.id, x: planetsTable.x, y: planetsTable.y })
+        .from(planetsTable)
+        .where(eq(planetsTable.gameId, startTurnProcessingModel.turn.gameId)),
+      tx
+        .select({
+          id: fleetsTable.id,
+          playerId: fleetsTable.playerId,
+          strength: fleetsTable.strength,
+          originPlanetId: fleetsTable.originPlanetId,
+        })
+        .from(fleetsTable)
+        .where(eq(fleetsTable.gameId, startTurnProcessingModel.turn.gameId)),
     ])
 
     Assert.isTrue(rulesets.length === 1)
@@ -207,8 +246,10 @@ export class TurnsRepository extends PostgresRepository {
         generatorState: turn.rngGeneratorState,
         spareNormal: turn.rngSpareNormal,
       },
-      players,
       resources,
+      players,
+      planets,
+      fleets,
       submittedActions,
       ruleset,
     })
@@ -361,8 +402,10 @@ function toTurnToProcessModel({
   closedAt,
   turnInterval,
   rngState,
-  players,
   resources,
+  players,
+  planets,
+  fleets,
   submittedActions,
   ruleset,
 }: {
@@ -370,12 +413,26 @@ function toTurnToProcessModel({
   closedAt: Date
   turnInterval: Time
   rngState: RngState<number>
-  players: PlayerRow[]
   resources: ResourceRow[]
+  players: Array<{ id: PlayerId }>
+  planets: TurnToProcessPlanetModel[]
+  fleets: TurnToProcessFleetModel[]
   submittedActions: SubmittedActionRow[]
   ruleset: Ruleset
 }): TurnToProcessModel {
   const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
+  const playerModels: TurnToProcessPlayerModel[] = players.map(({ id }) => {
+    const resourcesForPlayer = resourcesByPlayerId.get(id)
+    Assert.isDefined(resourcesForPlayer)
+
+    return {
+      id,
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot infer Object.fromEntries completeness.
+      resources: Object.fromEntries(
+        resourcesForPlayer.map((resource) => [resource.resourceType, resource.amount]),
+      ) as TurnToProcessPlayerModel["resources"],
+    }
+  })
 
   return {
     ...turnForProcessing,
@@ -385,20 +442,9 @@ function toTurnToProcessModel({
     submittedActions: submittedActions.flatMap(({ id, playerId, actionDefinitionId, targets }) =>
       targets === null ? [] : [{ id, playerId, actionDefinitionId, targets }],
     ),
-    players: players.reduce<TurnToProcessModel["players"]>((playersById, { playerId }) => {
-      const resourcesForPlayer = resourcesByPlayerId.get(playerId)
-      Assert.isDefined(resourcesForPlayer)
-
-      playersById[playerId] = {
-        id: playerId,
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Resource types are persisted as text instead of enum, should probably fix this
-        resources: Object.fromEntries(resourcesForPlayer.map((resource) => [resource.resourceType, resource.amount])) as Record<
-          ResourceType,
-          number
-        >,
-      }
-      return playersById
-    }, {}),
+    players: indexById(playerModels),
+    planets: indexById(planets),
+    fleets: indexById(fleets),
     ruleset,
   }
 }

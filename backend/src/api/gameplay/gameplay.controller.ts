@@ -19,6 +19,7 @@ import { PlayerIdSchema, type PlayerId } from "#lib/db/players/PlayerId.ts"
 import { StarIdSchema } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
+import { indexById } from "#lib/indexById.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
@@ -30,7 +31,7 @@ import { ActionDefinitionIdSchema } from "#lib/rules-engine/ruleset-model/action
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import type { Fleet, Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import type { GalaxyModel, GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
 
@@ -164,7 +165,13 @@ export class GameplayController {
         targets: submittedActionTargets.targets,
       } satisfies SubmittedAction
 
-      const turnState = createTurnState({ playerId, resources: context.resources, submittedActions: [submittedAction] })
+      const turnState = createTurnState({
+        playerId,
+        resources: context.resources,
+        submittedActions: [submittedAction],
+        planets: [], // definitely matters, need the data. Should pull only the required data, not all the planets.
+        fleets: [], // definitely matters, need the data. Should pull only the required data, not all the fleets.
+      })
       const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
       if (issues.length > 0) {
         throw new TransactionRollbackError(issues.map(({ issue }) => issue).join("\n"))
@@ -289,6 +296,8 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
     playerId: playerViewModel.player.id,
     resources: uncommittedResources,
     submittedActions: [],
+    planets: [], // doesn't matter for cost validation
+    fleets: [], // doesn't matter for cost validation
   })
 
   return playerViewModel.actions.map((action) => {
@@ -324,10 +333,14 @@ function createTurnState({
   playerId,
   resources,
   submittedActions,
+  planets,
+  fleets,
 }: {
   playerId: PlayerId
   resources: Resources
   submittedActions: readonly SubmittedAction[]
+  planets: Planet[]
+  fleets: Fleet[]
 }): TurnState {
   return {
     submittedActions,
@@ -337,6 +350,8 @@ function createTurnState({
         resources,
       },
     },
+    planets: indexById(planets),
+    fleets: indexById(fleets),
     winnerPlayerId: undefined,
   }
 }

@@ -2,6 +2,7 @@ import { branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
+import { indexById } from "#lib/indexById.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
@@ -95,8 +96,14 @@ describe("resolveTurn", () => {
     // Assert
     expect(result).toStrictEqual<typeof result>(
       Result.Success({
-        players: {
-          [playerId]: {
+        resolvedActions: [
+          {
+            submittedAction,
+            actionOutcomes: [EffectOutcome.Resolved({ result: `Player "${playerId}" gained 5 INFLUENCE` })],
+          },
+        ],
+        players: indexById([
+          {
             id: playerId,
             resources: createResourcesStub({
               [ResourceType.INFLUENCE]: 8,
@@ -104,13 +111,9 @@ describe("resolveTurn", () => {
               [ResourceType.FUEL]: 1,
             }),
           },
-        },
-        resolvedActions: [
-          {
-            submittedAction,
-            actionOutcomes: [EffectOutcome.Resolved({ result: `Player "${playerId}" gained 5 INFLUENCE` })],
-          },
-        ],
+        ]),
+        planets: {},
+        fleets: {},
         winnerPlayerId: undefined,
       }),
     )
@@ -151,20 +154,6 @@ describe("resolveTurn", () => {
     // Assert
     expect(result).toStrictEqual<typeof result>(
       Result.Success({
-        players: {
-          [firstPlayerId]: {
-            id: firstPlayerId,
-            resources: createResourcesStub({
-              [ResourceType.INFLUENCE]: 8,
-              [ResourceType.METAL]: 2,
-              [ResourceType.FUEL]: 1,
-            }),
-          },
-          [secondPlayerId]: {
-            id: secondPlayerId,
-            resources: createResourcesStub(),
-          },
-        },
         resolvedActions: [
           {
             submittedAction: firstPlayerSubmittedAction,
@@ -181,6 +170,22 @@ describe("resolveTurn", () => {
             ],
           },
         ],
+        players: indexById([
+          {
+            id: firstPlayerId,
+            resources: createResourcesStub({
+              [ResourceType.INFLUENCE]: 8,
+              [ResourceType.METAL]: 2,
+              [ResourceType.FUEL]: 1,
+            }),
+          },
+          {
+            id: secondPlayerId,
+            resources: createResourcesStub(),
+          },
+        ]),
+        planets: {},
+        fleets: {},
         winnerPlayerId: secondPlayerId,
       }),
     )
@@ -210,12 +215,6 @@ describe("resolveTurn", () => {
     // Assert
     expect(result).toStrictEqual<typeof result>(
       Result.Success({
-        players: {
-          [playerId]: {
-            id: playerId,
-            resources: createResourcesStub(),
-          },
-        },
         resolvedActions: [
           {
             submittedAction,
@@ -228,6 +227,9 @@ describe("resolveTurn", () => {
             ],
           },
         ],
+        players: indexById([{ id: playerId, resources: createResourcesStub() }]),
+        planets: {},
+        fleets: {},
         winnerPlayerId: playerId,
       }),
     )
