@@ -615,7 +615,7 @@ function getActionToSubmit(playerView: PlayerView, actionDefinitionId: string): 
   Assert.isDefined(action)
   return {
     actionId: action.id,
-    targets: { self: playerView.player.id }, // bad
+    targets: {}, // bad
   }
 }
 

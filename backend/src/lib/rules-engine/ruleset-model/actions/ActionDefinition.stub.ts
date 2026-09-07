@@ -8,9 +8,7 @@ export function createActionDefinitionStub(overrides?: Partial<ActionDefinition>
     name: "Test Action",
     type: ActionType.DIRECTIVE,
     tier: ActionTier.STANDARD,
-    targets: {
-      self: "",
-    },
+    targets: {},
     costs: [],
     mechanics: [],
     ...overrides,

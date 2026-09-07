@@ -28,8 +28,8 @@ export function getUncommittedResources({
     Assert.isDefined(actionDefinition)
 
     for (const cost of actionDefinition.costs) {
-      uncommittedResources[cost.resourceType] -= cost.quantity
-      Assert.isTrue(uncommittedResources[cost.resourceType] >= 0)
+      uncommittedResources[cost.parameters.resourceType] -= cost.parameters.quantity
+      Assert.isTrue(uncommittedResources[cost.parameters.resourceType] >= 0)
     }
   }
 

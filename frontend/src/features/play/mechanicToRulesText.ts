@@ -6,13 +6,13 @@ import type { Mechanic } from "@api-types"
 export function mechanicToRulesText(mechanic: Mechanic): string {
   switch (mechanic.type) {
     case "RESOURCE_LOSS":
-      return `Spend ${mechanic.quantity} ${formatRulesetTerm(mechanic.resourceType)}`
+      return `Spend ${mechanic.parameters.quantity} ${formatRulesetTerm(mechanic.parameters.resourceType)}`
     case "RESOURCE_GAIN":
-      return `Gain ${mechanic.quantity} ${formatRulesetTerm(mechanic.resourceType)}`
+      return `Gain ${mechanic.parameters.quantity} ${formatRulesetTerm(mechanic.parameters.resourceType)}`
     case "VICTORY":
       return "Win the game"
     case "FLEET_BUILD":
-      return `Build a fleet with ${mechanic.strength} strength on target planet`
+      return `Build a fleet with ${mechanic.parameters.strength} strength on target planet`
   }
 }
 

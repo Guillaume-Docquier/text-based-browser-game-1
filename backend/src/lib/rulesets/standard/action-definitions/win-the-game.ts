@@ -10,9 +10,7 @@ export const WinTheGame: ActionDefinition = {
   name: "Win The Game",
   type: ActionType.PROGRAM,
   tier: ActionTier.EXCEPTIONAL,
-  targets: {
-    self: "",
-  },
+  targets: {},
   costs: [
     ResourceLossMechanic.create({
       quantity: 10,

@@ -1,5 +1,4 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
@@ -9,23 +8,23 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
 
 export class ResourceGainEffect extends Effect {
   private readonly mechanic: ResourceGainMechanic
-  private readonly targetPlayerId: PlayerId
 
   public constructor(id: number, mechanic: ResourceGainMechanic, submittedAction: SubmittedAction) {
     super(id, mechanic.type, submittedAction)
     this.mechanic = mechanic
-    this.targetPlayerId = submittedAction.targets[mechanic.targets.player.tag]
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
-    const player = context.turnState.players[this.targetPlayerId]
+    const player = context.turnState.players[this.submittedAction.playerId]
     if (player === undefined) {
-      return Result.Failure(EffectError.Failed({ error: `Could not resolve player with id "${this.targetPlayerId}"` }))
+      return Result.Failure(EffectError.Failed({ error: `Could not resolve player with id "${this.submittedAction.playerId}"` }))
     }
 
-    player.resources[this.mechanic.resourceType] += this.mechanic.quantity
+    player.resources[this.mechanic.parameters.resourceType] += this.mechanic.parameters.quantity
     return Result.Success(
-      EffectOutcome.Resolved({ result: `Player "${this.targetPlayerId}" gained ${this.mechanic.quantity} ${this.mechanic.resourceType}` }),
+      EffectOutcome.Resolved({
+        result: `Player "${this.submittedAction.playerId}" gained ${this.mechanic.parameters.quantity} ${this.mechanic.parameters.resourceType}`,
+      }),
     )
   }
 }

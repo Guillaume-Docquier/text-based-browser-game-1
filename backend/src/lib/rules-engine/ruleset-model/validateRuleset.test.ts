@@ -57,45 +57,4 @@ describe("validateRuleset", () => {
       },
     ])
   })
-
-  it("should report target slots required by costs and Mechanics but missing from the Action Definition", () => {
-    // Arrange
-    const actionDefinitionWithoutSelfTarget = createActionDefinitionStub({
-      id: "NO_SELF_TARGET",
-      name: "No Self Target",
-      // @ts-expect-error -- We don't have other targets than self right now, have to cheat
-      targets: {},
-      costs: [
-        ResourceLossMechanic.create({
-          quantity: 2,
-          resourceType: ResourceType.INFLUENCE,
-        }),
-      ],
-      mechanics: [
-        ResourceGainMechanic.create({
-          quantity: 5,
-          resourceType: ResourceType.INFLUENCE,
-        }),
-      ],
-    })
-    const ruleset = createRulesetStub({
-      name: "Test Ruleset",
-      actionDefinitions: {
-        [actionDefinitionWithoutSelfTarget.id]: actionDefinitionWithoutSelfTarget,
-      },
-    })
-
-    // Act
-    const validationIssues = validateRuleset(ruleset)
-
-    // Assert
-    expect(validationIssues).toStrictEqual<typeof validationIssues>([
-      {
-        issue: `Action Definition ${actionDefinitionWithoutSelfTarget.name} is missing target slot self required by ${ResourceLossMechanic.type}`,
-      },
-      {
-        issue: `Action Definition ${actionDefinitionWithoutSelfTarget.name} is missing target slot self required by ${ResourceGainMechanic.type}`,
-      },
-    ])
-  })
 })

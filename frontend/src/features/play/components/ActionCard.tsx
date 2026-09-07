@@ -133,7 +133,7 @@ function ActionCosts({
   resources: PlayerView["resources"]
   canAfford: boolean
 }): ReactElement {
-  const costsByResource = Map.groupBy(sortCostsByResource(costs), ({ resourceType }) => resourceType)
+  const costsByResource = Map.groupBy(sortCostsByResource(costs.map((cost) => cost.parameters)), ({ resourceType }) => resourceType)
 
   return (
     <div className="flex flex-col items-end gap-1" aria-label="Costs">

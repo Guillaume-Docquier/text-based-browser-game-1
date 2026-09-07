@@ -1,28 +1,28 @@
 import { z } from "zod"
-import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics/AbstractMechanic.ts"
+import type { AbstractMechanic, NoTargets } from "#lib/rules-engine/ruleset-model/mechanics/AbstractMechanic.ts"
+import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset-model/mechanics/implementations/MechanicFactoryParameters.ts"
 import { QuantityOfResourceSchema, type QuantityOfResource } from "#lib/rules-engine/ruleset-model/mechanics/QuantityOfResource.ts"
-import { TargetDefinitionSelf, TargetDefinitionSelfSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 
-export interface ResourceGainMechanic extends AbstractMechanic, QuantityOfResource {
+export interface ResourceGainMechanic extends AbstractMechanic {
   readonly type: "RESOURCE_GAIN"
-  readonly targets: {
-    readonly player: TargetDefinitionSelf
-  }
+  readonly targets: NoTargets
+  readonly parameters: QuantityOfResource
 }
 
 export const ResourceGainMechanic = {
   type: "RESOURCE_GAIN",
-  create: ({ quantity, resourceType }: Omit<ResourceGainMechanic, "type" | "targets">): ResourceGainMechanic => ({
+  create: ({ quantity, resourceType }: MechanicFactoryParameters<ResourceGainMechanic>): ResourceGainMechanic => ({
     type: ResourceGainMechanic.type,
-    targets: {
-      player: TargetDefinitionSelf,
+    targets: {},
+    parameters: {
+      quantity,
+      resourceType,
     },
-    quantity,
-    resourceType,
   }),
 } as const
 
-export const ResourceGainMechanicSchema = QuantityOfResourceSchema.extend({
+export const ResourceGainMechanicSchema = z.object({
   type: z.literal(ResourceGainMechanic.type),
-  targets: z.object({ player: TargetDefinitionSelfSchema }),
+  targets: z.object({}),
+  parameters: QuantityOfResourceSchema,
 }) satisfies z.ZodType<ResourceGainMechanic>

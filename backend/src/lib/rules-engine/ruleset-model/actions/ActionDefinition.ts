@@ -27,16 +27,13 @@ export type ActionDefinition = Readonly<{
   /**
    * Target entries must match all the costs and mechanics target tags.
    * An Action will use the keys from the ActionDefinition and fill the value with the proper id.
-   * self is a special key that's always present that the server will always override.
    */
-  targets: Readonly<{ self: "" } & Record<string, "">>
+  targets: Readonly<Record<string, "">>
   costs: ResourceLossMechanic[]
   mechanics: Mechanic[]
 }>
 
-export const ActionDefinitionTargetsSchema = z.object({ self: z.literal("") }).catchall(z.literal("")) satisfies z.ZodType<
-  ActionDefinition["targets"]
->
+export const ActionDefinitionTargetsSchema = z.record(z.string(), z.literal("")).readonly() satisfies z.ZodType<ActionDefinition["targets"]>
 
 export const ActionDefinitionSchema = z.object({
   id: ActionDefinitionIdSchema,

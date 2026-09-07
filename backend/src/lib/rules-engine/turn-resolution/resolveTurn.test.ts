@@ -18,10 +18,7 @@ describe("resolveTurn", () => {
 
   it("should not resolve the turn when the player cannot afford an Action", () => {
     // Arrange
-    const submittedAction = createSubmittedActionStub({
-      actionDefinitionId: WinTheGame.id,
-      targets: { self: playerId },
-    })
+    const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
       players: {
@@ -77,10 +74,7 @@ describe("resolveTurn", () => {
 
   it("should gain influence", () => {
     // Arrange
-    const submittedAction = createSubmittedActionStub({
-      actionDefinitionId: GainInfluence.id,
-      targets: { self: playerId },
-    })
+    const submittedAction = createSubmittedActionStub({ actionDefinitionId: GainInfluence.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
       players: {
@@ -126,14 +120,8 @@ describe("resolveTurn", () => {
     // Arrange
     const firstPlayerId = branded<PlayerId>("first-player-id")
     const secondPlayerId = branded<PlayerId>("second-player-id")
-    const firstPlayerSubmittedAction = createSubmittedActionStub({
-      actionDefinitionId: GainInfluence.id,
-      targets: { self: firstPlayerId },
-    })
-    const secondPlayerSubmittedAction = createSubmittedActionStub({
-      actionDefinitionId: WinTheGame.id,
-      targets: { self: secondPlayerId },
-    })
+    const firstPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: GainInfluence.id, playerId: firstPlayerId })
+    const secondPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId: secondPlayerId })
     const turnState = createTurnStateStub({
       submittedActions: [firstPlayerSubmittedAction, secondPlayerSubmittedAction],
       players: {
@@ -200,10 +188,7 @@ describe("resolveTurn", () => {
 
   it("should win the game when the player can afford it", () => {
     // Arrange
-    const submittedAction = createSubmittedActionStub({
-      actionDefinitionId: WinTheGame.id,
-      targets: { self: playerId },
-    })
+    const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
       players: {
