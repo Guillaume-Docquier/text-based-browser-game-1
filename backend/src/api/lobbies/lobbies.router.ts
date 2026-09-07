@@ -2,17 +2,17 @@ import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import { GameId } from "#lib/db/games/GameId.ts"
+import { GameIdSchema } from "#lib/db/games/GameId.ts"
 import {
-  CreatedLobbyDto,
-  CreateLobbyDto,
+  CreatedLobbyDtoSchema,
+  CreateLobbyDtoSchema,
   type LobbiesController,
-  LobbyCreationSettingsDto,
-  LobbyDto,
-  JoinedLobbyDto,
-  JoinLobbyDto,
-  LeaveLobbyDto,
-  LeftLobbyDto,
+  LobbyCreationSettingsDtoSchema,
+  LobbyDtoSchema,
+  JoinedLobbyDtoSchema,
+  JoinLobbyDtoSchema,
+  LeaveLobbyDtoSchema,
+  LeftLobbyDtoSchema,
 } from "./lobbies.controller.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
@@ -28,7 +28,7 @@ export function createLobbiesRouter({
   const lobbiesRouterLogger = others.logger.child({ scope: "lobbies-router" })
 
   return trpc.router({
-    getCreationSettings: trpc.privateProcedure.output(LobbyCreationSettingsDto).query(async () => {
+    getCreationSettings: trpc.privateProcedure.output(LobbyCreationSettingsDtoSchema).query(async () => {
       const creationSettingsResult = await lobbiesController.getCreationSettings()
       if (Result.isFailure(creationSettingsResult)) {
         throw new TRPCError({
@@ -41,8 +41,8 @@ export function createLobbiesRouter({
     }),
 
     create: trpc.privateProcedure
-      .input(CreateLobbyDto.omit({ createdByAccountId: true }))
-      .output(CreatedLobbyDto)
+      .input(CreateLobbyDtoSchema.omit({ createdByAccountId: true }))
+      .output(CreatedLobbyDtoSchema)
       .mutation(async ({ input: newGame, ctx: { account } }) => {
         const createResult = await lobbiesController.createLobby({ ...newGame, createdByAccountId: account.id })
         if (Result.isFailure(createResult)) {
@@ -57,8 +57,8 @@ export function createLobbiesRouter({
       }),
 
     getById: trpc.publicProcedure
-      .input(z.object({ gameId: z.coerce.number().pipe(GameId) }))
-      .output(LobbyDto)
+      .input(z.object({ gameId: z.coerce.number().pipe(GameIdSchema) }))
+      .output(LobbyDtoSchema)
       .query(async ({ input: { gameId }, ctx: { account } }) => {
         const game = await lobbiesController.getLobbyById({
           gameId,
@@ -77,8 +77,8 @@ export function createLobbiesRouter({
       }),
 
     join: trpc.privateProcedure
-      .input(JoinLobbyDto.pick({ gameId: true }))
-      .output(JoinedLobbyDto)
+      .input(JoinLobbyDtoSchema.pick({ gameId: true }))
+      .output(JoinedLobbyDtoSchema)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
         const joinGameResult = await lobbiesController.joinLobby({ gameId, accountId: account.id })
         if (Result.isFailure(joinGameResult)) {
@@ -92,8 +92,8 @@ export function createLobbiesRouter({
       }),
 
     leave: trpc.privateProcedure
-      .input(LeaveLobbyDto.pick({ gameId: true }))
-      .output(LeftLobbyDto)
+      .input(LeaveLobbyDtoSchema.pick({ gameId: true }))
+      .output(LeftLobbyDtoSchema)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
         const leaveGameResult = await lobbiesController.leaveLobby({ gameId, accountId: account.id })
         if (Result.isFailure(leaveGameResult)) {

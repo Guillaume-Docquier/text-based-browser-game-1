@@ -1,6 +1,6 @@
 import { Assert, Range } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { RangeDto } from "#api/shared/RangeDto.ts"
+import { RangeDtoSchema } from "#api/shared/RangeDto.ts"
 
 describe("RangeDto", () => {
   it("should parse a valid Range", () => {
@@ -8,7 +8,7 @@ describe("RangeDto", () => {
     const range = Range.float({ min: 0, max: 1 })
 
     // Act
-    const parsedRange = RangeDto.parse(range)
+    const parsedRange = RangeDtoSchema.parse(range)
 
     // Assert
     expect(parsedRange).toStrictEqual(range)
@@ -16,7 +16,7 @@ describe("RangeDto", () => {
 
   it("should return the Range validation error as a Zod error", () => {
     // Act
-    const parseResult = RangeDto.safeParse({
+    const parseResult = RangeDtoSchema.safeParse({
       numericType: "float",
       maxBoundType: "exclusive",
       min: 1,

@@ -1,7 +1,7 @@
 import type { Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { AccountId } from "#lib/db/accounts/AccountId.ts"
+import { AccountIdSchema } from "#lib/db/accounts/AccountId.ts"
 
 export class AccountsController {
   private readonly accountsRepository: AccountsRepository
@@ -28,16 +28,16 @@ export class AccountsController {
   }
 }
 
-export type NewAccountDto = z.infer<typeof NewAccountDto>
-export const NewAccountDto = z.object({
+export type NewAccountDto = z.infer<typeof NewAccountDtoSchema>
+export const NewAccountDtoSchema = z.object({
   authId: z.string(),
   email: z.string().nullish(),
   alias: z.string().nullish(),
 })
 
-export type AccountDto = z.infer<typeof AccountDto>
-export const AccountDto = z.object({
-  id: AccountId,
+export type AccountDto = z.infer<typeof AccountDtoSchema>
+export const AccountDtoSchema = z.object({
+  id: AccountIdSchema,
   authId: z.string(),
   email: z.string().nullable(),
   alias: z.string().nullable(),

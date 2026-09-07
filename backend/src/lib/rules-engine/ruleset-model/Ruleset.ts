@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
+import { RulesetIdSchema, type RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   type ActionDefinition,
   ActionDefinitionIdSchema,
@@ -26,7 +26,7 @@ export type Ruleset = Readonly<{
 }>
 
 export const RulesetSchema = z.object({
-  id: RulesetId,
+  id: RulesetIdSchema,
   name: z.string(),
   isDefault: z.boolean(),
   actionDefinitions: z.record(ActionDefinitionIdSchema, ActionDefinitionSchema),

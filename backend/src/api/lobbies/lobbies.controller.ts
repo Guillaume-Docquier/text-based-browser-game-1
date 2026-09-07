@@ -1,12 +1,12 @@
 import { Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import { AccountId } from "#lib/db/accounts/AccountId.ts"
+import { AccountIdSchema } from "#lib/db/accounts/AccountId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { GameId } from "#lib/db/games/GameId.ts"
+import { GameIdSchema, type GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
-import { PlayerId } from "#lib/db/players/PlayerId.ts"
-import { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
+import { PlayerIdSchema, type PlayerId } from "#lib/db/players/PlayerId.ts"
+import { RulesetIdSchema } from "#lib/db/rulesets/RulesetId.ts"
 import { couldNot, rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import type { LobbiesRepository, LobbyModel } from "./lobbies.repository.ts"
@@ -181,84 +181,84 @@ export function toLobbyDto({ lobbyModel, playerId }: { lobbyModel: LobbyModel; p
   }
 }
 
-export type CreateLobbyConfigurationDto = z.infer<typeof CreateLobbyConfigurationDto>
-export const CreateLobbyConfigurationDto = z.object({
+export type CreateLobbyConfigurationDto = z.infer<typeof CreateLobbyConfigurationDtoSchema>
+export const CreateLobbyConfigurationDtoSchema = z.object({
   name: z.string(),
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
   mapGenerationSeed: z.number().exactOptional(),
-  rulesetId: RulesetId,
+  rulesetId: RulesetIdSchema,
 })
 
-export type CreateLobbyDto = z.infer<typeof CreateLobbyDto>
-export const CreateLobbyDto = z.object({
-  createdByAccountId: AccountId,
-  configuration: CreateLobbyConfigurationDto,
+export type CreateLobbyDto = z.infer<typeof CreateLobbyDtoSchema>
+export const CreateLobbyDtoSchema = z.object({
+  createdByAccountId: AccountIdSchema,
+  configuration: CreateLobbyConfigurationDtoSchema,
 })
 
-export type CreatedLobbyDto = z.infer<typeof CreatedLobbyDto>
-export const CreatedLobbyDto = z.object({
-  createdGameId: GameId,
+export type CreatedLobbyDto = z.infer<typeof CreatedLobbyDtoSchema>
+export const CreatedLobbyDtoSchema = z.object({
+  createdGameId: GameIdSchema,
 })
 
-export type JoinLobbyDto = z.infer<typeof JoinLobbyDto>
-export const JoinLobbyDto = z.object({
-  gameId: GameId,
-  accountId: AccountId,
+export type JoinLobbyDto = z.infer<typeof JoinLobbyDtoSchema>
+export const JoinLobbyDtoSchema = z.object({
+  gameId: GameIdSchema,
+  accountId: AccountIdSchema,
 })
 
-export type JoinedLobbyDto = z.infer<typeof JoinedLobbyDto>
-export const JoinedLobbyDto = z.object({
-  playerId: PlayerId,
+export type JoinedLobbyDto = z.infer<typeof JoinedLobbyDtoSchema>
+export const JoinedLobbyDtoSchema = z.object({
+  playerId: PlayerIdSchema,
 })
 
-export type LeaveLobbyDto = z.infer<typeof LeaveLobbyDto>
-export const LeaveLobbyDto = z.object({
-  gameId: GameId,
-  accountId: AccountId,
+export type LeaveLobbyDto = z.infer<typeof LeaveLobbyDtoSchema>
+export const LeaveLobbyDtoSchema = z.object({
+  gameId: GameIdSchema,
+  accountId: AccountIdSchema,
 })
 
-export type LeftLobbyDto = z.infer<typeof LeftLobbyDto>
-export const LeftLobbyDto = z.literal(true)
+export type LeftLobbyDto = z.infer<typeof LeftLobbyDtoSchema>
+export const LeftLobbyDtoSchema = z.literal(true)
 
-export type RulesetSummaryDto = z.infer<typeof RulesetSummaryDto>
-const RulesetSummaryDto = z.object({
-  id: RulesetId,
+export type RulesetSummaryDto = z.infer<typeof RulesetSummaryDtoSchema>
+const RulesetSummaryDtoSchema = z.object({
+  id: RulesetIdSchema,
   name: z.string(),
   isDefault: z.boolean(),
 })
 
-export type LobbyCreationSettingsDto = z.infer<typeof LobbyCreationSettingsDto>
-export const LobbyCreationSettingsDto = z.object({
+export type LobbyCreationSettingsDto = z.infer<typeof LobbyCreationSettingsDtoSchema>
+export const LobbyCreationSettingsDtoSchema = z.object({
   maxNbSeats: z.number(),
-  rulesets: z.array(RulesetSummaryDto).readonly(),
+  rulesets: z.array(RulesetSummaryDtoSchema).readonly(),
 })
 
-export type LobbyPlayerDto = z.infer<typeof LobbyPlayerDto>
-export const LobbyPlayerDto = z.object({
-  id: PlayerId,
+export type LobbyPlayerDto = z.infer<typeof LobbyPlayerDtoSchema>
+export const LobbyPlayerDtoSchema = z.object({
+  id: PlayerIdSchema,
   alias: z.string().nullable(),
   color: z.enum(PlayerColor),
 })
 
-export type LobbyConfigurationDto = z.infer<typeof LobbyConfigurationDto>
-export const LobbyConfigurationDto = z.object({
+export type LobbyConfigurationDto = z.infer<typeof LobbyConfigurationDtoSchema>
+export const LobbyConfigurationDtoSchema = z.object({
   name: z.string(),
   nbSeats: z.number(),
   turnIntervalSeconds: z.number(),
-  ruleset: RulesetSummaryDto,
+  ruleset: RulesetSummaryDtoSchema,
 })
 
-export type LobbyDto = z.infer<typeof LobbyDto>
-export const LobbyDto = z.object({
-  id: GameId,
-  winnerAccountId: AccountId.nullable(),
-  configuration: LobbyConfigurationDto,
+export type LobbyDto = z.infer<typeof LobbyDtoSchema>
+export const LobbyDtoSchema = z.object({
+  id: GameIdSchema,
+  winnerAccountId: AccountIdSchema.nullable(),
+  configuration: LobbyConfigurationDtoSchema,
   createdAt: z.date(),
   startedAt: z.date().nullable(),
   endedAt: z.date().nullable(),
-  creator: LobbyPlayerDto,
-  players: z.array(LobbyPlayerDto).readonly(),
+  creator: LobbyPlayerDtoSchema,
+  players: z.array(LobbyPlayerDtoSchema).readonly(),
   status: z.enum(GameStatus),
   /**
    * Whether the current player can join the game.

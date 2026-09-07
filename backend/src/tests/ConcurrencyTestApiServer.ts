@@ -4,7 +4,7 @@ import { setTimeout } from "node:timers/promises"
 import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { PortListeningMessage } from "#api/PortListeningMessage.ts"
+import { PortListeningMessageSchema } from "#api/PortListeningMessage.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
 
@@ -98,7 +98,7 @@ async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<
 
   const apiReady = Promise.withResolvers<number>()
   apiProcess.once("message", (message) => {
-    apiReady.resolve(PortListeningMessage.parse(message).port)
+    apiReady.resolve(PortListeningMessageSchema.parse(message).port)
   })
 
   let died = false

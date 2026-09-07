@@ -1,11 +1,11 @@
 import { z } from "zod"
 
-export type PlaywrightEnv = z.infer<typeof PlaywrightEnv>
+export type PlaywrightEnv = z.infer<typeof PlaywrightEnvSchema>
 /**
  * The schema for environment variables required by Playwright.
  * It also serves as documentation for the env.
  */
-export const PlaywrightEnv = z.object({
+export const PlaywrightEnvSchema = z.object({
   /**
    * Used by Clerk's Playwright testing helpers.
    */
@@ -41,7 +41,7 @@ export function loadEnv({ envFilePath }: { envFilePath?: string } = {}): Playwri
     process.loadEnvFile(envFilePath)
   }
 
-  const envResult = PlaywrightEnv.safeParse(process.env)
+  const envResult = PlaywrightEnvSchema.safeParse(process.env)
   if (!envResult.success) {
     // oxlint-disable-next-line no-console -- This is fine
     console.error("Incorrect env supplied to playwright, tests cannot run.")

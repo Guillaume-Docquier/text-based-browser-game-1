@@ -1,7 +1,7 @@
 import type { Logger } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import { type ListingsController, ListingDto } from "./listings.controller.ts"
+import { type ListingsController, ListingDtoSchema } from "./listings.controller.ts"
 
 /**
  * Import side effect free express router creator.
@@ -14,7 +14,7 @@ export function createListingsRouter({ trpc, listingsController }: { trpc: Trpc;
     /**
      * Gets all game listings, and eventually will support queries (by name, by state, etc) and pagination
      */
-    getListings: trpc.publicProcedure.output(z.array(ListingDto)).query(async ({ ctx: { account } }) => {
+    getListings: trpc.publicProcedure.output(z.array(ListingDtoSchema)).query(async ({ ctx: { account } }) => {
       return await listingsController.getListings({ playerId: account?.id })
     }),
   })
