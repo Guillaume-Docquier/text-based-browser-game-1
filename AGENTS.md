@@ -46,10 +46,10 @@ All merges to main are automatically deployed to Railway based on which files ch
 
 We use:
 
-- pnpm to manage the pnpm (11) and node (24) versions
+- pnpm to manage the pnpm and node versions (via packageJson.devEngines)
 - oxfmt for formatting
 - oxlint for linting
-- typescript 7 (dev, soon rc)
+- typescript 7
 
 ### @guillaume-docquier/tools-ts
 
