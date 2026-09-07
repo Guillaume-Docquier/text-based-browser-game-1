@@ -1,22 +1,22 @@
 import { Assert, Rng, Datetime, type Logger, mulberry32Prng, Result, Timer, branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
-import { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
+import { SubmittedActionTargetsDtoSchema } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
-import { PlanetCoordinates, toPlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
-import { StarCoordinates, toStarCoordinates } from "#api/shared/StarCoordinates.ts"
+import { PlanetCoordinatesSchema, toPlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
+import { StarCoordinatesSchema, toStarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
-import { AccountId } from "#lib/db/accounts/AccountId.ts"
-import { ActionId } from "#lib/db/actions/ActionId.ts"
+import { AccountIdSchema, type AccountId } from "#lib/db/accounts/AccountId.ts"
+import { ActionIdSchema } from "#lib/db/actions/ActionId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { GameId } from "#lib/db/games/GameId.ts"
+import { GameIdSchema, type GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
-import { PlanetId } from "#lib/db/planets/PlanetId.ts"
+import { PlanetIdSchema } from "#lib/db/planets/PlanetId.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
-import { PlayerId } from "#lib/db/players/PlayerId.ts"
-import { StarId } from "#lib/db/stars/StarId.ts"
+import { PlayerIdSchema, type PlayerId } from "#lib/db/players/PlayerId.ts"
+import { StarIdSchema } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
@@ -343,42 +343,42 @@ function createTurnState({
   }
 }
 
-export type StartGameDto = z.infer<typeof StartGameDto>
-export const StartGameDto = z.object({
-  gameId: z.coerce.number().pipe(GameId),
-  requesterAccountId: AccountId,
+export type StartGameDto = z.infer<typeof StartGameDtoSchema>
+export const StartGameDtoSchema = z.object({
+  gameId: z.coerce.number().pipe(GameIdSchema),
+  requesterAccountId: AccountIdSchema,
 })
 
-export type StartedGameDto = z.infer<typeof StartedGameDto>
-export const StartedGameDto = z.object({
+export type StartedGameDto = z.infer<typeof StartedGameDtoSchema>
+export const StartedGameDtoSchema = z.object({
   turnEndsAt: z.date(),
 })
 
-export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDto>
-export const GetPlayerViewDto = z.object({
-  gameId: z.coerce.number().pipe(GameId),
-  playerId: PlayerId,
+export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDtoSchema>
+export const GetPlayerViewDtoSchema = z.object({
+  gameId: z.coerce.number().pipe(GameIdSchema),
+  playerId: PlayerIdSchema,
 })
 
-export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDto>
-export const PlayerViewPlayerDto = z.object({
-  id: PlayerId,
+export type PlayerViewPlayerDto = z.infer<typeof PlayerViewPlayerDtoSchema>
+export const PlayerViewPlayerDtoSchema = z.object({
+  id: PlayerIdSchema,
   color: z.enum(PlayerColor),
   isReady: z.boolean(),
 })
 
-export const StarDto = z.object({
-  id: StarId,
+export const StarDtoSchema = z.object({
+  id: StarIdSchema,
   name: z.string(),
-  coordinates: StarCoordinates,
+  coordinates: StarCoordinatesSchema,
   x: z.number(),
   y: z.number(),
 })
 
-export const PlanetDto = z.object({
-  id: PlanetId,
+export const PlanetDtoSchema = z.object({
+  id: PlanetIdSchema,
   name: z.string(),
-  coordinates: PlanetCoordinates,
+  coordinates: PlanetCoordinatesSchema,
   x: z.number(),
   y: z.number(),
   biome: z.enum(PlanetBiome),
@@ -391,49 +391,49 @@ export const PlanetDto = z.object({
   area: z.number(),
 })
 
-export const GalaxyDto = z.object({
+export const GalaxyDtoSchema = z.object({
   systems: z.array(
     z.object({
-      star: StarDto,
-      planets: z.array(PlanetDto),
+      star: StarDtoSchema,
+      planets: z.array(PlanetDtoSchema),
     }),
   ),
 })
 
-type ActionDto = z.infer<typeof ActionDto>
-const ActionDto = z.object({
-  id: ActionId,
+type ActionDto = z.infer<typeof ActionDtoSchema>
+const ActionDtoSchema = z.object({
+  id: ActionIdSchema,
   actionDefinitionId: ActionDefinitionIdSchema,
   targets: z.record(z.string(), z.string()).nullable(),
   canAfford: z.boolean(),
 })
 
-export type PlayerViewDto = z.infer<typeof PlayerViewDto>
-export const PlayerViewDto = z.object({
-  gameId: GameId,
-  player: PlayerViewPlayerDto,
-  opponents: z.record(PlayerId, PlayerViewPlayerDto),
-  galaxy: GalaxyDto,
+export type PlayerViewDto = z.infer<typeof PlayerViewDtoSchema>
+export const PlayerViewDtoSchema = z.object({
+  gameId: GameIdSchema,
+  player: PlayerViewPlayerDtoSchema,
+  opponents: z.record(PlayerIdSchema, PlayerViewPlayerDtoSchema),
+  galaxy: GalaxyDtoSchema,
   turn: z.number(),
   turnStatus: z.enum(TurnStatus),
   turnEndsAt: z.date(),
   resources: ResourcesDtoSchema,
   ruleset: RulesetSchema,
-  actions: z.array(ActionDto),
+  actions: z.array(ActionDtoSchema),
 })
 
-export type UpdateActionSubmissionDto = z.infer<typeof UpdateActionSubmissionDto>
-export const UpdateActionSubmissionDto = z.object({
-  gameId: z.coerce.number().pipe(GameId),
-  playerId: PlayerId,
+export type UpdateActionSubmissionDto = z.infer<typeof UpdateActionSubmissionDtoSchema>
+export const UpdateActionSubmissionDtoSchema = z.object({
+  gameId: z.coerce.number().pipe(GameIdSchema),
+  playerId: PlayerIdSchema,
   turn: z.coerce.number(),
-  submittedActionTargets: SubmittedActionTargetsDto,
+  submittedActionTargets: SubmittedActionTargetsDtoSchema,
 })
 
-export type UpdateReadinessDto = z.infer<typeof UpdateReadinessDto>
-export const UpdateReadinessDto = z.object({
-  gameId: z.coerce.number().pipe(GameId),
+export type UpdateReadinessDto = z.infer<typeof UpdateReadinessDtoSchema>
+export const UpdateReadinessDtoSchema = z.object({
+  gameId: z.coerce.number().pipe(GameIdSchema),
   turn: z.coerce.number(),
-  playerId: PlayerId,
+  playerId: PlayerIdSchema,
   isReady: z.boolean(),
 })

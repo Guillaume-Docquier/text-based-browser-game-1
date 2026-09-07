@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
-import { GameId } from "#lib/db/games/GameId.ts"
+import { GameIdSchema } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import type { ListingsRepository } from "./listings.repository.ts"
 
@@ -28,9 +28,9 @@ export class ListingsController {
   }
 }
 
-export type ListingDto = z.infer<typeof ListingDto>
-export const ListingDto = z.object({
-  id: GameId,
+export type ListingDto = z.infer<typeof ListingDtoSchema>
+export const ListingDtoSchema = z.object({
+  id: GameIdSchema,
   name: z.string(),
   hasJoined: z.boolean(),
   nbPlayers: z.number(),

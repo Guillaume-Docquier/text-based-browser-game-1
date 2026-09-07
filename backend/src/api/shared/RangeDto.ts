@@ -1,7 +1,7 @@
 import { Range, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 
-export const RangeDto = z
+export const RangeDtoSchema = z
   .object({
     numericType: z.enum(["float", "integer"]),
     maxBoundType: z.enum(["inclusive", "exclusive"]),

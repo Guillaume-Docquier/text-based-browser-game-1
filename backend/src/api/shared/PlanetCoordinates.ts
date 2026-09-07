@@ -9,8 +9,8 @@ import type { planetsTable } from "#lib/db/schema.ts"
  * The first 2 segments are the star coordinates
  * The last segment is the orbit coordinates
  */
-export type PlanetCoordinates = z.infer<typeof PlanetCoordinates>
-export const PlanetCoordinates = z.string() satisfies z.ZodType<(typeof planetsTable.$inferSelect)["coordinates"]>
+export type PlanetCoordinates = z.infer<typeof PlanetCoordinatesSchema>
+export const PlanetCoordinatesSchema = z.string() satisfies z.ZodType<(typeof planetsTable.$inferSelect)["coordinates"]>
 
 export function toPlanetCoordinates({
   starCoordinates,

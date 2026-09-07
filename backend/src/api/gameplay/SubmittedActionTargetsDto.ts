@@ -1,9 +1,9 @@
 import { z } from "zod"
-import { ActionId } from "#lib/db/actions/ActionId.ts"
+import { ActionIdSchema } from "#lib/db/actions/ActionId.ts"
 
-export type SubmittedActionTargetsDto = z.infer<typeof SubmittedActionTargetsDto>
-export const SubmittedActionTargetsDto = z.object({
-  actionId: ActionId,
+export type SubmittedActionTargetsDto = z.infer<typeof SubmittedActionTargetsDtoSchema>
+export const SubmittedActionTargetsDtoSchema = z.object({
+  actionId: ActionIdSchema,
   /**
    * null when un-selecting, object when selecting / updating targets
    */

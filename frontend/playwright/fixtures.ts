@@ -1,6 +1,6 @@
 import { expect, test as base, type ConsoleMessage, type Page } from "@playwright/test"
 import { users } from "./auth.ts"
-import { PlaywrightEnv } from "./loadEnv.ts"
+import { PlaywrightEnvSchema, type PlaywrightEnv } from "./loadEnv.ts"
 
 const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development keys\./]
 
@@ -86,7 +86,7 @@ export const test = base.extend<Fixtures>({
   ],
   // oxlint-disable-next-line no-empty-pattern -- That's how playwright fixtures work
   env: async ({}, use, testInfo) => {
-    await use(PlaywrightEnv.parse(testInfo.config.metadata.env))
+    await use(PlaywrightEnvSchema.parse(testInfo.config.metadata.env))
   },
   clerkConfig: async ({ env }, use) => {
     await use({
