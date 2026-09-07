@@ -3,6 +3,7 @@ import type { DeepReadonly } from "utility-types"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
 import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
+import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
@@ -78,16 +79,18 @@ function validateTargetDefinition(
   }
 
   switch (targetType) {
-    case "PLAYER":
-    case "SELF": {
+    case "SELF":
+    case TargetType.PLAYER: {
       if (turnState.players[targetId] === undefined) {
         return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
       }
       return null
     }
-    case "FLEET":
+    case TargetType.FLEET:
       throw new NotImplementedError({ trackedBy: "not tracked" })
-    case "PLANET":
+    case TargetType.PLANET:
+      throw new NotImplementedError({ trackedBy: "not tracked" })
+    case TargetType.PLANET_OWNED:
       throw new NotImplementedError({ trackedBy: "not tracked" })
   }
 }

@@ -1,11 +1,13 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
+import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
 import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
+import { FleetBuildEffect } from "#lib/rules-engine/turn-resolution/effects/implementations/FleetBuildEffect.ts"
 import { ResourceGainEffect } from "#lib/rules-engine/turn-resolution/effects/implementations/ResourceGainEffect.ts"
 import { ResourceLossEffect } from "#lib/rules-engine/turn-resolution/effects/implementations/ResourceLossEffect.ts"
 import { VictoryEffect } from "#lib/rules-engine/turn-resolution/effects/implementations/VictoryEffect.ts"
@@ -34,6 +36,8 @@ export const EffectFactory = {
         return new ResourceGainEffect(id, mechanic, submittedAction)
       case VictoryMechanic.type:
         return new VictoryEffect(id, mechanic, submittedAction)
+      case FleetBuildMechanic.type:
+        return new FleetBuildEffect(id, mechanic, submittedAction)
     }
   },
 }

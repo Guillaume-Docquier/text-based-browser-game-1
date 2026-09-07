@@ -1,19 +1,19 @@
 import { z } from "zod"
 import { TargetTypeSchema, type TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 
-export type TargetDefinition =
-  | {
-      /**
-       * The key to use on the submitted action's targets to find the target id.
-       * This is not the id of the actual target.
-       */
-      readonly tag: string
-      /**
-       * The type that this target must be.
-       */
-      readonly type: TargetType
-    }
-  | TargetDefinitionSelf
+export type TargetDefinition = TargetDefinitionTarget | TargetDefinitionSelf
+
+export type TargetDefinitionTarget = {
+  /**
+   * The key to use on the submitted action's targets to find the target id.
+   * This is not the id of the actual target.
+   */
+  readonly tag: string
+  /**
+   * The type that this target must be.
+   */
+  readonly type: TargetType
+}
 
 /**
  * A special target that is always the player that submitted the action.
