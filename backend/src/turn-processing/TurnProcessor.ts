@@ -151,6 +151,7 @@ export class TurnProcessor {
           amount: player.resources[resourceType],
         })),
       ),
+      fleets: Object.values(resolvedTurnResult.value.fleets),
     }
 
     if (resolvedTurnResult.value.winnerPlayerId === undefined) {

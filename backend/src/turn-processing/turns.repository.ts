@@ -26,6 +26,7 @@ import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Fleet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type ResourceRow = typeof resourcesTable.$inferSelect
@@ -94,6 +95,7 @@ export type ProcessedTurnModel = {
     resourceType: ResourceType
     amount: number
   }>
+  fleets: Fleet[]
   winnerAccountId?: AccountId
   nextTurn: number
   availableActions: AvailableAction[]
@@ -338,6 +340,20 @@ export class TurnsRepository extends PostgresRepository {
               amount: sql`excluded.amount`,
             },
           })
+
+        const fleets = processedTurnModel.fleets.map((fleet) => ({ ...fleet, gameId: processedTurnModel.gameId }))
+        if (fleets.length > 0) {
+          await tx
+            .insert(fleetsTable)
+            .values(fleets)
+            .onConflictDoUpdate({
+              target: fleetsTable.id,
+              set: {
+                strength: sql`excluded.strength`,
+                originPlanetId: sql`excluded.origin_planet_id`,
+              },
+            })
+        }
 
         if (processedTurnModel.nextTurnScheduledFor === undefined) {
           Assert.isDefined(processedTurnModel.endedAt)
