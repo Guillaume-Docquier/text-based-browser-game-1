@@ -18,13 +18,13 @@ This is a TypeScript monorepo using pnpm workspaces.
 
 ### Key Directories
 
-| Directory                    | Description                                                                                |
-| ---------------------------- | ------------------------------------------------------------------------------------------ |
-| frontend/                    | The web application.                                                                       |
-| backend/src/api/             | The api for the frontend.                                                                  |
-| backend/src/turn-processing/ | The turn processing engine.                                                                |
-| infra/                       | The IaC for 3rd parties that we use.                                                       |
-| docs/                        | All the documentation for the project. There is no documentation in the other directories. |
+| Directory                    | Description                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| frontend/                    | The web application.                                                                                               |
+| backend/src/api/             | The api for the frontend.                                                                                          |
+| backend/src/turn-processing/ | The turn processing engine.                                                                                        |
+| infra/                       | The IaC for 3rd parties that we use.                                                                               |
+| docs/                        | Detailed project documentation. Repository-level guidance also lives in README.md, CONTRIBUTING.md, and AGENTS.md. |
 
 ### Dependencies
 
@@ -33,8 +33,6 @@ frontend/ ───api-types───▶ backend/src/api/ ───actions-valid
 ```
 
 There are no other allowed dependencies.
-
-Note: The actions validation code doesn't yet exist, but soon will.
 
 ### CI/CD
 
@@ -136,7 +134,7 @@ Before implementing gameplay work, read the relevant GDDRs. During implementatio
 
 This repo documents the game systems in `docs/game-design/systems/`. When implementing a system, make sure to update existing documentation. Creating systems should be asked explicitly of you. If you think a system is missing, ask the human whether to create one, and then follow `docs/game-design/systems/how-to.md`.
 
-Before implementing gameplay work, read the relevant game systems. During implementation, check whether a related planned game system is now reflected in the game. If it is, update its status to `Implemented` and move its entry from the planned section to the implemented section of the GDDR index. If the implementation differs from the planned decision, flag that mismatch and discuss it with the human before changing the documentation or the game direction.
+Before implementing gameplay work, read the relevant game systems. During implementation, check whether a related planned game system is now reflected in the game. If it is, update its status to `Implemented` and move its entry from the planned section to the implemented section of the Systems index. If the implementation differs from the planned decision, flag that mismatch and discuss it with the human before changing the documentation or the game direction.
 
 ## Commands
 
@@ -144,8 +142,8 @@ Always use pnpm, never use npm.
 
 - `pnpm i`: install node_modules for all packages.
 - `pnpm checks`: runs all quality checks (lint, format, typecheck, build, tests, etc) on all packages.
-- `pnpm test:backend`: run local backend integration tests.
-- `pnpm test:e2e`: run local E2E tests.
+- `pnpm --filter backend test`: run all backend tests.
+- `pnpm --filter frontend e2e`: run local E2E tests.
 - `pnpm --filter frontend checks`: run all frontend quality checks.
 - `pnpm --filter backend checks`: run all backend quality checks.
 - `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
