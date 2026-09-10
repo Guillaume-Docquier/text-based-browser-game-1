@@ -50,6 +50,7 @@ type NewTurnProcessingRow = typeof turnsProcessingTable.$inferInsert
 const PLANET_INSERT_BATCH_SIZE = 1_000 // ~15k/32k bind parameters (15 per planet)
 
 export type ActionSubmissionsForUpdate = Branded<
+  "ActionsForSubmission",
   Readonly<{
     gameId: GameId
     playerId: PlayerId
@@ -57,8 +58,7 @@ export type ActionSubmissionsForUpdate = Branded<
     resources: Readonly<Resources>
     actions: readonly Action[]
     ruleset: Ruleset
-  }>,
-  "ActionsForSubmission"
+  }>
 >
 
 export type UpdateActionSubmissionsModel = Readonly<{
@@ -79,13 +79,13 @@ type PlayerViewPlayerModel = Readonly<{
 }>
 
 export type ReadinessForUpdate = Branded<
+  "ReadinessForUpdate",
   Readonly<{
     gameId: GameId
     playerId: PlayerId
     turn: number
     players: readonly PlayerViewPlayerModel[]
-  }>,
-  "ReadinessForUpdate"
+  }>
 >
 
 type PlayerViewActionModel = Readonly<{
@@ -115,6 +115,7 @@ export type PlayerViewModel = Readonly<{
  * It does not mean it can be started, you have to check the state and decide.
  */
 export type GameForStart = Branded<
+  "GameForStart",
   {
     readonly gameId: GameId
     readonly createdByAccountId: AccountId
@@ -123,8 +124,7 @@ export type GameForStart = Branded<
     readonly turnInterval: Time
     readonly playerIds: readonly PlayerId[]
     readonly ruleset: Ruleset
-  },
-  "GameForStart"
+  }
 >
 
 export type StartGameModel = {

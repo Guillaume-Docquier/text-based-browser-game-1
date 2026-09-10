@@ -23,11 +23,11 @@ type SubmittedActionRow = typeof actionsTable.$inferSelect
  * Owning a TurnForProcessing within a transaction guarantees that the Turn Processing row is locked and needs processing.
  */
 export type TurnForProcessing = Branded<
+  "TurnForProcessing",
   {
     gameId: GameId
     turn: number
-  },
-  "TurnForProcessing"
+  }
 >
 
 export type StartTurnProcessingModel = {

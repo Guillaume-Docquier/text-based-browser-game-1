@@ -71,13 +71,13 @@ type PlayerForJoin = Readonly<{
  * It does not mean it can be joined, you have to check the state and decide.
  */
 export type LobbyForJoin = Branded<
+  "LobbyForJoin",
   {
     readonly gameId: GameId
     readonly status: GameStatus
     readonly nbSeats: number
     readonly players: readonly PlayerForJoin[]
-  },
-  "LobbyForJoin"
+  }
 >
 
 export type JoinLobbyModel = {
@@ -95,13 +95,13 @@ export type JoinLobbyModel = {
  * It does not mean it can be left, you have to check the state and decide.
  */
 export type LobbyForLeave = Branded<
+  "LobbyForLeave",
   {
     readonly gameId: GameId
     readonly status: GameStatus
     readonly createdByAccountId: AccountId
     readonly playerIds: readonly PlayerId[]
-  },
-  "LobbyForLeave"
+  }
 >
 
 export type LeaveLobbyModel = {

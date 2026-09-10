@@ -2,7 +2,7 @@ import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { uuid } from "drizzle-orm/pg-core"
 import { z } from "zod"
 
-export type PlayerId = Branded<string, "PlayerId">
+export type PlayerId = Branded<"PlayerId", string>
 export const PlayerIdSchema = z.string().transform(branded<PlayerId>)
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let drizzle inference do the work
