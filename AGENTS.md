@@ -18,13 +18,13 @@ This is a TypeScript monorepo using pnpm workspaces.
 
 ### Key Directories
 
-| Directory                    | Description                                                                                |
-| ---------------------------- | ------------------------------------------------------------------------------------------ |
-| frontend/                    | The web application.                                                                       |
-| backend/src/api/             | The api for the frontend.                                                                  |
-| backend/src/turn-processing/ | The turn processing engine.                                                                |
-| infra/                       | The IaC for 3rd parties that we use.                                                       |
-| docs/                        | All the documentation for the project. There is no documentation in the other directories. |
+| Directory                    | Description                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| frontend/                    | The web application.                                                                                               |
+| backend/src/api/             | The api for the frontend.                                                                                          |
+| backend/src/turn-processing/ | The turn processing engine.                                                                                        |
+| infra/                       | The IaC for 3rd parties that we use.                                                                               |
+| docs/                        | Detailed project documentation. Repository-level guidance also lives in README.md, CONTRIBUTING.md, and AGENTS.md. |
 
 ### Dependencies
 
@@ -34,7 +34,9 @@ frontend/ ───api-types───▶ backend/src/api/ ───actions-valid
 
 There are no other allowed dependencies.
 
-Note: The actions validation code doesn't yet exist, but soon will.
+## Scoped Instructions
+
+Before changing files in a subtree, read the nearest `AGENTS.md` in that subtree.
 
 ### CI/CD
 
@@ -55,135 +57,29 @@ We use:
 
 Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. This is a TypeScript library of utilities made by us. Their README.md contains a high-level view of the available utilities, read it.
 
-### Frontend
+## Documentation
 
-We use:
-
-- React with compiler
-- TailwindCSS
-- Tanstack Router
-- Shadcn
-- Clerk auth
-- Vite
-- Playwright
-- Storybook
-
-Key Directories:
-
-| Directory               | Description                                                                                                        |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| frontend/src/routes     | All the tanstack routes using file based routing. Imports pages from frontend/src/features.                        |
-| frontend/src/features   | Vertical slices for all features in the app.                                                                       |
-| frontend/src/components | Shared components, aka the design system.                                                                          |
-| frontend/src/lib/api    | API client and hooks to use it live here. Calling code doesn't even know we use trpc in the backend + react query. |
-| frontend/.storybook     | Configuration for storybook. We use storybook to inspect the design system. stories live next to their components. |
-| frontend/playwright     | All e2e tests. We use POM and integrate clerk auth in the tests.                                                   |
-
-### Backend API
-
-We use:
-
-- Express
-- tRPC
-- drizzle + postgres
-- Clerk auth
-- Vitest
-- pglite for in memory db during integration tests
-
-Key Directories:
-
-| Directory       | Description                                                                        |
-| --------------- | ---------------------------------------------------------------------------------- |
-| backend/src/api | All code for the API organized by vertical slices of router-controller-repository. |
-| backend/src/lib | Shared code between API and turn processing, mostly DB schemas.                    |
-
-There is no build for the backend, we run TypeScript natively on node 26+. This means we require isolated modules and cannot use certain features like enums or decorators.
-
-### Backend Turn Processing
-
-The turn processing module runs in a TypeScript worker hosted by the API process.
-
-It runs there for simplicity of deployment, but is designed to be isolated so we can scale the number of workers, or extract the workers into its own runtime, or even re-write in another language.
-
-The code is in `backend/src/turn-processing` and runs TypeScript natively on node 26+ just like the API.
-
-## Coding standards
-
-Read `docs/typescript-coding-standards.md` to properly follow coding standards.
-
-## Glossary
-
-Read `docs/glossary.md` for common terms with specific meaning in this project. When introducing new vocabulary, update the glossary.
-
-## Architecture Decision Records (ADRs)
-
-This repo uses ADRs in `docs/architecture/decisions/` to capture important architecture decisions. Before making changes that touch architecture (new dependencies, new patterns, API design, infrastructure), check existing ADRs:
-
-1. Read `docs/architecture/decisions/README.md` for the index of decisions.
-2. Read any accepted ADRs relevant to your area of work. Follow the decisions and implementation patterns they specify.
-3. If you encounter a pattern in the code and wonder "why is it done this way?", check whether an ADR explains it.
-4. If your work would contradict an existing accepted ADR, stop and discuss with the human before proceeding.
-
-To propose or create a new ADR, follow `docs/architecture/decisions/how-to.md`
-
-## Game Design Decision Records (GDDRs)
-
-This repo uses GDDRs in `docs/game-design/decisions/` to capture durable game-design decisions about the game's philosophy and mechanics. GDDRs are human-initiated: if you identify a candidate, explain why it appears durable, ask the human whether to create one, and then follow `docs/game-design/decisions/how-to.md`.
-
-Before implementing gameplay work, read the relevant GDDRs. During implementation, check whether a related planned GDDR is now reflected in the game. If it is, update its status to `Implemented` and move its entry from the planned section to the implemented section of the GDDR index. If the implementation differs from the planned decision, flag that mismatch and discuss it with the human before changing the record or the game direction.
-
-## Game Design Systems
-
-This repo documents the game systems in `docs/game-design/systems/`. When implementing a system, make sure to update existing documentation. Creating systems should be asked explicitly of you. If you think a system is missing, ask the human whether to create one, and then follow `docs/game-design/systems/how-to.md`.
-
-Before implementing gameplay work, read the relevant game systems. During implementation, check whether a related planned game system is now reflected in the game. If it is, update its status to `Implemented` and move its entry from the planned section to the implemented section of the GDDR index. If the implementation differs from the planned decision, flag that mismatch and discuss it with the human before changing the documentation or the game direction.
+- Read `docs/typescript-coding-standards.md` before writing TypeScript.
+- Read `docs/glossary.md` for project-specific terms. Update it when introducing new vocabulary.
+- Before changing architecture, read the ADR index and relevant accepted ADRs. Stop and discuss any contradiction with the human.
+- Before implementing gameplay, read the relevant GDDRs and game Systems. Keep their implementation status and indexes synchronized with live behavior, and flag design mismatches before changing direction.
+- New GDDRs and game Systems require explicit human approval. Follow `docs/AGENTS.md` when editing documentation.
 
 ## Commands
 
 Always use pnpm, never use npm.
 
 - `pnpm i`: install node_modules for all packages.
-- `pnpm checks`: runs all quality checks (lint, format, typecheck, build, tests, etc) on all packages.
-- `pnpm test:backend`: run local backend integration tests.
-- `pnpm test:e2e`: run local E2E tests.
-- `pnpm --filter frontend checks`: run all frontend quality checks.
-- `pnpm --filter backend checks`: run all backend quality checks.
-- `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
+- `pnpm checks`: runs all quality checks (lint:fix, format:fix, typecheck, build, tests, etc) on all packages.
 
 When formatting the code, always run oxfmt with write. oxfmt is deterministic, there's no point in checking before applying formatting.
-
-## Testing
-
-We test the production code. We do not use `vitest.mock()`.
-
-We prefer end-to-end and integration tests. We use unit tests sparingly for complex scenarios (algorithm verification, validating race conditions, regression tests, etc.)
-
-Always structure unit and integration tests using Arrange, Act, Assert (AAA), with explicit `// Arrange`, `// Act`, and `// Assert` sections in that order.
-
-Optimize assertions for useful failure output: compare semantic values instead of opaque IDs, sort unordered collections before comparison, keep test setup control flow straightforward, etc.
-
-Do not reimplement the logic in the test to create the expected result. Be explicit and create the expected state by hand instead of computing it. This is often more code, but it avoids encoding bugs in the test.
-
-### End-to-end tests
-
-Structure end-to-end tests with descriptive test.step() blocks reflecting user behavior. Do not use AAA sections.
-
-Use Playwright page objects to separate interaction mechanics from test intent:
-
-- POMs own selectors, reusable interactions, and routes. Tests use intent-revealing methods (e.g. page.navbar.signOut()); navigation methods return the destination POM.
-- Use component objects for cohesive shared UI, not individual elements.
-- Expose semantic locators for assertions only. Tests must not interact with locators directly; add a POM method instead.
-- Keep all expect calls and test.step() blocks in tests. POMs expose actions and observable state, not assertions.
-- Prefer locator assertions over boolean state methods for automatic waiting and diagnostics.
-- Prefer role-based locators; use test IDs only when no stable semantic locator exists.
 
 ## Verification
 
 Minimum verification for meaningful changes:
 
 - `pnpm checks` (when touching all projects)
-- `pnpm --filter backend checks` (when touching only backend)
-- `pnpm --filter frontend checks` (when touching only frontend)
+- Use the scoped command in the nearest `AGENTS.md` when touching only one project.
 - Do not start Vite/Storybook for the user or attempt visual/browser verification. The project is not set up for agent-driven visual verification yet, and the user knows how to start the app.
 - Call out relevant extra manual verification that the user should perform for the area changed
 
@@ -199,17 +95,6 @@ Minimum verification for meaningful changes:
 Every service parses env vars via a zod schema very early at boot. This serves as documentation for the required env vars and as validation that the application has all the configuration needed.
 
 Never change environment variable values yourself. Ask the user to do it, and suggest the required change if needed.
-
-## React Gotchas
-
-- React Compiler is enabled. You probably don't need that `useMemo` or `useCallback`. Use them only when the compiler cannot do it for you.
-- Extract repeated or complex JSX into local components, even when they stay in the same file.
-
-## Drizzle Gotchas
-
-- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw `new TransactionRollbackError(...)` from `backend/src/lib/errors.ts` instead.
-- Do not return results from transactions. Throw `TransactionRollbackError` to abort the transaction, or return the value directly.
-- Do not add `runInTransaction` helpers or otherwise flatten nested transaction calls. Drizzle supports transactions inside transactions. If a method must run inside an existing transaction, type its argument as a transaction; otherwise let the method create a transaction for its own unit of work.
 
 ## `@guillaume-docquier/tools-ts` Gotchas
 
