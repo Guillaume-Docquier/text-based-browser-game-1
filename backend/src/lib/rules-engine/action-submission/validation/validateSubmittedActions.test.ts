@@ -4,6 +4,7 @@ import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
+import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
@@ -29,12 +30,7 @@ describe("validateSubmittedActions", () => {
   it("should not mutate the turnState", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
-    const submittedAction = createSubmittedActionStub({
-      actionDefinitionId: actionDefinition.id,
-      targets: {
-        self: playerId,
-      },
-    })
+    const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
       players: {
@@ -57,12 +53,7 @@ describe("validateSubmittedActions", () => {
   it("should return no issues for a valid Action Submission", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
-    const submittedAction = createSubmittedActionStub({
-      actionDefinitionId: actionDefinition.id,
-      targets: {
-        self: playerId,
-      },
-    })
+    const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
       players: {
@@ -85,8 +76,8 @@ describe("validateSubmittedActions", () => {
     const playerId = branded<PlayerId>("player-id")
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
+      playerId,
       targets: {
-        self: playerId,
         fleet: "fleet-id",
       },
     })
@@ -123,12 +114,7 @@ describe("validateSubmittedActions", () => {
   describe("action definition", () => {
     it("should report an Action Definition that does not exist in the Ruleset", () => {
       // Arrange
-      const submittedAction = createSubmittedActionStub({
-        actionDefinitionId: "UNKNOWN_ACTION",
-        targets: {
-          self: branded("player-id"),
-        },
-      })
+      const submittedAction = createSubmittedActionStub({ actionDefinitionId: "UNKNOWN_ACTION" })
       const emptyRuleset = createRulesetStub({ actionDefinitions: {} })
       const turnState = createTurnStateStub()
 
@@ -153,7 +139,6 @@ describe("validateSubmittedActions", () => {
       const playerId = branded<PlayerId>("player-id")
       const actionDefinitionWithRequiredTarget = createActionDefinitionStub({
         targets: {
-          self: "",
           targetPlayer: "",
         },
       })
@@ -162,12 +147,7 @@ describe("validateSubmittedActions", () => {
           [actionDefinitionWithRequiredTarget.id]: actionDefinitionWithRequiredTarget,
         },
       })
-      const submittedAction = createSubmittedActionStub({
-        actionDefinitionId: actionDefinitionWithRequiredTarget.id,
-        targets: {
-          self: playerId,
-        },
-      })
+      const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinitionWithRequiredTarget.id, playerId })
       const turnState = createTurnStateStub({
         submittedActions: [submittedAction],
         players: {
@@ -197,8 +177,8 @@ describe("validateSubmittedActions", () => {
       const playerId = branded<PlayerId>("player-id")
       const submittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinition.id,
+        playerId,
         targets: {
-          self: playerId,
           fleet: "unexpected-fleet-slot",
         },
       })
@@ -228,24 +208,45 @@ describe("validateSubmittedActions", () => {
 
     it("should report empty target slots", () => {
       // Arrange
-      const submittedAction = createSubmittedActionStub({
-        actionDefinitionId: actionDefinition.id,
+      const playerId = branded<PlayerId>("player-id")
+      const actionDefinitionWithPlanetTarget = createActionDefinitionStub({
         targets: {
-          self: branded(""),
+          planet: "",
+        },
+        mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
+      })
+      const rulesetWithPlanetTarget = createRulesetStub({
+        actionDefinitions: {
+          [actionDefinitionWithPlanetTarget.id]: actionDefinitionWithPlanetTarget,
         },
       })
-      const turnState = createTurnStateStub()
+      const submittedAction = createSubmittedActionStub({
+        actionDefinitionId: actionDefinitionWithPlanetTarget.id,
+        playerId,
+        targets: {
+          planet: "",
+        },
+      })
+      const turnState = createTurnStateStub({
+        submittedActions: [submittedAction],
+        players: {
+          [playerId]: {
+            id: playerId,
+            resources: createResourcesStub(),
+          },
+        },
+      })
 
       // Act
-      const issues = validateSubmittedActions([submittedAction], ruleset, turnState)
+      const issues = validateSubmittedActions([submittedAction], rulesetWithPlanetTarget, turnState)
 
       // Assert
       expect(issues).toStrictEqual<typeof issues>([
         {
-          issue: 'Target slot "self" must be set to a SELF id',
+          issue: 'Target slot "planet" must be set to a PLANET id',
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
-          actionDefinitionName: actionDefinition.name,
+          actionDefinitionName: actionDefinitionWithPlanetTarget.name,
         },
       ])
     })
@@ -256,18 +257,8 @@ describe("validateSubmittedActions", () => {
       // Arrange
       const firstPlayerId = branded<PlayerId>("first-player-id")
       const secondPlayerId = branded<PlayerId>("second-player-id")
-      const firstPlayerSubmittedAction = createSubmittedActionStub({
-        actionDefinitionId: actionDefinition.id,
-        targets: {
-          self: firstPlayerId,
-        },
-      })
-      const secondPlayerSubmittedAction = createSubmittedActionStub({
-        actionDefinitionId: actionDefinition.id,
-        targets: {
-          self: secondPlayerId,
-        },
-      })
+      const firstPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId: firstPlayerId })
+      const secondPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId: secondPlayerId })
       const turnState = createTurnStateStub({
         submittedActions: [firstPlayerSubmittedAction, secondPlayerSubmittedAction],
         players: {
@@ -310,12 +301,7 @@ describe("validateSubmittedActions", () => {
           [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
         },
       })
-      const submittedAction = createSubmittedActionStub({
-        actionDefinitionId: actionDefinitionWithMultipleCosts.id,
-        targets: {
-          self: playerId,
-        },
-      })
+      const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinitionWithMultipleCosts.id, playerId })
       const turnState = createTurnStateStub({
         submittedActions: [submittedAction],
         players: {
@@ -354,18 +340,8 @@ describe("validateSubmittedActions", () => {
           [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
         },
       })
-      const submittedAction1 = createSubmittedActionStub({
-        actionDefinitionId: actionDefinitionWithMultipleCosts.id,
-        targets: {
-          self: playerId,
-        },
-      })
-      const submittedAction2 = createSubmittedActionStub({
-        actionDefinitionId: actionDefinitionWithMultipleCosts.id,
-        targets: {
-          self: playerId,
-        },
-      })
+      const submittedAction1 = createSubmittedActionStub({ actionDefinitionId: actionDefinitionWithMultipleCosts.id, playerId })
+      const submittedAction2 = createSubmittedActionStub({ actionDefinitionId: actionDefinitionWithMultipleCosts.id, playerId })
       const turnState = createTurnStateStub({
         submittedActions: [submittedAction1, submittedAction2],
         players: {
@@ -404,18 +380,8 @@ describe("validateSubmittedActions", () => {
           [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
         },
       })
-      const submittedAction1 = createSubmittedActionStub({
-        actionDefinitionId: actionDefinitionWithMultipleCosts.id,
-        targets: {
-          self: playerId,
-        },
-      })
-      const submittedAction2 = createSubmittedActionStub({
-        actionDefinitionId: actionDefinitionWithMultipleCosts.id,
-        targets: {
-          self: playerId,
-        },
-      })
+      const submittedAction1 = createSubmittedActionStub({ actionDefinitionId: actionDefinitionWithMultipleCosts.id, playerId })
+      const submittedAction2 = createSubmittedActionStub({ actionDefinitionId: actionDefinitionWithMultipleCosts.id, playerId })
       const turnState = createTurnStateStub({
         submittedActions: [submittedAction1, submittedAction2],
         players: {

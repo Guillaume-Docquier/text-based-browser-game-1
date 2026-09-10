@@ -161,7 +161,7 @@ export class GameplayController {
         id: submittedActionTargets.actionId,
         actionDefinitionId: action.actionDefinitionId,
         playerId,
-        targets: { ...submittedActionTargets.targets, self: playerId },
+        targets: submittedActionTargets.targets,
       } satisfies SubmittedAction
 
       const turnState = createTurnState({ playerId, resources: context.resources, submittedActions: [submittedAction] })
@@ -305,9 +305,7 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
         {
           ...action,
           playerId: playerViewModel.player.id,
-          targets: {
-            self: playerViewModel.player.id,
-          },
+          targets: {},
         },
       ],
       playerViewModel.ruleset,

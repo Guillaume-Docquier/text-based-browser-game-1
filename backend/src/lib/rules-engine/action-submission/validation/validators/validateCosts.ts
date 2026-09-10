@@ -24,11 +24,11 @@ export function validateCosts(
       )
     }
 
-    const targets = submittedAction.targets
-
-    const player = turnStateCopy.players[targets.self]
+    const player = turnStateCopy.players[submittedAction.playerId]
     if (player === undefined) {
-      return Result.Failure(`Cannot validate costs for action submission ${submittedAction.id}, there is no player with id ${targets.self}`)
+      return Result.Failure(
+        `Cannot validate costs for action submission ${submittedAction.id}, there is no player with id ${submittedAction.playerId}`,
+      )
     }
 
     for (const resource in player.resources) {
@@ -42,7 +42,7 @@ export function validateCosts(
 
     // We'll need something better that can reuse effect resolvers if we start having costs beyond resources
     for (const cost of actionDefinition.costs) {
-      player.resources[cost.resourceType] -= cost.quantity
+      player.resources[cost.parameters.resourceType] -= cost.parameters.quantity
     }
 
     // We'll need something better that can format issues per cost mechanic if we start having costs beyond resources

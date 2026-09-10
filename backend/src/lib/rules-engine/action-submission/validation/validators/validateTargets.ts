@@ -2,7 +2,7 @@ import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { DeepReadonly } from "utility-types"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
-import { type TargetDefinition, TargetDefinitionSelf } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
+import type { TargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
@@ -45,7 +45,6 @@ export function validateTargets(
         .flatMap((mechanic) => Object.values(mechanic.targets))
         .map(({ tag, type }) => [tag, type]),
     )
-    allTargetDefinitions.set(TargetDefinitionSelf.tag, TargetDefinitionSelf.type) // Self is always required, even if no mechanic mentions it
 
     for (const [targetSlot, targetId] of Object.entries(submittedAction.targets)) {
       const issue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
@@ -79,7 +78,6 @@ function validateTargetDefinition(
   }
 
   switch (targetType) {
-    case "SELF":
     case TargetType.PLAYER: {
       if (turnState.players[targetId] === undefined) {
         return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`

@@ -24,8 +24,7 @@ export type SubmittedAction = Readonly<{
   playerId: PlayerId
   actionDefinitionId: ActionDefinition["id"]
   /**
-   * Contains the targets to fill required by the ActionDefinition.
-   * Contains the special "self" key that the server will always override.
+   * Contains the target ids selected for the target slots required by the ActionDefinition.
    */
   targets: ResolvedTargets
 }>

@@ -10,9 +10,7 @@ export const GainFuel: ActionDefinition = {
   name: "Refine Fuel",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.ADVANCED,
-  targets: {
-    self: "",
-  },
+  targets: {},
   costs: [
     ResourceLossMechanic.create({
       quantity: 2,

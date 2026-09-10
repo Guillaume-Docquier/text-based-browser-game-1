@@ -9,9 +9,7 @@ export const GainInfluence: ActionDefinition = {
   name: "Political Campaign",
   type: ActionType.AGENDA,
   tier: ActionTier.BASIC,
-  targets: {
-    self: "",
-  },
+  targets: {},
   costs: [],
   mechanics: [
     ResourceGainMechanic.create({

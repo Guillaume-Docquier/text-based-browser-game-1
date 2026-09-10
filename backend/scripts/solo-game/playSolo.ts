@@ -264,9 +264,7 @@ function addAction(session: SoloGameSession, actionDefinitionId: string, submitt
         id: branded(`turn-${session.turn}-${actionDefinition.id}-${submittedActionNumber}`),
         playerId: player.id,
         actionDefinitionId: actionDefinition.id,
-        targets: {
-          self: player.id,
-        },
+        targets: {},
       },
     ],
   }
@@ -427,7 +425,7 @@ function formatActionDescription(actionDefinition: ActionDefinition): string {
 }
 
 function formatActionSummary(actionDefinition: ActionDefinition): string {
-  const costs = actionDefinition.costs.map((cost) => `${cost.quantity} ${cost.resourceType}`)
+  const costs = actionDefinition.costs.map((cost) => `${cost.parameters.quantity} ${cost.parameters.resourceType}`)
   const effects = actionDefinition.mechanics.map(formatMechanic)
   const formattedCosts = costs.length === 0 ? "no cost" : `costs ${costs.join(", ")}`
 
@@ -437,13 +435,13 @@ function formatActionSummary(actionDefinition: ActionDefinition): string {
 function formatMechanic(mechanic: Mechanic): string {
   switch (mechanic.type) {
     case ResourceLossMechanic.type:
-      return `pays ${mechanic.quantity} ${mechanic.resourceType}`
+      return `pays ${mechanic.parameters.quantity} ${mechanic.parameters.resourceType}`
     case ResourceGainMechanic.type:
-      return `gains ${mechanic.quantity} ${mechanic.resourceType}`
+      return `gains ${mechanic.parameters.quantity} ${mechanic.parameters.resourceType}`
     case VictoryMechanic.type:
       return "wins the game"
     case FleetBuildMechanic.type:
-      return `builds a fleet with ${mechanic.strength} strength on any planet`
+      return `builds a fleet with ${mechanic.parameters.strength} strength on any planet`
   }
 }
 

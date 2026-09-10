@@ -28,9 +28,7 @@ export function createSubmittedActionStub({
     id: branded(id),
     playerId: brandedPlayerId,
     actionDefinitionId: v4(),
-    targets: {
-      self: brandedPlayerId,
-    },
+    targets: {},
     ...overrides,
   }
 }

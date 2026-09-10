@@ -10,9 +10,7 @@ export const GainEnergy: ActionDefinition = {
   name: "Generate Power",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.IMPROVED,
-  targets: {
-    self: "",
-  },
+  targets: {},
   costs: [
     ResourceLossMechanic.create({
       quantity: 3,

@@ -301,33 +301,6 @@ describe("gameplay.router", () => {
   })
 
   describe("updateActionSubmission", () => {
-    it("should update the action for the authenticated player and override server-owned targets", async () => {
-      // Arrange
-      const db = await createDbMock()
-      const { api, accountsRepository } = await createApiStub({ db })
-      using apiServer = new ApiServer({ api, accountsRepository })
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
-
-      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const gainInfluence = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
-      Assert.isDefined(gainInfluence)
-
-      // Act
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: 0,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: gainInfluence.id, targets: { self: "not self" } }),
-      })
-
-      // Assert
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      const submittedActions = playerView.actions.filter((action) => action.targets !== null)
-      expect(submittedActions).toStrictEqual<typeof submittedActions>([{ ...gainInfluence, targets: { self: playerView.player.id } }])
-    })
-
     it("should submit and deselect multiple actions", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
@@ -384,13 +357,13 @@ describe("gameplay.router", () => {
           {
             id: expect.any(String),
             actionDefinitionId: GainFuel.id,
-            targets: { self: player.account.id },
+            targets: {},
             canAfford: true,
           },
           {
             id: expect.any(String),
             actionDefinitionId: GainMetal.id,
-            targets: { self: player.account.id },
+            targets: {},
             canAfford: true,
           },
         ]),
