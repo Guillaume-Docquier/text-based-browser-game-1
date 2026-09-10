@@ -59,12 +59,12 @@ Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. Thi
 
 We use:
 
-- React 19 with compiler
-- TailwindCSS 4
+- React with compiler
+- TailwindCSS
 - Tanstack Router
 - Shadcn
 - Clerk auth
-- Vite 8
+- Vite
 - Playwright
 - Storybook
 
@@ -83,11 +83,11 @@ Key Directories:
 
 We use:
 
-- Express 5
-- tRPC 11
+- Express
+- tRPC
 - drizzle + postgres
 - Clerk auth
-- Vitest 4
+- Vitest
 - pglite for in memory db during integration tests
 
 Key Directories:

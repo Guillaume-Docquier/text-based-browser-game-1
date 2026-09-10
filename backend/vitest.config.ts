@@ -19,7 +19,6 @@ export default defineConfig({
     projects: [
       {
         // unit tests are lightweight and fast
-        extends: true,
         test: {
           name: { label: "unit", color: "green" },
           include: unitTestsInclude,
@@ -30,7 +29,6 @@ export default defineConfig({
       },
       {
         // integration tests use in-memory db
-        extends: true,
         test: {
           name: { label: "integration", color: "cyan" },
           include: integrationTestsInclude,
@@ -40,7 +38,6 @@ export default defineConfig({
       },
       {
         // concurrency tests use a real postgres database via testcontainers
-        extends: true,
         test: {
           name: { label: "concurrency", color: "magenta" },
           include: concurrencyTestsInclude,
