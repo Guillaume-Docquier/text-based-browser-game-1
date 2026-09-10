@@ -1,14 +1,14 @@
 import { z } from "zod"
-import {
-  ResourceGainMechanicSchema,
-  type ResourceGainMechanic,
-} from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
-import {
+import { FleetBuildMechanicSchema } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
+import { ResourceGainMechanicSchema } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
+import { ResourceLossMechanicSchema } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
+import { VictoryMechanicSchema } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
+
+export type Mechanic = z.infer<typeof MechanicSchema>
+
+export const MechanicSchema = z.discriminatedUnion("type", [
   ResourceLossMechanicSchema,
-  type ResourceLossMechanic,
-} from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
-import { VictoryMechanicSchema, type VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
-
-export type Mechanic = ResourceLossMechanic | ResourceGainMechanic | VictoryMechanic
-
-export const MechanicSchema = z.discriminatedUnion("type", [ResourceLossMechanicSchema, ResourceGainMechanicSchema, VictoryMechanicSchema])
+  ResourceGainMechanicSchema,
+  VictoryMechanicSchema,
+  FleetBuildMechanicSchema,
+])

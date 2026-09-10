@@ -4,6 +4,10 @@ import { select } from "@inquirer/prompts"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
+import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
+import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
+import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
+import { VictoryMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/VictoryMechanic.ts"
 import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
@@ -432,12 +436,14 @@ function formatActionSummary(actionDefinition: ActionDefinition): string {
 
 function formatMechanic(mechanic: Mechanic): string {
   switch (mechanic.type) {
-    case "RESOURCE_LOSS":
+    case ResourceLossMechanic.type:
       return `pays ${mechanic.quantity} ${mechanic.resourceType}`
-    case "RESOURCE_GAIN":
+    case ResourceGainMechanic.type:
       return `gains ${mechanic.quantity} ${mechanic.resourceType}`
-    case "VICTORY":
+    case VictoryMechanic.type:
       return "wins the game"
+    case FleetBuildMechanic.type:
+      return `builds a fleet with ${mechanic.strength} strength on any planet`
   }
 }
 
