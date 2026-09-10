@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm"
 import {
   bigint,
   boolean,
+  check,
   doublePrecision,
   foreignKey,
   index,
@@ -17,6 +18,7 @@ import {
 } from "drizzle-orm/pg-core"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
 import { actionIdColumn } from "#lib/db/actions/ActionId.ts"
+import { fleetIdColumn } from "#lib/db/fleets/FleetId.ts"
 import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
@@ -293,5 +295,36 @@ export const planetsTable = pgTable(
       foreignColumns: [starsTable.gameId, starsTable.id],
       name: "planets_gameId_starId_planets_fk",
     }).onDelete("cascade"),
+  ],
+)
+
+export const fleetsTable = pgTable(
+  "fleets",
+  {
+    id: fleetIdColumn("id").primaryKey(),
+    gameId: gameIdColumn("game_id").notNull(),
+    playerId: playerIdColumn("player_id").notNull(),
+    strength: integer("strength").notNull(),
+    originPlanetId: planetIdColumn("origin_planet_id").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.gameId],
+      foreignColumns: [gamesTable.id],
+      name: "fleets_gameId_games_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.playerId],
+      foreignColumns: [playersTable.gameId, playersTable.playerId],
+      name: "fleets_gameId_playerId_game_players_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.originPlanetId],
+      foreignColumns: [planetsTable.gameId, planetsTable.id],
+      name: "fleets_gameId_originPlanetId_planets_fk",
+    }).onDelete("cascade"),
+    check("fleets_strength_positive_check", sql`${table.strength} > 0`),
+    unique("fleets_game_id_player_id_origin_planet_id_unique").on(table.gameId, table.playerId, table.originPlanetId),
+    index("fleets_game_id_origin_planet_id_idx").on(table.gameId, table.originPlanetId),
   ],
 )
