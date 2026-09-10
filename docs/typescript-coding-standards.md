@@ -450,28 +450,6 @@ Avoid spy-driven tests like `expect(sendEmail).toHaveBeenCalledWith(...)` unless
 
 For persistence behavior, prefer PGLite/local DB-backed tests over hand-rolled in-memory fakes when SQL/schema/transaction behavior matters.
 
-### Property tests and arbitraries (aspirational)
-
-Use `fast-check` where properties are clearer than examples, especially for:
-
-- parsers/smart constructors
-- branded/refined types
-- state machines
-- serialization roundtrips
-- normalization/idempotence
-- lawful combinators
-
-Use arbitraries for mock/test data generation. Prefer exporting arbitraries near the domain module they support:
-
-```txt
-src/billing/
-  invoice-number.ts
-  invoice-number.test.ts
-  invoice-number.arbitrary.ts
-```
-
-Tests should not bypass parsers, smart constructors, or invariants.
-
 ## TypeScript style and safety
 
 Use strict TypeScript settings where practical:
@@ -662,6 +640,4 @@ Before coding:
 - Prefer typed errors as values for new expected failures.
 - Preserve existing observability/error mechanics.
 - Test through public interfaces and real seams.
-- Use `fast-check` arbitraries for generated test data when practical.
 - Add JSDoc for exported symbols.
-- Add ADRs for meaningful new adapters/services created after an adapter reuse audit.
