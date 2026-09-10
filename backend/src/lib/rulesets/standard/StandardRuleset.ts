@@ -1,7 +1,7 @@
 import { branded } from "@guillaume-docquier/tools-ts"
+import { indexById } from "#lib/indexById.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import { indexById } from "#lib/rulesets/indexById.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"

@@ -1,0 +1,2 @@
+CREATE TYPE "public"."resource_type" AS ENUM('INFLUENCE', 'METAL', 'FUEL', 'ENERGY', 'COLONY');--> statement-breakpoint
+ALTER TABLE "resources" ALTER COLUMN "resource_type" SET DATA TYPE "public"."resource_type" USING "resource_type"::"public"."resource_type";

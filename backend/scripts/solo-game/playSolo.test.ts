@@ -1,6 +1,8 @@
 import { stripVTControlCharacters } from "node:util"
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Assert, branded } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
+import { indexById } from "#lib/indexById.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
@@ -12,6 +14,8 @@ import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { playSolo, type SoloGameSelection } from "./playSolo.ts"
+
+const PLAYER_ID = branded<PlayerId>("solo-player")
 
 describe("playSolo", () => {
   it("should collect actions and resolve turns until the player wins", async () => {
@@ -76,13 +80,13 @@ describe("playSolo", () => {
     // Assert
     const plainPromptMessages = promptMessages.map(stripVTControlCharacters)
     const plainOutput = output.map(stripVTControlCharacters)
-    expect(session).toStrictEqual({
+    expect(session).toStrictEqual<typeof session>({
       turn: 4,
       state: {
         submittedActions: [],
-        players: {
-          "solo-player": {
-            id: "solo-player",
+        players: indexById([
+          {
+            id: PLAYER_ID,
             resources: createResourcesStub({
               [ResourceType.INFLUENCE]: 8,
               [ResourceType.METAL]: 6,
@@ -90,8 +94,10 @@ describe("playSolo", () => {
               [ResourceType.ENERGY]: 5,
             }),
           },
-        },
-        winnerPlayerId: "solo-player",
+        ]),
+        planets: {},
+        fleets: {},
+        winnerPlayerId: PLAYER_ID,
       },
     })
     expect(selections).toStrictEqual([])

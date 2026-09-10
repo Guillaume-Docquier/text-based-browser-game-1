@@ -30,6 +30,7 @@ import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
 /**
@@ -47,6 +48,7 @@ export const turnStatusEnum = pgEnum("turn_status", pgEnumify(TurnStatus))
 export const planetBiomeEnum = pgEnum("planet_biome", pgEnumify(PlanetBiome))
 export const planetSizeEnum = pgEnum("planet_size", pgEnumify(PlanetSize))
 export const playerColorEnum = pgEnum("player_color", pgEnumify(PlayerColor))
+export const resourceTypeEnum = pgEnum("resource_type", pgEnumify(ResourceType))
 
 export const rulesetsTable = pgTable(
   "rulesets",
@@ -140,7 +142,7 @@ export const resourcesTable = pgTable(
   {
     gameId: gameIdColumn("game_id").notNull(),
     playerId: playerIdColumn("player_id").notNull(),
-    resourceType: text("resource_type").notNull(),
+    resourceType: resourceTypeEnum("resource_type").notNull(),
     amount: integer("amount").notNull().default(0),
   },
   (table) => [

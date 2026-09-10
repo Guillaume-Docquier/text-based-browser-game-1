@@ -1,5 +1,6 @@
-import { NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
-import type { DeepReadonly } from "utility-types"
+import { branded, NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
+import type { ReadonlyDeep } from "type-fest"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
 import type { TargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
@@ -13,7 +14,7 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 export function validateTargets(
   submittedActions: readonly SubmittedAction[],
   ruleset: Ruleset,
-  turnState: DeepReadonly<TurnState>,
+  turnState: ReadonlyDeep<TurnState>,
 ): Result<SubmittedActionIssue[], string> {
   const issues: SubmittedActionIssue[] = []
 
@@ -67,7 +68,7 @@ function validateTargetDefinition(
   targetType: TargetDefinition["type"] | undefined,
   targetSlot: string,
   targetId: string,
-  turnState: DeepReadonly<TurnState>,
+  turnState: ReadonlyDeep<TurnState>,
 ): string | null {
   if (targetType === undefined) {
     return `Unexpected target slot "${targetSlot}"`
@@ -79,7 +80,7 @@ function validateTargetDefinition(
 
   switch (targetType) {
     case TargetType.PLAYER: {
-      if (turnState.players[targetId] === undefined) {
+      if (turnState.players[branded<PlayerId>(targetId)] === undefined) {
         return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
       }
       return null
