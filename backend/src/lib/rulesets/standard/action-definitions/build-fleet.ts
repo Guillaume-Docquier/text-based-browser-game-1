@@ -1,3 +1,4 @@
+import { branded } from "@guillaume-docquier/tools-ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
@@ -28,18 +29,18 @@ function buildFleetDirective({
     },
     costs: [
       ResourceLossMechanic.create({
-        quantity: influence,
+        quantity: branded(influence),
         resourceType: ResourceType.INFLUENCE,
       }),
       ResourceLossMechanic.create({
-        quantity: metal,
+        quantity: branded(metal),
         resourceType: ResourceType.METAL,
       }),
     ],
     mechanics: [
       FleetBuildMechanic.create({
         planetTag: "planet",
-        strength,
+        strength: branded(strength),
       }),
     ],
   }

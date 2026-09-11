@@ -1,3 +1,4 @@
+import { branded } from "@guillaume-docquier/tools-ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
@@ -13,13 +14,13 @@ export const GainMetal: ActionDefinition = {
   targets: {},
   costs: [
     ResourceLossMechanic.create({
-      quantity: 1,
+      quantity: branded(1),
       resourceType: ResourceType.INFLUENCE,
     }),
   ],
   mechanics: [
     ResourceGainMechanic.create({
-      quantity: 5,
+      quantity: branded(5),
       resourceType: ResourceType.METAL,
     }),
   ],

@@ -3,6 +3,8 @@ import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics
 import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset-model/mechanics/implementations/MechanicFactoryParameters.ts"
 import { type TargetDefinition, TargetDefinitionSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import { type Integer, IntegerSchema } from "#lib/validation/Integer.ts"
+import { type PositiveNumber, PositiveNumberSchema } from "#lib/validation/PositiveNumber.ts"
 
 /**
  * Builds a fleet of strength X on target planet.
@@ -20,12 +22,14 @@ export interface FleetBuildMechanic extends AbstractMechanic {
     /**
      * Non-zero positive integer representing the fleet strength to build.
      */
-    readonly strength: number
+    readonly strength: PositiveNumber & Integer
   }
 }
 
 export const FleetBuildMechanic = {
   type: "FLEET_BUILD",
+  // TODO1 GD Should accept unbranded parameters?
+  // TODO1 GD And run it through the zod schema?
   create: ({ planetTag, strength }: MechanicFactoryParameters<FleetBuildMechanic>): FleetBuildMechanic => ({
     type: FleetBuildMechanic.type,
     targets: {
@@ -46,6 +50,6 @@ export const FleetBuildMechanicSchema = z.object({
     planet: TargetDefinitionSchema(z.literal(TargetType.PLANET)),
   }),
   parameters: z.object({
-    strength: z.number(),
+    strength: z.number().pipe(PositiveNumberSchema).and(IntegerSchema),
   }),
 }) satisfies z.ZodType<FleetBuildMechanic>
