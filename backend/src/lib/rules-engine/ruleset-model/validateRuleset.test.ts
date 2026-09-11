@@ -6,6 +6,7 @@ import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/im
 import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import { createRulesetStub } from "#lib/rules-engine/ruleset-model/Ruleset.stub.ts"
 import { validateRuleset } from "#lib/rules-engine/ruleset-model/validateRuleset.ts"
 
@@ -14,13 +15,13 @@ const validActionDefinition = createActionDefinitionStub({
   name: "Valid Action",
   costs: [
     ResourceLossMechanic.create({
-      quantity: branded(2),
+      quantity: 2,
       resourceType: ResourceType.INFLUENCE,
     }),
   ],
   mechanics: [
     ResourceGainMechanic.create({
-      quantity: branded(5),
+      quantity: 5,
       resourceType: ResourceType.INFLUENCE,
     }),
   ],
@@ -65,7 +66,22 @@ describe("validateRuleset", () => {
           targets: {
             planet: "",
           },
-          mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: branded(strength) })], // intentionally using `branded` instead of `brand` for this test
+          mechanics: [
+            {
+              type: FleetBuildMechanic.type,
+              targets: {
+                planet: {
+                  tag: "planet",
+                  type: TargetType.PLANET,
+                },
+              },
+              parameters: {
+                // intentionally using `branded` and hand rolled json instead of the mechanic factory because the factory validates the payload
+                // right now it makes no sense, but later on we'll parse raw json too
+                strength: branded(strength),
+              },
+            },
+          ],
         }),
       ]),
     })

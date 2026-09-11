@@ -213,7 +213,7 @@ describe("validateSubmittedActions", () => {
         targets: {
           planet: "",
         },
-        mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: branded(1) })],
+        mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
       })
       const rulesetWithPlanetTarget = createRulesetStub({
         actionDefinitions: {

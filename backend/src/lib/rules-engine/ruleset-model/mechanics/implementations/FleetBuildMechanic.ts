@@ -3,6 +3,7 @@ import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics
 import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset-model/mechanics/implementations/MechanicFactoryParameters.ts"
 import { type TargetDefinition, TargetDefinitionSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import { brand } from "#lib/validation/brand.ts"
 import { type Integer, IntegerSchema } from "#lib/validation/Integer.ts"
 import { type PositiveNumber, PositiveNumberSchema } from "#lib/validation/PositiveNumber.ts"
 
@@ -28,20 +29,19 @@ export interface FleetBuildMechanic extends AbstractMechanic {
 
 export const FleetBuildMechanic = {
   type: "FLEET_BUILD",
-  // TODO1 GD Should accept unbranded parameters?
-  // TODO1 GD And run it through the zod schema?
-  create: ({ planetTag, strength }: MechanicFactoryParameters<FleetBuildMechanic>): FleetBuildMechanic => ({
-    type: FleetBuildMechanic.type,
-    targets: {
-      planet: {
-        tag: planetTag,
-        type: TargetType.PLANET,
+  create: ({ planetTag, strength }: MechanicFactoryParameters<FleetBuildMechanic>): FleetBuildMechanic =>
+    brand(FleetBuildMechanicSchema, {
+      type: FleetBuildMechanic.type,
+      targets: {
+        planet: {
+          tag: planetTag,
+          type: TargetType.PLANET,
+        },
       },
-    },
-    parameters: {
-      strength,
-    },
-  }),
+      parameters: {
+        strength,
+      },
+    }),
 } as const
 
 export const FleetBuildMechanicSchema = z.object({
