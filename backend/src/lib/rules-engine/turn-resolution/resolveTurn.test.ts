@@ -1,6 +1,9 @@
 import { branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
+import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import type { GameId } from "#lib/db/games/GameId.ts"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { indexById } from "#lib/indexById.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
@@ -10,11 +13,13 @@ import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectO
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
+import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 
 describe("resolveTurn", () => {
+  const gameId = branded<GameId>(1)
   const playerId = branded<PlayerId>("player-id")
 
   it("should not resolve the turn when the player cannot afford an Action", () => {
@@ -35,7 +40,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(gameId, turnState, TestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -91,7 +96,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(gameId, turnState, TestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -149,7 +154,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(gameId, turnState, TestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -210,7 +215,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(gameId, turnState, TestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -231,6 +236,164 @@ describe("resolveTurn", () => {
         planets: {},
         fleets: {},
         winnerPlayerId: playerId,
+      }),
+    )
+  })
+
+  it("should create a fleet with a deterministic ID", () => {
+    // Arrange
+    const planetId = branded<PlanetId>(1)
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: BuildFleetStandard.id,
+      playerId,
+      targets: { planet: String(planetId) },
+    })
+    const turnState = createTurnStateStub({
+      submittedActions: [submittedAction],
+      players: {
+        [playerId]: {
+          id: playerId,
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: 2,
+            [ResourceType.METAL]: 1,
+          }),
+        },
+      },
+      planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+    })
+
+    // Act
+    const result = resolveTurn(gameId, turnState, TestRuleset, createSeededRng())
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success({
+        resolvedActions: [
+          {
+            submittedAction,
+            actionOutcomes: [
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 2 INFLUENCE` }),
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 1 METAL` }),
+              EffectOutcome.Resolved({
+                result: `Player "${playerId}" built Fleet "302894c5-2d2e-5801-a07a-23803eb73160" with strength 10 on Planet "${planetId}"`,
+              }),
+            ],
+          },
+        ],
+        players: indexById([{ id: playerId, resources: createResourcesStub() }]),
+        planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+        fleets: indexById([
+          {
+            id: branded<FleetId>("302894c5-2d2e-5801-a07a-23803eb73160"),
+            playerId,
+            strength: 10,
+            originPlanetId: planetId,
+          },
+        ]),
+        winnerPlayerId: undefined,
+      }),
+    )
+  })
+
+  it("should reinforce a friendly fleet without changing its ID", () => {
+    // Arrange
+    const planetId = branded<PlanetId>(1)
+    const fleetId = branded<FleetId>("11111111-1111-4111-8111-111111111111")
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: BuildFleetStandard.id,
+      playerId,
+      targets: { planet: String(planetId) },
+    })
+    const turnState = createTurnStateStub({
+      submittedActions: [submittedAction],
+      players: {
+        [playerId]: {
+          id: playerId,
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: 2,
+            [ResourceType.METAL]: 1,
+          }),
+        },
+      },
+      planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+      fleets: indexById([{ id: fleetId, playerId, strength: 5, originPlanetId: planetId }]),
+    })
+
+    // Act
+    const result = resolveTurn(gameId, turnState, TestRuleset, createSeededRng())
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success({
+        resolvedActions: [
+          {
+            submittedAction,
+            actionOutcomes: [
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 2 INFLUENCE` }),
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 1 METAL` }),
+              EffectOutcome.Resolved({
+                result: `Player "${playerId}" reinforced Fleet "${fleetId}" by 10 on Planet "${planetId}"`,
+              }),
+            ],
+          },
+        ],
+        players: indexById([{ id: playerId, resources: createResourcesStub() }]),
+        planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+        fleets: indexById([{ id: fleetId, playerId, strength: 15, originPlanetId: planetId }]),
+        winnerPlayerId: undefined,
+      }),
+    )
+  })
+
+  it("should keep an enemy fleet separate when building on the same planet", () => {
+    // Arrange
+    const planetId = branded<PlanetId>(1)
+    const enemyPlayerId = branded<PlayerId>("enemy-player-id")
+    const enemyFleetId = branded<FleetId>("22222222-2222-4222-8222-222222222222")
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: BuildFleetStandard.id,
+      playerId,
+      targets: { planet: String(planetId) },
+    })
+    const turnState = createTurnStateStub({
+      submittedActions: [submittedAction],
+      players: {
+        [playerId]: { id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
+      },
+      planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+      fleets: indexById([{ id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId }]),
+    })
+
+    // Act
+    const result = resolveTurn(gameId, turnState, TestRuleset, createSeededRng())
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success({
+        resolvedActions: [
+          {
+            submittedAction,
+            actionOutcomes: [
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 2 INFLUENCE` }),
+              EffectOutcome.Resolved({ result: `Player "${playerId}" spent 1 METAL` }),
+              EffectOutcome.Resolved({
+                result: `Player "${playerId}" built Fleet "302894c5-2d2e-5801-a07a-23803eb73160" with strength 10 on Planet "${planetId}"`,
+              }),
+            ],
+          },
+        ],
+        players: indexById([{ id: playerId, resources: createResourcesStub() }]),
+        planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+        fleets: indexById([
+          { id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId },
+          {
+            id: branded<FleetId>("302894c5-2d2e-5801-a07a-23803eb73160"),
+            playerId,
+            strength: 10,
+            originPlanetId: planetId,
+          },
+        ]),
+        winnerPlayerId: undefined,
       }),
     )
   })

@@ -87,7 +87,8 @@ Turn Resolution creates one Effect Pool from locked Action Submissions and autom
 | ------------ | --------------------------------------------------------------------------------------------------------------------- |
 | Pay Costs    | Validate and apply the costs committed by locked Action Submissions.                                                  |
 | Movement     | Resolve Fleet Movement and chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md). |
-| Combat       | Resolve hostile Fleet encounters after Movement.                                                                      |
+| Fleet Build  | Create or reinforce a player's Fleet at the submitted Planet target with a deterministic identity.                    |
+| Combat       | Resolve hostile Fleet encounters after Movement and Fleet Build.                                                      |
 | Planet       | Resolve Planet activities.                                                                                            |
 | Colonization | Resolve attempts to claim Unclaimed Planets after Movement and Combat.                                                |
 | Income       | Resolve Resource production and other recurring gains.                                                                |

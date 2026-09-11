@@ -48,11 +48,11 @@ During a Turn, players can declare themselves Ready. This is public information.
 
 When a Turn ends, its status changes from `COLLECTING_ACTIONS` to `AWAITING_PROCESSING` and all Action Submissions are locked in. Players cannot submit or revise them during Turn Resolution. The server claims the Turn with a processing queue row, changes it to `PROCESSING`, validates locked submissions, and the [System 015-rules-engine](./015-rules-engine.md) resolves the turn.
 
-Turn Resolution processes Effects through the fixed, engine-owned Phase order: Pay Costs, Movement, Combat, Planet, Colonization, Income, then Victory. A Ruleset does not configure this sequence. Phases are coarse ordering boundaries and do not create additional player Turns or opportunities to react.
+Turn Resolution processes Effects through the fixed, engine-owned Phase order: Pay Costs, Movement, Fleet Build, Combat, Planet, Colonization, Income, then Victory. A Ruleset does not configure this sequence. Phases are coarse ordering boundaries and do not create additional player Turns or opportunities to react.
 
 The Movement Phase uses 20 Ticks to provide finer chronological ordering within the Phase. Movement Ticks establish Fleet progress and arrival order, and events assigned to the same Tick are simultaneous. Combat, Colonization, and other Phases do not each run through those 20 Ticks.
 
-After the Movement Phase, Combat resolves from the final Fleet positions. The Planet Phase occurs before Colonization. Colonization then uses the arrival order established by Movement Ticks. A Fleet that arrives during the Turn is present for Combat at its destination before it can colonize that Planet.
+After the Movement Phase, Fleet Build creates or reinforces a player's Fleet at its target Planet. Combat then resolves from the final Fleet positions. The Planet Phase occurs before Colonization. Colonization then uses the arrival order established by Movement Ticks. A Fleet that arrives during the Turn is present for Combat at its destination before it can colonize that Planet.
 
 If a locked Action Submission is invalid or an Effect fails to resolve, Turn Resolution does not complete. The Turn remains locked and is retried from the same pre-resolution state, Action Submissions, and deterministic random input. Partial state changes and Effect Outcomes from the failed attempt are discarded.
 

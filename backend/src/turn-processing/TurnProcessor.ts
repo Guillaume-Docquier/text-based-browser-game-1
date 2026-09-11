@@ -119,6 +119,7 @@ export class TurnProcessor {
   private processTurn(turnToProcess: TurnToProcessModel): Result<ProcessedTurnModel, ResolveTurnError> {
     const rng = Rng.fromState(turnToProcess.rngState, mulberry32Prng)
     const resolvedTurnResult = resolveTurn(
+      turnToProcess.gameId,
       {
         submittedActions: turnToProcess.submittedActions,
         players: turnToProcess.players,

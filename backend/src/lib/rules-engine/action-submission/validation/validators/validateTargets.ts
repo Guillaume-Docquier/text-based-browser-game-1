@@ -1,5 +1,6 @@
 import { branded, NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
@@ -88,7 +89,10 @@ function validateTargetDefinition(
     case TargetType.FLEET:
       throw new NotImplementedError({ trackedBy: "not tracked" })
     case TargetType.PLANET:
-      throw new NotImplementedError({ trackedBy: "not tracked" })
+      if (turnState.planets[branded<PlanetId>(Number(targetId))] === undefined) {
+        return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
+      }
+      return null
     case TargetType.PLANET_OWNED:
       throw new NotImplementedError({ trackedBy: "not tracked" })
   }
