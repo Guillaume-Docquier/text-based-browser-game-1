@@ -4,7 +4,7 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 export type RulesetRulesJson = Omit<Ruleset, "id" | "name" | "isDefault">
 
@@ -19,10 +19,10 @@ export class RulesetsRepository extends PostgresRepository {
   public static toRuleset(rulesetRow: typeof rulesetsTable.$inferSelect): Ruleset {
     const { rules, ...metadata } = rulesetRow
 
-    return {
+    return Ruleset.create({
       ...metadata,
       ...rules,
-    }
+    })
   }
 
   public async upsertRuleset(ruleset: Ruleset): Promise<Result<void, string>> {
