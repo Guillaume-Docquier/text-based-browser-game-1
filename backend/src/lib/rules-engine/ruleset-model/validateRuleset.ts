@@ -1,23 +1,16 @@
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { z } from "zod"
+import { type Ruleset, RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { trustedSafeParse } from "#lib/validation/trustedParse.ts"
 
 export type RulesetValidationIssue = { issue: string }
 
 export function validateRuleset(ruleset: Ruleset): RulesetValidationIssue[] {
-  const invalidIndexIssues = Object.entries(ruleset.actionDefinitions)
-    .filter(([id, actionDefinition]) => id !== actionDefinition.id)
-    .map(([actualIndex, actionDefinition]) => ({
-      issue: `Action Definition ${actionDefinition.name} is indexed under ${actualIndex} instead of ${actionDefinition.id}`,
-    }))
+  const rulesetValidation = trustedSafeParse(RulesetSchema, ruleset)
+  if (rulesetValidation.success) {
+    return []
+  }
 
-  const missingTargetIssues = Object.values(ruleset.actionDefinitions).flatMap((actionDefinition) =>
-    [...actionDefinition.costs, ...actionDefinition.mechanics].flatMap((mechanic) =>
-      Object.values(mechanic.targets)
-        .filter((target) => !(target.tag in actionDefinition.targets))
-        .map((target) => ({
-          issue: `Action Definition ${actionDefinition.name} is missing target slot ${target.tag} required by ${mechanic.type}`,
-        })),
-    ),
-  )
-
-  return [...invalidIndexIssues, ...missingTargetIssues]
+  return rulesetValidation.error.issues.map((issue) => ({
+    issue: issue.code === "custom" ? issue.message : z.prettifyError(new z.ZodError([issue])),
+  }))
 }

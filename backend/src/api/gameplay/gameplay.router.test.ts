@@ -12,6 +12,7 @@ import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
@@ -190,6 +191,24 @@ describe("gameplay.router", () => {
           targets: null,
           canAfford: true,
         },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetStandard.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetImproved.id,
+          targets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetExceptional.id,
+          targets: null,
+          canAfford: false,
+        },
       ]
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
         gameId: createdGameId,
@@ -334,77 +353,111 @@ describe("gameplay.router", () => {
       const deselectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(selectedPlayerView.actions).toStrictEqual(
-        expect.arrayContaining([
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainInfluence.id,
-            targets: null,
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: WinTheGame.id,
-            targets: null,
-            canAfford: false,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainEnergy.id,
-            targets: null,
-            canAfford: false,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainFuel.id,
-            targets: {},
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainMetal.id,
-            targets: {},
-            canAfford: true,
-          },
-        ]),
-      )
-      expect(selectedPlayerView.actions).toHaveLength(5)
+      const expectedSelectedActions = [
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainInfluence.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: WinTheGame.id,
+          targets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainEnergy.id,
+          targets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainFuel.id,
+          targets: {},
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainMetal.id,
+          targets: {},
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetStandard.id,
+          targets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetImproved.id,
+          targets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetExceptional.id,
+          targets: null,
+          canAfford: false,
+        },
+      ]
+      expect(selectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedSelectedActions))
+      expect(selectedPlayerView.actions).toHaveLength(expectedSelectedActions.length)
 
-      expect(deselectedPlayerView.actions).toStrictEqual(
-        expect.arrayContaining([
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainInfluence.id,
-            targets: null,
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: WinTheGame.id,
-            targets: null,
-            canAfford: false,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainEnergy.id,
-            targets: null,
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainFuel.id,
-            targets: null,
-            canAfford: true,
-          },
-          {
-            id: expect.any(String),
-            actionDefinitionId: GainMetal.id,
-            targets: null,
-            canAfford: true,
-          },
-        ]),
-      )
-      expect(deselectedPlayerView.actions).toHaveLength(5)
+      const expectedDeselectedActions = [
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainInfluence.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: WinTheGame.id,
+          targets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainEnergy.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainFuel.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: GainMetal.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetStandard.id,
+          targets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetImproved.id,
+          targets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: BuildFleetExceptional.id,
+          targets: null,
+          canAfford: false,
+        },
+      ]
+      expect(deselectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedDeselectedActions))
+      expect(deselectedPlayerView.actions).toHaveLength(expectedDeselectedActions.length)
     })
 
     it("should reject setting an action for a stale turn", async () => {

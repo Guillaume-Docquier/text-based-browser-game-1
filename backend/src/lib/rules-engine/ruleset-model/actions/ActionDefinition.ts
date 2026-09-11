@@ -35,12 +35,30 @@ export type ActionDefinition = Readonly<{
 
 export const ActionDefinitionTargetsSchema = z.record(z.string(), z.literal("")).readonly() satisfies z.ZodType<ActionDefinition["targets"]>
 
-export const ActionDefinitionSchema = z.object({
-  id: ActionDefinitionIdSchema,
-  name: z.string(),
-  type: ActionTypeSchema,
-  tier: ActionTierSchema,
-  targets: ActionDefinitionTargetsSchema,
-  costs: z.array(ResourceLossMechanicSchema),
-  mechanics: z.array(MechanicSchema),
-})
+export const ActionDefinitionSchema = z
+  .object({
+    id: ActionDefinitionIdSchema,
+    name: z.string(),
+    type: ActionTypeSchema,
+    tier: ActionTierSchema,
+    targets: ActionDefinitionTargetsSchema,
+    costs: z.array(ResourceLossMechanicSchema),
+    mechanics: z.array(MechanicSchema),
+  })
+  .superRefine(validateMechanicTargets)
+
+/**
+ * Requires that the action definition targets contain the necessary targets for every mechanic.
+ */
+function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
+  for (const mechanic of [...actionDefinition.costs, ...actionDefinition.mechanics]) {
+    for (const target of Object.values(mechanic.targets)) {
+      if (!(target.tag in actionDefinition.targets)) {
+        context.addIssue({
+          code: "custom",
+          message: `Action Definition ${actionDefinition.name} is missing target slot ${target.tag} required by ${mechanic.type}`,
+        })
+      }
+    }
+  }
+}

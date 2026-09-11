@@ -1,5 +1,6 @@
 import { z } from "zod"
 import type { AbstractMechanic, NoParameters, NoTargets } from "#lib/rules-engine/ruleset-model/mechanics/AbstractMechanic.ts"
+import { trustedParse } from "#lib/validation/trustedParse.ts"
 
 export interface VictoryMechanic extends AbstractMechanic {
   readonly type: "VICTORY"
@@ -9,11 +10,12 @@ export interface VictoryMechanic extends AbstractMechanic {
 
 export const VictoryMechanic = {
   type: "VICTORY",
-  create: (): VictoryMechanic => ({
-    type: VictoryMechanic.type,
-    targets: {},
-    parameters: {},
-  }),
+  create: (): VictoryMechanic =>
+    trustedParse(VictoryMechanicSchema, {
+      type: VictoryMechanic.type,
+      targets: {},
+      parameters: {},
+    }),
 } as const
 
 export const VictoryMechanicSchema = z.object({

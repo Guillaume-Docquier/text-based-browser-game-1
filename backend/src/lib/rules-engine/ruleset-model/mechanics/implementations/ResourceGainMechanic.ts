@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { AbstractMechanic, NoTargets } from "#lib/rules-engine/ruleset-model/mechanics/AbstractMechanic.ts"
 import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset-model/mechanics/implementations/MechanicFactoryParameters.ts"
 import { QuantityOfResourceSchema, type QuantityOfResource } from "#lib/rules-engine/ruleset-model/mechanics/QuantityOfResource.ts"
+import { trustedParse } from "#lib/validation/trustedParse.ts"
 
 export interface ResourceGainMechanic extends AbstractMechanic {
   readonly type: "RESOURCE_GAIN"
@@ -11,14 +12,15 @@ export interface ResourceGainMechanic extends AbstractMechanic {
 
 export const ResourceGainMechanic = {
   type: "RESOURCE_GAIN",
-  create: ({ quantity, resourceType }: MechanicFactoryParameters<ResourceGainMechanic>): ResourceGainMechanic => ({
-    type: ResourceGainMechanic.type,
-    targets: {},
-    parameters: {
-      quantity,
-      resourceType,
-    },
-  }),
+  create: ({ quantity, resourceType }: MechanicFactoryParameters<ResourceGainMechanic>): ResourceGainMechanic =>
+    trustedParse(ResourceGainMechanicSchema, {
+      type: ResourceGainMechanic.type,
+      targets: {},
+      parameters: {
+        quantity,
+        resourceType,
+      },
+    }),
 } as const
 
 export const ResourceGainMechanicSchema = z.object({
