@@ -1,7 +1,7 @@
 import type { z } from "zod"
 
 /**
- * Use this when you have **trusted** inputs that you are trying to brand.
+ * Use this when you have **trusted** inputs that you are parsing, usually because you want to brand them, but also because you want to run the validation logic that's not purely parsing.
  * This is safer than using `schema.parse()` directly because the schema will accept `unknown` inputs, so it's not type safe.
  *
  * @example
@@ -11,12 +11,12 @@ import type { z } from "zod"
  * brand(Integer, "42") // TS error
  * ```
  */
-export function brand<TSchema extends z.ZodType>(schema: TSchema, value: z.input<TSchema>): z.output<TSchema> {
+export function trustedParse<TSchema extends z.ZodType>(schema: TSchema, value: z.input<TSchema>): z.output<TSchema> {
   return schema.parse(value)
 }
 
 /**
- * The safeParse counterpart to {@link brand}
+ * The safeParse counterpart to {@link trustedParse}
  *
  * @example
  * ```ts
@@ -25,6 +25,9 @@ export function brand<TSchema extends z.ZodType>(schema: TSchema, value: z.input
  * brand(Integer, "42") // TS error
  * ```
  */
-export function safeBrand<TSchema extends z.ZodType>(schema: TSchema, value: z.input<TSchema>): z.ZodSafeParseResult<z.output<TSchema>> {
+export function trustedSafeParse<TSchema extends z.ZodType>(
+  schema: TSchema,
+  value: z.input<TSchema>,
+): z.ZodSafeParseResult<z.output<TSchema>> {
   return schema.safeParse(value)
 }

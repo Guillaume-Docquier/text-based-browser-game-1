@@ -58,6 +58,26 @@ describe("validateRuleset", () => {
     ])
   })
 
+  it("should report a target slot required by a Mechanic but missing from its Action Definition", () => {
+    // Arrange
+    const actionDefinition = createActionDefinitionStub({
+      mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
+    })
+    const ruleset = createRulesetStub({
+      actionDefinitions: indexById([actionDefinition]),
+    })
+
+    // Act
+    const validationIssues = validateRuleset(ruleset)
+
+    // Assert
+    expect(validationIssues).toStrictEqual<typeof validationIssues>([
+      {
+        issue: `Action Definition ${actionDefinition.name} is missing target slot planet required by ${FleetBuildMechanic.type}`,
+      },
+    ])
+  })
+
   it.each([0, -1])("should report a non-positive fleet strength", (strength) => {
     // Arrange
     const ruleset = createRulesetStub({

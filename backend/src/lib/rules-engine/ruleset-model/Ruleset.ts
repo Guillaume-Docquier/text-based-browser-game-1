@@ -29,6 +29,20 @@ export const RulesetSchema = z.object({
   id: RulesetIdSchema,
   name: z.string(),
   isDefault: z.boolean(),
-  actionDefinitions: z.record(ActionDefinitionIdSchema, ActionDefinitionSchema),
+  actionDefinitions: z.record(ActionDefinitionIdSchema, ActionDefinitionSchema).superRefine(validateActionDefinitionIndices),
   startingResources: z.record(ResourceTypeSchema, z.number()),
 }) satisfies z.ZodType<Ruleset>
+
+/**
+ * Requires that every action definition key is the id of the action definition value.
+ */
+function validateActionDefinitionIndices(actionDefinitions: Ruleset["actionDefinitions"], context: z.RefinementCtx): void {
+  for (const [actualIndex, actionDefinition] of Object.entries(actionDefinitions)) {
+    if (actualIndex !== actionDefinition.id) {
+      context.addIssue({
+        code: "custom",
+        message: `Action Definition ${actionDefinition.name} is indexed under ${actualIndex} instead of ${actionDefinition.id}`,
+      })
+    }
+  }
+}

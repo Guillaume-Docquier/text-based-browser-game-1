@@ -3,9 +3,9 @@ import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics
 import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset-model/mechanics/implementations/MechanicFactoryParameters.ts"
 import { type TargetDefinition, TargetDefinitionSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
-import { brand } from "#lib/validation/brand.ts"
 import { type Integer, IntegerSchema } from "#lib/validation/Integer.ts"
 import { type PositiveNumber, PositiveNumberSchema } from "#lib/validation/PositiveNumber.ts"
+import { trustedParse } from "#lib/validation/trustedParse.ts"
 
 /**
  * Builds a fleet of strength X on target planet.
@@ -30,7 +30,7 @@ export interface FleetBuildMechanic extends AbstractMechanic {
 export const FleetBuildMechanic = {
   type: "FLEET_BUILD",
   create: ({ planetTag, strength }: MechanicFactoryParameters<FleetBuildMechanic>): FleetBuildMechanic =>
-    brand(FleetBuildMechanicSchema, {
+    trustedParse(FleetBuildMechanicSchema, {
       type: FleetBuildMechanic.type,
       targets: {
         planet: {
