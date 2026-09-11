@@ -6,7 +6,7 @@ The Rules Engine works by converting Actions Submissions into their correspondin
 
 The Actions are a data driven composition of Mechanics, where each Mechanic maps to an Effect during resolution. This allows creating (almost) any kind of Action for free as long as they use existing Mechanics.
 
-Because the Rules Engine is data driven and persistence agnostic, we can play games entirely offline in the terminal through the `pnpm playtest` command.
+Because the Rules Engine is data driven and persistence agnostic, we could play games entirely offline, in the terminal, for example. We had a version of this, but it was cumbersome to maintain, and we're very well-equipped to test this easily via unit tests, router tests and playwright tests.
 
 ![Rules Engine Turn Resolution pipeline](../../.github/images/rules-engine-turn-resolution.png)
 
