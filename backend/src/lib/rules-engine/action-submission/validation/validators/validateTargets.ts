@@ -28,7 +28,7 @@ export function validateTargets(
     }
 
     const missingTargetSlots = Object.keys(actionDefinition.targets).filter(
-      (targetSlot) => submittedAction.targets[targetSlot] === undefined,
+      (targetSlot) => submittedAction.selectedTargets[targetSlot] === undefined,
     )
     for (const missingTargetSlot of missingTargetSlots) {
       issues.push(
@@ -48,7 +48,7 @@ export function validateTargets(
         .map(({ tag, type }) => [tag, type]),
     )
 
-    for (const [targetSlot, targetId] of Object.entries(submittedAction.targets)) {
+    for (const [targetSlot, targetId] of Object.entries(submittedAction.selectedTargets)) {
       const issue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
       if (issue !== null) {
         issues.push(

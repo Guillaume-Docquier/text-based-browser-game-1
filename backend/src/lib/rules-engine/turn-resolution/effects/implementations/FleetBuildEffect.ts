@@ -19,7 +19,7 @@ export class FleetBuildEffect extends Effect {
   public constructor(id: number, mechanic: FleetBuildMechanic, submittedAction: SubmittedAction) {
     super(id, mechanic.type, submittedAction)
     this.mechanic = mechanic
-    this.targetPlanetId = branded<PlanetId>(Number(this.submittedAction.targets[this.mechanic.targets.planet.tag]))
+    this.targetPlanetId = branded<PlanetId>(Number(this.submittedAction.selectedTargets[this.mechanic.targets.planet.tag]))
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {

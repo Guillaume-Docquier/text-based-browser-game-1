@@ -30,7 +30,7 @@ import type { StarId } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { ResolvedTargets } from "#lib/rules-engine/ruleset-model/actions/ResolvedTargets.ts"
+import type { SelectedTargets } from "#lib/rules-engine/ruleset-model/actions/SelectedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
@@ -67,9 +67,9 @@ export type UpdateActionSubmissionsModel = Readonly<{
    */
   context: ActionSubmissionsForUpdate
   /**
-   * The actions to update, can be newly selected, target updates or de-selected.
+   * The actions to update, can be newly selected, selected target updates or de-selected.
    */
-  actions: ReadonlyArray<Pick<Action, "id" | "targets">>
+  actions: ReadonlyArray<Pick<Action, "id" | "selectedTargets">>
 }>
 
 type PlayerViewPlayerModel = Readonly<{
@@ -91,7 +91,7 @@ export type ReadinessForUpdate = Branded<
 type PlayerViewActionModel = Readonly<{
   id: ActionId
   actionDefinitionId: SubmittedAction["actionDefinitionId"]
-  targets: ResolvedTargets | null
+  selectedTargets: SelectedTargets | null
 }>
 
 export type PlayerViewModel = Readonly<{
@@ -104,7 +104,7 @@ export type PlayerViewModel = Readonly<{
   turnEndsAt: Date
   resources: Resources
   /**
-   * All the available actions, with their targets if submitted.
+   * All the available actions, with their selected targets if submitted.
    */
   actions: readonly PlayerViewActionModel[]
   ruleset: Ruleset
@@ -290,7 +290,7 @@ export class GameplayRepository extends PostgresRepository {
       ...availableAction,
       gameId: startGameModel.context.gameId,
       turn: gameTurn.turn,
-      targets: null,
+      selectedTargets: null,
     }))
     const stars = startGameModel.galaxy.systems.map(({ star }) => ({
       gameId: startGameModel.context.gameId,
@@ -378,7 +378,7 @@ export class GameplayRepository extends PostgresRepository {
             .select({
               id: actionsTable.id,
               actionDefinitionId: actionsTable.actionDefinitionId,
-              targets: actionsTable.targets,
+              selectedTargets: actionsTable.selectedTargets,
             })
             .from(actionsTable)
             .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn.turn)))
@@ -542,7 +542,8 @@ export class GameplayRepository extends PostgresRepository {
     // Not super great, drizzle doesn't support batch updates very well, could use sql statements probably
     await Promise.all(
       actions.map(
-        async (action) => await tx.update(actionsTable).set({ targets: action.targets, updatedAt }).where(eq(actionsTable.id, action.id)),
+        async (action) =>
+          await tx.update(actionsTable).set({ selectedTargets: action.selectedTargets, updatedAt }).where(eq(actionsTable.id, action.id)),
       ),
     )
   }

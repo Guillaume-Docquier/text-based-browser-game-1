@@ -164,49 +164,49 @@ describe("gameplay.router", () => {
         {
           id: expect.any(String),
           actionDefinitionId: GainInfluence.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: WinTheGame.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainEnergy.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainFuel.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainMetal.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetStandard.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetImproved.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetExceptional.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
       ]
@@ -247,7 +247,7 @@ describe("gameplay.router", () => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: initialPlayerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: generatePower.id, targets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: generatePower.id, selectedTargets: {} }),
       })
 
       // Act
@@ -338,7 +338,7 @@ describe("gameplay.router", () => {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: initialPlayerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, targets: {} }),
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, selectedTargets: {} }),
         })
       }
       const selectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -347,7 +347,7 @@ describe("gameplay.router", () => {
         await player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: initialPlayerView.turn,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, targets: null }),
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: action.id, selectedTargets: null }),
         })
       }
       const deselectedPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -357,49 +357,49 @@ describe("gameplay.router", () => {
         {
           id: expect.any(String),
           actionDefinitionId: GainInfluence.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: WinTheGame.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainEnergy.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainFuel.id,
-          targets: {},
+          selectedTargets: {},
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainMetal.id,
-          targets: {},
+          selectedTargets: {},
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetStandard.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetImproved.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetExceptional.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
       ]
@@ -410,49 +410,49 @@ describe("gameplay.router", () => {
         {
           id: expect.any(String),
           actionDefinitionId: GainInfluence.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: WinTheGame.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainEnergy.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainFuel.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: GainMetal.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetStandard.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: true,
         },
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetImproved.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetExceptional.id,
-          targets: null,
+          selectedTargets: null,
           canAfford: false,
         },
       ]
@@ -476,7 +476,7 @@ describe("gameplay.router", () => {
         player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
           turn: 0,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
         }),
       ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
@@ -502,7 +502,7 @@ describe("gameplay.router", () => {
       const updateActionSubmission = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: playerView.turn,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
       })
 
       // Assert
@@ -525,7 +525,7 @@ describe("gameplay.router", () => {
       const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 1,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: winTheGame.id, targets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: winTheGame.id, selectedTargets: {} }),
       })
 
       // Assert
@@ -546,7 +546,7 @@ describe("gameplay.router", () => {
       const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
         turn: 1,
-        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: "unavailable-action", targets: {} }),
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: "unavailable-action", selectedTargets: {} }),
       })
 
       // Assert

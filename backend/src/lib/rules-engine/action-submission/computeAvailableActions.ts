@@ -16,7 +16,7 @@ export function computeAvailableActions({ playerIds, ruleset }: { playerIds: rea
       id: branded(v4()),
       playerId,
       actionDefinitionId,
-      targets: null,
+      selectedTargets: null,
     })),
   )
 }

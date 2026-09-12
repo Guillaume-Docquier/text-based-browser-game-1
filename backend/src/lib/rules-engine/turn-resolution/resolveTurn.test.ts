@@ -251,7 +251,7 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: BuildFleetStandard.id,
       playerId,
-      targets: { planet: String(planetId) },
+      selectedTargets: { planet: String(planetId) },
     })
     const turnState = createTurnStateStub({
       turn: 1,
@@ -306,7 +306,7 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: BuildFleetStandard.id,
       playerId,
-      targets: { planet: String(planetId) },
+      selectedTargets: { planet: String(planetId) },
     })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
@@ -361,7 +361,7 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: BuildFleetStandard.id,
       playerId,
-      targets: { planet: String(planetId) },
+      selectedTargets: { planet: String(planetId) },
     })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],

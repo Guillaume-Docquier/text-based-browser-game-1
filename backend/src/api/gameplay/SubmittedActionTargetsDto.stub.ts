@@ -8,7 +8,7 @@ export function createSubmittedActionTargetsDtoStub({
 }: Partial<UnbrandedProperties<SubmittedActionTargetsDto>> = {}): SubmittedActionTargetsDto {
   return {
     actionId: branded(actionId),
-    targets: null,
+    selectedTargets: null,
     ...overrides,
   }
 }
