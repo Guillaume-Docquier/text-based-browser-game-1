@@ -1,4 +1,4 @@
-import { branded, NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
+import { branded, Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
@@ -41,7 +41,13 @@ export function validateTargets(
     }
 
     for (const [targetSlot, targetId] of Object.entries(submittedAction.selectedTargets)) {
-      const issue = validateTargetDefinition(actionDefinition.targets[targetSlot], targetSlot, targetId, turnState)
+      const issue = validateTargetDefinition(
+        actionDefinition.targets[targetSlot],
+        targetSlot,
+        targetId,
+        submittedAction.playerId,
+        turnState,
+      )
       if (issue !== null) {
         issues.push(
           SubmittedActionIssue.create({
@@ -61,6 +67,7 @@ function validateTargetDefinition(
   targetType: TargetType | undefined,
   targetSlot: string,
   targetId: string,
+  playerId: PlayerId,
   turnState: ReadonlyDeep<TurnState>,
 ): string | null {
   if (targetType === undefined) {
@@ -73,23 +80,56 @@ function validateTargetDefinition(
 
   switch (targetType) {
     case TargetType.PLAYER:
-      if (turnState.players[branded<PlayerId>(targetId)] === undefined) {
-        return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
-      }
-      return null
+      return validatePlayerTarget(turnState, targetSlot, targetId)
     case TargetType.FLEET:
-      if (turnState.fleets[branded<FleetId>(targetId)] === undefined) {
-        return `Target slot "${targetSlot}" references unknown Fleet id "${targetId}"`
-      }
-      return null
+      return validateFleetTarget(turnState, targetSlot, targetId)
     case TargetType.PLANET:
-      if (getPlanet(turnState, targetId) === undefined) {
-        return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
-      }
-      return null
+      return validatePlanetTarget(turnState, targetSlot, targetId)
     case TargetType.PLANET_OWNED:
-      throw new NotImplementedError({ trackedBy: "https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/440" })
+      return validateOwnedPlanetTarget(turnState, targetSlot, targetId, playerId)
   }
+}
+
+function validatePlayerTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
+  if (turnState.players[branded<PlayerId>(targetId)] === undefined) {
+    return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
+  }
+
+  return null
+}
+
+function validateFleetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
+  if (turnState.fleets[branded<FleetId>(targetId)] === undefined) {
+    return `Target slot "${targetSlot}" references unknown Fleet id "${targetId}"`
+  }
+
+  return null
+}
+
+function validatePlanetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
+  if (getPlanet(turnState, targetId) === undefined) {
+    return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
+  }
+
+  return null
+}
+
+function validateOwnedPlanetTarget(
+  turnState: ReadonlyDeep<TurnState>,
+  targetSlot: string,
+  targetId: string,
+  playerId: PlayerId,
+): string | null {
+  const planet = getPlanet(turnState, targetId)
+  if (planet === undefined) {
+    return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
+  }
+
+  if (planet.ownerPlayerId !== playerId) {
+    return `Target slot "${targetSlot}" references Planet id "${targetId}" that is not owned by Player "${playerId}"`
+  }
+
+  return null
 }
 
 /**

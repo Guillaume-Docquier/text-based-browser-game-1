@@ -265,7 +265,7 @@ describe("resolveTurn", () => {
           }),
         },
       ]),
-      planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+      planets: indexById([{ id: planetId, ownerPlayerId: null, x: 0, y: 0 }]),
     })
 
     // Act
@@ -319,7 +319,7 @@ describe("resolveTurn", () => {
           }),
         },
       ]),
-      planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+      planets: indexById([{ id: planetId, ownerPlayerId: null, x: 0, y: 0 }]),
       fleets: indexById([{ id: fleetId, playerId, strength: 5, originPlanetId: planetId }]),
     })
 
@@ -369,7 +369,7 @@ describe("resolveTurn", () => {
         { id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
         { id: enemyPlayerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
       ]),
-      planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+      planets: indexById([{ id: planetId, ownerPlayerId: null, x: 0, y: 0 }]),
       fleets: indexById([{ id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId }]),
     })
 

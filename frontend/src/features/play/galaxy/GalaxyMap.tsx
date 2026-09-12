@@ -1,4 +1,4 @@
-import type { Galaxy, StarSystem } from "@api-types"
+import type { Galaxy, PlayerId, StarSystem } from "@api-types"
 import type { KeyboardEvent, ReactElement } from "react"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
@@ -24,16 +24,19 @@ const MAJOR_GRID_LINES = Array.from({ length: REGION_COUNT_PER_AXIS + 1 }, (_, i
  * Renders the galaxy-wide star map.
  *
  * @param galaxy - The galaxy visible to the player.
+ * @param currentPlayerId - The player viewing the galaxy.
  * @param resetSignal - A value whose changes reset pan and zoom.
  * @param onSelectSystem - Selects a Star System for inspection.
  * @returns The interactive SVG galaxy map.
  */
 export function GalaxyMap({
   galaxy,
+  currentPlayerId,
   resetSignal,
   onSelectSystem,
 }: {
   galaxy: Galaxy
+  currentPlayerId: PlayerId
   resetSignal: number
   onSelectSystem: (system: StarSystem) => void
 }): ReactElement {
@@ -90,7 +93,7 @@ export function GalaxyMap({
         <GalaxyGrid />
         <GalaxyRegions onSelect={selectRegion} />
         {galaxy.systems.map((system) => (
-          <GalaxyStar key={system.star.id} system={system} onSelect={selectSystem} />
+          <GalaxyStar key={system.star.id} system={system} currentPlayerId={currentPlayerId} onSelect={selectSystem} />
         ))}
       </g>
     </svg>
@@ -196,9 +199,26 @@ function GalaxyGridLine({
   )
 }
 
-function GalaxyStar({ system, onSelect }: { system: StarSystem; onSelect: (system: StarSystem) => void }): ReactElement {
+function GalaxyStar({
+  system,
+  currentPlayerId,
+  onSelect,
+}: {
+  system: StarSystem
+  currentPlayerId: PlayerId
+  onSelect: (system: StarSystem) => void
+}): ReactElement {
   const x = system.star.x * LIGHT_YEAR_SIZE
   const y = system.star.y * LIGHT_YEAR_SIZE
+  const hasOwnPlanets = system.planets.some(({ ownerPlayerId }) => ownerPlayerId === currentPlayerId)
+  const hasOpponentPlanets = system.planets.some(({ ownerPlayerId }) => ownerPlayerId !== null && ownerPlayerId !== currentPlayerId)
+  const ownershipLabel = hasOwnPlanets
+    ? hasOpponentPlanets
+      ? " with your and opponents' planets"
+      : " with your planets"
+    : hasOpponentPlanets
+      ? " with opponents' planets"
+      : ""
 
   function selectSystem(): void {
     onSelect(system)
@@ -208,7 +228,7 @@ function GalaxyStar({ system, onSelect }: { system: StarSystem; onSelect: (syste
     <g
       role="button"
       tabIndex={0}
-      aria-label={`View ${system.star.name} Star System`}
+      aria-label={`View ${system.star.name} Star System${ownershipLabel}`}
       className="group/star cursor-pointer outline-none"
       onClick={selectSystem}
       onKeyDown={(event) => {
@@ -216,6 +236,36 @@ function GalaxyStar({ system, onSelect }: { system: StarSystem; onSelect: (syste
       }}
     >
       <title>{system.star.name}</title>
+      {hasOwnPlanets ? (
+        <rect
+          aria-hidden="true"
+          data-ownership-marker="own"
+          x={x - 4}
+          y={y - 4}
+          width="8"
+          height="8"
+          fill="none"
+          stroke="#f8fafc"
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+          className="pointer-events-none"
+        />
+      ) : null}
+      {hasOpponentPlanets ? (
+        <rect
+          aria-hidden="true"
+          data-ownership-marker="opponent"
+          x={x - 2.5}
+          y={y - 2.5}
+          width="5"
+          height="5"
+          fill="none"
+          stroke="#64748b"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+          className="pointer-events-none"
+        />
+      ) : null}
       <circle
         cx={x}
         cy={y}

@@ -15,7 +15,12 @@ export class GalaxyPage extends GamePage {
 
   public readonly heading: Locator
   public readonly map: Locator
+  public readonly opponentStars: Locator
+  public readonly ownStars: Locator
+  public readonly sharedStars: Locator
   public readonly starSystemMap: Locator
+  public readonly ownedPlanets: Locator
+  public readonly unclaimedPlanets: Locator
   public readonly planetDetailsPane: Locator
 
   public constructor(page: Page) {
@@ -23,10 +28,15 @@ export class GalaxyPage extends GamePage {
     this.heading = page.getByRole("heading", { name: "Galaxy", exact: true })
     this.map = page.getByRole("group", { name: "Galaxy map" })
     this.regions = page.getByRole("button", { name: /^Center region \d{2}$/ })
-    this.stars = page.getByRole("button", { name: /^View .+ Star System$/ })
+    this.stars = page.getByRole("button", { name: /^View .+ Star System/ })
+    this.ownStars = this.stars.filter({ has: page.locator('[data-ownership-marker="own"]') })
+    this.opponentStars = this.stars.filter({ has: page.locator('[data-ownership-marker="opponent"]') })
+    this.sharedStars = this.ownStars.filter({ has: page.locator('[data-ownership-marker="opponent"]') })
     this.starSystemMap = page.getByRole("group", { name: / Star System map$/ })
     this.starSystemStar = page.getByRole("button", { name: /^Return to Galaxy from / })
-    this.planets = page.getByRole("button", { name: /^View .+ details$/ })
+    this.planets = page.getByRole("button", { name: /^View .+ details/ })
+    this.ownedPlanets = page.getByRole("button", { name: /^View .+ details, owned by / })
+    this.unclaimedPlanets = page.getByRole("button", { name: /^View .+ details$/ })
     this.planetDetailsPane = page.getByRole("complementary", { name: / details$/ })
     this.resetViewButton = page.getByRole("button", { name: "Reset view", exact: true })
   }
@@ -114,10 +124,14 @@ export class GalaxyPage extends GamePage {
   }
 
   public async getPlanetName(planet: Locator): Promise<string> {
-    const name = await planet.locator("text").textContent()
+    const name = await planet.locator("text > tspan").first().textContent()
     Assert.isDefined(name)
 
     return name
+  }
+
+  public planetOwnerName(planet: Locator): Locator {
+    return planet.locator("text > tspan").nth(1)
   }
 
   private async getDistanceFromMapCenter({ map, target }: { map: Locator; target: Locator }): Promise<number> {
