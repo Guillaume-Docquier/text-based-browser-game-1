@@ -1,5 +1,6 @@
-import { branded } from "@guillaume-docquier/tools-ts"
+import { Assert, branded } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
@@ -135,6 +136,73 @@ describe("validateSubmittedActions", () => {
   })
 
   describe("selectedTargets", () => {
+    it("should only accept a PLANET_OWNED target owned by the submitting player", () => {
+      // Arrange
+      const playerId = branded<PlayerId>("player-id")
+      const opponentId = branded<PlayerId>("opponent-id")
+      const ownedPlanetId = branded<PlanetId>(1)
+      const unclaimedPlanetId = branded<PlanetId>(2)
+      const opponentPlanetId = branded<PlanetId>(3)
+      const unknownPlanetId = branded<PlanetId>(4)
+      const ownedPlanetActionDefinition = createActionDefinitionStub({
+        targets: { planet: TargetType.PLANET_OWNED },
+        mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
+      })
+      const ownedPlanetRuleset = createRulesetStub({
+        actionDefinitions: { [ownedPlanetActionDefinition.id]: ownedPlanetActionDefinition },
+      })
+      const submittedActions = [ownedPlanetId, unclaimedPlanetId, opponentPlanetId, unknownPlanetId].map((planetId) =>
+        createSubmittedActionStub({
+          actionDefinitionId: ownedPlanetActionDefinition.id,
+          playerId,
+          selectedTargets: { planet: String(planetId) },
+        }),
+      )
+      const unclaimedPlanetAction = submittedActions[1]
+      const opponentPlanetAction = submittedActions[2]
+      const unknownPlanetAction = submittedActions[3]
+      Assert.isDefined(unclaimedPlanetAction)
+      Assert.isDefined(opponentPlanetAction)
+      Assert.isDefined(unknownPlanetAction)
+      const turnState = createTurnStateStub({
+        submittedActions,
+        players: {
+          [playerId]: { id: playerId, resources: createResourcesStub() },
+          [opponentId]: { id: opponentId, resources: createResourcesStub() },
+        },
+        planets: {
+          [ownedPlanetId]: { id: ownedPlanetId, ownerPlayerId: playerId, x: 0, y: 0 },
+          [unclaimedPlanetId]: { id: unclaimedPlanetId, ownerPlayerId: null, x: 0, y: 0 },
+          [opponentPlanetId]: { id: opponentPlanetId, ownerPlayerId: opponentId, x: 0, y: 0 },
+        },
+      })
+
+      // Act
+      const issues = validateSubmittedActions(submittedActions, ownedPlanetRuleset, turnState)
+
+      // Assert
+      expect(issues).toStrictEqual<typeof issues>([
+        {
+          issue: `Target slot "planet" references Planet id "${unclaimedPlanetId}" that is not owned by Player "${playerId}"`,
+          submittedActionId: unclaimedPlanetAction.id,
+          actionDefinitionId: ownedPlanetActionDefinition.id,
+          actionDefinitionName: ownedPlanetActionDefinition.name,
+        },
+        {
+          issue: `Target slot "planet" references Planet id "${opponentPlanetId}" that is not owned by Player "${playerId}"`,
+          submittedActionId: opponentPlanetAction.id,
+          actionDefinitionId: ownedPlanetActionDefinition.id,
+          actionDefinitionName: ownedPlanetActionDefinition.name,
+        },
+        {
+          issue: `Target slot "planet" references unknown Planet id "${unknownPlanetId}"`,
+          submittedActionId: unknownPlanetAction.id,
+          actionDefinitionId: ownedPlanetActionDefinition.id,
+          actionDefinitionName: ownedPlanetActionDefinition.name,
+        },
+      ])
+    })
+
     it("should report a target slot required by the Action Definition but missing from the submission", () => {
       // Arrange
       const playerId = branded<PlayerId>("player-id")

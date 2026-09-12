@@ -1,5 +1,5 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
-import { and, desc, eq, gt } from "drizzle-orm"
+import { and, asc, desc, eq, gt, inArray } from "drizzle-orm"
 import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
 import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -34,6 +34,7 @@ import type { SelectedTargets } from "#lib/rules-engine/ruleset-model/actions/Se
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Planet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type NewActionRow = typeof actionsTable.$inferInsert
@@ -58,6 +59,7 @@ export type ActionSubmissionsForUpdate = Branded<
     resources: Readonly<Resources>
     actions: readonly Action[]
     ruleset: Ruleset
+    planets: readonly Planet[]
   }>
 >
 
@@ -164,6 +166,7 @@ type StarModel = {
 
 type PlanetModel = {
   readonly id: PlanetId
+  readonly ownerPlayerId: PlayerId | null
   readonly name: string
   readonly coordinates: PlanetCoordinates
   readonly x: number
@@ -241,6 +244,7 @@ export class GameplayRepository extends PostgresRepository {
       .select({ playerId: playersTable.playerId })
       .from(playersTable)
       .where(eq(playersTable.gameId, gameForStart.id))
+      .orderBy(asc(playersTable.color))
     Assert.isTrue(playerIdRows.length > 0)
 
     const playerIds: readonly PlayerId[] = playerIdRows.map(({ playerId }) => playerId)
@@ -413,7 +417,7 @@ export class GameplayRepository extends PostgresRepository {
   }
 
   public async getActionSubmissionsForUpdate(
-    { gameId, playerId, turn }: { gameId: GameId; playerId: PlayerId; turn: number },
+    { gameId, playerId, turn, planetIds }: { gameId: GameId; playerId: PlayerId; turn: number; planetIds: readonly PlanetId[] },
     tx: Transaction,
   ): Promise<ActionSubmissionsForUpdate> {
     const gameTurns = await tx
@@ -469,6 +473,14 @@ export class GameplayRepository extends PostgresRepository {
       .from(actionsTable)
       .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn)))
 
+    const planets =
+      planetIds.length === 0
+        ? []
+        : await tx
+            .select({ id: planetsTable.id, ownerPlayerId: planetsTable.ownerPlayerId, x: planetsTable.x, y: planetsTable.y })
+            .from(planetsTable)
+            .where(and(eq(planetsTable.gameId, gameId), inArray(planetsTable.id, planetIds)))
+
     return branded({
       gameId,
       playerId,
@@ -476,6 +488,7 @@ export class GameplayRepository extends PostgresRepository {
       resources: toResourceBag(resourceRows),
       actions,
       ruleset,
+      planets,
     })
   }
 

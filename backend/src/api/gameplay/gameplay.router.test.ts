@@ -22,6 +22,10 @@ import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
+function normalizePlayerIdForSnapshot(ownerPlayerId: PlayerId | null, playerId: PlayerId): PlayerId | "<player-id>" | null {
+  return ownerPlayerId === playerId ? "<player-id>" : ownerPlayerId
+}
+
 describe("gameplay.router", () => {
   it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
     // Arrange
@@ -66,6 +70,7 @@ describe("gameplay.router", () => {
         x: 46.42101792976603,
         y: 47.21423492967076,
         id: expect.any(Number),
+        ownerPlayerId: null,
         name: "planet 685256",
         biome: PlanetBiome.VOLCANIC,
         size: PlanetSize.MEDIUM,
@@ -83,7 +88,15 @@ describe("gameplay.router", () => {
       const allPlanets = playerView.galaxy.systems.flatMap(({ planets }) => planets)
       expect(new Set(allPlanets.map((planet) => planet.coordinates)).size).toStrictEqual(allPlanets.length) // unique coordinates
 
-      expect(playerView.galaxy).toMatchSnapshot()
+      expect({
+        systems: playerView.galaxy.systems.map(({ star, planets }) => ({
+          star,
+          planets: planets.map((planet) => ({
+            ...planet,
+            ownerPlayerId: normalizePlayerIdForSnapshot(planet.ownerPlayerId, branded<PlayerId>(player.account.id)),
+          })),
+        })),
+      }).toMatchSnapshot()
     })
 
     it("should start a game", async () => {
@@ -100,6 +113,34 @@ describe("gameplay.router", () => {
       // Assert
       expect(startGameResult).toStrictEqual<typeof startGameResult>({ turnEndsAt: expect.any(String) }) // trpc serializes the date to string
       expect(new Date(startGameResult.turnEndsAt).toString()).not.toBe("Invalid Date")
+    })
+
+    it("should assign one unique Home Planet to every player", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const firstOpponent = await apiServer.createClient({ authenticated: true })
+      const secondOpponent = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: 3, mapGenerationSeed: 1234 }),
+      })
+      await firstOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
+      await secondOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      // Act
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Assert
+      const homePlanets = playerView.galaxy.systems.flatMap(({ planets }) => planets).filter(({ ownerPlayerId }) => ownerPlayerId !== null)
+      expect(homePlanets).toHaveLength(3)
+      expect(new Set(homePlanets.map(({ ownerPlayerId }) => ownerPlayerId))).toStrictEqual(
+        new Set([
+          branded<PlayerId>(creator.account.id),
+          branded<PlayerId>(firstOpponent.account.id),
+          branded<PlayerId>(secondOpponent.account.id),
+        ]),
+      )
     })
 
     it("should reject starting a game as a non-creator", async () => {
@@ -320,6 +361,44 @@ describe("gameplay.router", () => {
   })
 
   describe("updateActionSubmission", () => {
+    it("should validate submitted Planet ids against persisted Planets", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+      const homePlanet = initialPlayerView.galaxy.systems
+        .flatMap(({ planets }) => planets)
+        .find(({ ownerPlayerId }) => ownerPlayerId === branded<PlayerId>(player.account.id))
+      Assert.isDefined(buildFleet)
+      Assert.isDefined(homePlanet)
+
+      // Act
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: initialPlayerView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: buildFleet.id,
+          selectedTargets: { planet: String(homePlanet.id) },
+        }),
+      })
+      const invalidSubmission = player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: initialPlayerView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: buildFleet.id,
+          selectedTargets: { planet: String(2_147_483_648) },
+        }),
+      })
+
+      // Assert
+      await expect(invalidSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(playerView.actions.find(({ id }) => id === buildFleet.id)?.selectedTargets).toStrictEqual({ planet: String(homePlanet.id) })
+    })
+
     it("should submit and deselect multiple actions", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())

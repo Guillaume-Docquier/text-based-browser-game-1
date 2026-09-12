@@ -275,6 +275,7 @@ export const planetsTable = pgTable(
     gameId: gameIdColumn("game_id").notNull(),
     starId: starIdColumn("star_id").notNull(),
     id: planetIdColumn("id").notNull(),
+    ownerPlayerId: playerIdColumn("owner_player_id"),
     name: text("name").notNull(),
     coordinates: text("coordinates").notNull(),
     x: doublePrecision("x").notNull(),
@@ -297,6 +298,11 @@ export const planetsTable = pgTable(
       foreignColumns: [starsTable.gameId, starsTable.id],
       name: "planets_gameId_starId_planets_fk",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.ownerPlayerId],
+      foreignColumns: [playersTable.gameId, playersTable.playerId],
+      name: "planets_gameId_ownerPlayerId_game_players_fk",
+    }),
   ],
 )
 

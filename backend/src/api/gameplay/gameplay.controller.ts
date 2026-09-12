@@ -12,7 +12,7 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { GameIdSchema, type GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
-import { PlanetIdSchema } from "#lib/db/planets/PlanetId.ts"
+import { PlanetIdSchema, type PlanetId } from "#lib/db/planets/PlanetId.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { PlayerIdSchema, type PlayerId } from "#lib/db/players/PlayerId.ts"
@@ -34,6 +34,7 @@ import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Resource
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { Fleet, Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { UInt32 } from "#lib/UInt32.ts"
+import { assignHomePlanets } from "./assignHomePlanets.ts"
 import type { GalaxyModel, GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
@@ -83,7 +84,8 @@ export class GameplayController {
       const playerResources = gameForStart.playerIds.flatMap((playerId) => startingResources.map((resource) => ({ playerId, ...resource })))
 
       const startTime = Timer.start()
-      const galaxy = createGalaxy(gameForStart.mapGenerationSeed)
+      const rng = Rng.create(mulberry32Prng(gameForStart.mapGenerationSeed))
+      const galaxy = assignHomePlanets({ galaxy: createGalaxy(rng), playerIds: gameForStart.playerIds, rng })
       this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
 
       await this.gameplayRepository.startGame(
@@ -144,7 +146,8 @@ export class GameplayController {
     submittedActionTargets,
   }: UpdateActionSubmissionDto): Promise<Result<void, string>> {
     const setActionResult = await this.createTransaction(async (tx) => {
-      const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
+      const planetIds = getValidPlanetIds(Object.values(submittedActionTargets.selectedTargets ?? {}))
+      const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn, planetIds }, tx)
       const actionsById = new Map(Array.from(context.actions, (action) => [action.id, action]))
       const action = actionsById.get(submittedActionTargets.actionId)
       if (action === undefined) {
@@ -172,7 +175,7 @@ export class GameplayController {
         playerId,
         resources: context.resources,
         submittedActions: [submittedAction],
-        planets: [], // definitely matters, need the data. Should pull only the required data, not all the planets.
+        planets: [...context.planets],
         fleets: [], // definitely matters, need the data. Should pull only the required data, not all the fleets.
       })
       const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
@@ -218,8 +221,7 @@ export class GameplayController {
   }
 }
 
-function createGalaxy(seed: number): GalaxyModel {
-  const rng = Rng.create(mulberry32Prng(seed))
+function createGalaxy(rng: Rng): GalaxyModel {
   const generatedGalaxy = galaxyGenerator({
     size: GalaxySettings.GALAXY_SIZE_LIGHT_YEARS,
     pointsGenerator: () =>
@@ -245,12 +247,24 @@ function createGalaxy(seed: number): GalaxyModel {
         },
         planets: system.planets.map((planet) => ({
           id: branded(nextPlanetId++),
+          ownerPlayerId: null,
           ...planet,
           coordinates: toPlanetCoordinates({ starCoordinates, star: system.star, planet }),
         })),
       }
     }),
   }
+}
+
+function getValidPlanetIds(targetIds: readonly string[]): PlanetId[] {
+  return [
+    ...new Set(
+      targetIds.flatMap((targetId) => {
+        const value = Number(targetId)
+        return Number.isSafeInteger(value) && value > 0 && value <= 2_147_483_647 ? [branded<PlanetId>(value)] : []
+      }),
+    ),
+  ]
 }
 
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
@@ -401,6 +415,7 @@ export const StarDtoSchema = z.object({
 
 export const PlanetDtoSchema = z.object({
   id: PlanetIdSchema,
+  ownerPlayerId: PlayerIdSchema.nullable(),
   name: z.string(),
   coordinates: PlanetCoordinatesSchema,
   x: z.number(),

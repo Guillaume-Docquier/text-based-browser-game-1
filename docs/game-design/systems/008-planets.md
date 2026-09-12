@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Biome, Size, and initial Planet Attributes are generated deterministically when a game starts, persisted, and visible on the Star System map. Colonization, vision memory, Terraforming, and Planet Development remain planned.
+Biome, Size, initial Planet Attributes, and one Home Planet per player are generated deterministically when a game starts, persisted, and visible on the Star System map. Colonization, vision memory, Terraforming, and Planet Development remain planned.
 
 ## Purpose
 
@@ -43,6 +43,10 @@ Relates to:
 | Food                 | A Planet-local resource produced to gain Population.                                                   |
 
 ## Rules
+
+## Home Planets
+
+When a game starts, every player receives one Home Planet. Players are shuffled deterministically, then placed around a ring 35 light-years from the galaxy center at equal angular intervals. Normal noise with a standard deviation of 5 light-years and 5 degrees varies each target position. The closest Star with an Unclaimed Planet supplies one randomly selected Home Planet. Home Planets receive no other special attributes.
 
 ## Planet Attributes
 
