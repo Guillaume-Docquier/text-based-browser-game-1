@@ -3,13 +3,14 @@ import { targetTypeSatisfies, TargetType } from "#lib/rules-engine/ruleset-model
 
 describe("targetTypeSatisfies", () => {
   it.each([
-    [TargetType.PLANET, TargetType.PLANET, true],
-    [TargetType.PLANET_OWNED, TargetType.PLANET, true],
-    [TargetType.PLANET, TargetType.PLANET_OWNED, false],
-    [TargetType.FLEET, TargetType.PLANET, false],
-  ])("should report whether %s satisfies %s", (targetType, requiredTargetType, expected) => {
+    [{ provided: TargetType.PLANET, required: TargetType.PLANET }, true],
+    [{ provided: TargetType.PLANET_OWNED, required: TargetType.PLANET }, true],
+    [{ provided: TargetType.PLANET, required: TargetType.PLANET_OWNED }, false],
+    [{ provided: TargetType.FLEET, required: TargetType.PLANET }, false],
+    [{ provided: TargetType.PLANET, required: TargetType.FLEET }, false],
+  ])("should report whether %s satisfies %s", ({ provided, required }, expected) => {
     // Act
-    const result = targetTypeSatisfies(targetType, requiredTargetType)
+    const result = targetTypeSatisfies({ provided, required })
 
     // Assert
     expect(result).toBe(expected)

@@ -14,6 +14,18 @@ export const TargetType = {
 
 export const TargetTypeSchema = z.enum(TargetType) satisfies z.ZodType<TargetType>
 
-export function targetTypeSatisfies(targetType: TargetType, requiredTargetType: TargetType): boolean {
-  return targetType === requiredTargetType || (targetType === TargetType.PLANET_OWNED && requiredTargetType === TargetType.PLANET)
+/**
+ *
+ * Primitive for now, we'll see how it evolves.
+ *
+ * provided is the target type we're trying to submit
+ * required is the target type that's required by the submission
+ */
+export function targetTypeSatisfies({ provided, required }: { provided: TargetType; required: TargetType }): boolean {
+  if (provided === required) {
+    return true
+  }
+
+  // TargetType.PLANET_OWNED can be used when PLANET is required, because PLANET_OWNED is a PLANET
+  return provided === TargetType.PLANET_OWNED && required === TargetType.PLANET
 }
