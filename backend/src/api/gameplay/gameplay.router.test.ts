@@ -38,7 +38,7 @@ describe("gameplay.router", () => {
     await expect(
       nonPlayer.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
-        turn: 0,
+        turn: 1,
         submittedActionTargets: createSubmittedActionTargetsDtoStub(),
       }),
     ).rejects.toMatchObject(expectedError)
@@ -215,7 +215,7 @@ describe("gameplay.router", () => {
         player: { id: branded(player.account.id), color: PlayerColor.WHITE, isReady: false },
         opponents: {},
         galaxy: expect.any(Object), // Verified by the snapshot test
-        turn: 0,
+        turn: 1,
         turnStatus: "COLLECTING_ACTIONS",
         turnEndsAt: Datetime.increment({
           date: clock.now(),
@@ -475,7 +475,7 @@ describe("gameplay.router", () => {
       await expect(
         player.client.gameplay.updateActionSubmission.mutate({
           gameId: createdGameId,
-          turn: 1,
+          turn: 0,
           submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, targets: {} }),
         }),
       ).rejects.toMatchObject({
@@ -524,7 +524,7 @@ describe("gameplay.router", () => {
       // Act
       const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
-        turn: 0,
+        turn: 1,
         submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: winTheGame.id, targets: {} }),
       })
 
@@ -545,7 +545,7 @@ describe("gameplay.router", () => {
       // Act
       const setActionPromise = player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
-        turn: 0,
+        turn: 1,
         submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: "unavailable-action", targets: {} }),
       })
 
@@ -570,8 +570,8 @@ describe("gameplay.router", () => {
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act
-      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: !isReady }) // Making sure the status will change
-      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady })
+      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: !isReady }) // Making sure the status will change
+      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady })
 
       // Assert
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -605,10 +605,10 @@ describe("gameplay.router", () => {
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act
-      await player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
+      await player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
       const playerViewWithOnePlayerReady = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
-      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
+      await creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
       const playerViewWithAllPlayersReady = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
@@ -643,7 +643,7 @@ describe("gameplay.router", () => {
       const turnForProcessing = await apiServices.createTransaction(
         async (tx) => await turnsRepository.getNextTurnForProcessing({ since: clock.now() }, tx),
       )
-      expect(turnForProcessing).toStrictEqual<typeof turnForProcessing>(Result.Success(branded({ gameId: createdGameId, turn: 0 })))
+      expect(turnForProcessing).toStrictEqual<typeof turnForProcessing>(Result.Success(branded({ gameId: createdGameId, turn: 1 })))
     })
 
     it("should reject readiness for the wrong turn", async () => {
@@ -659,7 +659,7 @@ describe("gameplay.router", () => {
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act
-      const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
+      const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
 
       // Assert
       await expect(updateReadiness).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
@@ -686,7 +686,7 @@ describe("gameplay.router", () => {
 
       // Act
       clock.increment({ time: turnInterval })
-      const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
+      const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
 
       // Assert
       await expect(updateReadiness).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
@@ -709,7 +709,7 @@ describe("gameplay.router", () => {
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act
-      const updateReadiness = player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
+      const updateReadiness = player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
 
       // Assert
       await expect(updateReadiness).rejects.toMatchObject({ data: { code: "FORBIDDEN" } })

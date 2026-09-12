@@ -26,8 +26,8 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
+      players: indexById([
+        {
           id: playerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 3,
@@ -35,7 +35,7 @@ describe("resolveTurn", () => {
             [ResourceType.FUEL]: 1,
           }),
         },
-      },
+      ]),
     })
 
     // Act
@@ -82,8 +82,8 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: GainInfluence.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
+      players: indexById([
+        {
           id: playerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 3,
@@ -91,7 +91,7 @@ describe("resolveTurn", () => {
             [ResourceType.FUEL]: 1,
           }),
         },
-      },
+      ]),
     })
 
     // Act
@@ -133,8 +133,8 @@ describe("resolveTurn", () => {
     const secondPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId: secondPlayerId })
     const turnState = createTurnStateStub({
       submittedActions: [firstPlayerSubmittedAction, secondPlayerSubmittedAction],
-      players: {
-        [firstPlayerId]: {
+      players: indexById([
+        {
           id: firstPlayerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 3,
@@ -142,7 +142,7 @@ describe("resolveTurn", () => {
             [ResourceType.FUEL]: 1,
           }),
         },
-        [secondPlayerId]: {
+        {
           id: secondPlayerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 10,
@@ -151,7 +151,7 @@ describe("resolveTurn", () => {
             [ResourceType.ENERGY]: 5,
           }),
         },
-      },
+      ]),
     })
 
     // Act
@@ -204,8 +204,8 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
+      players: indexById([
+        {
           id: playerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 10,
@@ -214,7 +214,7 @@ describe("resolveTurn", () => {
             [ResourceType.ENERGY]: 5,
           }),
         },
-      },
+      ]),
     })
 
     // Act
@@ -310,15 +310,15 @@ describe("resolveTurn", () => {
     })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
+      players: indexById([
+        {
           id: playerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 2,
             [ResourceType.METAL]: 1,
           }),
         },
-      },
+      ]),
       planets: indexById([{ id: planetId, x: 0, y: 0 }]),
       fleets: indexById([{ id: fleetId, playerId, strength: 5, originPlanetId: planetId }]),
     })
@@ -377,7 +377,7 @@ describe("resolveTurn", () => {
     const result = resolveTurn(turnState, TestRuleset, createSeededRng())
 
     // Assert
-    const expectedFleetId = branded<FleetId>("94932764-eb44-5fb4-97e5-e405ab3cecc7")
+    const expectedFleetId = branded<FleetId>("18ac11b3-e1c8-5467-9e88-39d91394991a")
     expect(result).toStrictEqual<typeof result>(
       Result.Success(
         expect.objectContaining({
