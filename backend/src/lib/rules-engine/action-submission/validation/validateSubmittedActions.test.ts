@@ -8,6 +8,7 @@ import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/im
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import { createRulesetStub } from "#lib/rules-engine/ruleset-model/Ruleset.stub.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 
@@ -139,7 +140,7 @@ describe("validateSubmittedActions", () => {
       const playerId = branded<PlayerId>("player-id")
       const actionDefinitionWithRequiredTarget = createActionDefinitionStub({
         targets: {
-          targetPlayer: "",
+          targetPlayer: TargetType.PLAYER,
         },
       })
       const rulesetWithRequiredTarget = createRulesetStub({
@@ -211,7 +212,7 @@ describe("validateSubmittedActions", () => {
       const playerId = branded<PlayerId>("player-id")
       const actionDefinitionWithPlanetTarget = createActionDefinitionStub({
         targets: {
-          planet: "",
+          planet: TargetType.PLANET,
         },
         mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
       })

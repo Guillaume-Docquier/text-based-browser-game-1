@@ -2,6 +2,7 @@ CREATE TYPE "public"."game_status" AS ENUM('WAITING_FOR_PLAYERS', 'READY_TO_STAR
 CREATE TYPE "public"."planet_biome" AS ENUM('OCEANIC', 'METALLIC', 'FROZEN', 'VOLCANIC');--> statement-breakpoint
 CREATE TYPE "public"."planet_size" AS ENUM('SMALL', 'MEDIUM', 'LARGE');--> statement-breakpoint
 CREATE TYPE "public"."player_color" AS ENUM('WHITE', 'RED', 'BLUE', 'TEAL', 'PURPLE', 'YELLOW', 'ORANGE', 'GREEN', 'LIGHT_PINK', 'VIOLET', 'LIGHT_GREY', 'DARK_GREEN', 'BROWN', 'LIGHT_GREEN', 'DARK_GREY', 'PINK');--> statement-breakpoint
+CREATE TYPE "public"."resource_type" AS ENUM('INFLUENCE', 'METAL', 'FUEL', 'ENERGY', 'COLONY');--> statement-breakpoint
 CREATE TYPE "public"."turn_status" AS ENUM('COLLECTING_ACTIONS', 'AWAITING_PROCESSING', 'PROCESSING', 'COMPLETED');--> statement-breakpoint
 CREATE TABLE "accounts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -16,8 +17,18 @@ CREATE TABLE "actions" (
 	"player_id" uuid NOT NULL,
 	"turn" integer NOT NULL,
 	"action_definition_id" text NOT NULL,
-	"targets" jsonb,
+	"selected_targets" jsonb,
 	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "fleets" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"game_id" integer NOT NULL,
+	"player_id" uuid NOT NULL,
+	"strength" integer NOT NULL,
+	"origin_planet_id" integer NOT NULL,
+	CONSTRAINT "fleets_game_id_player_id_origin_planet_id_unique" UNIQUE("game_id","player_id","origin_planet_id"),
+	CONSTRAINT "fleets_strength_positive_check" CHECK ("fleets"."strength" > 0)
 );
 --> statement-breakpoint
 CREATE TABLE "games" (
@@ -67,7 +78,7 @@ CREATE TABLE "players" (
 CREATE TABLE "resources" (
 	"game_id" integer NOT NULL,
 	"player_id" uuid NOT NULL,
-	"resource_type" text NOT NULL,
+	"resource_type" "resource_type" NOT NULL,
 	"amount" integer DEFAULT 0 NOT NULL,
 	CONSTRAINT "resources_game_id_player_id_resource_type_pk" PRIMARY KEY("game_id","player_id","resource_type")
 );
@@ -111,6 +122,9 @@ CREATE TABLE "turns" (
 );
 --> statement-breakpoint
 ALTER TABLE "actions" ADD CONSTRAINT "actions_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fleets" ADD CONSTRAINT "fleets_gameId_games_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fleets" ADD CONSTRAINT "fleets_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fleets" ADD CONSTRAINT "fleets_gameId_originPlanetId_planets_fk" FOREIGN KEY ("game_id","origin_planet_id") REFERENCES "public"."planets"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_created_by_account_id_accounts_id_fk" FOREIGN KEY ("created_by_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_winner_account_id_accounts_id_fk" FOREIGN KEY ("winner_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_ruleset_id_rulesets_id_fk" FOREIGN KEY ("ruleset_id") REFERENCES "public"."rulesets"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -123,6 +137,7 @@ ALTER TABLE "turns_processing" ADD CONSTRAINT "turns_processing_game_id_turn_tur
 ALTER TABLE "turns" ADD CONSTRAINT "turns_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "auth_id_idx" ON "accounts" USING btree ("auth_id");--> statement-breakpoint
 CREATE INDEX "actions_game_id_player_id_turn_index" ON "actions" USING btree ("game_id","player_id","turn");--> statement-breakpoint
+CREATE INDEX "fleets_game_id_origin_planet_id_idx" ON "fleets" USING btree ("game_id","origin_planet_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "rulesets_is_default_unique" ON "rulesets" USING btree ("is_default") WHERE "rulesets"."is_default";--> statement-breakpoint
 CREATE INDEX "turns_processing_scheduled_for_idx" ON "turns_processing" USING btree ("scheduled_for");--> statement-breakpoint
 CREATE UNIQUE INDEX "turns_one_open_turn_per_game_unique" ON "turns" USING btree ("game_id") WHERE "turns"."status" <> 'COMPLETED';--> statement-breakpoint

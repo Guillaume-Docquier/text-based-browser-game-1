@@ -1,5 +1,5 @@
 {
-  "id": "55bfc8c0-f34e-43e5-8015-7d27091faa96",
+  "id": "59fd5306-c000-42fd-a340-512e59a1af1d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -93,8 +93,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "targets": {
-          "name": "targets",
+        "selected_targets": {
+          "name": "selected_targets",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
@@ -151,6 +151,110 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fleets": {
+      "name": "fleets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "game_id": {
+          "name": "game_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "strength": {
+          "name": "strength",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin_planet_id": {
+          "name": "origin_planet_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "fleets_game_id_origin_planet_id_idx": {
+          "name": "fleets_game_id_origin_planet_id_idx",
+          "columns": [
+            {
+              "expression": "game_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "origin_planet_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fleets_gameId_games_fk": {
+          "name": "fleets_gameId_games_fk",
+          "tableFrom": "fleets",
+          "tableTo": "games",
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fleets_gameId_playerId_game_players_fk": {
+          "name": "fleets_gameId_playerId_game_players_fk",
+          "tableFrom": "fleets",
+          "tableTo": "players",
+          "columnsFrom": ["game_id", "player_id"],
+          "columnsTo": ["game_id", "player_id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fleets_gameId_originPlanetId_planets_fk": {
+          "name": "fleets_gameId_originPlanetId_planets_fk",
+          "tableFrom": "fleets",
+          "tableTo": "planets",
+          "columnsFrom": ["game_id", "origin_planet_id"],
+          "columnsTo": ["game_id", "id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "fleets_game_id_player_id_origin_planet_id_unique": {
+          "name": "fleets_game_id_player_id_origin_planet_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["game_id", "player_id", "origin_planet_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "fleets_strength_positive_check": {
+          "name": "fleets_strength_positive_check",
+          "value": "\"fleets\".\"strength\" > 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.games": {
@@ -494,7 +598,8 @@
         },
         "resource_type": {
           "name": "resource_type",
-          "type": "text",
+          "type": "resource_type",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -874,6 +979,11 @@
         "DARK_GREY",
         "PINK"
       ]
+    },
+    "public.resource_type": {
+      "name": "resource_type",
+      "schema": "public",
+      "values": ["INFLUENCE", "METAL", "FUEL", "ENERGY", "COLONY"]
     },
     "public.turn_status": {
       "name": "turn_status",
