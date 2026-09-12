@@ -59,12 +59,12 @@ function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.
       if (actionTargetType === undefined) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition ${actionDefinition.name} is missing target slot ${mechanicTarget.tag} required by the ${mechanic.type} mechanic`,
+          message: `Action Definition "${actionDefinition.name}" is missing target slot "${mechanicTarget.tag}" required by the "${mechanic.type}" mechanic`,
         })
       } else if (!targetTypeSatisfies({ provided: actionTargetType, required: mechanicTarget.type })) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition ${actionDefinition.name} target slot ${mechanicTarget.tag} has type ${actionTargetType}, but the ${mechanic.type} mechanic requires ${mechanicTarget.type}`,
+          message: `Action Definition "${actionDefinition.name}" target slot "${mechanicTarget.tag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.type}"`,
         })
       }
     }

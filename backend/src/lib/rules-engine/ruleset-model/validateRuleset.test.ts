@@ -73,7 +73,7 @@ describe("validateRuleset", () => {
     // Assert
     expect(validationIssues).toStrictEqual<typeof validationIssues>([
       {
-        issue: `Action Definition ${actionDefinition.name} is missing target slot planet required by ${FleetBuildMechanic.type}`,
+        issue: `Action Definition "${actionDefinition.name}" is missing target slot "planet" required by the "${FleetBuildMechanic.type}" mechanic`,
       },
     ])
   })
@@ -94,7 +94,7 @@ describe("validateRuleset", () => {
     // Assert
     expect(validationIssues).toStrictEqual<typeof validationIssues>([
       {
-        issue: `Action Definition ${actionDefinition.name} target slot planet has type FLEET, but FLEET_BUILD requires PLANET`,
+        issue: `Action Definition "${actionDefinition.name}" target slot "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
       },
     ])
   })
