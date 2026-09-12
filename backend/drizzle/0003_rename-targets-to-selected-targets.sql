@@ -1,1 +1,0 @@
-ALTER TABLE "actions" RENAME COLUMN "targets" TO "selected_targets";
