@@ -4,7 +4,8 @@ import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { StarId } from "#lib/db/stars/StarId.ts"
 import { assignHomePlanets } from "./assignHomePlanets.ts"
-import { createGalaxyModelStub, createGalaxyPlanetModelStub, createGalaxySystemModelStub } from "./GalaxyModel.stub.ts"
+import { createGalaxyModelStub, createGalaxySystemModelStub } from "./GalaxyModel.stub.ts"
+import { createPlanetModelStub } from "./PlanetModel.stub.ts"
 
 describe("assignHomePlanets", () => {
   it("should deterministically shuffle players and use the next closest eligible star", () => {
@@ -17,11 +18,11 @@ describe("assignHomePlanets", () => {
       systems: [
         createGalaxySystemModelStub({
           star: { id: branded<StarId>(1), name: "closest", coordinates: "50:50", x: 50, y: 50 },
-          planets: [createGalaxyPlanetModelStub({ id: closestPlanetId })],
+          planets: [createPlanetModelStub({ id: closestPlanetId })],
         }),
         createGalaxySystemModelStub({
           star: { id: branded<StarId>(2), name: "fallback", coordinates: "0:0", x: 0, y: 0 },
-          planets: [createGalaxyPlanetModelStub({ id: fallbackPlanetId })],
+          planets: [createPlanetModelStub({ id: fallbackPlanetId })],
         }),
       ],
     })

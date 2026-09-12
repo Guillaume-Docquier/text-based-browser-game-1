@@ -35,7 +35,8 @@ import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { Fleet, Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { assignHomePlanets } from "./assignHomePlanets.ts"
-import type { GalaxyModel, GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
+import type { GalaxyModel } from "./GalaxyModel.ts"
+import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
   private readonly logger: Logger

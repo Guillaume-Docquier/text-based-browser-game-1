@@ -2,7 +2,7 @@ import { Assert, type Rng } from "@guillaume-docquier/tools-ts"
 import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import type { GalaxyModel } from "./gameplay.repository.ts"
+import type { GalaxyModel } from "./GalaxyModel.ts"
 
 const HOME_DISTANCE = 35
 const DISTANCE_STANDARD_DEVIATION = 5

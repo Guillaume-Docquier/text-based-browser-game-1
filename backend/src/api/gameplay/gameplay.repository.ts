@@ -1,16 +1,12 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { and, asc, desc, eq, gt, inArray } from "drizzle-orm"
-import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
-import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
 import type { GameStatus } from "#lib/db/games/GameStatus.ts"
-import type { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
-import type { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import type { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
@@ -26,7 +22,6 @@ import {
   turnsProcessingTable,
   rulesetsTable,
 } from "#lib/db/schema.ts"
-import type { StarId } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot, TransactionRollbackError } from "#lib/errors.ts"
 import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
@@ -36,6 +31,7 @@ import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Resource
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { Planet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
+import type { GalaxyModel } from "./GalaxyModel.ts"
 
 type NewActionRow = typeof actionsTable.$inferInsert
 type NewResourceRow = typeof resourcesTable.$inferInsert
@@ -154,38 +150,6 @@ export type StartGameModel = {
    */
   readonly availableActions: readonly AvailableAction[]
   readonly galaxy: GalaxyModel
-}
-
-type StarModel = {
-  readonly id: StarId
-  readonly name: string
-  readonly coordinates: StarCoordinates
-  readonly x: number
-  readonly y: number
-}
-
-type PlanetModel = {
-  readonly id: PlanetId
-  readonly ownerPlayerId: PlayerId | null
-  readonly name: string
-  readonly coordinates: PlanetCoordinates
-  readonly x: number
-  readonly y: number
-  readonly biome: PlanetBiome
-  readonly size: PlanetSize
-  readonly fertility: number
-  readonly metal: number
-  readonly fuel: number
-  readonly energy: number
-  readonly maxPopulation: number
-  readonly area: number
-}
-
-export type GalaxyModel = {
-  readonly systems: ReadonlyArray<{
-    readonly star: StarModel
-    readonly planets: readonly PlanetModel[]
-  }>
 }
 
 export class GameplayRepository extends PostgresRepository {
