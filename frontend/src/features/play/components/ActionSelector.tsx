@@ -34,14 +34,14 @@ export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerV
           .map((action) => ({ action, definition: playerView.ruleset.actionDefinitions[action.actionDefinitionId] }))
           .sort((action1, action2) => Sort.byAscending(ActionTierRank[action1.definition.tier], ActionTierRank[action2.definition.tier]))
           .map(({ action, definition }) => {
-            const isSelected = action.targets !== null
+            const isSelected = action.selectedTargets !== null
             const selectAction = (): void => {
               updateActionSubmission.mutate({
                 gameId,
                 turn: playerView.turn,
                 submittedActionTargets: {
                   actionId: action.id,
-                  targets: isSelected ? null : {}, // no targets to select yet
+                  selectedTargets: isSelected ? null : {}, // no selected targets to select yet
                 },
               })
             }

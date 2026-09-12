@@ -3,7 +3,7 @@ import type { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/Targe
 
 export type TargetDefinition<TTargetType extends TargetType = TargetType> = {
   /**
-   * The key to use on the submitted action's targets to find the target id.
+   * The key to use on the submitted action's selected targets to find the target id.
    * This is not the id of the actual target.
    */
   tag: string

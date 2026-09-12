@@ -120,6 +120,8 @@ export class TurnProcessor {
     const rng = Rng.fromState(turnToProcess.rngState, mulberry32Prng)
     const resolvedTurnResult = resolveTurn(
       {
+        gameId: turnToProcess.gameId,
+        turn: turnToProcess.turn,
         submittedActions: turnToProcess.submittedActions,
         players: turnToProcess.players,
         planets: turnToProcess.planets,

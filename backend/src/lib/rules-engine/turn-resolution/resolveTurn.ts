@@ -47,6 +47,8 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
   }
 
   return Result.Success({
+    gameId: context.turnState.gameId,
+    turn: context.turnState.turn,
     resolvedActions: context.turnState.submittedActions.map((submittedAction) => ({
       submittedAction,
       actionOutcomes: context.effectPool.getOutcomes(submittedAction),

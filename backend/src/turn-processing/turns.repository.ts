@@ -396,7 +396,7 @@ export class TurnsRepository extends PostgresRepository {
           ...availableAction,
           gameId: processedTurnModel.gameId,
           turn: processedTurnModel.nextTurn,
-          targets: null,
+          selectedTargets: null,
         }))
         if (availableActions.length > 0) {
           await tx.insert(actionsTable).values(availableActions)
@@ -455,8 +455,8 @@ function toTurnToProcessModel({
     closedAt,
     turnInterval,
     rngState,
-    submittedActions: submittedActions.flatMap(({ id, playerId, actionDefinitionId, targets }) =>
-      targets === null ? [] : [{ id, playerId, actionDefinitionId, targets }],
+    submittedActions: submittedActions.flatMap(({ id, playerId, actionDefinitionId, selectedTargets }) =>
+      selectedTargets === null ? [] : [{ id, playerId, actionDefinitionId, selectedTargets }],
     ),
     players: indexById(playerModels),
     planets: indexById(planets),

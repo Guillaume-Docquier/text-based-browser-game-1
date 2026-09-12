@@ -12,7 +12,7 @@ export function createAvailableActionStub({
     id: branded(id),
     playerId: branded(playerId),
     actionDefinitionId: v4(),
-    targets: null,
+    selectedTargets: null,
     ...overrides,
   }
 }
@@ -28,7 +28,7 @@ export function createSubmittedActionStub({
     id: branded(id),
     playerId: brandedPlayerId,
     actionDefinitionId: v4(),
-    targets: {},
+    selectedTargets: {},
     ...overrides,
   }
 }

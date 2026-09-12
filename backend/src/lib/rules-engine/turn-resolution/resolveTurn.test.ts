@@ -1,6 +1,9 @@
 import { branded, Result } from "@guillaume-docquier/tools-ts"
+import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
+import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { indexById } from "#lib/indexById.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
@@ -10,6 +13,7 @@ import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectO
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
+import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
@@ -22,8 +26,8 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
+      players: indexById([
+        {
           id: playerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 3,
@@ -31,7 +35,7 @@ describe("resolveTurn", () => {
             [ResourceType.FUEL]: 1,
           }),
         },
-      },
+      ]),
     })
 
     // Act
@@ -78,8 +82,8 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: GainInfluence.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
+      players: indexById([
+        {
           id: playerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 3,
@@ -87,7 +91,7 @@ describe("resolveTurn", () => {
             [ResourceType.FUEL]: 1,
           }),
         },
-      },
+      ]),
     })
 
     // Act
@@ -96,6 +100,8 @@ describe("resolveTurn", () => {
     // Assert
     expect(result).toStrictEqual<typeof result>(
       Result.Success({
+        gameId: turnState.gameId,
+        turn: turnState.turn,
         resolvedActions: [
           {
             submittedAction,
@@ -127,8 +133,8 @@ describe("resolveTurn", () => {
     const secondPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId: secondPlayerId })
     const turnState = createTurnStateStub({
       submittedActions: [firstPlayerSubmittedAction, secondPlayerSubmittedAction],
-      players: {
-        [firstPlayerId]: {
+      players: indexById([
+        {
           id: firstPlayerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 3,
@@ -136,7 +142,7 @@ describe("resolveTurn", () => {
             [ResourceType.FUEL]: 1,
           }),
         },
-        [secondPlayerId]: {
+        {
           id: secondPlayerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 10,
@@ -145,7 +151,7 @@ describe("resolveTurn", () => {
             [ResourceType.ENERGY]: 5,
           }),
         },
-      },
+      ]),
     })
 
     // Act
@@ -154,6 +160,8 @@ describe("resolveTurn", () => {
     // Assert
     expect(result).toStrictEqual<typeof result>(
       Result.Success({
+        gameId: turnState.gameId,
+        turn: turnState.turn,
         resolvedActions: [
           {
             submittedAction: firstPlayerSubmittedAction,
@@ -196,8 +204,8 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
+      players: indexById([
+        {
           id: playerId,
           resources: createResourcesStub({
             [ResourceType.INFLUENCE]: 10,
@@ -206,7 +214,7 @@ describe("resolveTurn", () => {
             [ResourceType.ENERGY]: 5,
           }),
         },
-      },
+      ]),
     })
 
     // Act
@@ -215,6 +223,8 @@ describe("resolveTurn", () => {
     // Assert
     expect(result).toStrictEqual<typeof result>(
       Result.Success({
+        gameId: turnState.gameId,
+        turn: turnState.turn,
         resolvedActions: [
           {
             submittedAction,
@@ -232,6 +242,161 @@ describe("resolveTurn", () => {
         fleets: {},
         winnerPlayerId: playerId,
       }),
+    )
+  })
+
+  it("should create a fleet with a unique and deterministic id", () => {
+    // Arrange
+    const planetId = branded<PlanetId>(1)
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: BuildFleetStandard.id,
+      playerId,
+      selectedTargets: { planet: String(planetId) },
+    })
+    const turnState = createTurnStateStub({
+      turn: 1,
+      submittedActions: [submittedAction],
+      players: indexById([
+        {
+          id: playerId,
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: 2,
+            [ResourceType.METAL]: 1,
+          }),
+        },
+      ]),
+      planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+    })
+
+    // Act
+    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+
+    // Assert
+    const expectedFleetId = branded<FleetId>("18ac11b3-e1c8-5467-9e88-39d91394991a")
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success(
+        expect.objectContaining({
+          resolvedActions: [
+            {
+              submittedAction,
+              actionOutcomes: expect.arrayContaining([
+                EffectOutcome.Resolved({
+                  result: `Player "${playerId}" built Fleet "${expectedFleetId}" with strength 10 on Planet "${planetId}"`,
+                }),
+              ]),
+            },
+          ],
+          fleets: indexById([
+            {
+              id: expectedFleetId,
+              playerId,
+              strength: 10,
+              originPlanetId: planetId,
+            },
+          ]),
+        }),
+      ),
+    )
+  })
+
+  it("should reinforce a friendly fleet without changing its id", () => {
+    // Arrange
+    const planetId = branded<PlanetId>(1)
+    const fleetId = branded<FleetId>(v4())
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: BuildFleetStandard.id,
+      playerId,
+      selectedTargets: { planet: String(planetId) },
+    })
+    const turnState = createTurnStateStub({
+      submittedActions: [submittedAction],
+      players: indexById([
+        {
+          id: playerId,
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: 2,
+            [ResourceType.METAL]: 1,
+          }),
+        },
+      ]),
+      planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+      fleets: indexById([{ id: fleetId, playerId, strength: 5, originPlanetId: planetId }]),
+    })
+
+    // Act
+    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success(
+        expect.objectContaining({
+          resolvedActions: [
+            {
+              submittedAction,
+              actionOutcomes: expect.arrayContaining([
+                EffectOutcome.Resolved({
+                  result: `Player "${playerId}" reinforced Fleet "${fleetId}" by 10 on Planet "${planetId}"`,
+                }),
+              ]),
+            },
+          ],
+          fleets: indexById([
+            {
+              id: fleetId,
+              playerId,
+              strength: 15,
+              originPlanetId: planetId,
+            },
+          ]),
+        }),
+      ),
+    )
+  })
+
+  it("should keep an enemy fleet separate when building on the same planet", () => {
+    // Arrange
+    const planetId = branded<PlanetId>(1)
+    const enemyPlayerId = branded<PlayerId>(v4())
+    const enemyFleetId = branded<FleetId>(v4())
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: BuildFleetStandard.id,
+      playerId,
+      selectedTargets: { planet: String(planetId) },
+    })
+    const turnState = createTurnStateStub({
+      submittedActions: [submittedAction],
+      players: indexById([
+        { id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
+        { id: enemyPlayerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
+      ]),
+      planets: indexById([{ id: planetId, x: 0, y: 0 }]),
+      fleets: indexById([{ id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId }]),
+    })
+
+    // Act
+    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+
+    // Assert
+    const expectedFleetId = branded<FleetId>("18ac11b3-e1c8-5467-9e88-39d91394991a")
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success(
+        expect.objectContaining({
+          resolvedActions: [
+            {
+              submittedAction,
+              actionOutcomes: expect.arrayContaining([
+                EffectOutcome.Resolved({
+                  result: `Player "${playerId}" built Fleet "${expectedFleetId}" with strength 10 on Planet "${planetId}"`,
+                }),
+              ]),
+            },
+          ],
+          fleets: indexById([
+            { id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId },
+            { id: expectedFleetId, playerId, strength: 10, originPlanetId: planetId },
+          ]),
+        }),
+      ),
     )
   })
 })

@@ -1,12 +1,14 @@
 import { branded, NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
+import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
 import type { TargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import type { Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 /**
  * Validates that the target slots for the action submission are filled and valid.
@@ -27,7 +29,7 @@ export function validateTargets(
     }
 
     const missingTargetSlots = Object.keys(actionDefinition.targets).filter(
-      (targetSlot) => submittedAction.targets[targetSlot] === undefined,
+      (targetSlot) => submittedAction.selectedTargets[targetSlot] === undefined,
     )
     for (const missingTargetSlot of missingTargetSlots) {
       issues.push(
@@ -47,7 +49,7 @@ export function validateTargets(
         .map(({ tag, type }) => [tag, type]),
     )
 
-    for (const [targetSlot, targetId] of Object.entries(submittedAction.targets)) {
+    for (const [targetSlot, targetId] of Object.entries(submittedAction.selectedTargets)) {
       const issue = validateTargetDefinition(allTargetDefinitions.get(targetSlot), targetSlot, targetId, turnState)
       if (issue !== null) {
         issues.push(
@@ -79,17 +81,29 @@ function validateTargetDefinition(
   }
 
   switch (targetType) {
-    case TargetType.PLAYER: {
+    case TargetType.PLAYER:
       if (turnState.players[branded<PlayerId>(targetId)] === undefined) {
         return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
       }
       return null
-    }
     case TargetType.FLEET:
-      throw new NotImplementedError({ trackedBy: "not tracked" })
+      if (turnState.fleets[branded<FleetId>(targetId)] === undefined) {
+        return `Target slot "${targetSlot}" references unknown Fleet id "${targetId}"`
+      }
+      return null
     case TargetType.PLANET:
-      throw new NotImplementedError({ trackedBy: "not tracked" })
+      if (getPlanet(turnState, targetId) === undefined) {
+        return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
+      }
+      return null
     case TargetType.PLANET_OWNED:
-      throw new NotImplementedError({ trackedBy: "not tracked" })
+      throw new NotImplementedError({ trackedBy: "https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/440" })
   }
+}
+
+/**
+ * This is O(1)
+ */
+function getPlanet(turnState: TurnState, targetId: string): Planet | undefined {
+  return turnState.planets[branded<PlanetId>(Number(targetId))]
 }

@@ -28,6 +28,7 @@ import { getUncommittedResources } from "#lib/rules-engine/action-submission/get
 import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
 import { ActionDefinitionIdSchema } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
+import { SelectedTargetsSchema } from "#lib/rules-engine/ruleset-model/actions/SelectedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
@@ -150,9 +151,9 @@ export class GameplayController {
         throw new TransactionRollbackError("Invalid action id")
       }
 
-      if (submittedActionTargets.targets === null) {
+      if (submittedActionTargets.selectedTargets === null) {
         await this.gameplayRepository.updateActionSubmissions(
-          { context, actions: [{ id: submittedActionTargets.actionId, targets: null }] },
+          { context, actions: [{ id: submittedActionTargets.actionId, selectedTargets: null }] },
           tx,
         )
         return
@@ -162,10 +163,12 @@ export class GameplayController {
         id: submittedActionTargets.actionId,
         actionDefinitionId: action.actionDefinitionId,
         playerId,
-        targets: submittedActionTargets.targets,
+        selectedTargets: submittedActionTargets.selectedTargets,
       } satisfies SubmittedAction
 
       const turnState = createTurnState({
+        gameId: context.gameId,
+        turn,
         playerId,
         resources: context.resources,
         submittedActions: [submittedAction],
@@ -256,7 +259,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
       ? playerViewModel.resources // When the turn is completed, at action costs have been spent already, so we don't need to compute commitments
       : getUncommittedResources({
           resources: playerViewModel.resources,
-          actions: playerViewModel.actions.filter((action) => action.targets !== null),
+          actions: playerViewModel.actions.filter((action) => action.selectedTargets !== null),
           ruleset: playerViewModel.ruleset,
         })
 
@@ -293,6 +296,8 @@ function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResource
 
 function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Resources): ActionDto[] {
   const turnState = createTurnState({
+    gameId: playerViewModel.gameId,
+    turn: playerViewModel.turn,
     playerId: playerViewModel.player.id,
     resources: uncommittedResources,
     submittedActions: [],
@@ -301,8 +306,8 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
   })
 
   return playerViewModel.actions.map((action) => {
-    if (action.targets !== null) {
-      // If the action is submitted already (targets are defined), then the action is affordable because it's been committed already
+    if (action.selectedTargets !== null) {
+      // If the action is submitted already (selected targets are defined), then the action is affordable because it's been committed already
       return {
         ...action,
         canAfford: true,
@@ -314,7 +319,7 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
         {
           ...action,
           playerId: playerViewModel.player.id,
-          targets: {},
+          selectedTargets: {},
         },
       ],
       playerViewModel.ruleset,
@@ -330,12 +335,16 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
 }
 
 function createTurnState({
+  gameId,
+  turn,
   playerId,
   resources,
   submittedActions,
   planets,
   fleets,
 }: {
+  gameId: GameId
+  turn: number
   playerId: PlayerId
   resources: Resources
   submittedActions: readonly SubmittedAction[]
@@ -343,6 +352,8 @@ function createTurnState({
   fleets: Fleet[]
 }): TurnState {
   return {
+    gameId,
+    turn,
     submittedActions,
     players: {
       [playerId]: {
@@ -417,7 +428,7 @@ type ActionDto = z.infer<typeof ActionDtoSchema>
 const ActionDtoSchema = z.object({
   id: ActionIdSchema,
   actionDefinitionId: ActionDefinitionIdSchema,
-  targets: z.record(z.string(), z.string()).nullable(),
+  selectedTargets: SelectedTargetsSchema.nullable(),
   canAfford: z.boolean(),
 })
 

@@ -77,7 +77,7 @@ describe("validateSubmittedActions", () => {
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
-      targets: {
+      selectedTargets: {
         fleet: "fleet-id",
       },
     })
@@ -133,7 +133,7 @@ describe("validateSubmittedActions", () => {
     })
   })
 
-  describe("targets", () => {
+  describe("selectedTargets", () => {
     it("should report a target slot required by the Action Definition but missing from the submission", () => {
       // Arrange
       const playerId = branded<PlayerId>("player-id")
@@ -178,7 +178,7 @@ describe("validateSubmittedActions", () => {
       const submittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinition.id,
         playerId,
-        targets: {
+        selectedTargets: {
           fleet: "unexpected-fleet-slot",
         },
       })
@@ -223,7 +223,7 @@ describe("validateSubmittedActions", () => {
       const submittedAction = createSubmittedActionStub({
         actionDefinitionId: actionDefinitionWithPlanetTarget.id,
         playerId,
-        targets: {
+        selectedTargets: {
           planet: "",
         },
       })

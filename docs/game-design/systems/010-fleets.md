@@ -2,7 +2,7 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
 
 ## Purpose
 
@@ -33,6 +33,8 @@ A Fleet whose Total Strength reaches 0 disappears. Fleet Strength has no maximum
 To move a Fleet, the player selects a positive amount of its Strength. That Strength departs as the moving Fleet, while any remaining Strength stays at the origin.
 
 New Fleets can only be built at Planets owned by their empire. A new fleet can appear anywhere as a result of a split.
+
+The implemented Fleet Build subset creates one deterministic Fleet for a Game, Player, and Planet tuple and reinforces that Fleet on later builds. Fleet ownership validation, movement, combat, and other Fleet lifecycle rules remain planned.
 
 ### Cloaking
 
