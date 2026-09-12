@@ -5,7 +5,7 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 export function createTurnStateStub(overrides?: Partial<TurnState>): TurnState {
   return {
     gameId: branded<GameId>(1),
-    turn: 0,
+    turn: 1,
     submittedActions: [],
     players: {},
     planets: {},

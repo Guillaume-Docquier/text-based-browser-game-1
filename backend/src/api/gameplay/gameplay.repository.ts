@@ -268,7 +268,7 @@ export class GameplayRepository extends PostgresRepository {
     // Prepare data
     const gameTurn: NewTurnRow = {
       gameId: startGameModel.context.gameId,
-      turn: 0,
+      turn: 1,
       status: TurnStatus.COLLECTING_ACTIONS,
       startedAt: startGameModel.startedAt,
       endsAt: startGameModel.turnEndsAt,
