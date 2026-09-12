@@ -30,8 +30,9 @@ export class LobbyPage extends WebsitePage {
     return this.page.getByLabel(label, { exact: true })
   }
 
-  public async startGame(): Promise<void> {
+  public async startGame(): Promise<GalaxyPage> {
     await this.startGameButton.click()
+    return new GalaxyPage(this.page)
   }
 
   public async getGameId(): Promise<number> {

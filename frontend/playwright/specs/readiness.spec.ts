@@ -20,8 +20,7 @@ test("Alice and Bob can lock their choices and resolve a turn early", async ({ a
 
   const alicePlayersPage = await test.step("Alice starts the game and selects an action", async () => {
     await aliceLobbyPage.reload()
-    await aliceLobbyPage.startGame()
-    const galaxyPage = await aliceLobbyPage.openGame()
+    const galaxyPage = await aliceLobbyPage.startGame()
     const actionsPage = await galaxyPage.openActions()
     await actionsPage.toggleAction("Extract Metal")
     await expect(actionsPage.action("Extract Metal")).toHaveAttribute("aria-pressed", "true")
