@@ -1,5 +1,6 @@
 import { branded, NotImplementedError, Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
+import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
@@ -7,7 +8,7 @@ import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/valida
 import type { TargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import type { Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 /**
  * Validates that the target slots for the action submission are filled and valid.
@@ -80,20 +81,29 @@ function validateTargetDefinition(
   }
 
   switch (targetType) {
-    case TargetType.PLAYER: {
+    case TargetType.PLAYER:
       if (turnState.players[branded<PlayerId>(targetId)] === undefined) {
         return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
       }
       return null
-    }
     case TargetType.FLEET:
-      throw new NotImplementedError({ trackedBy: "https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/342" })
+      if (turnState.fleets[branded<FleetId>(targetId)] === undefined) {
+        return `Target slot "${targetSlot}" references unknown Fleet id "${targetId}"`
+      }
+      return null
     case TargetType.PLANET:
-      if (turnState.planets[branded<PlanetId>(Number(targetId))] === undefined) {
+      if (getPlanet(turnState, targetId) === undefined) {
         return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
       }
       return null
     case TargetType.PLANET_OWNED:
-      throw new NotImplementedError({ trackedBy: "https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/422" })
+      throw new NotImplementedError({ trackedBy: "https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/440" })
   }
+}
+
+/**
+ * This is O(1)
+ */
+function getPlanet(turnState: TurnState, targetId: string): Planet | undefined {
+  return turnState.planets[branded<PlanetId>(Number(targetId))]
 }

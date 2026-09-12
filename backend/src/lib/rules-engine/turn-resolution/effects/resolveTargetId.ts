@@ -1,4 +1,4 @@
-import { Assert, branded, NotImplementedError } from "@guillaume-docquier/tools-ts"
+import { Assert, branded } from "@guillaume-docquier/tools-ts"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
@@ -15,7 +15,7 @@ type TargetId<TTargetType extends TargetType> = {
 
 /**
  * A utility to resolve target ids.
- * It is expected that targets have been validated prior to calling this, we will just parse and brand for you.
+ * It is expected that targets have been validated by {@link validateTargets} prior to calling this, we will just parse and brand for you.
  */
 export function resolveTargetId<TTargetType extends TargetType>(
   selectedTargets: SelectedTargets,
@@ -33,7 +33,7 @@ export function resolveTargetId(selectedTargets: SelectedTargets, targetDefiniti
     case TargetType.PLANET:
       return branded<PlanetId>(Number(targetId))
     case TargetType.PLANET_OWNED:
-      throw new NotImplementedError({ trackedBy: "https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/422" })
+      return branded<PlanetId>(Number(targetId))
     case TargetType.PLAYER:
       return branded<PlayerId>(targetId)
   }
