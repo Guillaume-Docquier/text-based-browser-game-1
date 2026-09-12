@@ -1,5 +1,4 @@
 import { Result, type Rng } from "@guillaume-docquier/tools-ts"
-import type { GameId } from "#lib/db/games/GameId.ts"
 import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { EffectFactory } from "#lib/rules-engine/turn-resolution/effects/EffectFactory.ts"
@@ -15,9 +14,8 @@ import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
  * Takes a turn state and applies all its actions on it, then returns it.
  * The turnState will be mutated. You should not provide an object that cannot / must not be mutated.
  */
-export function resolveTurn(gameId: GameId, turnState: TurnState, ruleset: Ruleset, rng: Rng): Result<ResolvedTurnState, ResolveTurnError> {
+export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): Result<ResolvedTurnState, ResolveTurnError> {
   const context: TurnContext = {
-    gameId,
     rng,
     turnState,
     effectPool: new EffectPool([]),
@@ -49,6 +47,8 @@ export function resolveTurn(gameId: GameId, turnState: TurnState, ruleset: Rules
   }
 
   return Result.Success({
+    gameId: context.turnState.gameId,
+    turn: context.turnState.turn,
     resolvedActions: context.turnState.submittedActions.map((submittedAction) => ({
       submittedAction,
       actionOutcomes: context.effectPool.getOutcomes(submittedAction),

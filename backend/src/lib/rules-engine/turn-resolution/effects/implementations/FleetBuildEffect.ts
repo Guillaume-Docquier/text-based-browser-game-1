@@ -1,4 +1,4 @@
-import { branded, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
 import { v5 } from "uuid"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
@@ -42,7 +42,14 @@ export class FleetBuildEffect extends Effect {
   }
 
   private build(context: TurnContext): EffectOutcome {
-    const fleetId = newFleetId({ gameId: context.gameId, playerId: this.submittedAction.playerId, planetId: this.targetPlanetId })
+    const fleetId = newFleetId({
+      gameId: context.turnState.gameId,
+      playerId: this.submittedAction.playerId,
+      planetId: this.targetPlanetId,
+      turn: context.turnState.turn,
+    })
+    Assert.isTrue(context.turnState.fleets[fleetId] === undefined)
+
     context.turnState.fleets[fleetId] = {
       id: fleetId,
       playerId: this.submittedAction.playerId,
@@ -56,6 +63,21 @@ export class FleetBuildEffect extends Effect {
   }
 }
 
-function newFleetId({ gameId, playerId, planetId }: { gameId: GameId; playerId: PlayerId; planetId: PlanetId }): FleetId {
-  return branded<FleetId>(v5(`${gameId}-${playerId}-${planetId}`, "429f862a-013d-5dc6-8d9b-f4fe00801af1"))
+/**
+ * Creates a deterministic but unique fleet id.
+ * It's impossible for a player to create 2 fleets on the same planet in the same turn, because the 2nd build would reinforce the fleet instead of creating a new one.
+ * The gameId is important here, because all the fleets will be stored in the DB and fleet id is the PK, so we need to make sure ids will be unique across games too.
+ */
+function newFleetId({
+  gameId,
+  playerId,
+  planetId,
+  turn,
+}: {
+  gameId: GameId
+  playerId: PlayerId
+  planetId: PlanetId
+  turn: number
+}): FleetId {
+  return branded<FleetId>(v5(`${gameId}-${playerId}-${planetId}-${turn}`, "429f862a-013d-5dc6-8d9b-f4fe00801af1"))
 }

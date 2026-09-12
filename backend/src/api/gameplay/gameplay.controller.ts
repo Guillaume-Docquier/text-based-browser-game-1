@@ -166,6 +166,8 @@ export class GameplayController {
       } satisfies SubmittedAction
 
       const turnState = createTurnState({
+        gameId: context.gameId,
+        turn,
         playerId,
         resources: context.resources,
         submittedActions: [submittedAction],
@@ -293,6 +295,8 @@ function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResource
 
 function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Resources): ActionDto[] {
   const turnState = createTurnState({
+    gameId: playerViewModel.gameId,
+    turn: playerViewModel.turn,
     playerId: playerViewModel.player.id,
     resources: uncommittedResources,
     submittedActions: [],
@@ -330,12 +334,16 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
 }
 
 function createTurnState({
+  gameId,
+  turn,
   playerId,
   resources,
   submittedActions,
   planets,
   fleets,
 }: {
+  gameId: GameId
+  turn: number
   playerId: PlayerId
   resources: Resources
   submittedActions: readonly SubmittedAction[]
@@ -343,6 +351,8 @@ function createTurnState({
   fleets: Fleet[]
 }): TurnState {
   return {
+    gameId,
+    turn,
     submittedActions,
     players: {
       [playerId]: {

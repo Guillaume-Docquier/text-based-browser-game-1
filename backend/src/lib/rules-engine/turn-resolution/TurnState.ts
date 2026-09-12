@@ -1,4 +1,5 @@
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import type { GameId } from "#lib/db/games/GameId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
@@ -9,6 +10,14 @@ import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resour
  * This is generally mutated.
  */
 export type TurnState = {
+  /**
+   * The game being resolved.
+   */
+  readonly gameId: GameId
+  /**
+   * The turn being resolved.
+   */
+  readonly turn: number
   readonly submittedActions: readonly SubmittedAction[]
   /**
    * Players for this turn, indexed by their id.
