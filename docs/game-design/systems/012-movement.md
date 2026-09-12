@@ -18,13 +18,13 @@ Relates to:
 
 ## Core Concepts
 
-| Concept           | Definition                                                                        |
-| ----------------- | --------------------------------------------------------------------------------- |
-| Speed             | The maximum number of light-years a Fleet moves per Turn.                         |
-| Range             | The maximum Movement Distance allowed between a Fleet and its target Planet.      |
-| Movement Distance | The distance in light-years between a Fleet's departure Planet and target Planet. |
-| In Transit        | A Fleet that has departed but has not yet arrived.                                |
-| Movement Tick     | A sub-step within the Movement Phase that orders movement progress and arrivals.  |
+| Concept           | Definition                                                                             |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| Speed             | The maximum number of light-years a Fleet moves per Turn.                              |
+| Range             | The maximum Movement Distance allowed between a Fleet and its target Planet.           |
+| Movement Distance | The distance in light-years between a Fleet's departure Planet and target Planet.      |
+| In Transit        | A Fleet that has departed but has not yet arrived.                                     |
+| Movement Tick     | A sub-step within the Fleet Movement Phase that orders movement progress and arrivals. |
 
 ## Rules
 

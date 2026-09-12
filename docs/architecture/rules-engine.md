@@ -90,8 +90,9 @@ The validation pipeline handles validating action submissions for any data that 
 The phases pipeline handles Effect resolution:
 
 - Pay Costs
-- Movement
-- Combat
+- Fleet Movement
+- Fleet Builds
+- Fleet Combat
 - Planet
 - Colonization
 - Income

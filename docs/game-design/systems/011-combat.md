@@ -26,7 +26,7 @@ Relates to:
 
 ## Rules
 
-Combat resolves after all Movement, but before arrival-dependent events have completed for Turn Resolution. It uses the final Fleet positions, so every Fleet that arrived during the Turn is present before combat begins.
+The Fleet Combat Phase resolves after the Fleet Movement Phase, but before arrival-dependent events have completed for Turn Resolution. It uses the final Fleet positions, so every Fleet that arrived during the Turn is present before Fleet Combat begins.
 
 An Assault at a Planet has an attacking Fleet and a defending side made up of all Enemy Fleets at that Planet. Each side's Strength is its Combined Force.
 

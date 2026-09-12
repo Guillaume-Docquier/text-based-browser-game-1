@@ -83,20 +83,20 @@ The engine can host games using different developer-authored Rulesets. A single 
 
 Turn Resolution creates one Effect Pool from locked Action Submissions and automatic game rules. The Rules Engine resolves that pool through this fixed, engine-owned Phase order:
 
-| Phase        | Responsibility                                                                                                        |
-| ------------ | --------------------------------------------------------------------------------------------------------------------- |
-| Pay Costs    | Validate and apply the costs committed by locked Action Submissions.                                                  |
-| Movement     | Resolve Fleet Movement and chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md). |
-| Fleet Build  | Create or reinforce a player's Fleet at the submitted Planet target with a deterministic identity.                    |
-| Combat       | Resolve hostile Fleet encounters after Movement and Fleet Build.                                                      |
-| Planet       | Resolve Planet activities.                                                                                            |
-| Colonization | Resolve attempts to claim Unclaimed Planets after Movement and Combat.                                                |
-| Income       | Resolve Resource production and other recurring gains.                                                                |
-| Victory      | Resolve the winning player, if any.                                                                                   |
+| Phase          | Responsibility                                                                                                        |
+| -------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Pay Costs      | Validate and apply the costs committed by locked Action Submissions.                                                  |
+| Fleet Movement | Resolve Fleet Movement and chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md). |
+| Fleet Build    | Create or reinforce a player's Fleet at the submitted Planet target with a deterministic identity.                    |
+| Fleet Combat   | Resolve hostile Fleet encounters after Fleet Movement and Fleet Build.                                                |
+| Planet         | Resolve Planet activities.                                                                                            |
+| Colonization   | Resolve attempts to claim Unclaimed Planets after Fleet Movement and Fleet Combat.                                    |
+| Income         | Resolve Resource production and other recurring gains.                                                                |
+| Victory        | Resolve the winning player, if any.                                                                                   |
 
 The Phase sequence belongs to the Rules Engine and is the same for every Ruleset. Each Phase is free to collect, order, coordinate, and resolve its Effects in the way that Phase requires.
 
-Phases are coarse ordering boundaries. Ticks are finer ordering steps used inside the Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
+Phases are coarse ordering boundaries. Ticks are finer ordering steps used inside the Fleet Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
 
 Each Effect belongs to a Phase that will orchestrate its resolution. A Mechanic may create, modify, cancel, or make a later Effect invalid.
 
