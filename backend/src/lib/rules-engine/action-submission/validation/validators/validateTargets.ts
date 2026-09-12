@@ -80,31 +80,56 @@ function validateTargetDefinition(
 
   switch (targetType) {
     case TargetType.PLAYER:
-      if (turnState.players[branded<PlayerId>(targetId)] === undefined) {
-        return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
-      }
-      return null
+      return validatePlayerTarget(turnState, targetSlot, targetId)
     case TargetType.FLEET:
-      if (turnState.fleets[branded<FleetId>(targetId)] === undefined) {
-        return `Target slot "${targetSlot}" references unknown Fleet id "${targetId}"`
-      }
-      return null
+      return validateFleetTarget(turnState, targetSlot, targetId)
     case TargetType.PLANET:
-      if (getPlanet(turnState, targetId) === undefined) {
-        return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
-      }
-      return null
-    case TargetType.PLANET_OWNED: {
-      const planet = getPlanet(turnState, targetId)
-      if (planet === undefined) {
-        return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
-      }
-      if (planet.ownerPlayerId !== playerId) {
-        return `Target slot "${targetSlot}" references Planet id "${targetId}" that is not owned by Player "${playerId}"`
-      }
-      return null
-    }
+      return validatePlanetTarget(turnState, targetSlot, targetId)
+    case TargetType.PLANET_OWNED:
+      return validateOwnedPlanetTarget(turnState, targetSlot, targetId, playerId)
   }
+}
+
+function validatePlayerTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
+  if (turnState.players[branded<PlayerId>(targetId)] === undefined) {
+    return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
+  }
+
+  return null
+}
+
+function validateFleetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
+  if (turnState.fleets[branded<FleetId>(targetId)] === undefined) {
+    return `Target slot "${targetSlot}" references unknown Fleet id "${targetId}"`
+  }
+
+  return null
+}
+
+function validatePlanetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
+  if (getPlanet(turnState, targetId) === undefined) {
+    return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
+  }
+
+  return null
+}
+
+function validateOwnedPlanetTarget(
+  turnState: ReadonlyDeep<TurnState>,
+  targetSlot: string,
+  targetId: string,
+  playerId: PlayerId,
+): string | null {
+  const planet = getPlanet(turnState, targetId)
+  if (planet === undefined) {
+    return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
+  }
+
+  if (planet.ownerPlayerId !== playerId) {
+    return `Target slot "${targetSlot}" references Planet id "${targetId}" that is not owned by Player "${playerId}"`
+  }
+
+  return null
 }
 
 /**
