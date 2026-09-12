@@ -48,7 +48,7 @@ export class FleetBuildEffect extends Effect {
       planetId: this.targetPlanetId,
       turn: context.turnState.turn,
     })
-    Assert.isTrue(context.turnState.fleets[fleetId] === undefined)
+    Assert.isNotDefined(context.turnState.fleets[fleetId])
 
     context.turnState.fleets[fleetId] = {
       id: fleetId,
