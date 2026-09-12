@@ -9,6 +9,7 @@ import type { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechani
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { EffectError } from "#lib/rules-engine/turn-resolution/effects/EffectError.ts"
 import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
+import { resolveTargetId } from "#lib/rules-engine/turn-resolution/effects/resolveTargetId.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 import type { Fleet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
@@ -19,7 +20,7 @@ export class FleetBuildEffect extends Effect {
   public constructor(id: number, mechanic: FleetBuildMechanic, submittedAction: SubmittedAction) {
     super(id, mechanic.type, submittedAction)
     this.mechanic = mechanic
-    this.targetPlanetId = branded<PlanetId>(Number(this.submittedAction.selectedTargets[this.mechanic.targets.planet.tag]))
+    this.targetPlanetId = resolveTargetId(this.submittedAction.selectedTargets, this.mechanic.targets.planet)
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {

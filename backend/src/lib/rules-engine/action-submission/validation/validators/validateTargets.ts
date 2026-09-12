@@ -87,13 +87,13 @@ function validateTargetDefinition(
       return null
     }
     case TargetType.FLEET:
-      throw new NotImplementedError({ trackedBy: "not tracked" })
+      throw new NotImplementedError({ trackedBy: "https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/342" })
     case TargetType.PLANET:
       if (turnState.planets[branded<PlanetId>(Number(targetId))] === undefined) {
         return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
       }
       return null
     case TargetType.PLANET_OWNED:
-      throw new NotImplementedError({ trackedBy: "not tracked" })
+      throw new NotImplementedError({ trackedBy: "https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/422" })
   }
 }
