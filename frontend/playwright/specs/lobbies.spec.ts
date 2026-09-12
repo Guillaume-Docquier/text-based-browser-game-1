@@ -52,9 +52,8 @@ test.describe("authenticated user", () => {
       await expect(lobbyPage.configurationValue("Ruleset")).toContainText("Test")
     })
 
-    const galaxyPage = await test.step("Start and open the game", async () => {
-      await lobbyPage.startGame()
-      return await lobbyPage.openGame()
+    const galaxyPage = await test.step("Start the game", async () => {
+      return await lobbyPage.startGame()
     })
 
     await test.step("Verify the Galaxy opens", async () => {
