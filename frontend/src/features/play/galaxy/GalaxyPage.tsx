@@ -20,7 +20,7 @@ export function GalaxyPage(): ReactElement {
   const [planetDetailsView, setPlanetDetailsView] = useState<PlanetDetailsView | undefined>(undefined)
   const [galaxyResetSignal, setGalaxyResetSignal] = useState(0)
   const [starSystemResetSignal, setStarSystemResetSignal] = useState(0)
-  const { playerView } = usePlayGameContext()
+  const { game, playerView } = usePlayGameContext()
   const selectedSystem = view.type === "star-system" ? view.system : undefined
   const isExitingStarSystem = view.type === "star-system" && view.transition === "exiting"
   const totalNbPlanets = playerView.galaxy.systems.flatMap((system) => system.planets).length
@@ -90,7 +90,12 @@ export function GalaxyPage(): ReactElement {
       <div role="presentation" className="relative min-h-[34rem] flex-1 overflow-hidden bg-[#05080f]" onClick={hidePlanetDetails}>
         <div className="absolute inset-0">
           <div className="size-full" inert={selectedSystem !== undefined}>
-            <GalaxyMap galaxy={playerView.galaxy} resetSignal={galaxyResetSignal} onSelectSystem={showStarSystem} />
+            <GalaxyMap
+              galaxy={playerView.galaxy}
+              currentPlayerId={playerView.player.id}
+              resetSignal={galaxyResetSignal}
+              onSelectSystem={showStarSystem}
+            />
           </div>
           {selectedSystem !== undefined && (
             <div
@@ -106,6 +111,7 @@ export function GalaxyPage(): ReactElement {
               >
                 <StarSystemMap
                   system={selectedSystem}
+                  players={game.players}
                   resetSignal={starSystemResetSignal}
                   onSelectGalaxy={showGalaxy}
                   onSelectPlanet={showPlanetDetails}

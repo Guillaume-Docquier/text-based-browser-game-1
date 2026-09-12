@@ -1,4 +1,4 @@
-import type { Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
+import type { LobbyPlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/planetBiomeColors.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
@@ -24,6 +24,7 @@ type PlanetViewModel = PlanetModel & {
  * Renders one Star System with its planets and occupied orbits.
  *
  * @param system - The Star System to render.
+ * @param players - The players whose names identify claimed Planets.
  * @param resetSignal - A value whose changes reset pan and zoom.
  * @param onSelectGalaxy - Returns to the galaxy-wide map.
  * @param onSelectPlanet - Selects a Planet for inspection.
@@ -31,11 +32,13 @@ type PlanetViewModel = PlanetModel & {
  */
 export function StarSystemMap({
   system,
+  players,
   resetSignal,
   onSelectGalaxy,
   onSelectPlanet,
 }: {
   system: StarSystem
+  players: readonly LobbyPlayer[]
   resetSignal: number
   onSelectGalaxy: () => void
   onSelectPlanet: (planet: PlanetModel) => void
@@ -81,7 +84,7 @@ export function StarSystemMap({
         ))}
         <Star name={system.star.name} onSelect={selectGalaxy} />
         {planets.map((planet) => (
-          <Planet key={planet.id} planet={planet} onSelect={onSelectPlanet} />
+          <Planet key={planet.id} planet={planet} ownerName={getPlanetOwnerName(planet, players)} onSelect={onSelectPlanet} />
         ))}
       </g>
     </svg>
@@ -139,7 +142,7 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
         strokeWidth="2"
         className="pointer-events-none origin-center transition-[fill,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-125 group-hover/star:fill-yellow-100 group-focus/star:scale-125 group-focus/star:fill-yellow-100"
       />
-      <MapLabel x={CENTER + STAR_RADIUS + 12} y={CENTER} text={name} />
+      <StarLabel x={CENTER} y={CENTER} text={name} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible star. */}
       <circle
         cx={CENTER}
@@ -154,7 +157,15 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
   )
 }
 
-function Planet({ planet, onSelect }: { planet: PlanetViewModel; onSelect: (planet: PlanetModel) => void }): ReactElement {
+function Planet({
+  planet,
+  ownerName,
+  onSelect,
+}: {
+  planet: PlanetViewModel
+  ownerName: string | undefined
+  onSelect: (planet: PlanetModel) => void
+}): ReactElement {
   function selectPlanet(event: MouseEvent<SVGGElement>): void {
     event.stopPropagation()
     onSelect(planet)
@@ -164,7 +175,7 @@ function Planet({ planet, onSelect }: { planet: PlanetViewModel; onSelect: (plan
     <g
       role="button"
       tabIndex={0}
-      aria-label={`View ${planet.name} details`}
+      aria-label={`View ${planet.name} details${ownerName === undefined ? "" : `, owned by ${ownerName}`}`}
       className="group/planet cursor-pointer outline-none"
       onClick={selectPlanet}
       onKeyDown={(event) => {
@@ -191,7 +202,7 @@ function Planet({ planet, onSelect }: { planet: PlanetViewModel; onSelect: (plan
         data-size={planet.size}
         className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-focus/planet:scale-125"
       />
-      <MapLabel x={planet.x + planet.radius + 8} y={planet.y} text={planet.name} />
+      <PlanetLabel planet={planet} ownerName={ownerName} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible planet. */}
       <circle
         cx={planet.x}
@@ -206,6 +217,31 @@ function Planet({ planet, onSelect }: { planet: PlanetViewModel; onSelect: (plan
   )
 }
 
+function PlanetLabel({ planet, ownerName }: { planet: PlanetViewModel; ownerName: string | undefined }): ReactElement {
+  return (
+    <text
+      x={planet.x}
+      y={planet.y + planet.radius + 24}
+      textAnchor="middle"
+      dominantBaseline="hanging"
+      fill="#e5edf6"
+      fontSize="14"
+      fontWeight="500"
+      paintOrder="stroke"
+      stroke="#05080f"
+      strokeWidth="4"
+      strokeLinejoin="round"
+    >
+      <tspan x={planet.x}>{planet.name}</tspan>
+      {ownerName === undefined ? null : (
+        <tspan x={planet.x} dy="20" fill="#94a3b8" fontSize="12" fontWeight="400">
+          {ownerName}
+        </tspan>
+      )}
+    </text>
+  )
+}
+
 function activateWithKeyboard(event: KeyboardEvent<SVGGElement>, activate: () => void): void {
   if (event.key !== "Enter" && event.key !== " ") {
     return
@@ -215,11 +251,12 @@ function activateWithKeyboard(event: KeyboardEvent<SVGGElement>, activate: () =>
   activate()
 }
 
-function MapLabel({ x, y, text }: { x: number; y: number; text: string }): ReactElement {
+function StarLabel({ x, y, text }: { x: number; y: number; text: string }): ReactElement {
   return (
     <text
       x={x}
-      y={y}
+      y={y + STAR_RADIUS + 24}
+      textAnchor="middle"
       dominantBaseline="middle"
       fill="#e5edf6"
       fontSize="14"
@@ -232,6 +269,15 @@ function MapLabel({ x, y, text }: { x: number; y: number; text: string }): React
       {text}
     </text>
   )
+}
+
+function getPlanetOwnerName(planet: PlanetModel, players: readonly LobbyPlayer[]): string | undefined {
+  if (planet.ownerPlayerId === null) {
+    return undefined
+  }
+
+  const owner = players.find(({ id }) => id === planet.ownerPlayerId)
+  return owner?.alias ?? `Player ${planet.ownerPlayerId}`
 }
 
 function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
