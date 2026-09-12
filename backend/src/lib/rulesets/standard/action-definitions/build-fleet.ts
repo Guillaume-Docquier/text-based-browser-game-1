@@ -4,6 +4,7 @@ import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.t
 import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 
 function buildFleetDirective({
   id,
@@ -24,7 +25,7 @@ function buildFleetDirective({
     type: ActionType.DIRECTIVE,
     tier,
     targets: {
-      planet: "",
+      planet: TargetType.PLANET,
     },
     costs: [
       ResourceLossMechanic.create({

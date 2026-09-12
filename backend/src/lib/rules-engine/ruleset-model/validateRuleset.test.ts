@@ -78,13 +78,34 @@ describe("validateRuleset", () => {
     ])
   })
 
+  it("should report an Action Definition target slot with an incompatible type", () => {
+    // Arrange
+    const actionDefinition = createActionDefinitionStub({
+      targets: { planet: TargetType.FLEET },
+      mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
+    })
+    const ruleset = createRulesetStub({
+      actionDefinitions: indexById([actionDefinition]),
+    })
+
+    // Act
+    const validationIssues = validateRuleset(ruleset)
+
+    // Assert
+    expect(validationIssues).toStrictEqual<typeof validationIssues>([
+      {
+        issue: `Action Definition ${actionDefinition.name} target slot planet has type FLEET, but FLEET_BUILD requires PLANET`,
+      },
+    ])
+  })
+
   it.each([0, -1])("should report a non-positive fleet strength", (strength) => {
     // Arrange
     const ruleset = createRulesetStub({
       actionDefinitions: indexById([
         createActionDefinitionStub({
           targets: {
-            planet: "",
+            planet: TargetType.PLANET,
           },
           mechanics: [
             {
