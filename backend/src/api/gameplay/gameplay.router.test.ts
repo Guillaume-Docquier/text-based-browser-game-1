@@ -22,10 +22,6 @@ import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
-function normalizePlayerIdForSnapshot(ownerPlayerId: PlayerId | null, playerId: PlayerId): PlayerId | "<player-id>" | null {
-  return ownerPlayerId === playerId ? "<player-id>" : ownerPlayerId
-}
-
 describe("gameplay.router", () => {
   it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
     // Arrange
@@ -88,15 +84,7 @@ describe("gameplay.router", () => {
       const allPlanets = playerView.galaxy.systems.flatMap(({ planets }) => planets)
       expect(new Set(allPlanets.map((planet) => planet.coordinates)).size).toStrictEqual(allPlanets.length) // unique coordinates
 
-      expect({
-        systems: playerView.galaxy.systems.map(({ star, planets }) => ({
-          star,
-          planets: planets.map((planet) => ({
-            ...planet,
-            ownerPlayerId: normalizePlayerIdForSnapshot(planet.ownerPlayerId, branded<PlayerId>(player.account.id)),
-          })),
-        })),
-      }).toMatchSnapshot()
+      expect(playerView.galaxy).toMatchSnapshot()
     })
 
     it("should start a game", async () => {
