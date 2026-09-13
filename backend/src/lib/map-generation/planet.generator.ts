@@ -2,7 +2,7 @@ import { Assert, Range, type Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 
-export type Planet = {
+export type GeneratedPlanet = {
   readonly x: number
   readonly y: number
   readonly name: string
@@ -22,7 +22,7 @@ const PLANET_SIZES = Object.values(PlanetSize)
 const BIOME_INDEX_RANGE = Range.integer({ min: 0, max: PLANET_BIOMES.length - 1 })
 const SIZE_INDEX_RANGE = Range.integer({ min: 0, max: PLANET_SIZES.length - 1 })
 
-type AttributeRanges<TAttribute extends keyof Planet> = Readonly<Record<TAttribute, ReturnType<typeof Range.integer>>>
+type AttributeRanges<TAttribute extends keyof GeneratedPlanet> = Readonly<Record<TAttribute, ReturnType<typeof Range.integer>>>
 
 /** Attribute ranges configured for each Planet Biome. */
 export const BIOME_ATTRIBUTE_RANGES = {
@@ -68,7 +68,7 @@ export const SIZE_ATTRIBUTE_RANGES = {
   },
 } as const satisfies Record<PlanetSize, AttributeRanges<"maxPopulation" | "area">>
 
-export function planetGenerator(starPosition: XY, orbitDistance: number, rng: Rng): Planet {
+export function planetGenerator(starPosition: XY, orbitDistance: number, rng: Rng): GeneratedPlanet {
   const angle = rng.float(ANGLE_RANGE)
   const biome = PLANET_BIOMES[rng.int(BIOME_INDEX_RANGE)]
   const size = PLANET_SIZES[rng.int(SIZE_INDEX_RANGE)]

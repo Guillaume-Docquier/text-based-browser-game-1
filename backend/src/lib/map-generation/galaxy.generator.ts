@@ -1,7 +1,7 @@
 import { type Rng, Range, type XY } from "@guillaume-docquier/tools-ts"
-import { type System, systemGenerator } from "#lib/map-generation/system.generator.ts"
+import { type GeneratedSystem, systemGenerator } from "#lib/map-generation/system.generator.ts"
 
-export type Galaxy = {
+export type GeneratedGalaxy = {
   /**
    * Width of the galaxy in light years
    */
@@ -13,7 +13,7 @@ export type Galaxy = {
   /**
    * Every star system in the galaxy
    */
-  systems: System[]
+  systems: GeneratedSystem[]
 }
 
 type PointsGenerator = (options: { size: number; rng: Rng }) => XY[]
@@ -24,7 +24,15 @@ type PointsGenerator = (options: { size: number; rng: Rng }) => XY[]
  *
  * We need to know the galaxy size because generators might produces values that will be out of bounds.
  */
-export function galaxyGenerator({ size, pointsGenerator, rng }: { size: number; pointsGenerator: PointsGenerator; rng: Rng }): Galaxy {
+export function galaxyGenerator({
+  size,
+  pointsGenerator,
+  rng,
+}: {
+  size: number
+  pointsGenerator: PointsGenerator
+  rng: Rng
+}): GeneratedGalaxy {
   const pointsByCell = new Map<string, XY>()
   const points = pointsGenerator({ size, rng })
   for (const point of points) {
