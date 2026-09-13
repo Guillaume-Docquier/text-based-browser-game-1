@@ -1,5 +1,5 @@
 import { Angle, Assert, Distance, type Mutable, type Rng, UnitOfAngle, UnitOfDistance, type XY } from "@guillaume-docquier/tools-ts"
-import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
+import type { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { Galaxy, System } from "../Galaxy.ts"
 
@@ -42,8 +42,8 @@ export function assignHomePlanets({
     )
 
     const targetHomeworldPosition = {
-      x: GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2 + distance * Math.cos(angle),
-      y: GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2 + distance * Math.sin(angle),
+      x: galaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2 + distance * Math.cos(angle),
+      y: galaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2 + distance * Math.sin(angle),
     }
 
     const closestSystem = getClosestSystemWithUnclaimedPlanets(targetHomeworldPosition, galaxy)
