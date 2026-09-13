@@ -4,6 +4,7 @@ import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
+import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
 import type { GameStatus } from "#lib/db/games/GameStatus.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
@@ -13,6 +14,7 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   actionsTable,
+  fleetsTable,
   gamesTable,
   planetsTable,
   playersTable,
@@ -29,7 +31,7 @@ import type { SelectedTargets } from "#lib/rules-engine/ruleset-model/actions/Se
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import type { Planet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import type { Fleet, Planet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import type { Galaxy } from "./Galaxy.ts"
 
@@ -55,7 +57,6 @@ export type ActionSubmissionsForUpdate = Branded<
     resources: Readonly<Resources>
     actions: readonly Action[]
     ruleset: Ruleset
-    planets: readonly Planet[]
   }>
 >
 
@@ -381,7 +382,7 @@ export class GameplayRepository extends PostgresRepository {
   }
 
   public async getActionSubmissionsForUpdate(
-    { gameId, playerId, turn, planetIds }: { gameId: GameId; playerId: PlayerId; turn: number; planetIds: readonly PlanetId[] },
+    { gameId, playerId, turn }: { gameId: GameId; playerId: PlayerId; turn: number },
     tx: Transaction,
   ): Promise<ActionSubmissionsForUpdate> {
     const gameTurns = await tx
@@ -437,14 +438,6 @@ export class GameplayRepository extends PostgresRepository {
       .from(actionsTable)
       .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn)))
 
-    const planets =
-      planetIds.length === 0
-        ? []
-        : await tx
-            .select({ id: planetsTable.id, ownerPlayerId: planetsTable.ownerPlayerId, x: planetsTable.x, y: planetsTable.y })
-            .from(planetsTable)
-            .where(and(eq(planetsTable.gameId, gameId), inArray(planetsTable.id, planetIds)))
-
     return branded({
       gameId,
       playerId,
@@ -452,8 +445,40 @@ export class GameplayRepository extends PostgresRepository {
       resources: toResourceBag(resourceRows),
       actions,
       ruleset,
-      planets,
     })
+  }
+
+  public async getPlanetsByIds(
+    { gameId, planetIds }: { gameId: GameId; planetIds: readonly PlanetId[] },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<readonly Planet[]> {
+    if (planetIds.length === 0) {
+      return []
+    }
+
+    return await db
+      .select({ id: planetsTable.id, ownerPlayerId: planetsTable.ownerPlayerId, x: planetsTable.x, y: planetsTable.y })
+      .from(planetsTable)
+      .where(and(eq(planetsTable.gameId, gameId), inArray(planetsTable.id, planetIds)))
+  }
+
+  public async getFleetsByIds(
+    { gameId, fleetIds }: { gameId: GameId; fleetIds: readonly FleetId[] },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<readonly Fleet[]> {
+    if (fleetIds.length === 0) {
+      return []
+    }
+
+    return await db
+      .select({
+        id: fleetsTable.id,
+        playerId: fleetsTable.playerId,
+        strength: fleetsTable.strength,
+        originPlanetId: fleetsTable.originPlanetId,
+      })
+      .from(fleetsTable)
+      .where(and(eq(fleetsTable.gameId, gameId), inArray(fleetsTable.id, fleetIds)))
   }
 
   public async getReadinessForUpdate(

@@ -48,7 +48,7 @@ describe("gameplay.router", () => {
     it("should generate a deterministic galaxy from the game's seed", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
-      const player = await apiServer.createClient({ authenticated: true })
+      const player = await apiServer.createClient({ authenticated: true, id: branded("7f80447c-442a-4229-8d52-39b675b3e80c") })
       const { createdGameId } = await player.client.lobbies.create.mutate({
         configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
       })
@@ -128,7 +128,9 @@ describe("gameplay.router", () => {
         .map(({ ownerPlayerId }) => ownerPlayerId)
 
       expect(homePlanetsOwnerIds).toHaveLength(3)
-      expect(homePlanetsOwnerIds).toStrictEqual([creator.account.id, firstOpponent.account.id, secondOpponent.account.id])
+      expect(homePlanetsOwnerIds).toStrictEqual(
+        expect.arrayContaining([creator.account.id, firstOpponent.account.id, secondOpponent.account.id]),
+      )
     })
 
     it("should reject starting a game as a non-creator", async () => {

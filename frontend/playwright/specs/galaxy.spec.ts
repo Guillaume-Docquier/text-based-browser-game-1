@@ -20,7 +20,6 @@ test("shows claimed systems and Planet owners", async ({ alice, bob }) => {
   })
 
   const aliceGalaxyPage = await test.step("Alice starts the game", async () => {
-    await aliceLobbyPage.reload()
     return await aliceLobbyPage.startGame()
   })
 
@@ -33,15 +32,16 @@ test("shows claimed systems and Planet owners", async ({ alice, bob }) => {
     await expect(aliceGalaxyPage.ownStars).toHaveCount(1)
     await expect(aliceGalaxyPage.opponentStars).toHaveCount(1)
     await expect(aliceGalaxyPage.sharedStars).toHaveCount(0)
+
     await expect(bobGalaxyPage.ownStars).toHaveCount(1)
     await expect(bobGalaxyPage.opponentStars).toHaveCount(1)
     await expect(bobGalaxyPage.sharedStars).toHaveCount(0)
   })
 
   await test.step("Show the owner name only beneath claimed Planets", async () => {
-    await aliceGalaxyPage.openStarSystem(aliceGalaxyPage.ownStars)
+    await aliceGalaxyPage.openStarSystem(aliceGalaxyPage.ownStars.first())
     await expect(aliceGalaxyPage.ownedPlanets).toHaveCount(1)
-    await expect(aliceGalaxyPage.planetOwnerName(aliceGalaxyPage.ownedPlanets)).toHaveText(/.+/)
+    await expect(aliceGalaxyPage.planetOwnerName(aliceGalaxyPage.ownedPlanets.first())).toHaveText(/.+/)
     await expect(aliceGalaxyPage.unclaimedPlanets).not.toHaveCount(0)
     await expect(aliceGalaxyPage.planetOwnerName(aliceGalaxyPage.unclaimedPlanets.first())).toHaveCount(0)
   })

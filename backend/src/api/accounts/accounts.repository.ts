@@ -8,6 +8,7 @@ import { couldNot } from "#lib/errors.ts"
 type NewAccountRow = typeof accountsTable.$inferInsert
 
 export type NewAccountModel = {
+  id?: AccountId | undefined
   authId: string
   email?: string | null | undefined
   alias?: string | null | undefined
@@ -78,6 +79,7 @@ export class AccountsRepository extends PostgresRepository {
 
 function toNewAccountRow(newAccountModel: NewAccountModel): NewAccountRow {
   return {
+    id: newAccountModel.id,
     authId: newAccountModel.authId,
     alias: newAccountModel.alias,
     email: newAccountModel.email?.toLowerCase(),

@@ -1,4 +1,4 @@
-import { Assert, branded, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { createGalaxy } from "#api/gameplay/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
@@ -13,7 +13,7 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { type GameId, GameIdSchema } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
-import { type PlanetId, PlanetIdSchema } from "#lib/db/planets/PlanetId.ts"
+import { PlanetIdSchema } from "#lib/db/planets/PlanetId.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { type PlayerId, PlayerIdSchema } from "#lib/db/players/PlayerId.ts"
@@ -30,7 +30,9 @@ import { ActionDefinitionIdSchema } from "#lib/rules-engine/ruleset-model/action
 import { SelectedTargetsSchema } from "#lib/rules-engine/ruleset-model/actions/SelectedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { safeResolveTargetId } from "#lib/rules-engine/turn-resolution/effects/resolveTargetId.ts"
 import type { Fleet, Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
@@ -144,8 +146,7 @@ export class GameplayController {
     submittedActionTargets,
   }: UpdateActionSubmissionDto): Promise<Result<void, string>> {
     const setActionResult = await this.createTransaction(async (tx) => {
-      const planetIds = getValidPlanetIds(Object.values(submittedActionTargets.selectedTargets ?? {}))
-      const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn, planetIds }, tx)
+      const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
 
       const actionsById = new Map(Array.from(context.actions, (action) => [action.id, action]))
       const action = actionsById.get(submittedActionTargets.actionId)
@@ -168,14 +169,51 @@ export class GameplayController {
         selectedTargets: submittedActionTargets.selectedTargets,
       } satisfies SubmittedAction
 
+      const actionDefinition = context.ruleset.actionDefinitions[submittedAction.actionDefinitionId]
+      if (actionDefinition === undefined) {
+        throw new TransactionRollbackError("No action definition found", {
+          cause: { actionDefinitionId: submittedAction.actionDefinitionId },
+        })
+      }
+
+      const planetIds = [
+        ...new Set(
+          Object.entries(actionDefinition.targets)
+            .map(([tag, type]) => {
+              if (type !== TargetType.PLANET && type !== TargetType.PLANET_OWNED) {
+                return null
+              }
+
+              return safeResolveTargetId(submittedAction.selectedTargets, { tag, type })
+            })
+            .filter((planetId) => planetId !== null),
+        ),
+      ]
+      const planets = await this.gameplayRepository.getPlanetsByIds({ gameId: context.gameId, planetIds }, tx)
+
+      const fleetIds = [
+        ...new Set(
+          Object.entries(actionDefinition.targets)
+            .map(([tag, type]) => {
+              if (type !== TargetType.FLEET) {
+                return null
+              }
+
+              return safeResolveTargetId(submittedAction.selectedTargets, { tag, type })
+            })
+            .filter((fleetId) => fleetId !== null),
+        ),
+      ]
+      const fleets = await this.gameplayRepository.getFleetsByIds({ gameId: context.gameId, fleetIds }, tx)
+
       const turnState = createTurnState({
         gameId: context.gameId,
         turn,
         playerId,
         resources: context.resources,
         submittedActions: [submittedAction],
-        planets: [...context.planets],
-        fleets: [], // definitely matters, need the data. Should pull only the required data, not all the fleets.
+        planets: [...planets],
+        fleets: [...fleets],
       })
       const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
       if (issues.length > 0) {
@@ -218,17 +256,6 @@ export class GameplayController {
 
     return Result.Success(undefined)
   }
-}
-
-function getValidPlanetIds(targetIds: readonly string[]): PlanetId[] {
-  return [
-    ...new Set(
-      targetIds.flatMap((targetId) => {
-        const value = Number(targetId)
-        return Number.isSafeInteger(value) && value > 0 && value <= 2_147_483_647 ? [branded<PlanetId>(value)] : []
-      }),
-    ),
-  ]
 }
 
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {

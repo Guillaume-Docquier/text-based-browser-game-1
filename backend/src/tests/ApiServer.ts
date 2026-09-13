@@ -2,6 +2,7 @@ import { createServer, type Server } from "node:http"
 import type { AddressInfo } from "node:net"
 import type { Express } from "express"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
 
 /**
@@ -39,10 +40,16 @@ export class ApiServer {
     this.port = (this.server.address() as AddressInfo).port
   }
 
-  public async createClient(args: { authenticated: true }): Promise<AuthenticatedApiClient>
+  public async createClient(args: { authenticated: true; id?: AccountId }): Promise<AuthenticatedApiClient>
   public async createClient(args: { authenticated: false }): Promise<AnonymousApiClient>
-  public async createClient({ authenticated }: { authenticated: boolean }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
-    return await createApiClient({ port: this.port, accountsRepository: this.accountsRepository, authenticated })
+  public async createClient({
+    authenticated,
+    id,
+  }: {
+    authenticated: boolean
+    id?: AccountId | undefined
+  }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
+    return await createApiClient({ port: this.port, accountsRepository: this.accountsRepository, authenticated, id })
   }
 
   public [Symbol.dispose](): void {
