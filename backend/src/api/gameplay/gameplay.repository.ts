@@ -1,5 +1,5 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
-import { and, asc, desc, eq, gt, inArray } from "drizzle-orm"
+import { and, desc, eq, gt, inArray } from "drizzle-orm"
 import type { Clock } from "#lib/Clock.ts"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { ActionId } from "#lib/db/actions/ActionId.ts"
@@ -209,7 +209,6 @@ export class GameplayRepository extends PostgresRepository {
       .select({ playerId: playersTable.playerId })
       .from(playersTable)
       .where(eq(playersTable.gameId, gameForStart.id))
-      .orderBy(asc(playersTable.color))
     Assert.isTrue(playerIdRows.length > 0)
 
     const playerIds: readonly PlayerId[] = playerIdRows.map(({ playerId }) => playerId)
