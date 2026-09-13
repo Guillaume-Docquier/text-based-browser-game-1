@@ -21,7 +21,7 @@ export function assignHomePlanets({
   const availablePlanetCount = galaxy.systems.flatMap(({ planets }) => planets).filter(({ ownerPlayerId }) => ownerPlayerId === null).length
   Assert.isTrue(availablePlanetCount >= playerIds.length)
 
-  const shuffledPlayerIds = rng.shuffle([...playerIds])
+  const shuffledPlayerIds = rng.shuffle([...playerIds].sort())
 
   // Distribute evenly in a circle
   const angleIncrement = Angle.create(360 / shuffledPlayerIds.length, UnitOfAngle.DEGREES)
