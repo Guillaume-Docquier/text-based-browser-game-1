@@ -1,12 +1,14 @@
-import { Assert, type Rng } from "@guillaume-docquier/tools-ts"
-import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
+import { Angle, Assert, Distance, type Rng, UnitOfAngle, UnitOfDistance } from "@guillaume-docquier/tools-ts"
+import { GalaxySettings } from "#api/gameplay/galaxy-creation/GalaxySettings.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import type { GalaxyModel } from "./GalaxyModel.ts"
+import type { GalaxyModel } from "../GalaxyModel.ts"
 
-const HOME_DISTANCE = 35
-const DISTANCE_STANDARD_DEVIATION = 5
-const ANGLE_STANDARD_DEVIATION = (5 * Math.PI) / 180
+const HomePlanetSettings = {
+  HOME_DISTANCE: Distance.create(10, UnitOfDistance.LIGHT_YEARS),
+  DISTANCE_STANDARD_DEVIATION: Distance.create(5, UnitOfDistance.LIGHT_YEARS),
+  ANGLE_STANDARD_DEVIATION: Angle.create(10, UnitOfAngle.DEGREES),
+}
 
 export function assignHomePlanets({
   galaxy,
@@ -22,11 +24,25 @@ export function assignHomePlanets({
 
   const homePlanetOwners = new Map<PlanetId, PlayerId>()
   const shuffledPlayerIds = rng.shuffle([...playerIds])
-  const angleInterval = (2 * Math.PI) / shuffledPlayerIds.length
+
+  // Distribute evenly in a circle
+  const angleIncrement = Angle.create(360 / shuffledPlayerIds.length, UnitOfAngle.DEGREES)
 
   for (const [index, playerId] of shuffledPlayerIds.entries()) {
-    const angle = rng.normal(index * angleInterval, ANGLE_STANDARD_DEVIATION)
-    const distance = Math.abs(rng.normal(HOME_DISTANCE, DISTANCE_STANDARD_DEVIATION))
+    const angle = rng.normal(
+      index * Angle.in(angleIncrement, UnitOfAngle.RADIANS),
+      Angle.in(HomePlanetSettings.ANGLE_STANDARD_DEVIATION, UnitOfAngle.RADIANS),
+    )
+
+    // Keep the distance positive to spread players outwards of the center, each in their direction
+    // Negative numbers are rare here, and it wouldn't break anything, we just prefer a ring pattern
+    const distance = Math.abs(
+      rng.normal(
+        Distance.in(HomePlanetSettings.HOME_DISTANCE, UnitOfDistance.LIGHT_YEARS),
+        Distance.in(HomePlanetSettings.DISTANCE_STANDARD_DEVIATION, UnitOfDistance.LIGHT_YEARS),
+      ),
+    )
+
     const target = {
       x: GalaxySettings.GALAXY_ORIGIN.x + distance * Math.cos(angle),
       y: GalaxySettings.GALAXY_ORIGIN.y + distance * Math.sin(angle),

@@ -1,4 +1,4 @@
-import type { StarCoordinates } from "#api/shared/StarCoordinates.ts"
+import type { StarCoordinates } from "#api/gameplay/galaxy-creation/StarCoordinates.ts"
 import type { StarId } from "#lib/db/stars/StarId.ts"
 
 export type StarModel = {

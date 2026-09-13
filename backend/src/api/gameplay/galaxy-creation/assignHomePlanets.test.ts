@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { StarId } from "#lib/db/stars/StarId.ts"
+import { createGalaxyModelStub, createGalaxySystemModelStub } from "../GalaxyModel.stub.ts"
+import { createPlanetModelStub } from "../PlanetModel.stub.ts"
 import { assignHomePlanets } from "./assignHomePlanets.ts"
-import { createGalaxyModelStub, createGalaxySystemModelStub } from "./GalaxyModel.stub.ts"
-import { createPlanetModelStub } from "./PlanetModel.stub.ts"
 
 describe("assignHomePlanets", () => {
   it("should deterministically shuffle players and use the next closest eligible star", () => {

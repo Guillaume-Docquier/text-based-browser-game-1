@@ -1,4 +1,4 @@
-import type { PlanetCoordinates } from "#api/shared/PlanetCoordinates.ts"
+import type { PlanetCoordinates } from "#api/gameplay/galaxy-creation/PlanetCoordinates.ts"
 import type { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlanetSize } from "#lib/db/planets/PlanetSize.ts"

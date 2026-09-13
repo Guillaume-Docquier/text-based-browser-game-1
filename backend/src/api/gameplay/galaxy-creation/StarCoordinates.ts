@@ -1,6 +1,6 @@
 import type { XY } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import { GalaxySettings } from "#api/shared/GalaxySettings.ts"
+import { GalaxySettings } from "#api/gameplay/galaxy-creation/GalaxySettings.ts"
 import type { starsTable } from "#lib/db/schema.ts"
 
 /**
