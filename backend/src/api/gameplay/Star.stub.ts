@@ -1,7 +1,7 @@
 import { branded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
-import type { StarModel } from "./StarModel.ts"
+import type { Star } from "./Star.ts"
 
-export function createStarModelStub({ id = 1, ...overrides }: Partial<UnbrandedProperties<StarModel>> = {}): StarModel {
+export function createStarStub({ id = 1, ...overrides }: Partial<UnbrandedProperties<Star>> = {}): Star {
   return {
     id: branded(id),
     name: "star",

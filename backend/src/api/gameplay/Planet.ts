@@ -4,7 +4,7 @@ import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 
-export type PlanetModel = {
+export type Planet = {
   readonly id: PlanetId
   readonly ownerPlayerId: PlayerId | null
   readonly name: string

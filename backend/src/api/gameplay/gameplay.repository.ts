@@ -31,7 +31,7 @@ import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Resource
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { Planet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
-import type { GalaxyModel } from "./GalaxyModel.ts"
+import type { Galaxy } from "./Galaxy.ts"
 
 type NewActionRow = typeof actionsTable.$inferInsert
 type NewResourceRow = typeof resourcesTable.$inferInsert
@@ -96,7 +96,7 @@ export type PlayerViewModel = Readonly<{
   gameId: GameId
   player: PlayerViewPlayerModel
   opponents: Readonly<Record<PlayerId, PlayerViewPlayerModel>>
-  galaxy: GalaxyModel
+  galaxy: Galaxy
   turn: number
   turnStatus: TurnStatus
   turnEndsAt: Date
@@ -149,7 +149,7 @@ export type StartGameModel = {
    * Eventually will probably be per player, might not all have the same starting conditions
    */
   readonly availableActions: readonly AvailableAction[]
-  readonly galaxy: GalaxyModel
+  readonly galaxy: Galaxy
 }
 
 export class GameplayRepository extends PostgresRepository {
@@ -556,7 +556,7 @@ function toGalaxyModel({
 }: {
   stars: ReadonlyArray<typeof starsTable.$inferSelect>
   planets: ReadonlyArray<typeof planetsTable.$inferSelect>
-}): GalaxyModel {
+}): Galaxy {
   const planetsByStarId = Map.groupBy(planets, (planet) => planet.starId)
   const systems = stars.map((star) => ({
     star,

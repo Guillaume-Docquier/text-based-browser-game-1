@@ -1,7 +1,7 @@
 import { Angle, Assert, Distance, type Mutable, type Rng, UnitOfAngle, UnitOfDistance, type XY } from "@guillaume-docquier/tools-ts"
 import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import type { GalaxyModel, GalaxySystemModel } from "../GalaxyModel.ts"
+import type { Galaxy, System } from "../Galaxy.ts"
 
 /**
  * Assigns home planets in an empty galaxy.
@@ -14,10 +14,10 @@ export function assignHomePlanets({
   rng,
 }: {
   galaxyCreationSettings: GalaxyCreationSettings
-  galaxy: GalaxyModel
+  galaxy: Galaxy
   playerIds: readonly PlayerId[]
   rng: Rng
-}): GalaxyModel {
+}): Galaxy {
   const availablePlanetCount = galaxy.systems.flatMap(({ planets }) => planets).filter(({ ownerPlayerId }) => ownerPlayerId === null).length
   Assert.isTrue(availablePlanetCount >= playerIds.length)
 
@@ -64,8 +64,8 @@ export function assignHomePlanets({
  * This is O(nbPlanets)
  * We can optimize this if that's a problem. Here, we call this just a handful of times (once per player), so it's not the end of the world.
  */
-function getClosestSystemWithUnclaimedPlanets(target: XY, galaxy: GalaxyModel): GalaxySystemModel {
-  let closestSystem: GalaxySystemModel | undefined
+function getClosestSystemWithUnclaimedPlanets(target: XY, galaxy: Galaxy): System {
+  let closestSystem: System | undefined
   let closestDistance = Number.POSITIVE_INFINITY
   for (const system of galaxy.systems) {
     if (!system.planets.some((planet) => planet.ownerPlayerId === null)) {

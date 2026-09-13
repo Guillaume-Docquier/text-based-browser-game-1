@@ -1,13 +1,9 @@
 import { branded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
-import type { PlanetModel } from "./PlanetModel.ts"
+import type { Planet } from "./Planet.ts"
 
-export function createPlanetModelStub({
-  id = 1,
-  ownerPlayerId = null,
-  ...overrides
-}: Partial<UnbrandedProperties<PlanetModel>> = {}): PlanetModel {
+export function createPlanetStub({ id = 1, ownerPlayerId = null, ...overrides }: Partial<UnbrandedProperties<Planet>> = {}): Planet {
   return {
     id: branded(id),
     ownerPlayerId: ownerPlayerId === null ? null : branded(ownerPlayerId),

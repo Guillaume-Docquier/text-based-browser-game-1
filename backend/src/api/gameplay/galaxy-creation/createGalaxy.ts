@@ -3,7 +3,7 @@ import { assignHomePlanets } from "#api/gameplay/galaxy-creation/assignHomePlane
 import type { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import { toPlanetCoordinates } from "#api/gameplay/galaxy-creation/PlanetCoordinates.ts"
 import { toStarCoordinates } from "#api/gameplay/galaxy-creation/StarCoordinates.ts"
-import type { GalaxyModel } from "#api/gameplay/GalaxyModel.ts"
+import type { Galaxy } from "#api/gameplay/Galaxy.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { type GeneratedGalaxy, galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
@@ -19,7 +19,7 @@ export function createGalaxy({
   galaxyCreationSettings: GalaxyCreationSettings
   playerIds: readonly PlayerId[]
   rng: Rng
-}): GalaxyModel {
+}): Galaxy {
   const generatedGalaxy = generateGalaxy({ galaxyCreationSettings, rng })
   const galaxy = toGalaxyModel({ generatedGalaxy })
   const withHomePlanets = assignHomePlanets({ galaxyCreationSettings, galaxy, playerIds, rng })
@@ -50,7 +50,7 @@ function generateGalaxy({ galaxyCreationSettings, rng }: { galaxyCreationSetting
 /**
  * Augments a generated galaxy with gameplay concepts, like ids, coordinates, etc
  */
-function toGalaxyModel({ generatedGalaxy }: { generatedGalaxy: GeneratedGalaxy }): GalaxyModel {
+function toGalaxyModel({ generatedGalaxy }: { generatedGalaxy: GeneratedGalaxy }): Galaxy {
   let nextPlanetId = 1
   return {
     systems: generatedGalaxy.systems.map((system, starIndex) => {
