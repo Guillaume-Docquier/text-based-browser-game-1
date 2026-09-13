@@ -146,6 +146,7 @@ export class GameplayController {
     const setActionResult = await this.createTransaction(async (tx) => {
       const planetIds = getValidPlanetIds(Object.values(submittedActionTargets.selectedTargets ?? {}))
       const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn, planetIds }, tx)
+
       const actionsById = new Map(Array.from(context.actions, (action) => [action.id, action]))
       const action = actionsById.get(submittedActionTargets.actionId)
       if (action === undefined) {
