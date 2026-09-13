@@ -46,7 +46,7 @@ Relates to:
 
 ## Home Planets
 
-When a game starts, every player receives one Home Planet. Players are shuffled deterministically, then placed around a ring 35 light-years from the galaxy center at equal angular intervals. Normal noise with a standard deviation of 5 light-years and 5 degrees varies each target position. The closest Star with an Unclaimed Planet supplies one randomly selected Home Planet. Home Planets receive no other special attributes.
+When a game starts, every player receives one Home Planet. Players are shuffled deterministically, then placed in a ring around the galaxy center. Noise is added to make the positions look more random. Home Planets receive no special attributes.
 
 ## Planet Attributes
 
