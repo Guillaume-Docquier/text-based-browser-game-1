@@ -10,6 +10,9 @@ const HomePlanetSettings = {
   ANGLE_STANDARD_DEVIATION: Angle.create(10, UnitOfAngle.DEGREES),
 }
 
+/**
+ * Assigns home planets in an empty galaxy
+ */
 export function assignHomePlanets({
   galaxy,
   playerIds,
@@ -69,6 +72,9 @@ export function assignHomePlanets({
     homePlanetOwners.set(homePlanet.id, playerId)
   }
 
+  // Not really efficient to copy the whole galaxy again
+  // In reality that shouldn't matter that much, but if it becomes a problem we'll optimize it
+  // The main thing is that all the models are intentionally readonly, so we can't mutate them
   return {
     systems: galaxy.systems.map((system) => ({
       ...system,

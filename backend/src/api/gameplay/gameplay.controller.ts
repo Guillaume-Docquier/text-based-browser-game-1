@@ -32,7 +32,6 @@ import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Resource
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { Fleet, Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { UInt32 } from "#lib/UInt32.ts"
-import { assignHomePlanets } from "./galaxy-creation/assignHomePlanets.ts"
 import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
@@ -83,7 +82,7 @@ export class GameplayController {
 
       const startTime = Timer.start()
       const rng = Rng.create(mulberry32Prng(gameForStart.mapGenerationSeed))
-      const galaxy = assignHomePlanets({ galaxy: createGalaxy({ rng }), playerIds: gameForStart.playerIds, rng })
+      const galaxy = createGalaxy({ rng, playerIds: gameForStart.playerIds })
       this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
 
       await this.gameplayRepository.startGame(

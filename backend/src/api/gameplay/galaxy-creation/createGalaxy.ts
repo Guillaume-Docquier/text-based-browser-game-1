@@ -1,16 +1,22 @@
 import { branded, type Rng } from "@guillaume-docquier/tools-ts"
+import { assignHomePlanets } from "#api/gameplay/galaxy-creation/assignHomePlanets.ts"
 import { GalaxySettings } from "#api/gameplay/galaxy-creation/GalaxySettings.ts"
 import { toPlanetCoordinates } from "#api/gameplay/galaxy-creation/PlanetCoordinates.ts"
 import { toStarCoordinates } from "#api/gameplay/galaxy-creation/StarCoordinates.ts"
 import type { GalaxyModel } from "#api/gameplay/GalaxyModel.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { type Galaxy, galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 
-export function createGalaxy({ rng }: { rng: Rng }): GalaxyModel {
+/**
+ * Creates a galaxy that's ready to play in.
+ */
+export function createGalaxy({ rng, playerIds }: { rng: Rng; playerIds: readonly PlayerId[] }): GalaxyModel {
   const generatedGalaxy = generateGalaxy({ rng })
-  const galaxyModel = toGalaxyModel({ generatedGalaxy })
+  const galaxy = toGalaxyModel({ generatedGalaxy })
+  const withHomePlanets = assignHomePlanets({ galaxy, playerIds, rng })
 
-  return galaxyModel
+  return withHomePlanets
 }
 
 /**
