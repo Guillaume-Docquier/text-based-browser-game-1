@@ -1,6 +1,7 @@
 import { Assert, branded, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { createGalaxy } from "#api/gameplay/galaxy-creation/createGalaxy.ts"
+import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import { PlanetCoordinatesSchema } from "#api/gameplay/galaxy-creation/PlanetCoordinates.ts"
 import { StarCoordinatesSchema } from "#api/gameplay/galaxy-creation/StarCoordinates.ts"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
@@ -82,7 +83,7 @@ export class GameplayController {
 
       const startTime = Timer.start()
       const rng = Rng.create(mulberry32Prng(gameForStart.mapGenerationSeed))
-      const galaxy = createGalaxy({ rng, playerIds: gameForStart.playerIds })
+      const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: gameForStart.playerIds, rng })
       this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
 
       await this.gameplayRepository.startGame(

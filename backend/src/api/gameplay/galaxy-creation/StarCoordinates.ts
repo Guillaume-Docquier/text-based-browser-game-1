@@ -1,6 +1,6 @@
 import type { XY } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import { GalaxySettings } from "#api/gameplay/galaxy-creation/GalaxySettings.ts"
+import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import type { starsTable } from "#lib/db/schema.ts"
 
 /**
@@ -19,10 +19,10 @@ export const StarCoordinatesSchema = z.string() satisfies z.ZodType<(typeof star
 export function toStarCoordinates({ x, y }: XY): StarCoordinates {
   const row = Math.floor(y)
   const column = Math.floor(x)
-  const regionRow = Math.floor(row / GalaxySettings.REGION_SIZE_LIGHT_YEARS)
-  const regionColumn = Math.floor(column / GalaxySettings.REGION_SIZE_LIGHT_YEARS)
-  const starRow = row % GalaxySettings.REGION_SIZE_LIGHT_YEARS
-  const starColumn = column % GalaxySettings.REGION_SIZE_LIGHT_YEARS
+  const regionRow = Math.floor(row / GalaxyCreationSettings.REGION_SIZE_LIGHT_YEARS)
+  const regionColumn = Math.floor(column / GalaxyCreationSettings.REGION_SIZE_LIGHT_YEARS)
+  const starRow = row % GalaxyCreationSettings.REGION_SIZE_LIGHT_YEARS
+  const starColumn = column % GalaxyCreationSettings.REGION_SIZE_LIGHT_YEARS
 
   return `${regionRow}${regionColumn}:${starRow}${starColumn}`
 }

@@ -1,5 +1,6 @@
 import { branded, mulberry32Prng, Rng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { StarId } from "#lib/db/stars/StarId.ts"
@@ -29,11 +30,13 @@ describe("assignHomePlanets", () => {
 
     // Act
     const assignedGalaxy = assignHomePlanets({
+      galaxyCreationSettings: GalaxyCreationSettings,
       galaxy,
       playerIds: [firstPlayerId, secondPlayerId],
       rng: Rng.create(mulberry32Prng(1234)),
     })
     const repeatedAssignedGalaxy = assignHomePlanets({
+      galaxyCreationSettings: GalaxyCreationSettings,
       galaxy,
       playerIds: [firstPlayerId, secondPlayerId],
       rng: Rng.create(mulberry32Prng(1234)),

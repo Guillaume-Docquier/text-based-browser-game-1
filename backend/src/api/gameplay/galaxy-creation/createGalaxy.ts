@@ -1,6 +1,6 @@
 import { branded, type Rng } from "@guillaume-docquier/tools-ts"
 import { assignHomePlanets } from "#api/gameplay/galaxy-creation/assignHomePlanets.ts"
-import { GalaxySettings } from "#api/gameplay/galaxy-creation/GalaxySettings.ts"
+import type { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import { toPlanetCoordinates } from "#api/gameplay/galaxy-creation/PlanetCoordinates.ts"
 import { toStarCoordinates } from "#api/gameplay/galaxy-creation/StarCoordinates.ts"
 import type { GalaxyModel } from "#api/gameplay/GalaxyModel.ts"
@@ -11,10 +11,18 @@ import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 /**
  * Creates a galaxy that's ready to play in.
  */
-export function createGalaxy({ rng, playerIds }: { rng: Rng; playerIds: readonly PlayerId[] }): GalaxyModel {
-  const generatedGalaxy = generateGalaxy({ rng })
+export function createGalaxy({
+  galaxyCreationSettings,
+  playerIds,
+  rng,
+}: {
+  galaxyCreationSettings: GalaxyCreationSettings
+  playerIds: readonly PlayerId[]
+  rng: Rng
+}): GalaxyModel {
+  const generatedGalaxy = generateGalaxy({ galaxyCreationSettings, rng })
   const galaxy = toGalaxyModel({ generatedGalaxy })
-  const withHomePlanets = assignHomePlanets({ galaxy, playerIds, rng })
+  const withHomePlanets = assignHomePlanets({ galaxyCreationSettings, galaxy, playerIds, rng })
 
   return withHomePlanets
 }
@@ -22,14 +30,17 @@ export function createGalaxy({ rng, playerIds }: { rng: Rng; playerIds: readonly
 /**
  * Generates a galaxy deterministically using default settings.
  */
-function generateGalaxy({ rng }: { rng: Rng }): Galaxy {
+function generateGalaxy({ galaxyCreationSettings, rng }: { galaxyCreationSettings: GalaxyCreationSettings; rng: Rng }): Galaxy {
   return galaxyGenerator({
-    size: GalaxySettings.GALAXY_SIZE_LIGHT_YEARS,
+    size: galaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS,
     pointsGenerator: () =>
       spiralGenerator({
-        origin: GalaxySettings.GALAXY_ORIGIN,
-        radius: GalaxySettings.GALAXY_RADIUS_LIGHT_YEARS,
-        nbPoints: GalaxySettings.GALAXY_SYSTEMS_COUNT,
+        origin: {
+          x: galaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2,
+          y: galaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2,
+        },
+        radius: galaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2,
+        nbPoints: galaxyCreationSettings.GALAXY_SYSTEMS_COUNT,
         rng,
       }),
     rng,
