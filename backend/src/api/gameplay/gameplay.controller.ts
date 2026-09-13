@@ -212,8 +212,8 @@ export class GameplayController {
         playerId,
         resources: context.resources,
         submittedActions: [submittedAction],
-        planets: [...planets],
-        fleets: [...fleets],
+        planets,
+        fleets,
       })
       const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
       if (issues.length > 0) {

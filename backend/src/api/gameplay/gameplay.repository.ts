@@ -450,7 +450,7 @@ export class GameplayRepository extends PostgresRepository {
   public async getPlanetsByIds(
     { gameId, planetIds }: { gameId: GameId; planetIds: readonly PlanetId[] },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<readonly Planet[]> {
+  ): Promise<Planet[]> {
     if (planetIds.length === 0) {
       return []
     }
@@ -464,7 +464,7 @@ export class GameplayRepository extends PostgresRepository {
   public async getFleetsByIds(
     { gameId, fleetIds }: { gameId: GameId; fleetIds: readonly FleetId[] },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<readonly Fleet[]> {
+  ): Promise<Fleet[]> {
     if (fleetIds.length === 0) {
       return []
     }
