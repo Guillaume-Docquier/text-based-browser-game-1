@@ -1,11 +1,11 @@
-import { Angle, Assert, Distance, type Rng, UnitOfAngle, UnitOfDistance } from "@guillaume-docquier/tools-ts"
+import { Angle, Assert, Distance, type Mutable, type Rng, UnitOfAngle, UnitOfDistance, type XY } from "@guillaume-docquier/tools-ts"
 import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
-import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import type { GalaxyModel } from "../GalaxyModel.ts"
+import type { GalaxyModel, GalaxySystemModel } from "../GalaxyModel.ts"
 
 /**
- * Assigns home planets in an empty galaxy
+ * Assigns home planets in an empty galaxy.
+ * Although we return a galaxy, we actually mutate it for performance.
  */
 export function assignHomePlanets({
   galaxyCreationSettings,
@@ -21,7 +21,6 @@ export function assignHomePlanets({
   const availablePlanetCount = galaxy.systems.flatMap(({ planets }) => planets).filter(({ ownerPlayerId }) => ownerPlayerId === null).length
   Assert.isTrue(availablePlanetCount >= playerIds.length)
 
-  const homePlanetOwners = new Map<PlanetId, PlayerId>()
   const shuffledPlayerIds = rng.shuffle([...playerIds])
 
   // Distribute evenly in a circle
@@ -42,42 +41,49 @@ export function assignHomePlanets({
       ),
     )
 
-    const target = {
+    const targetHomeworldPosition = {
       x: GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2 + distance * Math.cos(angle),
       y: GalaxyCreationSettings.GALAXY_DIAMETER_LIGHT_YEARS / 2 + distance * Math.sin(angle),
     }
 
-    let closestSystem: GalaxyModel["systems"][number] | undefined
-    let closestDistance = Number.POSITIVE_INFINITY
-    for (const system of galaxy.systems) {
-      if (!system.planets.some((planet) => planet.ownerPlayerId === null && !homePlanetOwners.has(planet.id))) {
-        continue
-      }
-
-      const distanceToTarget = Math.hypot(system.star.x - target.x, system.star.y - target.y)
-      if (distanceToTarget < closestDistance) {
-        closestSystem = system
-        closestDistance = distanceToTarget
-      }
-    }
-    Assert.isDefined(closestSystem)
-
-    const availablePlanets = closestSystem.planets.filter((planet) => planet.ownerPlayerId === null && !homePlanetOwners.has(planet.id))
+    const closestSystem = getClosestSystemWithUnclaimedPlanets(targetHomeworldPosition, galaxy)
+    const availablePlanets = closestSystem.planets.filter((planet) => planet.ownerPlayerId === null)
     const homePlanet = rng.draw(availablePlanets, 1).drawn[0]
     Assert.isDefined(homePlanet)
-    homePlanetOwners.set(homePlanet.id, playerId)
+
+    // We're cheating by mutating the galaxy to avoid copying it all
+    // We're in the galaxy creation process, we can do that
+    const mutableHomePlanet: Mutable<typeof homePlanet, "ownerPlayerId"> = homePlanet
+    mutableHomePlanet.ownerPlayerId = playerId
   }
 
-  // Not really efficient to copy the whole galaxy again
-  // In reality that shouldn't matter that much, but if it becomes a problem we'll optimize it
-  // The main thing is that all the models are intentionally readonly, so we can't mutate them
-  return {
-    systems: galaxy.systems.map((system) => ({
-      ...system,
-      planets: system.planets.map((planet) => ({
-        ...planet,
-        ownerPlayerId: homePlanetOwners.get(planet.id) ?? planet.ownerPlayerId,
-      })),
-    })),
+  return galaxy
+}
+
+/**
+ * This is O(nbPlanets)
+ * We can optimize this if that's a problem. Here, we call this just a handful of times (once per player), so it's not the end of the world.
+ */
+function getClosestSystemWithUnclaimedPlanets(target: XY, galaxy: GalaxyModel): GalaxySystemModel {
+  let closestSystem: GalaxySystemModel | undefined
+  let closestDistance = Number.POSITIVE_INFINITY
+  for (const system of galaxy.systems) {
+    if (!system.planets.some((planet) => planet.ownerPlayerId === null)) {
+      continue
+    }
+
+    // Not using hypot to avoid the sqrt
+    const distanceToTarget = sumOfSquares(system.star.x - target.x, system.star.y - target.y)
+    if (distanceToTarget < closestDistance) {
+      closestSystem = system
+      closestDistance = distanceToTarget
+    }
   }
+  Assert.isDefined(closestSystem)
+
+  return closestSystem
+}
+
+function sumOfSquares(x: number, y: number): number {
+  return x * x + y * y
 }
