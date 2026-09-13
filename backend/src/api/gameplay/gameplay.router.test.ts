@@ -48,7 +48,7 @@ describe("gameplay.router", () => {
     it("should generate a deterministic galaxy from the game's seed", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
-      const player = await apiServer.createClient({ authenticated: true })
+      const player = await apiServer.createClient({ authenticated: true, id: branded("7f80447c-442a-4229-8d52-39b675b3e80c") })
       const { createdGameId } = await player.client.lobbies.create.mutate({
         configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
       })
@@ -66,6 +66,7 @@ describe("gameplay.router", () => {
         x: 46.42101792976603,
         y: 47.21423492967076,
         id: expect.any(Number),
+        ownerPlayerId: null,
         name: "planet 685256",
         biome: PlanetBiome.VOLCANIC,
         size: PlanetSize.MEDIUM,
@@ -100,6 +101,36 @@ describe("gameplay.router", () => {
       // Assert
       expect(startGameResult).toStrictEqual<typeof startGameResult>({ turnEndsAt: expect.any(String) }) // trpc serializes the date to string
       expect(new Date(startGameResult.turnEndsAt).toString()).not.toBe("Invalid Date")
+    })
+
+    it("should assign one unique Home Planet to every player", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+
+      const creator = await apiServer.createClient({ authenticated: true })
+      const firstOpponent = await apiServer.createClient({ authenticated: true })
+      const secondOpponent = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: 3, mapGenerationSeed: 1234 }),
+      })
+      await firstOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
+      await secondOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      // Act
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      // Assert
+      const homePlanetsOwnerIds = playerView.galaxy.systems
+        .flatMap(({ planets }) => planets)
+        .filter(({ ownerPlayerId }) => ownerPlayerId !== null)
+        .map(({ ownerPlayerId }) => ownerPlayerId)
+
+      expect(homePlanetsOwnerIds).toHaveLength(3)
+      expect(homePlanetsOwnerIds).toStrictEqual(
+        expect.arrayContaining([creator.account.id, firstOpponent.account.id, secondOpponent.account.id]),
+      )
     })
 
     it("should reject starting a game as a non-creator", async () => {
@@ -320,6 +351,39 @@ describe("gameplay.router", () => {
   })
 
   describe("updateActionSubmission", () => {
+    it("should submit an action with valid planet targets", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+      Assert.isDefined(buildFleet)
+
+      const homePlanet = initialPlayerView.galaxy.systems
+        .flatMap(({ planets }) => planets)
+        .find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
+      Assert.isDefined(homePlanet)
+
+      // Act
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: initialPlayerView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: buildFleet.id,
+          selectedTargets: { planet: String(homePlanet.id) },
+        }),
+      })
+
+      // Assert
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(playerView.actions.find(({ id }) => id === buildFleet.id)?.selectedTargets).toStrictEqual({ planet: String(homePlanet.id) })
+    })
+
     it("should submit and deselect multiple actions", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
@@ -458,6 +522,33 @@ describe("gameplay.router", () => {
       ]
       expect(deselectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedDeselectedActions))
       expect(deselectedPlayerView.actions).toHaveLength(expectedDeselectedActions.length)
+    })
+
+    it("should reject an action with invalid planet targets", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+      Assert.isDefined(buildFleet)
+
+      // Act
+      const invalidSubmission = player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: initialPlayerView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: buildFleet.id,
+          selectedTargets: { planet: "123456789" },
+        }),
+      })
+
+      // Assert
+      await expect(invalidSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should reject setting an action for a stale turn", async () => {

@@ -1,5 +1,5 @@
 {
-  "id": "59fd5306-c000-42fd-a340-512e59a1af1d",
+  "id": "981aff61-dc68-4b6a-889e-a281ffc2232b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -406,6 +406,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "owner_player_id": {
+          "name": "owner_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -490,6 +496,15 @@
           "columnsFrom": ["game_id", "star_id"],
           "columnsTo": ["game_id", "id"],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "planets_gameId_ownerPlayerId_game_players_fk": {
+          "name": "planets_gameId_ownerPlayerId_game_players_fk",
+          "tableFrom": "planets",
+          "tableTo": "players",
+          "columnsFrom": ["game_id", "owner_player_id"],
+          "columnsTo": ["game_id", "player_id"],
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },

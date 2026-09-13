@@ -3,7 +3,7 @@ import path from "node:path"
 import type { XY } from "@guillaume-docquier/tools-ts"
 import type { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import type { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
-import type { Planet } from "#lib/map-generation/planet.generator.ts"
+import type { GeneratedPlanet } from "#lib/map-generation/planet.generator.ts"
 import { SvgRenderer } from "./SvgRenderer.ts"
 
 const SVG_WIDTH = 900
@@ -32,7 +32,7 @@ const PANEL_CENTERS = [
 
 type SystemPreview = {
   readonly name: string
-  readonly planets: ReadonlyArray<XY & Pick<Planet, "biome" | "size">>
+  readonly planets: ReadonlyArray<XY & Pick<GeneratedPlanet, "biome" | "size">>
 }
 
 type RenderOptions = {

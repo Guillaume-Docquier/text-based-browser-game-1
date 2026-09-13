@@ -50,6 +50,7 @@ CREATE TABLE "planets" (
 	"game_id" integer NOT NULL,
 	"star_id" integer NOT NULL,
 	"id" integer NOT NULL,
+	"owner_player_id" uuid,
 	"name" text NOT NULL,
 	"coordinates" text NOT NULL,
 	"x" double precision NOT NULL,
@@ -129,6 +130,7 @@ ALTER TABLE "games" ADD CONSTRAINT "games_created_by_account_id_accounts_id_fk" 
 ALTER TABLE "games" ADD CONSTRAINT "games_winner_account_id_accounts_id_fk" FOREIGN KEY ("winner_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_ruleset_id_rulesets_id_fk" FOREIGN KEY ("ruleset_id") REFERENCES "public"."rulesets"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "planets" ADD CONSTRAINT "planets_gameId_starId_planets_fk" FOREIGN KEY ("game_id","star_id") REFERENCES "public"."stars"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "planets" ADD CONSTRAINT "planets_gameId_ownerPlayerId_game_players_fk" FOREIGN KEY ("game_id","owner_player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "players" ADD CONSTRAINT "players_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "players" ADD CONSTRAINT "players_player_id_accounts_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "resources" ADD CONSTRAINT "resources_gameId_playerId_game_players_fk" FOREIGN KEY ("game_id","player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

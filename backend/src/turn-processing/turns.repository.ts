@@ -74,6 +74,7 @@ type TurnToProcessPlayerModel = {
 
 type TurnToProcessPlanetModel = {
   readonly id: PlanetId
+  readonly ownerPlayerId: PlayerId | null
   readonly x: number
   readonly y: number
 }
@@ -221,7 +222,7 @@ export class TurnsRepository extends PostgresRepository {
         .orderBy(asc(actionsTable.playerId)),
       tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, games[0].rulesetId)),
       tx
-        .select({ id: planetsTable.id, x: planetsTable.x, y: planetsTable.y })
+        .select({ id: planetsTable.id, ownerPlayerId: planetsTable.ownerPlayerId, x: planetsTable.x, y: planetsTable.y })
         .from(planetsTable)
         .where(eq(planetsTable.gameId, startTurnProcessingModel.turn.gameId)),
       tx

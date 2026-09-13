@@ -48,6 +48,7 @@ export type Player = {
 
 export type Planet = {
   readonly id: PlanetId
+  readonly ownerPlayerId: PlayerId | null
   readonly x: number
   readonly y: number
 }
