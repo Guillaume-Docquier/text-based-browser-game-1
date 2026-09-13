@@ -2,9 +2,7 @@ import { branded, mulberry32Prng, Rng } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import { createStarModelStub } from "#api/gameplay/StarModel.stub.ts"
-import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import type { StarId } from "#lib/db/stars/StarId.ts"
 import { createGalaxyModelStub, createGalaxySystemModelStub } from "../GalaxyModel.stub.ts"
 import { createPlanetModelStub } from "../PlanetModel.stub.ts"
 import { assignHomePlanets } from "./assignHomePlanets.ts"
@@ -13,12 +11,11 @@ describe("assignHomePlanets", () => {
   it("should mutate the galaxy", () => {
     // Arrange
     const firstPlayerId = branded<PlayerId>("first-player")
-    const closestPlanetId = branded<PlanetId>(1)
     const galaxy = createGalaxyModelStub({
       systems: [
         createGalaxySystemModelStub({
-          star: { id: branded<StarId>(1), name: "closest", coordinates: "50:50", x: 50, y: 50 },
-          planets: [createPlanetModelStub({ id: closestPlanetId })],
+          star: createStarModelStub(),
+          planets: [createPlanetModelStub()],
         }),
       ],
     })
