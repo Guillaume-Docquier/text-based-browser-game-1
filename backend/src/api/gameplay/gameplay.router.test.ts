@@ -524,7 +524,7 @@ describe("gameplay.router", () => {
       expect(deselectedPlayerView.actions).toHaveLength(expectedDeselectedActions.length)
     })
 
-    it("should reject an action with invalid planet targets", async () => {
+    it("should reject building a fleet on a planet not owned by the player", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
 
@@ -536,6 +536,10 @@ describe("gameplay.router", () => {
 
       const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
       Assert.isDefined(buildFleet)
+      const unclaimedPlanet = initialPlayerView.galaxy.systems
+        .flatMap(({ planets }) => planets)
+        .find(({ ownerPlayerId }) => ownerPlayerId === null)
+      Assert.isDefined(unclaimedPlanet)
 
       // Act
       const invalidSubmission = player.client.gameplay.updateActionSubmission.mutate({
@@ -543,7 +547,7 @@ describe("gameplay.router", () => {
         turn: initialPlayerView.turn,
         submittedActionTargets: createSubmittedActionTargetsDtoStub({
           actionId: buildFleet.id,
-          selectedTargets: { planet: "123456789" },
+          selectedTargets: { planet: String(unclaimedPlanet.id) },
         }),
       })
 

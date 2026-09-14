@@ -9,7 +9,6 @@ import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType
 type TargetId<TTargetType extends TargetType> = {
   [TargetType.FLEET]: FleetId
   [TargetType.PLANET]: PlanetId
-  [TargetType.PLANET_OWNED]: PlanetId
   [TargetType.PLAYER]: PlayerId
 }[TTargetType]
 
@@ -18,10 +17,10 @@ type TargetId<TTargetType extends TargetType> = {
  * It will parse and brand the target id for you.
  * Returns null if the target is not found.
  */
-export function safeResolveTargetId<TTargetType extends TargetType>(
+export function safeResolveTargetId<TTargetDefinition extends TargetDefinition>(
   selectedTargets: SelectedTargets,
-  targetDefinition: TargetDefinition<TTargetType>,
-): TargetId<TTargetType> | null
+  targetDefinition: TTargetDefinition,
+): TargetId<TTargetDefinition["type"]> | null
 export function safeResolveTargetId(
   selectedTargets: SelectedTargets,
   targetDefinition: TargetDefinition,
@@ -37,8 +36,6 @@ export function safeResolveTargetId(
       return branded<FleetId>(targetId)
     case TargetType.PLANET:
       return branded<PlanetId>(Number(targetId))
-    case TargetType.PLANET_OWNED:
-      return branded<PlanetId>(Number(targetId))
     case TargetType.PLAYER:
       return branded<PlayerId>(targetId)
   }
@@ -49,10 +46,10 @@ export function safeResolveTargetId(
  * It will parse and brand the target id for you.
  * It is expected that targets have been validated by {@link validateTargets} prior to calling this. Any invalid target will throw an Assertion error.
  */
-export function resolveTargetId<TTargetType extends TargetType>(
+export function resolveTargetId<TTargetDefinition extends TargetDefinition>(
   selectedTargets: SelectedTargets,
-  targetDefinition: TargetDefinition<TTargetType>,
-): TargetId<TTargetType>
+  targetDefinition: TTargetDefinition,
+): TargetId<TTargetDefinition["type"]>
 export function resolveTargetId(selectedTargets: SelectedTargets, targetDefinition: TargetDefinition): PlanetId | FleetId | PlayerId {
   const targetId = safeResolveTargetId(selectedTargets, targetDefinition)
   // Assert is not allowed in rules-engine, but this one is okay because it is a program invariant. Targets must have been validated already and the lookup must be valid.
