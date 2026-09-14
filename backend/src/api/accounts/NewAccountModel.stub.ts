@@ -7,7 +7,7 @@ export function createNewAccountModelStub(overrides?: Partial<NewAccountModel>):
   return {
     authId,
     email: `player.${authId}@example.com`,
-    alias: `Player ${authId}`,
+    alias: null,
     ...overrides,
   }
 }
