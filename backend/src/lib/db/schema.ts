@@ -77,7 +77,7 @@ export const accountsTable = pgTable(
     email: text("email"),
     alias: text("alias"),
   },
-  (table) => [uniqueIndex("auth_id_idx").on(table.authId)],
+  (table) => [uniqueIndex("auth_id_idx").on(table.authId), uniqueIndex("accounts_alias_unique").on(sql`lower(${table.alias})`)],
 )
 
 /**

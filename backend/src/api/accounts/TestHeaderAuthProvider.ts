@@ -21,6 +21,6 @@ export class TestHeaderAuthProvider implements AuthProvider {
   }
 
   public async fetchUser(): Promise<Result<User, string>> {
-    return Result.Success({ email: null, alias: null })
+    return Result.Success({ email: null })
   }
 }
