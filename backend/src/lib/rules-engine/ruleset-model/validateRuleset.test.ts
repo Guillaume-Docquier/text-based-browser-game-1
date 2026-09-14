@@ -81,7 +81,7 @@ describe("validateRuleset", () => {
   it("should report an Action Definition target slot with an incompatible type", () => {
     // Arrange
     const actionDefinition = createActionDefinitionStub({
-      targets: { planet: TargetType.FLEET },
+      targets: { planet: { type: TargetType.FLEET, conditions: [] } },
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({
@@ -94,7 +94,7 @@ describe("validateRuleset", () => {
     // Assert
     expect(validationIssues).toStrictEqual<typeof validationIssues>([
       {
-        issue: `Action Definition "${actionDefinition.name}" target slot "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
+        issue: `Action Definition "${actionDefinition.name}" target slot "planet" has requirement {"type":"FLEET","conditions":[]}, but the "FLEET_BUILD" mechanic requires {"type":"PLANET","conditions":[]}`,
       },
     ])
   })
@@ -105,7 +105,7 @@ describe("validateRuleset", () => {
       actionDefinitions: indexById([
         createActionDefinitionStub({
           targets: {
-            planet: TargetType.PLANET,
+            planet: { type: TargetType.PLANET, conditions: [] },
           },
           mechanics: [
             {
@@ -114,6 +114,7 @@ describe("validateRuleset", () => {
                 planet: {
                   tag: "planet",
                   type: TargetType.PLANET,
+                  conditions: [],
                 },
               },
               parameters: {

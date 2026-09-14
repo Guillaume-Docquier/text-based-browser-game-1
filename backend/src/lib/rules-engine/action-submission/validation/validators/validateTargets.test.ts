@@ -1,5 +1,6 @@
 import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
@@ -8,12 +9,12 @@ import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/acti
 import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import { TargetCondition, TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import { createRulesetStub } from "#lib/rules-engine/ruleset-model/Ruleset.stub.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 
 describe("validateTargets", () => {
-  it("should only accept a PLANET_OWNED target owned by the submitting player", () => {
+  it("should only accept a Planet target with the OWNED condition when owned by the submitting player", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const opponentId = branded<PlayerId>("opponent-id")
@@ -24,7 +25,7 @@ describe("validateTargets", () => {
     const unknownPlanetId = branded<PlanetId>(4)
 
     const actionDefinition = createActionDefinitionStub({
-      targets: { planet: TargetType.PLANET_OWNED },
+      targets: { planet: { type: TargetType.PLANET, conditions: [TargetCondition.OWNED] } },
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({
@@ -88,12 +89,69 @@ describe("validateTargets", () => {
     )
   })
 
+  it("should only accept a Fleet target with the OWNED condition when owned by the submitting player", () => {
+    // Arrange
+    const playerId = branded<PlayerId>("player-id")
+    const opponentId = branded<PlayerId>("opponent-id")
+    const ownedFleetId = branded<FleetId>("owned-fleet-id")
+    const opponentFleetId = branded<FleetId>("opponent-fleet-id")
+    const unknownFleetId = branded<FleetId>("unknown-fleet-id")
+    const planetId = branded<PlanetId>(1)
+    const actionDefinition = createActionDefinitionStub({
+      targets: { fleet: { type: TargetType.FLEET, conditions: [TargetCondition.OWNED] } },
+    })
+    const ruleset = createRulesetStub({ actionDefinitions: { [actionDefinition.id]: actionDefinition } })
+    const submittedActions = [ownedFleetId, opponentFleetId, unknownFleetId].map((fleetId) =>
+      createSubmittedActionStub({
+        actionDefinitionId: actionDefinition.id,
+        playerId,
+        selectedTargets: { fleet: fleetId },
+      }),
+    )
+    const opponentFleetAction = submittedActions[1]
+    Assert.isDefined(opponentFleetAction)
+    const unknownFleetAction = submittedActions[2]
+    Assert.isDefined(unknownFleetAction)
+    const turnState = createTurnStateStub({
+      submittedActions,
+      players: {
+        [playerId]: { id: playerId, resources: createResourcesStub() },
+        [opponentId]: { id: opponentId, resources: createResourcesStub() },
+      },
+      fleets: {
+        [ownedFleetId]: { id: ownedFleetId, playerId, strength: 1, originPlanetId: planetId },
+        [opponentFleetId]: { id: opponentFleetId, playerId: opponentId, strength: 1, originPlanetId: planetId },
+      },
+    })
+
+    // Act
+    const result = validateTargets(submittedActions, ruleset, turnState)
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success([
+        {
+          issue: `Target slot "fleet" references Fleet id "${opponentFleetId}" that is not owned by Player "${playerId}"`,
+          submittedActionId: opponentFleetAction.id,
+          actionDefinitionId: actionDefinition.id,
+          actionDefinitionName: actionDefinition.name,
+        },
+        {
+          issue: `Target slot "fleet" references unknown Fleet id "${unknownFleetId}"`,
+          submittedActionId: unknownFleetAction.id,
+          actionDefinitionId: actionDefinition.id,
+          actionDefinitionName: actionDefinition.name,
+        },
+      ]),
+    )
+  })
+
   it("should report a target slot required by the Action Definition but missing from the submission", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
       targets: {
-        targetPlayer: TargetType.PLAYER,
+        targetPlayer: { type: TargetType.PLAYER, conditions: [] },
       },
     })
     const ruleset = createRulesetStub({
@@ -171,7 +229,7 @@ describe("validateTargets", () => {
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
       targets: {
-        planet: TargetType.PLANET,
+        planet: { type: TargetType.PLANET, conditions: [] },
       },
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
