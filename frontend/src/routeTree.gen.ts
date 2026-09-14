@@ -21,6 +21,7 @@ import { Route as GameGamesGameIdPlayRouteImport } from './routes/_game.games.$g
 import { Route as GameGamesGameIdPlayIndexRouteImport } from './routes/_game.games.$gameId.play.index'
 import { Route as GameGamesGameIdPlayActionsRouteImport } from './routes/_game.games.$gameId.play.actions'
 import { Route as GameGamesGameIdPlayGalaxyRouteImport } from './routes/_game.games.$gameId.play.galaxy'
+import { Route as GameGamesGameIdPlayPlanetsRouteImport } from './routes/_game.games.$gameId.play.planets'
 import { Route as GameGamesGameIdPlayPlayersRouteImport } from './routes/_game.games.$gameId.play.players'
 
 const GameRoute = GameRouteImport.update({
@@ -84,6 +85,12 @@ const GameGamesGameIdPlayGalaxyRoute =
     path: '/galaxy',
     getParentRoute: () => GameGamesGameIdPlayRoute,
   } as any)
+const GameGamesGameIdPlayPlanetsRoute =
+  GameGamesGameIdPlayPlanetsRouteImport.update({
+    id: '/planets',
+    path: '/planets',
+    getParentRoute: () => GameGamesGameIdPlayRoute,
+  } as any)
 const GameGamesGameIdPlayPlayersRoute =
   GameGamesGameIdPlayPlayersRouteImport.update({
     id: '/players',
@@ -101,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
   '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
   '/games/$gameId/play/galaxy': typeof GameGamesGameIdPlayGalaxyRoute
+  '/games/$gameId/play/planets': typeof GameGamesGameIdPlayPlanetsRoute
   '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
   '/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
 }
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/games': typeof SiteGamesIndexRoute
   '/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
   '/games/$gameId/play/galaxy': typeof GameGamesGameIdPlayGalaxyRoute
+  '/games/$gameId/play/planets': typeof GameGamesGameIdPlayPlanetsRoute
   '/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
   '/games/$gameId/play': typeof GameGamesGameIdPlayIndexRoute
 }
@@ -129,6 +138,7 @@ export interface FileRoutesById {
   '/_game/games/$gameId/play': typeof GameGamesGameIdPlayRouteWithChildren
   '/_game/games/$gameId/play/actions': typeof GameGamesGameIdPlayActionsRoute
   '/_game/games/$gameId/play/galaxy': typeof GameGamesGameIdPlayGalaxyRoute
+  '/_game/games/$gameId/play/planets': typeof GameGamesGameIdPlayPlanetsRoute
   '/_game/games/$gameId/play/players': typeof GameGamesGameIdPlayPlayersRoute
   '/_game/games/$gameId/play/': typeof GameGamesGameIdPlayIndexRoute
 }
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/games/$gameId/play'
     | '/games/$gameId/play/actions'
     | '/games/$gameId/play/galaxy'
+    | '/games/$gameId/play/planets'
     | '/games/$gameId/play/players'
     | '/games/$gameId/play/'
   fileRoutesByTo: FileRoutesByTo
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/games'
     | '/games/$gameId/play/actions'
     | '/games/$gameId/play/galaxy'
+    | '/games/$gameId/play/planets'
     | '/games/$gameId/play/players'
     | '/games/$gameId/play'
   id:
@@ -171,6 +183,7 @@ export interface FileRouteTypes {
     | '/_game/games/$gameId/play'
     | '/_game/games/$gameId/play/actions'
     | '/_game/games/$gameId/play/galaxy'
+    | '/_game/games/$gameId/play/planets'
     | '/_game/games/$gameId/play/players'
     | '/_game/games/$gameId/play/'
   fileRoutesById: FileRoutesById
@@ -266,6 +279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameGamesGameIdPlayGalaxyRouteImport
       parentRoute: typeof GameGamesGameIdPlayRoute
     }
+    '/_game/games/$gameId/play/planets': {
+      id: '/_game/games/$gameId/play/planets'
+      path: '/planets'
+      fullPath: '/games/$gameId/play/planets'
+      preLoaderRoute: typeof GameGamesGameIdPlayPlanetsRouteImport
+      parentRoute: typeof GameGamesGameIdPlayRoute
+    }
     '/_game/games/$gameId/play/players': {
       id: '/_game/games/$gameId/play/players'
       path: '/players'
@@ -279,6 +299,7 @@ declare module '@tanstack/react-router' {
 interface GameGamesGameIdPlayRouteChildren {
   GameGamesGameIdPlayActionsRoute: typeof GameGamesGameIdPlayActionsRoute
   GameGamesGameIdPlayGalaxyRoute: typeof GameGamesGameIdPlayGalaxyRoute
+  GameGamesGameIdPlayPlanetsRoute: typeof GameGamesGameIdPlayPlanetsRoute
   GameGamesGameIdPlayPlayersRoute: typeof GameGamesGameIdPlayPlayersRoute
   GameGamesGameIdPlayIndexRoute: typeof GameGamesGameIdPlayIndexRoute
 }
@@ -286,6 +307,7 @@ interface GameGamesGameIdPlayRouteChildren {
 const GameGamesGameIdPlayRouteChildren: GameGamesGameIdPlayRouteChildren = {
   GameGamesGameIdPlayActionsRoute: GameGamesGameIdPlayActionsRoute,
   GameGamesGameIdPlayGalaxyRoute: GameGamesGameIdPlayGalaxyRoute,
+  GameGamesGameIdPlayPlanetsRoute: GameGamesGameIdPlayPlanetsRoute,
   GameGamesGameIdPlayPlayersRoute: GameGamesGameIdPlayPlayersRoute,
   GameGamesGameIdPlayIndexRoute: GameGamesGameIdPlayIndexRoute,
 }

@@ -1,6 +1,6 @@
 import type { GameId } from "@api-types"
 import { Link } from "@tanstack/react-router"
-import { ListChecks, Map, type LucideIcon, Users } from "lucide-react"
+import { Earth, ListChecks, Map, type LucideIcon, Users } from "lucide-react"
 import type { ReactElement } from "react"
 import logo from "@/assets/logo.png"
 import type { FileRouteTypes } from "@/routeTree.gen.ts"
@@ -13,6 +13,7 @@ type GameSideNavLink = {
 
 const gameSideNavLinks: readonly GameSideNavLink[] = [
   { to: "/games/$gameId/play/galaxy", Icon: Map, label: "Galaxy" },
+  { to: "/games/$gameId/play/planets", Icon: Earth, label: "Planets" },
   { to: "/games/$gameId/play/actions", Icon: ListChecks, label: "Actions" },
   { to: "/games/$gameId/play/players", Icon: Users, label: "Players" },
 ]
