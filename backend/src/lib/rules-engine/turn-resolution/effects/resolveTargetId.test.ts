@@ -47,9 +47,7 @@ describe("resolveTargetId", () => {
       const selectedTargets = {}
 
       // Act & Assert
-      expect(() => resolveTargetId(selectedTargets, { tag: "planet", type: TargetType.PLANET, conditions: [] })).toThrow(
-        AssertionError,
-      )
+      expect(() => resolveTargetId(selectedTargets, { tag: "planet", type: TargetType.PLANET, conditions: [] })).toThrow(AssertionError)
     })
   })
 })
