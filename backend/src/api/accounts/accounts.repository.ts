@@ -1,6 +1,7 @@
-import { Assert, type Logger, Result, isNodeJSError } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Result, type Enumify } from "@guillaume-docquier/tools-ts"
 import { and, eq, isNull } from "drizzle-orm"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import { Postgres } from "#lib/db/drizzle/Postgres.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
@@ -20,7 +21,7 @@ export type AccountModel = {
   alias: string | null
 }
 
-export type SetAliasError = (typeof SetAliasError)[keyof typeof SetAliasError]
+export type SetAliasError = Enumify<typeof SetAliasError>
 export const SetAliasError = {
   ALREADY_SET: "ALREADY_SET",
   ALREADY_TAKEN: "ALREADY_TAKEN",
@@ -99,7 +100,7 @@ export class AccountsRepository extends PostgresRepository {
     })
 
     if (Result.isFailure(setAliasResult)) {
-      if (isUniqueConstraintViolation(setAliasResult.error)) {
+      if (Postgres.isErrorWithCode(setAliasResult.error, Postgres.ErrorCode.UNIQUE_VIOLATION)) {
         return Result.Failure(SetAliasError.ALREADY_TAKEN)
       }
 
@@ -113,13 +114,6 @@ export class AccountsRepository extends PostgresRepository {
 
     return Result.Success(setAliasResult.value)
   }
-}
-
-function isUniqueConstraintViolation(error: Error): boolean {
-  return (
-    (isNodeJSError(error) && error.code === "23505") ||
-    (error.cause instanceof Error && isNodeJSError(error.cause) && error.cause.code === "23505")
-  )
 }
 
 function toNewAccountRow(newAccountModel: NewAccountModel): NewAccountRow {
