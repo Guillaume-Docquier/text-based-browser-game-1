@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "accounts_alias_unique" ON "accounts" USING btree (lower("alias"));

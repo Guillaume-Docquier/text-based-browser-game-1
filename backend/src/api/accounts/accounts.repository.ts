@@ -1,6 +1,7 @@
-import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { eq } from "drizzle-orm"
+import { Assert, type Logger, Result, type Enumify } from "@guillaume-docquier/tools-ts"
+import { and, eq, isNull } from "drizzle-orm"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import { Postgres } from "#lib/db/drizzle/Postgres.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
@@ -19,6 +20,13 @@ export type AccountModel = {
   email: string | null
   alias: string | null
 }
+
+export type SetAliasError = Enumify<typeof SetAliasError>
+export const SetAliasError = {
+  ALREADY_SET: "ALREADY_SET",
+  ALREADY_TAKEN: "ALREADY_TAKEN",
+  COULD_NOT_SET: "COULD_NOT_SET",
+} as const
 
 export class AccountsRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -74,6 +82,37 @@ export class AccountsRepository extends PostgresRepository {
     }
 
     return findByAuthIdResult
+  }
+
+  /**
+   * Sets an account's first alias.
+   */
+  public async setAlias({ accountId, alias }: { accountId: AccountId; alias: string }): Promise<Result<AccountModel, SetAliasError>> {
+    const setAliasResult = await Result.tryCatch(async () => {
+      const accounts = await this.db
+        .update(accountsTable)
+        .set({ alias })
+        .where(and(eq(accountsTable.id, accountId), isNull(accountsTable.alias)))
+        .returning()
+      Assert.isTrue(accounts.length <= 1)
+
+      return accounts[0]
+    })
+
+    if (Result.isFailure(setAliasResult)) {
+      if (Postgres.isErrorWithCode(setAliasResult.error, Postgres.ErrorCode.UNIQUE_VIOLATION)) {
+        return Result.Failure(SetAliasError.ALREADY_TAKEN)
+      }
+
+      this.logger.error("Could not set account alias", { accountId, error: setAliasResult.error })
+      return Result.Failure(SetAliasError.COULD_NOT_SET)
+    }
+
+    if (setAliasResult.value === undefined) {
+      return Result.Failure(SetAliasError.ALREADY_SET)
+    }
+
+    return Result.Success(setAliasResult.value)
   }
 }
 
