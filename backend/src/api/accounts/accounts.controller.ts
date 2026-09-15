@@ -28,12 +28,15 @@ export class AccountsController {
   }
 
   /**
-   * Sets the authenticated account's first alias.
+   * Sets the authenticated account's alias.
    */
   public async setAlias({ accountId, alias }: { accountId: AccountId; alias: string }): Promise<Result<CurrentAccountDto, SetAliasError>> {
-    return Result.map(await this.accountsRepository.setAlias({ accountId, alias }), {
-      success: (account) => ({ alias: account.alias }),
-    })
+    const setAliasResult = await this.accountsRepository.setAlias({ accountId, alias })
+    if (Result.isFailure(setAliasResult)) {
+      return setAliasResult
+    }
+
+    return Result.Success({ alias: setAliasResult.value.alias })
   }
 }
 
