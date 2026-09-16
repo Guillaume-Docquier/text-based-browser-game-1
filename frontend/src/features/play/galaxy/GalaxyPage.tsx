@@ -1,4 +1,4 @@
-import type { Planet, StarSystem } from "@api-types"
+import type { Planet, PlanetId, StarSystem } from "@api-types"
 import { ArrowLeft, LocateFixed } from "lucide-react"
 import { type AnimationEvent, type MouseEvent, type ReactElement, useState } from "react"
 import { Button } from "@/components/button.tsx"
@@ -17,7 +17,7 @@ type PlanetTarget = { readonly system: StarSystem; readonly planet: Planet }
  * @param initialPlanetId - A Planet to open on the initial render.
  * @returns The interactive Galaxy page.
  */
-export function GalaxyPage({ initialPlanetId }: { initialPlanetId: Planet["id"] | undefined }): ReactElement {
+export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | undefined }): ReactElement {
   const { game, playerView } = usePlayGameContext()
   const initialPlanetTarget = findPlanetTarget(playerView.galaxy.systems, initialPlanetId)
   const [view, setView] = useState<GalaxyView>(() =>
@@ -175,7 +175,7 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: Planet["id"] 
   )
 }
 
-function findPlanetTarget(systems: readonly StarSystem[], planetId: Planet["id"] | undefined): PlanetTarget | undefined {
+function findPlanetTarget(systems: readonly StarSystem[], planetId: PlanetId | undefined): PlanetTarget | undefined {
   if (planetId === undefined) {
     return undefined
   }

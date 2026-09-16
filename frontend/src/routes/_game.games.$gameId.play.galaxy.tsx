@@ -1,4 +1,4 @@
-import type { Planet } from "@api-types"
+import type { PlanetId } from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
 import { createFileRoute } from "@tanstack/react-router"
 import type { ReactElement } from "react"
@@ -8,7 +8,7 @@ import { GalaxyPage } from "@/features/play/galaxy/GalaxyPage.tsx"
 const GalaxySearchSchema = z.object({
   planetId: z
     .number()
-    .transform(branded<Planet["id"]>)
+    .transform(branded<PlanetId>)
     .exactOptional(),
 })
 
