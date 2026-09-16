@@ -51,7 +51,7 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <DetailBlock label="Creator" value={game.creator.alias ?? `Player ${game.creator.id}`} />
+            <DetailBlock label="Creator" value={game.creator.alias} />
             <DetailBlock label="Created" value={timeAgo(game.createdAt)} />
             {game.winnerAccountId !== null ? (
               <DetailBlock label="Winner" value={getWinnerLabel(branded(game.winnerAccountId), game)} />
@@ -164,7 +164,7 @@ function Player({ player }: { player: ApiTypes.LobbyPlayer }): ReactElement {
         className="size-3 shrink-0 rounded-full border border-foreground/20"
         style={{ backgroundColor: PLAYER_COLOR_HEX[player.color] }}
       />
-      <div className="min-w-0 flex-1 font-medium text-foreground">{player.alias ?? `Player ${player.id}`}</div>
+      <div className="min-w-0 flex-1 font-medium text-foreground">{player.alias}</div>
       <div className="text-xs text-muted-foreground">{colorLabel}</div>
     </div>
   )
@@ -204,7 +204,7 @@ function getWinnerLabel(winnerPlayerId: ApiTypes.PlayerId, game: ApiTypes.Lobby)
     return `Player ${winnerPlayerId}`
   }
 
-  return winner.alias ?? `Player ${winner.id}`
+  return winner.alias
 }
 
 function formatTurnInterval(turnIntervalSeconds: number): string {

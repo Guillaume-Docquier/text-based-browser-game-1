@@ -3,46 +3,56 @@ import type { QueryClient } from "@tanstack/react-query"
 import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
 
-export type BackendApiClient = ReturnType<typeof createBackendApiClient>
-// oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
-export function createBackendApiClient({ baseUrl, queryClient }: { baseUrl: string; queryClient: QueryClient }) {
-  return createTRPCOptionsProxy<TrpcRouter>({
-    client: createTRPCClient<TrpcRouter>({
-      links: [
-        httpBatchLink({
-          url: `${baseUrl}/trpc`,
-        }),
-      ],
-    }),
-    queryClient,
-    overrides: {
-      /**
-       * Invalidate full cache on every mutation
-       * https://trpc.io/docs/client/react/useUtils#invalidate-full-cache-on-every-mutation
-       *
-       * This is probably a bit overkill, but there is no way to invalidate a whole router on mutation.
-       * See: https://github.com/trpc/trpc/issues/5264
-       *
-       * Invalidating everything should be better than manually remembering to invalidate on every mutation.
-       */
-      mutations: {
-        /**
-         * This function is called whenever a `.useMutation` succeeds
-         **/
-        async onSuccess(opts) {
-          /**
-           * @note that order here matters:
-           * The order here allows route changes in `onSuccess` without
-           * having a flash of content change whilst redirecting.
-           **/
+type TrpcClient = ReturnType<typeof createTRPCClient<TrpcRouter>>
 
-          // Calls the `onSuccess` defined in the `useQuery()`-options:
-          await opts.originalFn()
-
-          // Invalidate all queries in the react-query cache:
-          await opts.queryClient.invalidateQueries()
-        },
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC inference do the work
+function createMutationOverrides() {
+  return {
+    mutations: {
+      async onSuccess({ originalFn, queryClient }: { originalFn: () => Promise<void> | void; queryClient: QueryClient }): Promise<void> {
+        await originalFn()
+        await queryClient.invalidateQueries({
+          predicate: (query) => query.meta?.skipMutationInvalidation !== true,
+        })
       },
     },
+  }
+}
+
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC inference do the work
+function createUnscopedApiClient({ client, queryClient }: { client: TrpcClient; queryClient: QueryClient }) {
+  return createTRPCOptionsProxy<TrpcRouter>({
+    client,
+    queryClient,
+    overrides: createMutationOverrides(),
   })
+}
+
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC inference do the work
+function createUserApiClient({ client, queryClient, userId }: { client: TrpcClient; queryClient: QueryClient; userId: string }) {
+  return createTRPCOptionsProxy<TrpcRouter, { keyPrefix: true }>({
+    client,
+    queryClient,
+    keyPrefix: userId,
+    overrides: createMutationOverrides(),
+  })
+}
+
+export type BackendApiClient = ReturnType<typeof createBackendApiClient>
+// oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC and TanStack Query inference do the work
+export function createBackendApiClient({ baseUrl, queryClient }: { baseUrl: string; queryClient: QueryClient }) {
+  const client = createTRPCClient<TrpcRouter>({
+    links: [
+      httpBatchLink({
+        url: baseUrl + "/trpc",
+      }),
+    ],
+  })
+  const unscopedApiClient = createUnscopedApiClient({ client, queryClient })
+
+  return {
+    unscoped: unscopedApiClient,
+    // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC inference do the work
+    forUser: (userId: string) => createUserApiClient({ client, queryClient, userId }),
+  }
 }

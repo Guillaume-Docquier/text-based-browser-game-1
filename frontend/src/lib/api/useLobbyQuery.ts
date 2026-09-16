@@ -6,5 +6,5 @@ import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 export function useLobbyQuery(gameId: GameId) {
   const backendApiClient = useBackendApiClient()
 
-  return useQuery(backendApiClient.lobbies.getById.queryOptions({ gameId }))
+  return useQuery(backendApiClient.unscoped.lobbies.getById.queryOptions({ gameId }))
 }

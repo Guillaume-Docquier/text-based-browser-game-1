@@ -5,5 +5,5 @@ import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 export function useLeaveGameMutation() {
   const backendApiClient = useBackendApiClient()
 
-  return useMutation(backendApiClient.lobbies.leave.mutationOptions())
+  return useMutation(backendApiClient.unscoped.lobbies.leave.mutationOptions())
 }

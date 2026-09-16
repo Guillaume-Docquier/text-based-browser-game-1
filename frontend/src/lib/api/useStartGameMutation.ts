@@ -5,5 +5,5 @@ import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 export function useStartGameMutation() {
   const backendApiClient = useBackendApiClient()
 
-  return useMutation(backendApiClient.gameplay.startGame.mutationOptions())
+  return useMutation(backendApiClient.unscoped.gameplay.startGame.mutationOptions())
 }

@@ -55,6 +55,9 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
       },
+      // avoids running the setup on every run, especially when using the playwright ui because it slows down tests a lot
+      // it does mean your auth can get stale, and you need to know to manually run the setup again
+      // on the CI, obviously, we always want to run it
       dependencies: isCI ? ["setup"] : [],
     },
   ],

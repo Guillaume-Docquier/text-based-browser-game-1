@@ -5,5 +5,5 @@ import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 export function useUpdateActionSubmission() {
   const backendApiClient = useBackendApiClient()
 
-  return useMutation(backendApiClient.gameplay.updateActionSubmission.mutationOptions())
+  return useMutation(backendApiClient.unscoped.gameplay.updateActionSubmission.mutationOptions())
 }

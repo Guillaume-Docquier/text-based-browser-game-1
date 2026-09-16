@@ -5,5 +5,5 @@ import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 export function useJoinGameMutation() {
   const backendApiClient = useBackendApiClient()
 
-  return useMutation(backendApiClient.lobbies.join.mutationOptions())
+  return useMutation(backendApiClient.unscoped.lobbies.join.mutationOptions())
 }

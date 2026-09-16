@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { type ReactElement, StrictMode, useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
-import { AliasOnboardingGate } from "@/features/auth/AliasOnboardingGate.tsx"
+import { Onboarding } from "@/features/auth/Onboarding.tsx"
 import { createBackendApiClient } from "@/lib/api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "@/lib/api/BackendApiClientContext.tsx"
 import { LoggerProvider } from "@/lib/LoggerContext.tsx"
@@ -79,7 +79,7 @@ function LoadedApp({ auth }: RouterContext): ReactElement {
   }, [router])
 
   const app = <RouterProvider router={router} context={{ auth }} />
-  return auth.isSignedIn === true ? <AliasOnboardingGate>{app}</AliasOnboardingGate> : app
+  return auth.isSignedIn === true && auth.userId !== null ? <Onboarding userId={auth.userId}>{app}</Onboarding> : app
 }
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tanstack inference do the work

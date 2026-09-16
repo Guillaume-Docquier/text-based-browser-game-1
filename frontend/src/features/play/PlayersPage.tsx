@@ -84,7 +84,7 @@ function PlayerRow({
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <div className="truncate font-medium text-foreground">{player.alias ?? `Player ${player.id}`}</div>
+          <div className="truncate font-medium text-foreground">{player.alias}</div>
           {isCurrentPlayer ? <Badge variant="secondary">You</Badge> : null}
         </div>
         <div className="text-xs text-muted-foreground">{colorLabel}</div>
