@@ -74,8 +74,11 @@ export class PlanetsPage extends GamePage {
     return coordinates
   }
 
-  public async getColumnValues(columnIndex: number): Promise<string[]> {
-    return await this.rows.locator(`td:nth-child(${columnIndex + 1})`).allTextContents()
+  /**
+   * Gets the name of planet owners in the order they are in the table
+   */
+  public async getAllPlanetOwnerNames(): Promise<string[]> {
+    return await this.rows.locator("td:nth-child(2)").allTextContents()
   }
 
   public async openCoordinate(row: Locator): Promise<GalaxyPage> {

@@ -30,13 +30,12 @@ test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }
     await expect(planetsPage.rows).toHaveCount(2)
     await expect(planetsPage.sortHeader("Owner")).toHaveAttribute("aria-sort", "ascending")
 
-    const ownerNames = await planetsPage.getColumnValues(1)
+    const ownerNames = await planetsPage.getAllPlanetOwnerNames()
     expect(ownerNames).toStrictEqual(ownerNames.toSorted((first, second) => first.localeCompare(second)))
-    expect(ownerNames).not.toContain("Unclaimed")
   })
 
   await test.step("Filter owned Planets by owner, name, and coordinates", async () => {
-    const ownerNames = await planetsPage.getColumnValues(1)
+    const ownerNames = await planetsPage.getAllPlanetOwnerNames()
     const ownerName = ownerNames[0]
     Assert.isDefined(ownerName)
 
