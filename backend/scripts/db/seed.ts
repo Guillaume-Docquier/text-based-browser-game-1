@@ -2,17 +2,20 @@ import { Assert, type Logger, type Result, Time, UnitOfTime } from "@guillaume-d
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import type { Table } from "drizzle-orm/table"
+import { v4 } from "uuid"
 import { z } from "zod"
 import { type AccountModel, AccountsRepository, type NewAccountModel } from "#api/accounts/accounts.repository.ts"
 import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
+import { AliasSchema } from "#lib/db/accounts/Alias.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { accountsTable, gamesTable } from "#lib/db/schema.ts"
 import { parseEnv } from "#lib/parseEnv.ts"
 import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
+import { trustedParse } from "#lib/validation/trustedParse.ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -151,10 +154,19 @@ async function seedAccounts({
   await resetTable(db, accountsTable)
   logger.info("├ Adding sample accounts")
   const newAccounts: NewAccountModel[] = [
-    ...(user !== undefined ? [{ authId: user.clerkId, email: user.email, alias: user.alias }] : []),
-    { authId: "fake1", email: "fake1@email.com", alias: "fake1 name" },
-    { authId: "fake2", email: "fake2@email.com" },
-    { authId: "fake3" },
+    ...(user !== undefined
+      ? [
+          {
+            authId: user.clerkId,
+            email: user.email,
+            alias: trustedParse(AliasSchema, user.alias ?? v4()),
+            onboarded: false,
+          },
+        ]
+      : []),
+    { authId: "fake1", email: "fake1@email.com", alias: trustedParse(AliasSchema, "pro"), onboarded: true },
+    { authId: "fake2", email: "fake2@email.com", alias: trustedParse(AliasSchema, "smurf"), onboarded: true },
+    { authId: "fake3", alias: trustedParse(AliasSchema, "xXPlanetSupaDestroyazXx"), onboarded: true },
   ]
 
   const accounts: AccountModel[] = []

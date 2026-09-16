@@ -1,7 +1,8 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import type { AccountsRepository, SetAliasError } from "#api/accounts/accounts.repository.ts"
+import type { AccountsRepository, FinishOnboardingError } from "#api/accounts/accounts.repository.ts"
 import { type AccountId, AccountIdSchema } from "#lib/db/accounts/AccountId.ts"
+import { type Alias, AliasSchema } from "#lib/db/accounts/Alias.ts"
 
 export class AccountsController {
   private readonly accountsRepository: AccountsRepository
@@ -28,15 +29,21 @@ export class AccountsController {
   }
 
   /**
-   * Sets the authenticated account's alias.
+   * Completes the authenticated account's onboarding.
    */
-  public async setAlias({ accountId, alias }: { accountId: AccountId; alias: string }): Promise<Result<CurrentAccountDto, SetAliasError>> {
-    const setAliasResult = await this.accountsRepository.setAlias({ accountId, alias })
-    if (Result.isFailure(setAliasResult)) {
-      return setAliasResult
+  public async finishOnboarding({
+    accountId,
+    alias,
+  }: {
+    accountId: AccountId
+    alias: Alias
+  }): Promise<Result<void, FinishOnboardingError>> {
+    const finishOnboardingResult = await this.accountsRepository.finishOnboarding({ accountId, alias })
+    if (Result.isFailure(finishOnboardingResult)) {
+      return finishOnboardingResult
     }
 
-    return Result.Success({ alias: setAliasResult.value.alias })
+    return Result.Success(undefined)
   }
 }
 
@@ -44,6 +51,8 @@ export type NewAccountDto = z.infer<typeof NewAccountDtoSchema>
 export const NewAccountDtoSchema = z.object({
   authId: z.string(),
   email: z.string().nullish(),
+  alias: AliasSchema,
+  onboarded: z.boolean(),
 })
 
 export type AccountDto = z.infer<typeof AccountDtoSchema>
@@ -51,18 +60,9 @@ export const AccountDtoSchema = z.object({
   id: AccountIdSchema,
   authId: z.string(),
   email: z.string().nullable(),
-  alias: z.string().nullable(),
+  alias: AliasSchema,
+  onboarded: z.boolean(),
 })
 
-export type CurrentAccountDto = z.infer<typeof CurrentAccountDtoSchema>
-export const CurrentAccountDtoSchema = AccountDtoSchema.pick({ alias: true })
-
-export type SetAliasDto = z.infer<typeof SetAliasDtoSchema>
-export const SetAliasDtoSchema = z.object({
-  alias: z
-    .string()
-    .trim()
-    .min(1)
-    .max(32)
-    .refine((alias) => !alias.includes("\0"), { error: "Alias cannot contain null characters." }),
-})
+export const IsOnboardedDtoSchema = z.boolean()
+export const FinishOnboardingDtoSchema = z.object({ alias: AliasSchema })

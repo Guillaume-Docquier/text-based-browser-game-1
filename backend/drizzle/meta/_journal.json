@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1789247288766,
+      "when": 1789530620206,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1789386221256,
-      "tag": "0001_unique-account-alias",
       "breakpoints": true
     }
   ]

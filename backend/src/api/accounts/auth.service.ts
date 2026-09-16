@@ -1,7 +1,10 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler } from "express"
+import { v4 } from "uuid"
 import type { AccountDto, AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AuthProvider } from "#api/accounts/AuthProvider.ts"
+import { AliasSchema } from "#lib/db/accounts/Alias.ts"
+import { trustedParse } from "#lib/validation/trustedParse.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
 // I just don't really know how to adapt clerk to trpc yet. For now this does the job.
@@ -66,7 +69,12 @@ export class AuthService {
           return
         }
 
-        const createAccountResult = await accountsController.createAccount({ ...userResult.value, authId })
+        const createAccountResult = await accountsController.createAccount({
+          ...userResult.value,
+          authId,
+          alias: trustedParse(AliasSchema, v4()),
+          onboarded: false,
+        })
         if (Result.isFailure(createAccountResult)) {
           this.logger.error("Could not record new account", { authId, error: createAccountResult.error })
           next()

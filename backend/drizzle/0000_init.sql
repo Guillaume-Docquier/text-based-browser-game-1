@@ -8,7 +8,8 @@ CREATE TABLE "accounts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"auth_id" text NOT NULL,
 	"email" text,
-	"alias" text
+	"alias" text NOT NULL,
+	"onboarded" boolean NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "actions" (
@@ -138,6 +139,7 @@ ALTER TABLE "stars" ADD CONSTRAINT "stars_game_id_games_id_fk" FOREIGN KEY ("gam
 ALTER TABLE "turns_processing" ADD CONSTRAINT "turns_processing_game_id_turn_turns_fk" FOREIGN KEY ("game_id","turn") REFERENCES "public"."turns"("game_id","turn") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "turns" ADD CONSTRAINT "turns_game_id_games_id_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "auth_id_idx" ON "accounts" USING btree ("auth_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "accounts_alias_unique" ON "accounts" USING btree (lower("alias"));--> statement-breakpoint
 CREATE INDEX "actions_game_id_player_id_turn_index" ON "actions" USING btree ("game_id","player_id","turn");--> statement-breakpoint
 CREATE INDEX "fleets_game_id_origin_planet_id_idx" ON "fleets" USING btree ("game_id","origin_planet_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "rulesets_is_default_unique" ON "rulesets" USING btree ("is_default") WHERE "rulesets"."is_default";--> statement-breakpoint

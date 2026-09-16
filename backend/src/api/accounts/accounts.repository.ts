@@ -1,6 +1,7 @@
 import { Assert, type Logger, Result, type Enumify } from "@guillaume-docquier/tools-ts"
-import { and, eq, isNull } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import type { Alias } from "#lib/db/accounts/Alias.ts"
 import { Postgres } from "#lib/db/drizzle/Postgres.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable } from "#lib/db/schema.ts"
@@ -12,20 +13,22 @@ export type NewAccountModel = {
   id?: AccountId | undefined
   authId: string
   email?: string | null | undefined
-  alias?: string | null | undefined
+  alias: Alias
+  onboarded: boolean
 }
 export type AccountModel = {
   id: AccountId
   authId: string
   email: string | null
-  alias: string | null
+  alias: Alias
+  onboarded: boolean
 }
 
-export type SetAliasError = Enumify<typeof SetAliasError>
-export const SetAliasError = {
-  ALREADY_SET: "ALREADY_SET",
+export type FinishOnboardingError = Enumify<typeof FinishOnboardingError>
+export const FinishOnboardingError = {
+  ALREADY_ONBOARDED: "ALREADY_ONBOARDED",
   ALREADY_TAKEN: "ALREADY_TAKEN",
-  COULD_NOT_SET: "COULD_NOT_SET",
+  COULD_NOT_FINISH: "COULD_NOT_FINISH",
 } as const
 
 export class AccountsRepository extends PostgresRepository {
@@ -85,34 +88,40 @@ export class AccountsRepository extends PostgresRepository {
   }
 
   /**
-   * Sets an account's first alias.
+   * Completes an account's onboarding exactly once.
    */
-  public async setAlias({ accountId, alias }: { accountId: AccountId; alias: string }): Promise<Result<AccountModel, SetAliasError>> {
-    const setAliasResult = await Result.tryCatch(async () => {
+  public async finishOnboarding({
+    accountId,
+    alias,
+  }: {
+    accountId: AccountId
+    alias: Alias
+  }): Promise<Result<AccountModel, FinishOnboardingError>> {
+    const finishOnboardingResult = await Result.tryCatch(async () => {
       const accounts = await this.db
         .update(accountsTable)
-        .set({ alias })
-        .where(and(eq(accountsTable.id, accountId), isNull(accountsTable.alias)))
+        .set({ alias, onboarded: true })
+        .where(and(eq(accountsTable.id, accountId), eq(accountsTable.onboarded, false)))
         .returning()
       Assert.isTrue(accounts.length <= 1)
 
       return accounts[0]
     })
 
-    if (Result.isFailure(setAliasResult)) {
-      if (Postgres.isErrorWithCode(setAliasResult.error, Postgres.ErrorCode.UNIQUE_VIOLATION)) {
-        return Result.Failure(SetAliasError.ALREADY_TAKEN)
+    if (Result.isFailure(finishOnboardingResult)) {
+      if (Postgres.isErrorWithCode(finishOnboardingResult.error, Postgres.ErrorCode.UNIQUE_VIOLATION)) {
+        return Result.Failure(FinishOnboardingError.ALREADY_TAKEN)
       }
 
-      this.logger.error("Could not set account alias", { accountId, error: setAliasResult.error })
-      return Result.Failure(SetAliasError.COULD_NOT_SET)
+      this.logger.error("Could not finish account onboarding", { accountId, error: finishOnboardingResult.error })
+      return Result.Failure(FinishOnboardingError.COULD_NOT_FINISH)
     }
 
-    if (setAliasResult.value === undefined) {
-      return Result.Failure(SetAliasError.ALREADY_SET)
+    if (finishOnboardingResult.value === undefined) {
+      return Result.Failure(FinishOnboardingError.ALREADY_ONBOARDED)
     }
 
-    return Result.Success(setAliasResult.value)
+    return Result.Success(finishOnboardingResult.value)
   }
 }
 
@@ -121,6 +130,7 @@ function toNewAccountRow(newAccountModel: NewAccountModel): NewAccountRow {
     id: newAccountModel.id,
     authId: newAccountModel.authId,
     alias: newAccountModel.alias,
+    onboarded: newAccountModel.onboarded,
     email: newAccountModel.email?.toLowerCase(),
   }
 }

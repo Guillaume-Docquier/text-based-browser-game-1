@@ -1,6 +1,7 @@
 import { Assert, type Branded, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import type { Alias } from "#lib/db/accounts/Alias.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
 import type { GameStatus } from "#lib/db/games/GameStatus.ts"
@@ -57,7 +58,7 @@ export type LobbyModel = Readonly<{
 
 export type LobbyPlayerModel = Readonly<{
   id: PlayerId
-  alias: string | null
+  alias: Alias
   color: PlayerColor
 }>
 

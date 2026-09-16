@@ -1,5 +1,5 @@
 {
-  "id": "981aff61-dc68-4b6a-889e-a281ffc2232b",
+  "id": "0c095acb-f24f-4e2e-aad6-250853f0ac2e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -31,7 +31,13 @@
           "name": "alias",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "onboarded": {
+          "name": "onboarded",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {
@@ -42,6 +48,21 @@
               "expression": "auth_id",
               "isExpression": false,
               "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "accounts_alias_unique": {
+          "name": "accounts_alias_unique",
+          "columns": [
+            {
+              "expression": "lower(\"alias\")",
+              "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],
