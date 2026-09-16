@@ -6,7 +6,7 @@ import { GameTopBar } from "@/features/play/components/GameTopBar.tsx"
 
 export function GameLayout({ game, playerView, children }: { game: Lobby; playerView: PlayerView; children: ReactNode }): ReactElement {
   return (
-    <div className="flex min-h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
+    <div className="flex h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
       <GameSideNav gameId={game.id} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <GameTopBar game={game} playerView={playerView} />
@@ -18,7 +18,7 @@ export function GameLayout({ game, playerView, children }: { game: Lobby; player
 
 export function GameLayoutSkeleton(): ReactElement {
   return (
-    <div className="flex min-h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
+    <div className="flex h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
       <aside className="border-b border-border/70 bg-card/40 lg:w-56 lg:border-r lg:border-b-0">
         <div className="flex min-h-24 items-center gap-3 border-b border-border/70 px-3 py-4 lg:px-4">
           <Skeleton className="h-10 w-10 rounded-2xl" />

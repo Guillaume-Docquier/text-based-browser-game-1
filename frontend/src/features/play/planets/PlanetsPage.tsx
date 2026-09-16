@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { Input } from "@/components/input.tsx"
+import { ScrollArea, ScrollBar } from "@/components/scroll-area.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
@@ -154,12 +155,16 @@ function PlanetsTable({
   onSort: (column: SortColumn) => void
 }): ReactElement {
   return (
-    <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-border/70 bg-card/30">
+    <ScrollArea
+      className="min-h-0 min-w-0 flex-1 rounded-xl border border-border/70 bg-card/30"
+      scrollbarStyle={{ top: "2.75rem", height: "auto" }}
+    >
       <table aria-label="Owned planets" className="w-full min-w-[76rem] border-collapse text-sm">
         <PlanetTableHeader sort={sort} onSort={onSort} />
         <PlanetTableBody gameId={gameId} rows={rows} emptyMessage={emptyMessage} />
       </table>
-    </div>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   )
 }
 
