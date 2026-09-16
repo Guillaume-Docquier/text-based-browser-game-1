@@ -27,6 +27,7 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 - Keep all `expect` calls and `test.step()` blocks in tests. Page objects expose actions and observable state, not assertions.
 - Prefer locator assertions over boolean state methods for automatic waiting and diagnostics.
 - Prefer role-based locators; use test IDs only when no stable semantic locator exists.
+- When testing deterministic generated data, hardcode the expected displayed values and row orders. Do not reimplement production logic in the test (for example, by sorting captured values with `toSorted` or custom comparators).
 
 ## React Gotchas
 

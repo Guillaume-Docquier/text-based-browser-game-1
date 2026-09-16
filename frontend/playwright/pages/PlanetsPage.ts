@@ -4,6 +4,20 @@ import type { GalaxyPage } from "./GalaxyPage.ts"
 import { GamePage } from "./GamePage.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
 
+type PlanetColumnName = "planetName" | "ownerName" | "coordinates" | "fertility" | "metal" | "fuel" | "energy" | "maxPopulation" | "area"
+
+const PLANET_COLUMN_INDICES = {
+  planetName: 0,
+  ownerName: 1,
+  coordinates: 2,
+  fertility: 3,
+  metal: 4,
+  fuel: 5,
+  energy: 6,
+  maxPopulation: 7,
+  area: 8,
+} as const satisfies Record<PlanetColumnName, number>
+
 export class PlanetsPage extends GamePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId/play/planets" })
 
@@ -75,10 +89,13 @@ export class PlanetsPage extends GamePage {
   }
 
   /**
-   * Gets the name of planet owners in the order they are in the table
+   * Gets the values in a table column in their displayed row order.
+   *
+   * @param columnName - The column whose values should be returned.
    */
-  public async getAllPlanetOwnerNames(): Promise<string[]> {
-    return await this.rows.locator("td:nth-child(2)").allTextContents()
+  public async getColumnValues(columnName: PlanetColumnName): Promise<string[]> {
+    const columnIndex = PLANET_COLUMN_INDICES[columnName]
+    return await this.rows.locator(`td:nth-child(${columnIndex + 1})`).allTextContents()
   }
 
   public async openCoordinate(row: Locator): Promise<GalaxyPage> {
