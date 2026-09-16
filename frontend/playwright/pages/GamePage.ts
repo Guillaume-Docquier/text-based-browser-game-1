@@ -68,4 +68,8 @@ export abstract class GamePage {
     const { PlayersPage } = await import("./PlayersPage.ts") // Avoids circular dependencies issues because GamePage is the base class
     return new PlayersPage(this.page)
   }
+
+  public async goBack(): Promise<void> {
+    await this.page.goBack()
+  }
 }

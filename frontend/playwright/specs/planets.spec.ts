@@ -1,11 +1,10 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
+import { DETERMINISTIC_GALAXY_SEED } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 import { PlanetsPage } from "../pages/PlanetsPage.ts"
-
-const DETERMINISTIC_GALAXY_SEED = 1234
 
 test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }) => {
   const aliceLobbyPage = await test.step("Alice creates a two-player game", async () => {
@@ -80,7 +79,7 @@ test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }
     await expect(galaxyPage.planetDetailsPane).toContainText(planetName)
     await expect(galaxyPage.planetDetailsPane).toContainText(coordinates)
 
-    await planetsPage.returnFromGalaxy()
+    await galaxyPage.goBack()
     expect(PlanetsPage.urlPattern.test(alice.page.url())).toBe(true)
     await expect(planetsPage.heading).toBeVisible()
   })

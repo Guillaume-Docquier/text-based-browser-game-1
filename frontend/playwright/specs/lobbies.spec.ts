@@ -1,11 +1,10 @@
 import { aliceUser } from "../auth.ts"
+import { DETERMINISTIC_GALAXY_SEED } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
-
-const DETERMINISTIC_GALAXY_SEED = 1234
 
 test.describe("anonymous user", () => {
   test("must sign in to create a game", async ({ page }) => {

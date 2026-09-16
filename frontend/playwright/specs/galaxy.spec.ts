@@ -1,8 +1,7 @@
+import { DETERMINISTIC_GALAXY_SEED } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
-
-const DETERMINISTIC_GALAXY_SEED = 1234
 
 test("shows claimed systems and Planet owners", async ({ alice, bob }) => {
   const aliceLobbyPage = await test.step("Alice creates a two-player game", async () => {

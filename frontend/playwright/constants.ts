@@ -1,0 +1,1 @@
+export const DETERMINISTIC_GALAXY_SEED = 1234

@@ -84,8 +84,4 @@ export class PlanetsPage extends GamePage {
     const { GalaxyPage } = await import("./GalaxyPage.ts")
     return new GalaxyPage(this.page)
   }
-
-  public async returnFromGalaxy(): Promise<void> {
-    await this.page.goBack()
-  }
 }
