@@ -31,7 +31,7 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 ## React Gotchas
 
 - React Compiler is enabled. Use `useMemo` or `useCallback` only when the compiler cannot handle the case.
-- Extract repeated or complex JSX into local components, even when they remain in the same file.
+- Keep page components focused on data and state orchestration. Break distinct page sections and repeated or complex JSX into named local components, even when they remain in the same file, and pass those components explicit props for their rendered state.
 
 ## Player Identity
 
