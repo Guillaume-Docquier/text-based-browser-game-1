@@ -1,3 +1,4 @@
+import { TEST_RULESET_NAME } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
@@ -8,7 +9,7 @@ test("Alice and Bob can lock their choices and resolve a turn early", async ({ a
     await createGamePage.setGameName(`Readiness ${Date.now()}`)
     await createGamePage.setMaxPlayers(2)
     await createGamePage.setTurnLength({ value: 1, unit: "days" })
-    await createGamePage.selectRuleset("Test")
+    await createGamePage.selectRuleset(TEST_RULESET_NAME)
     return await createGamePage.submit()
   })
 

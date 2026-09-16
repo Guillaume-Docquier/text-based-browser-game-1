@@ -1,8 +1,7 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import { GamePage } from "./GamePage.ts"
-
-type LocatorIndex = number | "last"
+import type { LocatorIndex } from "./LocatorIndex.ts"
 
 export class GalaxyPage extends GamePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId/play/galaxy" })

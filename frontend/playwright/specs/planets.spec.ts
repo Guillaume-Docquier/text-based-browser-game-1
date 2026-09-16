@@ -1,5 +1,5 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import { DETERMINISTIC_GALAXY_SEED } from "../constants.ts"
+import { DETERMINISTIC_GALAXY_SEED, TEST_RULESET_NAME } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
@@ -11,7 +11,7 @@ test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }
     const createGamePage = await CreateGamePage.goto(alice.page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
     await createGamePage.setGameName(`Planet overview ${Date.now()}`)
     await createGamePage.setMaxPlayers(2)
-    await createGamePage.selectRuleset("Test")
+    await createGamePage.selectRuleset(TEST_RULESET_NAME)
     return await createGamePage.submit()
   })
 
