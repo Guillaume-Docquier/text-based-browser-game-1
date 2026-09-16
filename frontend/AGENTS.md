@@ -32,3 +32,7 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 
 - React Compiler is enabled. Use `useMemo` or `useCallback` only when the compiler cannot handle the case.
 - Extract repeated or complex JSX into local components, even when they remain in the same file.
+
+## Player Identity
+
+- Display the current player's username exactly like every other player's username. Do not replace it with "You" or add a badge, pill, or other marker explaining that it is the current player.

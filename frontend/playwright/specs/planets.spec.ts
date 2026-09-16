@@ -26,37 +26,24 @@ test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }
     return await galaxyPage.openPlanets()
   })
 
-  await test.step("Default to Alice's owned Planets without a details pane or pagination", async () => {
+  await test.step("Default to all player-owned Planets in owner order", async () => {
     await expect(planetsPage.heading).toBeVisible()
-    await expect(planetsPage.mineView).toHaveAttribute("aria-pressed", "true")
-    await expect(planetsPage.allPlayersView).toHaveAttribute("aria-pressed", "false")
-    await expect(planetsPage.rows).toHaveCount(1)
-    await expect(planetsPage.ownerName(planetsPage.row(0))).toHaveText("You")
-    await expect(planetsPage.detailsPane).toHaveCount(0)
-    await expect(planetsPage.paginationControls).toHaveCount(0)
-  })
-
-  await test.step("Show all and only player-owned Planets in Planet-name order", async () => {
-    await planetsPage.showAllPlayers()
     await expect(planetsPage.rows).toHaveCount(2)
-    await expect(planetsPage.sortHeader("Planet")).toHaveAttribute("aria-sort", "ascending")
-
-    const planetNames = await planetsPage.getColumnValues(0)
-    expect(planetNames).toStrictEqual(planetNames.toSorted((first, second) => first.localeCompare(second)))
+    await expect(planetsPage.sortHeader("Owner")).toHaveAttribute("aria-sort", "ascending")
 
     const ownerNames = await planetsPage.getColumnValues(1)
-    expect(ownerNames).toContain("You")
+    expect(ownerNames).toStrictEqual(ownerNames.toSorted((first, second) => first.localeCompare(second)))
     expect(ownerNames).not.toContain("Unclaimed")
   })
 
   await test.step("Filter owned Planets by owner, name, and coordinates", async () => {
     const ownerNames = await planetsPage.getColumnValues(1)
-    const opponentName = ownerNames.find((name) => name !== "You")
-    Assert.isDefined(opponentName)
+    const ownerName = ownerNames[0]
+    Assert.isDefined(ownerName)
 
-    await planetsPage.selectOwner(opponentName)
+    await planetsPage.selectOwner(ownerName)
     await expect(planetsPage.rows).toHaveCount(1)
-    await expect(planetsPage.ownerName(planetsPage.row(0))).toHaveText(opponentName)
+    await expect(planetsPage.ownerName(planetsPage.row(0))).toHaveText(ownerName)
     await planetsPage.selectOwner("All players")
 
     const firstRow = planetsPage.row(0)
@@ -75,9 +62,9 @@ test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }
 
     for (const column of columns) {
       await planetsPage.sortBy(column)
-      await expect(planetsPage.sortHeader(column)).toHaveAttribute("aria-sort", column === "Planet" ? "descending" : "ascending")
+      await expect(planetsPage.sortHeader(column)).toHaveAttribute("aria-sort", "ascending")
       await planetsPage.sortBy(column)
-      await expect(planetsPage.sortHeader(column)).toHaveAttribute("aria-sort", column === "Planet" ? "ascending" : "descending")
+      await expect(planetsPage.sortHeader(column)).toHaveAttribute("aria-sort", "descending")
     }
   })
 

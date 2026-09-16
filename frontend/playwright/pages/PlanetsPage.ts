@@ -12,24 +12,16 @@ export class PlanetsPage extends GamePage {
   private readonly ownerFilter: Locator
 
   public readonly heading: Locator
-  public readonly mineView: Locator
-  public readonly allPlayersView: Locator
   public readonly table: Locator
   public readonly rows: Locator
-  public readonly detailsPane: Locator
-  public readonly paginationControls: Locator
 
   public constructor(page: Page) {
     super(page)
     this.heading = page.getByRole("heading", { name: "Planets", exact: true })
-    this.mineView = page.getByRole("button", { name: /^Mine \(\d+\)$/ })
-    this.allPlayersView = page.getByRole("button", { name: /^All players \(\d+\)$/ })
     this.searchInput = page.getByRole("textbox", { name: "Search planets" })
     this.ownerFilter = page.getByRole("combobox", { name: "Owner" })
     this.table = page.getByRole("table", { name: "Owned planets" })
     this.rows = this.table.locator("tbody tr").filter({ has: page.getByRole("link") })
-    this.detailsPane = page.getByRole("complementary", { name: / details$/ })
-    this.paginationControls = page.getByRole("button", { name: /^(Previous|Next)$/ })
   }
 
   public row(index: LocatorIndex): Locator {
@@ -50,10 +42,6 @@ export class PlanetsPage extends GamePage {
 
   public sortHeader(name: string): Locator {
     return this.table.getByRole("columnheader", { exact: true, name })
-  }
-
-  public async showAllPlayers(): Promise<void> {
-    await this.allPlayersView.click()
   }
 
   public async selectOwner(name: string): Promise<void> {

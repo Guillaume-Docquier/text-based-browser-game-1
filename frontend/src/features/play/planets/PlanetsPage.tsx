@@ -3,7 +3,6 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import { Link } from "@tanstack/react-router"
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react"
 import { type ReactElement, useState } from "react"
-import { Button } from "@/components/button.tsx"
 import { Input } from "@/components/input.tsx"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
@@ -11,7 +10,6 @@ import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 type OwnedPlanet = Planet & { readonly ownerPlayerId: PlayerId }
 type PlanetRow = { readonly planet: OwnedPlanet; readonly owner: LobbyPlayer; readonly ownerLabel: string }
-type ViewMode = "mine" | "all"
 type SortColumn = "planet" | "owner" | "coordinates" | "fertility" | "metal" | "fuel" | "energy" | "maxPopulation" | "area"
 type SortDirection = "ascending" | "descending"
 type PlanetSort = { readonly column: SortColumn; readonly direction: SortDirection }
@@ -37,24 +35,18 @@ const SORT_COMPARATORS = {
  */
 export function PlanetsPage(): ReactElement {
   const { game, playerView } = usePlayGameContext()
-  const [viewMode, setViewMode] = useState<ViewMode>("mine")
   const [search, setSearch] = useState("")
   const [ownerFilter, setOwnerFilter] = useState<PlayerId | typeof ALL_PLAYERS>(ALL_PLAYERS)
-  const [sort, setSort] = useState<PlanetSort>({ column: "planet", direction: "ascending" })
+  const [sort, setSort] = useState<PlanetSort>({ column: "owner", direction: "ascending" })
   const ownersById = new Map(game.players.map((player) => [player.id, player]))
   const rows = playerView.galaxy.systems
     .flatMap(({ planets }) => planets)
     .filter(isOwnedPlanet)
     .map(toPlanetRow)
-  const mineCount = rows.filter(({ owner }) => owner.id === playerView.player.id).length
   const ownersWithPlanets = game.players.filter(({ id }) => rows.some(({ owner }) => owner.id === id))
   const normalizedSearch = search.trim().toLocaleLowerCase()
-  const viewRows = rows.filter(({ owner }) => viewMode === "all" || owner.id === playerView.player.id)
-  const filteredRows = viewRows.filter(({ owner, planet }) => {
-    if (viewMode === "all" && ownerFilter !== ALL_PLAYERS && owner.id !== ownerFilter) {
-      return false
-    }
-
+  const ownerRows = rows.filter(({ owner }) => ownerFilter === ALL_PLAYERS || owner.id === ownerFilter)
+  const filteredRows = ownerRows.filter(({ planet }) => {
     return (
       normalizedSearch === "" ||
       planet.name.toLocaleLowerCase().includes(normalizedSearch) ||
@@ -62,10 +54,7 @@ export function PlanetsPage(): ReactElement {
     )
   })
   const sortedRows = sortPlanetRows(filteredRows, sort)
-  const emptyMessage =
-    viewRows.length === 0 && normalizedSearch === "" && (viewMode === "mine" || ownerFilter === ALL_PLAYERS)
-      ? "No owned planets"
-      : "No matching planets"
+  const emptyMessage = ownerRows.length === 0 && normalizedSearch === "" ? "No owned planets" : "No matching planets"
 
   function toPlanetRow(planet: OwnedPlanet): PlanetRow {
     const owner = ownersById.get(planet.ownerPlayerId)
@@ -74,7 +63,7 @@ export function PlanetsPage(): ReactElement {
     return {
       planet,
       owner,
-      ownerLabel: owner.id === playerView.player.id ? "You" : (owner.alias ?? `Player ${owner.id}`),
+      ownerLabel: owner.alias ?? `Player ${owner.id}`,
     }
   }
 
@@ -104,29 +93,6 @@ export function PlanetsPage(): ReactElement {
       </header>
 
       <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center">
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant={viewMode === "mine" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "mine"}
-            onClick={() => {
-              setViewMode("mine")
-            }}
-          >
-            Mine ({mineCount.toLocaleString()})
-          </Button>
-          <Button
-            type="button"
-            variant={viewMode === "all" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "all"}
-            onClick={() => {
-              setViewMode("all")
-            }}
-          >
-            All players ({rows.length.toLocaleString()})
-          </Button>
-        </div>
-
         <div className="relative min-w-0 flex-1">
           <Search
             aria-hidden="true"
@@ -143,24 +109,22 @@ export function PlanetsPage(): ReactElement {
           />
         </div>
 
-        {viewMode === "all" ? (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Owner</span>
-            <Select value={ownerFilter} onValueChange={changeOwnerFilter}>
-              <SelectTrigger aria-label="Owner" className="min-w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_PLAYERS}>All players</SelectItem>
-                {ownersWithPlanets.map((owner) => (
-                  <SelectItem key={owner.id} value={owner.id}>
-                    {owner.id === playerView.player.id ? "You" : (owner.alias ?? `Player ${owner.id}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Owner</span>
+          <Select value={ownerFilter} onValueChange={changeOwnerFilter}>
+            <SelectTrigger aria-label="Owner" className="min-w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_PLAYERS}>All players</SelectItem>
+              {ownersWithPlanets.map((owner) => (
+                <SelectItem key={owner.id} value={owner.id}>
+                  {owner.alias ?? `Player ${owner.id}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-border/70 bg-card/30">
@@ -214,7 +178,7 @@ export function PlanetsPage(): ReactElement {
                   <NumericCell value={planet.fuel} />
                   <NumericCell value={planet.energy} />
                   <NumericCell value={planet.maxPopulation.toLocaleString()} />
-                  <NumericCell value={`${planet.area.toLocaleString()} slots`} />
+                  <NumericCell value={planet.area.toLocaleString()} />
                 </tr>
               ))
             )}
