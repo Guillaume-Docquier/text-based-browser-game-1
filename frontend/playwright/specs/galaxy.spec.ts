@@ -1,15 +1,14 @@
+import { DETERMINISTIC_GALAXY_SEED, TEST_RULESET_NAME } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
-
-const DETERMINISTIC_GALAXY_SEED = 1234
 
 test("shows claimed systems and Planet owners", async ({ alice, bob }) => {
   const aliceLobbyPage = await test.step("Alice creates a two-player game", async () => {
     const createGamePage = await CreateGamePage.goto(alice.page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
     await createGamePage.setGameName(`Galaxy ownership ${Date.now()}`)
     await createGamePage.setMaxPlayers(2)
-    await createGamePage.selectRuleset("Test")
+    await createGamePage.selectRuleset(TEST_RULESET_NAME)
     return await createGamePage.submit()
   })
 

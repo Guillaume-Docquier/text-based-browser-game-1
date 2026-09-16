@@ -7,7 +7,7 @@ export function ActionsPage({ gameId }: { gameId: GameId }): ReactElement {
   const { playerView } = usePlayGameContext()
 
   return (
-    <div className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
+    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
       <ActionSelector gameId={gameId} playerView={playerView} />
     </div>
   )

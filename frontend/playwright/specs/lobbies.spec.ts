@@ -1,11 +1,10 @@
 import { aliceUser } from "../auth.ts"
+import { DETERMINISTIC_GALAXY_SEED, TEST_RULESET_NAME } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
-
-const DETERMINISTIC_GALAXY_SEED = 1234
 
 test.describe("anonymous user", () => {
   test("must sign in to create a game", async ({ page }) => {
@@ -41,7 +40,7 @@ test.describe("authenticated user", () => {
       await createGamePage.setGameName(gameName)
       await createGamePage.setMaxPlayers(3)
       await createGamePage.setTurnLength({ value: 2, unit: "hours" })
-      await createGamePage.selectRuleset("Test")
+      await createGamePage.selectRuleset(TEST_RULESET_NAME)
       return await createGamePage.submit()
     })
 
@@ -49,7 +48,7 @@ test.describe("authenticated user", () => {
       await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
       await expect(lobbyPage.configurationValue("Number of seats")).toHaveText("3 players")
       await expect(lobbyPage.configurationValue("Time per turn")).toHaveText("2 hr")
-      await expect(lobbyPage.configurationValue("Ruleset")).toContainText("Test")
+      await expect(lobbyPage.configurationValue("Ruleset")).toContainText(TEST_RULESET_NAME)
     })
 
     const galaxyPage = await test.step("Start the game", async () => {

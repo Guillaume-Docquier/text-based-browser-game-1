@@ -1,4 +1,4 @@
-import type { Planet, StarSystem } from "@api-types"
+import type { Planet, PlanetId, StarSystem } from "@api-types"
 import { ArrowLeft, LocateFixed } from "lucide-react"
 import { type AnimationEvent, type MouseEvent, type ReactElement, useState } from "react"
 import { Button } from "@/components/button.tsx"
@@ -9,18 +9,27 @@ import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 
 type GalaxyView = { type: "galaxy" } | { type: "star-system"; system: StarSystem; transition: "entering" | "exiting" }
 type PlanetDetailsView = { planet: Planet; transition: "open" | "closing" }
+type PlanetTarget = { readonly system: StarSystem; readonly planet: Planet }
 
 /**
  * Displays the game's galaxy and lets the player inspect individual Star Systems.
  *
+ * @param initialPlanetId - A Planet to open on the initial render.
  * @returns The interactive Galaxy page.
  */
-export function GalaxyPage(): ReactElement {
-  const [view, setView] = useState<GalaxyView>({ type: "galaxy" })
-  const [planetDetailsView, setPlanetDetailsView] = useState<PlanetDetailsView | undefined>(undefined)
+export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | undefined }): ReactElement {
+  const { game, playerView } = usePlayGameContext()
+  const initialPlanetTarget = findPlanetTarget(playerView.galaxy.systems, initialPlanetId)
+  const [view, setView] = useState<GalaxyView>(() =>
+    initialPlanetTarget === undefined
+      ? { type: "galaxy" }
+      : { type: "star-system", system: initialPlanetTarget.system, transition: "entering" },
+  )
+  const [planetDetailsView, setPlanetDetailsView] = useState<PlanetDetailsView | undefined>(() =>
+    initialPlanetTarget === undefined ? undefined : { planet: initialPlanetTarget.planet, transition: "open" },
+  )
   const [galaxyResetSignal, setGalaxyResetSignal] = useState(0)
   const [starSystemResetSignal, setStarSystemResetSignal] = useState(0)
-  const { game, playerView } = usePlayGameContext()
   const selectedSystem = view.type === "star-system" ? view.system : undefined
   const isExitingStarSystem = view.type === "star-system" && view.transition === "exiting"
   const totalNbPlanets = playerView.galaxy.systems.flatMap((system) => system.planets).length
@@ -164,4 +173,19 @@ export function GalaxyPage(): ReactElement {
       </div>
     </section>
   )
+}
+
+function findPlanetTarget(systems: readonly StarSystem[], planetId: PlanetId | undefined): PlanetTarget | undefined {
+  if (planetId === undefined) {
+    return undefined
+  }
+
+  for (const system of systems) {
+    const planet = system.planets.find(({ id }) => id === planetId)
+    if (planet !== undefined) {
+      return { system, planet }
+    }
+  }
+
+  return undefined
 }
