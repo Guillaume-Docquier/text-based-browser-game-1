@@ -8,7 +8,7 @@ export function useCreateGameMutation() {
   const navigate = useNavigate()
 
   return useMutation({
-    ...backendApiClient.unscoped.lobbies.create.mutationOptions(),
+    ...backendApiClient.lobbies.create.mutationOptions(),
     onSuccess: async ({ createdGameId }) => {
       await navigate({ to: "/games/$gameId", params: { gameId: createdGameId } })
     },

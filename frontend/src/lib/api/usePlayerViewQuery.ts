@@ -7,7 +7,7 @@ export function usePlayerViewQuery(gameId: GameId) {
   const backendApiClient = useBackendApiClient()
 
   return useQuery(
-    backendApiClient.unscoped.gameplay.getPlayerView.queryOptions(
+    backendApiClient.gameplay.getPlayerView.queryOptions(
       { gameId },
       {
         refetchInterval: 5_000,

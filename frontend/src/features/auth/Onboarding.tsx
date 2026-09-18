@@ -4,23 +4,23 @@ import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardHeader } from "@/components/card.tsx"
 import { Input } from "@/components/input.tsx"
 import { Label } from "@/components/label.tsx"
-import { useIsOnboardedQuery } from "@/lib/api/useCurrentAccountQuery.ts"
-import { useFinishOnboardingMutation } from "@/lib/api/useSetAliasMutation.ts"
+import { useFinishOnboardingMutation } from "@/lib/api/useFinishOnboardingMutation.ts"
+import { useIsOnboardedQuery } from "@/lib/api/useIsOnboardedQuery.ts"
 
-export function Onboarding({ userId, children }: { userId: string; children: ReactNode }): ReactElement {
-  const accountQuery = useIsOnboardedQuery(userId)
+export function Onboarding({ children }: { children: ReactNode }): ReactElement {
+  const accountQuery = useIsOnboardedQuery()
 
   return (
     <>
       {children}
-      {accountQuery.data === false ? <OnboardingDialog userId={userId} /> : null}
+      {accountQuery.data === false ? <OnboardingDialog /> : null}
     </>
   )
 }
 
-function OnboardingDialog({ userId }: { userId: string }): ReactElement {
+function OnboardingDialog(): ReactElement {
   const [alias, setAlias] = useState("")
-  const finishOnboardingMutation = useFinishOnboardingMutation(userId)
+  const finishOnboardingMutation = useFinishOnboardingMutation()
 
   const finishOnboarding = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()

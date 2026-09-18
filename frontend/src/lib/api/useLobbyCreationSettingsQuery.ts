@@ -6,7 +6,7 @@ export function useLobbyCreationSettingsQuery() {
   const backendApiClient = useBackendApiClient()
 
   return useQuery({
-    ...backendApiClient.unscoped.lobbies.getCreationSettings.queryOptions(),
+    ...backendApiClient.lobbies.getCreationSettings.queryOptions(),
     staleTime: Infinity,
     gcTime: Infinity,
     refetchOnMount: "always",

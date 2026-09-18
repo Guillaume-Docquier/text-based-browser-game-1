@@ -2,12 +2,11 @@ import { useQuery } from "@tanstack/react-query"
 import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC and TanStack Query inference do the work
-export function useIsOnboardedQuery(userId: string) {
+export function useIsOnboardedQuery() {
   const backendApiClient = useBackendApiClient()
-  const userApiClient = backendApiClient.forUser(userId)
 
   return useQuery({
-    ...userApiClient.accounts.isOnboarded.queryOptions(),
+    ...backendApiClient.accounts.isOnboarded.queryOptions(),
     staleTime: Infinity,
     gcTime: Infinity,
     meta: { skipMutationInvalidation: true },

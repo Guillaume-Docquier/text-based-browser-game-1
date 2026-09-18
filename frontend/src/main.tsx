@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { type ReactElement, StrictMode, useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
-import { Onboarding } from "@/features/auth/Onboarding.tsx"
 import { createBackendApiClient } from "@/lib/api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "@/lib/api/BackendApiClientContext.tsx"
 import { LoggerProvider } from "@/lib/LoggerContext.tsx"
@@ -62,24 +61,22 @@ if (rootElement.innerHTML === "") {
 
 function App(): ReactElement {
   const auth = useAuth()
+  const [router] = useState(() => createAppRouter({ auth }))
+
+  useEffect(() => {
+    if (auth.isLoaded) {
+      queryClient.clear()
+      void router.invalidate()
+    }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- We need the extra deps to ensure proper invalidations on auth changes
+  }, [auth.isLoaded, auth.isSignedIn, auth.userId, router])
 
   if (!auth.isLoaded) {
     return <></>
   }
 
-  return <LoadedApp key={auth.userId ?? "signed-out"} auth={auth} />
-}
-
-function LoadedApp({ auth }: RouterContext): ReactElement {
-  const [router] = useState(() => createAppRouter({ auth }))
-
-  useEffect(() => {
-    void queryClient.resetQueries()
-    void router.invalidate()
-  }, [router])
-
-  const app = <RouterProvider router={router} context={{ auth }} />
-  return auth.isSignedIn === true && auth.userId !== null ? <Onboarding userId={auth.userId}>{app}</Onboarding> : app
+  // Must render <Onboarding />
+  return <RouterProvider router={router} context={{ auth }} />
 }
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tanstack inference do the work
