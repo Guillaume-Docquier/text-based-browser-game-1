@@ -2,6 +2,7 @@ import type { TrpcRouter } from "@api-types"
 import type { QueryClient } from "@tanstack/react-query"
 import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
+import { shouldGloballyInvalidateQuery } from "@/lib/api/queryInvalidation.ts"
 
 export type BackendApiClient = ReturnType<typeof createBackendApiClient>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
@@ -39,8 +40,8 @@ export function createBackendApiClient({ baseUrl, queryClient }: { baseUrl: stri
           // Calls the `onSuccess` defined in the `useQuery()`-options:
           await opts.originalFn()
 
-          // Invalidate all queries in the react-query cache:
-          await opts.queryClient.invalidateQueries()
+          // Invalidate all ordinary queries in the react-query cache:
+          await opts.queryClient.invalidateQueries({ predicate: shouldGloballyInvalidateQuery })
         },
       },
     },

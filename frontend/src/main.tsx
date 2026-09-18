@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { type ReactElement, StrictMode, useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
+import { Onboarding } from "@/features/auth/Onboarding.tsx"
 import { createBackendApiClient } from "@/lib/api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "@/lib/api/BackendApiClientContext.tsx"
 import { LoggerProvider } from "@/lib/LoggerContext.tsx"
@@ -75,8 +76,11 @@ function App(): ReactElement {
     return <></>
   }
 
-  // Must render <Onboarding />
-  return <RouterProvider router={router} context={{ auth }} />
+  return (
+    <Onboarding>
+      <RouterProvider router={router} context={{ auth }} />
+    </Onboarding>
+  )
 }
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tanstack inference do the work

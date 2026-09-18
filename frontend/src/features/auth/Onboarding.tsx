@@ -1,30 +1,53 @@
+import { useAuth } from "@clerk/react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { type FormEvent, type ReactElement, type ReactNode, useState } from "react"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardHeader } from "@/components/card.tsx"
 import { Input } from "@/components/input.tsx"
 import { Label } from "@/components/label.tsx"
-import { useFinishOnboardingMutation } from "@/lib/api/useFinishOnboardingMutation.ts"
-import { useIsOnboardedQuery } from "@/lib/api/useIsOnboardedQuery.ts"
+import { useOnboarding } from "@/lib/api/useOnboarding.ts"
 
+/**
+ * The onboarding only shows when the user is signed in and confirmed to not have been onboarded.
+ * This is intentionally nonintrusive to avoid screen flickers when users are already onboarded.
+ */
 export function Onboarding({ children }: { children: ReactNode }): ReactElement {
-  const accountQuery = useIsOnboardedQuery()
+  const auth = useAuth()
+  const onboarding = useOnboarding({ enabled: auth.isSignedIn === true })
 
-  return (
-    <>
-      {children}
-      {accountQuery.data === false ? <OnboardingDialog /> : null}
-    </>
-  )
+  if (auth.isSignedIn === true && onboarding.isOnboarded === false) {
+    return (
+      <>
+        {children}
+        <OnboardingDialog
+          finishOnboarding={onboarding.finishOnboarding}
+          isFinishingOnboarding={onboarding.isFinishing}
+          finishOnboardingError={onboarding.finishError}
+          resetFinishOnboardingError={onboarding.resetFinishError}
+        />
+      </>
+    )
+  }
+
+  return <>{children}</>
 }
 
-function OnboardingDialog(): ReactElement {
+function OnboardingDialog({
+  finishOnboarding,
+  isFinishingOnboarding,
+  finishOnboardingError,
+  resetFinishOnboardingError,
+}: {
+  finishOnboarding: (alias: string) => void
+  isFinishingOnboarding: boolean
+  finishOnboardingError: { message: string } | null
+  resetFinishOnboardingError: () => void
+}): ReactElement {
   const [alias, setAlias] = useState("")
-  const finishOnboardingMutation = useFinishOnboardingMutation()
 
-  const finishOnboarding = (event: FormEvent<HTMLFormElement>): void => {
+  const submitOnboarding = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    finishOnboardingMutation.mutate({ alias })
+    finishOnboarding(alias)
   }
 
   return (
@@ -47,7 +70,7 @@ function OnboardingDialog(): ReactElement {
               </DialogPrimitive.Title>
             </CardHeader>
             <CardContent>
-              <form className="space-y-5" onSubmit={finishOnboarding}>
+              <form className="space-y-5" onSubmit={submitOnboarding}>
                 <div className="space-y-2">
                   <Label htmlFor="alias">Choose your alias</Label>
                   <Input
@@ -57,9 +80,9 @@ function OnboardingDialog(): ReactElement {
                     maxLength={36}
                     value={alias}
                     aria-describedby="alias-requirements"
-                    aria-invalid={finishOnboardingMutation.isError}
+                    aria-invalid={finishOnboardingError !== null}
                     onChange={(event) => {
-                      finishOnboardingMutation.reset()
+                      resetFinishOnboardingError()
                       setAlias(event.target.value)
                     }}
                   />
@@ -68,14 +91,14 @@ function OnboardingDialog(): ReactElement {
                   </p>
                 </div>
 
-                {finishOnboardingMutation.isError ? (
+                {finishOnboardingError === null ? null : (
                   <p className="text-sm font-medium text-destructive" role="alert">
-                    {finishOnboardingMutation.error.message}
+                    {finishOnboardingError.message}
                   </p>
-                ) : null}
+                )}
 
-                <Button type="submit" disabled={alias.trim() === "" || finishOnboardingMutation.isPending}>
-                  {finishOnboardingMutation.isPending ? "Saving..." : "Continue"}
+                <Button type="submit" disabled={alias.trim() === "" || isFinishingOnboarding}>
+                  {isFinishingOnboarding ? "Saving..." : "Continue"}
                 </Button>
               </form>
             </CardContent>

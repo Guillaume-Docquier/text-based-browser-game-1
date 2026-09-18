@@ -66,6 +66,14 @@ test.describe("onboarding", () => {
       await expect(createGamePage.heading).toBeVisible()
       await expect.poll(() => statusRequestCount).toBe(1)
     })
+
+    await test.step("Do not retry after a successful mutation", async () => {
+      const gameName = `Onboarding invalidation ${Date.now()}`
+      await createGamePage.setGameName(gameName)
+      const lobbyPage = await createGamePage.submit()
+      await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
+      await expect.poll(() => statusRequestCount).toBe(1)
+    })
   })
 })
 
