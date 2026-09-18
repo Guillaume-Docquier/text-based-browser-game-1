@@ -9,8 +9,11 @@ describe("accounts.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      // Act & Assert
-      await expect(anonymous.client.accounts.isOnboarded.query()).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
+      // Act
+      const isOnboarded = anonymous.client.accounts.isOnboarded.query()
+
+      // Assert
+      await expect(isOnboarded).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
 
     it("should return false for a new authenticated account", async () => {
@@ -44,8 +47,11 @@ describe("accounts.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const account = await apiServer.createClient({ authenticated: true })
 
-      // Act & Assert
-      await expect(account.client.accounts.finishOnboarding.mutate({ alias })).resolves.toBeUndefined()
+      // Act
+      const finishOnboarding = account.client.accounts.finishOnboarding.mutate({ alias })
+
+      // Assert
+      await expect(finishOnboarding).resolves.toBeUndefined()
     })
 
     it.each([" ", "a".repeat(37), "Null\0Alias"])("should reject the invalid alias %j", async (alias) => {
@@ -53,8 +59,11 @@ describe("accounts.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const account = await apiServer.createClient({ authenticated: true })
 
-      // Act & Assert
-      await expect(account.client.accounts.finishOnboarding.mutate({ alias })).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      // Act
+      const finishOnboarding = account.client.accounts.finishOnboarding.mutate({ alias })
+
+      // Assert
+      await expect(finishOnboarding).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
       await expect(account.client.accounts.isOnboarded.query()).resolves.toBe(false)
     })
 
@@ -65,10 +74,11 @@ describe("accounts.router", () => {
       const secondAccount = await apiServer.createClient({ authenticated: true })
       await firstAccount.client.accounts.finishOnboarding.mutate({ alias: "Nova" })
 
-      // Act & Assert
-      await expect(secondAccount.client.accounts.finishOnboarding.mutate({ alias: "nOvA" })).rejects.toMatchObject({
-        data: { code: "CONFLICT" },
-      })
+      // Act
+      const finishOnboarding = secondAccount.client.accounts.finishOnboarding.mutate({ alias: "nOvA" })
+
+      // Assert
+      await expect(finishOnboarding).rejects.toMatchObject({ data: { code: "CONFLICT" } })
       await expect(secondAccount.client.accounts.isOnboarded.query()).resolves.toBe(false)
     })
 
@@ -78,10 +88,11 @@ describe("accounts.router", () => {
       const account = await apiServer.createClient({ authenticated: true })
       await account.client.accounts.finishOnboarding.mutate({ alias: "Nova" })
 
-      // Act & Assert
-      await expect(account.client.accounts.finishOnboarding.mutate({ alias: "Supernova" })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      // Act
+      const finishOnboarding = account.client.accounts.finishOnboarding.mutate({ alias: "Supernova" })
+
+      // Assert
+      await expect(finishOnboarding).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
       await expect(account.client.accounts.isOnboarded.query()).resolves.toBe(true)
     })
   })
