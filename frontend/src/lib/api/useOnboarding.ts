@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
-import { skipGlobalInvalidationMeta } from "@/lib/api/queryInvalidation.ts"
+import { protectAgainstInvalidationMeta } from "@/lib/api/queryInvalidation.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC and TanStack Query inference do the work
 export function useOnboarding({ enabled }: { enabled: boolean }) {
@@ -16,7 +16,7 @@ export function useOnboarding({ enabled }: { enabled: boolean }) {
     // This query is only invalidated on logout.
     staleTime: Infinity,
     gcTime: Infinity,
-    meta: skipGlobalInvalidationMeta,
+    meta: protectAgainstInvalidationMeta,
     refetchInterval: false,
     refetchOnMount: false,
     refetchOnReconnect: false,

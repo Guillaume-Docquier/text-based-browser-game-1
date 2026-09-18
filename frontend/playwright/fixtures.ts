@@ -5,6 +5,7 @@ import { PlaywrightEnvSchema, type PlaywrightEnv } from "./loadEnv.ts"
 const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development keys\./]
 
 type AuthenticatedUserContext = {
+  alias: string
   email: string
   page: Page
 }
@@ -107,16 +108,18 @@ export const test = base.extend<Fixtures>({
   alice: async ({ browser }, use) => {
     const context = await browser.newContext({ storageState: users.alice.authFilePath })
     const page = await context.newPage()
+    const user = users.alice
 
-    await use({ email: users.alice.email, page })
+    await use({ ...user, page })
 
     await context.close()
   },
   bob: async ({ browser }, use) => {
     const context = await browser.newContext({ storageState: users.bob.authFilePath })
     const page = await context.newPage()
+    const user = users.bob
 
-    await use({ email: users.bob.email, page })
+    await use({ ...user, page })
 
     await context.close()
   },

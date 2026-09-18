@@ -11,8 +11,8 @@ setup("configure Clerk testing", async ({ clerkConfig }) => {
   await clerkSetup(clerkConfig)
 })
 
-for (const [name, { email, authFilePath }] of Object.entries(users)) {
-  setup(`authenticate ${name} and complete onboarding`, async ({ page, isCI }) => {
+for (const { alias, email, authFilePath } of Object.values(users)) {
+  setup(`authenticate ${alias} and complete onboarding`, async ({ page, isCI }) => {
     const createGamePage = await CreateGamePage.goto(page)
 
     const onboardingResponseJson = await setup.step("sign in", async () => {
@@ -35,7 +35,7 @@ for (const [name, { email, authFilePath }] of Object.entries(users)) {
       // Locally, the test users might already onboarded, so we only complete the onboarding if necessary
       if (isCI || !isOnboarded(onboardingResponseJson)) {
         await expect(createGamePage.onboarding.heading).toBeVisible()
-        await createGamePage.onboarding.chooseAlias(`E2E ${name}`)
+        await createGamePage.onboarding.chooseAlias(alias)
         await createGamePage.onboarding.finishOnboarding()
       }
 
