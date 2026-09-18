@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test"
 
-export class OnboardingPage {
+export class OnboardingModal {
   private readonly page: Page
 
   public readonly heading: Locator
