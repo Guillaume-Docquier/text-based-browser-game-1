@@ -1,13 +1,12 @@
 import type { Locator, Page } from "@playwright/test"
 import type { ActionsPage } from "./ActionsPage.ts"
+import { BasePage } from "./BasePage.ts"
 import type { GalaxyPage } from "./GalaxyPage.ts"
 import type { PlanetsPage } from "./PlanetsPage.ts"
 import type { PlayersPage } from "./PlayersPage.ts"
 
 /** Shared game layout and navigation available from every gameplay page. */
-export abstract class GamePage {
-  protected readonly page: Page
-
+export abstract class GamePage extends BasePage {
   private readonly gameTopBar: Locator
   private readonly galaxyLink: Locator
   private readonly planetsLink: Locator
@@ -18,7 +17,7 @@ export abstract class GamePage {
   public readonly resources: Locator
 
   protected constructor(page: Page) {
-    this.page = page
+    super(page)
 
     this.gameTopBar = page.getByRole("banner")
     this.gameNameHeading = this.gameTopBar.getByRole("heading", { level: 1 })
@@ -67,9 +66,5 @@ export abstract class GamePage {
     await this.playersLink.click()
     const { PlayersPage } = await import("./PlayersPage.ts") // Avoids circular dependencies issues because GamePage is the base class
     return new PlayersPage(this.page)
-  }
-
-  public async goBack(): Promise<void> {
-    await this.page.goBack()
   }
 }

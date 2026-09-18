@@ -142,10 +142,11 @@ describe("gameplay.router", () => {
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
-      // Act & Assert
-      await expect(joiner.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      // Act
+      const startGame = joiner.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      // Assert
+      await expect(startGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should reject starting a game that has already started", async () => {
@@ -156,10 +157,11 @@ describe("gameplay.router", () => {
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      // Act & Assert
-      await expect(creator.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      // Act
+      const startGame = creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      // Assert
+      await expect(startGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should reject anonymous game start", async () => {
@@ -167,10 +169,11 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      // Act & Assert
-      await expect(anonymous.client.gameplay.startGame.mutate({ gameId: 1 })).rejects.toMatchObject({
-        data: { code: "UNAUTHORIZED" },
-      })
+      // Act
+      const startGame = anonymous.client.gameplay.startGame.mutate({ gameId: 1 })
+
+      // Assert
+      await expect(startGame).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
   })
 
@@ -331,11 +334,12 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const player = await apiServer.createClient({ authenticated: true })
 
-      // Act & Assert
+      // Act
       // @ts-expect-error Testing runtime input parsing with an invalid game id
-      await expect(player.client.gameplay.getPlayerView.query({ gameId: "not-a-game-id" })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      const getPlayerView = player.client.gameplay.getPlayerView.query({ gameId: "not-a-game-id" })
+
+      // Assert
+      await expect(getPlayerView).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should reject anonymous game state reads", async () => {
@@ -343,10 +347,11 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      // Act & Assert
-      await expect(anonymous.client.gameplay.getPlayerView.query({ gameId: 1 })).rejects.toMatchObject({
-        data: { code: "UNAUTHORIZED" },
-      })
+      // Act
+      const getPlayerView = anonymous.client.gameplay.getPlayerView.query({ gameId: 1 })
+
+      // Assert
+      await expect(getPlayerView).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
   })
 
@@ -562,16 +567,15 @@ describe("gameplay.router", () => {
       const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
       Assert.isDefined(makeMoreMoney)
 
-      // Act & Assert
-      await expect(
-        player.client.gameplay.updateActionSubmission.mutate({
-          gameId: createdGameId,
-          turn: 0,
-          submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
-        }),
-      ).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
+      // Act
+      const updateActionSubmission = player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: 0,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: makeMoreMoney.id, selectedTargets: {} }),
       })
+
+      // Assert
+      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should reject setting an action after the turn deadline", async () => {

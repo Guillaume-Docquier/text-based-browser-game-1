@@ -38,7 +38,6 @@ export class ClerkAuthProvider implements AuthProvider {
 
     return Result.Success({
       email: clerkUserResult.value.primaryEmailAddress?.emailAddress,
-      alias: clerkUserResult.value.fullName,
     })
   }
 }

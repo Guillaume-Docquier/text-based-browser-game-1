@@ -56,7 +56,6 @@ test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }
   })
 
   await test.step("Sort in both directions by every visible column", async () => {
-    const initialOwnerNames = await planetsPage.getColumnValues("ownerName")
     const columns = [
       {
         name: "Planet",
@@ -109,8 +108,8 @@ test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }
       {
         name: "Owner",
         column: "ownerName",
-        ascending: initialOwnerNames, // not deterministic until we have player onboarding and test controlled aliases
-        descending: initialOwnerNames.toReversed(),
+        ascending: [alice.alias, bob.alias],
+        descending: [bob.alias, alice.alias],
       },
     ] as const
 

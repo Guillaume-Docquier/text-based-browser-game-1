@@ -3,7 +3,6 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import { Check, CircleDashed } from "lucide-react"
 import type { ReactElement } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
-import { Badge } from "@/components/badge.tsx"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent } from "@/components/card.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
@@ -84,8 +83,7 @@ function PlayerRow({
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <div className="truncate font-medium text-foreground">{player.alias ?? `Player ${player.id}`}</div>
-          {isCurrentPlayer ? <Badge variant="secondary">You</Badge> : null}
+          <div className="truncate font-medium text-foreground">{player.alias}</div>
         </div>
         <div className="text-xs text-muted-foreground">{colorLabel}</div>
       </div>

@@ -4,6 +4,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import express, { type Express } from "express"
 import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import { createAccountsRouter } from "#api/accounts/accounts.router.ts"
 import type { AuthService } from "#api/accounts/auth.service.ts"
 import { GameplayController } from "#api/gameplay/gameplay.controller.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
@@ -74,6 +75,7 @@ export async function createApi({
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: {
+  accountsController: AccountsController
   gameplayController: GameplayController
   listingsController: ListingsController
   lobbiesController: LobbiesController
@@ -83,6 +85,7 @@ function createTrpcRouter(services: {
   const routerServices = { trpc, ...services }
 
   return trpc.router({
+    accounts: createAccountsRouter(routerServices),
     gameplay: createGameplayRouter(routerServices),
     listings: createListingsRouter(routerServices),
     lobbies: createLobbiesRouter(routerServices),

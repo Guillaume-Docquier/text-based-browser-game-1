@@ -17,6 +17,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
+import type { Alias } from "#lib/db/accounts/Alias.ts"
 import { actionIdColumn } from "#lib/db/actions/ActionId.ts"
 import { fleetIdColumn } from "#lib/db/fleets/FleetId.ts"
 import { gameIdColumn } from "#lib/db/games/GameId.ts"
@@ -75,9 +76,10 @@ export const accountsTable = pgTable(
     id: accountIdColumn("id").primaryKey().defaultRandom(),
     authId: text("auth_id").notNull(),
     email: text("email"),
-    alias: text("alias"),
+    alias: text("alias").$type<Alias>().notNull(),
+    onboarded: boolean("onboarded").notNull(),
   },
-  (table) => [uniqueIndex("auth_id_idx").on(table.authId)],
+  (table) => [uniqueIndex("auth_id_idx").on(table.authId), uniqueIndex("accounts_alias_unique").on(sql`lower(${table.alias})`)],
 )
 
 /**

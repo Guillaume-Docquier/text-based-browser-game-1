@@ -30,6 +30,14 @@ export const PlaywrightEnvSchema = z.object({
    * Port used by the frontend started for Playwright.
    */
   E2E_FRONTEND_PORT: z.coerce.number().default(4173),
+
+  /**
+   * True when on the CI, this is automatic.
+   */
+  CI: z
+    .union([z.boolean(), z.literal(["true", "false"])])
+    .transform((value) => value === true || value === "true")
+    .default(false),
 })
 
 /**

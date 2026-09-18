@@ -26,12 +26,12 @@ Turn Processing is isolated so workers can scale independently or move to anothe
 
 - Test production code. Do not use `vitest.mock()`.
 - Prefer integration tests. Use unit tests sparingly for complex algorithms, race-condition validation, and regressions.
-- Structure unit and integration tests using Arrange, Act, Assert, with explicit `// Arrange`, `// Act`, and `// Assert` sections in that order.
+- Structure unit and integration tests using Arrange, Act, Assert, with explicit `// Arrange`, `// Act`, and `// Assert` sections in that order. `// Act & Assert` is acceptable for synchronous calls that throw and for genuinely complex routines where splitting the phases would make the test harder to understand.
 - Optimize assertions for useful failure output: compare semantic values instead of opaque IDs, sort unordered collections before comparison, and keep setup control flow straightforward.
 - Create expected state explicitly. Do not reimplement production logic in tests to compute expected results.
 
 ## Drizzle Gotchas
 
-- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw `new TransactionRollbackError(...)` from `src/lib/errors.ts` instead.
+- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. `throw new TransactionRollbackError(...)` instead.
 - Do not return results from transactions. Throw `TransactionRollbackError` to abort the transaction, or return the value directly.
 - Do not add `runInTransaction` helpers or flatten nested transaction calls. Drizzle supports nested transactions. If a method must run inside an existing transaction, type its argument as a transaction; otherwise let it create a transaction for its own unit of work.

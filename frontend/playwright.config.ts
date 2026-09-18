@@ -11,6 +11,8 @@ const env = loadEnv({ envFilePath: isCI ? undefined : path.resolve(frontendDirec
 const backendUrl = `http://127.0.0.1:${env.E2E_BACKEND_PORT}`
 const frontendUrl = `http://127.0.0.1:${env.E2E_FRONTEND_PORT}`
 
+const isUiMode = process.argv.includes("--ui")
+
 export default defineConfig({
   metadata: {
     env,
@@ -49,13 +51,20 @@ export default defineConfig({
     {
       name: "setup",
       testMatch: /global\.setup\.ts/,
+      use: {
+        video: "retain-on-failure",
+      },
     },
     {
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        video: "retain-on-failure",
       },
-      dependencies: isCI ? ["setup"] : [],
+      // avoids running the setup on every run when using the playwright ui because it slows down tests a lot when debugging
+      // it does mean your auth can get stale, and you need to know to manually run the setup again
+      // when running headless, we always run the setup for a clean run
+      dependencies: isUiMode ? [] : ["setup"],
     },
   ],
 })

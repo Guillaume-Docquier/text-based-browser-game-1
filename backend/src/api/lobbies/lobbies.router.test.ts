@@ -53,12 +53,11 @@ describe("lobbies.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
-      // Act & Assert
-      await expect(
-        creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed }) }),
-      ).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      // Act
+      const createLobby = creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed }) })
+
+      // Assert
+      await expect(createLobby).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should reject an unknown Ruleset", async () => {
@@ -66,12 +65,13 @@ describe("lobbies.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
-      // Act & Assert
-      await expect(
-        creator.client.lobbies.create.mutate({
-          configuration: createLobbyConfigurationDtoStub({ rulesetId: "unknown" }),
-        }),
-      ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      // Act
+      const createLobby = creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ rulesetId: "unknown" }),
+      })
+
+      // Assert
+      await expect(createLobby).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should create a game for the authenticated player", async () => {
@@ -151,14 +151,13 @@ describe("lobbies.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
-      // Act & Assert
-      await expect(
-        creator.client.lobbies.create.mutate({
-          configuration: createLobbyConfigurationDtoStub({ nbSeats: MAX_NB_SEATS + 1 }),
-        }),
-      ).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
+      // Act
+      const createLobby = creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: MAX_NB_SEATS + 1 }),
       })
+
+      // Assert
+      await expect(createLobby).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should reject anonymous game creation", async () => {
@@ -166,14 +165,13 @@ describe("lobbies.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      // Act & Assert
-      await expect(
-        anonymous.client.lobbies.create.mutate({
-          configuration: createLobbyConfigurationDtoStub(),
-        }),
-      ).rejects.toMatchObject({
-        data: { code: "UNAUTHORIZED" },
+      // Act
+      const createLobby = anonymous.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub(),
       })
+
+      // Assert
+      await expect(createLobby).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
   })
 
@@ -290,10 +288,11 @@ describe("lobbies.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      // Act & Assert
-      await expect(anonymous.client.lobbies.getById.query({ gameId: 404 })).rejects.toMatchObject({
-        data: { code: "NOT_FOUND" },
-      })
+      // Act
+      const getLobby = anonymous.client.lobbies.getById.query({ gameId: 404 })
+
+      // Assert
+      await expect(getLobby).rejects.toMatchObject({ data: { code: "NOT_FOUND" } })
     })
   })
 
@@ -405,10 +404,11 @@ describe("lobbies.router", () => {
 
       await player.client.lobbies.join.mutate({ gameId: createdGameId })
 
-      // Act & Assert
-      await expect(joiner.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      // Act
+      const joinGame = joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      // Assert
+      await expect(joinGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
 
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(2)
@@ -423,10 +423,11 @@ describe("lobbies.router", () => {
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      // Act & Assert
-      await expect(joiner.client.lobbies.join.mutate({ gameId: createdGameId })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      // Act
+      const joinGame = joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      // Assert
+      await expect(joinGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
 
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(1)
@@ -458,10 +459,11 @@ describe("lobbies.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      // Act & Assert
-      await expect(anonymous.client.lobbies.join.mutate({ gameId: 1 })).rejects.toMatchObject({
-        data: { code: "UNAUTHORIZED" },
-      })
+      // Act
+      const joinGame = anonymous.client.lobbies.join.mutate({ gameId: 1 })
+
+      // Assert
+      await expect(joinGame).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
   })
 
@@ -522,10 +524,11 @@ describe("lobbies.router", () => {
       await leaver.client.lobbies.join.mutate({ gameId: createdGameId })
       await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
 
-      // Act & Assert
-      await expect(leaver.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      // Act
+      const leaveGame = leaver.client.lobbies.leave.mutate({ gameId: createdGameId })
+
+      // Assert
+      await expect(leaveGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should reject leaving a game as its creator", async () => {
@@ -535,10 +538,11 @@ describe("lobbies.router", () => {
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
 
-      // Act & Assert
-      await expect(player.client.lobbies.leave.mutate({ gameId: createdGameId })).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
-      })
+      // Act
+      const leaveGame = player.client.lobbies.leave.mutate({ gameId: createdGameId })
+
+      // Assert
+      await expect(leaveGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
     it("should successfully leave a game the player has not joined", async () => {
@@ -563,10 +567,11 @@ describe("lobbies.router", () => {
       using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      // Act & Assert
-      await expect(anonymous.client.lobbies.leave.mutate({ gameId: 1 })).rejects.toMatchObject({
-        data: { code: "UNAUTHORIZED" },
-      })
+      // Act
+      const leaveGame = anonymous.client.lobbies.leave.mutate({ gameId: 1 })
+
+      // Assert
+      await expect(leaveGame).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
   })
 })

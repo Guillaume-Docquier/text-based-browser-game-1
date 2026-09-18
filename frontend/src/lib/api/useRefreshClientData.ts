@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
+import { unlessProtected } from "@/lib/api/queryInvalidation.ts"
 
 /**
  * Returns a function that invalidates and refetches active client queries.
@@ -9,6 +10,6 @@ export function useRefreshClientData(): () => Promise<void> {
   const queryClient = useQueryClient()
 
   return async () => {
-    await queryClient.invalidateQueries()
+    await queryClient.invalidateQueries({ predicate: unlessProtected })
   }
 }

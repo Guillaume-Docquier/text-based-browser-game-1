@@ -5,6 +5,7 @@ import { PlaywrightEnvSchema, type PlaywrightEnv } from "./loadEnv.ts"
 const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development keys\./]
 
 type AuthenticatedUserContext = {
+  alias: string
   email: string
   page: Page
 }
@@ -28,6 +29,12 @@ type Fixtures = {
     publishableKey: string
     secretKey: string
   }
+
+  /**
+   * True when running on the CI.
+   * Should only be needed by the global setup.
+   */
+  isCI: boolean
 
   /**
    * Using this will sign in bob and give you a page for bob.
@@ -94,20 +101,25 @@ export const test = base.extend<Fixtures>({
       secretKey: env.CLERK_SECRET_KEY,
     })
   },
+  isCI: async ({ env }, use) => {
+    await use(env.CI)
+  },
   // I would make reusable code for alice and bob, but the type shenanigans I'd have to do...
   alice: async ({ browser }, use) => {
     const context = await browser.newContext({ storageState: users.alice.authFilePath })
     const page = await context.newPage()
+    const user = users.alice
 
-    await use({ email: users.alice.email, page })
+    await use({ ...user, page })
 
     await context.close()
   },
   bob: async ({ browser }, use) => {
     const context = await browser.newContext({ storageState: users.bob.authFilePath })
     const page = await context.newPage()
+    const user = users.bob
 
-    await use({ email: users.bob.email, page })
+    await use({ ...user, page })
 
     await context.close()
   },

@@ -1,13 +1,16 @@
 import { Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { AccountIdSchema } from "#lib/db/accounts/AccountId.ts"
+import { AliasSchema } from "#lib/db/accounts/Alias.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
+import { rollbackOnFailure } from "#lib/db/drizzle/rollbackOnFailure.ts"
+import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { GameIdSchema, type GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { PlayerIdSchema, type PlayerId } from "#lib/db/players/PlayerId.ts"
 import { RulesetIdSchema } from "#lib/db/rulesets/RulesetId.ts"
-import { couldNot, rollbackOnFailure, TransactionRollbackError } from "#lib/errors.ts"
+import { couldNot } from "#lib/errors.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import type { LobbiesRepository, LobbyModel } from "./lobbies.repository.ts"
 
@@ -237,7 +240,7 @@ export const LobbyCreationSettingsDtoSchema = z.object({
 export type LobbyPlayerDto = z.infer<typeof LobbyPlayerDtoSchema>
 export const LobbyPlayerDtoSchema = z.object({
   id: PlayerIdSchema,
-  alias: z.string().nullable(),
+  alias: AliasSchema,
   color: z.enum(PlayerColor),
 })
 

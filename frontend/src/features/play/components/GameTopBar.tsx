@@ -225,7 +225,7 @@ function getWinnerLabel(winnerPlayerId: PlayerId, game: Lobby): string {
     return `Player ${winnerPlayerId}`
   }
 
-  return winner.alias ?? `Player ${winner.id}`
+  return winner.alias
 }
 
 function getPlayerLabel(game: Lobby, playerId: PlayerId): string {

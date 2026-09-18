@@ -12,7 +12,6 @@ export type AuthStatus =
 
 export type User = {
   email: string | null | undefined
-  alias: string | null | undefined
 }
 
 export interface AuthProvider {
