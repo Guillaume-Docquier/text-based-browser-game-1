@@ -10,5 +10,5 @@ export const protectAgainstInvalidationMeta = { protectAgainstInvalidation: true
  * Protected queries are very rare.
  */
 export function unlessProtected(query: Query): boolean {
-  return query.meta?.skipGlobalInvalidation !== true
+  return query.meta?.protectAgainstInvalidation !== true
 }
