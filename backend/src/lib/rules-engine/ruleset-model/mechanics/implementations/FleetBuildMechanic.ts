@@ -1,7 +1,7 @@
 import { z } from "zod"
 import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics/AbstractMechanic.ts"
 import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset-model/mechanics/implementations/MechanicFactoryParameters.ts"
-import { type TargetDefinition, TargetDefinitionSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
+import type { TargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import { type Integer, IntegerSchema } from "#lib/validation/Integer.ts"
 import { type PositiveNumber, PositiveNumberSchema } from "#lib/validation/PositiveNumber.ts"
@@ -17,7 +17,7 @@ export interface FleetBuildMechanic extends AbstractMechanic {
     /**
      * The planet where the fleet should be built.
      */
-    readonly planet: TargetDefinition<typeof TargetType.PLANET>
+    readonly planet: Extract<TargetDefinition, { readonly type: typeof TargetType.PLANET }> & Readonly<{ conditions: readonly never[] }>
   }
   readonly parameters: {
     /**
@@ -36,6 +36,7 @@ export const FleetBuildMechanic = {
         planet: {
           tag: planetTag,
           type: TargetType.PLANET,
+          conditions: [],
         },
       },
       parameters: {
@@ -47,7 +48,11 @@ export const FleetBuildMechanic = {
 export const FleetBuildMechanicSchema = z.object({
   type: z.literal(FleetBuildMechanic.type),
   targets: z.object({
-    planet: TargetDefinitionSchema(z.literal(TargetType.PLANET)),
+    planet: z.object({
+      tag: z.string(),
+      type: z.literal(TargetType.PLANET),
+      conditions: z.array(z.never()).readonly(),
+    }),
   }),
   parameters: z.object({
     strength: z.number().pipe(PositiveNumberSchema).and(IntegerSchema),

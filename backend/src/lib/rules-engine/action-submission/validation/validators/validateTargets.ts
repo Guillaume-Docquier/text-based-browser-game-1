@@ -5,7 +5,7 @@ import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import { TargetCondition, type TargetRequirement, TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
@@ -64,30 +64,50 @@ export function validateTargets(
 }
 
 function validateTargetDefinition(
-  targetType: TargetType | undefined,
+  targetRequirement: TargetRequirement | undefined,
   targetSlot: string,
   targetId: string,
   playerId: PlayerId,
   turnState: ReadonlyDeep<TurnState>,
 ): string | null {
-  if (targetType === undefined) {
+  if (targetRequirement === undefined) {
     return `Unexpected target slot "${targetSlot}"`
   }
 
   if (targetId.length === 0) {
-    return `Target slot "${targetSlot}" must be set to a ${targetType} id`
+    return `Target slot "${targetSlot}" must be set to a ${targetRequirement.type} id`
   }
 
-  switch (targetType) {
+  let issue: string | null
+  switch (targetRequirement.type) {
     case TargetType.PLAYER:
-      return validatePlayerTarget(turnState, targetSlot, targetId)
+      issue = validatePlayerTarget(turnState, targetSlot, targetId)
+      break
     case TargetType.FLEET:
-      return validateFleetTarget(turnState, targetSlot, targetId)
+      issue = validateFleetTarget(turnState, targetSlot, targetId)
+      break
     case TargetType.PLANET:
-      return validatePlanetTarget(turnState, targetSlot, targetId)
-    case TargetType.PLANET_OWNED:
-      return validateOwnedPlanetTarget(turnState, targetSlot, targetId, playerId)
+      issue = validatePlanetTarget(turnState, targetSlot, targetId)
+      break
   }
+
+  if (issue !== null) {
+    return issue
+  }
+
+  for (const condition of targetRequirement.conditions) {
+    switch (condition) {
+      case TargetCondition.OWNED:
+        issue = validateOwnedTarget(turnState, targetRequirement.type, targetSlot, targetId, playerId)
+        break
+    }
+
+    if (issue !== null) {
+      return issue
+    }
+  }
+
+  return null
 }
 
 function validatePlayerTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
@@ -114,22 +134,27 @@ function validatePlanetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: st
   return null
 }
 
-function validateOwnedPlanetTarget(
+function validateOwnedTarget(
   turnState: ReadonlyDeep<TurnState>,
+  targetType: TargetType,
   targetSlot: string,
   targetId: string,
   playerId: PlayerId,
 ): string | null {
-  const planet = getPlanet(turnState, targetId)
-  if (planet === undefined) {
-    return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
+  switch (targetType) {
+    case TargetType.PLANET:
+      if (getPlanet(turnState, targetId)?.ownerPlayerId !== playerId) {
+        return `Target slot "${targetSlot}" references Planet id "${targetId}" that is not owned by Player "${playerId}"`
+      }
+      return null
+    case TargetType.FLEET:
+      if (turnState.fleets[branded<FleetId>(targetId)]?.playerId !== playerId) {
+        return `Target slot "${targetSlot}" references Fleet id "${targetId}" that is not owned by Player "${playerId}"`
+      }
+      return null
+    case TargetType.PLAYER:
+      return `Target slot "${targetSlot}" cannot apply condition "${TargetCondition.OWNED}" to a ${TargetType.PLAYER} target`
   }
-
-  if (planet.ownerPlayerId !== playerId) {
-    return `Target slot "${targetSlot}" references Planet id "${targetId}" that is not owned by Player "${playerId}"`
-  }
-
-  return null
 }
 
 /**
