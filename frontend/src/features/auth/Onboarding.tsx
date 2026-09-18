@@ -21,9 +21,9 @@ export function Onboarding({ children }: { children: ReactNode }): ReactElement 
         {children}
         <OnboardingDialog
           finishOnboarding={onboarding.finishOnboarding}
-          isFinishingOnboarding={onboarding.isFinishing}
-          finishOnboardingError={onboarding.finishError}
-          resetFinishOnboardingError={onboarding.resetFinishError}
+          isFinishingOnboarding={onboarding.isFinishingOnboarding}
+          finishOnboardingError={onboarding.finishOnboardingError}
+          resetFinishOnboardingError={onboarding.resetFinishOnboardingError}
         />
       </>
     )
@@ -38,7 +38,7 @@ function OnboardingDialog({
   finishOnboardingError,
   resetFinishOnboardingError,
 }: {
-  finishOnboarding: (alias: string) => void
+  finishOnboarding: ({ alias }: { alias: string }) => void
   isFinishingOnboarding: boolean
   finishOnboardingError: { message: string } | null
   resetFinishOnboardingError: () => void
@@ -47,7 +47,7 @@ function OnboardingDialog({
 
   const submitOnboarding = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    finishOnboarding(alias)
+    finishOnboarding({ alias })
   }
 
   return (

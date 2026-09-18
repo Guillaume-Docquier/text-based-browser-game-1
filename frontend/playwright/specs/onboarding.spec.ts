@@ -38,7 +38,7 @@ test.describe("onboarding", () => {
     await expect(createGamePage.heading).toBeVisible()
   })
 
-  test("keeps the requested page visible after a failed status request", async ({ page }) => {
+  test("keeps the requested page visible while retrying a failed status request", async ({ page }) => {
     let statusRequestCount = 0
     await page.route(onboardingStatusRoute, async (route) => {
       statusRequestCount++
@@ -57,14 +57,18 @@ test.describe("onboarding", () => {
       await createGamePage.setGameName("Status failures stay unobtrusive")
     })
 
-    await test.step("Do not retry after focus or route remounts", async () => {
+    await test.step("Retry failures with a limited retry budget", async () => {
+      await expect.poll(() => statusRequestCount, { timeout: 10_000 }).toBe(4)
+    })
+
+    await test.step("Do not restart retries after focus or route remounts", async () => {
       await page.evaluate("document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('focus'))")
 
       await createGamePage.navbar.homeLink.click()
       await expect(new HomePage(page).heading).toBeVisible()
       await page.goBack()
       await expect(createGamePage.heading).toBeVisible()
-      await expect.poll(() => statusRequestCount).toBe(1)
+      await expect.poll(() => statusRequestCount).toBe(4)
     })
 
     await test.step("Do not retry after a successful mutation", async () => {
@@ -72,7 +76,7 @@ test.describe("onboarding", () => {
       await createGamePage.setGameName(gameName)
       const lobbyPage = await createGamePage.submit()
       await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
-      await expect.poll(() => statusRequestCount).toBe(1)
+      await expect.poll(() => statusRequestCount).toBe(4)
     })
   })
 })

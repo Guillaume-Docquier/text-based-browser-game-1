@@ -11,8 +11,9 @@ export function useOnboarding({ enabled }: { enabled: boolean }) {
   const isOnboardedQuery = useQuery({
     ...isOnboardedQueryOptions,
     enabled,
-    // This query is only invalidated on logout and doesn't retry in case of failure.
-    // Onboarding is not critical, and if the query failed, a lot of other things will fail.
+    retry: 3,
+    retryDelay: exponentialBackoff({ minMs: 1_000, maxMs: 30_000 }),
+    // This query is only invalidated on logout.
     staleTime: Infinity,
     gcTime: Infinity,
     meta: skipGlobalInvalidationMeta,
@@ -20,7 +21,6 @@ export function useOnboarding({ enabled }: { enabled: boolean }) {
     refetchOnMount: false,
     refetchOnReconnect: false,
     refetchOnWindowFocus: false,
-    retry: false,
     retryOnMount: false,
   })
   const finishOnboardingMutation = useMutation(
@@ -34,11 +34,15 @@ export function useOnboarding({ enabled }: { enabled: boolean }) {
 
   return {
     isOnboarded: isOnboardedQuery.data,
-    finishOnboarding: (alias: string): void => {
+    finishOnboarding: ({ alias }: { alias: string }): void => {
       finishOnboardingMutation.mutate({ alias })
     },
-    isFinishing: finishOnboardingMutation.isPending,
-    finishError: finishOnboardingMutation.error,
-    resetFinishError: finishOnboardingMutation.reset,
+    isFinishingOnboarding: finishOnboardingMutation.isPending,
+    finishOnboardingError: finishOnboardingMutation.error,
+    resetFinishOnboardingError: finishOnboardingMutation.reset,
   }
+}
+
+function exponentialBackoff({ minMs, maxMs }: { minMs: number; maxMs: number }): (attemptIndex: number) => number {
+  return (attemptIndex: number) => Math.min(minMs * 2 ** attemptIndex, maxMs)
 }
