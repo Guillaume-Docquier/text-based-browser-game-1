@@ -30,6 +30,12 @@ type Fixtures = {
   }
 
   /**
+   * True when running on the CI.
+   * Should only be needed by the global setup.
+   */
+  isCI: boolean
+
+  /**
    * Using this will sign in bob and give you a page for bob.
    *
    * @example
@@ -93,6 +99,9 @@ export const test = base.extend<Fixtures>({
       publishableKey: env.VITE_CLERK_PUBLISHABLE_KEY,
       secretKey: env.CLERK_SECRET_KEY,
     })
+  },
+  isCI: async ({ env }, use) => {
+    await use(env.CI)
   },
   // I would make reusable code for alice and bob, but the type shenanigans I'd have to do...
   alice: async ({ browser }, use) => {

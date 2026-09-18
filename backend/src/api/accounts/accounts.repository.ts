@@ -27,7 +27,7 @@ export type AccountModel = {
 export type FinishOnboardingError = Enumify<typeof FinishOnboardingError>
 export const FinishOnboardingError = {
   ALREADY_ONBOARDED: "ALREADY_ONBOARDED",
-  ALREADY_TAKEN: "ALREADY_TAKEN",
+  ALIAS_ALREADY_TAKEN: "ALIAS_ALREADY_TAKEN",
   COULD_NOT_FINISH: "COULD_NOT_FINISH",
 } as const
 
@@ -110,7 +110,7 @@ export class AccountsRepository extends PostgresRepository {
 
     if (Result.isFailure(finishOnboardingResult)) {
       if (Postgres.isErrorWithCode(finishOnboardingResult.error, Postgres.ErrorCode.UNIQUE_VIOLATION)) {
-        return Result.Failure(FinishOnboardingError.ALREADY_TAKEN)
+        return Result.Failure(FinishOnboardingError.ALIAS_ALREADY_TAKEN)
       }
 
       this.logger.error("Could not finish account onboarding", { accountId, error: finishOnboardingResult.error })

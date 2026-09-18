@@ -18,7 +18,7 @@ export function createAccountsRouter({ trpc, accountsController }: { trpc: Trpc;
       switch (finishOnboardingResult.error) {
         case FinishOnboardingError.ALREADY_ONBOARDED:
           throw new TRPCError({ code: "BAD_REQUEST", message: "Onboarding has already been completed." })
-        case FinishOnboardingError.ALREADY_TAKEN:
+        case FinishOnboardingError.ALIAS_ALREADY_TAKEN:
           throw new TRPCError({ code: "CONFLICT", message: "That alias is already taken." })
         case FinishOnboardingError.COULD_NOT_FINISH:
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Onboarding could not be completed." })

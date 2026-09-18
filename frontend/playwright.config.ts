@@ -51,6 +51,9 @@ export default defineConfig({
     {
       name: "setup",
       testMatch: /global\.setup\.ts/,
+      use: {
+        video: "retain-on-failure",
+      },
     },
     {
       name: "chromium",

@@ -12,6 +12,9 @@ export class OnboardingPage {
 
   public async chooseAlias(alias: string): Promise<void> {
     await this.page.getByRole("textbox", { name: "Choose your alias" }).fill(alias)
+  }
+
+  public async finishOnboarding(): Promise<void> {
     await this.page.getByRole("button", { name: "Continue" }).click()
   }
 }
