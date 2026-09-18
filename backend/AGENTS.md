@@ -32,6 +32,6 @@ Turn Processing is isolated so workers can scale independently or move to anothe
 
 ## Drizzle Gotchas
 
-- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. Throw `new TransactionRollbackError(...)` from `src/lib/errors.ts` instead.
+- Do not call `tx.rollback()`. It throws at runtime, but TypeScript does not know that, so it breaks control-flow narrowing. `throw new TransactionRollbackError(...)` instead.
 - Do not return results from transactions. Throw `TransactionRollbackError` to abort the transaction, or return the value directly.
 - Do not add `runInTransaction` helpers or flatten nested transaction calls. Drizzle supports nested transactions. If a method must run inside an existing transaction, type its argument as a transaction; otherwise let it create a transaction for its own unit of work.
