@@ -34,7 +34,7 @@ import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/Resource
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { safeResolveTargetId } from "#lib/rules-engine/turn-resolution/effects/resolveTargetId.ts"
-import type { Fleet, Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import type { Fleet, Planet, Player, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
 
@@ -180,12 +180,16 @@ export class GameplayController {
       const planetIds = [
         ...new Set(
           Object.entries(actionDefinition.targets)
-            .map(([tag, type]) => {
-              if (type !== TargetType.PLANET && type !== TargetType.PLANET_OWNED) {
+            .map(([tag, targetDefinition]) => {
+              if (targetDefinition.type !== TargetType.PLANET) {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, type })
+              return safeResolveTargetId(submittedAction.selectedTargets, {
+                tag,
+                type: TargetType.PLANET,
+                constraints: targetDefinition.constraints,
+              })
             })
             .filter((planetId) => planetId !== null),
         ),
@@ -195,17 +199,40 @@ export class GameplayController {
       const fleetIds = [
         ...new Set(
           Object.entries(actionDefinition.targets)
-            .map(([tag, type]) => {
-              if (type !== TargetType.FLEET) {
+            .map(([tag, targetDefinition]) => {
+              if (targetDefinition.type !== TargetType.FLEET) {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, type })
+              return safeResolveTargetId(submittedAction.selectedTargets, {
+                tag,
+                type: TargetType.FLEET,
+                constraints: targetDefinition.constraints,
+              })
             })
             .filter((fleetId) => fleetId !== null),
         ),
       ]
       const fleets = await this.gameplayRepository.getFleetsByIds({ gameId: context.gameId, fleetIds }, tx)
+
+      const playerIds = [
+        ...new Set(
+          Object.entries(actionDefinition.targets)
+            .map(([tag, targetDefinition]) => {
+              if (targetDefinition.type !== TargetType.PLAYER) {
+                return null
+              }
+
+              return safeResolveTargetId(submittedAction.selectedTargets, {
+                tag,
+                type: TargetType.PLAYER,
+                constraints: targetDefinition.constraints,
+              })
+            })
+            .filter((targetPlayerId) => targetPlayerId !== null),
+        ),
+      ]
+      const targetPlayers = await this.gameplayRepository.getPlayersByIds({ gameId: context.gameId, playerIds }, tx)
 
       const turnState = createTurnState({
         gameId: context.gameId,
@@ -213,12 +240,24 @@ export class GameplayController {
         playerId,
         resources: context.resources,
         submittedActions: [submittedAction],
+        targetPlayers,
         planets,
         fleets,
       })
-      const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
-      if (issues.length > 0) {
-        throw new TransactionRollbackError(issues.map(({ issue }) => issue).join("\n"))
+      const validationResult = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
+      if (Result.isFailure(validationResult)) {
+        this.logger.error("Could not validate action submission", {
+          gameId,
+          turn,
+          playerId,
+          actionId: submittedActionTargets.actionId,
+          error: validationResult.error,
+        })
+        throw new TransactionRollbackError(couldNot("validate action submission"), { cause: validationResult.error })
+      }
+
+      if (validationResult.value.length > 0) {
+        throw new TransactionRollbackError(validationResult.value.map(({ issue }) => issue).join("\n"))
       }
 
       await this.gameplayRepository.updateActionSubmissions({ context, actions: [submittedAction] }, tx)
@@ -346,6 +385,7 @@ function createTurnState({
   playerId,
   resources,
   submittedActions,
+  targetPlayers = [],
   planets,
   fleets,
 }: {
@@ -354,6 +394,7 @@ function createTurnState({
   playerId: PlayerId
   resources: Resources
   submittedActions: readonly SubmittedAction[]
+  targetPlayers?: Player[]
   planets: Planet[]
   fleets: Fleet[]
 }): TurnState {
@@ -361,12 +402,7 @@ function createTurnState({
     gameId,
     turn,
     submittedActions,
-    players: {
-      [playerId]: {
-        id: playerId,
-        resources,
-      },
-    },
+    players: indexById([...targetPlayers, { id: playerId, resources }]),
     planets: indexById(planets),
     fleets: indexById(fleets),
     winnerPlayerId: undefined,

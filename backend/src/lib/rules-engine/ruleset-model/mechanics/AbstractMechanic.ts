@@ -4,7 +4,7 @@ import type { TargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics
 /**
  * The role of the target for this mechanic, such as "player", "defendingFleet" or "planet".
  */
-export type TargetRole = Branded<string, "TargetRole">
+export type TargetRole = Branded<"TargetRole", string>
 
 export type AbstractMechanic = Readonly<{
   type: string

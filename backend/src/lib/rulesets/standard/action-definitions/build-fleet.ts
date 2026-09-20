@@ -25,7 +25,10 @@ function buildFleetDirective({
     type: ActionType.DIRECTIVE,
     tier,
     targets: {
-      planet: TargetType.PLANET,
+      planet: {
+        type: TargetType.PLANET,
+        constraints: [],
+      },
     },
     costs: [
       ResourceLossMechanic.create({

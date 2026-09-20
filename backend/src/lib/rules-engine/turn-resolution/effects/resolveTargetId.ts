@@ -9,7 +9,6 @@ import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType
 type TargetId<TTargetType extends TargetType> = {
   [TargetType.FLEET]: FleetId
   [TargetType.PLANET]: PlanetId
-  [TargetType.PLANET_OWNED]: PlanetId
   [TargetType.PLAYER]: PlayerId
 }[TTargetType]
 
@@ -36,8 +35,6 @@ export function safeResolveTargetId(
     case TargetType.FLEET:
       return branded<FleetId>(targetId)
     case TargetType.PLANET:
-      return branded<PlanetId>(Number(targetId))
-    case TargetType.PLANET_OWNED:
       return branded<PlanetId>(Number(targetId))
     case TargetType.PLAYER:
       return branded<PlayerId>(targetId)

@@ -36,6 +36,7 @@ export const FleetBuildMechanic = {
         planet: {
           tag: planetTag,
           type: TargetType.PLANET,
+          constraints: [],
         },
       },
       parameters: {

@@ -1,13 +1,21 @@
 import type { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
+import type { SubmittedActionValidationError } from "#lib/rules-engine/action-submission/validation/SubmittedActionValidationError.ts"
 import type { EffectJson } from "#lib/rules-engine/turn-resolution/effects/EffectJson.ts"
 import type { ResolvePhaseError } from "#lib/rules-engine/turn-resolution/phases/ResolvePhaseError.ts"
 
-export type ResolveTurnError = InvalidSubmissions | FailedToResolvePhases | UnresolvedEffects
+export type ResolveTurnError = FailedToValidateSubmissions | InvalidSubmissions | FailedToResolvePhases | UnresolvedEffects
+type FailedToValidateSubmissions = Readonly<{ type: "FAILED_TO_VALIDATE_SUBMISSIONS"; error: SubmittedActionValidationError }>
 type InvalidSubmissions = Readonly<{ type: "INVALID_SUBMISSIONS"; issues: SubmittedActionIssue[] }>
 type FailedToResolvePhases = Readonly<{ type: "FAILED_TO_RESOLVE_PHASES"; error: ResolvePhaseError }>
 type UnresolvedEffects = Readonly<{ type: "UNRESOLVED_EFFECTS"; effects: EffectJson[] }>
 
 export const ResolveTurnError = {
+  FailedToValidateSubmissions: ({ error }: Omit<FailedToValidateSubmissions, "type">): FailedToValidateSubmissions => {
+    return {
+      type: "FAILED_TO_VALIDATE_SUBMISSIONS",
+      error,
+    }
+  },
   InvalidSubmissions: ({ issues }: Omit<InvalidSubmissions, "type">): InvalidSubmissions => {
     return {
       type: "INVALID_SUBMISSIONS",

@@ -1,18 +1,29 @@
 import { describe, expect, it } from "vitest"
-import { targetTypeSatisfies, TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import { ActionTargetDefinitionSchema } from "#lib/rules-engine/ruleset-model/actions/ActionTargetDefinition.ts"
+import { TargetType, TargetTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 
-describe("targetTypeSatisfies", () => {
-  it.each([
-    [{ provided: TargetType.PLANET, required: TargetType.PLANET }, true],
-    [{ provided: TargetType.PLANET_OWNED, required: TargetType.PLANET }, true],
-    [{ provided: TargetType.PLANET, required: TargetType.PLANET_OWNED }, false],
-    [{ provided: TargetType.FLEET, required: TargetType.PLANET }, false],
-    [{ provided: TargetType.PLANET, required: TargetType.FLEET }, false],
-  ])("should report whether %s satisfies %s", ({ provided, required }, expected) => {
+describe("TargetType", () => {
+  it("should contain exactly the supported base target types", () => {
     // Act
-    const result = targetTypeSatisfies({ provided, required })
+    const targetTypes = Object.values(TargetType)
 
     // Assert
-    expect(result).toBe(expected)
+    expect(targetTypes).toStrictEqual(["FLEET", "PLANET", "PLAYER"])
+  })
+
+  it("should reject the removed PLANET_OWNED subtype", () => {
+    // Act
+    const parsedTargetType = TargetTypeSchema.safeParse("PLANET_OWNED")
+
+    // Assert
+    expect(parsedTargetType.success).toBe(false)
+  })
+
+  it("should reject the former scalar Action target shape", () => {
+    // Act
+    const parsedTargetDefinition = ActionTargetDefinitionSchema.safeParse(TargetType.PLANET)
+
+    // Assert
+    expect(parsedTargetDefinition.success).toBe(false)
   })
 })

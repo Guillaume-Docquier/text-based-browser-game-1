@@ -575,7 +575,6 @@ describe("TurnProcessor", () => {
 
       const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId: createdGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
-      const turnToProcess = { gameId: createdGameId, turn: 1 }
 
       // Act
       clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
@@ -584,7 +583,6 @@ describe("TurnProcessor", () => {
       const playerViewAfterFailedSave = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       turnsRepository.shouldFail = false
-      await turnsRepository.resetProcessingAttempt(turnToProcess)
       const retriedProcessingResult = await turnProcessor.processNextDueTurn()
       const playerViewAfterRetry = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 

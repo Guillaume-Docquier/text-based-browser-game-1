@@ -32,7 +32,7 @@ import type { SelectedTargets } from "#lib/rules-engine/ruleset-model/actions/Se
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import type { Fleet, Planet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import type { Fleet, Planet, Player } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import type { Galaxy } from "./Galaxy.ts"
 
@@ -479,6 +479,32 @@ export class GameplayRepository extends PostgresRepository {
       })
       .from(fleetsTable)
       .where(and(eq(fleetsTable.gameId, gameId), inArray(fleetsTable.id, fleetIds)))
+  }
+
+  public async getPlayersByIds(
+    { gameId, playerIds }: { gameId: GameId; playerIds: readonly PlayerId[] },
+    db: PostgresRepository["db"] = this.db,
+  ): Promise<Player[]> {
+    if (playerIds.length === 0) {
+      return []
+    }
+
+    const [players, resourceRows] = await Promise.all([
+      db
+        .select({ id: playersTable.playerId })
+        .from(playersTable)
+        .where(and(eq(playersTable.gameId, gameId), inArray(playersTable.playerId, playerIds))),
+      db
+        .select()
+        .from(resourcesTable)
+        .where(and(eq(resourcesTable.gameId, gameId), inArray(resourcesTable.playerId, playerIds))),
+    ])
+    const resourcesByPlayerId = Map.groupBy(resourceRows, (resource) => resource.playerId)
+
+    return players.map((player) => ({
+      id: player.id,
+      resources: toResourceBag(resourcesByPlayerId.get(player.id) ?? []),
+    }))
   }
 
   public async getReadinessForUpdate(

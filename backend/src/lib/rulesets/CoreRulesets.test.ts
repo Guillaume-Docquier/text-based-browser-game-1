@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vitest"
+import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
 import { validateRuleset } from "#lib/rules-engine/ruleset-model/validateRuleset.ts"
 import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
+import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 
 const rulesetsById = Map.groupBy(CoreRulesets, (ruleset) => ruleset.id)
 const rulesetsByName = Map.groupBy(CoreRulesets, (ruleset) => ruleset.name)
 
 describe("CoreRulesets", () => {
+  it("should leave Fleet Build target constraints empty", () => {
+    // Arrange
+    const fleetBuildMechanic = FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })
+
+    // Assert
+    expect(BuildFleetStandard.targets.planet).toStrictEqual({ type: "PLANET", constraints: [] })
+    expect(fleetBuildMechanic.targets.planet).toStrictEqual({ tag: "planet", type: "PLANET", constraints: [] })
+  })
+
   it("should only have a single default ruleset", () => {
     // Act
     const defaultRulesets = CoreRulesets.filter((ruleset) => ruleset.isDefault)

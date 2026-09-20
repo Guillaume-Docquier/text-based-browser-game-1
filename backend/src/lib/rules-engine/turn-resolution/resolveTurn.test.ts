@@ -7,8 +7,12 @@ import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { indexById } from "#lib/indexById.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
+import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import { createRulesetStub } from "#lib/rules-engine/ruleset-model/Ruleset.stub.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerConstraint.ts"
 import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
 import { resolveTurn } from "#lib/rules-engine/turn-resolution/resolveTurn.ts"
 import { ResolveTurnError } from "#lib/rules-engine/turn-resolution/ResolveTurnError.ts"
@@ -20,6 +24,51 @@ import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 
 describe("resolveTurn", () => {
   const playerId = branded<PlayerId>("player-id")
+
+  it("should return FAILED_TO_VALIDATE_SUBMISSIONS when a target constraint evaluator fails", () => {
+    // Arrange
+    const actionDefinition = createActionDefinitionStub({
+      targets: {
+        player: {
+          type: TargetType.PLAYER,
+          constraints: [OwnedBySubmittingPlayerConstraint.create()],
+        },
+      },
+    })
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: actionDefinition.id,
+      playerId,
+      selectedTargets: { player: String(playerId) },
+    })
+    const ruleset = createRulesetStub({ actionDefinitions: { [actionDefinition.id]: actionDefinition } })
+    const turnState = createTurnStateStub({
+      submittedActions: [submittedAction],
+      players: indexById([{ id: playerId, resources: createResourcesStub() }]),
+    })
+
+    // Act
+    const result = resolveTurn(turnState, ruleset, createSeededRng())
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Failure({
+        type: "FAILED_TO_VALIDATE_SUBMISSIONS",
+        error: {
+          type: "SUBMITTED_ACTION_VALIDATION_ERROR",
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: actionDefinition.id,
+          targetTag: "player",
+          message: `Could not evaluate target constraint "OWNED_BY_SUBMITTING_PLAYER" for target slot "player" on submitted action "${submittedAction.id}": Target constraint "OWNED_BY_SUBMITTING_PLAYER" does not support target type "PLAYER".`,
+          cause: {
+            type: "TARGET_CONSTRAINT_EVALUATION_ERROR",
+            constraintType: "OWNED_BY_SUBMITTING_PLAYER",
+            targetType: "PLAYER",
+            message: 'Target constraint "OWNED_BY_SUBMITTING_PLAYER" does not support target type "PLAYER".',
+          },
+        },
+      }),
+    )
+  })
 
   it("should not resolve the turn when the player cannot afford an Action", () => {
     // Arrange

@@ -24,9 +24,13 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
   const submittedActions = turnState.submittedActions
 
   // Validate submissions
-  const submittedActionIssues = validateSubmittedActions(submittedActions, ruleset, turnState)
-  if (submittedActionIssues.length > 0) {
-    return Result.Failure(ResolveTurnError.InvalidSubmissions({ issues: submittedActionIssues }))
+  const submittedActionValidationResult = validateSubmittedActions(submittedActions, ruleset, turnState)
+  if (Result.isFailure(submittedActionValidationResult)) {
+    return Result.Failure(ResolveTurnError.FailedToValidateSubmissions({ error: submittedActionValidationResult.error }))
+  }
+
+  if (submittedActionValidationResult.value.length > 0) {
+    return Result.Failure(ResolveTurnError.InvalidSubmissions({ issues: submittedActionValidationResult.value }))
   }
 
   // Create effects

@@ -2,6 +2,7 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
+import { SubmittedActionValidationError } from "#lib/rules-engine/action-submission/validation/SubmittedActionValidationError.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
@@ -12,7 +13,7 @@ export function validateCosts(
   submittedActions: readonly SubmittedAction[],
   ruleset: Ruleset,
   turnState: ReadonlyDeep<TurnState>,
-): Result<SubmittedActionIssue[], string> {
+): Result<SubmittedActionIssue[], SubmittedActionValidationError> {
   const turnStateCopy = structuredClone(turnState) as TurnState
   const issues: SubmittedActionIssue[] = []
 
@@ -20,14 +21,22 @@ export function validateCosts(
     const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
     if (actionDefinition === undefined) {
       return Result.Failure(
-        `Cannot validate costs for action submission ${submittedAction.id}, there is no action definition ${submittedAction.actionDefinitionId}`,
+        SubmittedActionValidationError.create({
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: submittedAction.actionDefinitionId,
+          message: `Cannot validate costs for action submission ${submittedAction.id}, there is no action definition ${submittedAction.actionDefinitionId}`,
+        }),
       )
     }
 
     const player = turnStateCopy.players[submittedAction.playerId]
     if (player === undefined) {
       return Result.Failure(
-        `Cannot validate costs for action submission ${submittedAction.id}, there is no player with id ${submittedAction.playerId}`,
+        SubmittedActionValidationError.create({
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: submittedAction.actionDefinitionId,
+          message: `Cannot validate costs for action submission ${submittedAction.id}, there is no player with id ${submittedAction.playerId}`,
+        }),
       )
     }
 

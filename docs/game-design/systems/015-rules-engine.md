@@ -49,6 +49,8 @@ Relates to:
 | Resolved Action           | An Action Submission and its Effect Outcomes after the Turn has been resolved.                                                                               |
 | Mechanic Definition       | The contract for one reusable kind of game behavior, including its supported values and required source, input, and target data.                             |
 | Mechanic                  | A configured use of a Mechanic Definition within an Action Definition.                                                                                       |
+| Target Type               | A base target entity kind: Fleet, Planet, or Player.                                                                                                         |
+| Target Constraint         | A composable eligibility rule applied after a selected target id resolves to its base entity.                                                                |
 | Effect                    | A concrete attempt to apply game behavior produced from a Mechanic during Turn Resolution.                                                                   |
 | Effect Outcome            | The recorded result of resolving an Effect: either `Resolved` when applied or `Prevented` as an expected game result.                                        |
 | Effect Pool               | The complete working collection of unresolved Effects for the current Turn Resolution.                                                                       |
@@ -69,11 +71,21 @@ The rules boundary is:
 
 An Action Definition is reusable rules content. An Available Action Instance is a server-authorized opportunity to use that content in the current state. An Action Submission is the player's chosen use of that opportunity. Keeping these concepts separate allows multiple instances of the same definition while preserving server authority.
 
+Action target slots declare a base Target Type and zero or more Target Constraints. Mechanics may declare additional constraints for the Action target tags they consume. A selected id must resolve to the exact Fleet, Planet, or Player base type before constraints are verified.
+
+Every applicable constraint is required. Effective constraints run in deterministic declaration order: constraints from cost Mechanics, constraints from other Mechanics, then constraints declared by the Action target slot. Duplicate constraints are preserved as separate AND conditions, and an Action cannot remove or weaken constraints required by a Mechanic.
+
+The implemented `OWNED_BY_SUBMITTING_PLAYER` constraint accepts Fleets and Planets owned by the submitting player. A target that exists but is not owned produces an ordinary submission issue. Invalid constraint input, including applying ownership to an unsupported Player target, is a Ruleset or engine failure rather than a player eligibility issue.
+
+Target-reference primitives for another Action target or a Mechanic target are part of the schema foundation only. They are not resolved yet, and the current runtime evaluates constraints with an empty reference set. This foundation does not implement target candidate generation, relational dependency graphs, movement, range, or stationing rules.
+
 ### Current Ruleset Scope
 
 Developer-authored Rulesets are persisted and every game explicitly selects one during lobby creation. Standard is the default Ruleset, while Test provides stable automated-test content. Game start, player views, Action Submission validation, and Turn Resolution load the selected Ruleset from persistence.
 
 As a temporary exception to the immutable, versioned direction in GDDR 009, seeded Ruleset records remain mutable. Deploy-time seed updates therefore change the Ruleset used by waiting, active, and completed games. Ruleset snapshots and versioning remain future work; player authoring is not part of the current scope.
+
+The target-definition JSON shape now uses `{ type, constraints }` for Action targets and `{ tag, type, constraints }` for Mechanic targets. The former scalar target shape and refined target types are intentionally not parsed. Current compatibility is reset and reseed rather than migration or backfill.
 
 ### Future Ruleset Capability
 

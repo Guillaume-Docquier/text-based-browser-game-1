@@ -38,6 +38,18 @@ Because of this, the use of the `Assert` module is not permitted there.
 
 All action submissions are validated before any resolution starts. Any invalid action fails the turn. Every action is expected to have been validated already on submission using the same validators.
 
+Action target slots use the base entity types `FLEET`, `PLANET`, and `PLAYER`. Eligibility rules are separate, composable Target Constraints instead of refined target types. The validator resolves a selected id to a discriminated `{ type, entity }` target, reports ordinary target-shape or lookup issues first, and then evaluates every effective constraint with the submitting player and Turn State.
+
+Constraint evaluators return a `Result`: an empty successful issue list means the target satisfies the constraint, a non-empty successful list contains ordinary eligibility problems, and a failure identifies invalid Ruleset data or an internal evaluation condition. Evaluator failures retain the submission, Action Definition, target tag, and underlying cause through validation and Turn Resolution rather than being converted to ordinary player issues.
+
+Each constraint implementation owns a type-safe factory, an explicit standalone Zod schema, its supported base Target Types, and its evaluator. The complete constraint schema is an explicit discriminated union, and an exhaustive object-literal registry provides direct constant-time implementation lookup. `OWNED_BY_SUBMITTING_PLAYER` is currently the only implemented constraint and contains all target-ownership eligibility knowledge.
+
+Mechanics declare target requirements as `{ tag, type, constraints }`, while Action target slots declare `{ type, constraints }`. A target must match the base type exactly. Effective constraints are composed without deduplication: cost-Mechanic constraints first, then other Mechanic constraints in declaration order, then Action-slot constraints. This preserves AND semantics and prevents an Action from weakening a Mechanic requirement.
+
+The schema supports `ACTION_TARGET` and `MECHANIC_TARGET` reference values for future constraints, but the runtime currently supplies no resolved references. Relational constraint resolution, dependency graphs, candidate generation, movement, range, and stationing are outside the current implementation.
+
+The persisted Ruleset JSON shape changed with target definitions and constraints. The former scalar target shape and refined target types are intentionally unsupported; with no production users, compatibility is handled by resetting and reseeding Ruleset data rather than migrating old JSON.
+
 A failed turn state is expected to not be persisted, as the turn resolver stopped at the first error and the state is probably incomplete.
 
 If any Effect fails to process at a later time, for any reason, then the turn will also be failed. Passing the validation should ensure that every Action will be able to resolve correctly, so if an Effect cannot properly resolve, it will be treated as fatal and fail the turn.

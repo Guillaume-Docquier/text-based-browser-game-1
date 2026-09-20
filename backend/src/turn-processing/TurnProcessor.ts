@@ -94,11 +94,22 @@ export class TurnProcessor {
     processingLogger.info("Processing turn", { gameId: turnToProcess.gameId, turn: turnToProcess.turn })
     const processedTurnResult = this.processTurn(turnToProcess)
     if (Result.isFailure(processedTurnResult)) {
-      processingLogger.error("Could not resolve turn", {
-        gameId: turnToProcess.gameId,
-        turn: turnToProcess.turn,
-        error: processedTurnResult.error,
-      })
+      if (processedTurnResult.error.type === "FAILED_TO_VALIDATE_SUBMISSIONS") {
+        processingLogger.error("Could not validate turn submissions", {
+          gameId: turnToProcess.gameId,
+          turn: turnToProcess.turn,
+          failureType: processedTurnResult.error.type,
+          error: processedTurnResult.error.error,
+        })
+      } else {
+        processingLogger.error("Could not resolve turn", {
+          gameId: turnToProcess.gameId,
+          turn: turnToProcess.turn,
+          error: processedTurnResult.error,
+        })
+      }
+
+      await this.resetProcessingAttempt(turnToProcess, processingLogger)
       return "failed"
     }
 
@@ -109,11 +120,23 @@ export class TurnProcessor {
         turn: turnToProcess.turn,
         error: saveResult.error,
       })
+      await this.resetProcessingAttempt(turnToProcess, processingLogger)
       return "failed"
     }
 
     processingLogger.info("Turn processed", { gameId: turnToProcess.gameId, turn: turnToProcess.turn })
     return "processed"
+  }
+
+  private async resetProcessingAttempt(turn: Pick<TurnToProcessModel, "gameId" | "turn">, processingLogger: Logger): Promise<void> {
+    const resetResult = await this.turnsRepository.resetProcessingAttempt(turn)
+    if (Result.isFailure(resetResult)) {
+      processingLogger.error("Could not reset failed turn processing attempt", {
+        gameId: turn.gameId,
+        turn: turn.turn,
+        error: resetResult.error,
+      })
+    }
   }
 
   private processTurn(turnToProcess: TurnToProcessModel): Result<ProcessedTurnModel, ResolveTurnError> {
