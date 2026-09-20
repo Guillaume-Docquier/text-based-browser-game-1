@@ -1,23 +1,15 @@
-import { TEST_RULESET_NAME } from "../constants.ts"
+import { Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
 test("being ready locks selected actions and the turn resolves when all players are ready", async ({ alice, bob }) => {
-  const aliceLobbyPage = await test.step("Alice creates a two-player game with a long turn interval", async () => {
-    const createGamePage = await CreateGamePage.goto(alice.page)
-    await createGamePage.setGameName(`Readiness ${Date.now()}`)
-    await createGamePage.setMaxPlayers(2)
-    await createGamePage.setTurnLength({ value: 1, unit: "days" })
-    await createGamePage.selectRuleset(TEST_RULESET_NAME)
-    return await createGamePage.submit()
+  const aliceLobbyPage = await CreateGamePage.createGame({
+    creator: alice,
+    participants: [bob],
+    settings: { maxPlayers: 2, turnLength: Time.create(24, UnitOfTime.HOURS) },
   })
-
-  const bobLobbyPage = await test.step("Bob joins Alice's lobby", async () => {
-    const lobbyPage = await LobbyPage.goto(bob.page, await aliceLobbyPage.getGameId())
-    await lobbyPage.joinGame()
-    return lobbyPage
-  })
+  const bobLobbyPage = new LobbyPage(bob.page)
 
   const alicePlayersPage = await test.step("Alice starts the game and selects an action", async () => {
     await aliceLobbyPage.reload()

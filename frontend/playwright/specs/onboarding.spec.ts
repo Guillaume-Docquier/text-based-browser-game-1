@@ -1,4 +1,3 @@
-import { DETERMINISTIC_GALAXY_SEED } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { HomePage } from "../pages/HomePage.ts"
@@ -15,7 +14,7 @@ test("the onboarding modal is not visible while fetching the onboarding status",
     })
   })
 
-  const createGamePage = await CreateGamePage.goto(alice.page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
+  const createGamePage = await CreateGamePage.goto(alice.page)
 
   await test.step("Keep the requested page usable after the status request fails", async () => {
     await expect(createGamePage.heading).toBeVisible()
