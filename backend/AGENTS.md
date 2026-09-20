@@ -29,6 +29,7 @@ Turn Processing is isolated so workers can scale independently or move to anothe
 - Structure unit and integration tests using Arrange, Act, Assert, with explicit `// Arrange`, `// Act`, and `// Assert` sections in that order. `// Act & Assert` is acceptable for synchronous calls that throw and for genuinely complex routines where splitting the phases would make the test harder to understand.
 - Optimize assertions for useful failure output: compare semantic values instead of opaque IDs, sort unordered collections before comparison, and keep setup control flow straightforward.
 - Create expected state explicitly. Do not reimplement production logic in tests to compute expected results.
+- Do not use `try`/`finally` for test cleanup. Prefer Explicit Resource Management with `using` or `await using` and resources that implement `Symbol.dispose` or `Symbol.asyncDispose` or use `afterEach` when disposal is not available or adds too much complexity.
 
 ## Drizzle Gotchas
 

@@ -1,6 +1,7 @@
 import { type Logger, Rethrow } from "@guillaume-docquier/tools-ts"
 import type { TRPCError } from "@trpc/server"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
+import compression from "compression"
 import express, { type Express } from "express"
 import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
@@ -55,6 +56,7 @@ export async function createApi({
   }
 
   const app = express()
+  app.use(compression())
   app.use(requestLoggerMiddleware(services))
   app.use(...authService.authenticationMiddlewares(controllers))
 
