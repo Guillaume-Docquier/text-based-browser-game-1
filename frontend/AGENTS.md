@@ -30,6 +30,7 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 - When testing deterministic generated data, hardcode the expected displayed values and row orders. Do not reimplement production logic in the test (for example, by sorting captured values with `toSorted` or custom comparators).
 - Test concrete, observable product behavior. Do not add page-object locators or assertions for hypothetical UI that is not implemented merely to prove that it is absent.
 - Use negative assertions only when the element is part of a real alternative state or its disappearance is itself required behavior. Do not invent loading, error, retry, or other defensive UI copy solely for a negative assertion.
+- Never use `test.use()` to authenticate a user, use the `alice` and `bob` fixtures instead.
 
 ## React Gotchas
 
