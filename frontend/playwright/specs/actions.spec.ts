@@ -14,6 +14,7 @@ test("the actions view shows action costs and updates them when actions are sele
 
   const extractMetal = actionsPage.action("Extract Metal")
   const refineFuel = actionsPage.action("Refine Fuel")
+  const generatePower = actionsPage.action("Generate Power")
   const winTheGame = actionsPage.action("Win The Game")
 
   await test.step("Display Action descriptions", async () => {
@@ -36,6 +37,7 @@ test("the actions view shows action costs and updates them when actions are sele
     await actionsPage.toggleAction("Extract Metal")
     await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
     await expect(refineFuel).toHaveAttribute("aria-disabled", "false")
+    await expect(generatePower).toHaveAttribute("aria-disabled", "true")
 
     await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "2 available of 3 Influence")
 
@@ -58,6 +60,7 @@ test("the actions view shows action costs and updates them when actions are sele
 
     await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "3 available of 3 Influence")
     await expect(actionsPage.resource("Metal")).toHaveAttribute("aria-label", "2 available of 2 Metal")
+    await expect(generatePower).toHaveAttribute("aria-disabled", "false")
   })
 
   await test.step("Display Action costs in their canonical order", async () => {
