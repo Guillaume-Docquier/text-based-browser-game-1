@@ -1,4 +1,4 @@
-import type { Result } from "@guillaume-docquier/tools-ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
@@ -7,6 +7,7 @@ import type {
   NoTargetConstraintParameters,
   NoTargetReferences,
 } from "#lib/rules-engine/ruleset-model/target-constraints/AbstractTargetConstraint.ts"
+import type { TargetableEntity } from "#lib/rules-engine/turn-resolution/TargetableEntity.ts"
 import { trustedParse } from "#lib/validation/trustedParse.ts"
 
 /**
@@ -30,15 +31,37 @@ export const OwnedBySubmittingPlayerConstraint = {
       references: {},
       parameters: {},
     }),
+  // evaluate should live in turn-resolution?
   evaluate: ({
-    constraint,
     target,
     submittingPlayerId,
   }: {
     constraint: OwnedBySubmittingPlayerConstraint
-    target // need an "entity" type, maybe even an entity manager?
+    target: TargetableEntity
     submittingPlayerId: PlayerId
-  }): Result<TargetConstraintIssue[], TargetConstraintError> => {},
+  }): Result<TargetConstraintIssue[], TargetConstraintError> => {
+    switch (target.type) {
+      case TargetType.FLEET:
+        if (target.playerId !== submittingPlayerId) {
+          return Result.Success([{ issue: "Expected target fleet to be owned by the submitting player." }])
+        }
+
+        return Result.Success([])
+      case TargetType.PLANET:
+        if (target.ownerPlayerId !== submittingPlayerId) {
+          return Result.Success([{ issue: "Expected target planet to be owned by the submitting player." }])
+        }
+
+        return Result.Success([])
+      case TargetType.PLAYER:
+        return Result.Failure({
+          type: "INCOMPATIBLE_TARGET_TYPE",
+          targetConstraintType: OwnedBySubmittingPlayerConstraint.type,
+          targetType: target.type,
+          error: "A player cannot be owned, this constraint is invalid.",
+        })
+    }
+  },
 } as const
 
 export const OwnedBySubmittingPlayerConstraintSchema = z.object({
