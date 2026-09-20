@@ -3,7 +3,7 @@ import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SelectedTargets } from "#lib/rules-engine/ruleset-model/actions/SelectedTargets.ts"
-import type { TargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
+import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/MechanicTargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 
 type TargetId<TTargetType extends TargetType> = {
@@ -19,16 +19,19 @@ type TargetId<TTargetType extends TargetType> = {
  */
 export function safeResolveTargetId<TTargetType extends TargetType>(
   selectedTargets: SelectedTargets,
-  targetDefinition: TargetDefinition<TTargetType>,
+  targetDefinition: MechanicTargetDefinition<TTargetType>,
 ): TargetId<TTargetType> | null
-export function safeResolveTargetId(selectedTargets: SelectedTargets, targetDefinition: TargetDefinition): TargetId<TargetType> | null {
+export function safeResolveTargetId(
+  selectedTargets: SelectedTargets,
+  targetDefinition: MechanicTargetDefinition,
+): TargetId<TargetType> | null {
   const targetId = selectedTargets[targetDefinition.tag]
   if (targetId === undefined) {
     // we return null instead of undefined to keep the below switch case exhaustive. Missing a branch will have TS error out because the function doesn't return a value.
     return null
   }
 
-  switch (targetDefinition.type) {
+  switch (targetDefinition.targetType) {
     case TargetType.FLEET:
       return branded<FleetId>(targetId)
     case TargetType.PLANET:
@@ -45,9 +48,12 @@ export function safeResolveTargetId(selectedTargets: SelectedTargets, targetDefi
  */
 export function resolveTargetId<TTargetType extends TargetType>(
   selectedTargets: SelectedTargets,
-  targetDefinition: TargetDefinition<TTargetType>,
+  targetDefinition: MechanicTargetDefinition<TTargetType>,
 ): TargetId<TTargetType>
-export function resolveTargetId(selectedTargets: SelectedTargets, targetDefinition: TargetDefinition): PlanetId | FleetId | PlayerId {
+export function resolveTargetId(
+  selectedTargets: SelectedTargets,
+  targetDefinition: MechanicTargetDefinition,
+): PlanetId | FleetId | PlayerId {
   const targetId = safeResolveTargetId(selectedTargets, targetDefinition)
   // Assert is not allowed in rules-engine, but this one is okay because it is a program invariant. Targets must have been validated already and the lookup must be valid.
   // A failure here means the validation code is flawed

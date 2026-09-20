@@ -42,7 +42,7 @@ export function validateTargets(
 
     for (const [targetSlot, targetId] of Object.entries(submittedAction.selectedTargets)) {
       const issue = validateTargetDefinition(
-        actionDefinition.targets[targetSlot],
+        actionDefinition.targets[targetSlot]?.targetType,
         targetSlot,
         targetId,
         submittedAction.playerId,

@@ -17,7 +17,7 @@ describe("validateTargets", () => {
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
       targets: {
-        targetPlayer: TargetType.PLAYER,
+        targetPlayer: { targetType: TargetType.PLAYER, constraints: [] },
       },
     })
     const ruleset = createRulesetStub({
@@ -95,7 +95,7 @@ describe("validateTargets", () => {
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
       targets: {
-        planet: TargetType.PLANET,
+        planet: { targetType: TargetType.PLANET, constraints: [] },
       },
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })

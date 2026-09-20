@@ -81,7 +81,7 @@ describe("validateRuleset", () => {
   it("should report an Action Definition target slot with an incompatible type", () => {
     // Arrange
     const actionDefinition = createActionDefinitionStub({
-      targets: { planet: TargetType.FLEET },
+      targets: { planet: { targetType: TargetType.FLEET, constraints: [] } },
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({
@@ -105,7 +105,7 @@ describe("validateRuleset", () => {
       actionDefinitions: indexById([
         createActionDefinitionStub({
           targets: {
-            planet: TargetType.PLANET,
+            planet: { targetType: TargetType.PLANET, constraints: [] },
           },
           mechanics: [
             {
@@ -113,7 +113,7 @@ describe("validateRuleset", () => {
               targets: {
                 planet: {
                   tag: "planet",
-                  type: TargetType.PLANET,
+                  targetType: TargetType.PLANET,
                 },
               },
               parameters: {
