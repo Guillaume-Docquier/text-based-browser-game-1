@@ -1,4 +1,3 @@
-import { Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
@@ -40,10 +39,7 @@ test("the galaxy view distinguishes systems with claimed planets and system view
 })
 
 test("the galaxy view can be navigated and the star system view can inspect planets", async ({ alice }) => {
-  const lobbyPage = await CreateGamePage.createGame({
-    creator: alice,
-    settings: { maxPlayers: 3, turnLength: Time.create(2, UnitOfTime.HOURS) },
-  })
+  const lobbyPage = await CreateGamePage.createGame({ creator: alice })
 
   const galaxyPage = await test.step("Start the game", async () => await lobbyPage.startGame())
   await test.step("Center and fit a Galaxy region", async () => {

@@ -7,6 +7,7 @@ test("being ready locks selected actions and the turn resolves when all players 
   const aliceLobbyPage = await CreateGamePage.createGame({
     creator: alice,
     participants: [bob],
+    // long turn length to make sure the turn doesn't progress by itself
     settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
   })
   const bobLobbyPage = new LobbyPage(bob.page)

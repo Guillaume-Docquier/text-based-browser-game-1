@@ -1,13 +1,9 @@
-import { Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { expect, test } from "../fixtures.ts"
 import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 
 test("the actions view shows action costs and updates them when actions are selected", async ({ alice }) => {
-  const lobbyPage = await CreateGamePage.createGame({
-    creator: alice,
-    settings: { maxPlayers: 3, turnLength: Time.create(2, UnitOfTime.HOURS) },
-  })
+  const lobbyPage = await CreateGamePage.createGame({ creator: alice })
   const actionsPage = await test.step("Start the game and open Actions", async () => {
     const galaxyPage = await lobbyPage.startGame()
     return await galaxyPage.openActions()
