@@ -4,11 +4,13 @@ import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
 test("being ready locks selected actions and the turn resolves when all players are ready", async ({ alice, bob }) => {
-  const aliceLobbyPage = await CreateGamePage.createGame({
-    creator: alice,
-    participants: [bob],
-    // long turn length to make sure the turn doesn't progress by itself
-    settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
+  const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () => {
+    return await CreateGamePage.createGame({
+      creator: alice,
+      participants: [bob],
+      // long turn length to make sure the turn doesn't progress by itself
+      settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
+    })
   })
   const bobLobbyPage = new LobbyPage(bob.page)
 

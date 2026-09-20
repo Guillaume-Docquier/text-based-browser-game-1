@@ -5,7 +5,13 @@ import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { PlanetsPage } from "../pages/PlanetsPage.ts"
 
 test("the planets view can filter and sort planets and can redirect to a planet in the galaxy view", async ({ alice, bob }) => {
-  const aliceLobbyPage = await CreateGamePage.createGame({ creator: alice, participants: [bob], settings: { maxPlayers: 2 } })
+  const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () => {
+    return await CreateGamePage.createGame({
+      creator: alice,
+      participants: [bob],
+      settings: { maxPlayers: 2 },
+    })
+  })
 
   const planetsPage = await test.step("Alice starts the game and opens Planets", async () => {
     const galaxyPage = await aliceLobbyPage.startGame()

@@ -3,7 +3,7 @@ import { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 
 test("the actions view shows action costs and updates them when actions are selected", async ({ alice }) => {
-  const lobbyPage = await CreateGamePage.createGame({ creator: alice })
+  const lobbyPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
   const actionsPage = await test.step("Start the game and open Actions", async () => {
     const galaxyPage = await lobbyPage.startGame()
     return await galaxyPage.openActions()

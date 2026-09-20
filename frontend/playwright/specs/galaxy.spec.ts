@@ -3,15 +3,15 @@ import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
 test("the galaxy view distinguishes systems with claimed planets and system view labels claimed planets", async ({ alice, bob }) => {
-  const aliceLobbyPage = await CreateGamePage.createGame({
-    creator: alice,
-    participants: [bob],
-    settings: { maxPlayers: 2 },
+  const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () => {
+    return await CreateGamePage.createGame({
+      creator: alice,
+      participants: [bob],
+      settings: { maxPlayers: 2 },
+    })
   })
 
-  const aliceGalaxyPage = await test.step("Start the game", async () => {
-    return await aliceLobbyPage.startGame()
-  })
+  const aliceGalaxyPage = await test.step("Start the game", async () => await aliceLobbyPage.startGame())
 
   const bobGalaxyPage = await test.step("Open the game from the participant lobby", async () => {
     const bobLobbyPage = new LobbyPage(bob.page)
@@ -39,7 +39,7 @@ test("the galaxy view distinguishes systems with claimed planets and system view
 })
 
 test("the galaxy view can be navigated and the star system view can inspect planets", async ({ alice }) => {
-  const lobbyPage = await CreateGamePage.createGame({ creator: alice })
+  const lobbyPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
 
   const galaxyPage = await test.step("Start the game", async () => await lobbyPage.startGame())
   await test.step("Center and fit a Galaxy region", async () => {

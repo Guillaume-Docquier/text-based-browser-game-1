@@ -6,14 +6,20 @@ test("the games browser filters public listings by name and by player membership
   const aliceGameName = `Playwright game ${Date.now()}-alice`
   const bobGameName = `Playwright game ${Date.now()}-bob`
 
-  await test.step("Create a game as Alice", async () => {
-    const lobbyPage = await CreateGamePage.createGame({ creator: alice, settings: { gameName: aliceGameName } })
-    await expect(lobbyPage.gameNameHeading).toHaveText(aliceGameName)
+  const aliceLobbyPage = await test.step("Create a game as Alice", async () => {
+    return await CreateGamePage.createGame({ creator: alice, settings: { gameName: aliceGameName } })
   })
 
-  await test.step("Create a game as Bob", async () => {
-    const lobbyPage = await CreateGamePage.createGame({ creator: bob, settings: { gameName: bobGameName } })
-    await expect(lobbyPage.gameNameHeading).toHaveText(bobGameName)
+  await test.step("Verify Alice's game", async () => {
+    await expect(aliceLobbyPage.gameNameHeading).toHaveText(aliceGameName)
+  })
+
+  const bobLobbyPage = await test.step("Create a game as Bob", async () => {
+    return await CreateGamePage.createGame({ creator: bob, settings: { gameName: bobGameName } })
+  })
+
+  await test.step("Verify Bob's game", async () => {
+    await expect(bobLobbyPage.gameNameHeading).toHaveText(bobGameName)
   })
 
   await test.step("Load the games anonymously", async () => {
