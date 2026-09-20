@@ -1,14 +1,9 @@
-import { expect, test as base, type ConsoleMessage, type Page } from "@playwright/test"
+import { expect, test as base, type ConsoleMessage } from "@playwright/test"
 import { users } from "./auth.ts"
+import type { AuthenticatedUser } from "./AuthenticatedUser.ts"
 import { PlaywrightEnvSchema, type PlaywrightEnv } from "./loadEnv.ts"
 
 const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development keys\./]
-
-type AuthenticatedUserContext = {
-  alias: string
-  email: string
-  page: Page
-}
 
 type Fixtures = {
   /**
@@ -47,7 +42,7 @@ type Fixtures = {
    * })
    * ```
    */
-  alice: AuthenticatedUserContext
+  alice: AuthenticatedUser
 
   /**
    * Using this will sign in bob and give you a page for bob.
@@ -60,7 +55,7 @@ type Fixtures = {
    * })
    * ```
    */
-  bob: AuthenticatedUserContext
+  bob: AuthenticatedUser
 }
 
 export const test = base.extend<Fixtures>({

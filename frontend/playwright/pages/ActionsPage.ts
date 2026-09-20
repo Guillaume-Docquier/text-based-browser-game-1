@@ -18,4 +18,16 @@ export class ActionsPage extends GamePage {
   public async toggleAction(name: string): Promise<void> {
     await this.action(name).click()
   }
+
+  public actionUnaffordableOverlay(name: string): Locator {
+    return this.action(name).locator("[data-unaffordable-overlay]")
+  }
+
+  public actionCosts(name: string): Locator {
+    return this.action(name).locator('[aria-label="Costs"] > [aria-label]')
+  }
+
+  public actionCost(name: string, cost: string): Locator {
+    return this.action(name).locator(`[aria-label="Costs"] > [aria-label="${cost}"]`)
+  }
 }

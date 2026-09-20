@@ -1,7 +1,7 @@
 import { expect, test } from "../fixtures.ts"
 import { HomePage } from "../pages/HomePage.ts"
 
-test("shows the public landing page", async ({ page }) => {
+test("the public landing page renders", async ({ page }) => {
   const homePage = await HomePage.goto(page)
 
   await test.step("Verify the landing page content", async () => {

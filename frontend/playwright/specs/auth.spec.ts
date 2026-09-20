@@ -6,7 +6,10 @@ import { GamesBrowserPage } from "../pages/GamesBrowserPage.ts"
 import { HomePage } from "../pages/HomePage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
-test("logins and logouts redirects", async ({ clerkConfig, page }) => {
+test("the authentication returns players to their requested page after sign-in and to the home page after sign-out", async ({
+  clerkConfig,
+  page,
+}) => {
   await clerkSetup(clerkConfig)
 
   const homePage = await HomePage.goto(page)

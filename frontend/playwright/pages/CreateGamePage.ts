@@ -1,7 +1,23 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Assert, type Time, type UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
+import type { AuthenticatedUser } from "../AuthenticatedUser.ts"
+import { DETERMINISTIC_GALAXY_SEED, TEST_RULESET_NAME } from "../constants.ts"
 import { LobbyPage } from "./LobbyPage.ts"
 import { WebsitePage } from "./WebsitePage.ts"
+
+type TurnLength = Time<UnitOfTime.DAYS | UnitOfTime.HOURS | UnitOfTime.MINUTES>
+
+type CreateGameSettings = {
+  readonly gameName?: string
+  readonly maxPlayers?: number
+  readonly turnLength?: TurnLength
+}
+
+type CreateGameInput = {
+  readonly creator: AuthenticatedUser
+  readonly participants?: readonly AuthenticatedUser[]
+  readonly settings?: CreateGameSettings
+}
 
 export class CreateGamePage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/create" })
@@ -26,13 +42,40 @@ export class CreateGamePage extends WebsitePage {
     this.createButton = page.getByRole("button", { name: "Create", exact: true })
   }
 
-  public static async goto(page: Page, options?: { mapGenerationSeed: number }): Promise<CreateGamePage> {
-    return await new CreateGamePage(page).goto(options)
+  public static async goto(page: Page): Promise<CreateGamePage> {
+    return await new CreateGamePage(page).goto()
   }
 
-  public async goto(options?: { mapGenerationSeed: number }): Promise<CreateGamePage> {
-    const seedSearch = options === undefined ? "" : `?mapGenerationSeed=${options.mapGenerationSeed}`
-    await this.page.goto(`${CreateGamePage.urlPattern.pathname}${seedSearch}`)
+  /**
+   * Create a game, join any additional participants, and return the creator's lobby.
+   */
+  public static async createGame({ creator, participants = [], settings = {} }: CreateGameInput): Promise<LobbyPage> {
+    const createGamePage = await CreateGamePage.goto(creator.page)
+
+    await createGamePage.setGameName(settings.gameName ?? `E2E-${crypto.randomUUID()}`)
+    await createGamePage.selectRuleset(TEST_RULESET_NAME)
+
+    if (settings.maxPlayers !== undefined) {
+      await createGamePage.setMaxPlayers(settings.maxPlayers)
+    }
+
+    if (settings.turnLength !== undefined) {
+      await createGamePage.setTurnLength(settings.turnLength)
+    }
+
+    const creatorLobbyPage = await createGamePage.submit()
+    const gameId = await creatorLobbyPage.getGameId()
+
+    for (const participant of participants) {
+      const participantLobbyPage = await LobbyPage.goto(participant.page, gameId)
+      await participantLobbyPage.joinGame()
+    }
+
+    return creatorLobbyPage
+  }
+
+  public async goto(): Promise<CreateGamePage> {
+    await this.page.goto(`${CreateGamePage.urlPattern.pathname}?mapGenerationSeed=${DETERMINISTIC_GALAXY_SEED}`)
     return this
   }
 
@@ -44,7 +87,7 @@ export class CreateGamePage extends WebsitePage {
     await this.maxPlayersInput.fill(maxPlayers.toString())
   }
 
-  public async setTurnLength({ value, unit }: { value: number; unit: "days" | "hours" | "minutes" }): Promise<void> {
+  public async setTurnLength({ value, unit }: TurnLength): Promise<void> {
     await this.turnLengthInput.fill(value.toString())
     await this.turnLengthUnitSelect.click()
     await this.page.getByRole("option", { name: unit, exact: true }).click()

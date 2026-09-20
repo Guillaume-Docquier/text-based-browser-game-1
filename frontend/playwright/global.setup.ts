@@ -7,7 +7,7 @@ import { CreateGamePage } from "./pages/CreateGamePage.ts"
 // Based on Clerk's docs: https://clerk.com/docs/guides/development/testing/playwright/test-authenticated-flows
 setup.describe.configure({ mode: "serial" })
 
-setup("configure Clerk testing", async ({ clerkConfig }) => {
+setup("configure Clerk for testing", async ({ clerkConfig }) => {
   await clerkSetup(clerkConfig)
 })
 

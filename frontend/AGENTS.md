@@ -22,6 +22,7 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 
 - Structure tests with descriptive `test.step()` blocks reflecting user behavior. Do not use AAA sections.
 - Page objects own selectors, reusable interactions, and routes. Tests use intent-revealing methods such as `page.navbar.signOut()`; navigation methods return the destination page object.
+- Put reusable page-specific actions on the corresponding page object. Do not create `utils` or `helpers` directories for behavior that belongs to a page; use a precisely named shared module only for behavior that genuinely spans pages.
 - Use component objects for cohesive shared UI, not individual elements.
 - Expose semantic locators for assertions only. Tests must not interact with locators directly; add a page-object method instead.
 - Keep all `expect` calls and `test.step()` blocks in tests. Page objects expose actions and observable state, not assertions.
@@ -30,6 +31,7 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 - When testing deterministic generated data, hardcode the expected displayed values and row orders. Do not reimplement production logic in the test (for example, by sorting captured values with `toSorted` or custom comparators).
 - Test concrete, observable product behavior. Do not add page-object locators or assertions for hypothetical UI that is not implemented merely to prove that it is absent.
 - Use negative assertions only when the element is part of a real alternative state or its disappearance is itself required behavior. Do not invent loading, error, retry, or other defensive UI copy solely for a negative assertion.
+- Never use `test.use()` to authenticate a user, use the `alice` and `bob` fixtures instead.
 
 ## React Gotchas
 

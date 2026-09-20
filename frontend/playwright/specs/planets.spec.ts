@@ -1,23 +1,16 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import { DETERMINISTIC_GALAXY_SEED, TEST_RULESET_NAME } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
-import { LobbyPage } from "../pages/LobbyPage.ts"
 import { PlanetsPage } from "../pages/PlanetsPage.ts"
 
-test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }) => {
-  const aliceLobbyPage = await test.step("Alice creates a two-player game", async () => {
-    const createGamePage = await CreateGamePage.goto(alice.page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
-    await createGamePage.setGameName(`Planet overview ${Date.now()}`)
-    await createGamePage.setMaxPlayers(2)
-    await createGamePage.selectRuleset(TEST_RULESET_NAME)
-    return await createGamePage.submit()
-  })
-
-  await test.step("Bob joins Alice's lobby", async () => {
-    const lobbyPage = await LobbyPage.goto(bob.page, await aliceLobbyPage.getGameId())
-    await lobbyPage.joinGame()
+test("the planets view can filter and sort planets and can redirect to a planet in the galaxy view", async ({ alice, bob }) => {
+  const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () => {
+    return await CreateGamePage.createGame({
+      creator: alice,
+      participants: [bob],
+      settings: { maxPlayers: 2 },
+    })
   })
 
   const planetsPage = await test.step("Alice starts the game and opens Planets", async () => {

@@ -21,22 +21,3 @@ export const users = {
   //   authFilePath: resolve(playwrightDirectory, ".clerk/charlie.json"),
   // },
 }
-
-/**
- * Use when you need an authenticated user for a whole suite.
- * Use the alice and bob fixtures when you need multiple users.
- *
- * @example
- * ```ts
- * test.describe("authenticated user", () => {
- *   test.use(aliceUser)
- *
- *   test("edits profile", () => {
- *     // authenticated as Alice
- *   })
- * })
- * ```
- */
-export const aliceUser = {
-  storageState: users.alice.authFilePath,
-}
