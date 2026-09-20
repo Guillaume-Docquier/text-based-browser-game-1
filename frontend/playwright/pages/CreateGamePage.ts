@@ -52,7 +52,7 @@ export class CreateGamePage extends WebsitePage {
   public static async createGame({ creator, participants = [], settings = {} }: CreateGameInput): Promise<LobbyPage> {
     const createGamePage = await CreateGamePage.goto(creator.page)
 
-    await createGamePage.setGameName(settings.gameName ?? `Playwright game ${Date.now()}-${crypto.randomUUID()}`)
+    await createGamePage.setGameName(settings.gameName ?? `E2E-${crypto.randomUUID()}`)
     await createGamePage.selectRuleset(TEST_RULESET_NAME)
 
     if (settings.maxPlayers !== undefined) {
