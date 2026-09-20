@@ -51,9 +51,7 @@ export const OwnedBySubmittingPlayerConstraint = {
       references: {},
       parameters: {},
     }),
-  evaluate: (
-    context: TargetConstraintEvaluationContext<OwnedBySubmittingPlayerConstraint>,
-  ): Result<TargetConstraintIssue[], TargetConstraintEvaluationError> => evaluate(context),
+  evaluate,
 } as const satisfies TargetConstraintImplementation<OwnedBySubmittingPlayerConstraint>
 
 function evaluate(

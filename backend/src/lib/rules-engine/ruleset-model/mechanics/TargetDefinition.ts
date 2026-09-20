@@ -1,11 +1,6 @@
 import { z } from "zod"
 import type { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
-import {
-  MechanicTargetConstraintSchema,
-  type MechanicTargetConstraint,
-} from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraint.ts"
-
-export type { MechanicTargetConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraint.ts"
+import { TargetConstraintSchema, type TargetConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraint.ts"
 
 export type TargetDefinition<TTargetType extends TargetType = TargetType> = Readonly<{
   /**
@@ -20,7 +15,7 @@ export type TargetDefinition<TTargetType extends TargetType = TargetType> = Read
   /**
    * Constraints that every target selected for this mechanic must satisfy.
    */
-  constraints: readonly MechanicTargetConstraint[]
+  constraints: readonly TargetConstraint[]
 }>
 
 export function TargetDefinitionSchema<TTargetType extends TargetType>(
@@ -29,6 +24,6 @@ export function TargetDefinitionSchema<TTargetType extends TargetType>(
   return z.object({
     tag: z.string(),
     type: targetTypeSchema,
-    constraints: z.array(MechanicTargetConstraintSchema).readonly(),
+    constraints: z.array(TargetConstraintSchema).readonly(),
   }) satisfies z.ZodType<TargetDefinition<TTargetType>>
 }

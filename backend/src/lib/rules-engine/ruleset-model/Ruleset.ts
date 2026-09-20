@@ -25,6 +25,9 @@ export type Ruleset = Branded<
      * The default choice when creating games. Only one ruleset can be the default ruleset.
      */
     isDefault: boolean
+    /**
+     * Action definitions, indexed by id
+     */
     actionDefinitions: Readonly<Record<ActionDefinition["id"], ActionDefinition>>
     startingResources: Readonly<Resources>
   }>
