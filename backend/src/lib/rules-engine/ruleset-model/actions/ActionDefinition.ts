@@ -6,7 +6,7 @@ import {
   type ResourceLossMechanic,
 } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { MechanicSchema, type Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
-import { targetTypeSatisfies, type TargetType, TargetTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import { type TargetType, TargetTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 
 /**
  * The definition of an Action.
@@ -61,7 +61,7 @@ function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.
           code: "custom",
           message: `Action Definition "${actionDefinition.name}" is missing target slot "${mechanicTarget.tag}" required by the "${mechanic.type}" mechanic`,
         })
-      } else if (!targetTypeSatisfies({ provided: actionTargetType, required: mechanicTarget.type })) {
+      } else if (actionTargetType !== mechanicTarget.type) {
         context.addIssue({
           code: "custom",
           message: `Action Definition "${actionDefinition.name}" target slot "${mechanicTarget.tag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.type}"`,

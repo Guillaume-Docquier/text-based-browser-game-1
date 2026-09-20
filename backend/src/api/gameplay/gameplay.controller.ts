@@ -181,7 +181,7 @@ export class GameplayController {
         ...new Set(
           Object.entries(actionDefinition.targets)
             .map(([tag, type]) => {
-              if (type !== TargetType.PLANET && type !== TargetType.PLANET_OWNED) {
+              if (type !== TargetType.PLANET) {
                 return null
               }
 

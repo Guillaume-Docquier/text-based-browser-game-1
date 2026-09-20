@@ -7,7 +7,7 @@ import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import type { Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 /**
  * Validates that the target slots for the action submission are filled and valid.
@@ -67,7 +67,7 @@ function validateTargetDefinition(
   targetType: TargetType | undefined,
   targetSlot: string,
   targetId: string,
-  playerId: PlayerId,
+  submittingPlayerId: PlayerId,
   turnState: ReadonlyDeep<TurnState>,
 ): string | null {
   if (targetType === undefined) {
@@ -85,9 +85,9 @@ function validateTargetDefinition(
       return validateFleetTarget(turnState, targetSlot, targetId)
     case TargetType.PLANET:
       return validatePlanetTarget(turnState, targetSlot, targetId)
-    case TargetType.PLANET_OWNED:
-      return validateOwnedPlanetTarget(turnState, targetSlot, targetId, playerId)
   }
+
+  // Apply constraints
 }
 
 function validatePlayerTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
@@ -107,34 +107,9 @@ function validateFleetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: str
 }
 
 function validatePlanetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
-  if (getPlanet(turnState, targetId) === undefined) {
+  if (turnState.planets[branded<PlanetId>(Number(targetId))] === undefined) {
     return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
   }
 
   return null
-}
-
-function validateOwnedPlanetTarget(
-  turnState: ReadonlyDeep<TurnState>,
-  targetSlot: string,
-  targetId: string,
-  playerId: PlayerId,
-): string | null {
-  const planet = getPlanet(turnState, targetId)
-  if (planet === undefined) {
-    return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
-  }
-
-  if (planet.ownerPlayerId !== playerId) {
-    return `Target slot "${targetSlot}" references Planet id "${targetId}" that is not owned by Player "${playerId}"`
-  }
-
-  return null
-}
-
-/**
- * This is O(1)
- */
-function getPlanet(turnState: TurnState, targetId: string): Planet | undefined {
-  return turnState.planets[branded<PlanetId>(Number(targetId))]
 }

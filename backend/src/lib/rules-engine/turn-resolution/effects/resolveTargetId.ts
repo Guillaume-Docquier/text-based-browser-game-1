@@ -9,7 +9,6 @@ import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType
 type TargetId<TTargetType extends TargetType> = {
   [TargetType.FLEET]: FleetId
   [TargetType.PLANET]: PlanetId
-  [TargetType.PLANET_OWNED]: PlanetId
   [TargetType.PLAYER]: PlayerId
 }[TTargetType]
 
@@ -22,10 +21,7 @@ export function safeResolveTargetId<TTargetType extends TargetType>(
   selectedTargets: SelectedTargets,
   targetDefinition: TargetDefinition<TTargetType>,
 ): TargetId<TTargetType> | null
-export function safeResolveTargetId(
-  selectedTargets: SelectedTargets,
-  targetDefinition: TargetDefinition,
-): PlanetId | FleetId | PlayerId | null {
+export function safeResolveTargetId(selectedTargets: SelectedTargets, targetDefinition: TargetDefinition): TargetId<TargetType> | null {
   const targetId = selectedTargets[targetDefinition.tag]
   if (targetId === undefined) {
     // we return null instead of undefined to keep the below switch case exhaustive. Missing a branch will have TS error out because the function doesn't return a value.
@@ -36,8 +32,6 @@ export function safeResolveTargetId(
     case TargetType.FLEET:
       return branded<FleetId>(targetId)
     case TargetType.PLANET:
-      return branded<PlanetId>(Number(targetId))
-    case TargetType.PLANET_OWNED:
       return branded<PlanetId>(Number(targetId))
     case TargetType.PLAYER:
       return branded<PlayerId>(targetId)
