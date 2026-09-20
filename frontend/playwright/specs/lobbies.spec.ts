@@ -5,7 +5,7 @@ import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
-test("must sign in to create a game", async ({ page }) => {
+test("the game creation page redirects signed-out visitors to sign in", async ({ page }) => {
   await CreateGamePage.goto(page)
 
   await test.step("Verify the sign-in redirect", async () => {
@@ -15,7 +15,7 @@ test("must sign in to create a game", async ({ page }) => {
   })
 })
 
-test("enforces the maximum number of players", async ({ alice }) => {
+test("the game creation form limits games to 16 players", async ({ alice }) => {
   const createGamePage = await CreateGamePage.goto(alice.page)
   await createGamePage.setGameName(`Playwright game ${Date.now()}`)
 
@@ -26,7 +26,7 @@ test("enforces the maximum number of players", async ({ alice }) => {
   await expect(createGamePage.createButton).toBeEnabled()
 })
 
-test("creates and starts a game", async ({ alice }) => {
+test("the game creation page can create a game and opens the galaxy view when starting the game", async ({ alice }) => {
   const createGamePage = await CreateGamePage.goto(alice.page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
   const gameName = `Playwright game ${Date.now()}`
 

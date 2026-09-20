@@ -3,7 +3,7 @@ import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
-test("shows claimed systems and Planet owners", async ({ alice, bob }) => {
+test("the galaxy view distinguishes systems with claimed planets and system view labels claimed planets", async ({ alice, bob }) => {
   const aliceLobbyPage = await test.step("Alice creates a two-player game", async () => {
     const createGamePage = await CreateGamePage.goto(alice.page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
     await createGamePage.setGameName(`Galaxy ownership ${Date.now()}`)

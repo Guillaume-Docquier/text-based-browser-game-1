@@ -2,7 +2,7 @@ import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GamesBrowserPage } from "../pages/GamesBrowserPage.ts"
 
-test("filters to games the player joined after signing in", async ({ page, alice, bob }) => {
+test("the games browser filters public listings by name and by player membership for signed in users", async ({ page, alice, bob }) => {
   const aliceGameName = `Playwright game ${Date.now()}-alice`
   const bobGameName = `Playwright game ${Date.now()}-bob`
 

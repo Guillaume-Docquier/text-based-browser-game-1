@@ -3,7 +3,7 @@ import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
-test("Alice and Bob can lock their choices and resolve a turn early", async ({ alice, bob }) => {
+test("being ready locks selected actions and the turn resolves when all players are ready", async ({ alice, bob }) => {
   const aliceLobbyPage = await test.step("Alice creates a two-player game with a long turn interval", async () => {
     const createGamePage = await CreateGamePage.goto(alice.page)
     await createGamePage.setGameName(`Readiness ${Date.now()}`)

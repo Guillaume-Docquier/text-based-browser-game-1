@@ -6,7 +6,7 @@ import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 import { PlanetsPage } from "../pages/PlanetsPage.ts"
 
-test("compares owned Planets and opens one in the Galaxy", async ({ alice, bob }) => {
+test("the planets view can filter and sort planets and can redirect to a planet in the galaxy view", async ({ alice, bob }) => {
   const aliceLobbyPage = await test.step("Alice creates a two-player game", async () => {
     const createGamePage = await CreateGamePage.goto(alice.page, { mapGenerationSeed: DETERMINISTIC_GALAXY_SEED })
     await createGamePage.setGameName(`Planet overview ${Date.now()}`)
