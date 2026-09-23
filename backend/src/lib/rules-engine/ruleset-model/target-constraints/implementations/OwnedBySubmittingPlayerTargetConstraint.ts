@@ -7,6 +7,10 @@ import type {
   NoTargetConstraintParameters,
   NoTargetReferences,
 } from "#lib/rules-engine/ruleset-model/target-constraints/AbstractTargetConstraint.ts"
+import type {
+  TargetConstraintError,
+  TargetConstraintIssue,
+} from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraintEvaluator.ts"
 import type { TargetableEntity } from "#lib/rules-engine/turn-resolution/TargetableEntity.ts"
 import { trustedParse } from "#lib/validation/trustedParse.ts"
 
@@ -36,23 +40,23 @@ export const OwnedBySubmittingPlayerConstraint = {
     target,
     submittingPlayerId,
   }: {
-    constraint: OwnedBySubmittingPlayerConstraint
+    constraint: OwnedBySubmittingPlayerConstraint // not used because this constraint has no parameters
     target: TargetableEntity
     submittingPlayerId: PlayerId
-  }): Result<TargetConstraintIssue[], TargetConstraintError> => {
+  }): Result<TargetConstraintIssue, TargetConstraintError> => {
     switch (target.type) {
       case TargetType.FLEET:
         if (target.playerId !== submittingPlayerId) {
-          return Result.Success([{ issue: "Expected target fleet to be owned by the submitting player." }])
+          return Result.Success("Expected target fleet to be owned by the submitting player.")
         }
 
-        return Result.Success([])
+        return Result.Success(undefined)
       case TargetType.PLANET:
         if (target.ownerPlayerId !== submittingPlayerId) {
-          return Result.Success([{ issue: "Expected target planet to be owned by the submitting player." }])
+          return Result.Success("Expected target planet to be owned by the submitting player.")
         }
 
-        return Result.Success([])
+        return Result.Success(undefined)
       case TargetType.PLAYER:
         return Result.Failure({
           type: "INCOMPATIBLE_TARGET_TYPE",
@@ -69,14 +73,3 @@ export const OwnedBySubmittingPlayerConstraintSchema = z.object({
   references: z.object({}).strict(),
   parameters: z.object({}).strict(),
 }) satisfies z.ZodType<OwnedBySubmittingPlayerConstraint>
-
-type TargetConstraintIssue = Readonly<{
-  issue: string
-}>
-
-type TargetConstraintError = Readonly<{
-  type: string
-  targetConstraintType: string
-  targetType: TargetType
-  error: string
-}>
