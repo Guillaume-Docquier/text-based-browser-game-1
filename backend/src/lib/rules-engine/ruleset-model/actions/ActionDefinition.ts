@@ -70,8 +70,6 @@ function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.
           message: `Action Definition "${actionDefinition.name}" target slot "${mechanicTarget.tag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
         })
       }
-
-      // apply constraints
     }
   }
 }
