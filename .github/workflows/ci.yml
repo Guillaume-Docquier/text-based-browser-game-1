@@ -87,7 +87,7 @@ jobs:
 
       - name: Upload Playwright videos
         if: failure()
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: playwright-videos
           path: frontend/test-results/**/*.webm
