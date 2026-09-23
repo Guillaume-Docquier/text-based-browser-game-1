@@ -13,7 +13,8 @@ Partially Implemented
 - [x] Data-driven frontend Action presentation
 - [x] Resource stockpile and affordability presentation
 - [x] Available Actions
-- [ ] Multiple Actions
+- [ ] Frontend target selection
+- [x] Multiple Actions
 
 ## Purpose
 
@@ -40,19 +41,19 @@ Relates to:
 
 ## Core Concepts
 
-| Concept                   | Definition                                                                                                                                                   |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Ruleset                   | The persisted rules used by one game, including its Action Definitions, Mechanics, and other game settings.                                                  |
-| Action Definition         | Declarative content that describes an Action's presentation, Mechanics, source and input requirements, and target slots.                                     |
-| Available Action Instance | A currently usable instance of an Action Definition, including its identity and the exact source, input, and target candidates the server currently permits. |
-| Action Submission         | A player's proposed use of an Available Action Instance, including the selected source, inputs, and targets.                                                 |
-| Resolved Action           | An Action Submission and its Effect Outcomes after the Turn has been resolved.                                                                               |
-| Mechanic Definition       | The contract for one reusable kind of game behavior, including its supported values and required source, input, and target data.                             |
-| Mechanic                  | A configured use of a Mechanic Definition within an Action Definition.                                                                                       |
-| Effect                    | A concrete attempt to apply game behavior produced from a Mechanic during Turn Resolution.                                                                   |
-| Effect Outcome            | The recorded result of resolving an Effect: either `Resolved` when applied or `Prevented` as an expected game result.                                        |
-| Effect Pool               | The complete working collection of unresolved Effects for the current Turn Resolution.                                                                       |
-| Phase                     | An engine-owned, ordered stage of Turn Resolution that determines when a category of Effects can resolve.                                                    |
+| Concept                   | Definition                                                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Ruleset                   | The persisted rules used by one game, including its Action Definitions, Mechanics, and other game settings.                      |
+| Action Definition         | Declarative content that describes an Action's presentation, Mechanics, source and input requirements, and target slots.         |
+| Available Action Instance | A currently usable instance of an Action Definition offered to a player for submission.                                          |
+| Action Submission         | A player's proposed use of an Available Action Instance, including the selected source, inputs, and targets.                     |
+| Resolved Action           | An Action Submission and its Effect Outcomes after the Turn has been resolved.                                                   |
+| Mechanic Definition       | The contract for one reusable kind of game behavior, including its supported values and required source, input, and target data. |
+| Mechanic                  | A configured use of a Mechanic Definition within an Action Definition.                                                           |
+| Effect                    | A concrete attempt to apply game behavior produced from a Mechanic during Turn Resolution.                                       |
+| Effect Outcome            | The recorded result of resolving an Effect: either `Resolved` when applied or `Prevented` as an expected game result.            |
+| Effect Pool               | The complete working collection of unresolved Effects for the current Turn Resolution.                                           |
+| Phase                     | An engine-owned, ordered stage of Turn Resolution that determines when a category of Effects can resolve.                        |
 
 ## Rules
 
@@ -62,12 +63,14 @@ The rules boundary is:
 
 1. A Ruleset persists Action Definitions. Each definition contains the Action metadata (id, name, tier, etc.), its composed Mechanics, its source and input requirements, and its target slots.
 2. For each player and Turn, the server evaluates the current game state and produces Available Action Instances.
-3. For every Available Action Instance, the server sends the exact currently valid candidates for every target slot, as well as the permitted source and input choices. The client displays and submits these choices; it does not derive legality from player state.
+3. The server provides each Available Action Instance and its Action Definition, including target slots. The client uses the player-visible game state to present target choices, including choices that depend on other selected targets. The server does not enumerate legal targets or target combinations.
 4. An Action Submission identifies the Available Action Instance and the player's selected source, inputs, and targets.
 5. The server validates the Action Submission when it is received and validates the locked submission again during Turn Resolution. Client-provided choices are never trusted as proof of legality.
 6. During Turn Resolution, each valid locked submission's composed Mechanics produce Effects for the Effect Pool.
 
 An Action Definition is reusable rules content. An Available Action Instance is a server-authorized opportunity to use that content in the current state. An Action Submission is the player's chosen use of that opportunity. Keeping these concepts separate allows multiple instances of the same definition while preserving server authority.
+
+Enumerating every valid combination would make payloads and server computation grow quickly for Actions with dependent targets, such as a Fleet and a destination Planet in its range. Client-side choices help the player make a submission; server validation remains authoritative.
 
 ### Current Ruleset Scope
 
@@ -118,6 +121,6 @@ An Effect resolution failure or an invalid locked Action Submission indicates an
 
 - A reusable Mechanic vocabulary may struggle to express exceptional Actions without becoming too generic or complex.
 - Phase order and interactions between Effects can produce non-obvious outcomes unless Actions and Turn results explain them clearly.
-- Sending exact legal candidates can be expensive for Actions with very large target spaces, and candidates may become stale before submission or resolution.
+- Frontend target-choice logic can drift from server validation, especially when target slots depend on one another or on state the client cannot see. How to reuse this logic across frontend and backend under the current [code-sharing decision](../../architecture/decisions/007-code-sharing.md) remains unresolved.
 - Invalid combinations in Action Definitions or Mechanics can make an entire Ruleset unplayable without strong authoring-time and game-start validation.
 - Persisted Rulesets need durable versioning so engine changes do not alter or strand active games.
