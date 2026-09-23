@@ -1,5 +1,5 @@
+import type { DeepUnbranded } from "@guillaume-docquier/tools-ts"
 import type { z } from "zod"
-import type { DeepUnbranded } from "./DeepUnbranded.ts"
 
 /**
  * We use zod schemas on unknown inputs to parse & validate the data.
