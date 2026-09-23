@@ -14,15 +14,14 @@ The backend provides `typedParse` and `safeTypedParse` in `backend/src/lib/valid
 
 ## Decision
 
-Use `trustedParse(schema, value)` or `trustedSafeParse(schema, value)` when parsing a trusted value, including when constructing a branded or refined value, whose TypeScript type already matches the schema input.
+Use `typedParse(schema, value)` or `typedSafeParse(schema, value)` when parsing an already parsed value, including when constructing a branded or refined value, whose TypeScript type already matches the schema input.
 
 - Use `typedParse` only when schema failure is an internal invariant violation that should be fatal. Do not use it for invalid input that the caller is expected to handle.
 - Use `safeTypedParse` when schema failure is expected or must be reported. The caller must handle the unsuccessful result.
-- Parse untrusted values at their input boundary with the appropriate schema API. `typedParse` and `safeTypedParse` do not make an input trusted.
 - Do not call `branded()` to bypass a constrained schema. Its valid role is implementing the schema's branding transform, or constructing a brand that has no runtime constraint beyond its already trusted primitive type.
 
 ## Consequences
 
 Trusted-value construction retains compile-time input checking while continuing to enforce runtime constraints. Call sites make failure semantics explicit, and constrained branded values cannot legitimately be created by assertion alone.
 
-Callers must distinguish trusted values from untrusted inputs and choose between fatal and handled validation failures. Tests and fixtures may require `typedParse` or `safeTypedParse` when they construct constrained domain values, instead of using `branded()` as a shortcut.
+Callers must choose between fatal and handled validation failures. Tests and fixtures should use `typedParse` or `safeTypedParse` when they construct constrained domain values, instead of using `branded()` as a shortcut.
