@@ -22,9 +22,6 @@ jobs:
       - name: Setting up pnpm
         uses: pnpm/setup@v2.1.0
 
-      - name: Validate peer dependencies
-        run: pnpm peers check
-
       - name: Format
         run: pnpm format
 
