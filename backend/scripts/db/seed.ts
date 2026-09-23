@@ -15,7 +15,7 @@ import { parseEnv } from "#lib/parseEnv.ts"
 import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
-import { trustedParse } from "#lib/validation/trustedParse.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 
 const YES_I_KNOW = "yes i know"
 
@@ -159,14 +159,14 @@ async function seedAccounts({
           {
             authId: user.clerkId,
             email: user.email,
-            alias: trustedParse(AliasSchema, user.alias ?? v4()),
+            alias: typedParse(AliasSchema, user.alias ?? v4()),
             onboarded: false,
           },
         ]
       : []),
-    { authId: "fake1", email: "fake1@email.com", alias: trustedParse(AliasSchema, "pro"), onboarded: true },
-    { authId: "fake2", email: "fake2@email.com", alias: trustedParse(AliasSchema, "smurf"), onboarded: true },
-    { authId: "fake3", alias: trustedParse(AliasSchema, "xXPlanetSupaDestroyazXx"), onboarded: true },
+    { authId: "fake1", email: "fake1@email.com", alias: typedParse(AliasSchema, "pro"), onboarded: true },
+    { authId: "fake2", email: "fake2@email.com", alias: typedParse(AliasSchema, "smurf"), onboarded: true },
+    { authId: "fake3", alias: typedParse(AliasSchema, "xXPlanetSupaDestroyazXx"), onboarded: true },
   ]
 
   const accounts: AccountModel[] = []

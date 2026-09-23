@@ -5,9 +5,22 @@ import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
+import type { ActionTargetDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionTargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import type { Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import type { TargetConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraint.ts"
+import type {
+  TargetConstraintError,
+  TargetConstraintIssue,
+} from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraintEvaluator.ts"
+import type {
+  TargetableEntity,
+  TargetableFleet,
+  TargetablePlanet,
+  TargetablePlayer,
+} from "#lib/rules-engine/turn-resolution/TargetableEntity.ts"
+import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 /**
  * Validates that the target slots for the action submission are filled and valid.
@@ -64,77 +77,98 @@ export function validateTargets(
 }
 
 function validateTargetDefinition(
-  targetType: TargetType | undefined,
+  targetDefinition: ActionTargetDefinition | undefined,
   targetSlot: string,
   targetId: string,
-  playerId: PlayerId,
+  submittingPlayerId: PlayerId,
   turnState: ReadonlyDeep<TurnState>,
 ): string | null {
-  if (targetType === undefined) {
+  if (targetDefinition === undefined) {
     return `Unexpected target slot "${targetSlot}"`
   }
 
   if (targetId.length === 0) {
-    return `Target slot "${targetSlot}" must be set to a ${targetType} id`
+    return `Target slot "${targetSlot}" must be set to a ${targetDefinition.targetType} id`
   }
 
+  const targetResult = getTarget({ targetType: targetDefinition.targetType, turnState, targetSlot, targetId })
+  if (Result.isFailure(targetResult)) {
+    return targetResult.error
+  }
+
+  for (const constraint of targetDefinition.constraints) {
+    const constraintValidationResult = validateConstraint({ constraint, submittingPlayerId, target: targetResult.value })
+    if (Result.isFailure(constraintValidationResult)) {
+      return constraintValidationResult.error.error
+    }
+
+    if (constraintValidationResult.value !== undefined) {
+      return constraintValidationResult.value
+    }
+  }
+
+  return null
+}
+
+function getTarget({
+  targetType,
+  turnState,
+  targetSlot,
+  targetId,
+}: {
+  targetType: TargetType
+  turnState: ReadonlyDeep<TurnState>
+  targetSlot: string
+  targetId: string
+}): Result<TargetableEntity, string> {
   switch (targetType) {
     case TargetType.PLAYER:
-      return validatePlayerTarget(turnState, targetSlot, targetId)
+      return getPlayerTarget(turnState, targetSlot, targetId)
     case TargetType.FLEET:
-      return validateFleetTarget(turnState, targetSlot, targetId)
+      return getFleetTarget(turnState, targetSlot, targetId)
     case TargetType.PLANET:
-      return validatePlanetTarget(turnState, targetSlot, targetId)
-    case TargetType.PLANET_OWNED:
-      return validateOwnedPlanetTarget(turnState, targetSlot, targetId, playerId)
+      return getPlanetTarget(turnState, targetSlot, targetId)
   }
 }
 
-function validatePlayerTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
-  if (turnState.players[branded<PlayerId>(targetId)] === undefined) {
-    return `Target slot "${targetSlot}" references unknown Player id "${targetId}"`
+function getPlayerTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): Result<TargetablePlayer, string> {
+  const player = turnState.players[branded<PlayerId>(targetId)]
+  if (player === undefined) {
+    return Result.Failure(`Target slot "${targetSlot}" references unknown Player id "${targetId}"`)
   }
 
-  return null
+  return Result.Success({ type: TargetType.PLAYER, ...player })
 }
 
-function validateFleetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
-  if (turnState.fleets[branded<FleetId>(targetId)] === undefined) {
-    return `Target slot "${targetSlot}" references unknown Fleet id "${targetId}"`
+function getFleetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): Result<TargetableFleet, string> {
+  const fleet = turnState.fleets[branded<FleetId>(targetId)]
+  if (fleet === undefined) {
+    return Result.Failure(`Target slot "${targetSlot}" references unknown Fleet id "${targetId}"`)
   }
 
-  return null
+  return Result.Success({ type: TargetType.FLEET, ...fleet })
 }
 
-function validatePlanetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): string | null {
-  if (getPlanet(turnState, targetId) === undefined) {
-    return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
-  }
-
-  return null
-}
-
-function validateOwnedPlanetTarget(
-  turnState: ReadonlyDeep<TurnState>,
-  targetSlot: string,
-  targetId: string,
-  playerId: PlayerId,
-): string | null {
-  const planet = getPlanet(turnState, targetId)
+function getPlanetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): Result<TargetablePlanet, string> {
+  const planet = turnState.planets[branded<PlanetId>(Number(targetId))]
   if (planet === undefined) {
-    return `Target slot "${targetSlot}" references unknown Planet id "${targetId}"`
+    return Result.Failure(`Target slot "${targetSlot}" references unknown Planet id "${targetId}"`)
   }
 
-  if (planet.ownerPlayerId !== playerId) {
-    return `Target slot "${targetSlot}" references Planet id "${targetId}" that is not owned by Player "${playerId}"`
-  }
-
-  return null
+  return Result.Success({ type: TargetType.PLANET, ...planet })
 }
 
-/**
- * This is O(1)
- */
-function getPlanet(turnState: TurnState, targetId: string): Planet | undefined {
-  return turnState.planets[branded<PlanetId>(Number(targetId))]
+function validateConstraint({
+  constraint,
+  submittingPlayerId,
+  target,
+}: {
+  constraint: TargetConstraint
+  submittingPlayerId: PlayerId
+  target: TargetableEntity
+}): Result<TargetConstraintIssue, TargetConstraintError> {
+  switch (constraint.type) {
+    case OwnedBySubmittingPlayerConstraint.type:
+      return OwnedBySubmittingPlayerConstraint.evaluate({ constraint, submittingPlayerId, target })
+  }
 }

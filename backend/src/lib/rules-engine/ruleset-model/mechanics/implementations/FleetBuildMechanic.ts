@@ -1,11 +1,14 @@
 import { z } from "zod"
 import type { AbstractMechanic } from "#lib/rules-engine/ruleset-model/mechanics/AbstractMechanic.ts"
 import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset-model/mechanics/implementations/MechanicFactoryParameters.ts"
-import { type TargetDefinition, TargetDefinitionSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetDefinition.ts"
+import {
+  type MechanicTargetDefinition,
+  MechanicTargetDefinitionSchema,
+} from "#lib/rules-engine/ruleset-model/mechanics/MechanicTargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import { type Integer, IntegerSchema } from "#lib/validation/Integer.ts"
 import { type PositiveNumber, PositiveNumberSchema } from "#lib/validation/PositiveNumber.ts"
-import { trustedParse } from "#lib/validation/trustedParse.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 
 /**
  * Builds a fleet of strength X on target planet.
@@ -17,7 +20,7 @@ export interface FleetBuildMechanic extends AbstractMechanic {
     /**
      * The planet where the fleet should be built.
      */
-    readonly planet: TargetDefinition<typeof TargetType.PLANET>
+    readonly planet: MechanicTargetDefinition<typeof TargetType.PLANET>
   }
   readonly parameters: {
     /**
@@ -30,12 +33,12 @@ export interface FleetBuildMechanic extends AbstractMechanic {
 export const FleetBuildMechanic = {
   type: "FLEET_BUILD",
   create: ({ planetTag, strength }: MechanicFactoryParameters<FleetBuildMechanic>): FleetBuildMechanic =>
-    trustedParse(FleetBuildMechanicSchema, {
+    typedParse(FleetBuildMechanicSchema, {
       type: FleetBuildMechanic.type,
       targets: {
         planet: {
           tag: planetTag,
-          type: TargetType.PLANET,
+          targetType: TargetType.PLANET,
         },
       },
       parameters: {
@@ -47,7 +50,7 @@ export const FleetBuildMechanic = {
 export const FleetBuildMechanicSchema = z.object({
   type: z.literal(FleetBuildMechanic.type),
   targets: z.object({
-    planet: TargetDefinitionSchema(z.literal(TargetType.PLANET)),
+    planet: MechanicTargetDefinitionSchema(z.literal(TargetType.PLANET)),
   }),
   parameters: z.object({
     strength: z.number().pipe(PositiveNumberSchema).and(IntegerSchema),

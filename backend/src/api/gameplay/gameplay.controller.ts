@@ -180,12 +180,12 @@ export class GameplayController {
       const planetIds = [
         ...new Set(
           Object.entries(actionDefinition.targets)
-            .map(([tag, type]) => {
-              if (type !== TargetType.PLANET && type !== TargetType.PLANET_OWNED) {
+            .map(([tag, targetDefinition]) => {
+              if (targetDefinition.targetType !== TargetType.PLANET) {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, type })
+              return safeResolveTargetId(submittedAction.selectedTargets, { tag, targetType: targetDefinition.targetType })
             })
             .filter((planetId) => planetId !== null),
         ),
@@ -195,12 +195,12 @@ export class GameplayController {
       const fleetIds = [
         ...new Set(
           Object.entries(actionDefinition.targets)
-            .map(([tag, type]) => {
-              if (type !== TargetType.FLEET) {
+            .map(([tag, targetDefinition]) => {
+              if (targetDefinition.targetType !== TargetType.FLEET) {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, type })
+              return safeResolveTargetId(submittedAction.selectedTargets, { tag, targetType: targetDefinition.targetType })
             })
             .filter((fleetId) => fleetId !== null),
         ),

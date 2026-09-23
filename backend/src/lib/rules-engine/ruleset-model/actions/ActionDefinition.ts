@@ -1,4 +1,8 @@
 import { z } from "zod"
+import {
+  type ActionTargetDefinition,
+  ActionTargetDefinitionSchema,
+} from "#lib/rules-engine/ruleset-model/actions/ActionTargetDefinition.ts"
 import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
 import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
 import {
@@ -6,7 +10,6 @@ import {
   type ResourceLossMechanic,
 } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
 import { MechanicSchema, type Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
-import { targetTypeSatisfies, type TargetType, TargetTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 
 /**
  * The definition of an Action.
@@ -28,12 +31,12 @@ export type ActionDefinition = Readonly<{
   /**
    * Maps target tags to the type accepted by each target slot.
    */
-  targets: Readonly<Record<string, TargetType>>
+  targets: Readonly<Record<string, ActionTargetDefinition>>
   costs: ResourceLossMechanic[]
   mechanics: Mechanic[]
 }>
 
-export const ActionDefinitionTargetsSchema = z.record(z.string(), TargetTypeSchema).readonly() satisfies z.ZodType<
+export const ActionDefinitionTargetsSchema = z.record(z.string(), ActionTargetDefinitionSchema).readonly() satisfies z.ZodType<
   ActionDefinition["targets"]
 >
 
@@ -55,16 +58,16 @@ export const ActionDefinitionSchema = z
 function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
   for (const mechanic of [...actionDefinition.costs, ...actionDefinition.mechanics]) {
     for (const mechanicTarget of Object.values(mechanic.targets)) {
-      const actionTargetType = actionDefinition.targets[mechanicTarget.tag]
+      const actionTargetType = actionDefinition.targets[mechanicTarget.tag]?.targetType
       if (actionTargetType === undefined) {
         context.addIssue({
           code: "custom",
           message: `Action Definition "${actionDefinition.name}" is missing target slot "${mechanicTarget.tag}" required by the "${mechanic.type}" mechanic`,
         })
-      } else if (!targetTypeSatisfies({ provided: actionTargetType, required: mechanicTarget.type })) {
+      } else if (actionTargetType !== mechanicTarget.targetType) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" target slot "${mechanicTarget.tag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.type}"`,
+          message: `Action Definition "${actionDefinition.name}" target slot "${mechanicTarget.tag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
         })
       }
     }

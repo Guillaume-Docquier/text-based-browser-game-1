@@ -1,6 +1,6 @@
 import { v4 } from "uuid"
 import { AliasSchema } from "#lib/db/accounts/Alias.ts"
-import { trustedParse } from "#lib/validation/trustedParse.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 import type { NewAccountModel } from "./accounts.repository.ts"
 
 export function createNewAccountModelStub(overrides?: Partial<NewAccountModel>): NewAccountModel {
@@ -9,7 +9,7 @@ export function createNewAccountModelStub(overrides?: Partial<NewAccountModel>):
   return {
     authId,
     email: `player.${authId}@example.com`,
-    alias: trustedParse(AliasSchema, v4()),
+    alias: typedParse(AliasSchema, v4()),
     onboarded: false,
     ...overrides,
   }
