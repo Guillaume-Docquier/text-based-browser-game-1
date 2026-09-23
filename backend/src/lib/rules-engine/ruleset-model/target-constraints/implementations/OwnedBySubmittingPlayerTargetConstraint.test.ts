@@ -6,7 +6,7 @@ import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType
 import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetableFleet, TargetablePlanet, TargetablePlayer } from "#lib/rules-engine/turn-resolution/TargetableEntity.ts"
 
-describe("OwnedBySubmittingPlayerConstraint.evaluate", () => {
+describe("OwnedBySubmittingPlayerConstraint", () => {
   describe("evaluate", () => {
     const constraint = OwnedBySubmittingPlayerConstraint.create()
     const submittingPlayerId = branded<PlayerId>("submitting-player")
