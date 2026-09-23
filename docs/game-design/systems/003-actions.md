@@ -46,7 +46,7 @@ Relates to:
 | Concept                   | Definition                                                                                                                                                                      |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Action Definition         | The Ruleset content that declares an Action's presentation, type, tier, prerequisites, costs, composed Mechanics, sources, inputs, and target slots.                            |
-| Available Action Instance | A currently usable instance of an Action Definition offered to a player, including its exact server-provided source, input, and target candidates.                              |
+| Available Action Instance | A currently usable instance of an Action Definition offered to a player for submission.                                                                                         |
 | Action Submission         | A player's proposed use of an Available Action Instance with selected sources, inputs, and targets.                                                                             |
 | Action                    | Player-facing shorthand for the definition, available instance, or submission when that distinction is not important. There are three types: Agendas, Directives, and Programs. |
 | Agenda                    | A broad Action that shifts the Empire's Ideological Alignments.                                                                                                                 |
@@ -57,13 +57,13 @@ Relates to:
 
 ## Current Implementation
 
-The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, Mechanic text, and affordability.
+The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, Mechanic text, and affordability. Frontend target selection is not implemented yet.
 
 ## Rules
 
 The game's Ruleset contains Action Definitions. During each Turn, the server evaluates the current game state and gives each player their Available Action Instances. Multiple instances can share one Action Definition, such as several opportunities to use the same Move definition.
 
-Each instance includes the exact currently valid source, input, and target candidates. The client displays those server-provided choices and does not derive legality from player state. Playing an Action creates an Action Submission containing the player's selections. The server validates the submission when received and again during Turn Resolution.
+The frontend will present target choices using the Action Definition and the game state available to the player. Choices can depend on other selected targets, so the server will not send an exhaustive list of valid targets or target combinations. Playing an Action creates an Action Submission containing the player's source, input, and target selections. The server validates the submission when received and again during Turn Resolution.
 
 Every player-caused change to the game is made through an Action Submission. Players cannot take a game-impacting action outside this system.
 
@@ -88,7 +88,7 @@ All Actions cost Influence, and usually cost additional resources. The player's 
 
 The available Action pool every Turn will be dictated by the player's ideological alignments. Each entry in the pool becomes a distinct Available Action Instance and can be submitted once per Turn.
 
-To submit an Action, a player will have to meet the prerequisites, choose from the instance's valid sources, inputs, and targets, and be able to pay the costs across all their submissions. The prerequisites might be things like "no other Agendas played this Turn" or "no other Legacy Project in progress". An Action source or target could be the Empire, a Planet, or a unit.
+To submit an Action, a player will have to meet the prerequisites, make valid source, input, and target selections, and be able to pay the costs across all their submissions. The prerequisites might be things like "no other Agendas played this Turn" or "no other Legacy Project in progress". An Action source or target could be the Empire, a Planet, or a unit.
 
 Costs are validated and accounted for across the player's Action Submissions, but they are spent in the Pay Costs Phase after the Turn ends. A visual indicator will let the user know how much of each Resource they have in total, committed by current submissions, and expected to have after paying all locked submissions.
 
