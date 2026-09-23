@@ -2,7 +2,7 @@ import { branded } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { type Ruleset, RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import { trustedParse } from "#lib/validation/trustedParse.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 
 /**
  * The stub allows you to create invalid rulesets by design, mostly because tests that create rulesets often want to create invalid rulesets.
@@ -22,7 +22,7 @@ export function createRulesetStub(
   })
 
   if (validate) {
-    return trustedParse(RulesetSchema, ruleset)
+    return typedParse(RulesetSchema, ruleset)
   }
 
   return ruleset

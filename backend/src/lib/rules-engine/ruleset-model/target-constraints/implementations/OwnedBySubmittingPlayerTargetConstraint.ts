@@ -12,7 +12,7 @@ import type {
   TargetConstraintIssue,
 } from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraintEvaluator.ts"
 import type { TargetableEntity } from "#lib/rules-engine/turn-resolution/TargetableEntity.ts"
-import { trustedParse } from "#lib/validation/trustedParse.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 
 /**
  * Requires a target to be owned by the submitting player.
@@ -30,7 +30,7 @@ export const OwnedBySubmittingPlayerConstraint = {
   type: "OWNED_BY_SUBMITTING_PLAYER",
   supportedTargetTypes: [TargetType.FLEET, TargetType.PLANET],
   create: (): OwnedBySubmittingPlayerConstraint =>
-    trustedParse(OwnedBySubmittingPlayerConstraintSchema, {
+    typedParse(OwnedBySubmittingPlayerConstraintSchema, {
       type: OwnedBySubmittingPlayerConstraint.type,
       references: {},
       parameters: {},

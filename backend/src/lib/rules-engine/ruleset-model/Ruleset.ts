@@ -8,7 +8,7 @@ import {
 } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { trustedParse } from "#lib/validation/trustedParse.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 
 /**
  * The complete data-driven rules for a game.
@@ -31,7 +31,7 @@ export type Ruleset = Branded<
 >
 
 export const Ruleset = {
-  create: (ruleset: UnbrandedProperties<Unbranded<Ruleset>>): Ruleset => trustedParse(RulesetSchema, ruleset),
+  create: (ruleset: UnbrandedProperties<Unbranded<Ruleset>>): Ruleset => typedParse(RulesetSchema, ruleset),
 } as const
 
 export const RulesetSchema = z

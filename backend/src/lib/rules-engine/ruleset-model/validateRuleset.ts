@@ -1,11 +1,11 @@
 import { z } from "zod"
 import { type Ruleset, RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import { trustedSafeParse } from "#lib/validation/trustedParse.ts"
+import { safeTypedParse } from "#lib/validation/typedParse.ts"
 
 export type RulesetValidationIssue = { issue: string }
 
 export function validateRuleset(ruleset: Ruleset): RulesetValidationIssue[] {
-  const rulesetValidation = trustedSafeParse(RulesetSchema, ruleset)
+  const rulesetValidation = safeTypedParse(RulesetSchema, ruleset)
   if (rulesetValidation.success) {
     return []
   }
