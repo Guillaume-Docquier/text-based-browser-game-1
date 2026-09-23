@@ -32,12 +32,7 @@ describe("validateTargets", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
-          id: playerId,
-          resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }),
-        },
-      },
+      players: indexById([{ id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }) }]),
     })
 
     // Act
@@ -70,12 +65,7 @@ describe("validateTargets", () => {
     })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
-          id: playerId,
-          resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }),
-        },
-      },
+      players: indexById([{ id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }) }]),
     })
 
     // Act
@@ -113,12 +103,7 @@ describe("validateTargets", () => {
     })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: {
-        [playerId]: {
-          id: playerId,
-          resources: createResourcesStub(),
-        },
-      },
+      players: indexById([{ id: playerId, resources: createResourcesStub() }]),
     })
 
     // Act
@@ -156,8 +141,8 @@ describe("validateTargets", () => {
       selectedTargets: { fleet: fleetId, planet: String(planetId) },
     })
     const turnState = createTurnStateStub({
-      fleets: { [fleetId]: { id: fleetId, playerId, strength: 1, originPlanetId: planetId } },
-      planets: { [planetId]: { id: planetId, ownerPlayerId: playerId, x: 0, y: 0 } },
+      fleets: indexById([{ id: fleetId, playerId, strength: 1, originPlanetId: planetId }]),
+      planets: indexById([{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -187,8 +172,8 @@ describe("validateTargets", () => {
       selectedTargets: { fleet: fleetId, planet: String(planetId) },
     })
     const turnState = createTurnStateStub({
-      fleets: { [fleetId]: { id: fleetId, playerId: otherPlayerId, strength: 1, originPlanetId: planetId } },
-      planets: { [planetId]: { id: planetId, ownerPlayerId: otherPlayerId, x: 0, y: 0 } },
+      fleets: indexById([{ id: fleetId, playerId: otherPlayerId, strength: 1, originPlanetId: planetId }]),
+      planets: indexById([{ id: planetId, ownerPlayerId: otherPlayerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -229,7 +214,7 @@ describe("validateTargets", () => {
       selectedTargets: { planet: String(planetId) },
     })
     const turnState = createTurnStateStub({
-      planets: { [planetId]: { id: planetId, ownerPlayerId: null, x: 0, y: 0 } },
+      planets: indexById([{ id: planetId, ownerPlayerId: null, x: 0, y: 0 }]),
     })
 
     // Act
@@ -264,7 +249,7 @@ describe("validateTargets", () => {
       selectedTargets: { player: targetPlayerId },
     })
     const turnState = createTurnStateStub({
-      players: { [targetPlayerId]: { id: targetPlayerId, resources: createResourcesStub() } },
+      players: indexById([{ id: targetPlayerId, resources: createResourcesStub() }]),
     })
 
     // Act
