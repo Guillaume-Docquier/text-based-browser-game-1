@@ -22,7 +22,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.65",
+    "@clerk/express": "^2.1.69",
     "@guillaume-docquier/tools-ts": "catalog:",
     "@trpc/server": "^11.18.0",
     "compression": "^1.8.2",
@@ -31,9 +31,9 @@
     "p-retry": "^8.0.1",
     "pg": "^8.23.0",
     "transformation-matrix": "^3.1.0",
-    "type-fest": "^5.9.0",
+    "type-fest": "^5.10.0",
     "uuid": "^14.0.2",
-    "zod": "^4.5.4"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
