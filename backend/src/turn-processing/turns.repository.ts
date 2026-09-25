@@ -444,9 +444,9 @@ function toTurnToProcessModel({
 
     return {
       id,
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot infer Object.fromEntries completeness.
       resources: Object.fromEntries(
         resourcesForPlayer.map((resource) => [resource.resourceType, resource.amount]),
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot infer Object.fromEntries completeness.
       ) as TurnToProcessPlayerModel["resources"],
     }
   })
