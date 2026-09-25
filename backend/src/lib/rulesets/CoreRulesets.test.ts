@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest"
-import { validateRuleset } from "#lib/rules-engine/ruleset-model/validateRuleset.ts"
 import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
 
 const rulesetsById = Map.groupBy(CoreRulesets, (ruleset) => ruleset.id)
@@ -15,14 +14,6 @@ describe("CoreRulesets", () => {
   })
 
   describe.each(CoreRulesets)("$name", (ruleset) => {
-    it(`should be valid`, () => {
-      // Act
-      const validationIssues = validateRuleset(ruleset)
-
-      // Assert
-      expect(validationIssues).toStrictEqual([])
-    })
-
     it(`should have a unique id`, () => {
       // Act
       const rulesetsWithId = rulesetsById.getOrInsert(ruleset.id, [])

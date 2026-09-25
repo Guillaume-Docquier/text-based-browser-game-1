@@ -1,4 +1,4 @@
-import { branded } from "@guillaume-docquier/tools-ts"
+import { branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { indexById } from "#lib/indexById.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
@@ -8,7 +8,7 @@ import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import { createRulesetStub } from "#lib/rules-engine/ruleset-model/Ruleset.stub.ts"
-import { validateRuleset } from "#lib/rules-engine/ruleset-model/validateRuleset.ts"
+import { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 
 const validActionDefinition = createActionDefinitionStub({
   id: "VALID_ACTION",
@@ -27,7 +27,7 @@ const validActionDefinition = createActionDefinitionStub({
   ],
 })
 
-describe("validateRuleset", () => {
+describe("Ruleset.safeCreate", () => {
   it("should validate a Ruleset with correctly indexed Action Definitions and all required target slots", () => {
     // Arrange
     const ruleset = createRulesetStub({
@@ -35,10 +35,10 @@ describe("validateRuleset", () => {
     })
 
     // Act
-    const validationIssues = validateRuleset(ruleset)
+    const result = Ruleset.safeCreate(ruleset)
 
     // Assert
-    expect(validationIssues).toStrictEqual([])
+    expect(result).toStrictEqual(Result.Success(ruleset))
   })
 
   it("should report an Action Definition indexed under an id other than its own", () => {
@@ -48,14 +48,14 @@ describe("validateRuleset", () => {
     })
 
     // Act
-    const validationIssues = validateRuleset(ruleset)
+    const result = Ruleset.safeCreate(ruleset)
 
     // Assert
-    expect(validationIssues).toStrictEqual<typeof validationIssues>([
-      {
-        issue: `Action Definition ${validActionDefinition.name} is indexed under incorrect-index instead of ${validActionDefinition.id}`,
-      },
-    ])
+    expect(result).toStrictEqual(
+      Result.Failure([
+        `Action Definition ${validActionDefinition.name} is indexed under incorrect-index instead of ${validActionDefinition.id}`,
+      ]),
+    )
   })
 
   it("should report a target slot required by a Mechanic but missing from its Action Definition", () => {
@@ -68,14 +68,14 @@ describe("validateRuleset", () => {
     })
 
     // Act
-    const validationIssues = validateRuleset(ruleset)
+    const result = Ruleset.safeCreate(ruleset)
 
     // Assert
-    expect(validationIssues).toStrictEqual<typeof validationIssues>([
-      {
-        issue: `Action Definition "${actionDefinition.name}" is missing target slot "planet" required by the "${FleetBuildMechanic.type}" mechanic`,
-      },
-    ])
+    expect(result).toStrictEqual(
+      Result.Failure([
+        `Action Definition "${actionDefinition.name}" is missing target slot "planet" required by the "${FleetBuildMechanic.type}" mechanic`,
+      ]),
+    )
   })
 
   it("should report an Action Definition target slot with an incompatible type", () => {
@@ -89,14 +89,14 @@ describe("validateRuleset", () => {
     })
 
     // Act
-    const validationIssues = validateRuleset(ruleset)
+    const result = Ruleset.safeCreate(ruleset)
 
     // Assert
-    expect(validationIssues).toStrictEqual<typeof validationIssues>([
-      {
-        issue: `Action Definition "${actionDefinition.name}" target slot "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
-      },
-    ])
+    expect(result).toStrictEqual(
+      Result.Failure([
+        `Action Definition "${actionDefinition.name}" target slot "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
+      ]),
+    )
   })
 
   it.each([0, -1])("should report a non-positive fleet strength", (strength) => {
@@ -128,14 +128,12 @@ describe("validateRuleset", () => {
     })
 
     // Act
-    const validationIssues = validateRuleset(ruleset)
+    const result = Ruleset.safeCreate(ruleset)
 
     // Assert
-    expect(validationIssues).toStrictEqual<typeof validationIssues>([
-      { issue: expect.stringContaining("Too small: expected number to be >0") },
-    ])
-    expect(validationIssues).toStrictEqual<typeof validationIssues>([
-      { issue: expect.stringContaining("at actionDefinitions.TEST_ACTION.mechanics[0].parameters.strength") },
-    ])
+    expect(result).toStrictEqual(Result.Failure([expect.stringContaining("Too small: expected number to be >0")]))
+    expect(result).toStrictEqual(
+      Result.Failure([expect.stringContaining("at actionDefinitions.TEST_ACTION.mechanics[0].parameters.strength")]),
+    )
   })
 })
