@@ -1,4 +1,4 @@
-import { branded, type Branded, type Unbranded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
+import { branded, type Branded, Result, type Unbranded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { RulesetIdSchema, type RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
@@ -8,10 +8,11 @@ import {
 } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import { ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { typedParse } from "#lib/validation/typedParse.ts"
+import { safeTypedParse, typedParse } from "#lib/validation/typedParse.ts"
 
 /**
  * The complete data-driven rules for a game.
+ * The Ruleset integrity is guaranteed by the brand.
  */
 export type Ruleset = Branded<
   "Ruleset",
@@ -32,6 +33,17 @@ export type Ruleset = Branded<
 
 export const Ruleset = {
   create: (ruleset: UnbrandedProperties<Unbranded<Ruleset>>): Ruleset => typedParse(RulesetSchema, ruleset),
+  safeCreate: (ruleset: UnbrandedProperties<Unbranded<Ruleset>>): Result<Ruleset, string[]> => {
+    const rulesetValidation = safeTypedParse(RulesetSchema, ruleset)
+    if (rulesetValidation.success) {
+      return Result.Success(rulesetValidation.data)
+    }
+
+    const errors = rulesetValidation.error.issues.map((issue) =>
+      issue.code === "custom" ? issue.message : z.prettifyError(new z.ZodError([issue])),
+    )
+    return Result.Failure(errors)
+  },
 } as const
 
 export const RulesetSchema = z
