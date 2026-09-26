@@ -45,7 +45,7 @@ export function validateCosts(
       player.resources[cost.parameters.resourceType] -= cost.parameters.quantity
     }
 
-    // We'll need something better that can format issues per cost mechanic if we start having costs beyond resources
+    // We'll need something better that can format issues per cost effect definition if we start having costs beyond resources
     issues.push(
       ...Object.entries(player.resources)
         .filter(([_, resourceCount]) => resourceCount < 0)

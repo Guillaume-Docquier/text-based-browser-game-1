@@ -32,7 +32,7 @@ Allowed Zod constraints are those that narrow data in a way captured by the resu
 - nullable / non-nullable values
 - type conversions that are explicit in the output type
 
-Zod transformations that are not type representable must end with a `.transform(branded<TYPE>)` to brand the validated value so it carries the proof of validation. A new branded schema must apply runtime constraints before branding, as described by [ADR-027](027-mechanic-schemas-validate-domain-data.md).
+Zod transformations that are not type representable must end with a `.transform(branded<TYPE>)` to brand the validated value so it carries the proof of validation. A new branded schema must apply runtime constraints before branding, as described by [ADR-027](027-effect-definition-schemas-validate-domain-data.md).
 
 Example zod schemas that do not produce type representable validation:
 

@@ -1,9 +1,9 @@
 import type { Result } from "@guillaume-docquier/tools-ts"
-import { VictoryMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/VictoryMechanic.ts"
+import { VictoryEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/VictoryEffectDefinition.ts"
 import { simplePhaseResolver } from "#lib/rules-engine/turn-resolution/phases/implementations/simplePhaseResolver.ts"
 import type { ResolvePhaseError } from "#lib/rules-engine/turn-resolution/phases/ResolvePhaseError.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 
 export function resolveVictoryPhase(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
-  return simplePhaseResolver(VictoryMechanic.type, context)
+  return simplePhaseResolver(VictoryEffectDefinition.type, context)
 }

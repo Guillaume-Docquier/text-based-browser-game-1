@@ -1,5 +1,5 @@
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset/effect-definitions/Mechanic.ts"
+import type { EffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/EffectDefinition.ts"
 import type { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
 
@@ -20,7 +20,7 @@ export class EffectPool {
     return Array.from(this.effects)
   }
 
-  public getEffectsOfType(type: Mechanic["type"]): Effect[] {
+  public getEffectsOfType(type: EffectDefinition["type"]): Effect[] {
     return this.effects
       .values()
       .filter((effect) => effect.type === type)

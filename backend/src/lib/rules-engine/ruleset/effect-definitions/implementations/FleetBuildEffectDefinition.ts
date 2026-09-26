@@ -1,10 +1,10 @@
 import { z } from "zod"
-import type { AbstractMechanic } from "#lib/rules-engine/ruleset/effect-definitions/AbstractMechanic.ts"
-import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset/effect-definitions/implementations/MechanicFactoryParameters.ts"
+import type { AbstractEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/AbstractEffectDefinition.ts"
 import {
-  type MechanicTargetDefinition,
-  MechanicTargetDefinitionSchema,
-} from "#lib/rules-engine/ruleset/effect-definitions/MechanicTargetDefinition.ts"
+  type EffectDefinitionTargetDefinition,
+  EffectDefinitionTargetDefinitionSchema,
+} from "#lib/rules-engine/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
+import type { EffectDefinitionFactoryParameters } from "#lib/rules-engine/ruleset/effect-definitions/implementations/EffectDefinitionFactoryParameters.ts"
 import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { type Integer, IntegerSchema } from "#lib/validation/Integer.ts"
 import { type PositiveNumber, PositiveNumberSchema } from "#lib/validation/PositiveNumber.ts"
@@ -14,13 +14,13 @@ import { typedParse } from "#lib/validation/typedParse.ts"
  * Builds a fleet of strength X on target planet.
  * If a fleet for this player is already present on the planet, that fleet is reinforced instead of adding a new fleet.
  */
-export interface FleetBuildMechanic extends AbstractMechanic {
+export interface FleetBuildEffectDefinition extends AbstractEffectDefinition {
   readonly type: "FLEET_BUILD"
   readonly targets: {
     /**
      * The planet where the fleet should be built.
      */
-    readonly planet: MechanicTargetDefinition<typeof TargetType.PLANET>
+    readonly planet: EffectDefinitionTargetDefinition<typeof TargetType.PLANET>
   }
   readonly parameters: {
     /**
@@ -30,11 +30,11 @@ export interface FleetBuildMechanic extends AbstractMechanic {
   }
 }
 
-export const FleetBuildMechanic = {
+export const FleetBuildEffectDefinition = {
   type: "FLEET_BUILD",
-  create: ({ planetTag, strength }: MechanicFactoryParameters<FleetBuildMechanic>): FleetBuildMechanic =>
-    typedParse(FleetBuildMechanicSchema, {
-      type: FleetBuildMechanic.type,
+  create: ({ planetTag, strength }: EffectDefinitionFactoryParameters<FleetBuildEffectDefinition>): FleetBuildEffectDefinition =>
+    typedParse(FleetBuildEffectDefinitionSchema, {
+      type: FleetBuildEffectDefinition.type,
       targets: {
         planet: {
           actionTargetTag: planetTag,
@@ -47,12 +47,12 @@ export const FleetBuildMechanic = {
     }),
 } as const
 
-export const FleetBuildMechanicSchema = z.object({
-  type: z.literal(FleetBuildMechanic.type),
+export const FleetBuildEffectDefinitionSchema = z.object({
+  type: z.literal(FleetBuildEffectDefinition.type),
   targets: z.object({
-    planet: MechanicTargetDefinitionSchema(z.literal(TargetType.PLANET)),
+    planet: EffectDefinitionTargetDefinitionSchema(z.literal(TargetType.PLANET)),
   }),
   parameters: z.object({
     strength: z.number().pipe(PositiveNumberSchema).and(IntegerSchema),
   }),
-}) satisfies z.ZodType<FleetBuildMechanic>
+}) satisfies z.ZodType<FleetBuildEffectDefinition>

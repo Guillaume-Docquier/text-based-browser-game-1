@@ -3,7 +3,7 @@ import { Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import type { ReactElement } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
 import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
-import { formatRulesetTerm, mechanicsToRulesText } from "@/features/play/mechanicToRulesText.ts"
+import { formatRulesetTerm, effectDefinitionsToRulesText } from "@/features/play/effectDefinitionToRulesText.ts"
 import { cn } from "@/lib/cn.ts"
 
 const ACTION_TIER_STYLES = {
@@ -41,7 +41,7 @@ const ACTION_TYPE_ICONS = {
 } as const satisfies Record<ActionDefinition["type"], LucideIcon>
 
 /**
- * Displays a selectable Action Definition using its tier, costs, and mechanics.
+ * Displays a selectable Action Definition using its tier, costs, and effects.
  */
 export function ActionCard({
   actionDefinition,
@@ -117,7 +117,7 @@ export function ActionCard({
       </CardHeader>
       <CardContent className="relative z-10 flex min-h-36 flex-1 flex-col gap-4 border-t border-border/70 px-5 py-5">
         <p className={cn("leading-relaxed", canAfford ? "text-card-foreground" : "text-zinc-500")}>
-          {mechanicsToRulesText(actionDefinition.mechanics)}
+          {effectDefinitionsToRulesText(actionDefinition.effects)}
         </p>
       </CardContent>
     </Card>

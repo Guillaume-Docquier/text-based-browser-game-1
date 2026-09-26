@@ -1,7 +1,7 @@
 import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
-import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainMechanic.ts"
+import { ResourceGainEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 
 export const GainInfluence: ActionDefinition = {
@@ -11,8 +11,8 @@ export const GainInfluence: ActionDefinition = {
   tier: ActionTier.BASIC,
   targets: {},
   costs: [],
-  mechanics: [
-    ResourceGainMechanic.create({
+  effects: [
+    ResourceGainEffectDefinition.create({
       quantity: 5,
       resourceType: ResourceType.INFLUENCE,
     }),

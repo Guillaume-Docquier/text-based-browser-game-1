@@ -2,11 +2,11 @@ import { z } from "zod"
 import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
 import { type TargetTag, TargetTagSchema } from "#lib/rules-engine/ruleset/action-definitions/TargetTag.ts"
+import { EffectDefinitionSchema, type EffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/EffectDefinition.ts"
 import {
-  ResourceLossMechanicSchema,
-  type ResourceLossMechanic,
-} from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossMechanic.ts"
-import { MechanicSchema, type Mechanic } from "#lib/rules-engine/ruleset/effect-definitions/Mechanic.ts"
+  ResourceLossEffectDefinitionSchema,
+  type ResourceLossEffectDefinition,
+} from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
 import { type TargetDefinition, TargetDefinitionSchema } from "#lib/rules-engine/ruleset/target-definitions/TargetDefinition.ts"
 
 /**
@@ -27,8 +27,8 @@ export type ActionDefinition = Readonly<{
   type: ActionType
   tier: ActionTier
   targets: Readonly<Record<TargetTag, TargetDefinition>>
-  costs: ResourceLossMechanic[]
-  mechanics: Mechanic[]
+  costs: ResourceLossEffectDefinition[]
+  effects: EffectDefinition[]
 }>
 
 export const ActionDefinitionSchema = z
@@ -38,27 +38,27 @@ export const ActionDefinitionSchema = z
     type: ActionTypeSchema,
     tier: ActionTierSchema,
     targets: z.record(TargetTagSchema, TargetDefinitionSchema),
-    costs: z.array(ResourceLossMechanicSchema),
-    mechanics: z.array(MechanicSchema),
+    costs: z.array(ResourceLossEffectDefinitionSchema),
+    effects: z.array(EffectDefinitionSchema),
   })
-  .superRefine(validateMechanicTargets) satisfies z.ZodType<ActionDefinition>
+  .superRefine(validateEffectDefinitionTargets) satisfies z.ZodType<ActionDefinition>
 
 /**
- * Requires an action definition target slot with a compatible type for every mechanic target.
+ * Requires an action definition target slot with a compatible type for every effect definition target.
  */
-function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
-  for (const mechanic of [...actionDefinition.costs, ...actionDefinition.mechanics]) {
-    for (const mechanicTarget of Object.values(mechanic.targets)) {
-      const slotTargetType = actionDefinition.targets[mechanicTarget.actionTargetTag]?.targetType
+function validateEffectDefinitionTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
+  for (const effectDefinition of [...actionDefinition.costs, ...actionDefinition.effects]) {
+    for (const effectDefinitionTarget of Object.values(effectDefinition.targets)) {
+      const slotTargetType = actionDefinition.targets[effectDefinitionTarget.actionTargetTag]?.targetType
       if (slotTargetType === undefined) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" is missing target slot tagged "${mechanicTarget.actionTargetTag}" required by the "${mechanic.type}" mechanic`,
+          message: `Action Definition "${actionDefinition.name}" is missing target slot tagged "${effectDefinitionTarget.actionTargetTag}" required by the "${effectDefinition.type}" effect definition`,
         })
-      } else if (slotTargetType !== mechanicTarget.targetType) {
+      } else if (slotTargetType !== effectDefinitionTarget.targetType) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" target slot tagged "${mechanicTarget.actionTargetTag}" has type "${slotTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
+          message: `Action Definition "${actionDefinition.name}" target slot tagged "${effectDefinitionTarget.actionTargetTag}" has type "${slotTargetType}", but the "${effectDefinition.type}" effect definition requires "${effectDefinitionTarget.targetType}"`,
         })
       }
     }

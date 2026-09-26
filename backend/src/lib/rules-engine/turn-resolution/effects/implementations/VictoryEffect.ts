@@ -1,14 +1,14 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { VictoryMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/VictoryMechanic.ts"
+import type { VictoryEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/VictoryEffectDefinition.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { EffectError } from "#lib/rules-engine/turn-resolution/effects/EffectError.ts"
 import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 
 export class VictoryEffect extends Effect {
-  public constructor(id: number, mechanic: VictoryMechanic, submittedAction: SubmittedAction) {
-    super(id, mechanic.type, submittedAction)
+  public constructor(id: number, effectDefinition: VictoryEffectDefinition, submittedAction: SubmittedAction) {
+    super(id, effectDefinition.type, submittedAction)
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {

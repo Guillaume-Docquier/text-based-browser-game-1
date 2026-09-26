@@ -5,7 +5,7 @@ import type { GameId } from "#lib/db/games/GameId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { FleetBuildMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildMechanic.ts"
+import type { FleetBuildEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { EffectError } from "#lib/rules-engine/turn-resolution/effects/EffectError.ts"
 import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
@@ -14,13 +14,13 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
 import type { Fleet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 export class FleetBuildEffect extends Effect {
-  private readonly mechanic: FleetBuildMechanic
+  private readonly effectDefinition: FleetBuildEffectDefinition
   private readonly targetPlanetId: PlanetId
 
-  public constructor(id: number, mechanic: FleetBuildMechanic, submittedAction: SubmittedAction) {
-    super(id, mechanic.type, submittedAction)
-    this.mechanic = mechanic
-    this.targetPlanetId = resolveTargetId(this.submittedAction.selectedTargets, this.mechanic.targets.planet)
+  public constructor(id: number, effectDefinition: FleetBuildEffectDefinition, submittedAction: SubmittedAction) {
+    super(id, effectDefinition.type, submittedAction)
+    this.effectDefinition = effectDefinition
+    this.targetPlanetId = resolveTargetId(this.submittedAction.selectedTargets, this.effectDefinition.targets.planet)
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
@@ -39,9 +39,9 @@ export class FleetBuildEffect extends Effect {
   }
 
   private reinforce(fleet: Fleet): EffectOutcome {
-    fleet.strength += this.mechanic.parameters.strength
+    fleet.strength += this.effectDefinition.parameters.strength
     return EffectOutcome.Resolved({
-      result: `Player "${this.submittedAction.playerId}" reinforced Fleet "${fleet.id}" by ${this.mechanic.parameters.strength} on Planet "${this.targetPlanetId}"`,
+      result: `Player "${this.submittedAction.playerId}" reinforced Fleet "${fleet.id}" by ${this.effectDefinition.parameters.strength} on Planet "${this.targetPlanetId}"`,
     })
   }
 
@@ -57,12 +57,12 @@ export class FleetBuildEffect extends Effect {
     context.turnState.fleets[fleetId] = {
       id: fleetId,
       playerId: this.submittedAction.playerId,
-      strength: this.mechanic.parameters.strength,
+      strength: this.effectDefinition.parameters.strength,
       originPlanetId: this.targetPlanetId,
     }
 
     return EffectOutcome.Resolved({
-      result: `Player "${this.submittedAction.playerId}" built Fleet "${fleetId}" with strength ${this.mechanic.parameters.strength} on Planet "${this.targetPlanetId}"`,
+      result: `Player "${this.submittedAction.playerId}" built Fleet "${fleetId}" with strength ${this.effectDefinition.parameters.strength} on Planet "${this.targetPlanetId}"`,
     })
   }
 }

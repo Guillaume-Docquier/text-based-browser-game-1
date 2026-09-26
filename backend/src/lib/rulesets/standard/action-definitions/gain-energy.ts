@@ -1,8 +1,8 @@
 import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
-import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainMechanic.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossMechanic.ts"
+import { ResourceGainEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 
 export const GainEnergy: ActionDefinition = {
@@ -12,17 +12,17 @@ export const GainEnergy: ActionDefinition = {
   tier: ActionTier.IMPROVED,
   targets: {},
   costs: [
-    ResourceLossMechanic.create({
+    ResourceLossEffectDefinition.create({
       quantity: 3,
       resourceType: ResourceType.INFLUENCE,
     }),
-    ResourceLossMechanic.create({
+    ResourceLossEffectDefinition.create({
       quantity: 1,
       resourceType: ResourceType.FUEL,
     }),
   ],
-  mechanics: [
-    ResourceGainMechanic.create({
+  effects: [
+    ResourceGainEffectDefinition.create({
       quantity: 5,
       resourceType: ResourceType.ENERGY,
     }),

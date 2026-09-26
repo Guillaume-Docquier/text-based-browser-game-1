@@ -6,7 +6,7 @@ import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateTargets } from "#lib/rules-engine/action-submission/validation/validators/validateTargets.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.stub.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildMechanic.ts"
+import { FleetBuildEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset/effect-definitions/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
@@ -86,7 +86,7 @@ describe("validateTargets", () => {
       targets: {
         planet: { targetType: TargetType.PLANET, constraints: [] },
       },
-      mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
+      effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({

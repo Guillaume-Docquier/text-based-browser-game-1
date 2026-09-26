@@ -1,8 +1,8 @@
 import { type ActionDefinition, ActionDefinitionSchema } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildMechanic.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossMechanic.ts"
+import { FleetBuildEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
@@ -33,17 +33,17 @@ function buildFleetDirective({
       },
     },
     costs: [
-      ResourceLossMechanic.create({
+      ResourceLossEffectDefinition.create({
         quantity: influence,
         resourceType: ResourceType.INFLUENCE,
       }),
-      ResourceLossMechanic.create({
+      ResourceLossEffectDefinition.create({
         quantity: metal,
         resourceType: ResourceType.METAL,
       }),
     ],
-    mechanics: [
-      FleetBuildMechanic.create({
+    effects: [
+      FleetBuildEffectDefinition.create({
         planetTag: "planet",
         strength,
       }),

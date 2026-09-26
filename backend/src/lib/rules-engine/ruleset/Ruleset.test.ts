@@ -2,9 +2,9 @@ import { branded, indexBy, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.stub.ts"
 import type { TargetTag } from "#lib/rules-engine/ruleset/action-definitions/TargetTag.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildMechanic.ts"
-import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainMechanic.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossMechanic.ts"
+import { FleetBuildEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
+import { ResourceGainEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
@@ -23,13 +23,13 @@ const validActionDefinition = createActionDefinitionStub({
   id: "VALID_ACTION",
   name: "Valid Action",
   costs: [
-    ResourceLossMechanic.create({
+    ResourceLossEffectDefinition.create({
       quantity: 2,
       resourceType: ResourceType.INFLUENCE,
     }),
   ],
-  mechanics: [
-    ResourceGainMechanic.create({
+  effects: [
+    ResourceGainEffectDefinition.create({
       quantity: 5,
       resourceType: ResourceType.INFLUENCE,
     }),
@@ -75,11 +75,11 @@ describe("Ruleset.safeCreate", () => {
     )
   })
 
-  it("should report a target slot required by a Mechanic but missing from its Action Definition", () => {
+  it("should report a target slot required by a EffectDefinition but missing from its Action Definition", () => {
     // Arrange
     const actionDefinition = {
       ...validActionDefinition,
-      mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
+      effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 1 })],
     }
     const ruleset = {
       id: "test-ruleset",
@@ -95,7 +95,7 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(
       Result.Failure([
-        `Action Definition "${actionDefinition.name}" is missing target slot tagged "planet" required by the "${FleetBuildMechanic.type}" mechanic`,
+        `Action Definition "${actionDefinition.name}" is missing target slot tagged "planet" required by the "${FleetBuildEffectDefinition.type}" effect definition`,
       ]),
     )
   })
@@ -105,7 +105,7 @@ describe("Ruleset.safeCreate", () => {
     const actionDefinition = {
       ...validActionDefinition,
       targets: { planet: { targetType: TargetType.FLEET, constraints: [] } },
-      mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
+      effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 1 })],
     }
     const ruleset = {
       id: "test-ruleset",
@@ -121,7 +121,7 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(
       Result.Failure([
-        `Action Definition "${actionDefinition.name}" target slot tagged "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
+        `Action Definition "${actionDefinition.name}" target slot tagged "planet" has type "FLEET", but the "FLEET_BUILD" effect definition requires "PLANET"`,
       ]),
     )
   })
@@ -134,9 +134,9 @@ describe("Ruleset.safeCreate", () => {
       targets: {
         [branded<TargetTag>("planet")]: { targetType: TargetType.PLANET, constraints: [] },
       },
-      mechanics: [
+      effects: [
         {
-          type: FleetBuildMechanic.type,
+          type: FleetBuildEffectDefinition.type,
           targets: {
             planet: {
               actionTargetTag: branded("planet"),
@@ -164,7 +164,7 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(Result.Failure([expect.stringContaining("Too small: expected number to be >0")]))
     expect(result).toStrictEqual(
-      Result.Failure([expect.stringContaining("at actionDefinitions.TEST_ACTION.mechanics[0].parameters.strength")]),
+      Result.Failure([expect.stringContaining("at actionDefinitions.TEST_ACTION.effects[0].parameters.strength")]),
     )
   })
 })

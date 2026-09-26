@@ -12,7 +12,7 @@ export function createActionDefinitionStub({ ...overrides }: Partial<DeepUnbrand
     tier: ActionTier.STANDARD,
     targets: {},
     costs: [],
-    mechanics: [],
+    effects: [],
     ...overrides,
   })
 }
