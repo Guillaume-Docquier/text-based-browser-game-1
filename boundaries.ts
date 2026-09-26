@@ -1,37 +1,22 @@
 import path from "node:path"
-import type { DependenciesPolicy, DependenciesRuleOptions, Settings } from "eslint-plugin-boundaries"
+import type { DependenciesPolicy, Rules, Settings } from "eslint-plugin-boundaries"
 import type { OxlintConfig } from "oxlint"
 
-type ElementType = (typeof Elements)[keyof typeof Elements]["type"]
+type Element = (typeof Elements)[keyof typeof Elements]
 const Elements = {
   RULESET_MODEL: { type: "ruleset-model", pattern: "backend/src/lib/rules-engine/ruleset-model" },
   VALIDATION: { type: "validation", pattern: "backend/src/lib/validation" },
   DB: { type: "db", pattern: "backend/src/lib/db" },
 } as const
 
-const Policies = Object.fromEntries([
-  policy({
-    type: Elements.RULESET_MODEL.type,
-    disallow: { to: { module: { origin: "local" } } },
-    allow: {
-      to: {
-        element: {
-          type: [Elements.RULESET_MODEL.type, Elements.VALIDATION.type, Elements.DB.type],
-        },
-      },
-    },
-  }),
-])
+const DisallowEverything = { to: { module: { origin: "local" } } } as const
 
-/** Boundary element settings and dependency policies for the repository. */
+/**
+ * Boundaries settings and rules
+ */
 export const Boundaries = {
   settings: {
     "boundaries/root-path": import.meta.dirname,
-    "boundaries/elements": [
-      { ...Elements.RULESET_MODEL, partialMatch: false },
-      { ...Elements.VALIDATION, partialMatch: false },
-      { ...Elements.DB, partialMatch: false },
-    ],
     "boundaries/flag-as-external": {
       unresolvableAlias: false,
       inNodeModules: true,
@@ -41,36 +26,59 @@ export const Boundaries = {
         project: path.resolve(import.meta.dirname, "backend/tsconfig.json"),
       },
     },
+    "boundaries/elements": [
+      { ...Elements.RULESET_MODEL, partialMatch: false },
+      { ...Elements.VALIDATION, partialMatch: false },
+      { ...Elements.DB, partialMatch: false },
+    ],
   } satisfies Settings & Pick<NonNullable<OxlintConfig["settings"]>, "import/resolver">,
-  dependencies: {
-    default: "allow",
-    checkAllOrigins: false,
-    checkUnknownLocals: true,
-    checkInternals: true,
-    policies: Object.values(Policies).flat(),
-  } satisfies DependenciesRuleOptions,
+  rules: {
+    "boundaries/dependencies": [
+      "error",
+      {
+        default: "allow",
+        checkAllOrigins: false,
+        checkUnknownLocals: true,
+        checkInternals: true,
+        policies: [
+          ...policy({
+            element: Elements.RULESET_MODEL,
+            disallow: DisallowEverything,
+            allow: elements([Elements.RULESET_MODEL, Elements.VALIDATION, Elements.DB]),
+          }),
+        ],
+      },
+    ],
+  } satisfies Pick<Rules, "boundaries/dependencies">,
 }
 
+/**
+ * When disallow and allow overlap, allow wins.
+ */
 function policy({
-  type,
+  element,
   allow,
   disallow,
 }: {
-  type: ElementType
+  element: Element
   allow?: DependenciesPolicy["allow"]
   disallow?: DependenciesPolicy["disallow"]
-}): [ElementType, DependenciesPolicy[]] {
-  const from = { element: { type } }
-
+}): DependenciesPolicy[] {
   const policies: DependenciesPolicy[] = []
 
   if (disallow !== undefined) {
-    policies.push({ from, disallow })
+    policies.push({ from: { element }, disallow })
   }
 
   if (allow !== undefined) {
-    policies.push({ from, allow })
+    policies.push({ from: { element }, allow })
   }
 
-  return [type, policies]
+  return policies
+}
+
+function elements(definitions: readonly Element[]): { to: { element: { type: string[] } } } {
+  return {
+    to: { element: { type: definitions.map(({ type }) => type) } },
+  } satisfies NonNullable<DependenciesPolicy["allow"]>
 }

@@ -14,7 +14,7 @@ export default defineConfig({
     ...Boundaries.settings,
   },
   rules: {
-    "boundaries/dependencies": ["error", Boundaries.dependencies],
+    ...Boundaries.rules,
   },
   overrides: [
     {
