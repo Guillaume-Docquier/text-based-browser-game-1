@@ -14,15 +14,12 @@ minimumReleaseAgeExclude:
   - "@guillaume-docquier/show-me"
 
 allowBuilds:
-  "@clerk/shared": true
   bufferutil: true
   core-js: true
-  cpu-features: false
+  cpu-features: true
   esbuild: true
-  msw: true
-  protobufjs: false
-  ssh2: false
-  unrs-resolver: false
+  protobufjs: true
+  ssh2: true
   utf-8-validate: true
 
 peerDependencyRules:
