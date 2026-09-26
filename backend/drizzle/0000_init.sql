@@ -27,7 +27,7 @@ CREATE TABLE "fleets" (
 	"game_id" integer NOT NULL,
 	"player_id" uuid NOT NULL,
 	"strength" integer NOT NULL,
-	"origin_planet_id" integer NOT NULL,
+	"origin_planet_id" text NOT NULL,
 	CONSTRAINT "fleets_game_id_player_id_origin_planet_id_unique" UNIQUE("game_id","player_id","origin_planet_id"),
 	CONSTRAINT "fleets_strength_positive_check" CHECK ("fleets"."strength" > 0)
 );
@@ -49,8 +49,8 @@ CREATE TABLE "games" (
 --> statement-breakpoint
 CREATE TABLE "planets" (
 	"game_id" integer NOT NULL,
-	"star_id" integer NOT NULL,
-	"id" integer NOT NULL,
+	"star_id" text NOT NULL,
+	"id" text NOT NULL,
 	"owner_player_id" uuid,
 	"name" text NOT NULL,
 	"coordinates" text NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE "rulesets" (
 --> statement-breakpoint
 CREATE TABLE "stars" (
 	"game_id" integer NOT NULL,
-	"id" integer NOT NULL,
+	"id" text NOT NULL,
 	"name" text NOT NULL,
 	"coordinates" text NOT NULL,
 	"x" double precision NOT NULL,
