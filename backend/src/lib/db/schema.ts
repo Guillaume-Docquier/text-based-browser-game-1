@@ -30,8 +30,8 @@ import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
 import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
-import type { SelectedTargets } from "#lib/rules-engine/ruleset-model/actions/SelectedTargets.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import type { SelectedTargets } from "#lib/rules-engine/ruleset/actions/SelectedTargets.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
 /**

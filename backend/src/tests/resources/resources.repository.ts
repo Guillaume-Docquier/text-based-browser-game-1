@@ -5,7 +5,7 @@ import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { resourcesTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import type { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 
 export type ResourceUpdateModel = {
   gameId: GameId

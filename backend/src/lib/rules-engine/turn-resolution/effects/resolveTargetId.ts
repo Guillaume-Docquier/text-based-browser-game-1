@@ -2,9 +2,9 @@ import { Assert, branded } from "@guillaume-docquier/tools-ts"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import type { SelectedTargets } from "#lib/rules-engine/ruleset-model/actions/SelectedTargets.ts"
-import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/MechanicTargetDefinition.ts"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import type { SelectedTargets } from "#lib/rules-engine/ruleset/actions/SelectedTargets.ts"
+import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset/mechanics/MechanicTargetDefinition.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 
 type TargetId<TTargetType extends TargetType> = {
   [TargetType.FLEET]: FleetId

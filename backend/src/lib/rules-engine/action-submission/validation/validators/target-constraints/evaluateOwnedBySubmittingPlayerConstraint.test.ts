@@ -2,9 +2,9 @@ import { branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { evaluateOwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/action-submission/validation/validators/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
-import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset/mechanics/Resources.stub.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetableFleet, TargetablePlanet, TargetablePlayer } from "#lib/rules-engine/turn-resolution/TargetableEntity.ts"
 
 describe("evaluateOwnedBySubmittingPlayerConstraint", () => {

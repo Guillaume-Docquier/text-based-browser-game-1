@@ -1,5 +1,5 @@
 import type { Branded } from "@guillaume-docquier/tools-ts"
-import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset-model/mechanics/MechanicTargetDefinition.ts"
+import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset/mechanics/MechanicTargetDefinition.ts"
 
 /**
  * The role of the target for this mechanic, such as "player", "defendingFleet" or "planet".

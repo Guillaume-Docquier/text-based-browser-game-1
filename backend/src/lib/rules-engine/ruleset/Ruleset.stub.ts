@@ -1,7 +1,7 @@
 import { branded } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
-import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
-import { type Ruleset, RulesetSchema } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset/mechanics/Resources.stub.ts"
+import { type Ruleset, RulesetSchema } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import { typedParse } from "#lib/validation/typedParse.ts"
 
 /**

@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
 import type { EffectError } from "#lib/rules-engine/turn-resolution/effects/EffectError.ts"
 import type { EffectJson } from "#lib/rules-engine/turn-resolution/effects/EffectJson.ts"
 import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"

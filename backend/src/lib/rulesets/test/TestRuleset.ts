@@ -1,4 +1,4 @@
-import { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 /**

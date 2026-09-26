@@ -6,7 +6,7 @@ import type { SubmittedActionValidator } from "#lib/rules-engine/action-submissi
 import { validateActionDefinition } from "#lib/rules-engine/action-submission/validation/validators/validateActionDefinition.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
 import { validateTargets } from "#lib/rules-engine/action-submission/validation/validators/validateTargets.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 const validators: SubmittedActionValidator[] = [validateActionDefinition, validateTargets, validateCosts]

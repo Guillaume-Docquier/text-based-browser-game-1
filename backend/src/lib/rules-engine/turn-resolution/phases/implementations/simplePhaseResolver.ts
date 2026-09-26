@@ -1,5 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
 import { ResolvePhaseError } from "#lib/rules-engine/turn-resolution/phases/ResolvePhaseError.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 

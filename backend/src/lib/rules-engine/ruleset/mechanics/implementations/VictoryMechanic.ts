@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { AbstractMechanic, NoParameters, NoTargets } from "#lib/rules-engine/ruleset-model/mechanics/AbstractMechanic.ts"
+import type { AbstractMechanic, NoParameters, NoTargets } from "#lib/rules-engine/ruleset/mechanics/AbstractMechanic.ts"
 import { typedParse } from "#lib/validation/typedParse.ts"
 
 export interface VictoryMechanic extends AbstractMechanic {

@@ -11,7 +11,7 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { accountsTable, gamesTable, playersTable, rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { OwnedBySubmittingPlayerConstraintSchema } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { OwnedBySubmittingPlayerConstraintSchema } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 
 export type TargetConstraint = z.infer<typeof TargetConstraintSchema>
 

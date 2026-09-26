@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import type { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 
 export type MechanicTargetDefinition<TTargetType extends TargetType = TargetType> = {
   /**

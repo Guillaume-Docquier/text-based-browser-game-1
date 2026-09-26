@@ -1,11 +1,11 @@
-import type { ActionDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
-import { ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
-import { ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
+import { ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
+import { ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
+import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
+import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 
 function buildFleetDirective({
   id,

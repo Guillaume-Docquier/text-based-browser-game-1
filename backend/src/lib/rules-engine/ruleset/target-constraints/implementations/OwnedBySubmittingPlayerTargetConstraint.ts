@@ -1,10 +1,10 @@
 import { z } from "zod"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 import type {
   AbstractTargetConstraint,
   NoTargetConstraintParameters,
   NoTargetReferences,
-} from "#lib/rules-engine/ruleset-model/target-constraints/AbstractTargetConstraint.ts"
+} from "#lib/rules-engine/ruleset/target-constraints/AbstractTargetConstraint.ts"
 import { typedParse } from "#lib/validation/typedParse.ts"
 
 /**

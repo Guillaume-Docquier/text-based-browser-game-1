@@ -3,7 +3,7 @@ import type { GameId } from "#lib/db/games/GameId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
+import type { Resources } from "#lib/rules-engine/ruleset/mechanics/Resources.ts"
 
 /**
  * The current state of the turn.

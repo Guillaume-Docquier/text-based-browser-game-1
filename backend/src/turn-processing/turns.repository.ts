@@ -22,9 +22,9 @@ import {
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
-import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Resources } from "#lib/rules-engine/ruleset/mechanics/Resources.ts"
+import type { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import type { Fleet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 

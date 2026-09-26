@@ -4,7 +4,7 @@ import type { OxlintConfig } from "oxlint"
 
 type Element = (typeof Elements)[keyof typeof Elements]
 const Elements = {
-  RULESET_MODEL: { type: "ruleset-model", pattern: "src/lib/rules-engine/ruleset-model" },
+  RULESET_MODEL: { type: "ruleset", pattern: "src/lib/rules-engine/ruleset" },
   VALIDATION: { type: "validation", pattern: "src/lib/validation" },
   DB_IDS: { type: "db-ids", pattern: "src/lib/db", filePattern: "src/lib/db/*/*Id.ts" },
 } as const

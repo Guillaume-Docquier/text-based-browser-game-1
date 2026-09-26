@@ -1,7 +1,7 @@
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import type { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
+import type { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 import type { Fleet, Player, Planet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 type TargetId<TTargetType extends TargetType> = {

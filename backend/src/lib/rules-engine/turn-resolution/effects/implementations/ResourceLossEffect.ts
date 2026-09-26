@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
+import type { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
 import { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import { EffectError } from "#lib/rules-engine/turn-resolution/effects/EffectError.ts"
 import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"

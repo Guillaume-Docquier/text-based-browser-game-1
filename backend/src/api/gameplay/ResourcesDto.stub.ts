@@ -1,5 +1,5 @@
 import type { ResourcesDto } from "#api/gameplay/ResourcesDto.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 
 export function createResourcesDtoStub(overrides?: Partial<ResourcesDto>): ResourcesDto {
   return {
