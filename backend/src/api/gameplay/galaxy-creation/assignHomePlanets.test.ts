@@ -41,12 +41,12 @@ describe("assignHomePlanets", () => {
     const galaxy = createGalaxyStub({
       systems: [
         createSystemStub({
-          star: createStarStub({ id: 1, x: 50, y: 50 }),
-          planets: [createPlanetStub({ id: 11 }), createPlanetStub({ id: 22 })],
+          star: createStarStub({ x: 50, y: 50 }),
+          planets: [createPlanetStub(), createPlanetStub()],
         }),
         createSystemStub({
-          star: createStarStub({ id: 2, x: 0, y: 0 }),
-          planets: [createPlanetStub({ id: 33 })],
+          star: createStarStub({ x: 0, y: 0 }),
+          planets: [createPlanetStub()],
         }),
       ],
     })

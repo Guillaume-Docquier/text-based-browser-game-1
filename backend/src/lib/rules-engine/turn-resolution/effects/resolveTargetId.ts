@@ -35,7 +35,7 @@ export function safeResolveTargetId(
     case TargetType.FLEET:
       return branded<FleetId>(targetId)
     case TargetType.PLANET:
-      return branded<PlanetId>(Number(targetId))
+      return branded<PlanetId>(targetId)
     case TargetType.PLAYER:
       return branded<PlayerId>(targetId)
   }

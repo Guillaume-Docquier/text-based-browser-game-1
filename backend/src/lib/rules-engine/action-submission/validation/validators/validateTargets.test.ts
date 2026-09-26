@@ -125,7 +125,7 @@ describe("validateTargets", () => {
     // Arrange
     const playerId = branded<PlayerId>("submitting-player")
     const fleetId = branded<FleetId>("fleet-id")
-    const planetId = branded<PlanetId>(1)
+    const planetId = branded<PlanetId>("planet-id")
     const constraint = OwnedBySubmittingPlayerConstraint.create()
     const actionDefinition = createActionDefinitionStub({
       targets: {
@@ -156,7 +156,7 @@ describe("validateTargets", () => {
     const playerId = branded<PlayerId>("submitting-player")
     const otherPlayerId = branded<PlayerId>("other-player")
     const fleetId = branded<FleetId>("fleet-id")
-    const planetId = branded<PlanetId>(1)
+    const planetId = branded<PlanetId>("planet-id")
     const constraint = OwnedBySubmittingPlayerConstraint.create()
     const actionDefinition = createActionDefinitionStub({
       targets: {
@@ -200,7 +200,7 @@ describe("validateTargets", () => {
   it("should report an unowned planet target", () => {
     // Arrange
     const playerId = branded<PlayerId>("submitting-player")
-    const planetId = branded<PlanetId>(1)
+    const planetId = branded<PlanetId>("planet-id")
     const actionDefinition = createActionDefinitionStub({
       targets: {
         planet: { targetType: TargetType.PLANET, constraints: [OwnedBySubmittingPlayerConstraint.create()] },

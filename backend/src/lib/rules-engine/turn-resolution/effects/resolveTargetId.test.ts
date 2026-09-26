@@ -18,15 +18,15 @@ describe("resolveTargetId", () => {
 
     it("should resolve selected targets without validating them", () => {
       // Arrange
-      const selectedTargets = { planet: "-1" }
+      const selectedTargets = { planet: "planet-id" }
 
       // Act
       const safeTargetId = safeResolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })
       const targetId = resolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })
 
       // Assert
-      expect(safeTargetId).toBe(-1)
-      expect(targetId).toBe(-1)
+      expect(safeTargetId).toBe("planet-id")
+      expect(targetId).toBe("planet-id")
     })
 
     it("should resolve Fleet targets", () => {

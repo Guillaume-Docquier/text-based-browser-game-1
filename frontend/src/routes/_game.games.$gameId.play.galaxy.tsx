@@ -7,7 +7,7 @@ import { GalaxyPage } from "@/features/play/galaxy/GalaxyPage.tsx"
 
 const GalaxySearchSchema = z.object({
   planetId: z
-    .number()
+    .string()
     .transform(branded<PlanetId>)
     .exactOptional(),
 })

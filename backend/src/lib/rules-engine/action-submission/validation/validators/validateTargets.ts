@@ -151,7 +151,7 @@ function getFleetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, 
 }
 
 function getPlanetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): Result<TargetablePlanet, string> {
-  const planet = turnState.planets[branded<PlanetId>(Number(targetId))]
+  const planet = turnState.planets[branded<PlanetId>(targetId)]
   if (planet === undefined) {
     return Result.Failure(`Target slot "${targetSlot}" references unknown Planet id "${targetId}"`)
   }
