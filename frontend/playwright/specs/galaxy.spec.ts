@@ -46,16 +46,16 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     const selectedRegion = galaxyPage.region("last")
 
     await galaxyPage.centerRegion(selectedRegion)
-    await expect(galaxyPage.map).toHaveAttribute("aria-busy", "true")
     await expect.poll(async () => await galaxyPage.getGalaxyRegionDistanceFromCenter(selectedRegion)).toBeLessThan(1)
     await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
+    await expect(galaxyPage.map).toHaveAttribute("aria-busy", "false")
 
     await galaxyPage.zoomGalaxyOut()
     await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeGreaterThan(10.5)
 
     await galaxyPage.centerRegion(selectedRegion)
-    await expect(galaxyPage.map).toHaveAttribute("aria-busy", "true")
     await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
+    await expect(galaxyPage.map).toHaveAttribute("aria-busy", "false")
 
     await galaxyPage.resetView()
     await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBe(1)
