@@ -1,4 +1,4 @@
-import { Assert, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
+import { indexBy, Assert, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { createGalaxy } from "#api/gameplay/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
@@ -21,7 +21,6 @@ import { type PlayerId, PlayerIdSchema } from "#lib/db/players/PlayerId.ts"
 import { StarIdSchema } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
-import { indexById } from "#lib/indexById.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
 import { getUncommittedResources } from "#lib/rules-engine/action-submission/getUncommittedResources.ts"
@@ -367,8 +366,8 @@ function createTurnState({
         resources,
       },
     },
-    planets: indexById(planets),
-    fleets: indexById(fleets),
+    planets: indexBy("id", planets),
+    fleets: indexBy("id", fleets),
     winnerPlayerId: undefined,
   }
 }

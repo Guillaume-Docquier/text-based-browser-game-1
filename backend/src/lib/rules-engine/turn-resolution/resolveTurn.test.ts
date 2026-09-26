@@ -1,11 +1,10 @@
-import { branded, Result } from "@guillaume-docquier/tools-ts"
+import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import { indexById } from "#lib/indexById.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
@@ -26,7 +25,7 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: indexById([
+      players: indexBy("id", [
         {
           id: playerId,
           resources: createResourcesStub({
@@ -82,7 +81,7 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: GainInfluence.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: indexById([
+      players: indexBy("id", [
         {
           id: playerId,
           resources: createResourcesStub({
@@ -108,7 +107,7 @@ describe("resolveTurn", () => {
             actionOutcomes: [EffectOutcome.Resolved({ result: `Player "${playerId}" gained 5 INFLUENCE` })],
           },
         ],
-        players: indexById([
+        players: indexBy("id", [
           {
             id: playerId,
             resources: createResourcesStub({
@@ -133,7 +132,7 @@ describe("resolveTurn", () => {
     const secondPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId: secondPlayerId })
     const turnState = createTurnStateStub({
       submittedActions: [firstPlayerSubmittedAction, secondPlayerSubmittedAction],
-      players: indexById([
+      players: indexBy("id", [
         {
           id: firstPlayerId,
           resources: createResourcesStub({
@@ -178,7 +177,7 @@ describe("resolveTurn", () => {
             ],
           },
         ],
-        players: indexById([
+        players: indexBy("id", [
           {
             id: firstPlayerId,
             resources: createResourcesStub({
@@ -204,7 +203,7 @@ describe("resolveTurn", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: indexById([
+      players: indexBy("id", [
         {
           id: playerId,
           resources: createResourcesStub({
@@ -237,7 +236,7 @@ describe("resolveTurn", () => {
             ],
           },
         ],
-        players: indexById([{ id: playerId, resources: createResourcesStub() }]),
+        players: indexBy("id", [{ id: playerId, resources: createResourcesStub() }]),
         planets: {},
         fleets: {},
         winnerPlayerId: playerId,
@@ -256,7 +255,7 @@ describe("resolveTurn", () => {
     const turnState = createTurnStateStub({
       turn: 1,
       submittedActions: [submittedAction],
-      players: indexById([
+      players: indexBy("id", [
         {
           id: playerId,
           resources: createResourcesStub({
@@ -265,7 +264,7 @@ describe("resolveTurn", () => {
           }),
         },
       ]),
-      planets: indexById([{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
+      planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -286,7 +285,7 @@ describe("resolveTurn", () => {
               ]),
             },
           ],
-          fleets: indexById([
+          fleets: indexBy("id", [
             {
               id: expectedFleetId,
               playerId,
@@ -310,7 +309,7 @@ describe("resolveTurn", () => {
     })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: indexById([
+      players: indexBy("id", [
         {
           id: playerId,
           resources: createResourcesStub({
@@ -319,8 +318,8 @@ describe("resolveTurn", () => {
           }),
         },
       ]),
-      planets: indexById([{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
-      fleets: indexById([{ id: fleetId, playerId, strength: 5, originPlanetId: planetId }]),
+      planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
+      fleets: indexBy("id", [{ id: fleetId, playerId, strength: 5, originPlanetId: planetId }]),
     })
 
     // Act
@@ -340,7 +339,7 @@ describe("resolveTurn", () => {
               ]),
             },
           ],
-          fleets: indexById([
+          fleets: indexBy("id", [
             {
               id: fleetId,
               playerId,
@@ -365,12 +364,12 @@ describe("resolveTurn", () => {
     })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: indexById([
+      players: indexBy("id", [
         { id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
         { id: enemyPlayerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
       ]),
-      planets: indexById([{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
-      fleets: indexById([{ id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId }]),
+      planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
+      fleets: indexBy("id", [{ id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId }]),
     })
 
     // Act
@@ -391,7 +390,7 @@ describe("resolveTurn", () => {
               ]),
             },
           ],
-          fleets: indexById([
+          fleets: indexBy("id", [
             { id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId },
             { id: expectedFleetId, playerId, strength: 10, originPlanetId: planetId },
           ]),
