@@ -1,4 +1,4 @@
-import { Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { indexBy, Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
@@ -21,7 +21,6 @@ import {
 } from "#lib/db/schema.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
-import { indexById } from "#lib/indexById.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
 import type { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
@@ -459,9 +458,9 @@ function toTurnToProcessModel({
     submittedActions: submittedActions.flatMap(({ id, playerId, actionDefinitionId, selectedTargets }) =>
       selectedTargets === null ? [] : [{ id, playerId, actionDefinitionId, selectedTargets }],
     ),
-    players: indexById(playerModels),
-    planets: indexById(planets),
-    fleets: indexById(fleets),
+    players: indexBy("id", playerModels),
+    planets: indexBy("id", planets),
+    fleets: indexBy("id", fleets),
     ruleset,
   }
 }

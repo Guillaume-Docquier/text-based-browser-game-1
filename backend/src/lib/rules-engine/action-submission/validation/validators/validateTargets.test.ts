@@ -1,9 +1,8 @@
-import { branded, Result } from "@guillaume-docquier/tools-ts"
+import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import { indexById } from "#lib/indexById.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateTargets } from "#lib/rules-engine/action-submission/validation/validators/validateTargets.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
@@ -32,7 +31,7 @@ describe("validateTargets", () => {
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: indexById([{ id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }) }]),
+      players: indexBy("id", [{ id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }) }]),
     })
 
     // Act
@@ -55,7 +54,7 @@ describe("validateTargets", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub()
-    const ruleset = createRulesetStub({ actionDefinitions: indexById([actionDefinition]) })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
@@ -65,7 +64,7 @@ describe("validateTargets", () => {
     })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: indexById([{ id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }) }]),
+      players: indexBy("id", [{ id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 5 }) }]),
     })
 
     // Act
@@ -93,7 +92,7 @@ describe("validateTargets", () => {
       },
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexById([actionDefinition]) })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
@@ -103,7 +102,7 @@ describe("validateTargets", () => {
     })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
-      players: indexById([{ id: playerId, resources: createResourcesStub() }]),
+      players: indexBy("id", [{ id: playerId, resources: createResourcesStub() }]),
     })
 
     // Act
@@ -134,15 +133,15 @@ describe("validateTargets", () => {
         planet: { targetType: TargetType.PLANET, constraints: [constraint] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexById([actionDefinition]) })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
       selectedTargets: { fleet: fleetId, planet: String(planetId) },
     })
     const turnState = createTurnStateStub({
-      fleets: indexById([{ id: fleetId, playerId, strength: 1, originPlanetId: planetId }]),
-      planets: indexById([{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
+      fleets: indexBy("id", [{ id: fleetId, playerId, strength: 1, originPlanetId: planetId }]),
+      planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -165,15 +164,15 @@ describe("validateTargets", () => {
         planet: { targetType: TargetType.PLANET, constraints: [constraint] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexById([actionDefinition]) })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
       selectedTargets: { fleet: fleetId, planet: String(planetId) },
     })
     const turnState = createTurnStateStub({
-      fleets: indexById([{ id: fleetId, playerId: otherPlayerId, strength: 1, originPlanetId: planetId }]),
-      planets: indexById([{ id: planetId, ownerPlayerId: otherPlayerId, x: 0, y: 0 }]),
+      fleets: indexBy("id", [{ id: fleetId, playerId: otherPlayerId, strength: 1, originPlanetId: planetId }]),
+      planets: indexBy("id", [{ id: planetId, ownerPlayerId: otherPlayerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -207,14 +206,14 @@ describe("validateTargets", () => {
         planet: { targetType: TargetType.PLANET, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexById([actionDefinition]) })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
       selectedTargets: { planet: String(planetId) },
     })
     const turnState = createTurnStateStub({
-      planets: indexById([{ id: planetId, ownerPlayerId: null, x: 0, y: 0 }]),
+      planets: indexBy("id", [{ id: planetId, ownerPlayerId: null, x: 0, y: 0 }]),
     })
 
     // Act
@@ -242,14 +241,14 @@ describe("validateTargets", () => {
         player: { targetType: TargetType.PLAYER, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexById([actionDefinition]) })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
       selectedTargets: { player: targetPlayerId },
     })
     const turnState = createTurnStateStub({
-      players: indexById([{ id: targetPlayerId, resources: createResourcesStub() }]),
+      players: indexBy("id", [{ id: targetPlayerId, resources: createResourcesStub() }]),
     })
 
     // Act
@@ -284,7 +283,7 @@ describe("validateTargets", () => {
         target: { targetType, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexById([actionDefinition]) })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,

@@ -1,12 +1,13 @@
 import { branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
+import { evaluateOwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/action-submission/validation/validators/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset-model/mechanics/Resources.stub.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetableFleet, TargetablePlanet, TargetablePlayer } from "#lib/rules-engine/turn-resolution/TargetableEntity.ts"
 
-describe("OwnedBySubmittingPlayerConstraint", () => {
+describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
   describe("evaluate", () => {
     const constraint = OwnedBySubmittingPlayerConstraint.create()
     const submittingPlayerId = branded<PlayerId>("submitting-player")
@@ -23,7 +24,7 @@ describe("OwnedBySubmittingPlayerConstraint", () => {
       }
 
       // Act
-      const result = OwnedBySubmittingPlayerConstraint.evaluate({ constraint, submittingPlayerId, target })
+      const result = evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
 
       // Assert
       expect(result).toStrictEqual<typeof result>(Result.Success(undefined))
@@ -40,7 +41,7 @@ describe("OwnedBySubmittingPlayerConstraint", () => {
       }
 
       // Act
-      const result = OwnedBySubmittingPlayerConstraint.evaluate({ constraint, submittingPlayerId, target })
+      const result = evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
 
       // Assert
       expect(result).toStrictEqual<typeof result>(Result.Success("Expected target fleet to be owned by the submitting player."))
@@ -57,7 +58,7 @@ describe("OwnedBySubmittingPlayerConstraint", () => {
       }
 
       // Act
-      const result = OwnedBySubmittingPlayerConstraint.evaluate({ constraint, submittingPlayerId, target })
+      const result = evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
 
       // Assert
       expect(result).toStrictEqual<typeof result>(Result.Success(undefined))
@@ -74,7 +75,7 @@ describe("OwnedBySubmittingPlayerConstraint", () => {
       }
 
       // Act
-      const result = OwnedBySubmittingPlayerConstraint.evaluate({ constraint, submittingPlayerId, target })
+      const result = evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
 
       // Assert
       expect(result).toStrictEqual<typeof result>(Result.Success("Expected target planet to be owned by the submitting player."))
@@ -91,7 +92,7 @@ describe("OwnedBySubmittingPlayerConstraint", () => {
       }
 
       // Act
-      const result = OwnedBySubmittingPlayerConstraint.evaluate({ constraint, submittingPlayerId, target })
+      const result = evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
 
       // Assert
       expect(result).toStrictEqual<typeof result>(Result.Success("Expected target planet to be owned by the submitting player."))
@@ -106,7 +107,7 @@ describe("OwnedBySubmittingPlayerConstraint", () => {
       }
 
       // Act
-      const result = OwnedBySubmittingPlayerConstraint.evaluate({ constraint, submittingPlayerId, target })
+      const result = evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
 
       // Assert
       expect(result).toStrictEqual<typeof result>(
