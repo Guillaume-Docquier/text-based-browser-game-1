@@ -1,4 +1,4 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { SubmittedActionTargetsDtoSchema } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -69,12 +69,16 @@ export class UpdateActionSubmissionUseCase {
       const planetIds = [
         ...new Set(
           Object.entries(actionDefinition.targets)
-            .map(([tag, targetDefinition]) => {
+            .map(([actionTargetTag, targetDefinition]) => {
               if (targetDefinition.targetType !== TargetType.PLANET) {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, targetType: targetDefinition.targetType })
+              // Object.entries widens TargetTag to string
+              return safeResolveTargetId(submittedAction.selectedTargets, {
+                actionTargetTag: branded(actionTargetTag),
+                targetType: targetDefinition.targetType,
+              })
             })
             .filter((planetId) => planetId !== null),
         ),
@@ -84,12 +88,16 @@ export class UpdateActionSubmissionUseCase {
       const fleetIds = [
         ...new Set(
           Object.entries(actionDefinition.targets)
-            .map(([tag, targetDefinition]) => {
+            .map(([actionTargetTag, targetDefinition]) => {
               if (targetDefinition.targetType !== TargetType.FLEET) {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, targetType: targetDefinition.targetType })
+              // Object.entries widens TargetTag to string
+              return safeResolveTargetId(submittedAction.selectedTargets, {
+                actionTargetTag: branded(actionTargetTag),
+                targetType: targetDefinition.targetType,
+              })
             })
             .filter((fleetId) => fleetId !== null),
         ),

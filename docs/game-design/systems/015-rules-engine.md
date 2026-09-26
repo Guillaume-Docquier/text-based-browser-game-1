@@ -54,6 +54,9 @@ Relates to:
 | Effect Outcome            | The recorded result of resolving an Effect: either `Resolved` when applied or `Prevented` as an expected game result.            |
 | Effect Pool               | The complete working collection of unresolved Effects for the current Turn Resolution.                                           |
 | Phase                     | An engine-owned, ordered stage of Turn Resolution that determines when a category of Effects can resolve.                        |
+| Target Slot               | One entry in an Action Definition's `targets` record, pairing a Target Tag with a Target Definition.                             |
+| Target Tag                | The key of a Target Slot, used to look up a selected target id in an Action Submission.                                          |
+| Target Role               | A Mechanic's internal name for a target, mapped to an Action Definition's Target Tag.                                            |
 
 ## Rules
 
@@ -69,6 +72,8 @@ The rules boundary is:
 6. During Turn Resolution, each valid locked submission's composed Mechanics produce Effects for the Effect Pool.
 
 An Action Definition is reusable rules content. An Available Action Instance is a server-authorized opportunity to use that content in the current state. An Action Submission is the player's chosen use of that opportunity. Keeping these concepts separate allows multiple instances of the same definition while preserving server authority.
+
+Each Action Definition target slot pairs a tag with a Target Definition containing the target type and constraints. An Action Submission stores selected target IDs under those tags. A Mechanic names the targets it needs by role and maps each role to an Action Definition target tag; during resolution, the tag locates the selected ID. Several Mechanics can refer to the same slot, and one Mechanic can be configured to use different slots in different Actions.
 
 Enumerating every valid combination would make payloads and server computation grow quickly for Actions with dependent targets, such as a Fleet and a destination Planet in its range. Client-side choices help the player make a submission; server validation remains authoritative.
 

@@ -1,16 +1,16 @@
-import { AssertionError } from "@guillaume-docquier/tools-ts"
+import { AssertionError, branded } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 import { resolveTargetId, safeResolveTargetId } from "#lib/rules-engine/turn-resolution/effects/resolveTargetId.ts"
 
 describe("resolveTargetId", () => {
   describe("safeResolveTargetId", () => {
-    it("should return null when the target slot is not selected", () => {
+    it("should return null when no target is selected for the tag", () => {
       // Arrange
       const selectedTargets = {}
 
       // Act
-      const targetId = safeResolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })
+      const targetId = safeResolveTargetId(selectedTargets, { actionTargetTag: branded("planet"), targetType: TargetType.PLANET })
 
       // Assert
       expect(targetId).toBeNull()
@@ -21,8 +21,8 @@ describe("resolveTargetId", () => {
       const selectedTargets = { planet: "planet-id" }
 
       // Act
-      const safeTargetId = safeResolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })
-      const targetId = resolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })
+      const safeTargetId = safeResolveTargetId(selectedTargets, { actionTargetTag: branded("planet"), targetType: TargetType.PLANET })
+      const targetId = resolveTargetId(selectedTargets, { actionTargetTag: branded("planet"), targetType: TargetType.PLANET })
 
       // Assert
       expect(safeTargetId).toBe("planet-id")
@@ -34,7 +34,7 @@ describe("resolveTargetId", () => {
       const selectedTargets = { fleet: "fleet-id" }
 
       // Act
-      const targetId = safeResolveTargetId(selectedTargets, { tag: "fleet", targetType: TargetType.FLEET })
+      const targetId = safeResolveTargetId(selectedTargets, { actionTargetTag: branded("fleet"), targetType: TargetType.FLEET })
 
       // Assert
       expect(targetId).toBe("fleet-id")
@@ -42,12 +42,14 @@ describe("resolveTargetId", () => {
   })
 
   describe("resolveTargetId", () => {
-    it("should throw when the target slot is not selected", () => {
+    it("should throw when no target is selected for the tag", () => {
       // Arrange
       const selectedTargets = {}
 
       // Act & Assert
-      expect(() => resolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })).toThrow(AssertionError)
+      expect(() => resolveTargetId(selectedTargets, { actionTargetTag: branded("planet"), targetType: TargetType.PLANET })).toThrow(
+        AssertionError,
+      )
     })
   })
 })

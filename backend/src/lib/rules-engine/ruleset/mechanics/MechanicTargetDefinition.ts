@@ -1,12 +1,25 @@
 import { z } from "zod"
+import { type TargetTag, TargetTagSchema } from "#lib/rules-engine/ruleset/actions/TargetTag.ts"
 import type { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 
 export type MechanicTargetDefinition<TTargetType extends TargetType = TargetType> = {
   /**
-   * The key to use on the submitted action's selected targets to find the target id.
-   * This is not the id of the actual target.
+   * The Action Definition target slot's tag, used to look up this target in the Action Submission.
+   *
+   * The tag is how the target is resolved from the action.
+   * A {@link TargetRole} is how the mechanic talks about a target internally.
+   *
+   * For example, an action might say "fleet 1 gains 1 strength and fleet 2 gains 2 strength"
+   *
+   * The Action Definition will have 2 target slots, tagged "fleet 1" and "fleet 2".
+   * The GainStrength mechanic will have 1 target role: "fleet"
+   * The action will have 2 mechanics:
+   * - GainStrength with actionTargetTag "fleet 1" for target role "fleet" and strength 1
+   * - GainStrength with actionTargetTag "fleet 2" for target role "fleet" and strength 2
+   *
+   * In other words, the role declares what the mechanic needs, the tag declares where on the action that target id will be.
    */
-  tag: string
+  actionTargetTag: TargetTag
   /**
    * The type that this target must be.
    */
@@ -17,7 +30,7 @@ export function MechanicTargetDefinitionSchema<TTargetType extends TargetType>(
   targetTypeSchema: z.ZodType<TTargetType>,
 ): z.ZodType<MechanicTargetDefinition<TTargetType>> {
   return z.object({
-    tag: z.string(),
+    actionTargetTag: TargetTagSchema,
     targetType: targetTypeSchema,
   })
 }

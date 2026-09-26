@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { type ActionTargetDefinition, ActionTargetDefinitionSchema } from "#lib/rules-engine/ruleset/actions/ActionTargetDefinition.ts"
+import { type ActionDefinitionTargets, ActionDefinitionTargetsSchema } from "#lib/rules-engine/ruleset/actions/ActionDefinitionTargets.ts"
 import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
 import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
 import {
@@ -25,17 +25,10 @@ export type ActionDefinition = Readonly<{
   name: string
   type: ActionType
   tier: ActionTier
-  /**
-   * Maps target tags to the type accepted by each target slot.
-   */
-  targets: Readonly<Record<string, ActionTargetDefinition>>
+  targets: Readonly<ActionDefinitionTargets>
   costs: ResourceLossMechanic[]
   mechanics: Mechanic[]
 }>
-
-export const ActionDefinitionTargetsSchema = z.record(z.string(), ActionTargetDefinitionSchema).readonly() satisfies z.ZodType<
-  ActionDefinition["targets"]
->
 
 export const ActionDefinitionSchema = z
   .object({
@@ -50,21 +43,21 @@ export const ActionDefinitionSchema = z
   .superRefine(validateMechanicTargets)
 
 /**
- * Requires that the action definition targets contain the necessary targets for every mechanic.
+ * Requires an action definition target slot with a compatible type for every mechanic target.
  */
 function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
   for (const mechanic of [...actionDefinition.costs, ...actionDefinition.mechanics]) {
     for (const mechanicTarget of Object.values(mechanic.targets)) {
-      const actionTargetType = actionDefinition.targets[mechanicTarget.tag]?.targetType
-      if (actionTargetType === undefined) {
+      const slotTargetType = actionDefinition.targets[mechanicTarget.actionTargetTag]?.targetType
+      if (slotTargetType === undefined) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" is missing target slot "${mechanicTarget.tag}" required by the "${mechanic.type}" mechanic`,
+          message: `Action Definition "${actionDefinition.name}" is missing target slot tagged "${mechanicTarget.actionTargetTag}" required by the "${mechanic.type}" mechanic`,
         })
-      } else if (actionTargetType !== mechanicTarget.targetType) {
+      } else if (slotTargetType !== mechanicTarget.targetType) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" target slot "${mechanicTarget.tag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
+          message: `Action Definition "${actionDefinition.name}" target slot tagged "${mechanicTarget.actionTargetTag}" has type "${slotTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
         })
       }
     }

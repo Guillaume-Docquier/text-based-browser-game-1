@@ -37,7 +37,7 @@ export const FleetBuildMechanic = {
       type: FleetBuildMechanic.type,
       targets: {
         planet: {
-          tag: planetTag,
+          actionTargetTag: planetTag,
           targetType: TargetType.PLANET,
         },
       },

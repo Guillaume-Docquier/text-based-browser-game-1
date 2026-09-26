@@ -6,6 +6,7 @@ import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateTargets } from "#lib/rules-engine/action-submission/validation/validators/validateTargets.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/actions/ActionDefinition.stub.ts"
+import { ActionDefinitionTargets } from "#lib/rules-engine/ruleset/actions/ActionDefinitionTargets.ts"
 import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
@@ -15,19 +16,15 @@ import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/tar
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 
 describe("validateTargets", () => {
-  it("should report a target slot required by the Action Definition but missing from the submission", () => {
+  it("should report a target selection missing for a required tag", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
-      targets: {
+      targets: ActionDefinitionTargets.create({
         targetPlayer: { targetType: TargetType.PLAYER, constraints: [] },
-      },
+      }),
     })
-    const ruleset = createRulesetStub({
-      actionDefinitions: {
-        [actionDefinition.id]: actionDefinition,
-      },
-    })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
@@ -41,7 +38,7 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: 'Missing target slot "targetPlayer"',
+          issue: 'Missing target selection for tag "targetPlayer"',
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -50,7 +47,7 @@ describe("validateTargets", () => {
     )
   })
 
-  it("should report unexpected target slots", () => {
+  it("should report unexpected target tags", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub()
@@ -59,7 +56,7 @@ describe("validateTargets", () => {
       actionDefinitionId: actionDefinition.id,
       playerId,
       selectedTargets: {
-        fleet: "unexpected-fleet-slot",
+        fleet: "unexpected-fleet-id",
       },
     })
     const turnState = createTurnStateStub({
@@ -74,7 +71,7 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: 'Unexpected target slot "fleet"',
+          issue: 'Unexpected target tag "fleet"',
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -83,13 +80,13 @@ describe("validateTargets", () => {
     )
   })
 
-  it("should report empty target slots", () => {
+  it("should report empty target selections", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
-      targets: {
+      targets: ActionDefinitionTargets.create({
         planet: { targetType: TargetType.PLANET, constraints: [] },
-      },
+      }),
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
@@ -112,7 +109,7 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: 'Target slot "planet" must be set to a PLANET id',
+          issue: 'Target selection for tag "planet" must be a PLANET id',
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -128,16 +125,16 @@ describe("validateTargets", () => {
     const planetId = branded<PlanetId>("planet-id")
     const constraint = OwnedBySubmittingPlayerConstraint.create()
     const actionDefinition = createActionDefinitionStub({
-      targets: {
+      targets: ActionDefinitionTargets.create({
         fleet: { targetType: TargetType.FLEET, constraints: [constraint] },
         planet: { targetType: TargetType.PLANET, constraints: [constraint] },
-      },
+      }),
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
-      selectedTargets: { fleet: fleetId, planet: String(planetId) },
+      selectedTargets: { fleet: fleetId, planet: planetId },
     })
     const turnState = createTurnStateStub({
       fleets: indexBy("id", [{ id: fleetId, playerId, strength: 1, originPlanetId: planetId }]),
@@ -159,16 +156,16 @@ describe("validateTargets", () => {
     const planetId = branded<PlanetId>("planet-id")
     const constraint = OwnedBySubmittingPlayerConstraint.create()
     const actionDefinition = createActionDefinitionStub({
-      targets: {
+      targets: ActionDefinitionTargets.create({
         fleet: { targetType: TargetType.FLEET, constraints: [constraint] },
         planet: { targetType: TargetType.PLANET, constraints: [constraint] },
-      },
+      }),
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
-      selectedTargets: { fleet: fleetId, planet: String(planetId) },
+      selectedTargets: { fleet: fleetId, planet: planetId },
     })
     const turnState = createTurnStateStub({
       fleets: indexBy("id", [{ id: fleetId, playerId: otherPlayerId, strength: 1, originPlanetId: planetId }]),
@@ -202,15 +199,15 @@ describe("validateTargets", () => {
     const playerId = branded<PlayerId>("submitting-player")
     const planetId = branded<PlanetId>("planet-id")
     const actionDefinition = createActionDefinitionStub({
-      targets: {
+      targets: ActionDefinitionTargets.create({
         planet: { targetType: TargetType.PLANET, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
-      },
+      }),
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
-      selectedTargets: { planet: String(planetId) },
+      selectedTargets: { planet: planetId },
     })
     const turnState = createTurnStateStub({
       planets: indexBy("id", [{ id: planetId, ownerPlayerId: null, x: 0, y: 0 }]),
@@ -237,9 +234,9 @@ describe("validateTargets", () => {
     const playerId = branded<PlayerId>("submitting-player")
     const targetPlayerId = branded<PlayerId>("target-player")
     const actionDefinition = createActionDefinitionStub({
-      targets: {
+      targets: ActionDefinitionTargets.create({
         player: { targetType: TargetType.PLAYER, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
-      },
+      }),
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
@@ -268,20 +265,24 @@ describe("validateTargets", () => {
   })
 
   it.each([
-    { targetType: TargetType.FLEET, targetId: "unknown-fleet", issue: 'Target slot "target" references unknown Fleet id "unknown-fleet"' },
-    { targetType: TargetType.PLANET, targetId: "123", issue: 'Target slot "target" references unknown Planet id "123"' },
+    {
+      targetType: TargetType.FLEET,
+      targetId: "unknown-fleet",
+      issue: 'Target selected for tag "target" references unknown Fleet id "unknown-fleet"',
+    },
+    { targetType: TargetType.PLANET, targetId: "123", issue: 'Target selected for tag "target" references unknown Planet id "123"' },
     {
       targetType: TargetType.PLAYER,
       targetId: "unknown-player",
-      issue: 'Target slot "target" references unknown Player id "unknown-player"',
+      issue: 'Target selected for tag "target" references unknown Player id "unknown-player"',
     },
   ])("should report an unknown $targetType target before evaluating its constraint", ({ targetType, targetId, issue }) => {
     // Arrange
     const playerId = branded<PlayerId>("submitting-player")
     const actionDefinition = createActionDefinitionStub({
-      targets: {
+      targets: ActionDefinitionTargets.create({
         target: { targetType, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
-      },
+      }),
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({

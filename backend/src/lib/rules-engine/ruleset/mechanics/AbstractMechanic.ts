@@ -1,15 +1,14 @@
-import type { Branded } from "@guillaume-docquier/tools-ts"
 import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset/mechanics/MechanicTargetDefinition.ts"
-
-/**
- * The role of the target for this mechanic, such as "player", "defendingFleet" or "planet".
- */
-export type TargetRole = Branded<"TargetRole", string>
+import type { TargetRole } from "#lib/rules-engine/ruleset/mechanics/TargetRole.ts"
 
 export type AbstractMechanic = Readonly<{
+  /**
+   * A discriminant for the mechanic type.
+   * Every mechanic should specify a unique, constant, value for type.
+   */
   type: string
   /**
-   * Maps target roles to their actual target.
+   * Maps target roles to definitions containing the Action Definition tag used to find each selected target.
    */
   targets: Readonly<Record<TargetRole, MechanicTargetDefinition>>
 

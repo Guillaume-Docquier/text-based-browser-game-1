@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 /**
- * Maps Action Definition target tags to the selected target ids.
+ * Maps Action Definition target slot tags to the selected target ids.
  */
 export type SelectedTargets = Readonly<Record<string, string>>
 
