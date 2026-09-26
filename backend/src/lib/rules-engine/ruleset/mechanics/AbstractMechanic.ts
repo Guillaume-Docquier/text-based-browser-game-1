@@ -8,7 +8,7 @@ export type AbstractMechanic = Readonly<{
    */
   type: string
   /**
-   * Maps target roles to their actual target.
+   * Maps target roles to definitions containing the Action Definition tag used to find each selected target.
    */
   targets: Readonly<Record<TargetRole, MechanicTargetDefinition>>
 

@@ -2,7 +2,7 @@ import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 
 /**
- * A tag for a target submission. This is used by mechanics to resolve their required targets.
+ * The key of an Action Definition target slot. Mechanics use it to look up selected target ids in Action Submissions.
  */
 export type TargetTag = Branded<"TargetTag", string>
 export const TargetTagSchema = z.string().transform(branded<TargetTag>) satisfies z.ZodType<TargetTag>

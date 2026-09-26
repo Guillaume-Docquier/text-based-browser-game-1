@@ -28,7 +28,7 @@ const validActionDefinition = createActionDefinitionStub({
 })
 
 describe("Ruleset.safeCreate", () => {
-  it("should validate a Ruleset with correctly indexed Action Definitions and all required target tags", () => {
+  it("should validate a Ruleset with correctly indexed Action Definitions and all required target slots", () => {
     // Arrange
     const ruleset = createRulesetStub({
       actionDefinitions: indexBy("id", [validActionDefinition]),
@@ -58,7 +58,7 @@ describe("Ruleset.safeCreate", () => {
     )
   })
 
-  it("should report a target tag required by a Mechanic but missing from its Action Definition", () => {
+  it("should report a target slot required by a Mechanic but missing from its Action Definition", () => {
     // Arrange
     const actionDefinition = createActionDefinitionStub({
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
@@ -73,12 +73,12 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(
       Result.Failure([
-        `Action Definition "${actionDefinition.name}" is missing target tag "planet" required by the "${FleetBuildMechanic.type}" mechanic`,
+        `Action Definition "${actionDefinition.name}" is missing target slot tagged "planet" required by the "${FleetBuildMechanic.type}" mechanic`,
       ]),
     )
   })
 
-  it("should report an Action Definition target tag with an incompatible type", () => {
+  it("should report an Action Definition target slot with an incompatible type", () => {
     // Arrange
     const actionDefinition = createActionDefinitionStub({
       targets: ActionDefinitionTargets.create({ planet: { targetType: TargetType.FLEET, constraints: [] } }),
@@ -94,7 +94,7 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(
       Result.Failure([
-        `Action Definition "${actionDefinition.name}" target tag "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
+        `Action Definition "${actionDefinition.name}" target slot tagged "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
       ]),
     )
   })

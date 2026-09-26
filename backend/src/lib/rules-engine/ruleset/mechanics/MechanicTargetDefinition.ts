@@ -4,14 +4,14 @@ import type { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.
 
 export type MechanicTargetDefinition<TTargetType extends TargetType = TargetType> = {
   /**
-   * The tag to use to resolve this target on the action's submitted targets.
+   * The Action Definition target slot's tag, used to look up this target in the Action Submission.
    *
    * The tag is how the target is resolved from the action.
    * A {@link TargetRole} is how the mechanic talks about a target internally.
    *
    * For example, an action might say "fleet 1 gains 1 strength and fleet 2 gains 2 strength"
    *
-   * The action will have 2 target tags: "fleet 1" and "fleet 2"
+   * The Action Definition will have 2 target slots, tagged "fleet 1" and "fleet 2".
    * The GainStrength mechanic will have 1 target role: "fleet"
    * The action will have 2 mechanics:
    * - GainStrength with actionTargetTag "fleet 1" for target role "fleet" and strength 1

@@ -16,7 +16,7 @@ import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/tar
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 
 describe("validateTargets", () => {
-  it("should report a target tag required by the Action Definition but missing from the submission", () => {
+  it("should report a target selection missing for a required tag", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
@@ -24,11 +24,7 @@ describe("validateTargets", () => {
         targetPlayer: { targetType: TargetType.PLAYER, constraints: [] },
       }),
     })
-    const ruleset = createRulesetStub({
-      actionDefinitions: {
-        [actionDefinition.id]: actionDefinition,
-      },
-    })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
@@ -42,7 +38,7 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: 'Missing target tag "targetPlayer"',
+          issue: 'Missing target selection for tag "targetPlayer"',
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -60,7 +56,7 @@ describe("validateTargets", () => {
       actionDefinitionId: actionDefinition.id,
       playerId,
       selectedTargets: {
-        fleet: "unexpected-fleet-tag",
+        fleet: "unexpected-fleet-id",
       },
     })
     const turnState = createTurnStateStub({
@@ -84,7 +80,7 @@ describe("validateTargets", () => {
     )
   })
 
-  it("should report empty target tags", () => {
+  it("should report empty target selections", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
@@ -113,7 +109,7 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: 'Target tag "planet" must be set to a PLANET id',
+          issue: 'Target selection for tag "planet" must be a PLANET id',
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -269,12 +265,16 @@ describe("validateTargets", () => {
   })
 
   it.each([
-    { targetType: TargetType.FLEET, targetId: "unknown-fleet", issue: 'Target tag "target" references unknown Fleet id "unknown-fleet"' },
-    { targetType: TargetType.PLANET, targetId: "123", issue: 'Target tag "target" references unknown Planet id "123"' },
+    {
+      targetType: TargetType.FLEET,
+      targetId: "unknown-fleet",
+      issue: 'Target selected for tag "target" references unknown Fleet id "unknown-fleet"',
+    },
+    { targetType: TargetType.PLANET, targetId: "123", issue: 'Target selected for tag "target" references unknown Planet id "123"' },
     {
       targetType: TargetType.PLAYER,
       targetId: "unknown-player",
-      issue: 'Target tag "target" references unknown Player id "unknown-player"',
+      issue: 'Target selected for tag "target" references unknown Player id "unknown-player"',
     },
   ])("should report an unknown $targetType target before evaluating its constraint", ({ targetType, targetId, issue }) => {
     // Arrange

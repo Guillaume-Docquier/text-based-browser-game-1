@@ -25,7 +25,7 @@ import type {
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 /**
- * Validates that the target tags for the action submission are filled and valid.
+ * Validates selections for every Action Definition target slot against its type and constraints.
  */
 export function validateTargets(
   submittedActions: readonly SubmittedAction[],
@@ -48,7 +48,7 @@ export function validateTargets(
     for (const missingTargetTag of missingTargetTags) {
       issues.push(
         SubmittedActionIssue.create({
-          issue: `Missing target tag "${missingTargetTag}"`,
+          issue: `Missing target selection for tag "${missingTargetTag}"`,
           submittedAction,
           actionDefinitionName: actionDefinition.name,
         }),
@@ -57,7 +57,7 @@ export function validateTargets(
 
     for (const [targetTag, targetId] of Object.entries(submittedAction.selectedTargets)) {
       const brandedTargetTag = branded<TargetTag>(targetTag)
-      const issue = validateTargetDefinition(
+      const issue = validateTargetSelection(
         actionDefinition.targets[brandedTargetTag],
         brandedTargetTag,
         targetId,
@@ -79,7 +79,7 @@ export function validateTargets(
   return Result.Success(issues)
 }
 
-function validateTargetDefinition(
+function validateTargetSelection(
   targetDefinition: TargetDefinition | undefined,
   targetTag: TargetTag,
   targetId: string,
@@ -91,7 +91,7 @@ function validateTargetDefinition(
   }
 
   if (targetId.length === 0) {
-    return `Target tag "${targetTag}" must be set to a ${targetDefinition.targetType} id`
+    return `Target selection for tag "${targetTag}" must be a ${targetDefinition.targetType} id`
   }
 
   const targetResult = getTarget({ targetType: targetDefinition.targetType, turnState, targetTag, targetId })
@@ -137,7 +137,7 @@ function getTarget({
 function getPlayerTarget(turnState: ReadonlyDeep<TurnState>, targetTag: TargetTag, targetId: string): Result<TargetablePlayer, string> {
   const player = turnState.players[branded<PlayerId>(targetId)]
   if (player === undefined) {
-    return Result.Failure(`Target tag "${targetTag}" references unknown Player id "${targetId}"`)
+    return Result.Failure(`Target selected for tag "${targetTag}" references unknown Player id "${targetId}"`)
   }
 
   return Result.Success({ type: TargetType.PLAYER, ...player })
@@ -146,7 +146,7 @@ function getPlayerTarget(turnState: ReadonlyDeep<TurnState>, targetTag: TargetTa
 function getFleetTarget(turnState: ReadonlyDeep<TurnState>, targetTag: TargetTag, targetId: string): Result<TargetableFleet, string> {
   const fleet = turnState.fleets[branded<FleetId>(targetId)]
   if (fleet === undefined) {
-    return Result.Failure(`Target tag "${targetTag}" references unknown Fleet id "${targetId}"`)
+    return Result.Failure(`Target selected for tag "${targetTag}" references unknown Fleet id "${targetId}"`)
   }
 
   return Result.Success({ type: TargetType.FLEET, ...fleet })
@@ -155,7 +155,7 @@ function getFleetTarget(turnState: ReadonlyDeep<TurnState>, targetTag: TargetTag
 function getPlanetTarget(turnState: ReadonlyDeep<TurnState>, targetTag: TargetTag, targetId: string): Result<TargetablePlanet, string> {
   const planet = turnState.planets[branded<PlanetId>(targetId)]
   if (planet === undefined) {
-    return Result.Failure(`Target tag "${targetTag}" references unknown Planet id "${targetId}"`)
+    return Result.Failure(`Target selected for tag "${targetTag}" references unknown Planet id "${targetId}"`)
   }
 
   return Result.Success({ type: TargetType.PLANET, ...planet })

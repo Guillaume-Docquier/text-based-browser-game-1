@@ -5,11 +5,12 @@ import { z } from "zod"
  * The role of the target for this mechanic, such as "player", "defendingFleet" or "planet".
  *
  * The role is how the mechanic talks about a target within the mechanic.
- * A {@link MechanicTargetDefinition.actionTargetTag} is a reference to the target id on the action, which might have another name / meaning in the context of the action.
+ * A {@link MechanicTargetDefinition.actionTargetTag} refers to the tag of an Action Definition target slot.
+ * The Action Submission stores the selected target id under that tag.
  *
  * For example, an action might say "fleet 1 gains 1 strength and fleet 2 gains 2 strength"
  *
- * The action will have 2 target tags: "fleet 1" and "fleet 2"
+ * The Action Definition will have 2 target slots, tagged "fleet 1" and "fleet 2".
  * The GainStrength mechanic will have 1 target role: "fleet"
  * The action will have 2 mechanics:
  * - GainStrength with actionTargetTag "fleet 1" for target role "fleet" and strength 1

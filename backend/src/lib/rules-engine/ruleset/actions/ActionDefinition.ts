@@ -43,21 +43,21 @@ export const ActionDefinitionSchema = z
   .superRefine(validateMechanicTargets)
 
 /**
- * Requires that the action definition targets contain the necessary targets for every mechanic.
+ * Requires an action definition target slot with a compatible type for every mechanic target.
  */
 function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
   for (const mechanic of [...actionDefinition.costs, ...actionDefinition.mechanics]) {
     for (const mechanicTarget of Object.values(mechanic.targets)) {
-      const actionTargetType = actionDefinition.targets[mechanicTarget.actionTargetTag]?.targetType
-      if (actionTargetType === undefined) {
+      const slotTargetType = actionDefinition.targets[mechanicTarget.actionTargetTag]?.targetType
+      if (slotTargetType === undefined) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" is missing target tag "${mechanicTarget.actionTargetTag}" required by the "${mechanic.type}" mechanic`,
+          message: `Action Definition "${actionDefinition.name}" is missing target slot tagged "${mechanicTarget.actionTargetTag}" required by the "${mechanic.type}" mechanic`,
         })
-      } else if (actionTargetType !== mechanicTarget.targetType) {
+      } else if (slotTargetType !== mechanicTarget.targetType) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" target tag "${mechanicTarget.actionTargetTag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
+          message: `Action Definition "${actionDefinition.name}" target slot tagged "${mechanicTarget.actionTargetTag}" has type "${slotTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
         })
       }
     }

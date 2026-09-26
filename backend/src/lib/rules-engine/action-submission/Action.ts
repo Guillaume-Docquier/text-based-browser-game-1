@@ -24,7 +24,7 @@ export type SubmittedAction = Readonly<{
   playerId: PlayerId
   actionDefinitionId: ActionDefinition["id"]
   /**
-   * Contains the target ids selected for the target tags required by the ActionDefinition.
+   * Contains selected target ids keyed by the tags of the action definition's target slots.
    */
   selectedTargets: SelectedTargets
 }>
