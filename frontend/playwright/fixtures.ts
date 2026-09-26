@@ -1,4 +1,5 @@
-import { expect, test as base, type ConsoleMessage } from "@playwright/test"
+import { Assert } from "@guillaume-docquier/tools-ts"
+import { expect, test as base, type Browser, type ConsoleMessage, type TestInfo } from "@playwright/test"
 import { users } from "./auth.ts"
 import type { AuthenticatedUser } from "./AuthenticatedUser.ts"
 import { PlaywrightEnvSchema, type PlaywrightEnv } from "./loadEnv.ts"
@@ -99,26 +100,37 @@ export const test = base.extend<Fixtures>({
   isCI: async ({ env }, use) => {
     await use(env.CI)
   },
-  // I would make reusable code for alice and bob, but the type shenanigans I'd have to do...
-  alice: async ({ browser }, use) => {
-    const context = await browser.newContext({ storageState: users.alice.authFilePath })
-    const page = await context.newPage()
-    const user = users.alice
-
-    await use({ ...user, page })
-
-    await context.close()
+  alice: async ({ browser }, use, testInfo) => {
+    await useAuthenticatedUser(browser, users.alice, use, testInfo)
   },
-  bob: async ({ browser }, use) => {
-    const context = await browser.newContext({ storageState: users.bob.authFilePath })
-    const page = await context.newPage()
-    const user = users.bob
-
-    await use({ ...user, page })
-
-    await context.close()
+  bob: async ({ browser }, use, testInfo) => {
+    await useAuthenticatedUser(browser, users.bob, use, testInfo)
   },
 })
+
+async function useAuthenticatedUser(
+  browser: Browser,
+  user: (typeof users)[keyof typeof users],
+  use: (user: AuthenticatedUser) => Promise<void>,
+  testInfo: TestInfo,
+): Promise<void> {
+  const context = await browser.newContext({
+    storageState: user.authFilePath,
+    recordVideo: { dir: testInfo.outputPath("videos") },
+  })
+  const page = await context.newPage()
+
+  await use({ alias: user.alias, email: user.email, page })
+
+  await context.close()
+
+  // Playwright doesn't automatically record videos for manually created contexts, we have to do it ourselves.
+  const video = page.video()
+  Assert.isDefined(video)
+  testInfo.status === testInfo.expectedStatus
+    ? await video.delete()
+    : await testInfo.attach(user.alias, { path: await video.path(), contentType: "video/webm" })
+}
 
 function isAllowedConsoleWarning(message: string): boolean {
   return allowedConsoleWarnings.some((allowedWarning) => allowedWarning.test(message))
