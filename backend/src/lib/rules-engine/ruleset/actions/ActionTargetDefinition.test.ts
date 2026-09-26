@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { ActionTargetDefinitionSchema } from "#lib/rules-engine/ruleset-model/actions/ActionTargetDefinition.ts"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { ActionTargetDefinitionSchema } from "#lib/rules-engine/ruleset/actions/ActionTargetDefinition.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 
 describe("ActionTargetDefinitionSchema", () => {
   it.each([TargetType.FLEET, TargetType.PLANET])("should accept an ownership constraint for %s targets", (targetType) => {

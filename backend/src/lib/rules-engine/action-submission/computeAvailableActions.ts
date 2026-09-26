@@ -2,7 +2,7 @@ import { branded } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { AvailableAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 
 /**
  * I don't like the shape of this, but it definitely lives under rules-engine/

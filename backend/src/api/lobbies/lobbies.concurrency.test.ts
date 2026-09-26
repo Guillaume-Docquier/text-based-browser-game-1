@@ -4,7 +4,7 @@ import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 
 const NB_CONCURRENCY_TEST_ACCOUNTS = MAX_NB_SEATS

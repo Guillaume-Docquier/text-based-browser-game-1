@@ -1,15 +1,12 @@
 import { z } from "zod"
-import {
-  type ActionTargetDefinition,
-  ActionTargetDefinitionSchema,
-} from "#lib/rules-engine/ruleset-model/actions/ActionTargetDefinition.ts"
-import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset-model/actions/ActionTier.ts"
-import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset-model/actions/ActionType.ts"
+import { type ActionTargetDefinition, ActionTargetDefinitionSchema } from "#lib/rules-engine/ruleset/actions/ActionTargetDefinition.ts"
+import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
+import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
 import {
   ResourceLossMechanicSchema,
   type ResourceLossMechanic,
-} from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
-import { MechanicSchema, type Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+} from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
+import { MechanicSchema, type Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
 
 /**
  * The definition of an Action.

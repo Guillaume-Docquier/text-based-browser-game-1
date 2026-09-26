@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { ResourceTypeSchema } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 
 export type ResourceAmountsDto = z.infer<typeof ResourceAmountsDtoSchema>
 const ResourceAmountsDtoSchema = z.object({

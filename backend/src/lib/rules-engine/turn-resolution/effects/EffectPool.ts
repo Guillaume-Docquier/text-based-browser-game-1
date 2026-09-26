@@ -1,5 +1,5 @@
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset-model/mechanics/Mechanic.ts"
+import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
 import type { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
 

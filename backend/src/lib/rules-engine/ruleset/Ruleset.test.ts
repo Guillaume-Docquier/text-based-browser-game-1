@@ -1,13 +1,13 @@
 import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
-import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceLossMechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
-import { createRulesetStub } from "#lib/rules-engine/ruleset-model/Ruleset.stub.ts"
-import { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
+import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/actions/ActionDefinition.stub.ts"
+import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
+import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceGainMechanic.ts"
+import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import { createRulesetStub } from "#lib/rules-engine/ruleset/Ruleset.stub.ts"
+import { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 
 const validActionDefinition = createActionDefinitionStub({
   id: "VALID_ACTION",

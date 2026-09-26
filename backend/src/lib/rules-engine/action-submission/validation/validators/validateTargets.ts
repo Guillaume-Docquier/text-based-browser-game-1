@@ -10,11 +10,11 @@ import type {
   TargetConstraintError,
   TargetConstraintIssue,
 } from "#lib/rules-engine/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
-import type { ActionTargetDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionTargetDefinition.ts"
-import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
-import type { TargetConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraint.ts"
+import type { ActionTargetDefinition } from "#lib/rules-engine/ruleset/actions/ActionTargetDefinition.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import type { TargetConstraint } from "#lib/rules-engine/ruleset/target-constraints/TargetConstraint.ts"
 import type {
   TargetableEntity,
   TargetableFleet,

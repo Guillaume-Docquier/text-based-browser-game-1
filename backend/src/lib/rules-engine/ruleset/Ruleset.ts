@@ -5,9 +5,9 @@ import {
   type ActionDefinition,
   ActionDefinitionIdSchema,
   ActionDefinitionSchema,
-} from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.ts"
-import type { Resources } from "#lib/rules-engine/ruleset-model/mechanics/Resources.ts"
-import { ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+} from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
+import type { Resources } from "#lib/rules-engine/ruleset/mechanics/Resources.ts"
+import { ResourceTypeSchema } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 import { safeTypedParse, typedParse } from "#lib/validation/typedParse.ts"
 
 /**

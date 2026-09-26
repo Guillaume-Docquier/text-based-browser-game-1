@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ResourceTypeSchema } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
+import { ResourceTypeSchema } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 import { PositiveNumberSchema } from "#lib/validation/PositiveNumber.ts"
 
 export type QuantityOfResource = z.infer<typeof QuantityOfResourceSchema>
