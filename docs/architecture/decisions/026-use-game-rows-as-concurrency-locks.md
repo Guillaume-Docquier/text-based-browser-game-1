@@ -10,7 +10,7 @@ Many lobby operations read game state, check rules, and then write to several ta
 
 Requests for the same game can run at the same time. A transaction alone does not stop two requests from reading the same state and both acting on it. Locking each related table separately would be hard to apply in the same way everywhere. It would also make deadlocks more likely if code locks tables in a different order.
 
-[ADR 010](./010-router-controller-repository.md) says controllers own business decisions and repositories own database access. We need a lock pattern that keeps that split.
+[ADR 010](./010-router-controller-repository.md) says controllers or use cases own business decisions and repositories own database access. We need a lock pattern that keeps that split.
 
 ## Decision
 
@@ -24,7 +24,7 @@ The TurnProcessor first promotes expired collecting turns to `AWAITING_PROCESSIN
 
 When a lobby operation also locks other rows, lock the game row first. Active gameplay operations lock the Turn row instead. Keep the transaction open until all reads and writes for the operation are done. Do not perform network calls or other slow work while holding the lock.
 
-Controller and repository code should use a `getForOperation` and `operation` method pair when the controller needs to make the decision. For example:
+Application and repository code should use a `getForOperation` and `operation` method pair when the controller or use case needs to make the decision. For example:
 
 - `getGameForStart` and `startGame`
 - `getLobbyForJoin` and `joinLobby`
@@ -36,12 +36,12 @@ The `getForOperation` method:
 
 - receives the transaction;
 - locks the owning game or Turn row;
-- reads the state needed by the controller;
+- reads the state needed by the controller or use case;
 - returns a branded model such as `GameForStart` or `LobbyForJoin`.
 
-The controller checks the rules and decides what to store. It then calls the paired repository method with a model that includes the branded value and passes the same transaction.
+The controller or use case checks the rules and decides what to store. It then calls the paired repository method with a model that includes the branded value and passes the same transaction.
 
-The paired repository method only writes the decision. It does not repeat business rules that belong in the controller.
+The paired repository method only writes the decision. It does not repeat business rules that belong in the controller or use case.
 
 The branded model shows that the locking read happened. TypeScript cannot prove that both calls use the same transaction. The caller must keep this rule.
 
@@ -53,7 +53,7 @@ Lobby operations on the same game run one at a time while they hold the game-row
 
 The lock rule is easy to find and does not depend on which child tables an operation uses. New lobby operations have one clear row to lock first, and active gameplay operations have one current-turn row to lock first.
 
-Controllers keep the business rules. Repositories keep the SQL and lock details. The branded models make the read and write pair clear in method signatures.
+Controllers and use cases keep the business rules. Repositories keep the SQL and lock details. The branded models make the read and write pair clear in method signatures.
 
 This pattern adds transaction plumbing and operation-specific models. The type system cannot enforce use of the same transaction.
 
