@@ -3,7 +3,7 @@ packages:
   - frontend
 
 catalog:
-  "@guillaume-docquier/tools-ts": ^8.4.0
+  "@guillaume-docquier/tools-ts": ^8.5.0
   "typescript": ~7.0.2
 
 minimumReleaseAgeStrict: true
@@ -22,6 +22,7 @@ allowBuilds:
   msw: true
   protobufjs: false
   ssh2: false
+  unrs-resolver: false
   utf-8-validate: true
 
 peerDependencyRules:

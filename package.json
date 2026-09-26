@@ -8,7 +8,7 @@
     "btc": "pnpm --filter backend test --project concurrency",
     "bti": "pnpm --filter backend test --project integration",
     "btu": "pnpm --filter backend test --project unit",
-    "checks": "pnpm lint:fix && pnpm format:fix && pnpm -r checks",
+    "checks": "pnpm lint:fix && pnpm format:fix && pnpm typecheck && pnpm -r checks",
     "db:clean": "docker compose -f infra/docker-compose.yaml down --volumes && docker compose -f infra/docker-compose.yaml up --wait db && pnpm --filter backend db:migrate && pnpm --filter backend db:seed",
     "db:nuke": "rm -rf backend/drizzle && pnpm --filter backend db:generate --name init && pnpm db:clean",
     "format": "oxfmt --check",
@@ -20,17 +20,22 @@
     "map-gen:all": "pnpm map-gen galaxy cluster --grid --seed 1234 && pnpm map-gen galaxy spiral --grid --seed 1234 && pnpm map-gen spiral --seed 1234 && pnpm map-gen cluster --seed 1234",
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
+    "typecheck": "tsc -p tsconfig.json",
     "wts": "pnpm ci && cp ../text-based-browser-game-1/backend/.env backend/.env && cp ../text-based-browser-game-1/frontend/.env frontend/.env"
   },
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.10",
     "@guillaume-docquier/oxlint": "^1.8.3",
     "@guillaume-docquier/show-me": "^1.7.1",
+    "@types/node": "^26.6.2",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-boundaries": "^7.2.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
     "oxfmt": ">=0.68.0",
     "oxlint": "^1.83.0",
-    "oxlint-tsgolint": "^7.0.2002"
+    "oxlint-tsgolint": "^7.0.2002",
+    "typescript": "catalog:"
   },
   "lint-staged": {
     "*.{md,json,yml,yaml,css,html}": "oxfmt --no-error-on-unmatched-pattern",
@@ -42,7 +47,7 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "12.5.1",
+      "version": "12.6.0",
       "onFail": "download"
     },
     "runtime": {
