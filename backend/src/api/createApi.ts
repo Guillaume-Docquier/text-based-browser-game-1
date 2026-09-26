@@ -10,6 +10,7 @@ import type { AuthService } from "#api/accounts/auth.service.ts"
 import { GameplayController } from "#api/gameplay/gameplay.controller.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
+import { UpdateActionSubmissionUseCase } from "#api/gameplay/UpdateActionSubmissionUseCase.ts"
 import { createHealthRouter } from "#api/health/health.router.ts"
 import { ListingsController } from "#api/listings/listings.controller.ts"
 import type { ListingsRepository } from "#api/listings/listings.repository.ts"
@@ -35,7 +36,7 @@ export async function createApi({
 }: {
   /**
    * Creates a database transaction.
-   * Only controllers should use `createTransaction`.
+   * Only controllers and use cases should use `createTransaction`.
    */
   createTransaction: CreateTransaction
   authService: AuthService
@@ -47,12 +48,15 @@ export async function createApi({
   gameplayRepository: GameplayRepository
   rulesetsRepository: RulesetsRepository
 }): Promise<Express> {
-  const controllerServices = { ...services, createTransaction }
+  const applicationServices = { ...services, createTransaction }
   const controllers = {
-    gameplayController: new GameplayController(controllerServices),
-    listingsController: new ListingsController(controllerServices),
-    lobbiesController: new LobbiesController(controllerServices),
-    accountsController: new AccountsController(controllerServices),
+    gameplayController: new GameplayController(applicationServices),
+    listingsController: new ListingsController(applicationServices),
+    lobbiesController: new LobbiesController(applicationServices),
+    accountsController: new AccountsController(applicationServices),
+  }
+  const useCases = {
+    updateActionSubmissionUseCase: new UpdateActionSubmissionUseCase(applicationServices),
   }
 
   const app = express()
@@ -63,7 +67,7 @@ export async function createApi({
   app.use(
     "/trpc",
     createExpressMiddleware({
-      router: createTrpcRouter({ ...controllers, ...services }),
+      router: createTrpcRouter({ ...controllers, ...useCases, ...services }),
       createContext: createTrpcContext,
       onError: createErrorHandler({ logger: services.logger }),
     }),
@@ -79,6 +83,7 @@ export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 function createTrpcRouter(services: {
   accountsController: AccountsController
   gameplayController: GameplayController
+  updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
   listingsController: ListingsController
   lobbiesController: LobbiesController
   logger: Logger

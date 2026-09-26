@@ -8,7 +8,7 @@ The API uses Express, tRPC, Drizzle, Postgres, Clerk auth, Vitest, and PGlite fo
 
 | Directory             | Description                                                             |
 | --------------------- | ----------------------------------------------------------------------- |
-| `src/api`             | API vertical slices organized as router-controller-repository.          |
+| `src/api`             | API vertical slices organized as router-controller/useCase-repository.  |
 | `src/lib`             | Code shared by the API and Turn Processing, including database schemas. |
 | `src/turn-processing` | Turn Processing worker and orchestration hosted by the API process.     |
 

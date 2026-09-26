@@ -3,23 +3,20 @@ import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
 import { GameIdSchema } from "#lib/db/games/GameId.ts"
-import {
-  PlayerViewDtoSchema,
-  type GameplayController,
-  UpdateActionSubmissionDtoSchema,
-  StartedGameDtoSchema,
-  UpdateReadinessDtoSchema,
-} from "./gameplay.controller.ts"
+import { PlayerViewDtoSchema, type GameplayController, StartedGameDtoSchema, UpdateReadinessDtoSchema } from "./gameplay.controller.ts"
+import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./UpdateActionSubmissionUseCase.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGameplayRouter({
   trpc,
   gameplayController,
+  updateActionSubmissionUseCase,
   ...others
 }: {
   trpc: Trpc
   logger: Logger
   gameplayController: GameplayController
+  updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
 }) {
   const logger = others.logger.child({ scope: "gameplay-router" })
   const inGameProcedure = trpc.privateProcedure
@@ -95,11 +92,11 @@ export function createGameplayRouter({
     updateActionSubmission: inGameProcedure
       .input(UpdateActionSubmissionDtoSchema.omit({ playerId: true }))
       .mutation(async ({ input, ctx: { playerId } }) => {
-        const setCurrentActionResult = await gameplayController.updateActionSubmission({ ...input, playerId })
-        if (Result.isFailure(setCurrentActionResult)) {
+        const updateActionSubmissionResult = await updateActionSubmissionUseCase.execute({ ...input, playerId })
+        if (Result.isFailure(updateActionSubmissionResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: setCurrentActionResult.error,
+            message: updateActionSubmissionResult.error,
           })
         }
       }),

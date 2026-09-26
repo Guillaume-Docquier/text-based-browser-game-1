@@ -1,11 +1,10 @@
-import { indexBy, Assert, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
+import { Assert, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { createGalaxy } from "#api/gameplay/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import { PlanetCoordinatesSchema } from "#api/gameplay/galaxy-creation/PlanetCoordinates.ts"
 import { StarCoordinatesSchema } from "#api/gameplay/galaxy-creation/StarCoordinates.ts"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
-import { SubmittedActionTargetsDtoSchema } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import type { Clock } from "#lib/Clock.ts"
 import { type AccountId, AccountIdSchema } from "#lib/db/accounts/AccountId.ts"
 import { ActionIdSchema } from "#lib/db/actions/ActionId.ts"
@@ -21,20 +20,16 @@ import { type PlayerId, PlayerIdSchema } from "#lib/db/players/PlayerId.ts"
 import { StarIdSchema } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { computeAvailableActions } from "#lib/rules-engine/action-submission/computeAvailableActions.ts"
 import { getUncommittedResources } from "#lib/rules-engine/action-submission/getUncommittedResources.ts"
-import { validateSubmittedActions } from "#lib/rules-engine/action-submission/validation/validateSubmittedActions.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
 import { ActionDefinitionIdSchema } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
 import { SelectedTargetsSchema } from "#lib/rules-engine/ruleset/actions/SelectedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 import { RulesetSchema } from "#lib/rules-engine/ruleset/Ruleset.ts"
-import { safeResolveTargetId } from "#lib/rules-engine/turn-resolution/effects/resolveTargetId.ts"
-import type { Fleet, Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 import { UInt32 } from "#lib/UInt32.ts"
+import { createTurnState } from "./createTurnState.ts"
 import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
 
 export class GameplayController {
@@ -134,107 +129,6 @@ export class GameplayController {
     }
 
     return Result.Success(toPlayerViewDto(playerViewResult.value))
-  }
-
-  /**
-   * Long term we'll probably want a batch submission
-   */
-  public async updateActionSubmission({
-    gameId,
-    playerId,
-    turn,
-    submittedActionTargets,
-  }: UpdateActionSubmissionDto): Promise<Result<void, string>> {
-    const setActionResult = await this.createTransaction(async (tx) => {
-      const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
-
-      const actionsById = new Map(Array.from(context.actions, (action) => [action.id, action]))
-      const action = actionsById.get(submittedActionTargets.actionId)
-      if (action === undefined) {
-        throw new TransactionRollbackError("Invalid action id")
-      }
-
-      if (submittedActionTargets.selectedTargets === null) {
-        await this.gameplayRepository.updateActionSubmissions(
-          { context, actions: [{ id: submittedActionTargets.actionId, selectedTargets: null }] },
-          tx,
-        )
-        return
-      }
-
-      const submittedAction = {
-        id: submittedActionTargets.actionId,
-        actionDefinitionId: action.actionDefinitionId,
-        playerId,
-        selectedTargets: submittedActionTargets.selectedTargets,
-      } satisfies SubmittedAction
-
-      const actionDefinition = context.ruleset.actionDefinitions[submittedAction.actionDefinitionId]
-      if (actionDefinition === undefined) {
-        throw new TransactionRollbackError("No action definition found", {
-          cause: { actionDefinitionId: submittedAction.actionDefinitionId },
-        })
-      }
-
-      const planetIds = [
-        ...new Set(
-          Object.entries(actionDefinition.targets)
-            .map(([tag, targetDefinition]) => {
-              if (targetDefinition.targetType !== TargetType.PLANET) {
-                return null
-              }
-
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, targetType: targetDefinition.targetType })
-            })
-            .filter((planetId) => planetId !== null),
-        ),
-      ]
-      const planets = await this.gameplayRepository.getPlanetsByIds({ gameId: context.gameId, planetIds }, tx)
-
-      const fleetIds = [
-        ...new Set(
-          Object.entries(actionDefinition.targets)
-            .map(([tag, targetDefinition]) => {
-              if (targetDefinition.targetType !== TargetType.FLEET) {
-                return null
-              }
-
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, targetType: targetDefinition.targetType })
-            })
-            .filter((fleetId) => fleetId !== null),
-        ),
-      ]
-      const fleets = await this.gameplayRepository.getFleetsByIds({ gameId: context.gameId, fleetIds }, tx)
-
-      const turnState = createTurnState({
-        gameId: context.gameId,
-        turn,
-        playerId,
-        resources: context.resources,
-        submittedActions: [submittedAction],
-        planets,
-        fleets,
-      })
-      const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
-      if (issues.length > 0) {
-        throw new TransactionRollbackError(issues.map(({ issue }) => issue).join("\n"))
-      }
-
-      await this.gameplayRepository.updateActionSubmissions({ context, actions: [submittedAction] }, tx)
-    })
-
-    if (Result.isFailure(setActionResult)) {
-      this.logger.error("Failed to set current action", {
-        gameId,
-        turn,
-        playerId,
-        actionId: submittedActionTargets.actionId,
-        error: setActionResult.error,
-      })
-      return Result.Failure(setActionResult.error.message)
-    }
-
-    return Result.Success(undefined)
   }
 
   public async updateReadiness({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, string>> {
@@ -339,39 +233,6 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
   })
 }
 
-function createTurnState({
-  gameId,
-  turn,
-  playerId,
-  resources,
-  submittedActions,
-  planets,
-  fleets,
-}: {
-  gameId: GameId
-  turn: number
-  playerId: PlayerId
-  resources: Resources
-  submittedActions: readonly SubmittedAction[]
-  planets: Planet[]
-  fleets: Fleet[]
-}): TurnState {
-  return {
-    gameId,
-    turn,
-    submittedActions,
-    players: {
-      [playerId]: {
-        id: playerId,
-        resources,
-      },
-    },
-    planets: indexBy("id", planets),
-    fleets: indexBy("id", fleets),
-    winnerPlayerId: undefined,
-  }
-}
-
 export type StartGameDto = z.infer<typeof StartGameDtoSchema>
 export const StartGameDtoSchema = z.object({
   gameId: z.coerce.number().pipe(GameIdSchema),
@@ -450,14 +311,6 @@ export const PlayerViewDtoSchema = z.object({
   resources: ResourcesDtoSchema,
   ruleset: RulesetSchema,
   actions: z.array(ActionDtoSchema),
-})
-
-export type UpdateActionSubmissionDto = z.infer<typeof UpdateActionSubmissionDtoSchema>
-export const UpdateActionSubmissionDtoSchema = z.object({
-  gameId: z.coerce.number().pipe(GameIdSchema),
-  playerId: PlayerIdSchema,
-  turn: z.coerce.number(),
-  submittedActionTargets: SubmittedActionTargetsDtoSchema,
 })
 
 export type UpdateReadinessDto = z.infer<typeof UpdateReadinessDtoSchema>
