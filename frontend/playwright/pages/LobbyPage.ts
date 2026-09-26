@@ -32,6 +32,7 @@ export class LobbyPage extends WebsitePage {
 
   public async startGame(): Promise<GalaxyPage> {
     await this.startGameButton.click()
+    await this.page.waitForURL(GalaxyPage.urlPattern)
     return new GalaxyPage(this.page)
   }
 
