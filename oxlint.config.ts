@@ -27,6 +27,27 @@ export default defineConfig({
       },
     },
   },
+  rules: {
+    "boundaries/dependencies": [
+      "error",
+      {
+        default: "allow",
+        checkAllOrigins: false,
+        checkUnknownLocals: true,
+        checkInternals: true,
+        policies: [
+          {
+            from: { element: { type: "ruleset-model" } },
+            disallow: { to: { module: { origin: "local" } } },
+          },
+          {
+            from: { element: { type: "ruleset-model" } },
+            allow: { to: { element: { type: ["ruleset-model", "validation", "db"] } } },
+          },
+        ],
+      },
+    ],
+  },
   overrides: [
     {
       files: ["backend/**/*"],
@@ -49,24 +70,6 @@ export default defineConfig({
       files: ["backend/scripts/**/*"],
       rules: {
         "no-console": "off",
-      },
-    },
-    {
-      files: ["backend/src/lib/rules-engine/ruleset-model/**/*.ts"],
-      rules: {
-        "boundaries/dependencies": [
-          "error",
-          {
-            default: "disallow",
-            checkAllOrigins: true,
-            checkUnknownLocals: true,
-            checkInternals: true,
-            policies: [
-              { allow: { to: { module: { origin: "external" } } } },
-              { allow: { to: { element: { type: ["ruleset-model", "validation", "db"] } } } },
-            ],
-          },
-        ],
       },
     },
     {

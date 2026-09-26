@@ -190,8 +190,8 @@ settings:
 catalogs:
   default:
     '@guillaume-docquier/tools-ts':
-      specifier: ^8.5.0
-      version: 8.5.0
+      specifier: ^8.6.1
+      version: 8.6.1
     typescript:
       specifier: ~7.0.2
       version: 7.0.2
@@ -247,7 +247,7 @@ importers:
         version: 2.1.69(express@5.2.1(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 8.5.0
+        version: 8.6.1
       '@trpc/server':
         specifier: ^11.18.0
         version: 11.18.0(typescript@7.0.2)
@@ -335,7 +335,7 @@ importers:
         version: 5.3.0
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 8.5.0
+        version: 8.6.1
       '@tanstack/react-query':
         specifier: ^5.103.1
         version: 5.103.1(react@19.3.0)
@@ -1353,8 +1353,8 @@ packages:
   '@guillaume-docquier/tools-ts@6.7.0':
     resolution: {integrity: sha512-fXuAUfNI6Eo9Ea+UGA1poW+LiluCTB7FIo8ZfHwsRWv2PEA+bJnXG8hMALBlrg9tS/k6pBarhk7/9Lswu3IK4g==}
 
-  '@guillaume-docquier/tools-ts@8.5.0':
-    resolution: {integrity: sha512-QtmnZmI14OebT7gZhQe0Lu+8Zt7EKYt3SztEufHdqQfSZXp7XlPf/xZpz3SNLE7C/ggoK4HGeo3eaI7WpIsQwA==}
+  '@guillaume-docquier/tools-ts@8.6.1':
+    resolution: {integrity: sha512-4SDVATyNEm8CSEc1zrVYwTGQ2HDvh6n/wUz7ahXNHudCtxvbsKH6mlaWekFUmTBnaFnBSo4P2Nu0VzOIEaAOsQ==}
 
   '@hono/node-server@2.1.1':
     resolution: {integrity: sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg==}
@@ -9063,7 +9063,7 @@ snapshots:
       '@logtape/logtape': 2.3.2
       '@logtape/redaction': 2.3.2(@logtape/logtape@2.3.2)
 
-  '@guillaume-docquier/tools-ts@8.5.0':
+  '@guillaume-docquier/tools-ts@8.6.1':
     dependencies:
       '@logtape/logtape': 2.3.7
       '@logtape/redaction': 2.3.7(@logtape/logtape@2.3.7)
