@@ -4,7 +4,7 @@ import { dark } from "@clerk/ui/themes"
 import { Logger, createConsoleLogSink, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
-import { type ReactElement, StrictMode, useEffect, useState } from "react"
+import { type ReactElement, StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { Onboarding } from "@/features/auth/Onboarding.tsx"
 import { createBackendApiClient } from "@/lib/api/BackendApiClient.ts"
@@ -25,16 +25,6 @@ const logger = await Logger.configure({
 
 const env = parseEnv({ logger })
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // GET game/bad_id retries, but it'll never work. Why retry?
-      retry: false,
-    },
-  },
-})
-const backendApiClient = createBackendApiClient({ baseUrl: env.VITE_BACKEND_BASE_URL, queryClient })
-
 // oxlint-disable-next-line typescript/no-non-null-assertion -- root will always exist
 const rootElement = document.getElementById("root")!
 
@@ -49,11 +39,7 @@ if (rootElement.innerHTML === "") {
             theme: dark,
           }}
         >
-          <QueryClientProvider client={queryClient}>
-            <BackendApiClientProvider backendApiClient={backendApiClient}>
-              <App />
-            </BackendApiClientProvider>
-          </QueryClientProvider>
+          <App />
         </ClerkProvider>
       </LoggerProvider>
     </StrictMode>,
@@ -62,24 +48,37 @@ if (rootElement.innerHTML === "") {
 
 function App(): ReactElement {
   const auth = useAuth()
-  const [router] = useState(() => createAppRouter({ auth }))
-
-  useEffect(() => {
-    if (auth.isLoaded) {
-      queryClient.clear()
-      void router.invalidate()
-    }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- We need the extra deps to ensure proper invalidations on auth changes
-  }, [auth.isLoaded, auth.isSignedIn, auth.userId, router])
-
   if (!auth.isLoaded) {
     return <></>
   }
 
+  // Mount a fresh cache and router when the signed-in account changes.
+  return <AuthSession key={auth.userId ?? "signed-out"} auth={auth} />
+}
+
+function AuthSession({ auth }: RouterContext): ReactElement {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            // GET game/bad_id retries, but it'll never work. Why retry?
+            retry: false,
+          },
+        },
+      }),
+  )
+  const [backendApiClient] = useState(() => createBackendApiClient({ baseUrl: env.VITE_BACKEND_BASE_URL, queryClient }))
+  const [router] = useState(() => createAppRouter({ auth }))
+
   return (
-    <Onboarding>
-      <RouterProvider router={router} context={{ auth }} />
-    </Onboarding>
+    <QueryClientProvider client={queryClient}>
+      <BackendApiClientProvider backendApiClient={backendApiClient}>
+        <Onboarding>
+          <RouterProvider router={router} context={{ auth }} />
+        </Onboarding>
+      </BackendApiClientProvider>
+    </QueryClientProvider>
   )
 }
 
