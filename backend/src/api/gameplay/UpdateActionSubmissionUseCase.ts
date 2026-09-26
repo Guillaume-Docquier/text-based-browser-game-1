@@ -1,4 +1,4 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { SubmittedActionTargetsDtoSchema } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -74,7 +74,11 @@ export class UpdateActionSubmissionUseCase {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { actionTargetTag, targetType: targetDefinition.targetType })
+              // Object.entries widens TargetTag to string
+              return safeResolveTargetId(submittedAction.selectedTargets, {
+                actionTargetTag: branded(actionTargetTag),
+                targetType: targetDefinition.targetType,
+              })
             })
             .filter((planetId) => planetId !== null),
         ),
@@ -89,7 +93,11 @@ export class UpdateActionSubmissionUseCase {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { actionTargetTag, targetType: targetDefinition.targetType })
+              // Object.entries widens TargetTag to string
+              return safeResolveTargetId(submittedAction.selectedTargets, {
+                actionTargetTag: branded(actionTargetTag),
+                targetType: targetDefinition.targetType,
+              })
             })
             .filter((fleetId) => fleetId !== null),
         ),

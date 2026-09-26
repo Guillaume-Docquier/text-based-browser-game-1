@@ -1,4 +1,4 @@
-import { AssertionError } from "@guillaume-docquier/tools-ts"
+import { AssertionError, branded } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 import { resolveTargetId, safeResolveTargetId } from "#lib/rules-engine/turn-resolution/effects/resolveTargetId.ts"
@@ -10,7 +10,7 @@ describe("resolveTargetId", () => {
       const selectedTargets = {}
 
       // Act
-      const targetId = safeResolveTargetId(selectedTargets, { actionTargetTag: "planet", targetType: TargetType.PLANET })
+      const targetId = safeResolveTargetId(selectedTargets, { actionTargetTag: branded("planet"), targetType: TargetType.PLANET })
 
       // Assert
       expect(targetId).toBeNull()
@@ -21,8 +21,8 @@ describe("resolveTargetId", () => {
       const selectedTargets = { planet: "planet-id" }
 
       // Act
-      const safeTargetId = safeResolveTargetId(selectedTargets, { actionTargetTag: "planet", targetType: TargetType.PLANET })
-      const targetId = resolveTargetId(selectedTargets, { actionTargetTag: "planet", targetType: TargetType.PLANET })
+      const safeTargetId = safeResolveTargetId(selectedTargets, { actionTargetTag: branded("planet"), targetType: TargetType.PLANET })
+      const targetId = resolveTargetId(selectedTargets, { actionTargetTag: branded("planet"), targetType: TargetType.PLANET })
 
       // Assert
       expect(safeTargetId).toBe("planet-id")
@@ -34,7 +34,7 @@ describe("resolveTargetId", () => {
       const selectedTargets = { fleet: "fleet-id" }
 
       // Act
-      const targetId = safeResolveTargetId(selectedTargets, { actionTargetTag: "fleet", targetType: TargetType.FLEET })
+      const targetId = safeResolveTargetId(selectedTargets, { actionTargetTag: branded("fleet"), targetType: TargetType.FLEET })
 
       // Assert
       expect(targetId).toBe("fleet-id")
@@ -47,7 +47,9 @@ describe("resolveTargetId", () => {
       const selectedTargets = {}
 
       // Act & Assert
-      expect(() => resolveTargetId(selectedTargets, { actionTargetTag: "planet", targetType: TargetType.PLANET })).toThrow(AssertionError)
+      expect(() => resolveTargetId(selectedTargets, { actionTargetTag: branded("planet"), targetType: TargetType.PLANET })).toThrow(
+        AssertionError,
+      )
     })
   })
 })

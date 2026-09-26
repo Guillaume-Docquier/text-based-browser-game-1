@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { type TargetTag, TargetTagSchema } from "#lib/rules-engine/ruleset/actions/TargetTag.ts"
 import type { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 
 export type MechanicTargetDefinition<TTargetType extends TargetType = TargetType> = {
@@ -18,7 +19,7 @@ export type MechanicTargetDefinition<TTargetType extends TargetType = TargetType
    *
    * In other words, the role declares what the mechanic needs, the tag declares where on the action that target id will be.
    */
-  actionTargetTag: string
+  actionTargetTag: TargetTag
   /**
    * The type that this target must be.
    */
@@ -29,7 +30,7 @@ export function MechanicTargetDefinitionSchema<TTargetType extends TargetType>(
   targetTypeSchema: z.ZodType<TTargetType>,
 ): z.ZodType<MechanicTargetDefinition<TTargetType>> {
   return z.object({
-    actionTargetTag: z.string(),
+    actionTargetTag: TargetTagSchema,
     targetType: targetTypeSchema,
   })
 }
