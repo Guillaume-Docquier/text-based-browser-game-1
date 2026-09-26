@@ -21,12 +21,11 @@ for (const { alias, email, authFilePath } of Object.values(users)) {
       // clerk.signIn only sets the cookies, so we need to reload for the app to properly render the onboarding
       // waiting for onboardingStatusResponse is not needed on the CI, because we expect to never be onboarded, and we'll wait during aliasOnboardingPage.chooseAlias
       // But it is needed when running locally because the user might already be onboarded since the db could be dirty
-      const [onboardingResponseJson] = await Promise.all([
-        (await page.waitForResponse((response) => response.url().includes("accounts.isOnboarded"))).json(),
-        page.reload(),
-      ])
+      const waitForOnboardingResponsePromise = page.waitForResponse((response) => response.url().includes("accounts.isOnboarded"))
+      await page.reload()
+      const waitForOnboardingResponse = await waitForOnboardingResponsePromise
 
-      return onboardingResponseJson
+      return await waitForOnboardingResponse.json()
     })
 
     await setup.step("complete onboarding", async () => {
