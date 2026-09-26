@@ -18,4 +18,4 @@ import { z } from "zod"
  * In other words, the role declares what the mechanic needs, the tag declares where on the action that target id will be.
  */
 export type TargetRole = Branded<"TargetRole", string>
-export const TargetRoleSchema = z.string().transform(branded<TargetRole>)
+export const TargetRoleSchema = z.string().transform(branded<TargetRole>) satisfies z.ZodType<TargetRole>
