@@ -1,6 +1,6 @@
-import path from "node:path"
 import { react, typescript, vitest } from "@guillaume-docquier/oxlint"
 import { defineConfig, type OxlintConfig } from "oxlint"
+import { Boundaries } from "./boundaries.ts"
 
 export default defineConfig({
   extends: [typescript],
@@ -11,42 +11,10 @@ export default defineConfig({
   ignorePatterns: ["*.gen.*"],
   jsPlugins: ["eslint-plugin-boundaries"],
   settings: {
-    "boundaries/root-path": import.meta.dirname,
-    "boundaries/elements": [
-      { type: "ruleset-model", pattern: "backend/src/lib/rules-engine/ruleset-model", partialMatch: false },
-      { type: "validation", pattern: "backend/src/lib/validation", partialMatch: false },
-      { type: "db", pattern: "backend/src/lib/db", partialMatch: false },
-    ],
-    "boundaries/flag-as-external": {
-      unresolvableAlias: false,
-      inNodeModules: true,
-    },
-    "import/resolver": {
-      typescript: {
-        project: path.resolve(import.meta.dirname, "backend/tsconfig.json"),
-      },
-    },
+    ...Boundaries.settings,
   },
   rules: {
-    "boundaries/dependencies": [
-      "error",
-      {
-        default: "allow",
-        checkAllOrigins: false,
-        checkUnknownLocals: true,
-        checkInternals: true,
-        policies: [
-          {
-            from: { element: { type: "ruleset-model" } },
-            disallow: { to: { module: { origin: "local" } } },
-          },
-          {
-            from: { element: { type: "ruleset-model" } },
-            allow: { to: { element: { type: ["ruleset-model", "validation", "db"] } } },
-          },
-        ],
-      },
-    ],
+    "boundaries/dependencies": ["error", Boundaries.dependencies],
   },
   overrides: [
     {
