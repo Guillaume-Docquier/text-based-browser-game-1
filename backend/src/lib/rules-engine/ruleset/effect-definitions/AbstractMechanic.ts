@@ -1,5 +1,5 @@
-import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset/mechanics/MechanicTargetDefinition.ts"
-import type { TargetRole } from "#lib/rules-engine/ruleset/mechanics/TargetRole.ts"
+import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset/effect-definitions/MechanicTargetDefinition.ts"
+import type { TargetRole } from "#lib/rules-engine/ruleset/effect-definitions/TargetRole.ts"
 
 export type AbstractMechanic = Readonly<{
   /**

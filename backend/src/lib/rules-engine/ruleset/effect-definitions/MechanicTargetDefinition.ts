@@ -1,6 +1,6 @@
 import { z } from "zod"
-import { type TargetTag, TargetTagSchema } from "#lib/rules-engine/ruleset/actions/TargetTag.ts"
-import type { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import { type TargetTag, TargetTagSchema } from "#lib/rules-engine/ruleset/action-definitions/TargetTag.ts"
+import type { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 
 export type MechanicTargetDefinition<TTargetType extends TargetType = TargetType> = {
   /**

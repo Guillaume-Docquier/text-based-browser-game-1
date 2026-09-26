@@ -1,11 +1,11 @@
-import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
+import { indexBy, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/actions/ActionDefinition.stub.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
-import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceGainMechanic.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.stub.ts"
+import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildMechanic.ts"
+import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainMechanic.ts"
+import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossMechanic.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { createRulesetStub } from "#lib/rules-engine/ruleset/Ruleset.stub.ts"
 import { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 
@@ -111,14 +111,14 @@ describe("Ruleset.safeCreate", () => {
               type: FleetBuildMechanic.type,
               targets: {
                 planet: {
-                  actionTargetTag: branded("planet"),
+                  actionTargetTag: "planet",
                   targetType: TargetType.PLANET,
                 },
               },
               parameters: {
                 // intentionally using `branded` and hand rolled json instead of the mechanic factory because the factory validates the payload
                 // right now it makes no sense, but later on we'll parse raw json too
-                strength: branded(strength),
+                strength,
               },
             },
           ],

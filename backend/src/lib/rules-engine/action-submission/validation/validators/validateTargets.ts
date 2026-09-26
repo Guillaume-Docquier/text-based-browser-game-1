@@ -10,13 +10,13 @@ import type {
   TargetConstraintError,
   TargetConstraintIssue,
 } from "#lib/rules-engine/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
-import type { TargetTag } from "#lib/rules-engine/ruleset/actions/TargetTag.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import type { TargetTag } from "#lib/rules-engine/ruleset/action-definitions/TargetTag.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
-import type { TargetConstraint } from "#lib/rules-engine/ruleset/target-constraints/TargetConstraint.ts"
-import type { TargetDefinition } from "#lib/rules-engine/ruleset/target-constraints/TargetDefinition.ts"
-import type { TargetId } from "#lib/rules-engine/ruleset/target-constraints/TargetId.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import type { TargetConstraint } from "#lib/rules-engine/ruleset/target-definitions/TargetConstraint.ts"
+import type { TargetDefinition } from "#lib/rules-engine/ruleset/target-definitions/TargetDefinition.ts"
+import type { TargetId } from "#lib/rules-engine/ruleset/target-definitions/TargetId.ts"
 import type {
   TargetableEntity,
   TargetableFleet,

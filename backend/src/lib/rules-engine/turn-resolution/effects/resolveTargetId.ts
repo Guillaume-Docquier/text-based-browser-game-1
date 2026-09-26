@@ -3,8 +3,8 @@ import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
-import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset/mechanics/MechanicTargetDefinition.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset/effect-definitions/MechanicTargetDefinition.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 
 type TargetId<TTargetType extends TargetType> = {
   [TargetType.FLEET]: FleetId

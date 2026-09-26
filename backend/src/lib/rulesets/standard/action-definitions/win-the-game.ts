@@ -1,9 +1,9 @@
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
-import { ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
-import { ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
-import { VictoryMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/VictoryMechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
+import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
+import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossMechanic.ts"
+import { VictoryMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/VictoryMechanic.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 
 export const WinTheGame: ActionDefinition = {
   id: "WIN_THE_GAME",

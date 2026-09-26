@@ -1,5 +1,5 @@
 import type { UnbrandedProperties } from "@guillaume-docquier/tools-ts"
-import type { AbstractMechanic } from "#lib/rules-engine/ruleset/mechanics/AbstractMechanic.ts"
+import type { AbstractMechanic } from "#lib/rules-engine/ruleset/effect-definitions/AbstractMechanic.ts"
 
 /**
  * Helper type for Mechanic factories

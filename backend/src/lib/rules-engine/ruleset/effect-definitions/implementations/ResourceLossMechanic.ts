@@ -1,7 +1,7 @@
 import { z } from "zod"
-import type { AbstractMechanic, NoTargets } from "#lib/rules-engine/ruleset/mechanics/AbstractMechanic.ts"
-import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset/mechanics/implementations/MechanicFactoryParameters.ts"
-import { QuantityOfResourceSchema, type QuantityOfResource } from "#lib/rules-engine/ruleset/mechanics/QuantityOfResource.ts"
+import type { AbstractMechanic, NoTargets } from "#lib/rules-engine/ruleset/effect-definitions/AbstractMechanic.ts"
+import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset/effect-definitions/implementations/MechanicFactoryParameters.ts"
+import { QuantityOfResourceSchema, type QuantityOfResource } from "#lib/rules-engine/ruleset/effect-definitions/QuantityOfResource.ts"
 import { typedParse } from "#lib/validation/typedParse.ts"
 
 export interface ResourceLossMechanic extends AbstractMechanic {

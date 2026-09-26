@@ -1,11 +1,11 @@
 import { z } from "zod"
-import type { AbstractMechanic } from "#lib/rules-engine/ruleset/mechanics/AbstractMechanic.ts"
-import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset/mechanics/implementations/MechanicFactoryParameters.ts"
+import type { AbstractMechanic } from "#lib/rules-engine/ruleset/effect-definitions/AbstractMechanic.ts"
+import type { MechanicFactoryParameters } from "#lib/rules-engine/ruleset/effect-definitions/implementations/MechanicFactoryParameters.ts"
 import {
   type MechanicTargetDefinition,
   MechanicTargetDefinitionSchema,
-} from "#lib/rules-engine/ruleset/mechanics/MechanicTargetDefinition.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+} from "#lib/rules-engine/ruleset/effect-definitions/MechanicTargetDefinition.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { type Integer, IntegerSchema } from "#lib/validation/Integer.ts"
 import { type PositiveNumber, PositiveNumberSchema } from "#lib/validation/PositiveNumber.ts"
 import { typedParse } from "#lib/validation/typedParse.ts"

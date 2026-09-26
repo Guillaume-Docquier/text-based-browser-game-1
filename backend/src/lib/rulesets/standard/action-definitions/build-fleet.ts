@@ -1,12 +1,11 @@
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
-import { ActionDefinitionTargetsSchema } from "#lib/rules-engine/ruleset/actions/ActionDefinitionTargets.ts"
-import { ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
-import { ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { type ActionDefinition, ActionDefinitionSchema } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
+import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
+import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildMechanic.ts"
+import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossMechanic.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { typedParse } from "#lib/validation/typedParse.ts"
 
 function buildFleetDirective({
@@ -22,17 +21,17 @@ function buildFleetDirective({
   metal: number
   strength: number
 }): ActionDefinition {
-  return {
+  return typedParse(ActionDefinitionSchema, {
     id,
     name: "Build Fleet",
     type: ActionType.DIRECTIVE,
     tier,
-    targets: typedParse(ActionDefinitionTargetsSchema, {
+    targets: {
       planet: {
         targetType: TargetType.PLANET,
         constraints: [OwnedBySubmittingPlayerConstraint.create()],
       },
-    }),
+    },
     costs: [
       ResourceLossMechanic.create({
         quantity: influence,
@@ -49,7 +48,7 @@ function buildFleetDirective({
         strength,
       }),
     ],
-  }
+  })
 }
 
 export const BuildFleetStandard = buildFleetDirective({

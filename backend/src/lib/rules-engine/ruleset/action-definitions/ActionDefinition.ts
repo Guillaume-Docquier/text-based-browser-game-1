@@ -1,12 +1,13 @@
 import { z } from "zod"
-import { type ActionDefinitionTargets, ActionDefinitionTargetsSchema } from "#lib/rules-engine/ruleset/actions/ActionDefinitionTargets.ts"
-import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
-import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
+import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
+import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
+import { type TargetTag, TargetTagSchema } from "#lib/rules-engine/ruleset/action-definitions/TargetTag.ts"
 import {
   ResourceLossMechanicSchema,
   type ResourceLossMechanic,
-} from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
-import { MechanicSchema, type Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
+} from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossMechanic.ts"
+import { MechanicSchema, type Mechanic } from "#lib/rules-engine/ruleset/effect-definitions/Mechanic.ts"
+import { type TargetDefinition, TargetDefinitionSchema } from "#lib/rules-engine/ruleset/target-definitions/TargetDefinition.ts"
 
 /**
  * The definition of an Action.
@@ -25,7 +26,7 @@ export type ActionDefinition = Readonly<{
   name: string
   type: ActionType
   tier: ActionTier
-  targets: Readonly<ActionDefinitionTargets>
+  targets: Readonly<Record<TargetTag, TargetDefinition>>
   costs: ResourceLossMechanic[]
   mechanics: Mechanic[]
 }>
@@ -36,11 +37,11 @@ export const ActionDefinitionSchema = z
     name: z.string(),
     type: ActionTypeSchema,
     tier: ActionTierSchema,
-    targets: ActionDefinitionTargetsSchema,
+    targets: z.record(TargetTagSchema, TargetDefinitionSchema),
     costs: z.array(ResourceLossMechanicSchema),
     mechanics: z.array(MechanicSchema),
   })
-  .superRefine(validateMechanicTargets)
+  .superRefine(validateMechanicTargets) satisfies z.ZodType<ActionDefinition>
 
 /**
  * Requires an action definition target slot with a compatible type for every mechanic target.

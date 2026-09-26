@@ -1,7 +1,7 @@
 import { z } from "zod"
-import { TargetTypeSchema, type TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
-import { TargetConstraintSchema, type TargetConstraint } from "#lib/rules-engine/ruleset/target-constraints/TargetConstraint.ts"
+import { TargetTypeSchema, type TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { TargetConstraintSchema, type TargetConstraint } from "#lib/rules-engine/ruleset/target-definitions/TargetConstraint.ts"
 
 export type TargetDefinition = Readonly<{
   targetType: TargetType
