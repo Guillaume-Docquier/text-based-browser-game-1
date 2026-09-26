@@ -10,7 +10,7 @@ describe("resolveTargetId", () => {
       const selectedTargets = {}
 
       // Act
-      const targetId = safeResolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })
+      const targetId = safeResolveTargetId(selectedTargets, { actionTargetTag: "planet", targetType: TargetType.PLANET })
 
       // Assert
       expect(targetId).toBeNull()
@@ -21,8 +21,8 @@ describe("resolveTargetId", () => {
       const selectedTargets = { planet: "planet-id" }
 
       // Act
-      const safeTargetId = safeResolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })
-      const targetId = resolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })
+      const safeTargetId = safeResolveTargetId(selectedTargets, { actionTargetTag: "planet", targetType: TargetType.PLANET })
+      const targetId = resolveTargetId(selectedTargets, { actionTargetTag: "planet", targetType: TargetType.PLANET })
 
       // Assert
       expect(safeTargetId).toBe("planet-id")
@@ -34,7 +34,7 @@ describe("resolveTargetId", () => {
       const selectedTargets = { fleet: "fleet-id" }
 
       // Act
-      const targetId = safeResolveTargetId(selectedTargets, { tag: "fleet", targetType: TargetType.FLEET })
+      const targetId = safeResolveTargetId(selectedTargets, { actionTargetTag: "fleet", targetType: TargetType.FLEET })
 
       // Assert
       expect(targetId).toBe("fleet-id")
@@ -47,7 +47,7 @@ describe("resolveTargetId", () => {
       const selectedTargets = {}
 
       // Act & Assert
-      expect(() => resolveTargetId(selectedTargets, { tag: "planet", targetType: TargetType.PLANET })).toThrow(AssertionError)
+      expect(() => resolveTargetId(selectedTargets, { actionTargetTag: "planet", targetType: TargetType.PLANET })).toThrow(AssertionError)
     })
   })
 })

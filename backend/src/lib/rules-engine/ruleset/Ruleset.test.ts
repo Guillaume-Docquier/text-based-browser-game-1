@@ -111,7 +111,7 @@ describe("Ruleset.safeCreate", () => {
               type: FleetBuildMechanic.type,
               targets: {
                 planet: {
-                  tag: "planet",
+                  actionTargetTag: "planet",
                   targetType: TargetType.PLANET,
                 },
               },

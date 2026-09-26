@@ -69,12 +69,12 @@ export class UpdateActionSubmissionUseCase {
       const planetIds = [
         ...new Set(
           Object.entries(actionDefinition.targets)
-            .map(([tag, targetDefinition]) => {
+            .map(([actionTargetTag, targetDefinition]) => {
               if (targetDefinition.targetType !== TargetType.PLANET) {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, targetType: targetDefinition.targetType })
+              return safeResolveTargetId(submittedAction.selectedTargets, { actionTargetTag, targetType: targetDefinition.targetType })
             })
             .filter((planetId) => planetId !== null),
         ),
@@ -84,12 +84,12 @@ export class UpdateActionSubmissionUseCase {
       const fleetIds = [
         ...new Set(
           Object.entries(actionDefinition.targets)
-            .map(([tag, targetDefinition]) => {
+            .map(([actionTargetTag, targetDefinition]) => {
               if (targetDefinition.targetType !== TargetType.FLEET) {
                 return null
               }
 
-              return safeResolveTargetId(submittedAction.selectedTargets, { tag, targetType: targetDefinition.targetType })
+              return safeResolveTargetId(submittedAction.selectedTargets, { actionTargetTag, targetType: targetDefinition.targetType })
             })
             .filter((fleetId) => fleetId !== null),
         ),

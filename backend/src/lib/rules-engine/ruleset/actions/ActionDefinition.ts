@@ -55,16 +55,16 @@ export const ActionDefinitionSchema = z
 function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
   for (const mechanic of [...actionDefinition.costs, ...actionDefinition.mechanics]) {
     for (const mechanicTarget of Object.values(mechanic.targets)) {
-      const actionTargetType = actionDefinition.targets[mechanicTarget.tag]?.targetType
+      const actionTargetType = actionDefinition.targets[mechanicTarget.actionTargetTag]?.targetType
       if (actionTargetType === undefined) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" is missing target slot "${mechanicTarget.tag}" required by the "${mechanic.type}" mechanic`,
+          message: `Action Definition "${actionDefinition.name}" is missing target slot "${mechanicTarget.actionTargetTag}" required by the "${mechanic.type}" mechanic`,
         })
       } else if (actionTargetType !== mechanicTarget.targetType) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" target slot "${mechanicTarget.tag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
+          message: `Action Definition "${actionDefinition.name}" target slot "${mechanicTarget.actionTargetTag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
         })
       }
     }

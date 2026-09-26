@@ -25,7 +25,7 @@ export function safeResolveTargetId(
   selectedTargets: SelectedTargets,
   targetDefinition: MechanicTargetDefinition,
 ): TargetId<TargetType> | null {
-  const targetId = selectedTargets[targetDefinition.tag]
+  const targetId = selectedTargets[targetDefinition.actionTargetTag]
   if (targetId === undefined) {
     // we return null instead of undefined to keep the below switch case exhaustive. Missing a branch will have TS error out because the function doesn't return a value.
     return null
