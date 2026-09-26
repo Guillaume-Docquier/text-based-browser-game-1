@@ -1,4 +1,5 @@
 import { branded, type Rng } from "@guillaume-docquier/tools-ts"
+import { v5 } from "uuid"
 import { assignHomePlanets } from "#api/gameplay/galaxy-creation/assignHomePlanets.ts"
 import type { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import { toPlanetCoordinates } from "#api/gameplay/galaxy-creation/PlanetCoordinates.ts"
@@ -58,12 +59,12 @@ function toGalaxyModel({ generatedGalaxy }: { generatedGalaxy: GeneratedGalaxy }
 
       return {
         star: {
-          id: branded(starIndex + 1),
+          id: branded(v5(`star:${starIndex + 1}`, v5.URL)),
           ...system.star,
           coordinates: starCoordinates,
         },
         planets: system.planets.map((planet) => ({
-          id: branded(nextPlanetId++),
+          id: branded(v5(`planet:${nextPlanetId++}`, v5.URL)),
           ownerPlayerId: null,
           ...planet,
           coordinates: toPlanetCoordinates({ starCoordinates, star: system.star, planet }),

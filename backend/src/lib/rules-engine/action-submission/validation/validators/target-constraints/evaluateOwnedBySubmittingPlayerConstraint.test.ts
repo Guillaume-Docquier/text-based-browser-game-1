@@ -20,7 +20,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
         id: branded("fleet-id"),
         playerId: submittingPlayerId,
         strength: 1,
-        originPlanetId: branded(1),
+        originPlanetId: branded("1"),
       }
 
       // Act
@@ -30,14 +30,14 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       expect(result).toStrictEqual<typeof result>(Result.Success(undefined))
     })
 
-    it("should reports a fleet owned by another player", () => {
+    it("should report a fleet owned by another player", () => {
       // Arrange
       const target: TargetableFleet = {
         type: TargetType.FLEET,
         id: branded("fleet-id"),
         playerId: otherPlayerId,
         strength: 1,
-        originPlanetId: branded(1),
+        originPlanetId: branded("1"),
       }
 
       // Act
@@ -47,11 +47,11 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       expect(result).toStrictEqual<typeof result>(Result.Success("Expected target fleet to be owned by the submitting player."))
     })
 
-    it("should accepts a planet owned by the submitting player", () => {
+    it("should accept a planet owned by the submitting player", () => {
       // Arrange
       const target: TargetablePlanet = {
         type: TargetType.PLANET,
-        id: branded(1),
+        id: branded("1"),
         ownerPlayerId: submittingPlayerId,
         x: 0,
         y: 0,
@@ -64,11 +64,11 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       expect(result).toStrictEqual<typeof result>(Result.Success(undefined))
     })
 
-    it("should reports a planet owned by another player", () => {
+    it("should report a planet owned by another player", () => {
       // Arrange
       const target: TargetablePlanet = {
         type: TargetType.PLANET,
-        id: branded(1),
+        id: branded("1"),
         ownerPlayerId: otherPlayerId,
         x: 0,
         y: 0,
@@ -81,11 +81,11 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       expect(result).toStrictEqual<typeof result>(Result.Success("Expected target planet to be owned by the submitting player."))
     })
 
-    it("should reports an unowned planet", () => {
+    it("should report an unowned planet", () => {
       // Arrange
       const target: TargetablePlanet = {
         type: TargetType.PLANET,
-        id: branded(1),
+        id: branded("1"),
         ownerPlayerId: null,
         x: 0,
         y: 0,
@@ -98,7 +98,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       expect(result).toStrictEqual<typeof result>(Result.Success("Expected target planet to be owned by the submitting player."))
     })
 
-    it("should rejects a player target as incompatible", () => {
+    it("should reject a player target as incompatible", () => {
       // Arrange
       const target: TargetablePlayer = {
         type: TargetType.PLAYER,

@@ -68,7 +68,7 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     return await galaxyPage.getGalaxyCameraScale()
   })
 
-  const selectedStar = galaxyPage.star(0)
+  const selectedStar = galaxyPage.star(1)
 
   await test.step("Open a Star System and inspect its Planet profiles", async () => {
     await galaxyPage.openStarSystem(selectedStar)
@@ -77,7 +77,7 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     const firstPlanet = galaxyPage.planet(0)
     const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
     await galaxyPage.openPlanetProfile(firstPlanet)
-    expect(firstPlanetName).toBe("planet 122350")
+    expect(firstPlanetName).toBe("planet 72231")
     await expect(galaxyPage.planetDetailsPane).toBeVisible()
     await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: firstPlanetName })).toBeVisible()
     await expect(galaxyPage.planetDetailsPane).toContainText("Planet attributes")
@@ -88,7 +88,7 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     const secondPlanet = galaxyPage.planet(1)
     const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
     await galaxyPage.openPlanetProfile(secondPlanet)
-    expect(secondPlanetName).toBe("planet 983117")
+    expect(secondPlanetName).toBe("planet 73768")
     await expect(galaxyPage.planetDetailsPane.getByRole("heading", { name: secondPlanetName })).toBeVisible()
 
     await galaxyPage.clickOnTheMap()

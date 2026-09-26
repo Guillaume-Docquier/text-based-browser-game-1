@@ -1,5 +1,5 @@
 {
-  "id": "0c095acb-f24f-4e2e-aad6-250853f0ac2e",
+  "id": "9658ee37-fc34-4041-ba4c-edeb8a64cbea",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -204,7 +204,7 @@
         },
         "origin_planet_id": {
           "name": "origin_planet_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         }
@@ -417,13 +417,13 @@
         },
         "star_id": {
           "name": "star_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -736,7 +736,7 @@
         },
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },

@@ -28,7 +28,7 @@ const SORT_COMPARATORS = {
   energy: (first, second) => first.planet.energy - second.planet.energy,
   maxPopulation: (first, second) => first.planet.maxPopulation - second.planet.maxPopulation,
   area: (first, second) => first.planet.area - second.planet.area,
-  id: (first, second) => first.planet.id - second.planet.id,
+  id: (first, second) => TEXT_COLLATOR.compare(first.planet.id, second.planet.id),
 } as const satisfies Record<SortColumn | "id", PlanetRowComparator>
 
 /**

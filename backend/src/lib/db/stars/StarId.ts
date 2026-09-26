@@ -1,9 +1,9 @@
 import { branded, type Branded } from "@guillaume-docquier/tools-ts"
-import { integer } from "drizzle-orm/pg-core"
+import { text } from "drizzle-orm/pg-core"
 import { z } from "zod"
 
-export type StarId = Branded<"StarId", number>
-export const StarIdSchema = z.number().transform(branded<StarId>)
+export type StarId = Branded<"StarId", string>
+export const StarIdSchema = z.string().transform(branded<StarId>)
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let drizzle inference do the work
-export const starIdColumn = (name: string) => integer(name).$type<StarId>()
+export const starIdColumn = (name: string) => text(name).$type<StarId>()

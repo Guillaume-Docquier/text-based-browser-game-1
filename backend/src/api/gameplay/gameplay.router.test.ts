@@ -61,11 +61,13 @@ describe("gameplay.router", () => {
       // quick sanity checks
       expect(playerView.galaxy.systems.length).toBeGreaterThan(500) // enough systems are generated
       expect(playerView.galaxy.systems.flatMap(({ planets }) => planets).length).toBeGreaterThan(1500) // enough planets are generated
-      expect(playerView.galaxy.systems[1]?.planets[1]).toStrictEqual({
+      expect(
+        playerView.galaxy.systems.flatMap((system) => system.planets).find(({ id }) => id === "cd2c40c4-0233-5b79-9d85-2ad751dff9e9"),
+      ).toStrictEqual({
         coordinates: "44:76:35", // coordinates make sense
         x: 46.42101792976603,
         y: 47.21423492967076,
-        id: expect.any(Number),
+        id: "cd2c40c4-0233-5b79-9d85-2ad751dff9e9",
         ownerPlayerId: null,
         name: "planet 685256",
         biome: PlanetBiome.VOLCANIC,
@@ -80,9 +82,11 @@ describe("gameplay.router", () => {
 
       const allStars = playerView.galaxy.systems.map(({ star }) => star)
       expect(new Set(allStars.map((star) => star.coordinates)).size).toStrictEqual(allStars.length) // unique coordinates
+      expect(new Set(allStars.map((star) => star.id)).size).toStrictEqual(allStars.length) // unique ids
 
       const allPlanets = playerView.galaxy.systems.flatMap(({ planets }) => planets)
       expect(new Set(allPlanets.map((planet) => planet.coordinates)).size).toStrictEqual(allPlanets.length) // unique coordinates
+      expect(new Set(allPlanets.map((planet) => planet.id)).size).toStrictEqual(allPlanets.length) // unique ids
 
       expect(playerView.galaxy).toMatchSnapshot()
     })

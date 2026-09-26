@@ -246,7 +246,7 @@ describe("resolveTurn", () => {
 
   it("should create a fleet with a unique and deterministic id", () => {
     // Arrange
-    const planetId = branded<PlanetId>(1)
+    const planetId = branded<PlanetId>("planet-id")
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: BuildFleetStandard.id,
       playerId,
@@ -271,7 +271,7 @@ describe("resolveTurn", () => {
     const result = resolveTurn(turnState, TestRuleset, createSeededRng())
 
     // Assert
-    const expectedFleetId = branded<FleetId>("18ac11b3-e1c8-5467-9e88-39d91394991a")
+    const expectedFleetId = branded<FleetId>("8015283d-3c8d-5774-8ba8-0148df312e65")
     expect(result).toStrictEqual<typeof result>(
       Result.Success(
         expect.objectContaining({
@@ -300,7 +300,7 @@ describe("resolveTurn", () => {
 
   it("should reinforce a friendly fleet without changing its id", () => {
     // Arrange
-    const planetId = branded<PlanetId>(1)
+    const planetId = branded<PlanetId>("planet-id")
     const fleetId = branded<FleetId>(v4())
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: BuildFleetStandard.id,
@@ -354,7 +354,7 @@ describe("resolveTurn", () => {
 
   it("should keep an enemy fleet separate when building on the same planet", () => {
     // Arrange
-    const planetId = branded<PlanetId>(1)
+    const planetId = branded<PlanetId>("planet-id")
     const enemyPlayerId = branded<PlayerId>(v4())
     const enemyFleetId = branded<FleetId>(v4())
     const submittedAction = createSubmittedActionStub({
@@ -376,7 +376,7 @@ describe("resolveTurn", () => {
     const result = resolveTurn(turnState, TestRuleset, createSeededRng())
 
     // Assert
-    const expectedFleetId = branded<FleetId>("18ac11b3-e1c8-5467-9e88-39d91394991a")
+    const expectedFleetId = branded<FleetId>("8015283d-3c8d-5774-8ba8-0148df312e65")
     expect(result).toStrictEqual<typeof result>(
       Result.Success(
         expect.objectContaining({
