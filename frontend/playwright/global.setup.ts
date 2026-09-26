@@ -2,7 +2,7 @@ import { clerk, clerkSetup } from "@clerk/testing/playwright"
 import { z } from "zod"
 import { users } from "./auth.ts"
 import { expect, test as setup } from "./fixtures.ts"
-import { CreateGamePage } from "./pages/CreateGamePage.ts"
+import { HomePage } from "./pages/HomePage.ts"
 
 // Based on Clerk's docs: https://clerk.com/docs/guides/development/testing/playwright/test-authenticated-flows
 setup.describe.configure({ mode: "serial" })
@@ -13,13 +13,10 @@ setup("configure Clerk for testing", async ({ clerkConfig }) => {
 
 for (const { alias, email, authFilePath } of Object.values(users)) {
   setup(`authenticate ${alias} and complete onboarding`, async ({ page, isCI }) => {
-    const createGamePage = await CreateGamePage.goto(page)
+    const createGamePage = await HomePage.goto(page)
 
     const needsOnboarding = await setup.step("sign in", async () => {
       await clerk.signIn({ page, emailAddress: email })
-
-      // clerk.signIn only sets the cookies, so we need to reload for the app to properly render the onboarding
-      await page.reload()
 
       // On the CI, the db should be clean and users should always need to onboard
       if (isCI) {
