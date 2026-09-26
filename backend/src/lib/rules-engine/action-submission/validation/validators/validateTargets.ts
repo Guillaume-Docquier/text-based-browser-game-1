@@ -5,15 +5,16 @@ import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#lib/rules-engine/action-submission/validation/SubmittedActionIssue.ts"
+import { evaluateOwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/action-submission/validation/validators/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
+import type {
+  TargetConstraintError,
+  TargetConstraintIssue,
+} from "#lib/rules-engine/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
 import type { ActionTargetDefinition } from "#lib/rules-engine/ruleset-model/actions/ActionTargetDefinition.ts"
 import { TargetType } from "#lib/rules-engine/ruleset-model/mechanics/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetConstraint } from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraint.ts"
-import type {
-  TargetConstraintError,
-  TargetConstraintIssue,
-} from "#lib/rules-engine/ruleset-model/target-constraints/TargetConstraintEvaluator.ts"
 import type {
   TargetableEntity,
   TargetableFleet,
@@ -169,6 +170,6 @@ function validateConstraint({
 }): Result<TargetConstraintIssue, TargetConstraintError> {
   switch (constraint.type) {
     case OwnedBySubmittingPlayerConstraint.type:
-      return OwnedBySubmittingPlayerConstraint.evaluate({ constraint, submittingPlayerId, target })
+      return evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
   }
 }
