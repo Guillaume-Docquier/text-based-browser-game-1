@@ -4,8 +4,9 @@ import { type Ruleset, RulesetSchema } from "#lib/rules-engine/ruleset/Ruleset.t
 import { typedParse } from "#lib/validation/typedParse.ts"
 
 /**
- * The stub allows you to create invalid rulesets by design, mostly because tests that create rulesets often want to create invalid rulesets.
- * If you want to validate the ruleset stub to make sure you properly constructed the ruleset, use the validate argument. If the ruleset is invalid, the validation will throw.
+ * Creates a valid Ruleset with default values and optional overrides.
+ * The completed ruleset is parsed through RulesetSchema and throws if invalid.
+ * Tests of invalid rulesets should construct their input directly and pass it to Ruleset.safeCreate.
  */
 export function createRulesetStub(overrides: Partial<Parameters<typeof Ruleset.create>[0]> = {}): Ruleset {
   return typedParse(RulesetSchema, {
