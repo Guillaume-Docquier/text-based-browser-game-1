@@ -1,4 +1,5 @@
 import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
+import { ActionDefinitionTargets } from "#lib/rules-engine/ruleset/actions/ActionDefinitionTargets.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
 import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
@@ -25,12 +26,12 @@ function buildFleetDirective({
     name: "Build Fleet",
     type: ActionType.DIRECTIVE,
     tier,
-    targets: {
+    targets: ActionDefinitionTargets.create({
       planet: {
         targetType: TargetType.PLANET,
         constraints: [OwnedBySubmittingPlayerConstraint.create()],
       },
-    },
+    }),
     costs: [
       ResourceLossMechanic.create({
         quantity: influence,

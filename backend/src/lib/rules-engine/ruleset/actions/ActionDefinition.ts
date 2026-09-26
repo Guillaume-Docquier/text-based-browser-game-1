@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { type ActionTargetDefinition, ActionTargetDefinitionSchema } from "#lib/rules-engine/ruleset/actions/ActionTargetDefinition.ts"
+import { type ActionDefinitionTargets, ActionDefinitionTargetsSchema } from "#lib/rules-engine/ruleset/actions/ActionDefinitionTargets.ts"
 import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
 import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
 import {
@@ -25,17 +25,10 @@ export type ActionDefinition = Readonly<{
   name: string
   type: ActionType
   tier: ActionTier
-  /**
-   * Maps target tags to the type accepted by each target slot.
-   */
-  targets: Readonly<Record<string, ActionTargetDefinition>>
+  targets: Readonly<ActionDefinitionTargets>
   costs: ResourceLossMechanic[]
   mechanics: Mechanic[]
 }>
-
-export const ActionDefinitionTargetsSchema = z.record(z.string(), ActionTargetDefinitionSchema).readonly() satisfies z.ZodType<
-  ActionDefinition["targets"]
->
 
 export const ActionDefinitionSchema = z
   .object({
@@ -59,12 +52,12 @@ function validateMechanicTargets(actionDefinition: ActionDefinition, context: z.
       if (actionTargetType === undefined) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" is missing target slot "${mechanicTarget.actionTargetTag}" required by the "${mechanic.type}" mechanic`,
+          message: `Action Definition "${actionDefinition.name}" is missing target tag "${mechanicTarget.actionTargetTag}" required by the "${mechanic.type}" mechanic`,
         })
       } else if (actionTargetType !== mechanicTarget.targetType) {
         context.addIssue({
           code: "custom",
-          message: `Action Definition "${actionDefinition.name}" target slot "${mechanicTarget.actionTargetTag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
+          message: `Action Definition "${actionDefinition.name}" target tag "${mechanicTarget.actionTargetTag}" has type "${actionTargetType}", but the "${mechanic.type}" mechanic requires "${mechanicTarget.targetType}"`,
         })
       }
     }

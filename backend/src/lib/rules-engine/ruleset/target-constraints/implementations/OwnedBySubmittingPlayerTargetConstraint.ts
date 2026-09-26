@@ -21,7 +21,7 @@ export interface OwnedBySubmittingPlayerConstraint extends AbstractTargetConstra
  */
 export const OwnedBySubmittingPlayerConstraint = {
   type: "OWNED_BY_SUBMITTING_PLAYER",
-  supportedTargetTypes: [TargetType.FLEET, TargetType.PLANET],
+  supportedTargetTypes: new Set([TargetType.FLEET, TargetType.PLANET]),
   create: (): OwnedBySubmittingPlayerConstraint =>
     typedParse(OwnedBySubmittingPlayerConstraintSchema, {
       type: OwnedBySubmittingPlayerConstraint.type,

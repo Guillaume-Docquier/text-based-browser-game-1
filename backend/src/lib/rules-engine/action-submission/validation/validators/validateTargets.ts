@@ -10,11 +10,12 @@ import type {
   TargetConstraintError,
   TargetConstraintIssue,
 } from "#lib/rules-engine/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
-import type { ActionTargetDefinition } from "#lib/rules-engine/ruleset/actions/ActionTargetDefinition.ts"
+import type { TargetTag } from "#lib/rules-engine/ruleset/actions/TargetTag.ts"
 import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetConstraint } from "#lib/rules-engine/ruleset/target-constraints/TargetConstraint.ts"
+import type { TargetDefinition } from "#lib/rules-engine/ruleset/target-constraints/TargetDefinition.ts"
 import type {
   TargetableEntity,
   TargetableFleet,
@@ -24,7 +25,7 @@ import type {
 import type { TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
 
 /**
- * Validates that the target slots for the action submission are filled and valid.
+ * Validates that the target tags for the action submission are filled and valid.
  */
 export function validateTargets(
   submittedActions: readonly SubmittedAction[],
@@ -41,23 +42,24 @@ export function validateTargets(
       )
     }
 
-    const missingTargetSlots = Object.keys(actionDefinition.targets).filter(
-      (targetSlot) => submittedAction.selectedTargets[targetSlot] === undefined,
+    const missingTargetTags = Object.keys(actionDefinition.targets).filter(
+      (targetTag) => submittedAction.selectedTargets[targetTag] === undefined,
     )
-    for (const missingTargetSlot of missingTargetSlots) {
+    for (const missingTargetTag of missingTargetTags) {
       issues.push(
         SubmittedActionIssue.create({
-          issue: `Missing target slot "${missingTargetSlot}"`,
+          issue: `Missing target tag "${missingTargetTag}"`,
           submittedAction,
           actionDefinitionName: actionDefinition.name,
         }),
       )
     }
 
-    for (const [targetSlot, targetId] of Object.entries(submittedAction.selectedTargets)) {
+    for (const [targetTag, targetId] of Object.entries(submittedAction.selectedTargets)) {
+      const brandedTargetTag = branded<TargetTag>(targetTag)
       const issue = validateTargetDefinition(
-        actionDefinition.targets[targetSlot],
-        targetSlot,
+        actionDefinition.targets[brandedTargetTag],
+        brandedTargetTag,
         targetId,
         submittedAction.playerId,
         turnState,
@@ -78,21 +80,21 @@ export function validateTargets(
 }
 
 function validateTargetDefinition(
-  targetDefinition: ActionTargetDefinition | undefined,
-  targetSlot: string,
+  targetDefinition: TargetDefinition | undefined,
+  targetTag: TargetTag,
   targetId: string,
   submittingPlayerId: PlayerId,
   turnState: ReadonlyDeep<TurnState>,
 ): string | null {
   if (targetDefinition === undefined) {
-    return `Unexpected target slot "${targetSlot}"`
+    return `Unexpected target tag "${targetTag}"`
   }
 
   if (targetId.length === 0) {
-    return `Target slot "${targetSlot}" must be set to a ${targetDefinition.targetType} id`
+    return `Target tag "${targetTag}" must be set to a ${targetDefinition.targetType} id`
   }
 
-  const targetResult = getTarget({ targetType: targetDefinition.targetType, turnState, targetSlot, targetId })
+  const targetResult = getTarget({ targetType: targetDefinition.targetType, turnState, targetTag, targetId })
   if (Result.isFailure(targetResult)) {
     return targetResult.error
   }
@@ -114,46 +116,46 @@ function validateTargetDefinition(
 function getTarget({
   targetType,
   turnState,
-  targetSlot,
+  targetTag,
   targetId,
 }: {
   targetType: TargetType
   turnState: ReadonlyDeep<TurnState>
-  targetSlot: string
+  targetTag: TargetTag
   targetId: string
 }): Result<TargetableEntity, string> {
   switch (targetType) {
     case TargetType.PLAYER:
-      return getPlayerTarget(turnState, targetSlot, targetId)
+      return getPlayerTarget(turnState, targetTag, targetId)
     case TargetType.FLEET:
-      return getFleetTarget(turnState, targetSlot, targetId)
+      return getFleetTarget(turnState, targetTag, targetId)
     case TargetType.PLANET:
-      return getPlanetTarget(turnState, targetSlot, targetId)
+      return getPlanetTarget(turnState, targetTag, targetId)
   }
 }
 
-function getPlayerTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): Result<TargetablePlayer, string> {
+function getPlayerTarget(turnState: ReadonlyDeep<TurnState>, targetTag: TargetTag, targetId: string): Result<TargetablePlayer, string> {
   const player = turnState.players[branded<PlayerId>(targetId)]
   if (player === undefined) {
-    return Result.Failure(`Target slot "${targetSlot}" references unknown Player id "${targetId}"`)
+    return Result.Failure(`Target tag "${targetTag}" references unknown Player id "${targetId}"`)
   }
 
   return Result.Success({ type: TargetType.PLAYER, ...player })
 }
 
-function getFleetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): Result<TargetableFleet, string> {
+function getFleetTarget(turnState: ReadonlyDeep<TurnState>, targetTag: TargetTag, targetId: string): Result<TargetableFleet, string> {
   const fleet = turnState.fleets[branded<FleetId>(targetId)]
   if (fleet === undefined) {
-    return Result.Failure(`Target slot "${targetSlot}" references unknown Fleet id "${targetId}"`)
+    return Result.Failure(`Target tag "${targetTag}" references unknown Fleet id "${targetId}"`)
   }
 
   return Result.Success({ type: TargetType.FLEET, ...fleet })
 }
 
-function getPlanetTarget(turnState: ReadonlyDeep<TurnState>, targetSlot: string, targetId: string): Result<TargetablePlanet, string> {
+function getPlanetTarget(turnState: ReadonlyDeep<TurnState>, targetTag: TargetTag, targetId: string): Result<TargetablePlanet, string> {
   const planet = turnState.planets[branded<PlanetId>(targetId)]
   if (planet === undefined) {
-    return Result.Failure(`Target slot "${targetSlot}" references unknown Planet id "${targetId}"`)
+    return Result.Failure(`Target tag "${targetTag}" references unknown Planet id "${targetId}"`)
   }
 
   return Result.Success({ type: TargetType.PLANET, ...planet })

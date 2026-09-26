@@ -11,7 +11,7 @@ export type MechanicTargetDefinition<TTargetType extends TargetType = TargetType
    *
    * For example, an action might say "fleet 1 gains 1 strength and fleet 2 gains 2 strength"
    *
-   * The action will have 2 target slots: "fleet 1" and "fleet 2"
+   * The action will have 2 target tags: "fleet 1" and "fleet 2"
    * The GainStrength mechanic will have 1 target role: "fleet"
    * The action will have 2 mechanics:
    * - GainStrength with actionTargetTag "fleet 1" for target role "fleet" and strength 1

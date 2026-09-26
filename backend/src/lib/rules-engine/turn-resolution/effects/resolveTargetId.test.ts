@@ -5,7 +5,7 @@ import { resolveTargetId, safeResolveTargetId } from "#lib/rules-engine/turn-res
 
 describe("resolveTargetId", () => {
   describe("safeResolveTargetId", () => {
-    it("should return null when the target slot is not selected", () => {
+    it("should return null when the target tag is not selected", () => {
       // Arrange
       const selectedTargets = {}
 
@@ -42,7 +42,7 @@ describe("resolveTargetId", () => {
   })
 
   describe("resolveTargetId", () => {
-    it("should throw when the target slot is not selected", () => {
+    it("should throw when the target tag is not selected", () => {
       // Arrange
       const selectedTargets = {}
 

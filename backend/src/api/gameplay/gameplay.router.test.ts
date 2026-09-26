@@ -384,13 +384,13 @@ describe("gameplay.router", () => {
         turn: initialPlayerView.turn,
         submittedActionTargets: createSubmittedActionTargetsDtoStub({
           actionId: buildFleet.id,
-          selectedTargets: { planet: String(homePlanet.id) },
+          selectedTargets: { planet: homePlanet.id },
         }),
       })
 
       // Assert
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-      expect(playerView.actions.find(({ id }) => id === buildFleet.id)?.selectedTargets).toStrictEqual({ planet: String(homePlanet.id) })
+      expect(playerView.actions.find(({ id }) => id === buildFleet.id)?.selectedTargets).toStrictEqual({ planet: homePlanet.id })
     })
 
     it("should submit and deselect multiple actions", async () => {

@@ -1,6 +1,7 @@
 import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/actions/ActionDefinition.stub.ts"
+import { ActionDefinitionTargets } from "#lib/rules-engine/ruleset/actions/ActionDefinitionTargets.ts"
 import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
 import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceGainMechanic.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
@@ -27,7 +28,7 @@ const validActionDefinition = createActionDefinitionStub({
 })
 
 describe("Ruleset.safeCreate", () => {
-  it("should validate a Ruleset with correctly indexed Action Definitions and all required target slots", () => {
+  it("should validate a Ruleset with correctly indexed Action Definitions and all required target tags", () => {
     // Arrange
     const ruleset = createRulesetStub({
       actionDefinitions: indexBy("id", [validActionDefinition]),
@@ -57,7 +58,7 @@ describe("Ruleset.safeCreate", () => {
     )
   })
 
-  it("should report a target slot required by a Mechanic but missing from its Action Definition", () => {
+  it("should report a target tag required by a Mechanic but missing from its Action Definition", () => {
     // Arrange
     const actionDefinition = createActionDefinitionStub({
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
@@ -72,15 +73,15 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(
       Result.Failure([
-        `Action Definition "${actionDefinition.name}" is missing target slot "planet" required by the "${FleetBuildMechanic.type}" mechanic`,
+        `Action Definition "${actionDefinition.name}" is missing target tag "planet" required by the "${FleetBuildMechanic.type}" mechanic`,
       ]),
     )
   })
 
-  it("should report an Action Definition target slot with an incompatible type", () => {
+  it("should report an Action Definition target tag with an incompatible type", () => {
     // Arrange
     const actionDefinition = createActionDefinitionStub({
-      targets: { planet: { targetType: TargetType.FLEET, constraints: [] } },
+      targets: ActionDefinitionTargets.create({ planet: { targetType: TargetType.FLEET, constraints: [] } }),
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({
@@ -93,7 +94,7 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(
       Result.Failure([
-        `Action Definition "${actionDefinition.name}" target slot "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
+        `Action Definition "${actionDefinition.name}" target tag "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
       ]),
     )
   })
@@ -103,9 +104,9 @@ describe("Ruleset.safeCreate", () => {
     const ruleset = createRulesetStub({
       actionDefinitions: indexBy("id", [
         createActionDefinitionStub({
-          targets: {
+          targets: ActionDefinitionTargets.create({
             planet: { targetType: TargetType.PLANET, constraints: [] },
-          },
+          }),
           mechanics: [
             {
               type: FleetBuildMechanic.type,
