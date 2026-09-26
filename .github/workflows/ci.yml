@@ -23,6 +23,9 @@ jobs:
       - name: Setting up pnpm
         uses: pnpm/setup@v3.0.0
 
+      - name: Typecheck
+        run: pnpm typecheck
+
       - name: Format
         run: pnpm format
 
