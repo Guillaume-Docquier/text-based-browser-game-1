@@ -6,7 +6,7 @@ import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateTargets } from "#lib/rules-engine/action-submission/validation/validators/validateTargets.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/actions/ActionDefinition.stub.ts"
-import { ActionDefinitionTargets } from "#lib/rules-engine/ruleset/actions/ActionDefinitionTargets.ts"
+import type { TargetTag } from "#lib/rules-engine/ruleset/actions/TargetTag.ts"
 import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset/mechanics/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
@@ -20,9 +20,9 @@ describe("validateTargets", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
-      targets: ActionDefinitionTargets.create({
+      targets: {
         targetPlayer: { targetType: TargetType.PLAYER, constraints: [] },
-      }),
+      },
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId })
@@ -84,9 +84,9 @@ describe("validateTargets", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub({
-      targets: ActionDefinitionTargets.create({
+      targets: {
         planet: { targetType: TargetType.PLANET, constraints: [] },
-      }),
+      },
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
@@ -125,10 +125,10 @@ describe("validateTargets", () => {
     const planetId = branded<PlanetId>("planet-id")
     const constraint = OwnedBySubmittingPlayerConstraint.create()
     const actionDefinition = createActionDefinitionStub({
-      targets: ActionDefinitionTargets.create({
+      targets: {
         fleet: { targetType: TargetType.FLEET, constraints: [constraint] },
         planet: { targetType: TargetType.PLANET, constraints: [constraint] },
-      }),
+      },
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
@@ -156,10 +156,10 @@ describe("validateTargets", () => {
     const planetId = branded<PlanetId>("planet-id")
     const constraint = OwnedBySubmittingPlayerConstraint.create()
     const actionDefinition = createActionDefinitionStub({
-      targets: ActionDefinitionTargets.create({
+      targets: {
         fleet: { targetType: TargetType.FLEET, constraints: [constraint] },
         planet: { targetType: TargetType.PLANET, constraints: [constraint] },
-      }),
+      },
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
@@ -199,9 +199,9 @@ describe("validateTargets", () => {
     const playerId = branded<PlayerId>("submitting-player")
     const planetId = branded<PlanetId>("planet-id")
     const actionDefinition = createActionDefinitionStub({
-      targets: ActionDefinitionTargets.create({
+      targets: {
         planet: { targetType: TargetType.PLANET, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
-      }),
+      },
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
@@ -233,11 +233,16 @@ describe("validateTargets", () => {
     // Arrange
     const playerId = branded<PlayerId>("submitting-player")
     const targetPlayerId = branded<PlayerId>("target-player")
-    const actionDefinition = createActionDefinitionStub({
-      targets: ActionDefinitionTargets.create({
-        player: { targetType: TargetType.PLAYER, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
-      }),
-    })
+    // The invalid constraint must bypass the target schema to exercise the validator's defensive check.
+    const actionDefinition = {
+      ...createActionDefinitionStub(),
+      targets: {
+        [branded<TargetTag>("player")]: {
+          targetType: TargetType.PLAYER,
+          constraints: [OwnedBySubmittingPlayerConstraint.create()],
+        },
+      },
+    }
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
@@ -279,11 +284,13 @@ describe("validateTargets", () => {
   ])("should report an unknown $targetType target before evaluating its constraint", ({ targetType, targetId, issue }) => {
     // Arrange
     const playerId = branded<PlayerId>("submitting-player")
-    const actionDefinition = createActionDefinitionStub({
-      targets: ActionDefinitionTargets.create({
-        target: { targetType, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
-      }),
-    })
+    // PLAYER with this constraint is invalid schema input; the lookup should still fail first.
+    const actionDefinition = {
+      ...createActionDefinitionStub(),
+      targets: {
+        [branded<TargetTag>("target")]: { targetType, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
+      },
+    }
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,

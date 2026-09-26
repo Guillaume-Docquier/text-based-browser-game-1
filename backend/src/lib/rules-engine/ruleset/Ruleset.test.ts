@@ -1,7 +1,6 @@
 import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/actions/ActionDefinition.stub.ts"
-import { ActionDefinitionTargets } from "#lib/rules-engine/ruleset/actions/ActionDefinitionTargets.ts"
 import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
 import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceGainMechanic.ts"
 import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
@@ -81,7 +80,7 @@ describe("Ruleset.safeCreate", () => {
   it("should report an Action Definition target slot with an incompatible type", () => {
     // Arrange
     const actionDefinition = createActionDefinitionStub({
-      targets: ActionDefinitionTargets.create({ planet: { targetType: TargetType.FLEET, constraints: [] } }),
+      targets: { planet: { targetType: TargetType.FLEET, constraints: [] } },
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({
@@ -104,9 +103,9 @@ describe("Ruleset.safeCreate", () => {
     const ruleset = createRulesetStub({
       actionDefinitions: indexBy("id", [
         createActionDefinitionStub({
-          targets: ActionDefinitionTargets.create({
+          targets: {
             planet: { targetType: TargetType.PLANET, constraints: [] },
-          }),
+          },
           mechanics: [
             {
               type: FleetBuildMechanic.type,
