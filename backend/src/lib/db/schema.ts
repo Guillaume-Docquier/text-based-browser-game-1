@@ -30,7 +30,7 @@ import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
 import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
-import type { SelectedTargets } from "#lib/rules-engine/ruleset/actions/SelectedTargets.ts"
+import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
@@ -172,7 +172,7 @@ export const actionsTable = pgTable(
     turn: integer("turn").notNull(),
     actionDefinitionId: text("action_definition_id").notNull(),
     /**
-     * non-null when selected, empty object ({}) if the action is selected and has no selected targets at all
+     * non-null when the action is selected, empty object ({}) if the action is selected and has no targets to specify
      */
     selectedTargets: jsonb("selected_targets").$type<SelectedTargets>(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

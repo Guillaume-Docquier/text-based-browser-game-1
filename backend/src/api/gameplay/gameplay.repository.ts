@@ -28,7 +28,7 @@ import {
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
 import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { SelectedTargets } from "#lib/rules-engine/ruleset/actions/SelectedTargets.ts"
+import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset/mechanics/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"

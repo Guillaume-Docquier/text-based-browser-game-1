@@ -16,6 +16,7 @@ import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetConstraint } from "#lib/rules-engine/ruleset/target-constraints/TargetConstraint.ts"
 import type { TargetDefinition } from "#lib/rules-engine/ruleset/target-constraints/TargetDefinition.ts"
+import type { TargetId } from "#lib/rules-engine/ruleset/target-constraints/TargetId.ts"
 import type {
   TargetableEntity,
   TargetableFleet,
@@ -43,7 +44,8 @@ export function validateTargets(
     }
 
     const missingTargetTags = Object.keys(actionDefinition.targets).filter(
-      (targetTag) => submittedAction.selectedTargets[targetTag] === undefined,
+      // Object.keys widens TargetTag to string
+      (targetTag) => submittedAction.selectedTargets[branded<TargetTag>(targetTag)] === undefined,
     )
     for (const missingTargetTag of missingTargetTags) {
       issues.push(
@@ -82,7 +84,7 @@ export function validateTargets(
 function validateTargetSelection(
   targetDefinition: TargetDefinition | undefined,
   targetTag: TargetTag,
-  targetId: string,
+  targetId: TargetId,
   submittingPlayerId: PlayerId,
   turnState: ReadonlyDeep<TurnState>,
 ): string | null {
@@ -122,7 +124,7 @@ function getTarget({
   targetType: TargetType
   turnState: ReadonlyDeep<TurnState>
   targetTag: TargetTag
-  targetId: string
+  targetId: TargetId
 }): Result<TargetableEntity, string> {
   switch (targetType) {
     case TargetType.PLAYER:
