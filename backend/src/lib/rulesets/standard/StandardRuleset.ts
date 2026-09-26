@@ -1,4 +1,4 @@
-import { indexById } from "#lib/indexById.ts"
+import { indexBy } from "@guillaume-docquier/tools-ts"
 import { ResourceType } from "#lib/rules-engine/ruleset-model/mechanics/ResourceType.ts"
 import { Ruleset } from "#lib/rules-engine/ruleset-model/Ruleset.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
@@ -15,7 +15,7 @@ export const StandardRuleset = Ruleset.create({
   id: "core_standard_v1",
   name: "Standard V1",
   isDefault: true,
-  actionDefinitions: indexById([
+  actionDefinitions: indexBy("id", [
     GainInfluence,
     WinTheGame,
     GainEnergy,

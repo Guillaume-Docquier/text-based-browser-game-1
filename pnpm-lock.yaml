@@ -165,8 +165,8 @@ settings:
 catalogs:
   default:
     '@guillaume-docquier/tools-ts':
-      specifier: ^8.4.0
-      version: 8.4.0
+      specifier: ^8.6.1
+      version: 8.6.1
     typescript:
       specifier: ~7.0.2
       version: 7.0.2
@@ -210,7 +210,7 @@ importers:
         version: 2.1.69(express@5.2.1(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 8.4.0
+        version: 8.6.1
       '@trpc/server':
         specifier: ^11.18.0
         version: 11.18.0(typescript@7.0.2)
@@ -298,7 +298,7 @@ importers:
         version: 5.3.0
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
-        version: 8.4.0
+        version: 8.6.1
       '@tanstack/react-query':
         specifier: ^5.103.1
         version: 5.103.1(react@19.3.0)
@@ -1270,8 +1270,8 @@ packages:
   '@guillaume-docquier/tools-ts@6.7.0':
     resolution: {integrity: sha512-fXuAUfNI6Eo9Ea+UGA1poW+LiluCTB7FIo8ZfHwsRWv2PEA+bJnXG8hMALBlrg9tS/k6pBarhk7/9Lswu3IK4g==}
 
-  '@guillaume-docquier/tools-ts@8.4.0':
-    resolution: {integrity: sha512-fxs+TQZ3SVFgh1JrtuwB0PC88iRXeTcL+Gpa/9rmpyW3X4CD++NB37xBDz+ikAPxwVXeDe8dkZyspNeplfjW2g==}
+  '@guillaume-docquier/tools-ts@8.6.1':
+    resolution: {integrity: sha512-4SDVATyNEm8CSEc1zrVYwTGQ2HDvh6n/wUz7ahXNHudCtxvbsKH6mlaWekFUmTBnaFnBSo4P2Nu0VzOIEaAOsQ==}
 
   '@hono/node-server@2.1.1':
     resolution: {integrity: sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg==}
@@ -1469,18 +1469,18 @@ packages:
   '@logtape/logtape@2.3.2':
     resolution: {integrity: sha512-SfxHfSdDlTp6tLpYP5uezNitSCTQUB3FZ1MXDbgDBN9t9kvF+XL0rOGTIa/pJcDMy1o9FELaZ25E/Ypmsf5fNQ==}
 
-  '@logtape/logtape@2.3.3':
-    resolution: {integrity: sha512-H8AqgCq6M6Wu97FVPyfE5UT4w6H+Wdt9iGzLKPgtJRI/jrG9HbzzNUw9JL1LarkZD8xeKx9FqKfcLaXr0hGJuw==}
+  '@logtape/logtape@2.3.7':
+    resolution: {integrity: sha512-y0X4Liaj9voRRn0aAffCw2HCRpZEibOdmHiOgwsAT0hgHS8MaDKHl9cQGZ8r8uZR+b+yN9qznNYru6z9oOEMVw==}
 
   '@logtape/redaction@2.3.2':
     resolution: {integrity: sha512-tLiLxtMm99oKP6g19+yBUmk54HawuVKh4xlW9lAPhyayjisnJ9gwjihxjqd6lo0Bf090/gQvI9eJ3MWSS8w+aw==}
     peerDependencies:
       '@logtape/logtape': ^2.3.2
 
-  '@logtape/redaction@2.3.3':
-    resolution: {integrity: sha512-blv/xIv3EOdUDt7FCJ6tV77ltIPH8xUDfICwgnMiJA1CCJG+ANEQBl3IgKr8hX/xNouDzH1SXlgN+exkgPtgEA==}
+  '@logtape/redaction@2.3.7':
+    resolution: {integrity: sha512-U6bvNtgp5aFBpOQLjfRS8PVLKN3abQwOxt+Q4CbGtLJ9qOLMaxwqTS/R97k+dTzCf5UiSiyNFnDiC9klLgp9Wg==}
     peerDependencies:
-      '@logtape/logtape': ^2.3.3
+      '@logtape/logtape': ^2.3.7
 
   '@modelcontextprotocol/sdk@1.30.0':
     resolution: {integrity: sha512-xKd8OIzlqNzcqcNumGAa6g+PW2kjD5vrpcKOnfldAUPP3j7lnqMPwlTXQm8gF+UwH72z0lqaRbjr9hqGz0eITA==}
@@ -8515,10 +8515,10 @@ snapshots:
       '@logtape/logtape': 2.3.2
       '@logtape/redaction': 2.3.2(@logtape/logtape@2.3.2)
 
-  '@guillaume-docquier/tools-ts@8.4.0':
+  '@guillaume-docquier/tools-ts@8.6.1':
     dependencies:
-      '@logtape/logtape': 2.3.3
-      '@logtape/redaction': 2.3.3(@logtape/logtape@2.3.3)
+      '@logtape/logtape': 2.3.7
+      '@logtape/redaction': 2.3.7(@logtape/logtape@2.3.7)
 
   '@hono/node-server@2.1.1(hono@4.13.5)':
     dependencies:
@@ -8714,15 +8714,15 @@ snapshots:
 
   '@logtape/logtape@2.3.2': {}
 
-  '@logtape/logtape@2.3.3': {}
+  '@logtape/logtape@2.3.7': {}
 
   '@logtape/redaction@2.3.2(@logtape/logtape@2.3.2)':
     dependencies:
       '@logtape/logtape': 2.3.2
 
-  '@logtape/redaction@2.3.3(@logtape/logtape@2.3.3)':
+  '@logtape/redaction@2.3.7(@logtape/logtape@2.3.7)':
     dependencies:
-      '@logtape/logtape': 2.3.3
+      '@logtape/logtape': 2.3.7
 
   '@modelcontextprotocol/sdk@1.30.0(supports-color@8.1.1)(zod@3.25.76)':
     dependencies:

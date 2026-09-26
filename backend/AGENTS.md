@@ -19,10 +19,18 @@ Turn Processing is isolated so workers can scale independently or move to anothe
 ## Commands
 
 - `pnpm --filter backend test`: run all backend tests.
+- `pnpm --filter backend test --project concurrency`: run the concurrency tests, which start a PostgreSQL container through Testcontainers.
 - `pnpm --filter backend checks`: run all backend quality checks.
 - `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
 
 ## Testing
+
+### Docker-backed concurrency tests
+
+- On Windows with Codex, `CodexSandboxOffline` cannot access the Docker daemon pipe. Run `pnpm --filter backend test --project concurrency` with `exec_command` and `sandbox_permissions: "require_escalated"`. This uses the normal Docker-enabled account, not administrator elevation.
+- `pnpm --filter backend test` and `pnpm --filter backend checks` also run the concurrency tests, so use the same permission setting.
+
+### General testing guidelines
 
 - Test production code. Do not use `vitest.mock()`.
 - Prefer integration tests. Use unit tests sparingly for complex algorithms, race-condition validation, and regressions.

@@ -1,6 +1,5 @@
-import { branded, Result } from "@guillaume-docquier/tools-ts"
+import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { indexById } from "#lib/indexById.ts"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset-model/actions/ActionDefinition.stub.ts"
 import { FleetBuildMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/FleetBuildMechanic.ts"
 import { ResourceGainMechanic } from "#lib/rules-engine/ruleset-model/mechanics/implementations/ResourceGainMechanic.ts"
@@ -31,7 +30,7 @@ describe("Ruleset.safeCreate", () => {
   it("should validate a Ruleset with correctly indexed Action Definitions and all required target slots", () => {
     // Arrange
     const ruleset = createRulesetStub({
-      actionDefinitions: indexById([validActionDefinition]),
+      actionDefinitions: indexBy("id", [validActionDefinition]),
     })
 
     // Act
@@ -64,7 +63,7 @@ describe("Ruleset.safeCreate", () => {
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({
-      actionDefinitions: indexById([actionDefinition]),
+      actionDefinitions: indexBy("id", [actionDefinition]),
     })
 
     // Act
@@ -85,7 +84,7 @@ describe("Ruleset.safeCreate", () => {
       mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({
-      actionDefinitions: indexById([actionDefinition]),
+      actionDefinitions: indexBy("id", [actionDefinition]),
     })
 
     // Act
@@ -102,7 +101,7 @@ describe("Ruleset.safeCreate", () => {
   it.each([0, -1])("should report a non-positive fleet strength", (strength) => {
     // Arrange
     const ruleset = createRulesetStub({
-      actionDefinitions: indexById([
+      actionDefinitions: indexBy("id", [
         createActionDefinitionStub({
           targets: {
             planet: { targetType: TargetType.PLANET, constraints: [] },
