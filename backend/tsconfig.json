@@ -37,5 +37,5 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "drizzle.config.ts", "scripts", "vitest.config.ts"]
+  "include": ["src", "drizzle.config.ts", "scripts", "vitest.config.ts", "oxlint.config.ts", "boundaries.ts"]
 }

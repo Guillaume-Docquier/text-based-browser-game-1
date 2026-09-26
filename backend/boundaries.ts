@@ -4,9 +4,9 @@ import type { OxlintConfig } from "oxlint"
 
 type Element = (typeof Elements)[keyof typeof Elements]
 const Elements = {
-  RULESET_MODEL: { type: "ruleset-model", pattern: "backend/src/lib/rules-engine/ruleset-model" },
-  VALIDATION: { type: "validation", pattern: "backend/src/lib/validation" },
-  DB: { type: "db", pattern: "backend/src/lib/db" },
+  RULESET_MODEL: { type: "ruleset-model", pattern: "src/lib/rules-engine/ruleset-model" },
+  VALIDATION: { type: "validation", pattern: "src/lib/validation" },
+  DB: { type: "db", pattern: "src/lib/db" },
 } as const
 
 const DisallowEverything = { to: { module: { origin: "local" } } } as const
@@ -23,7 +23,7 @@ export const Boundaries = {
     },
     "import/resolver": {
       typescript: {
-        project: path.resolve(import.meta.dirname, "backend/tsconfig.json"),
+        project: path.resolve(import.meta.dirname, "tsconfig.json"),
       },
     },
     "boundaries/elements": [
