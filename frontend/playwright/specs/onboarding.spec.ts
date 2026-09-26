@@ -4,6 +4,21 @@ import { HomePage } from "../pages/HomePage.ts"
 
 const onboardingStatusRoute = "**/accounts.isOnboarded*"
 
+test("the onboarding modal appears after the first successful status request", async ({ alice }) => {
+  let statusRequestCount = 0
+  await alice.page.route(onboardingStatusRoute, async (route) => {
+    statusRequestCount++
+    await route.fulfill({ json: [{ result: { data: false } }] })
+  })
+
+  const homePage = await HomePage.goto(alice.page)
+
+  await test.step("Prompt for an alias without waiting for another status request", async () => {
+    await expect(homePage.onboarding.heading).toBeVisible()
+    expect(statusRequestCount).toBe(1)
+  })
+})
+
 test("the onboarding modal is not visible while fetching the onboarding status", async ({ alice }) => {
   let statusRequestCount = 0
   await alice.page.route(onboardingStatusRoute, async (route) => {
