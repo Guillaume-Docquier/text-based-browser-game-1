@@ -11,6 +11,7 @@ import { ActionIdSchema } from "#lib/db/actions/ActionId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { FleetIdSchema } from "#lib/db/fleets/FleetId.ts"
+import { FleetNameSchema } from "#lib/db/fleets/FleetName.ts"
 import { type GameId, GameIdSchema } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
@@ -296,6 +297,7 @@ export const GalaxyDtoSchema = z.object({
 export const FleetDtoSchema = z.object({
   id: FleetIdSchema,
   playerId: PlayerIdSchema,
+  name: FleetNameSchema,
   strength: z.number(),
   originPlanetId: PlanetIdSchema,
 })

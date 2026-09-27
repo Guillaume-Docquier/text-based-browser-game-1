@@ -1,5 +1,5 @@
 {
-  "id": "9658ee37-fc34-4041-ba4c-edeb8a64cbea",
+  "id": "4d2df4b0-997a-45de-9bbe-89ac1681bdff",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -193,6 +193,12 @@
         "player_id": {
           "name": "player_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(36)",
           "primaryKey": false,
           "notNull": true
         },

@@ -360,6 +360,7 @@ export class GameplayRepository extends PostgresRepository {
             .select({
               id: fleetsTable.id,
               playerId: fleetsTable.playerId,
+              name: fleetsTable.name,
               strength: fleetsTable.strength,
               originPlanetId: fleetsTable.originPlanetId,
             })
@@ -486,6 +487,7 @@ export class GameplayRepository extends PostgresRepository {
       .select({
         id: fleetsTable.id,
         playerId: fleetsTable.playerId,
+        name: fleetsTable.name,
         strength: fleetsTable.strength,
         originPlanetId: fleetsTable.originPlanetId,
       })

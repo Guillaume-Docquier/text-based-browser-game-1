@@ -3,6 +3,7 @@ import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { AccountId } from "#lib/db/accounts/AccountId.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import type { FleetName } from "#lib/db/fleets/FleetName.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
@@ -81,6 +82,7 @@ type TurnToProcessPlanetModel = {
 type TurnToProcessFleetModel = {
   readonly id: FleetId
   readonly playerId: PlayerId
+  readonly name: FleetName
   strength: number
   readonly originPlanetId: PlanetId
 }
@@ -228,6 +230,7 @@ export class TurnsRepository extends PostgresRepository {
         .select({
           id: fleetsTable.id,
           playerId: fleetsTable.playerId,
+          name: fleetsTable.name,
           strength: fleetsTable.strength,
           originPlanetId: fleetsTable.originPlanetId,
         })

@@ -3,7 +3,8 @@ import type { AccountModel, AccountsRepository } from "#api/accounts/accounts.re
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { AUTH_ID_HEADER } from "#api/accounts/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
-import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import { AccountIdSchema } from "#lib/db/accounts/AccountId.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
 export type AuthenticatedApiClient = {
@@ -19,7 +20,8 @@ export type AnonymousApiClient = {
 type CreateApiClientArgs = {
   port: number
   accountsRepository: AccountsRepository
-  id?: AccountId | undefined
+  id?: string | undefined
+  authenticated: boolean
 }
 
 /**
@@ -31,7 +33,7 @@ export async function createApiClient({
   port,
   accountsRepository,
   id,
-}: CreateApiClientArgs & { authenticated: boolean }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
+}: CreateApiClientArgs): Promise<AuthenticatedApiClient | AnonymousApiClient> {
   if (!authenticated) {
     return {
       client: createTrpcClient({ port, authId: undefined }),
@@ -39,7 +41,11 @@ export async function createApiClient({
     }
   }
 
-  const account = extractSuccess(await accountsRepository.createAccount(createNewAccountModelStub({ id })))
+  const account = extractSuccess(
+    await accountsRepository.createAccount(
+      createNewAccountModelStub({ id: id === undefined ? undefined : typedParse(AccountIdSchema, id) }),
+    ),
+  )
 
   return {
     client: createTrpcClient({ port, authId: account.authId }),

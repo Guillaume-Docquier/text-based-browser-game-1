@@ -80,7 +80,7 @@ Minimum verification for meaningful changes:
 
 - `pnpm checks` (when touching all projects)
 - Use the scoped command in the nearest `AGENTS.md` when touching only one project.
-- Do not start Vite/Storybook for the user or attempt visual/browser verification. The project is not set up for agent-driven visual verification yet, and the user knows how to start the app.
+- Do not attempt to start a Vite/Storybook process for the user, they will do it themselves if they need to.
 - Call out relevant extra manual verification that the user should perform for the area changed
 
 ## Commits And PRs

@@ -23,6 +23,10 @@ export class ActionsPage extends GamePage {
     await this.selectActionButton(name).click()
   }
 
+  public async selectStandardBuildFleet(): Promise<void> {
+    await this.action("Build Fleet").filter({ hasText: "Standard Directive" }).getByRole("button", { name: "Select action" }).click()
+  }
+
   public actionUnaffordableOverlay(name: string): Locator {
     return this.action(name).locator("[data-unaffordable-overlay]")
   }

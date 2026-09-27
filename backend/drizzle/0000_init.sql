@@ -26,6 +26,7 @@ CREATE TABLE "fleets" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"game_id" integer NOT NULL,
 	"player_id" uuid NOT NULL,
+	"name" varchar(36) NOT NULL,
 	"strength" integer NOT NULL,
 	"origin_planet_id" text NOT NULL,
 	CONSTRAINT "fleets_game_id_player_id_origin_planet_id_unique" UNIQUE("game_id","player_id","origin_planet_id"),

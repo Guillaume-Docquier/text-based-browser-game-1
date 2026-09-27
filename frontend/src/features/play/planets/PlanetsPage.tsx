@@ -45,7 +45,6 @@ export function PlanetsPage(): ReactElement {
     playerView.galaxy.systems.flatMap(({ planets }) => planets),
     game.players,
   )
-  const ownersWithPlanets = game.players.filter(({ id }) => rows.some(({ owner }) => owner.id === id))
   const normalizedSearch = search.trim().toLocaleLowerCase()
   const ownerFilteredRows = rows.filter(({ owner }) => ownerFilter === ALL_PLAYERS || owner.id === ownerFilter)
   const searchFilteredRows = filterPlanetRows(ownerFilteredRows, normalizedSearch)
@@ -64,7 +63,7 @@ export function PlanetsPage(): ReactElement {
       return
     }
 
-    const owner = ownersWithPlanets.find(({ id }) => id === value)
+    const owner = game.players.find(({ id }) => id === value)
     Assert.isDefined(owner)
     setOwnerFilter(owner.id)
   }
@@ -75,7 +74,7 @@ export function PlanetsPage(): ReactElement {
       <PlanetsFilters
         search={search}
         ownerFilter={ownerFilter}
-        owners={ownersWithPlanets}
+        owners={game.players}
         onSearchChange={setSearch}
         onOwnerFilterChange={changeOwnerFilter}
       />

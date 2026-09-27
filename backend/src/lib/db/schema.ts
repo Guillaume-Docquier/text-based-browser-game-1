@@ -20,6 +20,7 @@ import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
 import type { Alias } from "#lib/db/accounts/Alias.ts"
 import { actionIdColumn } from "#lib/db/actions/ActionId.ts"
 import { fleetIdColumn } from "#lib/db/fleets/FleetId.ts"
+import { fleetNameColumn } from "#lib/db/fleets/FleetName.ts"
 import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
@@ -314,6 +315,7 @@ export const fleetsTable = pgTable(
     id: fleetIdColumn("id").primaryKey(),
     gameId: gameIdColumn("game_id").notNull(),
     playerId: playerIdColumn("player_id").notNull(),
+    name: fleetNameColumn("name").notNull(),
     strength: integer("strength").notNull(),
     originPlanetId: planetIdColumn("origin_planet_id").notNull(),
   },
