@@ -117,7 +117,6 @@ function LobbyActions({ game }: { game: ApiTypes.Lobby }): ReactElement {
       )}
       {game.canOpen && (
         <Button
-          variant="secondary"
           disabled={startGame.isPending}
           onClick={() => {
             void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
