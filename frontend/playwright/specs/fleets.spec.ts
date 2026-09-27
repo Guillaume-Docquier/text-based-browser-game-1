@@ -29,14 +29,14 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
 
   await test.step("Both players build a Fleet and finish the turn", async () => {
     const aliceActionsPage = await aliceFleetsPage.openActions()
-    await aliceActionsPage.selectStandardBuildFleet()
+    await aliceActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
     const alicePlayersPage = await aliceActionsPage.openPlayers()
     await alicePlayersPage.toggleReady()
 
     await bobLobbyPage.reload()
     const bobGalaxyPage = await bobLobbyPage.openGame()
     const bobActionsPage = await bobGalaxyPage.openActions()
-    await bobActionsPage.selectStandardBuildFleet()
+    await bobActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
     const bobPlayersPage = await bobActionsPage.openPlayers()
     await bobPlayersPage.toggleReady()
 
@@ -49,16 +49,16 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
     await expect(aliceFleetsPage.rows).toHaveCount(2)
     await expect(aliceFleetsPage.columnHeaders).toHaveText(["Fleet", "Owner", "Strength", "Origin planet"])
     await expect(aliceFleetsPage.sortHeader("Owner")).toHaveAttribute("aria-sort", "ascending")
-    expect(await aliceFleetsPage.getColumnValues("ownerName")).toStrictEqual([alice.alias, bob.alias])
-    expect(await aliceFleetsPage.getColumnValues("strength")).toStrictEqual(["10", "10"])
+    expect(await aliceFleetsPage.getColumnValues("OWNER_NAME")).toStrictEqual([alice.alias, bob.alias])
+    expect(await aliceFleetsPage.getColumnValues("STRENGTH")).toStrictEqual(["10", "10"])
 
     await aliceFleetsPage.selectOwner(bob.alias)
     await expect(aliceFleetsPage.rows).toHaveCount(1)
-    expect(await aliceFleetsPage.getColumnValues("ownerName")).toStrictEqual([bob.alias])
+    expect(await aliceFleetsPage.getColumnValues("OWNER_NAME")).toStrictEqual([bob.alias])
     await aliceFleetsPage.selectOwner("All players")
 
-    const fleetId = await aliceFleetsPage.getFleetId(aliceFleetsPage.row(0))
-    await aliceFleetsPage.search(fleetId)
+    const fleetName = await aliceFleetsPage.getFleetName(aliceFleetsPage.row(0))
+    await aliceFleetsPage.search(fleetName)
     await expect(aliceFleetsPage.rows).toHaveCount(1)
     await aliceFleetsPage.search("unknown fleet")
     await expect(aliceFleetsPage.emptyMessage).toHaveText("No matching fleets")
@@ -68,7 +68,7 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
   await test.step("Sort Fleet columns and open the origin Planet from its name", async () => {
     await aliceFleetsPage.sortBy("Owner")
     await expect(aliceFleetsPage.sortHeader("Owner")).toHaveAttribute("aria-sort", "descending")
-    expect(await aliceFleetsPage.getColumnValues("ownerName")).toStrictEqual([bob.alias, alice.alias])
+    expect(await aliceFleetsPage.getColumnValues("OWNER_NAME")).toStrictEqual([bob.alias, alice.alias])
 
     for (const column of ["Fleet", "Strength", "Origin planet"]) {
       await aliceFleetsPage.sortBy(column)

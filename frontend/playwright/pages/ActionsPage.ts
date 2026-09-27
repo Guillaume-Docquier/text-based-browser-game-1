@@ -11,20 +11,17 @@ export class ActionsPage extends GamePage {
     this.heading = page.getByRole("heading", { name: "Actions", exact: true })
   }
 
-  public action(name: string): Locator {
-    return this.page.getByRole("group", { name: `${name} action` })
+  public action(name: string, identifyingText?: string): Locator {
+    const action = this.page.getByRole("group", { name: `${name} action`, exact: true })
+    return identifyingText === undefined ? action : action.filter({ has: this.page.getByText(identifyingText, { exact: true }) })
   }
 
-  public selectActionButton(name: string): Locator {
-    return this.action(name).getByRole("button")
+  public selectActionButton(name: string, identifyingText?: string): Locator {
+    return this.action(name, identifyingText).getByRole("button", { name: /^(Select action|Selected)$/ })
   }
 
-  public async toggleActionSelection(name: string): Promise<void> {
-    await this.selectActionButton(name).click()
-  }
-
-  public async selectStandardBuildFleet(): Promise<void> {
-    await this.action("Build Fleet").filter({ hasText: "Standard Directive" }).getByRole("button", { name: "Select action" }).click()
+  public async toggleActionSelection(name: string, identifyingText?: string): Promise<void> {
+    await this.selectActionButton(name, identifyingText).click()
   }
 
   public actionUnaffordableOverlay(name: string): Locator {

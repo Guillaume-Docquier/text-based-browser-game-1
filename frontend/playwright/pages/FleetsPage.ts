@@ -4,13 +4,13 @@ import type { GalaxyPage } from "./GalaxyPage.ts"
 import { GamePage } from "./GamePage.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
 
-type FleetColumnName = "fleetId" | "ownerName" | "strength" | "originPlanet"
+type FleetColumnName = "FLEET_NAME" | "OWNER_NAME" | "STRENGTH" | "ORIGIN_PLANET"
 
-const FLEET_COLUMN_INDICES = {
-  fleetId: 0,
-  ownerName: 1,
-  strength: 2,
-  originPlanet: 3,
+const FleetColumnIndices = {
+  FLEET_NAME: 0,
+  OWNER_NAME: 1,
+  STRENGTH: 2,
+  ORIGIN_PLANET: 3,
 } as const satisfies Record<FleetColumnName, number>
 
 export class FleetsPage extends GamePage {
@@ -40,12 +40,12 @@ export class FleetsPage extends GamePage {
     return index === "last" ? this.rows.last() : this.rows.nth(index)
   }
 
-  public fleetId(row: Locator): Locator {
-    return row.getByRole("cell").nth(0)
+  public fleetName(row: Locator): Locator {
+    return row.getByRole("cell").nth(FleetColumnIndices.FLEET_NAME)
   }
 
   public originPlanet(row: Locator): Locator {
-    return row.getByRole("cell").nth(3)
+    return row.getByRole("cell").nth(FleetColumnIndices.ORIGIN_PLANET)
   }
 
   public originPlanetLink(row: Locator): Locator {
@@ -69,8 +69,8 @@ export class FleetsPage extends GamePage {
     await this.table.getByRole("button", { name: column, exact: true }).click()
   }
 
-  public async getFleetId(row: Locator): Promise<string> {
-    const id = await this.fleetId(row).textContent()
+  public async getFleetName(row: Locator): Promise<string> {
+    const id = await this.fleetName(row).textContent()
     Assert.isDefined(id)
     return id
   }
@@ -92,7 +92,7 @@ export class FleetsPage extends GamePage {
   }
 
   public async getColumnValues(columnName: FleetColumnName): Promise<string[]> {
-    const columnIndex = FLEET_COLUMN_INDICES[columnName]
+    const columnIndex = FleetColumnIndices[columnName]
     return await this.rows.locator(`td:nth-child(${columnIndex + 1})`).allTextContents()
   }
 
