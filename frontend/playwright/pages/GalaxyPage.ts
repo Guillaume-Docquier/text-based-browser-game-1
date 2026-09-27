@@ -14,6 +14,7 @@ export class GalaxyPage extends GamePage {
 
   public readonly heading: Locator
   public readonly map: Locator
+  public readonly galaxyFleetMarkers: Locator
 
   public readonly ownStars: Locator
   public readonly opponentStars: Locator
@@ -32,6 +33,7 @@ export class GalaxyPage extends GamePage {
     super(page)
     this.heading = page.getByRole("heading", { name: "Galaxy", exact: true })
     this.map = page.getByRole("group", { name: "Galaxy map" })
+    this.galaxyFleetMarkers = this.map.locator("[data-fleet-marker]")
     this.regions = page.getByRole("button", { name: /^Center region \d{2}$/ })
     this.stars = page.getByRole("button", { name: /^View .+ Star System/ })
 
@@ -141,6 +143,18 @@ export class GalaxyPage extends GamePage {
 
   public planetOwnerName(planet: Locator): Locator {
     return planet.locator("text > tspan").nth(1)
+  }
+
+  public fleetMarkersOnPlanet(planet: Locator): Locator {
+    return planet.locator("[data-fleet-marker]")
+  }
+
+  public fleetStrength(marker: Locator): Locator {
+    return marker.locator("text")
+  }
+
+  public fleetIcon(marker: Locator): Locator {
+    return marker.locator("svg")
   }
 
   private async getDistanceFromMapCenter({ map, target }: { map: Locator; target: Locator }): Promise<number> {

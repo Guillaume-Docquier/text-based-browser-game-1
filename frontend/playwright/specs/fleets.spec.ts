@@ -44,6 +44,32 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
     await expect(bobPlayersPage.turn).toHaveText("Turn1", { timeout: 15000 })
   })
 
+  await test.step("Show each player's Fleet beneath its Planet in the system view", async () => {
+    const galaxyPage = await aliceFleetsPage.openGalaxy()
+    await expect(galaxyPage.galaxyFleetMarkers).toHaveCount(0)
+
+    await galaxyPage.openStarSystem(galaxyPage.ownStars.first())
+    const ownPlanet = galaxyPage.ownedPlanets.first()
+    const ownFleet = galaxyPage.fleetMarkersOnPlanet(ownPlanet)
+    await expect(ownFleet).toHaveCount(1)
+    await expect(galaxyPage.fleetIcon(ownFleet)).toBeVisible()
+    await expect(galaxyPage.fleetIcon(ownFleet)).toHaveAttribute("data-fleet-color", /^#[0-9A-Fa-f]{6}$/)
+    await expect(galaxyPage.fleetStrength(ownFleet)).toHaveText("10")
+    const ownColor = await galaxyPage.fleetIcon(ownFleet).getAttribute("data-fleet-color")
+
+    await galaxyPage.returnToGalaxy()
+    await expect(galaxyPage.heading).toBeVisible()
+    await galaxyPage.openStarSystem(galaxyPage.opponentStars.first())
+    const opponentFleet = galaxyPage.fleetMarkersOnPlanet(galaxyPage.ownedPlanets.first())
+    await expect(opponentFleet).toHaveCount(1)
+    await expect(galaxyPage.fleetIcon(opponentFleet)).toBeVisible()
+    await expect(galaxyPage.fleetIcon(opponentFleet)).toHaveAttribute("data-fleet-color", /^#[0-9A-Fa-f]{6}$/)
+    await expect(galaxyPage.fleetStrength(opponentFleet)).toHaveText("10")
+    expect(await galaxyPage.fleetIcon(opponentFleet).getAttribute("data-fleet-color")).not.toBe(ownColor)
+
+    await galaxyPage.openFleets()
+  })
+
   await test.step("Show both Fleets sorted by owner and filter by owner and Fleet ID", async () => {
     await aliceFleetsPage.openFleets()
     await expect(aliceFleetsPage.rows).toHaveCount(2)

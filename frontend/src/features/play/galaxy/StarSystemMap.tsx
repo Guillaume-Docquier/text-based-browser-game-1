@@ -1,5 +1,6 @@
-import type { LobbyPlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
+import type { Fleet, LobbyPlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
+import { FleetMarkers } from "@/features/play/galaxy/FleetMarkers.tsx"
 import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/planetBiomeColors.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
@@ -24,7 +25,8 @@ type PlanetViewModel = PlanetModel & {
  * Renders one Star System with its planets and occupied orbits.
  *
  * @param system - The Star System to render.
- * @param players - The players whose names identify claimed Planets.
+ * @param fleets - The Fleets stationed in the Star System.
+ * @param players - The players whose names and colors identify claimed Planets and Fleets.
  * @param resetSignal - A value whose changes reset pan and zoom.
  * @param onSelectGalaxy - Returns to the galaxy-wide map.
  * @param onSelectPlanet - Selects a Planet for inspection.
@@ -32,12 +34,14 @@ type PlanetViewModel = PlanetModel & {
  */
 export function StarSystemMap({
   system,
+  fleets,
   players,
   resetSignal,
   onSelectGalaxy,
   onSelectPlanet,
 }: {
   system: StarSystem
+  fleets: readonly Fleet[]
   players: readonly LobbyPlayer[]
   resetSignal: number
   onSelectGalaxy: () => void
@@ -84,7 +88,14 @@ export function StarSystemMap({
         ))}
         <Star name={system.star.name} onSelect={selectGalaxy} />
         {planets.map((planet) => (
-          <Planet key={planet.id} planet={planet} ownerName={getPlanetOwnerName(planet, players)} onSelect={onSelectPlanet} />
+          <Planet
+            key={planet.id}
+            planet={planet}
+            fleets={fleets.filter((fleet) => fleet.originPlanetId === planet.id)}
+            players={players}
+            ownerName={getPlanetOwnerName(planet, players)}
+            onSelect={onSelectPlanet}
+          />
         ))}
       </g>
     </svg>
@@ -159,10 +170,14 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
 
 function Planet({
   planet,
+  fleets,
+  players,
   ownerName,
   onSelect,
 }: {
   planet: PlanetViewModel
+  fleets: readonly Fleet[]
+  players: readonly LobbyPlayer[]
   ownerName: string | undefined
   onSelect: (planet: PlanetModel) => void
 }): ReactElement {
@@ -203,6 +218,7 @@ function Planet({
         className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-focus/planet:scale-125"
       />
       <PlanetLabel planet={planet} ownerName={ownerName} />
+      <FleetMarkers x={planet.x} y={planet.y + planet.radius + (ownerName === undefined ? 54 : 74)} fleets={fleets} players={players} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible planet. */}
       <circle
         cx={planet.x}

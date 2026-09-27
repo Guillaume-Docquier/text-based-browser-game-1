@@ -120,6 +120,7 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
               >
                 <StarSystemMap
                   system={selectedSystem}
+                  fleets={playerView.fleets}
                   players={game.players}
                   resetSignal={starSystemResetSignal}
                   onSelectGalaxy={showGalaxy}
