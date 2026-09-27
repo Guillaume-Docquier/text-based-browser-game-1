@@ -1,4 +1,4 @@
-import type { Action, ActionDefinition, ActionTier, GameId, Lobby, PlayerView, Ruleset } from "@api-types"
+import type { Action, ActionDefinition, ActionTier, GameId, Lobby, PlayerView, Ruleset, SelectedTargets } from "@api-types"
 import { Sort } from "@guillaume-docquier/tools-ts"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
@@ -35,7 +35,7 @@ export function ActionSelector({
           .sort(sortByTier)
           .map(({ action, definition }) => {
             const isSelected = action.selectedTargets !== null
-            const selectAction = (selectedTargets: typeof action.selectedTargets): void => {
+            const selectAction = (selectedTargets: SelectedTargets): void => {
               updateActionSubmission.mutate({
                 gameId,
                 turn: playerView.turn,

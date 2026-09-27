@@ -93,13 +93,7 @@ export function ActionCard({
       >
         <ActionIcon className="size-7" strokeWidth={1.8} />
       </div>
-      {!canAfford ? (
-        <div
-          data-unaffordable-overlay
-          className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[repeating-linear-gradient(135deg,rgba(82,82,91,0.28)_0px,rgba(82,82,91,0.28)_8px,rgba(24,24,27,0.48)_8px,rgba(24,24,27,0.48)_16px)]"
-          aria-hidden="true"
-        />
-      ) : null}
+      <UnaffordableOverlay canAfford={canAfford} />
       <CardHeader className="relative z-10 min-h-24 px-5 py-5 pl-14">
         <div className="flex items-start justify-between gap-3">
           <div className={cn("min-w-0 space-y-1", { "opacity-45": !canAfford })}>
@@ -133,35 +127,68 @@ export function ActionCard({
             }}
           />
         ))}
-        <Button
-          type="button"
-          className={cn("mt-auto", {
-            "bg-emerald-500 text-emerald-950 hover:bg-emerald-400 focus-visible:ring-emerald-400/40": isSelected,
-          })}
-          aria-pressed={isSelected}
-          aria-disabled={disabled || (!isSelected && !hasAllTargets)}
+        <ActionSelectionButton
+          isSelected={isSelected}
           disabled={disabled || (!isSelected && !hasAllTargets)}
-          title={isSelected ? "Click to clear action" : undefined}
-          onClick={() => {
-            if (isSelected) {
-              setDraftTargets({})
-              onSelect(null)
-            } else {
-              onSelect(selectedTargets)
-            }
+          onSelect={() => {
+            onSelect(selectedTargets)
           }}
-        >
-          {isSelected ? (
-            <>
-              <Check aria-hidden="true" />
-              Selected
-            </>
-          ) : (
-            "Select action"
-          )}
-        </Button>
+          onClear={() => {
+            setDraftTargets({})
+            onSelect(null)
+          }}
+        />
       </CardContent>
     </Card>
+  )
+}
+
+function UnaffordableOverlay({ canAfford }: { canAfford: boolean }): ReactElement | null {
+  if (canAfford) {
+    return null
+  }
+
+  return (
+    <div
+      data-unaffordable-overlay
+      className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[repeating-linear-gradient(135deg,rgba(82,82,91,0.28)_0px,rgba(82,82,91,0.28)_8px,rgba(24,24,27,0.48)_8px,rgba(24,24,27,0.48)_16px)]"
+      aria-hidden="true"
+    />
+  )
+}
+
+function ActionSelectionButton({
+  isSelected,
+  disabled,
+  onSelect,
+  onClear,
+}: {
+  isSelected: boolean
+  disabled: boolean
+  onSelect: () => void
+  onClear: () => void
+}): ReactElement {
+  return (
+    <Button
+      type="button"
+      className={cn("mt-auto", {
+        "bg-emerald-500 text-emerald-950 hover:bg-emerald-400 focus-visible:ring-emerald-400/40": isSelected,
+      })}
+      aria-pressed={isSelected}
+      aria-disabled={disabled}
+      disabled={disabled}
+      title={isSelected ? "Click to clear action" : undefined}
+      onClick={isSelected ? onClear : onSelect}
+    >
+      {isSelected ? (
+        <>
+          <Check aria-hidden="true" />
+          Selected
+        </>
+      ) : (
+        "Select action"
+      )}
+    </Button>
   )
 }
 
