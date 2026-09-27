@@ -314,7 +314,7 @@ export const fleetsTable = pgTable(
   {
     id: fleetIdColumn("id").primaryKey(),
     gameId: gameIdColumn("game_id").notNull(),
-    playerId: playerIdColumn("player_id").notNull(),
+    ownerPlayerId: playerIdColumn("owner_player_id").notNull(),
     name: fleetNameColumn("name").notNull(),
     strength: integer("strength").notNull(),
     originPlanetId: planetIdColumn("origin_planet_id").notNull(),
@@ -326,9 +326,9 @@ export const fleetsTable = pgTable(
       name: "fleets_gameId_games_fk",
     }).onDelete("cascade"),
     foreignKey({
-      columns: [table.gameId, table.playerId],
+      columns: [table.gameId, table.ownerPlayerId],
       foreignColumns: [playersTable.gameId, playersTable.playerId],
-      name: "fleets_gameId_playerId_game_players_fk",
+      name: "fleets_gameId_ownerPlayerId_game_players_fk",
     }).onDelete("cascade"),
     foreignKey({
       columns: [table.gameId, table.originPlanetId],
@@ -336,7 +336,7 @@ export const fleetsTable = pgTable(
       name: "fleets_gameId_originPlanetId_planets_fk",
     }).onDelete("cascade"),
     check("fleets_strength_positive_check", sql`${table.strength} > 0`),
-    unique("fleets_game_id_player_id_origin_planet_id_unique").on(table.gameId, table.playerId, table.originPlanetId),
+    unique("fleets_game_id_owner_player_id_origin_planet_id_unique").on(table.gameId, table.ownerPlayerId, table.originPlanetId),
     index("fleets_game_id_origin_planet_id_idx").on(table.gameId, table.originPlanetId),
   ],
 )

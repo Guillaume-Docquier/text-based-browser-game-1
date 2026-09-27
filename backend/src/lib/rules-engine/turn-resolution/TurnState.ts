@@ -56,7 +56,7 @@ export type Planet = {
 
 export type Fleet = {
   readonly id: FleetId
-  readonly playerId: PlayerId
+  readonly ownerPlayerId: PlayerId
   readonly name: FleetName
   strength: number
   readonly originPlanetId: PlanetId

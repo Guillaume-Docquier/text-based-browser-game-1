@@ -242,7 +242,7 @@ describe("TurnProcessor", () => {
       expect(playerView.fleets).toStrictEqual([
         {
           id: expect.any(String), // this is deterministic, but we cannot control the initial game rng state
-          playerId: player.account.id,
+          ownerPlayerId: player.account.id,
           name: expect.any(String), // this is deterministic, but we cannot control the initial game rng state
           strength: 10,
           originPlanetId: homePlanet.id,

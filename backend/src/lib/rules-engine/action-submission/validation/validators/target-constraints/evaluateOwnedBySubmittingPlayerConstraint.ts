@@ -21,7 +21,7 @@ export function evaluateOwnedBySubmittingPlayerConstraint({
 }): Result<TargetConstraintIssue, TargetConstraintError> {
   switch (target.type) {
     case TargetType.FLEET:
-      if (target.playerId !== submittingPlayerId) {
+      if (target.ownerPlayerId !== submittingPlayerId) {
         return Result.Success("Expected target fleet to be owned by the submitting player.")
       }
 

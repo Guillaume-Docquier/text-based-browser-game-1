@@ -359,7 +359,7 @@ export class GameplayRepository extends PostgresRepository {
           const fleets = await tx
             .select({
               id: fleetsTable.id,
-              playerId: fleetsTable.playerId,
+              ownerPlayerId: fleetsTable.ownerPlayerId,
               name: fleetsTable.name,
               strength: fleetsTable.strength,
               originPlanetId: fleetsTable.originPlanetId,
@@ -486,7 +486,7 @@ export class GameplayRepository extends PostgresRepository {
     return await db
       .select({
         id: fleetsTable.id,
-        playerId: fleetsTable.playerId,
+        ownerPlayerId: fleetsTable.ownerPlayerId,
         name: fleetsTable.name,
         strength: fleetsTable.strength,
         originPlanetId: fleetsTable.originPlanetId,

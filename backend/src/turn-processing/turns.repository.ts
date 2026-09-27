@@ -81,7 +81,7 @@ type TurnToProcessPlanetModel = {
 
 type TurnToProcessFleetModel = {
   readonly id: FleetId
-  readonly playerId: PlayerId
+  readonly ownerPlayerId: PlayerId
   readonly name: FleetName
   strength: number
   readonly originPlanetId: PlanetId
@@ -229,7 +229,7 @@ export class TurnsRepository extends PostgresRepository {
       tx
         .select({
           id: fleetsTable.id,
-          playerId: fleetsTable.playerId,
+          ownerPlayerId: fleetsTable.ownerPlayerId,
           name: fleetsTable.name,
           strength: fleetsTable.strength,
           originPlanetId: fleetsTable.originPlanetId,
