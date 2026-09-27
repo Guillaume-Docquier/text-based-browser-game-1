@@ -1,23 +1,14 @@
-import { branded, indexBy, Result } from "@guillaume-docquier/tools-ts"
+import { type DeepUnbranded, indexBy, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.stub.ts"
-import type { TargetTag } from "#lib/rules-engine/ruleset/action-definitions/TargetTag.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { FleetBuildEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
 import { ResourceGainEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
 import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset/effect-definitions/Resources.stub.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
-import type { Integer } from "#lib/validation/Integer.ts"
-import type { PositiveNumber } from "#lib/validation/PositiveNumber.ts"
-
-const startingResources = {
-  [ResourceType.INFLUENCE]: 0,
-  [ResourceType.METAL]: 0,
-  [ResourceType.FUEL]: 0,
-  [ResourceType.ENERGY]: 0,
-  [ResourceType.COLONY]: 0,
-}
 
 const validActionDefinition = createActionDefinitionStub({
   id: "VALID_ACTION",
@@ -39,13 +30,13 @@ const validActionDefinition = createActionDefinitionStub({
 describe("Ruleset.safeCreate", () => {
   it("should validate a Ruleset with correctly indexed Action Definitions and all required target slots", () => {
     // Arrange
-    const ruleset = {
+    const ruleset: DeepUnbranded<Ruleset> = {
       id: "test-ruleset",
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [validActionDefinition]),
-      startingResources,
-    } satisfies Parameters<typeof Ruleset.safeCreate>[0]
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)
@@ -56,13 +47,13 @@ describe("Ruleset.safeCreate", () => {
 
   it("should report an Action Definition indexed under an id other than its own", () => {
     // Arrange
-    const ruleset = {
+    const ruleset: DeepUnbranded<Ruleset> = {
       id: "test-ruleset",
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: { "incorrect-index": validActionDefinition },
-      startingResources,
-    } satisfies Parameters<typeof Ruleset.safeCreate>[0]
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)
@@ -77,17 +68,17 @@ describe("Ruleset.safeCreate", () => {
 
   it("should report a target slot required by a EffectDefinition but missing from its Action Definition", () => {
     // Arrange
-    const actionDefinition = {
+    const actionDefinition: DeepUnbranded<ActionDefinition> = {
       ...validActionDefinition,
       effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 1 })],
     }
-    const ruleset = {
+    const ruleset: DeepUnbranded<Ruleset> = {
       id: "test-ruleset",
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [actionDefinition]),
-      startingResources,
-    } satisfies Parameters<typeof Ruleset.safeCreate>[0]
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)
@@ -102,18 +93,18 @@ describe("Ruleset.safeCreate", () => {
 
   it("should report an Action Definition target slot with an incompatible type", () => {
     // Arrange
-    const actionDefinition = {
+    const actionDefinition: DeepUnbranded<ActionDefinition> = {
       ...validActionDefinition,
       targets: { planet: { targetType: TargetType.FLEET, constraints: [] } },
       effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 1 })],
     }
-    const ruleset = {
+    const ruleset: DeepUnbranded<Ruleset> = {
       id: "test-ruleset",
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [actionDefinition]),
-      startingResources,
-    } satisfies Parameters<typeof Ruleset.safeCreate>[0]
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)
@@ -126,37 +117,36 @@ describe("Ruleset.safeCreate", () => {
     )
   })
 
-  it.each([0, -1])("should report a non-positive fleet strength", (strength) => {
+  it.each([0, -1])("should report a non-positive fleet strength", (invalidStrength) => {
     // Arrange
-    const actionDefinition = {
+    const actionDefinition: DeepUnbranded<ActionDefinition> = {
       ...validActionDefinition,
       id: "TEST_ACTION",
       targets: {
-        [branded<TargetTag>("planet")]: { targetType: TargetType.PLANET, constraints: [] },
+        planet: { targetType: TargetType.PLANET, constraints: [] },
       },
       effects: [
         {
           type: FleetBuildEffectDefinition.type,
           targets: {
             planet: {
-              actionTargetTag: branded("planet"),
+              actionTargetTag: "planet",
               targetType: TargetType.PLANET,
             },
           },
           parameters: {
-            // Keep the invalid value intact so Ruleset.safeCreate can validate it.
-            strength: branded<PositiveNumber & Integer>(strength),
+            strength: invalidStrength,
           },
         },
       ],
-    } satisfies typeof validActionDefinition
-    const ruleset = {
+    }
+    const ruleset: DeepUnbranded<Ruleset> = {
       id: "test-ruleset",
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [actionDefinition]),
-      startingResources,
-    } satisfies Parameters<typeof Ruleset.safeCreate>[0]
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)

@@ -1,4 +1,4 @@
-import { branded, type Branded, Result, type Unbranded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
+import { branded, type Branded, type DeepUnbranded, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { RulesetIdSchema, type RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
@@ -32,8 +32,8 @@ export type Ruleset = Branded<
 >
 
 export const Ruleset = {
-  create: (ruleset: UnbrandedProperties<Unbranded<Ruleset>>): Ruleset => typedParse(RulesetSchema, ruleset),
-  safeCreate: (ruleset: UnbrandedProperties<Unbranded<Ruleset>>): Result<Ruleset, string[]> => {
+  create: (ruleset: DeepUnbranded<Ruleset>): Ruleset => typedParse(RulesetSchema, ruleset),
+  safeCreate: (ruleset: DeepUnbranded<Ruleset>): Result<Ruleset, string[]> => {
     const rulesetValidation = safeTypedParse(RulesetSchema, ruleset)
     if (rulesetValidation.success) {
       return Result.Success(rulesetValidation.data)
