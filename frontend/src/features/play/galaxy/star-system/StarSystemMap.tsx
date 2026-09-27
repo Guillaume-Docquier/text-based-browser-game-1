@@ -3,6 +3,7 @@ import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.tsx"
 import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/star-system/planetBiomeColors.ts"
+import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
@@ -218,11 +219,13 @@ function Planet({
         opacity="0"
         className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-hover/planet:opacity-25 group-focus/planet:scale-125 group-focus/planet:opacity-25"
       />
-      <circle
-        cx={planet.x}
-        cy={planet.y}
-        r={planet.radius}
-        fill={planet.color}
+      <image
+        href={PLANET_BIOME_IMAGES[planet.biome]}
+        x={planet.x - planet.radius}
+        y={planet.y - planet.radius}
+        width={planet.radius * 2}
+        height={planet.radius * 2}
+        aria-hidden="true"
         data-biome={planet.biome}
         data-size={planet.size}
         className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-focus/planet:scale-125"

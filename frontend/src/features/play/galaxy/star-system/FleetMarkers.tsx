@@ -37,7 +37,7 @@ export function FleetMarkers({
   return (
     <g transform={`translate(${x} ${y})`}>
       {fleets.map((fleet, index) => {
-        const owner = ownersById.get(fleet.playerId)
+        const owner = ownersById.get(fleet.ownerPlayerId)
         const strengthLabel = strengthLabels[index]
         const markerX = markerPositions[index]
         Assert.isDefined(owner)
