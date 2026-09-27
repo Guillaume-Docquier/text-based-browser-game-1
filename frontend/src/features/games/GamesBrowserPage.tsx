@@ -44,7 +44,9 @@ export function GamesBrowserPage(): ReactElement {
     )
   }
 
-  const listings = listingsQuery.data.filter((listing) => filters.every(({ predicate }) => predicate?.(listing) ?? true))
+  const listings = listingsQuery.data
+    .filter((listing) => filters.every(({ predicate }) => predicate?.(listing) ?? true))
+    .toSorted((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt))
   const hasFilter = filters.some(({ predicate }) => predicate !== undefined)
 
   return (
