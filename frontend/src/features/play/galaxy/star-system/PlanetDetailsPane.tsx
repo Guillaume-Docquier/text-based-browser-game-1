@@ -1,6 +1,6 @@
 import type { Planet } from "@api-types"
 import type { AnimationEvent, ReactElement } from "react"
-import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/planetBiomeColors.ts"
+import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/star-system/planetBiomeColors.ts"
 import { cn } from "@/lib/cn.ts"
 
 /**

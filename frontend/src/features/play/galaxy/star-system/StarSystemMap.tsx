@@ -1,7 +1,7 @@
 import type { Fleet, LobbyPlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
-import { FleetMarkers } from "@/features/play/galaxy/FleetMarkers.tsx"
-import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/planetBiomeColors.ts"
+import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.tsx"
+import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/star-system/planetBiomeColors.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const CENTER = 500
