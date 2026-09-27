@@ -6,7 +6,7 @@ import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.ts
 import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/star-system/planetBiomeColors.ts"
 import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
-import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
+import { PLAYER_COLOR_HEX, UNCLAIMED_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 const CENTER = 500
 const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
@@ -79,13 +79,6 @@ export function StarSystemMap({
       onPointerMove={panZoom.onPointerMove}
       onPointerUp={panZoom.onPointerUp}
     >
-      <defs>
-        <radialGradient id="system-star-glow">
-          <stop offset="0%" stopColor="#fde047" stopOpacity="0.55" />
-          <stop offset="45%" stopColor="#facc15" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="#facc15" stopOpacity="0" />
-        </radialGradient>
-      </defs>
       <g
         transform={panZoom.transform}
         className={panZoom.isCentering ? "transition-transform ease-in-out" : undefined}
@@ -141,17 +134,10 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
       <circle
         cx={CENTER}
         cy={CENTER}
-        r={STAR_RADIUS * 3}
-        fill="url(#system-star-glow)"
-        className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-125 group-focus/star:scale-125"
-      />
-      <circle
-        cx={CENTER}
-        cy={CENTER}
-        r={STAR_RADIUS * 3}
-        fill="url(#system-star-glow)"
+        r={STAR_RADIUS + 8}
+        fill="#fde047"
         opacity="0"
-        className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-150 group-hover/star:opacity-80 group-focus/star:scale-150 group-focus/star:opacity-80"
+        className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-125 group-hover/star:opacity-25 group-focus/star:scale-125 group-focus/star:opacity-25"
       />
       <image
         href={starImage}
@@ -262,7 +248,7 @@ function PlanetLabel({
       y={planet.y + planet.radius + 12}
       textAnchor="middle"
       dominantBaseline="hanging"
-      fill={ownerName === undefined ? "#94a3b8" : ownerColor}
+      fill={ownerName === undefined ? UNCLAIMED_COLOR_HEX : ownerColor}
       fontSize="16"
       fontWeight={ownerName === undefined ? "400" : "600"}
       paintOrder="stroke"

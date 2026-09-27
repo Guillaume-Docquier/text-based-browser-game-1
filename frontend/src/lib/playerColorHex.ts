@@ -20,6 +20,8 @@ export const PLAYER_COLOR_HEX = {
   PINK: "#E55BB0",
 } as const satisfies Record<PlayerColor, `#${string}`>
 
+export const UNCLAIMED_COLOR_HEX = "#636363"
+
 /** Formats a player color token for display. */
 export function formatPlayerColor(color: PlayerColor): string {
   return color
