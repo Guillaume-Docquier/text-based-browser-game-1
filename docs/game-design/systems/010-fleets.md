@@ -34,7 +34,7 @@ To move a Fleet, the player selects a positive amount of its Strength. That Stre
 
 New Fleets can only be built at Planets owned by their empire. A new fleet can appear anywhere as a result of a split.
 
-The implemented Fleet Build subset creates one deterministic Fleet for a Game, Player, and Planet tuple and reinforces that Fleet on later builds. Fleet ownership validation, movement, combat, and other Fleet lifecycle rules remain planned.
+The implemented Fleet Build subset creates one deterministic Fleet for a Game, Player, and Planet tuple and reinforces that Fleet on later builds. The player view exposes the game's Fleets, including their owner, Strength, and origin Planet; it returns an empty list before any Fleets are built. Fleet ownership validation, movement, combat, and other Fleet lifecycle rules remain planned.
 
 ### Cloaking
 

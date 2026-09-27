@@ -99,6 +99,7 @@ export type PlayerViewModel = Readonly<{
   player: PlayerViewPlayerModel
   opponents: Readonly<Record<PlayerId, PlayerViewPlayerModel>>
   galaxy: Galaxy
+  fleets: readonly Fleet[]
   turn: number
   turnStatus: TurnStatus
   turnEndsAt: Date
@@ -355,11 +356,22 @@ export class GameplayRepository extends PostgresRepository {
 
           const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
           const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
+          const fleets = await tx
+            .select({
+              id: fleetsTable.id,
+              playerId: fleetsTable.playerId,
+              strength: fleetsTable.strength,
+              originPlanetId: fleetsTable.originPlanetId,
+            })
+            .from(fleetsTable)
+            .where(eq(fleetsTable.gameId, gameId))
+            .orderBy(fleetsTable.id)
 
           return {
             player,
             opponents,
             galaxy: toGalaxyModel({ stars, planets }),
+            fleets,
             gameId,
             turn: turn.turn,
             turnStatus: turn.status,

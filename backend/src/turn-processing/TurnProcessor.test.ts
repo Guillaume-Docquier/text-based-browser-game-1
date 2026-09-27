@@ -8,6 +8,7 @@ import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
+import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
@@ -194,6 +195,58 @@ describe("TurnProcessor", () => {
           [ResourceType.FUEL]: { uncommitted: 6, total: 6 },
         }),
       })
+    })
+
+    it("should process actions that build fleets", async () => {
+      // Arrange
+      const db = await createDbMock()
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      // Create the game
+      const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
+      const { createdGameId } = await player.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      })
+
+      // Start the game
+      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+      const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+      Assert.isDefined(buildFleet)
+
+      const homePlanet = initialPlayerView.galaxy.systems
+        .flatMap(({ planets }) => planets)
+        .find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
+      Assert.isDefined(homePlanet)
+
+      // Build a fleet
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: initialPlayerView.turn,
+        submittedActionTargets: { actionId: buildFleet.id, selectedTargets: { planet: homePlanet.id } },
+      })
+
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+
+      // Act
+      clock.increment({ time: turnInterval })
+      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+      await turnProcessor.processNextDueTurn()
+
+      // Assert
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(initialPlayerView.fleets).toStrictEqual([])
+      expect(playerView.fleets).toStrictEqual([
+        {
+          id: "082b2ad0-301c-5556-9d91-e58f35a32431", // deterministic
+          playerId: player.account.id,
+          strength: 10,
+          originPlanetId: homePlanet.id,
+        },
+      ])
     })
 
     it.each([

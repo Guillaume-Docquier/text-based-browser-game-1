@@ -253,6 +253,7 @@ describe("gameplay.router", () => {
         player: { id: branded(player.account.id), color: PlayerColor.WHITE, isReady: false },
         opponents: {},
         galaxy: expect.any(Object), // Verified by the snapshot test
+        fleets: [],
         turn: 1,
         turnStatus: "COLLECTING_ACTIONS",
         turnEndsAt: Datetime.increment({

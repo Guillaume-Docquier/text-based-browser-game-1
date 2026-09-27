@@ -1,4 +1,4 @@
-import type { Action, ActionDefinition, LobbyPlayer, PlayerView, TargetTag } from "@api-types"
+import type { Action, ActionDefinition, LobbyPlayers, PlayerView, SelectedTargets, TargetTag } from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
 import { Check, Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
@@ -55,16 +55,16 @@ export function ActionCard({
   actionDefinition: ActionDefinition
   action: Action
   playerView: PlayerView
-  players: LobbyPlayer[]
+  players: LobbyPlayers
   resources: PlayerView["resources"]
   canAfford: boolean
   isSelected: boolean
   disabled: boolean
-  onSelect: (selectedTargets: Action["selectedTargets"]) => void
+  onSelect: (selectedTargets: SelectedTargets) => void
 }): ReactElement {
   const tierStyle = ACTION_TIER_STYLES[actionDefinition.tier]
   const ActionIcon = ACTION_TYPE_ICONS[actionDefinition.type]
-  const [draftTargets, setDraftTargets] = useState<NonNullable<Action["selectedTargets"]>>({})
+  const [draftTargets, setDraftTargets] = useState<NonNullable<SelectedTargets>>({})
   const targetSlots = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
     tag: branded<TargetTag>(tag),
     targetDefinition,
