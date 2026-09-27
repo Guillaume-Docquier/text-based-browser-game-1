@@ -5,7 +5,7 @@ import type { Table } from "drizzle-orm/table"
 import { v4 } from "uuid"
 import { z } from "zod"
 import { type AccountModel, AccountsRepository, type NewAccountModel } from "#api/accounts/accounts.repository.ts"
-import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
+import { LobbiesController, MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { AliasSchema } from "#lib/db/accounts/Alias.ts"
@@ -167,6 +167,10 @@ async function seedAccounts({
     { authId: "fake1", email: "fake1@email.com", alias: typedParse(AliasSchema, "pro"), onboarded: true },
     { authId: "fake2", email: "fake2@email.com", alias: typedParse(AliasSchema, "smurf"), onboarded: true },
     { authId: "fake3", alias: typedParse(AliasSchema, "xXPlanetSupaDestroyazXx"), onboarded: true },
+    ...Array.from({ length: MAX_NB_SEATS - 3 }, (_, index) => {
+      const number = index + 4
+      return { authId: `fake${number}`, alias: typedParse(AliasSchema, `player${number}`), onboarded: true }
+    }),
   ]
 
   const accounts: AccountModel[] = []
@@ -233,9 +237,23 @@ async function seedGames({
       },
     }),
   )
+  const maximumPlayersGame = assertSuccess(
+    await lobbiesController.createLobby({
+      createdByAccountId: firstAccount.id,
+      configuration: {
+        name: "maximum players game",
+        nbSeats: MAX_NB_SEATS,
+        turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.DAYS), UnitOfTime.SECONDS),
+        rulesetId: StandardRuleset.id,
+      },
+    }),
+  )
   logger.info("├ Adding accounts to games")
   assertSuccess(await lobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
   assertSuccess(await lobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
+  for (const account of accounts.slice(1, MAX_NB_SEATS)) {
+    assertSuccess(await lobbiesController.joinLobby({ gameId: maximumPlayersGame.createdGameId, accountId: account.id }))
+  }
   logger.info("└ Done")
 }
 
