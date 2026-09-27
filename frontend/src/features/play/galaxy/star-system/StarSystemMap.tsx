@@ -1,4 +1,5 @@
 import type { Fleet, LobbyPlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
+import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.tsx"
 import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/star-system/planetBiomeColors.ts"
@@ -10,6 +11,8 @@ const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
 const STAR_RADIUS = 30
 const INNER_ORBIT_RADIUS = 90
 const ORBIT_SPACING = 70
+// Generated orbital slots are 5 AU apart; preserve unoccupied slots in the display.
+const ORBIT_SPACING_AU = 5
 // Room outside the outermost body for owner labels, fleets, and hover effects.
 const VIEW_PADDING = 50
 const PLANET_RADII = {
@@ -315,8 +318,10 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
     }))
     .toSorted((firstPlanet, secondPlanet) => firstPlanet.distance - secondPlanet.distance)
 
-  return planetsByOrbit.map(({ planet, angle }, index) => {
-    const orbitRadius = INNER_ORBIT_RADIUS + ORBIT_SPACING * index
+  return planetsByOrbit.map(({ planet, angle, distance }) => {
+    const distanceAu = Distance.convert(Distance.create(distance, UnitOfDistance.LIGHT_YEARS), UnitOfDistance.ASTRONOMICAL_UNITS).value
+    const orbitIndex = Math.round(distanceAu / ORBIT_SPACING_AU) - 1
+    const orbitRadius = INNER_ORBIT_RADIUS + ORBIT_SPACING * orbitIndex
 
     return {
       ...planet,
