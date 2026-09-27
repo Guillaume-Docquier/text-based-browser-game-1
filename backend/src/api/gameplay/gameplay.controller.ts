@@ -296,7 +296,7 @@ export const GalaxyDtoSchema = z.object({
 
 export const FleetDtoSchema = z.object({
   id: FleetIdSchema,
-  playerId: PlayerIdSchema,
+  ownerPlayerId: PlayerIdSchema,
   name: FleetNameSchema,
   strength: z.number(),
   originPlanetId: PlanetIdSchema,

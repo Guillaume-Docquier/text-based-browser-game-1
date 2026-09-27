@@ -139,7 +139,7 @@ describe("validateTargets", () => {
     })
     const turnState = createTurnStateStub({
       fleets: indexBy("id", [
-        { id: fleetId, playerId, name: typedParse(FleetNameSchema, "Test Fleet"), strength: 1, originPlanetId: planetId },
+        { id: fleetId, ownerPlayerId: playerId, name: typedParse(FleetNameSchema, "Test Fleet"), strength: 1, originPlanetId: planetId },
       ]),
       planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
     })
@@ -172,7 +172,13 @@ describe("validateTargets", () => {
     })
     const turnState = createTurnStateStub({
       fleets: indexBy("id", [
-        { id: fleetId, playerId: otherPlayerId, name: typedParse(FleetNameSchema, "Test Fleet"), strength: 1, originPlanetId: planetId },
+        {
+          id: fleetId,
+          ownerPlayerId: otherPlayerId,
+          name: typedParse(FleetNameSchema, "Test Fleet"),
+          strength: 1,
+          originPlanetId: planetId,
+        },
       ]),
       planets: indexBy("id", [{ id: planetId, ownerPlayerId: otherPlayerId, x: 0, y: 0 }]),
     })

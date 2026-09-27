@@ -112,7 +112,7 @@ const TARGET_CONSTRAINT_MATCHERS = {
       case "PLANET":
         return candidate.planet.ownerPlayerId === currentPlayerId
       case "FLEET":
-        return candidate.fleet.playerId === currentPlayerId
+        return candidate.fleet.ownerPlayerId === currentPlayerId
       case "PLAYER":
         return false
     }

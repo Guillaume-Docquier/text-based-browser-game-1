@@ -290,7 +290,7 @@ describe("resolveTurn", () => {
           fleets: indexBy("id", [
             {
               id: expectedFleetId,
-              playerId,
+              ownerPlayerId: playerId,
               name: "fleet 74220",
               strength: 10,
               originPlanetId: planetId,
@@ -323,7 +323,7 @@ describe("resolveTurn", () => {
         },
       ]),
       planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
-      fleets: indexBy("id", [{ id: fleetId, playerId, name: fleetName, strength: 5, originPlanetId: planetId }]),
+      fleets: indexBy("id", [{ id: fleetId, ownerPlayerId: playerId, name: fleetName, strength: 5, originPlanetId: planetId }]),
     })
 
     // Act
@@ -346,7 +346,7 @@ describe("resolveTurn", () => {
           fleets: indexBy("id", [
             {
               id: fleetId,
-              playerId,
+              ownerPlayerId: playerId,
               name: fleetName,
               strength: 15,
               originPlanetId: planetId,
@@ -375,7 +375,9 @@ describe("resolveTurn", () => {
         { id: enemyPlayerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
       ]),
       planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
-      fleets: indexBy("id", [{ id: enemyFleetId, playerId: enemyPlayerId, name: enemyFleetName, strength: 5, originPlanetId: planetId }]),
+      fleets: indexBy("id", [
+        { id: enemyFleetId, ownerPlayerId: enemyPlayerId, name: enemyFleetName, strength: 5, originPlanetId: planetId },
+      ]),
     })
 
     // Act
@@ -397,8 +399,8 @@ describe("resolveTurn", () => {
             },
           ],
           fleets: indexBy("id", [
-            { id: enemyFleetId, playerId: enemyPlayerId, name: enemyFleetName, strength: 5, originPlanetId: planetId },
-            { id: expectedFleetId, playerId, name: "fleet 74220", strength: 10, originPlanetId: planetId },
+            { id: enemyFleetId, ownerPlayerId: enemyPlayerId, name: enemyFleetName, strength: 5, originPlanetId: planetId },
+            { id: expectedFleetId, ownerPlayerId: playerId, name: "fleet 74220", strength: 10, originPlanetId: planetId },
           ]),
         }),
       ),

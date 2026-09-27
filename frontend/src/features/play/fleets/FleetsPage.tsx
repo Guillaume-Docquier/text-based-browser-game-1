@@ -259,7 +259,7 @@ function createFleetRows(fleets: readonly Fleet[], players: readonly LobbyPlayer
   const planetsById = new Map(planets.map((planet) => [planet.id, planet]))
 
   return fleets.map((fleet) => {
-    const owner = ownersById.get(fleet.playerId)
+    const owner = ownersById.get(fleet.ownerPlayerId)
     const originPlanet = planetsById.get(fleet.originPlanetId)
     Assert.isDefined(owner)
     Assert.isDefined(originPlanet)

@@ -20,7 +20,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       const target: TargetableFleet = {
         type: TargetType.FLEET,
         id: branded("fleet-id"),
-        playerId: submittingPlayerId,
+        ownerPlayerId: submittingPlayerId,
         name: typedParse(FleetNameSchema, "Test Fleet"),
         strength: 1,
         originPlanetId: branded("1"),
@@ -38,7 +38,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       const target: TargetableFleet = {
         type: TargetType.FLEET,
         id: branded("fleet-id"),
-        playerId: otherPlayerId,
+        ownerPlayerId: otherPlayerId,
         name: typedParse(FleetNameSchema, "Test Fleet"),
         strength: 1,
         originPlanetId: branded("1"),
