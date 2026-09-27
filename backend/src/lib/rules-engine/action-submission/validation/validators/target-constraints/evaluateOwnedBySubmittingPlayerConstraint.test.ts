@@ -1,11 +1,13 @@
 import { branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
+import { FleetNameSchema } from "#lib/db/fleets/FleetName.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { evaluateOwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/action-submission/validation/validators/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
 import { createResourcesStub } from "#lib/rules-engine/ruleset/effect-definitions/Resources.stub.ts"
 import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetableFleet, TargetablePlanet, TargetablePlayer } from "#lib/rules-engine/turn-resolution/TargetableEntity.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 
 describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
   describe("evaluate", () => {
@@ -19,6 +21,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
         type: TargetType.FLEET,
         id: branded("fleet-id"),
         playerId: submittingPlayerId,
+        name: typedParse(FleetNameSchema, "Test Fleet"),
         strength: 1,
         originPlanetId: branded("1"),
       }
@@ -36,6 +39,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
         type: TargetType.FLEET,
         id: branded("fleet-id"),
         playerId: otherPlayerId,
+        name: typedParse(FleetNameSchema, "Test Fleet"),
         strength: 1,
         originPlanetId: branded("1"),
       }

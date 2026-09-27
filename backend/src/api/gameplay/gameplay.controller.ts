@@ -10,6 +10,8 @@ import { type AccountId, AccountIdSchema } from "#lib/db/accounts/AccountId.ts"
 import { ActionIdSchema } from "#lib/db/actions/ActionId.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
+import { FleetIdSchema } from "#lib/db/fleets/FleetId.ts"
+import { FleetNameSchema } from "#lib/db/fleets/FleetName.ts"
 import { type GameId, GameIdSchema } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
@@ -172,6 +174,7 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
         planets: [...planets],
       })),
     },
+    fleets: playerViewModel.fleets,
     turn: playerViewModel.turn,
     turnStatus: playerViewModel.turnStatus,
     turnEndsAt: playerViewModel.turnEndsAt,
@@ -291,6 +294,14 @@ export const GalaxyDtoSchema = z.object({
   ),
 })
 
+export const FleetDtoSchema = z.object({
+  id: FleetIdSchema,
+  playerId: PlayerIdSchema,
+  name: FleetNameSchema,
+  strength: z.number(),
+  originPlanetId: PlanetIdSchema,
+})
+
 type ActionDto = z.infer<typeof ActionDtoSchema>
 const ActionDtoSchema = z.object({
   id: ActionIdSchema,
@@ -305,6 +316,7 @@ export const PlayerViewDtoSchema = z.object({
   player: PlayerViewPlayerDtoSchema,
   opponents: z.record(PlayerIdSchema, PlayerViewPlayerDtoSchema),
   galaxy: GalaxyDtoSchema,
+  fleets: z.array(FleetDtoSchema).readonly(),
   turn: z.number(),
   turnStatus: z.enum(TurnStatus),
   turnEndsAt: z.date(),

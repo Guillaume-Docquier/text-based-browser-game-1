@@ -1,6 +1,7 @@
 import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import { FleetNameSchema } from "#lib/db/fleets/FleetName.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
@@ -13,6 +14,7 @@ import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetT
 import { createRulesetStub } from "#lib/rules-engine/ruleset/Ruleset.stub.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 
 describe("validateTargets", () => {
   it("should report a target selection missing for a required tag", () => {
@@ -136,7 +138,9 @@ describe("validateTargets", () => {
       selectedTargets: { fleet: fleetId, planet: planetId },
     })
     const turnState = createTurnStateStub({
-      fleets: indexBy("id", [{ id: fleetId, playerId, strength: 1, originPlanetId: planetId }]),
+      fleets: indexBy("id", [
+        { id: fleetId, playerId, name: typedParse(FleetNameSchema, "Test Fleet"), strength: 1, originPlanetId: planetId },
+      ]),
       planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
     })
 
@@ -167,7 +171,9 @@ describe("validateTargets", () => {
       selectedTargets: { fleet: fleetId, planet: planetId },
     })
     const turnState = createTurnStateStub({
-      fleets: indexBy("id", [{ id: fleetId, playerId: otherPlayerId, strength: 1, originPlanetId: planetId }]),
+      fleets: indexBy("id", [
+        { id: fleetId, playerId: otherPlayerId, name: typedParse(FleetNameSchema, "Test Fleet"), strength: 1, originPlanetId: planetId },
+      ]),
       planets: indexBy("id", [{ id: planetId, ownerPlayerId: otherPlayerId, x: 0, y: 0 }]),
     })
 

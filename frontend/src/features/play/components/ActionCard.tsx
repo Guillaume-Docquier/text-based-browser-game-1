@@ -1,38 +1,36 @@
-import type { ActionDefinition, PlayerView } from "@api-types"
-import { Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
-import type { ReactElement } from "react"
+import type { Action, ActionDefinition, LobbyPlayers, PlayerView, SelectedTargets, TargetTag } from "@api-types"
+import { branded } from "@guillaume-docquier/tools-ts"
+import { Check, Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
+import { type ReactElement, useState } from "react"
+import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
 import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
+import { getTargetOptions, TargetPicker } from "@/features/play/components/TargetPicker.tsx"
 import { formatRulesetTerm, effectDefinitionsToRulesText } from "@/features/play/effectDefinitionToRulesText.ts"
 import { cn } from "@/lib/cn.ts"
 
 const ACTION_TIER_STYLES = {
   BASIC: {
-    card: "border-zinc-500/70 bg-linear-to-b from-zinc-500/15 via-card to-card",
-    icon: "border-zinc-300 bg-zinc-600 text-zinc-50 shadow-zinc-950/40",
-    selected: "from-zinc-500/35 shadow-[0_0_36px_-8px_rgba(113,113,122,0.8)]",
-  },
-  STANDARD: {
     card: "border-slate-100/70 bg-linear-to-b from-slate-100/15 via-card to-card",
     icon: "border-white bg-slate-100 text-slate-900 shadow-white/20",
-    selected: "from-slate-100/30 shadow-[0_0_36px_-8px_rgba(241,245,249,0.75)]",
+  },
+  STANDARD: {
+    card: "border-green-400/70 bg-linear-to-b from-green-500/15 via-card to-card",
+    icon: "border-green-200 bg-green-500 text-green-950 shadow-green-500/30",
   },
   IMPROVED: {
-    card: "border-sky-400/70 bg-linear-to-b from-sky-500/15 via-card to-card",
-    icon: "border-sky-200 bg-sky-500 text-sky-950 shadow-sky-500/30",
-    selected: "from-sky-500/35 shadow-[0_0_36px_-8px_rgba(14,165,233,0.8)]",
+    card: "border-blue-400/70 bg-linear-to-b from-blue-500/15 via-card to-card",
+    icon: "border-blue-200 bg-blue-500 text-blue-50 shadow-blue-500/30",
   },
   ADVANCED: {
-    card: "border-yellow-400/70 bg-linear-to-b from-yellow-400/15 via-card to-card",
-    icon: "border-yellow-200 bg-yellow-400 text-yellow-950 shadow-yellow-400/30",
-    selected: "from-yellow-400/35 shadow-[0_0_36px_-8px_rgba(250,204,21,0.8)]",
+    card: "border-purple-400/70 bg-linear-to-b from-purple-500/15 via-card to-card",
+    icon: "border-purple-200 bg-purple-500 text-purple-50 shadow-purple-500/30",
   },
   EXCEPTIONAL: {
     card: "border-orange-400/80 bg-linear-to-b from-orange-500/20 via-card to-card",
     icon: "border-orange-200 bg-orange-500 text-orange-950 shadow-orange-500/30",
-    selected: "from-orange-500/40 shadow-[0_0_36px_-8px_rgba(249,115,22,0.85)]",
   },
-} as const satisfies Record<ActionDefinition["tier"], { card: string; icon: string; selected: string }>
+} as const satisfies Record<ActionDefinition["tier"], { card: string; icon: string }>
 
 const ACTION_TYPE_ICONS = {
   AGENDA: Compass,
@@ -45,6 +43,9 @@ const ACTION_TYPE_ICONS = {
  */
 export function ActionCard({
   actionDefinition,
+  action,
+  playerView,
+  players,
   resources,
   canAfford,
   isSelected,
@@ -52,44 +53,39 @@ export function ActionCard({
   onSelect,
 }: {
   actionDefinition: ActionDefinition
+  action: Action
+  playerView: PlayerView
+  players: LobbyPlayers
   resources: PlayerView["resources"]
   canAfford: boolean
   isSelected: boolean
   disabled: boolean
-  onSelect: () => void
+  onSelect: (selectedTargets: SelectedTargets) => void
 }): ReactElement {
   const tierStyle = ACTION_TIER_STYLES[actionDefinition.tier]
   const ActionIcon = ACTION_TYPE_ICONS[actionDefinition.type]
+  const [draftTargets, setDraftTargets] = useState<NonNullable<SelectedTargets>>({})
+  const targetSlots = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
+    tag: branded<TargetTag>(tag),
+    targetDefinition,
+    options: getTargetOptions(targetDefinition, playerView, players),
+  }))
+  const selectedTargets = { ...action.selectedTargets, ...draftTargets }
+  for (const { tag, options } of targetSlots) {
+    const onlyOption = options.length === 1 ? options[0] : undefined
+    if (onlyOption !== undefined) {
+      selectedTargets[tag] = onlyOption.id
+    }
+  }
+  const hasAllTargets = targetSlots.every(({ tag, options }) => options.some(({ id }) => id === selectedTargets[tag]))
 
   return (
     <Card
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-pressed={isSelected}
-      aria-disabled={disabled}
-      className={cn(
-        "relative w-full overflow-visible rounded-2xl border-2 py-0 text-left shadow-lg transition-[transform,box-shadow,opacity] sm:w-80",
-        tierStyle.card,
-        {
-          [tierStyle.selected]: isSelected,
-          "cursor-pointer hover:-translate-y-0.5": !disabled,
-          "hover:shadow-xl": !disabled && !isSelected,
-          "cursor-not-allowed opacity-80": disabled,
-        },
-      )}
-      onClick={() => {
-        if (!disabled) {
-          onSelect()
-        }
-      }}
-      onKeyDown={(event) => {
-        if (disabled || (event.key !== "Enter" && event.key !== " ")) {
-          return
-        }
-
-        event.preventDefault()
-        onSelect()
-      }}
+      role="group"
+      aria-label={`${actionDefinition.name} action`}
+      className={cn("relative w-full overflow-visible rounded-2xl border-2 py-0 text-left shadow-lg sm:w-80", tierStyle.card, {
+        "opacity-80": disabled,
+      })}
     >
       <div
         className={cn("absolute -top-3 -left-4 z-10 grid size-14 place-items-center rounded-xl border-2 shadow-lg", tierStyle.icon)}
@@ -97,13 +93,7 @@ export function ActionCard({
       >
         <ActionIcon className="size-7" strokeWidth={1.8} />
       </div>
-      {!canAfford ? (
-        <div
-          data-unaffordable-overlay
-          className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[repeating-linear-gradient(135deg,rgba(82,82,91,0.28)_0px,rgba(82,82,91,0.28)_8px,rgba(24,24,27,0.48)_8px,rgba(24,24,27,0.48)_16px)]"
-          aria-hidden="true"
-        />
-      ) : null}
+      <UnaffordableOverlay canAfford={canAfford} />
       <CardHeader className="relative z-10 min-h-24 px-5 py-5 pl-14">
         <div className="flex items-start justify-between gap-3">
           <div className={cn("min-w-0 space-y-1", { "opacity-45": !canAfford })}>
@@ -119,8 +109,85 @@ export function ActionCard({
         <p className={cn("leading-relaxed", canAfford ? "text-card-foreground" : "text-zinc-500")}>
           {effectDefinitionsToRulesText(actionDefinition.effects)}
         </p>
+        {targetSlots.map(({ tag, targetDefinition }) => (
+          <TargetPicker
+            key={tag}
+            targetTag={tag}
+            targetDefinition={targetDefinition}
+            playerView={playerView}
+            players={players}
+            value={selectedTargets[tag]}
+            disabled={disabled}
+            onChange={(targetId) => {
+              const nextTargets = { ...selectedTargets, [tag]: targetId }
+              setDraftTargets(nextTargets)
+              if (isSelected) {
+                onSelect(nextTargets)
+              }
+            }}
+          />
+        ))}
+        <ActionSelectionButton
+          isSelected={isSelected}
+          disabled={disabled || (!isSelected && !hasAllTargets)}
+          onSelect={() => {
+            onSelect(selectedTargets)
+          }}
+          onClear={() => {
+            setDraftTargets({})
+            onSelect(null)
+          }}
+        />
       </CardContent>
     </Card>
+  )
+}
+
+function UnaffordableOverlay({ canAfford }: { canAfford: boolean }): ReactElement | null {
+  if (canAfford) {
+    return null
+  }
+
+  return (
+    <div
+      data-unaffordable-overlay
+      className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-[repeating-linear-gradient(135deg,rgba(82,82,91,0.28)_0px,rgba(82,82,91,0.28)_8px,rgba(24,24,27,0.48)_8px,rgba(24,24,27,0.48)_16px)]"
+      aria-hidden="true"
+    />
+  )
+}
+
+function ActionSelectionButton({
+  isSelected,
+  disabled,
+  onSelect,
+  onClear,
+}: {
+  isSelected: boolean
+  disabled: boolean
+  onSelect: () => void
+  onClear: () => void
+}): ReactElement {
+  return (
+    <Button
+      type="button"
+      className={cn("mt-auto", {
+        "bg-emerald-500 text-emerald-950 hover:bg-emerald-400 focus-visible:ring-emerald-400/40": isSelected,
+      })}
+      aria-pressed={isSelected}
+      aria-disabled={disabled}
+      disabled={disabled}
+      onClick={isSelected ? onClear : onSelect}
+    >
+      {isSelected ? (
+        <>
+          <Check aria-hidden="true" />
+          Selected
+        </>
+      ) : (
+        "Select action"
+      )}
+    </Button>
   )
 }
 

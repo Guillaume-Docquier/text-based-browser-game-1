@@ -3,6 +3,7 @@ import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { createSeededRng } from "#lib/createSeededRng.ts"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import { FleetNameSchema } from "#lib/db/fleets/FleetName.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
@@ -16,6 +17,7 @@ import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/bu
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 
 describe("resolveTurn", () => {
   const playerId = branded<PlayerId>("player-id")
@@ -289,6 +291,7 @@ describe("resolveTurn", () => {
             {
               id: expectedFleetId,
               playerId,
+              name: "fleet 74220",
               strength: 10,
               originPlanetId: planetId,
             },
@@ -302,6 +305,7 @@ describe("resolveTurn", () => {
     // Arrange
     const planetId = branded<PlanetId>("planet-id")
     const fleetId = branded<FleetId>(v4())
+    const fleetName = typedParse(FleetNameSchema, "Existing Fleet")
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: BuildFleetStandard.id,
       playerId,
@@ -319,7 +323,7 @@ describe("resolveTurn", () => {
         },
       ]),
       planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
-      fleets: indexBy("id", [{ id: fleetId, playerId, strength: 5, originPlanetId: planetId }]),
+      fleets: indexBy("id", [{ id: fleetId, playerId, name: fleetName, strength: 5, originPlanetId: planetId }]),
     })
 
     // Act
@@ -343,6 +347,7 @@ describe("resolveTurn", () => {
             {
               id: fleetId,
               playerId,
+              name: fleetName,
               strength: 15,
               originPlanetId: planetId,
             },
@@ -357,6 +362,7 @@ describe("resolveTurn", () => {
     const planetId = branded<PlanetId>("planet-id")
     const enemyPlayerId = branded<PlayerId>(v4())
     const enemyFleetId = branded<FleetId>(v4())
+    const enemyFleetName = typedParse(FleetNameSchema, "Enemy Fleet")
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: BuildFleetStandard.id,
       playerId,
@@ -369,7 +375,7 @@ describe("resolveTurn", () => {
         { id: enemyPlayerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
       ]),
       planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
-      fleets: indexBy("id", [{ id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId }]),
+      fleets: indexBy("id", [{ id: enemyFleetId, playerId: enemyPlayerId, name: enemyFleetName, strength: 5, originPlanetId: planetId }]),
     })
 
     // Act
@@ -391,8 +397,8 @@ describe("resolveTurn", () => {
             },
           ],
           fleets: indexBy("id", [
-            { id: enemyFleetId, playerId: enemyPlayerId, strength: 5, originPlanetId: planetId },
-            { id: expectedFleetId, playerId, strength: 10, originPlanetId: planetId },
+            { id: enemyFleetId, playerId: enemyPlayerId, name: enemyFleetName, strength: 5, originPlanetId: planetId },
+            { id: expectedFleetId, playerId, name: "fleet 74220", strength: 10, originPlanetId: planetId },
           ]),
         }),
       ),

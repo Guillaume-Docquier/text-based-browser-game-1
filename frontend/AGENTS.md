@@ -13,15 +13,38 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 | `.storybook`     | Storybook configuration. Stories live next to their components.                     |
 | `playwright`     | End-to-end tests using page objects and Clerk authentication.                       |
 
+## Backend API Types
+
+- Import named backend contract types from `@api-types`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
+- When a needed contract type is missing, add a named export in `backend/src/api/types.ts` derived from the tRPC router output (`inferRouterOutputs<TrpcRouter>`). Derive nested types there as well, so the frontend uses the actual API output type despite Zod inference quirks.
+- Do not re-export backend DTO, model, or schema-inferred types as frontend contracts. Direct re-exports are reserved for simple branded scalar types, such as IDs and `TargetTag`.
+- Frontend-only types for component state, rendering, and interactions may remain in the frontend. See ADR-022 for the API contract boundary.
+
 ## Commands
 
 - `pnpm --filter frontend e2e`: run local end-to-end tests.
-- `pnpm --filter frontend checks`: run all frontend quality checks.
+
+On native Windows in the Codex sandbox, do not run the aggregate `pnpm --filter frontend checks` command. It invokes Storybook inside a nested command that cannot use the one-command exception. Run its checks in this order, using a separate `exec_command` call for each:
+
+1. `pnpm --filter frontend typecheck` in the default sandbox.
+2. `pnpm --filter frontend build` in the default sandbox.
+3. `pnpm --filter frontend storybook:build` through a reviewed, one-command Codex sandbox exception (`require_escalated` with the exact prefix `pnpm --filter frontend storybook:build`) to avoid sandbox cache write issues.
+4. `pnpm --filter frontend e2e` in the default sandbox, following the TTY and reporter instructions below.
 
 ## End-to-end Tests
 
+- Run Playwright commands in a terminal with a TTY. For Codex `exec_command`, set `tty: true` so its live progress is visible.
+- For an agent-run test, add the `list` reporter and enable step output. The configured HTML report remains available because `--add-reporter` adds to it. On Windows, run these lines in one PowerShell command with `tty: true`:
+
+  ```powershell
+  $env:PLAYWRIGHT_LIST_PRINT_STEPS = "1"
+  pnpm --filter frontend e2e playwright/specs/planets.spec.ts --project chromium --add-reporter=list
+  ```
+
+- Poll the running terminal session for output. A quiet interval alone does not mean the test is stalled; use the latest test or step, timeout, and diagnostics before interrupting it.
 - Structure tests with descriptive `test.step()` blocks reflecting user behavior. Do not use AAA sections.
 - Page objects own selectors, reusable interactions, and routes. Tests use intent-revealing methods such as `page.navbar.signOut()`; navigation methods return the destination page object.
+- Follow the [Playwright page-object conventions](playwright/AGENTS.md), including parameterized action selection instead of methods for individual Actions.
 - Put reusable page-specific actions on the corresponding page object. Do not create `utils` or `helpers` directories for behavior that belongs to a page; use a precisely named shared module only for behavior that genuinely spans pages.
 - Use component objects for cohesive shared UI, not individual elements.
 - Expose semantic locators for assertions only. Tests must not interact with locators directly; add a page-object method instead.

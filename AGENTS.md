@@ -78,9 +78,10 @@ When formatting the code, always run oxfmt with write. oxfmt is deterministic, t
 
 Minimum verification for meaningful changes:
 
-- `pnpm checks` (when touching all projects)
+- `pnpm checks` (when touching all projects, except in the native Windows Codex sandbox)
 - Use the scoped command in the nearest `AGENTS.md` when touching only one project.
-- Do not start Vite/Storybook for the user or attempt visual/browser verification. The project is not set up for agent-driven visual verification yet, and the user knows how to start the app.
+- In the native Windows Codex sandbox, `pnpm checks` also reaches Storybook through a nested command. Run `pnpm lint:fix`, `pnpm format:fix`, `pnpm typecheck`, `pnpm --filter shared checks`, and `pnpm --filter backend checks` separately, then follow the split frontend checks in `frontend/AGENTS.md`.
+- Do not attempt to start a Vite/Storybook process for the user, they will do it themselves if they need to.
 - Call out relevant extra manual verification that the user should perform for the area changed
 
 ## Commits And PRs

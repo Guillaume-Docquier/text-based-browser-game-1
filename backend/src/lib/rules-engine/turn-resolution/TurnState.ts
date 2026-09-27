@@ -1,4 +1,5 @@
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import type { FleetName } from "#lib/db/fleets/FleetName.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
@@ -56,6 +57,7 @@ export type Planet = {
 export type Fleet = {
   readonly id: FleetId
   readonly playerId: PlayerId
+  readonly name: FleetName
   strength: number
   readonly originPlanetId: PlanetId
 }

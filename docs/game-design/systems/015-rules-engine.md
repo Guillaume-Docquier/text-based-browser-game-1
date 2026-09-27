@@ -13,7 +13,8 @@ Partially Implemented
 - [x] Data-driven frontend Action presentation
 - [x] Resource stockpile and affordability presentation
 - [x] Available Actions
-- [ ] Frontend target selection
+- [x] Frontend target selection for Build Fleet's owned Planet target
+- [ ] Frontend target selection for all target types
 - [x] Multiple Actions
 
 ## Purpose

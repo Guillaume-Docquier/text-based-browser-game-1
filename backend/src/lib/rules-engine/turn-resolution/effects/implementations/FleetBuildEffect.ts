@@ -1,6 +1,7 @@
-import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Range, Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { v5 } from "uuid"
 import type { FleetId } from "#lib/db/fleets/FleetId.ts"
+import { type FleetName, FleetNameSchema } from "#lib/db/fleets/FleetName.ts"
 import type { GameId } from "#lib/db/games/GameId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
@@ -12,6 +13,7 @@ import { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectO
 import { resolveTargetId } from "#lib/rules-engine/turn-resolution/effects/resolveTargetId.ts"
 import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.ts"
 import type { Fleet } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import { typedParse } from "#lib/validation/typedParse.ts"
 
 export class FleetBuildEffect extends Effect {
   private readonly effectDefinition: FleetBuildEffectDefinition
@@ -57,6 +59,7 @@ export class FleetBuildEffect extends Effect {
     context.turnState.fleets[fleetId] = {
       id: fleetId,
       playerId: this.submittedAction.playerId,
+      name: generateFleetName(context.rng),
       strength: this.effectDefinition.parameters.strength,
       originPlanetId: this.targetPlanetId,
     }
@@ -65,6 +68,16 @@ export class FleetBuildEffect extends Effect {
       result: `Player "${this.submittedAction.playerId}" built Fleet "${fleetId}" with strength ${this.effectDefinition.parameters.strength} on Planet "${this.targetPlanetId}"`,
     })
   }
+}
+
+const FLEET_NAME_NUMBER_RANGE = Range.integer({ min: 999, max: 999999 })
+
+/**
+ * This could be improved eventually
+ * It should also be extracted out of the effect the day other sources can create fleets so we can share the same logic.
+ */
+function generateFleetName(rng: Rng): FleetName {
+  return typedParse(FleetNameSchema, `fleet ${rng.int(FLEET_NAME_NUMBER_RANGE)}`)
 }
 
 /**
