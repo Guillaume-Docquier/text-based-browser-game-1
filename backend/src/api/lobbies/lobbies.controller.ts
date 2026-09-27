@@ -7,7 +7,7 @@ import { rollbackOnFailure } from "#lib/db/drizzle/rollbackOnFailure.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { GameIdSchema, type GameId } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
-import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
+import { PLAYER_COLOR_PRIORITY, PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { PlayerIdSchema, type PlayerId } from "#lib/db/players/PlayerId.ts"
 import { RulesetIdSchema } from "#lib/db/rulesets/RulesetId.ts"
 import { couldNot } from "#lib/errors.ts"
@@ -49,7 +49,7 @@ export class LobbiesController {
       ...createLobbyDto,
       mapGenerationSeed: createLobbyDto.configuration.mapGenerationSeed ?? UInt32.random(),
       status,
-      creatorPlayerColor: PlayerColor.WHITE,
+      creatorPlayerColor: PLAYER_COLOR_PRIORITY[0],
     })
     if (Result.isFailure(createLobbyResult)) {
       return createLobbyResult
@@ -107,7 +107,7 @@ export class LobbiesController {
         lobbyForJoin.value.players.length + 1 >= lobbyForJoin.value.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
 
       const usedColors = new Set(lobbyForJoin.value.players.map((player) => player.color))
-      const color = Object.values(PlayerColor).find((candidateColor) => !usedColors.has(candidateColor))
+      const color = PLAYER_COLOR_PRIORITY.find((candidateColor) => !usedColors.has(candidateColor))
       Assert.isDefined(color)
 
       return await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, playerId, color, status }, tx)

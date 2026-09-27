@@ -5,6 +5,7 @@ import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigu
 import { type LobbyPlayerDto, MAX_NB_SEATS, type RulesetSummaryDto } from "#api/lobbies/lobbies.controller.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
+import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
@@ -91,7 +92,7 @@ describe("lobbies.router", () => {
       const expectedCreator: LobbyPlayerDto = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
-        color: PlayerColor.WHITE,
+        color: PlayerColor.TURQUOISE,
       }
 
       expect(createdGame).toStrictEqual<typeof createdGame>({
@@ -192,7 +193,7 @@ describe("lobbies.router", () => {
       const expectedCreator: LobbyPlayerDto = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
-        color: PlayerColor.WHITE,
+        color: PlayerColor.TURQUOISE,
       }
       expect(lobby).toStrictEqual<typeof lobby>({
         id: createdGameId,
@@ -232,7 +233,7 @@ describe("lobbies.router", () => {
       const expectedCreator: LobbyPlayerDto = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
-        color: PlayerColor.WHITE,
+        color: PlayerColor.TURQUOISE,
       }
       expect(lobby).toStrictEqual<typeof lobby>({
         id: createdGameId,
@@ -297,6 +298,31 @@ describe("lobbies.router", () => {
   })
 
   describe("join", () => {
+    it("should allocate high-contrast colors first in a small lobby", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const firstJoiner = await apiServer.createClient({ authenticated: true })
+      const secondJoiner = await apiServer.createClient({ authenticated: true })
+      const thirdJoiner = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await creator.client.lobbies.create.mutate({
+        configuration: createLobbyConfigurationDtoStub({ nbSeats: 4 }),
+      })
+
+      // Act
+      await firstJoiner.client.lobbies.join.mutate({ gameId: createdGameId })
+      await secondJoiner.client.lobbies.join.mutate({ gameId: createdGameId })
+      await thirdJoiner.client.lobbies.join.mutate({ gameId: createdGameId })
+
+      // Assert
+      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      const colorsByPlayerId = new Map(lobby.players.map(({ id, color }) => [id, color]))
+      expect(colorsByPlayerId.get(branded<PlayerId>(creator.account.id))).toBe(PlayerColor.TURQUOISE)
+      expect(colorsByPlayerId.get(branded<PlayerId>(firstJoiner.account.id))).toBe(PlayerColor.PINK)
+      expect(colorsByPlayerId.get(branded<PlayerId>(secondJoiner.account.id))).toBe(PlayerColor.YELLOW)
+      expect(colorsByPlayerId.get(branded<PlayerId>(thirdJoiner.account.id))).toBe(PlayerColor.ORANGE)
+    })
+
     it("should assign every player color in a maximum sized lobby", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
@@ -360,12 +386,12 @@ describe("lobbies.router", () => {
       const expectedCreator: LobbyPlayerDto = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
-        color: PlayerColor.WHITE,
+        color: PlayerColor.TURQUOISE,
       }
       const expectedJoiner: LobbyPlayerDto = {
         id: branded(joiner.account.id),
         alias: joiner.account.alias,
-        color: PlayerColor.RED,
+        color: PlayerColor.PINK,
       }
 
       expect(joinedLobby).toStrictEqual<typeof joinedLobby>({
@@ -489,7 +515,7 @@ describe("lobbies.router", () => {
       const expectedCreator: LobbyPlayerDto = {
         id: branded(creator.account.id),
         alias: creator.account.alias,
-        color: PlayerColor.WHITE,
+        color: PlayerColor.TURQUOISE,
       }
 
       expect(leftLobby).toStrictEqual<typeof leftLobby>({
