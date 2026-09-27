@@ -214,7 +214,9 @@ async function seedGames({
   logger.info("Games")
   logger.info("├ Cleaning up the games")
   await resetTable(db, gamesTable)
-  logger.info("├ Adding default games")
+  logger.info("├ Creating default games")
+
+  logger.info("├— insanely fast game")
   const insanelyFastGame = assertSuccess(
     await lobbiesController.createLobby({
       createdByAccountId: firstAccount.id,
@@ -226,6 +228,8 @@ async function seedGames({
       },
     }),
   )
+
+  logger.info("├— fast game")
   assertSuccess(
     await lobbiesController.createLobby({
       createdByAccountId: secondAccount.id,
@@ -237,6 +241,8 @@ async function seedGames({
       },
     }),
   )
+
+  logger.info("├— maximum players game")
   const maximumPlayersGame = assertSuccess(
     await lobbiesController.createLobby({
       createdByAccountId: firstAccount.id,
@@ -249,9 +255,15 @@ async function seedGames({
     }),
   )
   logger.info("├ Adding accounts to games")
+
+  logger.info(`├— ${secondAccount.alias} to insanely fast game`)
   assertSuccess(await lobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
+
+  logger.info(`├— ${thirdAccount.alias} to insanely fast game`)
   assertSuccess(await lobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
+
   for (const account of accounts.slice(1, MAX_NB_SEATS)) {
+    logger.info(`├— ${account.alias} to maximum players game`)
     assertSuccess(await lobbiesController.joinLobby({ gameId: maximumPlayersGame.createdGameId, accountId: account.id }))
   }
   logger.info("└ Done")
