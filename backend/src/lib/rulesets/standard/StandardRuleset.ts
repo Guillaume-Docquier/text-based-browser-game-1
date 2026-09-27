@@ -1,5 +1,5 @@
 import { indexBy } from "@guillaume-docquier/tools-ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"

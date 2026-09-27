@@ -45,19 +45,19 @@ Relates to:
 
 | Concept                   | Definition                                                                                                                                                                      |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Action Definition         | The Ruleset content that declares an Action's presentation, type, tier, prerequisites, costs, composed Mechanics, sources, inputs, and target slots.                            |
+| Action Definition         | The Ruleset content that declares an Action's presentation, type, tier, prerequisites, costs, composed Effect Definitions, sources, inputs, and target slots.                   |
 | Available Action Instance | A currently usable instance of an Action Definition offered to a player for submission.                                                                                         |
 | Action Submission         | A player's proposed use of an Available Action Instance with selected sources, inputs, and targets.                                                                             |
 | Action                    | Player-facing shorthand for the definition, available instance, or submission when that distinction is not important. There are three types: Agendas, Directives, and Programs. |
 | Agenda                    | A broad Action that shifts the Empire's Ideological Alignments.                                                                                                                 |
 | Directive                 | A specific Action that exploits the Empire's Ideological Alignments without affecting them.                                                                                     |
 | Program                   | An Action to achieve a Legacy Project. See [System 002-legacy](./002-legacy.md).                                                                                                |
-| Effect                    | Player-facing shorthand for what an Action does; the Rules Engine produces concrete Effects from the Action Definition's composed Mechanics.                                    |
+| Effect                    | Player-facing shorthand for what an Action does; the Rules Engine produces concrete Effects from the Action Definition's composed Effect Definitions.                           |
 | Influence                 | Resource that all Actions cost. See [System 005-political-regime](./005-political-regime.md).                                                                                   |
 
 ## Current Implementation
 
-The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, Mechanic text, and affordability. Frontend target selection is not implemented yet.
+The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, effect text, and affordability. Frontend target selection is not implemented yet.
 
 ## Rules
 
@@ -82,7 +82,7 @@ The different Action types only differ in scope and flavor. Aside from that, all
 - They have source and input requirements
 - They have target slots
 - They have cost(s)
-- They compose Mechanic(s), presented to players as the Action's effect(s)
+- They compose Effect Definitions, presented to players as the Action's effects
 
 All Actions cost Influence, and usually cost additional resources. The player's Political Regime will affect the Influence Cost and the Action's efficiency.
 
@@ -152,11 +152,11 @@ Programs are big undertakings that span multiple Turns. They reward a lot of Leg
 | ------- | ---- | ---------- | ------ | ------ | ----- | ------- |
 | ...     | ...  | ...        | ...    | ...    | ...   | ...     |
 
-### Detailed Mechanics
+### Effect Details
 
-The Action tables use compact player-facing effect text. This text summarizes the Action Definition's composed Mechanics; the authoritative resolution boundary is [System 015-rules-engine](./015-rules-engine.md), and detailed mechanic rules live in the related system documents:
+The Action tables use compact player-facing effect text. This text summarizes the Action Definition's composed Effect Definitions; the authoritative resolution boundary is [System 015-rules-engine](./015-rules-engine.md), and the related system documents describe the game rules behind these effects:
 
-| Mechanic       | System                                        |
+| Effect area    | System                                        |
 | -------------- | --------------------------------------------- |
 | Trade          | [006-trade](./006-trade.md)                   |
 | Contracts      | [007-contracts](./007-contracts.md)           |

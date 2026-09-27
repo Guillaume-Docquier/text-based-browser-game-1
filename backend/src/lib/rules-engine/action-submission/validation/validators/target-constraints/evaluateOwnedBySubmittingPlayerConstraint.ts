@@ -4,8 +4,8 @@ import type {
   TargetConstraintError,
   TargetConstraintIssue,
 } from "#lib/rules-engine/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetableEntity } from "#lib/rules-engine/turn-resolution/TargetableEntity.ts"
 
 /**

@@ -1,10 +1,10 @@
 # Game Design Decision Records (GDDR) index
 
-This index summarizes the game's durable design decisions. Read the related record when a mechanic, its tradeoffs, or its implementation path matters to your work.
+This index summarizes the game's durable design decisions. Read the related record when a effect definition, its tradeoffs, or its implementation path matters to your work.
 
 ## Planned decisions
 
-These decisions describe intended game philosophy and mechanics that are not yet implemented. They guide brainstorming, refinement, and future implementation work.
+These decisions describe intended game philosophy and effect definitions that are not yet implemented. They guide brainstorming, refinement, and future implementation work.
 
 | GDDR                                                          | Summary                                                                                                       | Use when                                                                                   |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -24,13 +24,13 @@ These decisions describe game design that the game partially follows. Some aspec
 
 ## Implemented decisions
 
-These decisions describe game design that the game currently follows. They are the source of truth for the corresponding implemented mechanics, alongside the code.
+These decisions describe game design that the game currently follows. They are the source of truth for the corresponding implemented effect definitions, alongside the code.
 
-| GDDR                                                                                        | Summary                                                                                                                                       | Use when                                                                         |
-| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| [001-space](001-space.md)                                                                   | This is a space game.                                                                                                                         | You're touching the lore, player fantasy, copy or mechanics.                     |
-| [003-turn-based](003-turn-based.md)                                                         | Players submit Actions during a fixed Turn window. Public, reversible readiness locks their choices; unanimous readiness ends the Turn early. | You design Turn Resolution, Action submission, or readiness.                     |
-| [009-deterministic-data-driven-rules-engine](009-deterministic-data-driven-rules-engine.md) | Actions declaratively compose reusable Mechanics and resolve deterministically through engine-owned ordered Phases.                           | You design Mechanics, Effects, Action Definitions, Rulesets, or Turn Resolution. |
+| GDDR                                                                                        | Summary                                                                                                                                       | Use when                                                                                  |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [001-space](001-space.md)                                                                   | This is a space game.                                                                                                                         | You're touching the lore, player fantasy, copy or effect definitions.                     |
+| [003-turn-based](003-turn-based.md)                                                         | Players submit Actions during a fixed Turn window. Public, reversible readiness locks their choices; unanimous readiness ends the Turn early. | You design Turn Resolution, Action submission, or readiness.                              |
+| [009-deterministic-data-driven-rules-engine](009-deterministic-data-driven-rules-engine.md) | Actions declaratively compose reusable Effect Definitions and resolve deterministically through engine-owned ordered Phases.                  | You design Effect Definitions, Effects, Action Definitions, Rulesets, or Turn Resolution. |
 
 ## Deprecated / Superseded decisions
 

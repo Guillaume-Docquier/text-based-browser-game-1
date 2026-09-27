@@ -18,7 +18,7 @@ Partially Implemented
 
 ## Purpose
 
-The Rules Engine turns declarative Action Definitions into deterministic game-state changes. It lets designers build readable Actions from reusable Mechanics while preserving an explicit resolution order.
+The Rules Engine turns declarative Action Definitions into deterministic game-state changes. It lets designers build readable Actions from reusable Effect Definitions while preserving an explicit resolution order.
 
 Supports:
 
@@ -41,22 +41,21 @@ Relates to:
 
 ## Core Concepts
 
-| Concept                   | Definition                                                                                                                       |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Ruleset                   | The persisted rules used by one game, including its Action Definitions, Mechanics, and other game settings.                      |
-| Action Definition         | Declarative content that describes an Action's presentation, Mechanics, source and input requirements, and target slots.         |
-| Available Action Instance | A currently usable instance of an Action Definition offered to a player for submission.                                          |
-| Action Submission         | A player's proposed use of an Available Action Instance, including the selected source, inputs, and targets.                     |
-| Resolved Action           | An Action Submission and its Effect Outcomes after the Turn has been resolved.                                                   |
-| Mechanic Definition       | The contract for one reusable kind of game behavior, including its supported values and required source, input, and target data. |
-| Mechanic                  | A configured use of a Mechanic Definition within an Action Definition.                                                           |
-| Effect                    | A concrete attempt to apply game behavior produced from a Mechanic during Turn Resolution.                                       |
-| Effect Outcome            | The recorded result of resolving an Effect: either `Resolved` when applied or `Prevented` as an expected game result.            |
-| Effect Pool               | The complete working collection of unresolved Effects for the current Turn Resolution.                                           |
-| Phase                     | An engine-owned, ordered stage of Turn Resolution that determines when a category of Effects can resolve.                        |
-| Target Slot               | One entry in an Action Definition's `targets` record, pairing a Target Tag with a Target Definition.                             |
-| Target Tag                | The key of a Target Slot, used to look up a selected target id in an Action Submission.                                          |
-| Target Role               | A Mechanic's internal name for a target, mapped to an Action Definition's Target Tag.                                            |
+| Concept                   | Definition                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Ruleset                   | The persisted rules used by one game, including its Action Definitions, Effect Definitions, and other game settings.     |
+| Action Definition         | Declarative content describing an Action's presentation, Effect Definitions, source and input requirements, and targets. |
+| Available Action Instance | A currently usable instance of an Action Definition offered to a player for submission.                                  |
+| Action Submission         | A player's proposed use of an Available Action Instance, including the selected source, inputs, and targets.             |
+| Resolved Action           | An Action Submission and its Effect Outcomes after the Turn has been resolved.                                           |
+| Effect Definition         | Configured Ruleset data that defines an Effect to create during Turn Resolution.                                         |
+| Effect                    | A concrete attempt to apply game behavior created from an Effect Definition during Turn Resolution.                      |
+| Effect Outcome            | The recorded result of resolving an Effect: either `Resolved` or `Prevented` as an expected game result.                 |
+| Effect Pool               | The complete working collection of unresolved Effects for the current Turn Resolution.                                   |
+| Phase                     | An engine-owned, ordered stage of Turn Resolution that determines when a category of Effects can resolve.                |
+| Target Slot               | One entry in an Action Definition's `targets` record, pairing a Target Tag with a Target Definition.                     |
+| Target Tag                | The key of a Target Slot, used to look up a selected target id in an Action Submission.                                  |
+| Target Role               | An Effect Definition's internal name for a target, mapped to an Action Definition's Target Tag.                          |
 
 ## Rules
 
@@ -64,16 +63,18 @@ Relates to:
 
 The rules boundary is:
 
-1. A Ruleset persists Action Definitions. Each definition contains the Action metadata (id, name, tier, etc.), its composed Mechanics, its source and input requirements, and its target slots.
+1. A Ruleset persists Action Definitions. Each definition contains the Action metadata (id, name, tier, etc.), its composed Effect Definitions, its source and input requirements, and its target slots.
 2. For each player and Turn, the server evaluates the current game state and produces Available Action Instances.
 3. The server provides each Available Action Instance and its Action Definition, including target slots. The client uses the player-visible game state to present target choices, including choices that depend on other selected targets. The server does not enumerate legal targets or target combinations.
 4. An Action Submission identifies the Available Action Instance and the player's selected source, inputs, and targets.
 5. The server validates the Action Submission when it is received and validates the locked submission again during Turn Resolution. Client-provided choices are never trusted as proof of legality.
-6. During Turn Resolution, each valid locked submission's composed Mechanics produce Effects for the Effect Pool.
+6. During Turn Resolution, each valid locked submission's composed Effect Definitions produce Effects for the Effect Pool.
+
+An Action Definition stores its configured Effect Definitions in `effects`. Resource-loss definitions used for payment are stored separately in `costs`; both fields produce runtime Effects.
 
 An Action Definition is reusable rules content. An Available Action Instance is a server-authorized opportunity to use that content in the current state. An Action Submission is the player's chosen use of that opportunity. Keeping these concepts separate allows multiple instances of the same definition while preserving server authority.
 
-Each Action Definition target slot pairs a tag with a Target Definition containing the target type and constraints. An Action Submission stores selected target IDs under those tags. A Mechanic names the targets it needs by role and maps each role to an Action Definition target tag; during resolution, the tag locates the selected ID. Several Mechanics can refer to the same slot, and one Mechanic can be configured to use different slots in different Actions.
+Each Action Definition target slot pairs a tag with a Target Definition containing the target type and constraints. An Action Submission stores selected target IDs under those tags. An Effect Definition names the targets it needs by role and maps each role to an Action Definition target tag; during resolution, the tag locates the selected ID. Several Effect Definitions can refer to the same slot, and one Effect Definition can be configured to use different slots in different Actions.
 
 Enumerating every valid combination would make payloads and server computation grow quickly for Actions with dependent targets, such as a Fleet and a destination Planet in its range. Client-side choices help the player make a submission; server validation remains authoritative.
 
@@ -106,11 +107,11 @@ The Phase sequence belongs to the Rules Engine and is the same for every Ruleset
 
 Phases are coarse ordering boundaries. Ticks are finer ordering steps used inside the Fleet Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
 
-Each Effect belongs to a Phase that will orchestrate its resolution. A Mechanic may create, modify, cancel, or make a later Effect invalid.
+Each Effect belongs to a Phase that orchestrates its resolution. An Effect may create, modify, cancel, or make a later Effect invalid.
 
 Random-seeming outcomes, such as selecting among tied candidates, use deterministic random values derived from persisted game data. The same Ruleset and game inputs therefore produce the same result.
 
-Pay Costs occurs before downstream Effects. A later cancellation or invalidation does not imply a refund: Influence and other Resource treatment follows [System 003-actions](./003-actions.md), [System 014-resources](./014-resources.md), and the relevant Action Definition. Actions that can receive refunds are done via using a refund Mechanic in their definition.
+Pay Costs occurs before downstream Effects. A later cancellation or invalidation does not imply a refund: Influence and other Resource treatment follows [System 003-actions](./003-actions.md), [System 014-resources](./014-resources.md), and the relevant Action Definition. Actions that can receive refunds are done via using a refund Effect Definition in their definition.
 
 After the final Phase, the Effect Pool must be empty. Remaining Effects indicate an invalid Ruleset, an unsupported interaction, or an engine defect. They must not be silently ignored.
 
@@ -124,8 +125,8 @@ An Effect resolution failure or an invalid locked Action Submission indicates an
 
 ## Potential Flaws
 
-- A reusable Mechanic vocabulary may struggle to express exceptional Actions without becoming too generic or complex.
+- A reusable Effect Definition vocabulary may struggle to express exceptional Actions without becoming too generic or complex.
 - Phase order and interactions between Effects can produce non-obvious outcomes unless Actions and Turn results explain them clearly.
 - Frontend target-choice logic can drift from server validation, especially when target slots depend on one another or on state the client cannot see. How to reuse this logic across frontend and backend under the current [code-sharing decision](../../architecture/decisions/007-code-sharing.md) remains unresolved.
-- Invalid combinations in Action Definitions or Mechanics can make an entire Ruleset unplayable without strong authoring-time and game-start validation.
+- Invalid combinations in Action Definitions or Effect Definitions can make an entire Ruleset unplayable without strong authoring-time and game-start validation.
 - Persisted Rulesets need durable versioning so engine changes do not alter or strand active games.

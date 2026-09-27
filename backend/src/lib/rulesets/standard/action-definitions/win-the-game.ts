@@ -1,9 +1,9 @@
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/actions/ActionDefinition.ts"
-import { ActionTier } from "#lib/rules-engine/ruleset/actions/ActionTier.ts"
-import { ActionType } from "#lib/rules-engine/ruleset/actions/ActionType.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
-import { VictoryMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/VictoryMechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
+import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
+import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
+import { VictoryEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/VictoryEffectDefinition.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 
 export const WinTheGame: ActionDefinition = {
   id: "WIN_THE_GAME",
@@ -12,22 +12,22 @@ export const WinTheGame: ActionDefinition = {
   tier: ActionTier.EXCEPTIONAL,
   targets: {},
   costs: [
-    ResourceLossMechanic.create({
+    ResourceLossEffectDefinition.create({
       quantity: 10,
       resourceType: ResourceType.INFLUENCE,
     }),
-    ResourceLossMechanic.create({
+    ResourceLossEffectDefinition.create({
       quantity: 5,
       resourceType: ResourceType.METAL,
     }),
-    ResourceLossMechanic.create({
+    ResourceLossEffectDefinition.create({
       quantity: 5,
       resourceType: ResourceType.ENERGY,
     }),
-    ResourceLossMechanic.create({
+    ResourceLossEffectDefinition.create({
       quantity: 5,
       resourceType: ResourceType.FUEL,
     }),
   ],
-  mechanics: [VictoryMechanic.create()],
+  effects: [VictoryEffectDefinition.create()],
 }

@@ -1,6 +1,6 @@
 import { AssertionError, branded } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { resolveTargetId, safeResolveTargetId } from "#lib/rules-engine/turn-resolution/effects/resolveTargetId.ts"
 
 describe("resolveTargetId", () => {

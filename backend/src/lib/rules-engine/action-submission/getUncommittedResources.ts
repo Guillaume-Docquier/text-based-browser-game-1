@@ -1,6 +1,6 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Action } from "#lib/rules-engine/action-submission/Action.ts"
-import type { Resources } from "#lib/rules-engine/ruleset/mechanics/Resources.ts"
+import type { Resources } from "#lib/rules-engine/ruleset/effect-definitions/Resources.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 
 /**

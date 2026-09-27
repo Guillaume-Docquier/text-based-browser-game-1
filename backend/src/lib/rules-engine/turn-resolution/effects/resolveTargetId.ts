@@ -3,8 +3,8 @@ import type { FleetId } from "#lib/db/fleets/FleetId.ts"
 import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
-import type { MechanicTargetDefinition } from "#lib/rules-engine/ruleset/mechanics/MechanicTargetDefinition.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import type { EffectDefinitionTargetDefinition } from "#lib/rules-engine/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 
 type TargetId<TTargetType extends TargetType> = {
   [TargetType.FLEET]: FleetId
@@ -19,11 +19,11 @@ type TargetId<TTargetType extends TargetType> = {
  */
 export function safeResolveTargetId<TTargetType extends TargetType>(
   selectedTargets: SelectedTargets,
-  targetDefinition: MechanicTargetDefinition<TTargetType>,
+  targetDefinition: EffectDefinitionTargetDefinition<TTargetType>,
 ): TargetId<TTargetType> | null
 export function safeResolveTargetId(
   selectedTargets: SelectedTargets,
-  targetDefinition: MechanicTargetDefinition,
+  targetDefinition: EffectDefinitionTargetDefinition,
 ): TargetId<TargetType> | null {
   const targetId = selectedTargets[targetDefinition.actionTargetTag]
   if (targetId === undefined) {
@@ -48,11 +48,11 @@ export function safeResolveTargetId(
  */
 export function resolveTargetId<TTargetType extends TargetType>(
   selectedTargets: SelectedTargets,
-  targetDefinition: MechanicTargetDefinition<TTargetType>,
+  targetDefinition: EffectDefinitionTargetDefinition<TTargetType>,
 ): TargetId<TTargetType>
 export function resolveTargetId(
   selectedTargets: SelectedTargets,
-  targetDefinition: MechanicTargetDefinition,
+  targetDefinition: EffectDefinitionTargetDefinition,
 ): PlanetId | FleetId | PlayerId {
   const targetId = safeResolveTargetId(selectedTargets, targetDefinition)
   // Assert is not allowed in rules-engine, but this one is okay because it is a program invariant. Targets must have been validated already and the lookup must be valid.

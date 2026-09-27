@@ -10,7 +10,7 @@ Branded and refined types let TypeScript distinguish values that share the same 
 
 We use Zod schemas to parse inputs and, for domain schemas, to enforce runtime constraints. Calling a schema's `parse` or `safeParse` method directly accepts an `unknown` input. When the caller already has a trusted, typed value, that API discards useful compile-time checking: a value with the wrong TypeScript type can reach the schema without a type error. Conversely, calling `branded()` directly is type-safe for the underlying primitive but performs no runtime validation, so it can bypass constraints such as integer or positive-number requirements.
 
-The backend provides `typedParse` and `safeTypedParse` in `backend/src/lib/validation/typedParse.ts`. They preserve the schema's input type at compile time while still running its runtime validation. This decision complements [ADR-013](013-use-results-and-never-throw.md), [ADR-015](015-zod-validation-must-be-type-representable.md), and [ADR-027](027-mechanic-schemas-validate-domain-data.md).
+The backend provides `typedParse` and `safeTypedParse` in `backend/src/lib/validation/typedParse.ts`. They preserve the schema's input type at compile time while still running its runtime validation. This decision complements [ADR-013](013-use-results-and-never-throw.md), [ADR-015](015-zod-validation-must-be-type-representable.md), and [ADR-027](027-effect-definition-schemas-validate-domain-data.md).
 
 ## Decision
 

@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
+import type { EffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/EffectDefinition.ts"
 import type { EffectError } from "#lib/rules-engine/turn-resolution/effects/EffectError.ts"
 import type { EffectJson } from "#lib/rules-engine/turn-resolution/effects/EffectJson.ts"
 import type { EffectOutcome } from "#lib/rules-engine/turn-resolution/effects/EffectOutcome.ts"
@@ -8,14 +8,14 @@ import type { TurnContext } from "#lib/rules-engine/turn-resolution/TurnContext.
 
 export abstract class Effect {
   public readonly id: number
-  public readonly type: Mechanic["type"]
+  public readonly type: EffectDefinition["type"]
 
   /**
    * The action submission this effect is for
    */
   public readonly submittedAction: SubmittedAction
 
-  protected constructor(id: number, type: Mechanic["type"], submittedAction: SubmittedAction) {
+  protected constructor(id: number, type: EffectDefinition["type"], submittedAction: SubmittedAction) {
     this.id = id
     this.type = type
     this.submittedAction = submittedAction

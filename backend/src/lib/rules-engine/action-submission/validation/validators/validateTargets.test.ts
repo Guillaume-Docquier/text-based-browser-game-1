@@ -5,14 +5,13 @@ import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateTargets } from "#lib/rules-engine/action-submission/validation/validators/validateTargets.ts"
-import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/actions/ActionDefinition.stub.ts"
-import type { TargetTag } from "#lib/rules-engine/ruleset/actions/TargetTag.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
-import { createResourcesStub } from "#lib/rules-engine/ruleset/mechanics/Resources.stub.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
+import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.stub.ts"
+import { FleetBuildEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset/effect-definitions/Resources.stub.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { createRulesetStub } from "#lib/rules-engine/ruleset/Ruleset.stub.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-constraints/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#lib/rules-engine/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 
 describe("validateTargets", () => {
@@ -87,7 +86,7 @@ describe("validateTargets", () => {
       targets: {
         planet: { targetType: TargetType.PLANET, constraints: [] },
       },
-      mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
+      effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 1 })],
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
@@ -229,46 +228,6 @@ describe("validateTargets", () => {
     )
   })
 
-  it("should report a constraint incompatible with a player target", () => {
-    // Arrange
-    const playerId = branded<PlayerId>("submitting-player")
-    const targetPlayerId = branded<PlayerId>("target-player")
-    // The invalid constraint must bypass the target schema to exercise the validator's defensive check.
-    const actionDefinition = {
-      ...createActionDefinitionStub(),
-      targets: {
-        [branded<TargetTag>("player")]: {
-          targetType: TargetType.PLAYER,
-          constraints: [OwnedBySubmittingPlayerConstraint.create()],
-        },
-      },
-    }
-    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
-    const submittedAction = createSubmittedActionStub({
-      actionDefinitionId: actionDefinition.id,
-      playerId,
-      selectedTargets: { player: targetPlayerId },
-    })
-    const turnState = createTurnStateStub({
-      players: indexBy("id", [{ id: targetPlayerId, resources: createResourcesStub() }]),
-    })
-
-    // Act
-    const result = validateTargets([submittedAction], ruleset, turnState)
-
-    // Assert
-    expect(result).toStrictEqual<typeof result>(
-      Result.Success([
-        {
-          issue: "A player cannot be owned, this constraint is invalid.",
-          submittedActionId: submittedAction.id,
-          actionDefinitionId: actionDefinition.id,
-          actionDefinitionName: actionDefinition.name,
-        },
-      ]),
-    )
-  })
-
   it.each([
     {
       targetType: TargetType.FLEET,
@@ -276,21 +235,14 @@ describe("validateTargets", () => {
       issue: 'Target selected for tag "target" references unknown Fleet id "unknown-fleet"',
     },
     { targetType: TargetType.PLANET, targetId: "123", issue: 'Target selected for tag "target" references unknown Planet id "123"' },
-    {
-      targetType: TargetType.PLAYER,
-      targetId: "unknown-player",
-      issue: 'Target selected for tag "target" references unknown Player id "unknown-player"',
-    },
   ])("should report an unknown $targetType target before evaluating its constraint", ({ targetType, targetId, issue }) => {
     // Arrange
     const playerId = branded<PlayerId>("submitting-player")
-    // PLAYER with this constraint is invalid schema input; the lookup should still fail first.
-    const actionDefinition = {
-      ...createActionDefinitionStub(),
+    const actionDefinition = createActionDefinitionStub({
       targets: {
-        [branded<TargetTag>("target")]: { targetType, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
+        target: { targetType, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
       },
-    }
+    })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,

@@ -3,15 +3,15 @@ import { describe, expect, it } from "vitest"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { createSubmittedActionStub } from "#lib/rules-engine/action-submission/Action.stub.ts"
 import { validateCosts } from "#lib/rules-engine/action-submission/validation/validators/validateCosts.ts"
-import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/actions/ActionDefinition.stub.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
-import { createResourcesStub } from "#lib/rules-engine/ruleset/mechanics/Resources.stub.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.stub.ts"
+import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset/effect-definitions/Resources.stub.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { createRulesetStub } from "#lib/rules-engine/ruleset/Ruleset.stub.ts"
 import { createTurnStateStub } from "#lib/rules-engine/turn-resolution/TurnState.stub.ts"
 
 const actionDefinition = createActionDefinitionStub({
-  costs: [ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE })],
+  costs: [ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE })],
 })
 
 const ruleset = createRulesetStub({
@@ -89,8 +89,8 @@ describe("validateCosts", () => {
     const playerId = branded<PlayerId>("player-id")
     const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
       costs: [
-        ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
-        ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
+        ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
+        ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
       ],
     })
     const rulesetWithMultipleCosts = createRulesetStub({
@@ -130,8 +130,8 @@ describe("validateCosts", () => {
     const playerId = branded<PlayerId>("player-id")
     const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
       costs: [
-        ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
-        ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
+        ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
+        ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
       ],
     })
     const rulesetWithMultipleCosts = createRulesetStub({
@@ -172,8 +172,8 @@ describe("validateCosts", () => {
     const playerId = branded<PlayerId>("player-id")
     const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
       costs: [
-        ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
-        ResourceLossMechanic.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
+        ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
+        ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
       ],
     })
     const rulesetWithMultipleCosts = createRulesetStub({

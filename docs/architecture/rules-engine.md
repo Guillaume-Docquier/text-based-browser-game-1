@@ -4,7 +4,7 @@ The Rules Engine is the persistence agnostic engine to resolve game turns.
 
 The Rules Engine works by converting Actions Submissions into their corresponding Effects that are resolved in Phases.
 
-The Actions are a data driven composition of Mechanics, where each Mechanic maps to an Effect during resolution. This allows creating (almost) any kind of Action for free as long as they use existing Mechanics.
+Actions compose Effect Definitions stored in the Ruleset. During Turn Resolution, each Effect Definition creates an Effect. This allows Actions to reuse supported behavior.
 
 Because the Rules Engine is data driven and persistence agnostic, we could play games entirely offline, in the terminal, for example. We had a version of this, but it was cumbersome to maintain, and we're very well-equipped to test this easily via unit tests, router tests and playwright tests.
 
@@ -14,15 +14,25 @@ Because the Rules Engine is data driven and persistence agnostic, we could play 
 
 The Rules Engine defines clear models to define Actions. The Ruleset and its Actions are entirely data driven.
 
-The Rules Engine owns the Ruleset model, the supported Mechanics and the Phase ordering and Effect resolution.
+The Rules Engine owns the Ruleset model, the supported Effect Definitions and the Phase ordering and Effect resolution.
 
-This means that creating Actions and balancing the game is nearly free, and multiple concurrent games can use different Rulesets. Adding mechanics is also quite easy.
+This means that creating Actions and balancing the game is nearly free, and multiple concurrent games can use different Rulesets. Adding effect definitions is also quite easy.
 
-However, it also means that removing Mechanics entirely or changing how Effects are resolved is a breaking change that should be reviewed carefully. At a later stage, we will probably have to introduce engine versioning to support multiple engines.
+However, it also means that removing Effect Definitions entirely or changing how Effects are resolved is a breaking change that should be reviewed carefully. At a later stage, we will probably have to introduce engine versioning to support multiple engines.
 
 When we support multiple engines, we will probably prevent games from starting with old engine versions so that we can get rid of the code once all games running on that version are over. It's also possible that we keep multiple engines, but we'd highly prefer supporting a single engine and many Rulesets than supporting many engines.
 
-![Ruleset model to runtime Effects](../../.github/images/rules-engine-data-model.png)
+```mermaid
+flowchart LR
+  subgraph Ruleset
+    AD[Action Definition] --> C[Cost Effect Definitions]
+    AD --> D[Effect Definitions]
+  end
+  C --> Create[Create Effects]
+  D --> Create
+  S[Action Submission with selected targets] --> Create
+  Create --> E[Effects] --> P[Effect Pool] --> R[Resolve in Phases] --> O[Effect Outcomes] --> A[Resolved Action]
+```
 
 ## Determinism
 

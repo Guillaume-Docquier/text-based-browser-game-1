@@ -31,7 +31,7 @@ import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
 /**

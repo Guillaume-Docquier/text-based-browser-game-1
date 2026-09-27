@@ -1,25 +1,26 @@
-import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
+import { type DeepUnbranded, indexBy, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/actions/ActionDefinition.stub.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
-import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceGainMechanic.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/mechanics/ResourceType.ts"
-import { TargetType } from "#lib/rules-engine/ruleset/mechanics/TargetType.ts"
-import { createRulesetStub } from "#lib/rules-engine/ruleset/Ruleset.stub.ts"
+import { createActionDefinitionStub } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.stub.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import { FleetBuildEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
+import { ResourceGainEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
+import { createResourcesStub } from "#lib/rules-engine/ruleset/effect-definitions/Resources.stub.ts"
+import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
+import { TargetType } from "#lib/rules-engine/ruleset/effect-definitions/TargetType.ts"
 import { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 
 const validActionDefinition = createActionDefinitionStub({
   id: "VALID_ACTION",
   name: "Valid Action",
   costs: [
-    ResourceLossMechanic.create({
+    ResourceLossEffectDefinition.create({
       quantity: 2,
       resourceType: ResourceType.INFLUENCE,
     }),
   ],
-  mechanics: [
-    ResourceGainMechanic.create({
+  effects: [
+    ResourceGainEffectDefinition.create({
       quantity: 5,
       resourceType: ResourceType.INFLUENCE,
     }),
@@ -29,9 +30,13 @@ const validActionDefinition = createActionDefinitionStub({
 describe("Ruleset.safeCreate", () => {
   it("should validate a Ruleset with correctly indexed Action Definitions and all required target slots", () => {
     // Arrange
-    const ruleset = createRulesetStub({
+    const ruleset: DeepUnbranded<Ruleset> = {
+      id: "test-ruleset",
+      name: "Test Ruleset",
+      isDefault: false,
       actionDefinitions: indexBy("id", [validActionDefinition]),
-    })
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)
@@ -42,9 +47,13 @@ describe("Ruleset.safeCreate", () => {
 
   it("should report an Action Definition indexed under an id other than its own", () => {
     // Arrange
-    const ruleset = createRulesetStub({
+    const ruleset: DeepUnbranded<Ruleset> = {
+      id: "test-ruleset",
+      name: "Test Ruleset",
+      isDefault: false,
       actionDefinitions: { "incorrect-index": validActionDefinition },
-    })
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)
@@ -57,14 +66,19 @@ describe("Ruleset.safeCreate", () => {
     )
   })
 
-  it("should report a target slot required by a Mechanic but missing from its Action Definition", () => {
+  it("should report a target slot required by a EffectDefinition but missing from its Action Definition", () => {
     // Arrange
-    const actionDefinition = createActionDefinitionStub({
-      mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
-    })
-    const ruleset = createRulesetStub({
+    const actionDefinition: DeepUnbranded<ActionDefinition> = {
+      ...validActionDefinition,
+      effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 1 })],
+    }
+    const ruleset: DeepUnbranded<Ruleset> = {
+      id: "test-ruleset",
+      name: "Test Ruleset",
+      isDefault: false,
       actionDefinitions: indexBy("id", [actionDefinition]),
-    })
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)
@@ -72,20 +86,25 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(
       Result.Failure([
-        `Action Definition "${actionDefinition.name}" is missing target slot tagged "planet" required by the "${FleetBuildMechanic.type}" mechanic`,
+        `Action Definition "${actionDefinition.name}" is missing target slot tagged "planet" required by the "${FleetBuildEffectDefinition.type}" effect definition`,
       ]),
     )
   })
 
   it("should report an Action Definition target slot with an incompatible type", () => {
     // Arrange
-    const actionDefinition = createActionDefinitionStub({
+    const actionDefinition: DeepUnbranded<ActionDefinition> = {
+      ...validActionDefinition,
       targets: { planet: { targetType: TargetType.FLEET, constraints: [] } },
-      mechanics: [FleetBuildMechanic.create({ planetTag: "planet", strength: 1 })],
-    })
-    const ruleset = createRulesetStub({
+      effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 1 })],
+    }
+    const ruleset: DeepUnbranded<Ruleset> = {
+      id: "test-ruleset",
+      name: "Test Ruleset",
+      isDefault: false,
       actionDefinitions: indexBy("id", [actionDefinition]),
-    })
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)
@@ -93,38 +112,41 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(
       Result.Failure([
-        `Action Definition "${actionDefinition.name}" target slot tagged "planet" has type "FLEET", but the "FLEET_BUILD" mechanic requires "PLANET"`,
+        `Action Definition "${actionDefinition.name}" target slot tagged "planet" has type "FLEET", but the "FLEET_BUILD" effect definition requires "PLANET"`,
       ]),
     )
   })
 
-  it.each([0, -1])("should report a non-positive fleet strength", (strength) => {
+  it.each([0, -1])("should report a non-positive fleet strength", (invalidStrength) => {
     // Arrange
-    const ruleset = createRulesetStub({
-      actionDefinitions: indexBy("id", [
-        createActionDefinitionStub({
+    const actionDefinition: DeepUnbranded<ActionDefinition> = {
+      ...validActionDefinition,
+      id: "TEST_ACTION",
+      targets: {
+        planet: { targetType: TargetType.PLANET, constraints: [] },
+      },
+      effects: [
+        {
+          type: FleetBuildEffectDefinition.type,
           targets: {
-            planet: { targetType: TargetType.PLANET, constraints: [] },
-          },
-          mechanics: [
-            {
-              type: FleetBuildMechanic.type,
-              targets: {
-                planet: {
-                  actionTargetTag: branded("planet"),
-                  targetType: TargetType.PLANET,
-                },
-              },
-              parameters: {
-                // intentionally using `branded` and hand rolled json instead of the mechanic factory because the factory validates the payload
-                // right now it makes no sense, but later on we'll parse raw json too
-                strength: branded(strength),
-              },
+            planet: {
+              actionTargetTag: "planet",
+              targetType: TargetType.PLANET,
             },
-          ],
-        }),
-      ]),
-    })
+          },
+          parameters: {
+            strength: invalidStrength,
+          },
+        },
+      ],
+    }
+    const ruleset: DeepUnbranded<Ruleset> = {
+      id: "test-ruleset",
+      name: "Test Ruleset",
+      isDefault: false,
+      actionDefinitions: indexBy("id", [actionDefinition]),
+      startingResources: createResourcesStub(),
+    }
 
     // Act
     const result = Ruleset.safeCreate(ruleset)
@@ -132,7 +154,7 @@ describe("Ruleset.safeCreate", () => {
     // Assert
     expect(result).toStrictEqual(Result.Failure([expect.stringContaining("Too small: expected number to be >0")]))
     expect(result).toStrictEqual(
-      Result.Failure([expect.stringContaining("at actionDefinitions.TEST_ACTION.mechanics[0].parameters.strength")]),
+      Result.Failure([expect.stringContaining("at actionDefinitions.TEST_ACTION.effects[0].parameters.strength")]),
     )
   })
 })

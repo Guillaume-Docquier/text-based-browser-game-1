@@ -1,10 +1,10 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import { FleetBuildMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/FleetBuildMechanic.ts"
-import { ResourceGainMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceGainMechanic.ts"
-import { ResourceLossMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/ResourceLossMechanic.ts"
-import { VictoryMechanic } from "#lib/rules-engine/ruleset/mechanics/implementations/VictoryMechanic.ts"
-import type { Mechanic } from "#lib/rules-engine/ruleset/mechanics/Mechanic.ts"
+import type { EffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/EffectDefinition.ts"
+import { FleetBuildEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
+import { ResourceGainEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
+import { VictoryEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/VictoryEffectDefinition.ts"
 import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 import type { Effect } from "#lib/rules-engine/turn-resolution/effects/Effect.ts"
 import { FleetBuildEffect } from "#lib/rules-engine/turn-resolution/effects/implementations/FleetBuildEffect.ts"
@@ -21,23 +21,25 @@ export const EffectFactory = {
     const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
     Assert.isDefined(actionDefinition)
 
-    const mechanics = [...actionDefinition.costs, ...actionDefinition.mechanics]
+    const effectDefinitions = [...actionDefinition.costs, ...actionDefinition.effects]
 
-    return mechanics.map((mechanic) => EffectFactory.fromMechanic(monotonicIdFactory(), mechanic, submittedAction))
+    return effectDefinitions.map((effectDefinition) =>
+      EffectFactory.fromEffectDefinition(monotonicIdFactory(), effectDefinition, submittedAction),
+    )
   },
   /**
-   * Creates an effect for a mechanic
+   * Creates an effect from an effect definition.
    */
-  fromMechanic: (id: number, mechanic: Mechanic, submittedAction: SubmittedAction): Effect => {
-    switch (mechanic.type) {
-      case ResourceLossMechanic.type:
-        return new ResourceLossEffect(id, mechanic, submittedAction)
-      case ResourceGainMechanic.type:
-        return new ResourceGainEffect(id, mechanic, submittedAction)
-      case VictoryMechanic.type:
-        return new VictoryEffect(id, mechanic, submittedAction)
-      case FleetBuildMechanic.type:
-        return new FleetBuildEffect(id, mechanic, submittedAction)
+  fromEffectDefinition: (id: number, effectDefinition: EffectDefinition, submittedAction: SubmittedAction): Effect => {
+    switch (effectDefinition.type) {
+      case ResourceLossEffectDefinition.type:
+        return new ResourceLossEffect(id, effectDefinition, submittedAction)
+      case ResourceGainEffectDefinition.type:
+        return new ResourceGainEffect(id, effectDefinition, submittedAction)
+      case VictoryEffectDefinition.type:
+        return new VictoryEffect(id, effectDefinition, submittedAction)
+      case FleetBuildEffectDefinition.type:
+        return new FleetBuildEffect(id, effectDefinition, submittedAction)
     }
   },
 }
