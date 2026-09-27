@@ -44,7 +44,7 @@ On native Windows in the Codex sandbox, do not run the aggregate `pnpm --filter 
 - Poll the running terminal session for output. A quiet interval alone does not mean the test is stalled; use the latest test or step, timeout, and diagnostics before interrupting it.
 - Structure tests with descriptive `test.step()` blocks reflecting user behavior. Do not use AAA sections.
 - Page objects own selectors, reusable interactions, and routes. Tests use intent-revealing methods such as `page.navbar.signOut()`; navigation methods return the destination page object.
-- Follow the [Playwright page-object conventions](playwright/README.md), including parameterized action selection instead of methods for individual Actions.
+- Follow the [Playwright page-object conventions](playwright/AGENTS.md), including parameterized action selection instead of methods for individual Actions.
 - Put reusable page-specific actions on the corresponding page object. Do not create `utils` or `helpers` directories for behavior that belongs to a page; use a precisely named shared module only for behavior that genuinely spans pages.
 - Use component objects for cohesive shared UI, not individual elements.
 - Expose semantic locators for assertions only. Tests must not interact with locators directly; add a page-object method instead.
