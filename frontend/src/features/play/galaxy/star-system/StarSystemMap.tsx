@@ -8,7 +8,7 @@ import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 const CENTER = 500
 const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
-const STAR_RADIUS = 30
+const STAR_RADIUS = 45
 const INNER_ORBIT_RADIUS = 90
 const ORBIT_SPACING = 70
 // Generated orbital slots are 5 AU apart; preserve unoccupied slots in the display.
@@ -16,9 +16,9 @@ const ORBIT_SPACING_AU = 5
 // Room outside the outermost body for owner labels, fleets, and hover effects.
 const VIEW_PADDING = 50
 const PLANET_RADII = {
-  SMALL: 20,
-  MEDIUM: 25,
-  LARGE: 30,
+  SMALL: 25,
+  MEDIUM: 30,
+  LARGE: 35,
 } as const satisfies Record<PlanetSize, number>
 
 type PlanetViewModel = PlanetModel & {
