@@ -1,0 +1,16 @@
+{
+  "name": "shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./runtimeMarker": "./src/runtimeMarker.ts"
+  },
+  "scripts": {
+    "checks": "pnpm typecheck",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

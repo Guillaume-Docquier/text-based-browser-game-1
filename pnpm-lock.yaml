@@ -241,6 +241,9 @@ importers:
       pg:
         specifier: ^8.23.0
         version: 8.23.0
+      shared:
+        specifier: workspace:*
+        version: link:../shared
       transformation-matrix:
         specifier: ^3.1.0
         version: 3.1.0
@@ -347,6 +350,9 @@ importers:
       shadcn:
         specifier: ^4.21.0
         version: 4.21.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(typescript@7.0.2)
+      shared:
+        specifier: workspace:*
+        version: link:../shared
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
@@ -408,6 +414,12 @@ importers:
       vite:
         specifier: ^8.3.0
         version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
+
+  shared:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
 
 packages:
 
