@@ -1,9 +1,9 @@
 import type * as ApiTypes from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
 import { Navigate, useNavigate } from "@tanstack/react-router"
-import type { ReactElement } from "react"
+import type { ReactElement, ReactNode } from "react"
 import { Button } from "@/components/button.tsx"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/card.tsx"
+import { Card, CardContent } from "@/components/card.tsx"
 import { Separator } from "@/components/separator.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
@@ -37,26 +37,21 @@ export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement
 }
 
 function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
-  const navigate = useNavigate()
-  const joinGame = useJoinGameMutation()
-  const leaveGame = useLeaveGameMutation()
-  const startGame = useStartGameMutation()
-
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={game.configuration.name} actions={<GameStatusBadge status={game.status} />} />
+      <PageHeader title={game.configuration.name} />
       <Card className="border border-border/60">
-        <CardHeader>
-          <CardTitle>Lobby details</CardTitle>
-        </CardHeader>
         <CardContent className="flex flex-col gap-6">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <DetailBlock label="Creator" value={game.creator.alias} />
-            <DetailBlock label="Created" value={timeAgo(game.createdAt)} />
-            {game.winnerAccountId !== null ? (
-              <DetailBlock label="Winner" value={getWinnerLabel(branded(game.winnerAccountId), game)} />
-            ) : null}
+            <DetailBlock label="Created at" value={timeAgo(game.createdAt)} />
+            <DetailBlock label="Status" value={<GameStatusBadge status={game.status} />} />
           </div>
+          <GameConfiguration configuration={game.configuration} />
+          {game.winnerAccountId !== null ? (
+            <DetailBlock label="Winner" value={getWinnerLabel(branded(game.winnerAccountId), game)} />
+          ) : null}
+          <LobbyActions game={game} />
           <Separator />
           <div className="space-y-3">
             <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
@@ -70,80 +65,81 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
           </div>
         </CardContent>
       </Card>
-      <GameConfiguration configuration={game.configuration} />
-      <div className="flex flex-wrap gap-3">
-        {game.canJoin && (
-          <Button
-            disabled={joinGame.isPending}
-            onClick={() => {
-              joinGame.mutate({ gameId: game.id })
-            }}
-          >
-            Join game
-          </Button>
-        )}
-        {game.canLeave && (
-          <Button
-            variant="outline"
-            disabled={leaveGame.isPending}
-            onClick={() => {
-              leaveGame.mutate({ gameId: game.id })
-            }}
-          >
-            Leave game
-          </Button>
-        )}
-        {game.canStart && (
-          <Button
-            disabled={startGame.isPending}
-            onClick={() => {
-              startGame.mutate(
-                { gameId: game.id },
-                {
-                  onSuccess: () => {
-                    void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
-                  },
+    </div>
+  )
+}
+
+function LobbyActions({ game }: { game: ApiTypes.Lobby }): ReactElement {
+  const navigate = useNavigate()
+  const joinGame = useJoinGameMutation()
+  const leaveGame = useLeaveGameMutation()
+  const startGame = useStartGameMutation()
+
+  return (
+    <div className="flex flex-wrap gap-3">
+      {game.canJoin && (
+        <Button
+          disabled={joinGame.isPending}
+          onClick={() => {
+            joinGame.mutate({ gameId: game.id })
+          }}
+        >
+          Join game
+        </Button>
+      )}
+      {game.canLeave && (
+        <Button
+          variant="outline"
+          disabled={leaveGame.isPending}
+          onClick={() => {
+            leaveGame.mutate({ gameId: game.id })
+          }}
+        >
+          Leave game
+        </Button>
+      )}
+      {game.canStart && (
+        <Button
+          disabled={startGame.isPending}
+          onClick={() => {
+            startGame.mutate(
+              { gameId: game.id },
+              {
+                onSuccess: () => {
+                  void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
                 },
-              )
-            }}
-          >
-            Start game
-          </Button>
-        )}
-        {game.canOpen && (
-          <Button
-            variant="secondary"
-            disabled={startGame.isPending}
-            onClick={() => {
-              void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
-            }}
-          >
-            Open game
-          </Button>
-        )}
-      </div>
+              },
+            )
+          }}
+        >
+          Start game
+        </Button>
+      )}
+      {game.canOpen && (
+        <Button
+          disabled={startGame.isPending}
+          onClick={() => {
+            void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
+          }}
+        >
+          Open game
+        </Button>
+      )}
     </div>
   )
 }
 
 function GameConfiguration({ configuration }: { configuration: ApiTypes.Lobby["configuration"] }): ReactElement {
   return (
-    <Card className="border border-border/60">
-      <CardHeader>
-        <CardTitle>Game configuration</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
-          <DetailBlock label="Time per turn" value={formatTurnInterval(configuration.turnIntervalSeconds)} />
-          <DetailBlock label="Ruleset" value={configuration.ruleset.name} />
-        </div>
-      </CardContent>
-    </Card>
+    <div className="grid gap-4 md:grid-cols-3">
+      <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
+      <DetailBlock label="Time per turn" value={formatTurnInterval(configuration.turnIntervalSeconds)} />
+      <DetailBlock label="Ruleset" value={configuration.ruleset.name} />
+    </div>
   )
 }
 
-function DetailBlock({ label, value }: { label: string; value: string }): ReactElement {
+function DetailBlock({ label, value }: { label: string; value: ReactNode }): ReactElement {
   return (
     <div className="space-y-1">
       <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">{label}</div>
@@ -173,27 +169,25 @@ function Player({ player }: { player: ApiTypes.LobbyPlayer }): ReactElement {
 function LobbyLoadingState(): ReactElement {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <PageHeader
-        title="Loading game"
-        description="Fetching lobby details and available actions."
-        actions={<Skeleton className="h-6 w-28 rounded-full" />}
-      />
+      <PageHeader title="Loading game" description="Fetching lobby details and available actions." />
       <Card className="border border-border/60">
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-80 max-w-full" />
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <Skeleton className="h-20 w-full" />
+        <CardContent className="flex flex-col gap-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+          <Skeleton className="h-9 w-24 rounded-4xl" />
           <Skeleton className="h-px w-full" />
           <Skeleton className="h-14 w-full" />
           <Skeleton className="h-14 w-full" />
         </CardContent>
       </Card>
-      <div className="flex gap-3">
-        <Skeleton className="h-9 w-24 rounded-4xl" />
-        <Skeleton className="h-9 w-24 rounded-4xl" />
-      </div>
     </div>
   )
 }
