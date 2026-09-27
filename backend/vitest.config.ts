@@ -1,9 +1,5 @@
 import { defineConfig } from "vitest/config"
 
-const integrationTestsInclude = ["src/**/*.router.test.ts", "src/**/*.middleware.test.ts", "src/**/TurnProcessor.test.ts"]
-const concurrencyTestsInclude = ["src/**/*.concurrency.test.ts"]
-const unitTestsInclude = ["src/**/*.test.ts", "scripts/**/*.test.ts"]
-
 export default defineConfig({
   test: {
     coverage: {
@@ -21,17 +17,14 @@ export default defineConfig({
         // unit tests are lightweight and fast
         test: {
           name: { label: "unit", color: "green" },
-          include: unitTestsInclude,
-          // I would do something like .unit.test.ts and .integration.test.ts without exclude
-          // However, this breaks WebStorm's "Go to test" and it cannot be configured...
-          exclude: [...integrationTestsInclude, ...concurrencyTestsInclude],
+          include: ["**/*.unit.test.ts"],
         },
       },
       {
         // integration tests use in-memory db
         test: {
           name: { label: "integration", color: "cyan" },
-          include: integrationTestsInclude,
+          include: ["**/*.integration.test.ts"],
           setupFiles: ["./src/tests/vitest.integration.setup.ts"],
           testTimeout: 10_000, // slow in CI
         },
@@ -40,7 +33,7 @@ export default defineConfig({
         // concurrency tests use a real postgres database via testcontainers
         test: {
           name: { label: "concurrency", color: "magenta" },
-          include: concurrencyTestsInclude,
+          include: ["**/*.concurrency.test.ts"],
           setupFiles: ["./src/tests/vitest.concurrency.setup.ts"],
           testTimeout: 30_000, // slow in CI
         },
