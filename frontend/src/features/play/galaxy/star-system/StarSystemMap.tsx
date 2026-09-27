@@ -7,13 +7,15 @@ import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 const CENTER = 500
 const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
-const STAR_RADIUS = 18
+const STAR_RADIUS = 30
 const INNER_ORBIT_RADIUS = 90
-const OUTER_ORBIT_RADIUS = 420
+const ORBIT_SPACING = 70
+// Room outside the outermost body for owner labels, fleets, and hover effects.
+const VIEW_PADDING = 50
 const PLANET_RADII = {
-  SMALL: 12,
-  MEDIUM: 15,
-  LARGE: 18,
+  SMALL: 20,
+  MEDIUM: 25,
+  LARGE: 30,
 } as const satisfies Record<PlanetSize, number>
 
 type PlanetViewModel = PlanetModel & {
@@ -50,6 +52,8 @@ export function StarSystemMap({
 }): ReactElement {
   const panZoom = useMapPanZoom({ resetSignal, viewportCenter: VIEWPORT_CENTER })
   const planets = toPlanetViewModels(system)
+  const outerOrbitRadius = planets.at(-1)?.orbitRadius ?? 0
+  const viewRadius = outerOrbitRadius + VIEW_PADDING
 
   function selectGalaxy(): void {
     panZoom.centerOn(VIEWPORT_CENTER, { onCentered: onSelectGalaxy })
@@ -61,8 +65,8 @@ export function StarSystemMap({
       aria-label={`${system.star.name} Star System map`}
       aria-busy={panZoom.isCentering}
       role="group"
-      viewBox="0 0 1000 1000"
-      className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"} ${
+      viewBox={`${CENTER - viewRadius} ${CENTER - viewRadius} ${viewRadius * 2} ${viewRadius * 2}`}
+      className={`size-full touch-none bg-[#05080f] select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"} ${
         panZoom.isCentering ? "pointer-events-none" : ""
       }`}
       onPointerCancel={panZoom.onPointerCancel}
@@ -83,7 +87,6 @@ export function StarSystemMap({
         style={panZoom.isCentering ? { transitionDuration: `${panZoom.centeringDurationMs}ms` } : undefined}
         onTransitionEnd={panZoom.onTransformTransitionEnd}
       >
-        <rect width="1000" height="1000" fill="#05080f" />
         {planets.map((planet) => (
           <OccupiedOrbit key={`orbit-${planet.id}`} radius={planet.orbitRadius} />
         ))}
@@ -307,26 +310,21 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
   const planetsByOrbit = system.planets
     .map((planet) => ({
       planet,
-      offsetX: planet.x - system.star.x,
-      offsetY: planet.y - system.star.y,
+      angle: Math.atan2(planet.y - system.star.y, planet.x - system.star.x),
       distance: Math.hypot(planet.x - system.star.x, planet.y - system.star.y),
     }))
     .toSorted((firstPlanet, secondPlanet) => firstPlanet.distance - secondPlanet.distance)
-  const orbitSpacing = planetsByOrbit.length <= 1 ? 0 : (OUTER_ORBIT_RADIUS - INNER_ORBIT_RADIUS) / (planetsByOrbit.length - 1)
-  // Leave space between adjacent planets even when both are enlarged by the hover/focus scale of 1.25.
-  const radiusScale = orbitSpacing === 0 ? 1 : Math.min(1, (orbitSpacing * 0.9) / (2 * 1.25 * PLANET_RADII.LARGE))
 
-  return planetsByOrbit.map(({ planet, offsetX, offsetY, distance }, index) => {
-    const orbitRadius = INNER_ORBIT_RADIUS + orbitSpacing * index
-    const directionScale = distance === 0 ? 0 : orbitRadius / distance
+  return planetsByOrbit.map(({ planet, angle }, index) => {
+    const orbitRadius = INNER_ORBIT_RADIUS + ORBIT_SPACING * index
 
     return {
       ...planet,
-      radius: PLANET_RADII[planet.size] * radiusScale,
+      radius: PLANET_RADII[planet.size],
       color: PLANET_BIOME_COLORS[planet.biome],
       orbitRadius,
-      x: CENTER + offsetX * directionScale,
-      y: CENTER + offsetY * directionScale,
+      x: CENTER + Math.cos(angle) * orbitRadius,
+      y: CENTER + Math.sin(angle) * orbitRadius,
     }
   })
 }
