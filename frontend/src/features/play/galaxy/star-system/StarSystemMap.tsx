@@ -3,6 +3,7 @@ import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.tsx"
 import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/star-system/planetBiomeColors.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
+import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 const CENTER = 500
 const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
@@ -10,9 +11,9 @@ const STAR_RADIUS = 18
 const INNER_ORBIT_RADIUS = 90
 const OUTER_ORBIT_RADIUS = 420
 const PLANET_RADII = {
-  SMALL: STAR_RADIUS / 4,
-  MEDIUM: STAR_RADIUS / 2,
-  LARGE: STAR_RADIUS / 1.25,
+  SMALL: 12,
+  MEDIUM: 15,
+  LARGE: 18,
 } as const satisfies Record<PlanetSize, number>
 
 type PlanetViewModel = PlanetModel & {
@@ -181,6 +182,9 @@ function Planet({
   ownerName: string | undefined
   onSelect: (planet: PlanetModel) => void
 }): ReactElement {
+  const owner = players.find(({ id }) => id === planet.ownerPlayerId)
+  const ownerColor = owner === undefined ? "#e5edf6" : PLAYER_COLOR_HEX[owner.color]
+
   function selectPlanet(event: MouseEvent<SVGGElement>): void {
     event.stopPropagation()
     onSelect(planet)
@@ -217,8 +221,8 @@ function Planet({
         data-size={planet.size}
         className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-focus/planet:scale-125"
       />
-      <PlanetLabel planet={planet} ownerName={ownerName} />
-      <FleetMarkers x={planet.x} y={planet.y + planet.radius + (ownerName === undefined ? 54 : 74)} fleets={fleets} players={players} />
+      <PlanetLabel planet={planet} ownerName={ownerName} ownerColor={ownerColor} />
+      <FleetMarkers x={planet.x} y={planet.y + planet.radius + 30} fleets={fleets} players={players} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible planet. */}
       <circle
         cx={planet.x}
@@ -233,27 +237,30 @@ function Planet({
   )
 }
 
-function PlanetLabel({ planet, ownerName }: { planet: PlanetViewModel; ownerName: string | undefined }): ReactElement {
+function PlanetLabel({
+  planet,
+  ownerName,
+  ownerColor,
+}: {
+  planet: PlanetViewModel
+  ownerName: string | undefined
+  ownerColor: string
+}): ReactElement {
   return (
     <text
       x={planet.x}
-      y={planet.y + planet.radius + 24}
+      y={planet.y + planet.radius + 12}
       textAnchor="middle"
       dominantBaseline="hanging"
-      fill="#e5edf6"
-      fontSize="14"
-      fontWeight="500"
+      fill={ownerName === undefined ? "#94a3b8" : ownerColor}
+      fontSize="16"
+      fontWeight={ownerName === undefined ? "400" : "600"}
       paintOrder="stroke"
       stroke="#05080f"
       strokeWidth="4"
       strokeLinejoin="round"
     >
-      <tspan x={planet.x}>{planet.name}</tspan>
-      {ownerName === undefined ? null : (
-        <tspan x={planet.x} dy="20" fill="#94a3b8" fontSize="12" fontWeight="400">
-          {ownerName}
-        </tspan>
-      )}
+      {ownerName ?? "Unclaimed"}
     </text>
   )
 }
@@ -306,6 +313,8 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
     }))
     .toSorted((firstPlanet, secondPlanet) => firstPlanet.distance - secondPlanet.distance)
   const orbitSpacing = planetsByOrbit.length <= 1 ? 0 : (OUTER_ORBIT_RADIUS - INNER_ORBIT_RADIUS) / (planetsByOrbit.length - 1)
+  // Leave space between adjacent planets even when both are enlarged by the hover/focus scale of 1.25.
+  const radiusScale = orbitSpacing === 0 ? 1 : Math.min(1, (orbitSpacing * 0.9) / (2 * 1.25 * PLANET_RADII.LARGE))
 
   return planetsByOrbit.map(({ planet, offsetX, offsetY, distance }, index) => {
     const orbitRadius = INNER_ORBIT_RADIUS + orbitSpacing * index
@@ -313,7 +322,7 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
 
     return {
       ...planet,
-      radius: PLANET_RADII[planet.size],
+      radius: PLANET_RADII[planet.size] * radiusScale,
       color: PLANET_BIOME_COLORS[planet.biome],
       orbitRadius,
       x: CENTER + offsetX * directionScale,

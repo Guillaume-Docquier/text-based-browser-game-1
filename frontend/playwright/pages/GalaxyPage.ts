@@ -135,14 +135,15 @@ export class GalaxyPage extends GamePage {
   }
 
   public async getPlanetName(planet: Locator): Promise<string> {
-    const name = await planet.locator("text > tspan").nth(0).textContent()
+    const label = await planet.getAttribute("aria-label")
+    const name = label?.match(/^View (.+) details(?:, owned by .+)?$/)?.[1]
     Assert.isDefined(name)
 
     return name
   }
 
-  public planetOwnerName(planet: Locator): Locator {
-    return planet.locator("text > tspan").nth(1)
+  public planetOwnershipLabel(planet: Locator): Locator {
+    return planet.locator(":scope > text")
   }
 
   public fleetMarkersOnPlanet(planet: Locator): Locator {

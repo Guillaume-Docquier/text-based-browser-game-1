@@ -29,12 +29,12 @@ test("the galaxy view distinguishes systems with claimed planets and system view
     await expect(bobGalaxyPage.sharedStars).toHaveCount(0)
   })
 
-  await test.step("Show the owner name only beneath claimed Planets", async () => {
+  await test.step("Label Planets with their owner or Unclaimed", async () => {
     await aliceGalaxyPage.openStarSystem(aliceGalaxyPage.ownStars.first())
     await expect(aliceGalaxyPage.ownedPlanets).toHaveCount(1)
-    await expect(aliceGalaxyPage.planetOwnerName(aliceGalaxyPage.ownedPlanets.first())).toHaveText(/.+/)
+    await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.ownedPlanets.first())).toHaveText(alice.alias)
     await expect(aliceGalaxyPage.unclaimedPlanets).not.toHaveCount(0)
-    await expect(aliceGalaxyPage.planetOwnerName(aliceGalaxyPage.unclaimedPlanets.first())).toHaveCount(0)
+    await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.unclaimedPlanets.first())).toHaveText("Unclaimed")
   })
 })
 
