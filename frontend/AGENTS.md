@@ -13,6 +13,13 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 | `.storybook`     | Storybook configuration. Stories live next to their components.                     |
 | `playwright`     | End-to-end tests using page objects and Clerk authentication.                       |
 
+## Backend API Types
+
+- Import named backend contract types from `@api-types`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
+- When a needed contract type is missing, add a named export in `backend/src/api/types.ts` derived from the tRPC router output (`inferRouterOutputs<TrpcRouter>`). Derive nested types there as well, so the frontend uses the actual API output type despite Zod inference quirks.
+- Do not re-export backend DTO, model, or schema-inferred types as frontend contracts. Direct re-exports are reserved for simple branded scalar types, such as IDs and `TargetTag`.
+- Frontend-only types for component state, rendering, and interactions may remain in the frontend. See ADR-022 for the API contract boundary.
+
 ## Commands
 
 - `pnpm --filter frontend e2e`: run local end-to-end tests.

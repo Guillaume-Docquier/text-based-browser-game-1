@@ -15,6 +15,7 @@ export type { PlayerId } from "#lib/db/players/PlayerId.ts"
 export type { AccountId } from "#lib/db/accounts/AccountId.ts"
 export type { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 export type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
+export type { TargetTag } from "#lib/rules-engine/ruleset/action-definitions/TargetTag.ts"
 
 // Lobbies
 export type Lobby = TrpcRouterOutput["lobbies"]["getById"]

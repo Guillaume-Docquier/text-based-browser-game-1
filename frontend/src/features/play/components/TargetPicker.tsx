@@ -1,4 +1,4 @@
-import type { Action, ActionDefinition, Lobby, Planet, PlayerId, PlayerView } from "@api-types"
+import type { Action, ActionDefinition, Lobby, LobbyPlayer, Planet, PlayerId, PlayerView } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { ReactElement } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
@@ -47,7 +47,7 @@ export function TargetPicker({
   targetTag: string
   targetDefinition: TargetDefinition
   playerView: TargetPickerPlayerView
-  players: Lobby["players"]
+  players: LobbyPlayer[]
   value: TargetId | undefined
   disabled: boolean
   onChange: (targetId: TargetId) => void
@@ -93,7 +93,7 @@ export function TargetPicker({
 export function getTargetOptions(
   targetDefinition: TargetDefinition,
   playerView: TargetPickerPlayerView,
-  players: Lobby["players"],
+  players: LobbyPlayer[],
 ): TargetOption[] {
   // Keep this local constraint check until target resolution is shared with the backend.
   return getTargetCandidates(targetDefinition, playerView, players).filter((candidate) =>
