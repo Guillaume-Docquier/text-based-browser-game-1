@@ -37,11 +37,6 @@ export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement
 }
 
 function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
-  const navigate = useNavigate()
-  const joinGame = useJoinGameMutation()
-  const leaveGame = useLeaveGameMutation()
-  const startGame = useStartGameMutation()
-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={game.configuration.name} actions={<GameStatusBadge status={game.status} />} />
@@ -57,6 +52,8 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
               <DetailBlock label="Winner" value={getWinnerLabel(branded(game.winnerAccountId), game)} />
             ) : null}
           </div>
+          <GameConfiguration configuration={game.configuration} />
+          <LobbyActions game={game} />
           <Separator />
           <div className="space-y-3">
             <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
@@ -70,76 +67,81 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
           </div>
         </CardContent>
       </Card>
-      <GameConfiguration configuration={game.configuration} />
-      <div className="flex flex-wrap gap-3">
-        {game.canJoin && (
-          <Button
-            disabled={joinGame.isPending}
-            onClick={() => {
-              joinGame.mutate({ gameId: game.id })
-            }}
-          >
-            Join game
-          </Button>
-        )}
-        {game.canLeave && (
-          <Button
-            variant="outline"
-            disabled={leaveGame.isPending}
-            onClick={() => {
-              leaveGame.mutate({ gameId: game.id })
-            }}
-          >
-            Leave game
-          </Button>
-        )}
-        {game.canStart && (
-          <Button
-            disabled={startGame.isPending}
-            onClick={() => {
-              startGame.mutate(
-                { gameId: game.id },
-                {
-                  onSuccess: () => {
-                    void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
-                  },
+    </div>
+  )
+}
+
+function LobbyActions({ game }: { game: ApiTypes.Lobby }): ReactElement {
+  const navigate = useNavigate()
+  const joinGame = useJoinGameMutation()
+  const leaveGame = useLeaveGameMutation()
+  const startGame = useStartGameMutation()
+
+  return (
+    <div className="flex flex-wrap gap-3">
+      {game.canJoin && (
+        <Button
+          disabled={joinGame.isPending}
+          onClick={() => {
+            joinGame.mutate({ gameId: game.id })
+          }}
+        >
+          Join game
+        </Button>
+      )}
+      {game.canLeave && (
+        <Button
+          variant="outline"
+          disabled={leaveGame.isPending}
+          onClick={() => {
+            leaveGame.mutate({ gameId: game.id })
+          }}
+        >
+          Leave game
+        </Button>
+      )}
+      {game.canStart && (
+        <Button
+          disabled={startGame.isPending}
+          onClick={() => {
+            startGame.mutate(
+              { gameId: game.id },
+              {
+                onSuccess: () => {
+                  void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
                 },
-              )
-            }}
-          >
-            Start game
-          </Button>
-        )}
-        {game.canOpen && (
-          <Button
-            variant="secondary"
-            disabled={startGame.isPending}
-            onClick={() => {
-              void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
-            }}
-          >
-            Open game
-          </Button>
-        )}
-      </div>
+              },
+            )
+          }}
+        >
+          Start game
+        </Button>
+      )}
+      {game.canOpen && (
+        <Button
+          variant="secondary"
+          disabled={startGame.isPending}
+          onClick={() => {
+            void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
+          }}
+        >
+          Open game
+        </Button>
+      )}
     </div>
   )
 }
 
 function GameConfiguration({ configuration }: { configuration: ApiTypes.Lobby["configuration"] }): ReactElement {
   return (
-    <Card className="border border-border/60">
-      <CardHeader>
-        <CardTitle>Game configuration</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
-          <DetailBlock label="Time per turn" value={formatTurnInterval(configuration.turnIntervalSeconds)} />
-          <DetailBlock label="Ruleset" value={configuration.ruleset.name} />
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <h3 className="font-heading text-lg font-semibold">Game configuration</h3>
+      <div className="grid gap-4 md:grid-cols-2">
+        <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
+        <DetailBlock label="Time per turn" value={formatTurnInterval(configuration.turnIntervalSeconds)} />
+        <DetailBlock label="Ruleset" value={configuration.ruleset.name} />
+      </div>
+    </div>
   )
 }
 
