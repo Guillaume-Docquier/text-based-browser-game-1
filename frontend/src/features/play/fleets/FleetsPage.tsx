@@ -15,7 +15,7 @@ type FleetRow = {
   readonly ownerLabel: string
   readonly originPlanet: Planet
 }
-type SortColumn = "fleet" | "owner" | "originPlanet" | "coordinates" | "strength"
+type SortColumn = "fleet" | "owner" | "strength" | "originPlanet"
 type SortDirection = "ascending" | "descending"
 type FleetSort = {
   readonly column: SortColumn
@@ -29,7 +29,6 @@ const SORT_COMPARATORS = {
   fleet: (first, second) => TEXT_COLLATOR.compare(first.fleet.name, second.fleet.name),
   owner: (first, second) => TEXT_COLLATOR.compare(first.ownerLabel, second.ownerLabel),
   originPlanet: (first, second) => TEXT_COLLATOR.compare(first.originPlanet.name, second.originPlanet.name),
-  coordinates: (first, second) => TEXT_COLLATOR.compare(first.originPlanet.coordinates, second.originPlanet.coordinates),
   strength: (first, second) => first.fleet.strength - second.fleet.strength,
 } as const satisfies Record<SortColumn, FleetRowComparator>
 
@@ -162,20 +161,19 @@ function FleetsTable({
       className="min-h-0 min-w-0 flex-1 rounded-xl border border-border/70 bg-card/30"
       scrollbarStyle={{ top: "2.75rem", height: "auto" }}
     >
-      <table aria-label="Fleets" className="w-full min-w-[56rem] border-collapse text-sm">
+      <table aria-label="Fleets" className="w-full min-w-[44rem] border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_var(--border)]">
           <tr>
             <SortHeader label="Fleet" column="fleet" sort={sort} onSort={onSort} />
             <SortHeader label="Owner" column="owner" sort={sort} onSort={onSort} />
-            <SortHeader label="Origin planet" column="originPlanet" sort={sort} onSort={onSort} />
-            <SortHeader label="Coordinates" column="coordinates" sort={sort} onSort={onSort} />
             <SortHeader label="Strength" column="strength" sort={sort} onSort={onSort} align="right" />
+            <SortHeader label="Origin planet" column="originPlanet" sort={sort} onSort={onSort} />
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+              <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
                 {emptyMessage}
               </td>
             </tr>
@@ -205,7 +203,7 @@ function FleetTableRow({ gameId, row }: { gameId: GameId; row: FleetRow }): Reac
           {ownerLabel}
         </span>
       </td>
-      <td className="whitespace-nowrap px-4 py-3">{originPlanet.name}</td>
+      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{fleet.strength.toLocaleString()}</td>
       <td className="whitespace-nowrap px-4 py-3">
         <Link
           to="/games/$gameId/play/galaxy"
@@ -213,10 +211,9 @@ function FleetTableRow({ gameId, row }: { gameId: GameId; row: FleetRow }): Reac
           search={{ planetId: originPlanet.id }}
           className="font-medium text-sky-400 underline decoration-sky-400/60 underline-offset-4 hover:text-sky-300"
         >
-          {originPlanet.coordinates}
+          <span>{originPlanet.name}</span> <span>({originPlanet.coordinates})</span>
         </Link>
       </td>
-      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{fleet.strength.toLocaleString()}</td>
     </tr>
   )
 }

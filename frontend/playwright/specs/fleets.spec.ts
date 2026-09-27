@@ -47,6 +47,7 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
   await test.step("Show both Fleets sorted by owner and filter by owner and Fleet ID", async () => {
     await aliceFleetsPage.openFleets()
     await expect(aliceFleetsPage.rows).toHaveCount(2)
+    await expect(aliceFleetsPage.columnHeaders).toHaveText(["Fleet", "Owner", "Strength", "Origin planet"])
     await expect(aliceFleetsPage.sortHeader("Owner")).toHaveAttribute("aria-sort", "ascending")
     expect(await aliceFleetsPage.getColumnValues("ownerName")).toStrictEqual([alice.alias, bob.alias])
     expect(await aliceFleetsPage.getColumnValues("strength")).toStrictEqual(["10", "10"])
@@ -64,12 +65,12 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
     await aliceFleetsPage.search("")
   })
 
-  await test.step("Sort Fleet columns and open the origin Planet from its coordinates", async () => {
+  await test.step("Sort Fleet columns and open the origin Planet from its name", async () => {
     await aliceFleetsPage.sortBy("Owner")
     await expect(aliceFleetsPage.sortHeader("Owner")).toHaveAttribute("aria-sort", "descending")
     expect(await aliceFleetsPage.getColumnValues("ownerName")).toStrictEqual([bob.alias, alice.alias])
 
-    for (const column of ["Fleet", "Origin planet", "Coordinates", "Strength"]) {
+    for (const column of ["Fleet", "Strength", "Origin planet"]) {
       await aliceFleetsPage.sortBy(column)
       await expect(aliceFleetsPage.sortHeader(column)).toHaveAttribute("aria-sort", "ascending")
       await aliceFleetsPage.sortBy(column)
@@ -79,7 +80,8 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
     const firstRow = aliceFleetsPage.row(0)
     const originPlanet = await aliceFleetsPage.getOriginPlanet(firstRow)
     const coordinates = await aliceFleetsPage.getCoordinate(firstRow)
-    const galaxyPage = await aliceFleetsPage.openCoordinate(firstRow)
+    await expect(aliceFleetsPage.originPlanetLink(firstRow)).toHaveText(`${originPlanet} (${coordinates})`)
+    const galaxyPage = await aliceFleetsPage.openOriginPlanet(firstRow)
 
     expect(GalaxyPage.urlPattern.test(alice.page.url())).toBe(true)
     expect(new URL(alice.page.url()).searchParams.has("planetId")).toBe(true)

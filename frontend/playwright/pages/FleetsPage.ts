@@ -4,14 +4,13 @@ import type { GalaxyPage } from "./GalaxyPage.ts"
 import { GamePage } from "./GamePage.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
 
-type FleetColumnName = "fleetId" | "ownerName" | "originPlanet" | "coordinates" | "strength"
+type FleetColumnName = "fleetId" | "ownerName" | "strength" | "originPlanet"
 
 const FLEET_COLUMN_INDICES = {
   fleetId: 0,
   ownerName: 1,
-  originPlanet: 2,
-  coordinates: 3,
-  strength: 4,
+  strength: 2,
+  originPlanet: 3,
 } as const satisfies Record<FleetColumnName, number>
 
 export class FleetsPage extends GamePage {
@@ -22,6 +21,7 @@ export class FleetsPage extends GamePage {
 
   public readonly heading: Locator
   public readonly table: Locator
+  public readonly columnHeaders: Locator
   public readonly rows: Locator
   public readonly emptyMessage: Locator
 
@@ -31,6 +31,7 @@ export class FleetsPage extends GamePage {
     this.searchInput = page.getByRole("textbox", { name: "Search fleets" })
     this.ownerFilter = page.getByRole("combobox", { name: "Owner" })
     this.table = page.getByRole("table", { name: "Fleets" })
+    this.columnHeaders = this.table.getByRole("columnheader")
     this.rows = this.table.locator("tbody tr").filter({ has: page.getByRole("link") })
     this.emptyMessage = this.table.getByRole("cell", { name: /No (matching )?fleets/ })
   }
@@ -44,11 +45,11 @@ export class FleetsPage extends GamePage {
   }
 
   public originPlanet(row: Locator): Locator {
-    return row.getByRole("cell").nth(2)
+    return row.getByRole("cell").nth(3)
   }
 
-  public coordinate(row: Locator): Locator {
-    return row.getByRole("link")
+  public originPlanetLink(row: Locator): Locator {
+    return this.originPlanet(row).getByRole("link")
   }
 
   public sortHeader(name: string): Locator {
@@ -75,15 +76,19 @@ export class FleetsPage extends GamePage {
   }
 
   public async getOriginPlanet(row: Locator): Promise<string> {
-    const name = await this.originPlanet(row).textContent()
+    const name = await this.originPlanetLink(row).locator("span").first().textContent()
     Assert.isDefined(name)
     return name
   }
 
   public async getCoordinate(row: Locator): Promise<string> {
-    const coordinates = await this.coordinate(row).textContent()
+    const coordinates = await this.originPlanetLink(row).locator("span").nth(1).textContent()
     Assert.isDefined(coordinates)
-    return coordinates
+    const match = /^\((.+)\)$/.exec(coordinates)
+    Assert.isDefined(match)
+    const coordinate = match[1]
+    Assert.isDefined(coordinate)
+    return coordinate
   }
 
   public async getColumnValues(columnName: FleetColumnName): Promise<string[]> {
@@ -91,8 +96,8 @@ export class FleetsPage extends GamePage {
     return await this.rows.locator(`td:nth-child(${columnIndex + 1})`).allTextContents()
   }
 
-  public async openCoordinate(row: Locator): Promise<GalaxyPage> {
-    await this.coordinate(row).click()
+  public async openOriginPlanet(row: Locator): Promise<GalaxyPage> {
+    await this.originPlanetLink(row).click()
     const { GalaxyPage } = await import("./GalaxyPage.ts")
     return new GalaxyPage(this.page)
   }
