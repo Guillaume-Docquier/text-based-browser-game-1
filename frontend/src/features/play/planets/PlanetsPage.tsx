@@ -71,7 +71,7 @@ export function PlanetsPage(): ReactElement {
 
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
-      <PlanetsHeader ownedCount={rows.length} />
+      <PlanetsHeader />
       <PlanetsFilters
         search={search}
         ownerFilter={ownerFilter}
@@ -84,11 +84,10 @@ export function PlanetsPage(): ReactElement {
   )
 }
 
-function PlanetsHeader({ ownedCount }: { ownedCount: number }): ReactElement {
+function PlanetsHeader(): ReactElement {
   return (
     <header className="mb-5 flex flex-wrap items-baseline gap-3">
       <h2 className="font-heading text-2xl font-semibold text-foreground">Planets</h2>
-      <span className="text-sm text-muted-foreground">{ownedCount.toLocaleString()} owned</span>
     </header>
   )
 }

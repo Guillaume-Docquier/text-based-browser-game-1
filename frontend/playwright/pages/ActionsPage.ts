@@ -8,15 +8,19 @@ export class ActionsPage extends GamePage {
 
   public constructor(page: Page) {
     super(page)
-    this.heading = page.getByRole("heading", { name: "Choose your action" })
+    this.heading = page.getByRole("heading", { name: "Actions", exact: true })
   }
 
   public action(name: string): Locator {
-    return this.page.getByRole("button", { name: new RegExp(name) })
+    return this.page.getByRole("group", { name: `${name} action` })
   }
 
-  public async toggleAction(name: string): Promise<void> {
-    await this.action(name).click()
+  public selectActionButton(name: string): Locator {
+    return this.action(name).getByRole("button")
+  }
+
+  public async toggleActionSelection(name: string): Promise<void> {
+    await this.selectActionButton(name).click()
   }
 
   public actionUnaffordableOverlay(name: string): Locator {

@@ -1,4 +1,4 @@
-import type { ActionTier, GameId, PlayerView } from "@api-types"
+import type { Action, ActionDefinition, ActionTier, GameId, Lobby, PlayerView, Ruleset } from "@api-types"
 import { Sort } from "@guillaume-docquier/tools-ts"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
@@ -15,33 +15,33 @@ export const ActionTierRank = {
   EXCEPTIONAL: 5, // Best
 } as const satisfies Record<ActionTier, number>
 
-export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerView: PlayerView }): ReactElement {
+export function ActionSelector({
+  gameId,
+  playerView,
+  players,
+}: {
+  gameId: GameId
+  playerView: PlayerView
+  players: Lobby["players"]
+}): ReactElement {
   const updateActionSubmission = useUpdateActionSubmission()
   const isTurnLocked = playerView.turnStatus !== "COLLECTING_ACTIONS" || playerView.player.isReady
 
   return (
     <section className="flex flex-col gap-5">
-      <div className="space-y-1">
-        <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Actions</div>
-        <h2 className="font-heading text-2xl font-semibold text-foreground">Choose your action</h2>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Your selection applies to turn {playerView.turn} only. Click the selected action again to clear it.
-        </p>
-      </div>
-
       <div className="flex flex-wrap items-stretch gap-6 px-4 pt-4">
         {playerView.actions
-          .map((action) => ({ action, definition: playerView.ruleset.actionDefinitions[action.actionDefinitionId] }))
-          .sort((action1, action2) => Sort.byAscending(ActionTierRank[action1.definition.tier], ActionTierRank[action2.definition.tier]))
+          .map(toActionAndDefinition(playerView.ruleset.actionDefinitions))
+          .sort(sortByTier)
           .map(({ action, definition }) => {
             const isSelected = action.selectedTargets !== null
-            const selectAction = (): void => {
+            const selectAction = (selectedTargets: typeof action.selectedTargets): void => {
               updateActionSubmission.mutate({
                 gameId,
                 turn: playerView.turn,
                 submittedActionTargets: {
                   actionId: action.id,
-                  selectedTargets: isSelected ? null : {}, // no selected targets to select yet
+                  selectedTargets,
                 },
               })
             }
@@ -49,10 +49,13 @@ export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerV
               <ActionCard
                 key={action.id}
                 actionDefinition={definition}
+                action={action}
+                playerView={playerView}
+                players={players}
                 resources={playerView.resources}
                 canAfford={action.canAfford}
                 isSelected={isSelected}
-                disabled={isTurnLocked || updateActionSubmission.isPending || (!action.canAfford && !isSelected)}
+                disabled={isTurnLocked || (!action.canAfford && !isSelected)}
                 onSelect={selectAction}
               />
             )
@@ -68,4 +71,24 @@ export function ActionSelector({ gameId, playerView }: { gameId: GameId; playerV
       ) : null}
     </section>
   )
+}
+
+type ActionAndDefinition = { action: Action; definition: ActionDefinition }
+
+function toActionAndDefinition(actionDefinitions: Ruleset["actionDefinitions"]): (action: Action) => ActionAndDefinition {
+  return (action) => ({ action, definition: actionDefinitions[action.actionDefinitionId] })
+}
+
+function sortByTier(first: ActionAndDefinition, second: ActionAndDefinition): number {
+  const tierOrder = Sort.byAscending(ActionTierRank[first.definition.tier], ActionTierRank[second.definition.tier])
+  if (tierOrder !== 0) {
+    return tierOrder
+  }
+
+  const nameOrder = first.definition.name.localeCompare(second.definition.name)
+  if (nameOrder !== 0) {
+    return nameOrder
+  }
+
+  return first.action.id.localeCompare(second.action.id)
 }

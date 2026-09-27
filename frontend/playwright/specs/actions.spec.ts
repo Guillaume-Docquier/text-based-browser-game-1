@@ -13,8 +13,6 @@ test("the actions view shows action costs and updates them when actions are sele
   await expect(actionsPage.heading).toBeVisible()
 
   const extractMetal = actionsPage.action("Extract Metal")
-  const refineFuel = actionsPage.action("Refine Fuel")
-  const generatePower = actionsPage.action("Generate Power")
   const winTheGame = actionsPage.action("Win The Game")
 
   await test.step("Display Action descriptions", async () => {
@@ -28,39 +26,41 @@ test("the actions view shows action costs and updates them when actions are sele
   })
 
   await test.step("Display unaffordable costs", async () => {
-    await expect(winTheGame).toHaveAttribute("aria-disabled", "true")
+    await expect(actionsPage.selectActionButton("Win The Game")).toHaveAttribute("aria-disabled", "true")
     await expect(actionsPage.actionUnaffordableOverlay("Win The Game")).toBeVisible()
     await expect(actionsPage.actionCost("Win The Game", "10 Influence, cannot afford")).toHaveClass(/text-red-400/)
   })
 
   await test.step("Select multiple affordable actions", async () => {
-    await actionsPage.toggleAction("Extract Metal")
-    await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
-    await expect(refineFuel).toHaveAttribute("aria-disabled", "false")
-    await expect(generatePower).toHaveAttribute("aria-disabled", "true")
+    await actionsPage.toggleActionSelection("Extract Metal")
+    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "true")
+    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveText("Selected")
+    await expect(actionsPage.selectActionButton("Refine Fuel")).toHaveAttribute("aria-disabled", "false")
+    await expect(actionsPage.selectActionButton("Generate Power")).toHaveAttribute("aria-disabled", "true")
 
     await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "2 available of 3 Influence")
 
-    await actionsPage.toggleAction("Refine Fuel")
-    await expect(refineFuel).toHaveAttribute("aria-pressed", "true")
-    await expect(extractMetal).toHaveAttribute("aria-disabled", "false")
-    await expect(refineFuel).toHaveAttribute("aria-disabled", "false")
+    await actionsPage.toggleActionSelection("Refine Fuel")
+    await expect(actionsPage.selectActionButton("Refine Fuel")).toHaveAttribute("aria-pressed", "true")
+    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-disabled", "false")
+    await expect(actionsPage.selectActionButton("Refine Fuel")).toHaveAttribute("aria-disabled", "false")
 
     await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "0 available of 3 Influence")
     await expect(actionsPage.resource("Metal")).toHaveAttribute("aria-label", "0 available of 2 Metal")
   })
 
   await test.step("Restores resources when unselecting actions", async () => {
-    await actionsPage.toggleAction("Refine Fuel")
-    await expect(refineFuel).toHaveAttribute("aria-pressed", "false")
-    await expect(extractMetal).toHaveAttribute("aria-pressed", "true")
+    await actionsPage.toggleActionSelection("Refine Fuel")
+    await expect(actionsPage.selectActionButton("Refine Fuel")).toHaveAttribute("aria-pressed", "false")
+    await expect(actionsPage.selectActionButton("Refine Fuel")).toHaveText("Select action")
+    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "true")
 
-    await actionsPage.toggleAction("Extract Metal")
-    await expect(extractMetal).toHaveAttribute("aria-pressed", "false")
+    await actionsPage.toggleActionSelection("Extract Metal")
+    await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "false")
 
     await expect(actionsPage.resource("Influence")).toHaveAttribute("aria-label", "3 available of 3 Influence")
     await expect(actionsPage.resource("Metal")).toHaveAttribute("aria-label", "2 available of 2 Metal")
-    await expect(generatePower).toHaveAttribute("aria-disabled", "false")
+    await expect(actionsPage.selectActionButton("Generate Power")).toHaveAttribute("aria-disabled", "false")
   })
 
   await test.step("Display Action costs in their canonical order", async () => {

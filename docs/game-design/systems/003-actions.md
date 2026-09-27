@@ -57,7 +57,7 @@ Relates to:
 
 ## Current Implementation
 
-The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, effect text, and affordability. Frontend target selection is not implemented yet.
+The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders a picker for each target slot and applies the owned-by-submitting-player constraint locally. Build Fleet can select the current player's Planets; Fleet targets await Fleets in the player view. The server validates submitted targets.
 
 ## Rules
 

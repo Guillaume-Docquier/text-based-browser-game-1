@@ -18,6 +18,8 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 - `pnpm --filter frontend e2e`: run local end-to-end tests.
 - `pnpm --filter frontend checks`: run all frontend quality checks.
 
+On native Windows, run `pnpm --filter frontend storybook:build` through a reviewed, one-command Codex sandbox exception (`require_escalated` with the exact prefix `pnpm --filter frontend storybook:build`). Storybook's generated cache can produce an access-denied error in the default sandbox. Keep other commands in the default sandbox; do not enable Full access or add a persistent allow rule for this build.
+
 ## End-to-end Tests
 
 - Structure tests with descriptive `test.step()` blocks reflecting user behavior. Do not use AAA sections.
