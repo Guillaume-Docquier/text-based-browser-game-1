@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 import { type ReactElement, StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
+import { sharedRuntimeMarker } from "shared/runtimeMarker"
 import { Onboarding } from "@/features/auth/Onboarding.tsx"
 import { createBackendApiClient } from "@/lib/api/BackendApiClient.ts"
 import { BackendApiClientProvider } from "@/lib/api/BackendApiClientContext.tsx"
@@ -22,6 +23,8 @@ const logger = await Logger.configure({
     }),
   },
 })
+
+logger.info("Shared TypeScript (frontend)", { sharedRuntimeMarker })
 
 const env = parseEnv({ logger })
 

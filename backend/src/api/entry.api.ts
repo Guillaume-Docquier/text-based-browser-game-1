@@ -2,6 +2,7 @@ import type { AddressInfo } from "node:net"
 import { Assert, Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
+import { sharedRuntimeMarker } from "shared/runtimeMarker"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AuthService } from "#api/accounts/auth.service.ts"
 import { ClerkAuthProvider } from "#api/accounts/ClerkAuthProvider.ts"
@@ -30,6 +31,8 @@ main().catch((error) => {
  */
 async function main(): Promise<void> {
   const logger = await configureLogger({ scope: "api" })
+
+  logger.info("Shared TypeScript (backend)", { sharedRuntimeMarker })
 
   logger.info("Parsing environment", { nodeVersion: process.version })
   const env = parseEnv({ logger, schema: envSchema })
