@@ -115,7 +115,7 @@ function FleetsFilters({
         <Input
           aria-label="Search fleets"
           value={search}
-          placeholder="Search fleet ID…"
+          placeholder="Search fleet names..."
           className="pl-9"
           onChange={(event) => {
             onSearchChange(event.target.value)

@@ -177,7 +177,6 @@ function ActionSelectionButton({
       aria-pressed={isSelected}
       aria-disabled={disabled}
       disabled={disabled}
-      title={isSelected ? "Click to clear action" : undefined}
       onClick={isSelected ? onClear : onSelect}
     >
       {isSelected ? (
