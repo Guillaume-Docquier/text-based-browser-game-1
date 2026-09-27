@@ -3,7 +3,6 @@ import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import starImage from "@/assets/planets/star-small.png"
 import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.tsx"
-import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/star-system/planetBiomeColors.ts"
 import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 import { PLAYER_COLOR_HEX, UNCLAIMED_COLOR_HEX } from "@/lib/playerColorHex.ts"
@@ -25,7 +24,6 @@ const PLANET_RADII = {
 
 type PlanetViewModel = PlanetModel & {
   radius: number
-  color: `#${string}`
   orbitRadius: number
 }
 
@@ -131,14 +129,6 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
         activateWithKeyboard(event, onSelect)
       }}
     >
-      <circle
-        cx={CENTER}
-        cy={CENTER}
-        r={STAR_RADIUS + 8}
-        fill="#fde047"
-        opacity="0"
-        className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-125 group-hover/star:opacity-25 group-focus/star:scale-125 group-focus/star:opacity-25"
-      />
       <image
         href={starImage}
         x={CENTER - STAR_RADIUS}
@@ -146,7 +136,7 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
         width={STAR_RADIUS * 2}
         height={STAR_RADIUS * 2}
         aria-hidden="true"
-        className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-125 group-focus/star:scale-125"
+        className="pointer-events-none"
       />
       <StarLabel x={CENTER} y={CENTER} text={name} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible star. */}
@@ -198,14 +188,6 @@ function Planet({
       }}
     >
       <title>{`${planet.name}, ${planet.size.toLowerCase()} ${planet.biome.toLowerCase()} planet`}</title>
-      <circle
-        cx={planet.x}
-        cy={planet.y}
-        r={planet.radius + 8}
-        fill={planet.color}
-        opacity="0"
-        className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-hover/planet:opacity-25 group-focus/planet:scale-125 group-focus/planet:opacity-25"
-      />
       <image
         href={PLANET_BIOME_IMAGES[planet.biome]}
         x={planet.x - planet.radius}
@@ -215,7 +197,7 @@ function Planet({
         aria-hidden="true"
         data-biome={planet.biome}
         data-size={planet.size}
-        className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-focus/planet:scale-125"
+        className="pointer-events-none"
       />
       <PlanetLabel planet={planet} ownerName={ownerName} ownerColor={ownerColor} />
       <FleetMarkers x={planet.x} y={planet.y + planet.radius + 30} fleets={fleets} players={players} />
@@ -316,7 +298,6 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
     return {
       ...planet,
       radius: PLANET_RADII[planet.size],
-      color: PLANET_BIOME_COLORS[planet.biome],
       orbitRadius,
       x: CENTER + Math.cos(angle) * orbitRadius,
       y: CENTER + Math.sin(angle) * orbitRadius,
