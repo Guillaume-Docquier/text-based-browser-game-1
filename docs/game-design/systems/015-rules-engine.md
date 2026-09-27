@@ -14,6 +14,7 @@ Partially Implemented
 - [x] Resource stockpile and affordability presentation
 - [x] Available Actions
 - [x] Frontend target selection for Build Fleet's owned Planet target
+- [x] Fleet Build Effect and resolution Phase
 - [ ] Frontend target selection for all target types
 - [x] Multiple Actions
 
@@ -105,6 +106,8 @@ Turn Resolution creates one Effect Pool from locked Action Submissions and autom
 | Victory        | Resolve the winning player, if any.                                                                                   |
 
 The Phase sequence belongs to the Rules Engine and is the same for every Ruleset. Each Phase is free to collect, order, coordinate, and resolve its Effects in the way that Phase requires.
+
+Pay Costs, Fleet Build, Income, and Victory currently resolve Effects. Fleet Movement, Fleet Combat, Planet, and Colonization have Phase boundaries but no gameplay behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
 
 Phases are coarse ordering boundaries. Ticks are finer ordering steps used inside the Fleet Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
 

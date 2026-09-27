@@ -7,6 +7,7 @@ Partially Implemented
 - [x] Five-Resource catalogue
 - [x] Per-player stockpiles and starting amounts
 - [x] Action costs, gains, and affordability
+- [x] Metal spending for Build Fleet Actions
 - [x] Frontend Resource presentation
 - [ ] Planetary production and scarcity
 - [ ] Political Regime Influence rules
@@ -24,6 +25,7 @@ Relates to:
 
 - [System 003-actions](./003-actions.md)
 - [System 008-planets](./008-planets.md)
+- [System 010-fleets](./010-fleets.md)
 - [System 005-political-regime](./005-political-regime.md)
 - [System 006-trade](./006-trade.md)
 - [System 007-contracts](./007-contracts.md)
@@ -41,17 +43,17 @@ Relates to:
 
 ## Resource Catalogue
 
-| Resource  | Role                                                                                                          |
-| --------- | ------------------------------------------------------------------------------------------------------------- |
-| Influence | The resource required to play every Action. Each Turn, it resets to the fixed amount set by Political Regime. |
-| Metal     | Supports construction, including Fleets and Infrastructure.                                                   |
-| Fuel      | Supports Fleet movement.                                                                                      |
-| Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.           |
-| Colony    | Supports colonizing additional Planets. It is fractional and produced in low amounts.                         |
+| Resource  | Role                                                                                                  |
+| --------- | ----------------------------------------------------------------------------------------------------- |
+| Influence | Planned as the resource required to play every Action, with a per-Turn reset set by Political Regime. |
+| Metal     | Supports construction, including Fleets and Infrastructure.                                           |
+| Fuel      | Supports Fleet movement.                                                                              |
+| Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.   |
+| Colony    | Supports colonizing additional Planets. It is fractional and produced in low amounts.                 |
 
 ## Current Implementation
 
-Each player currently has integer stockpiles for all five Resources and starts with placeholder amounts. Standard Ruleset Actions can gain Influence, Metal, Fuel, and Energy and spend those Resources as configured costs. Colony is stored and displayed but has no current source or use. The player view exposes both total and uncommitted Resources, and the frontend displays them with Action costs and affordability.
+Each player currently has integer stockpiles for all five Resources and starts with placeholder amounts. Standard Ruleset Actions can gain Influence, Metal, Fuel, and Energy. Build Fleet spends Influence and Metal from the empire stockpile through configured Action costs; its current values are in [System 003-actions](./003-actions.md). Political Campaign currently gains Influence without a cost; the planned Influence reset is not implemented. Colony is stored and displayed but has no current source or use. The player view exposes both total and uncommitted Resources, and the frontend displays them with Action costs and affordability.
 
 ## Rules
 

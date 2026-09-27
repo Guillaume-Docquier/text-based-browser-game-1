@@ -55,6 +55,9 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
     await expect(galaxyPage.fleetIcon(ownFleet)).toBeVisible()
     await expect(galaxyPage.fleetIcon(ownFleet)).toHaveAttribute("data-fleet-color", /^#[0-9A-Fa-f]{6}$/)
     await expect(galaxyPage.fleetStrength(ownFleet)).toHaveText("10")
+    await galaxyPage.hoverFleet(ownFleet)
+    await expect(galaxyPage.fleetMarkersOnPlanet(galaxyPage.foregroundBody)).toHaveCount(1)
+    await expect(galaxyPage.planetOwnershipLabel(galaxyPage.foregroundBody)).toHaveText(alice.alias)
     const ownColor = await galaxyPage.fleetIcon(ownFleet).getAttribute("data-fleet-color")
 
     await galaxyPage.returnToGalaxy()

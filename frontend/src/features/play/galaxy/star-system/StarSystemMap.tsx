@@ -1,6 +1,8 @@
 import type { Fleet, LobbyPlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
 import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
+import { useState } from "react"
+import { flushSync } from "react-dom"
 import starImage from "@/assets/planets/star-small.png"
 import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.tsx"
 import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
@@ -14,7 +16,7 @@ const INNER_ORBIT_RADIUS = 90
 const ORBIT_SPACING = 70
 // Generated orbital slots are 5 AU apart; preserve unoccupied slots in the display.
 const ORBIT_SPACING_AU = 5
-// Room outside the outermost body for owner labels, fleets, and hover effects.
+// Room outside the outermost body for owner labels and fleets.
 const VIEW_PADDING = 50
 const PLANET_RADII = {
   SMALL: 25,
@@ -54,6 +56,7 @@ export function StarSystemMap({
   onSelectPlanet: (planet: PlanetModel) => void
 }): ReactElement {
   const panZoom = useMapPanZoom({ resetSignal, viewportCenter: VIEWPORT_CENTER })
+  const [hoveredBody, setHoveredBody] = useState<string>()
   const planets = toPlanetViewModels(system)
   const outerOrbitRadius = planets.at(-1)?.orbitRadius ?? 0
   const viewRadius = outerOrbitRadius + VIEW_PADDING
@@ -61,6 +64,22 @@ export function StarSystemMap({
   function selectGalaxy(): void {
     panZoom.centerOn(VIEWPORT_CENTER, { onCentered: onSelectGalaxy })
   }
+
+  const bodies = [
+    <Star key="star" name={system.star.name} onSelect={selectGalaxy} />,
+    ...planets.map((planet) => (
+      <Planet
+        key={`planet-${planet.id}`}
+        planet={planet}
+        fleets={fleets.filter((fleet) => fleet.originPlanetId === planet.id)}
+        players={players}
+        ownerName={getPlanetOwnerName(planet, players)}
+        onSelect={onSelectPlanet}
+      />
+    )),
+  ]
+  // SVG paints later siblings on top. Stable keys move the whole body without remounting it.
+  const bodiesInPaintOrder = bodies.toSorted((first, second) => Number(first.key === hoveredBody) - Number(second.key === hoveredBody))
 
   return (
     <svg
@@ -86,16 +105,21 @@ export function StarSystemMap({
         {planets.map((planet) => (
           <OccupiedOrbit key={`orbit-${planet.id}`} radius={planet.orbitRadius} />
         ))}
-        <Star name={system.star.name} onSelect={selectGalaxy} />
-        {planets.map((planet) => (
-          <Planet
-            key={planet.id}
-            planet={planet}
-            fleets={fleets.filter((fleet) => fleet.originPlanetId === planet.id)}
-            players={players}
-            ownerName={getPlanetOwnerName(planet, players)}
-            onSelect={onSelectPlanet}
-          />
+        {bodiesInPaintOrder.map((body) => (
+          <g
+            key={body.key}
+            onPointerEnter={() => {
+              // Finish moving the group before pointerdown; moving it during a click cancels that click.
+              flushSync(() => {
+                setHoveredBody(String(body.key))
+              })
+            }}
+            onPointerLeave={() => {
+              setHoveredBody((current) => (current === body.key ? undefined : current))
+            }}
+          >
+            {body}
+          </g>
         ))}
       </g>
     </svg>

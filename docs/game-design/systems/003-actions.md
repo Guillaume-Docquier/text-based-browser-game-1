@@ -10,6 +10,7 @@ Partially Implemented
 - [x] Available Action pool
 - [x] Multiple Action submissions
 - [x] Readiness locks Action submissions until the player unreadies or the next Turn starts
+- [x] Build Fleet Directives with owned-Planet targets and resource costs
 - [ ] Ideology-driven Action pools
 
 ## Purpose
@@ -53,11 +54,21 @@ Relates to:
 | Directive                 | A specific Action that exploits the Empire's Ideological Alignments without affecting them.                                                                                     |
 | Program                   | An Action to achieve a Legacy Project. See [System 002-legacy](./002-legacy.md).                                                                                                |
 | Effect                    | Player-facing shorthand for what an Action does; the Rules Engine produces concrete Effects from the Action Definition's composed Effect Definitions.                           |
-| Influence                 | Resource that all Actions cost. See [System 005-political-regime](./005-political-regime.md).                                                                                   |
+| Influence                 | Planned default Action cost; the current Political Campaign Action has no cost. See [System 014-resources](./014-resources.md).                                                 |
 
 ## Current Implementation
 
-The Standard Ruleset currently provides placeholder actions to represent all types, tiers and resource costs. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders a picker for each target slot.
+The Standard Ruleset currently offers resource-gain Actions, a placeholder victory Action, and three Build Fleet Directives. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders a picker for Build Fleet's owned-Planet target. Every player receives one Available Action Instance per Ruleset Action Definition; ideological Action pools and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
+
+The live Build Fleet values are temporary balance and differ from the planned Directive catalogue below. These are the current Standard Ruleset values:
+
+| Build Fleet tier | Influence cost | Metal cost | Strength added |
+| ---------------- | -------------: | ---------: | -------------: |
+| Standard (T4)    |              2 |          1 |             10 |
+| Improved (T3)    |              6 |          3 |            100 |
+| Exceptional (T1) |             10 |          5 |          1,000 |
+
+Each Build Fleet submission chooses an owned Planet. Its costs are paid during Turn Resolution; the Fleet Build Phase then creates or reinforces the player's Fleet there. See [System 010-fleets](./010-fleets.md) for Fleet identity and presentation.
 
 ## Rules
 
@@ -116,6 +127,8 @@ Agendas are broad Actions, generally Empire or Planet wide, that have a noticeab
 
 Directives are targeted Actions, generally affecting a Planet or a Unit, that have little to no impact on the player Ideologies. They aim to have concrete, immediate effects.
 
+The following catalogue records planned design values. The implemented Build Fleet balance is listed under Current Implementation above.
+
 | Directive            | Tier | Conditions | Source         | Target            | Costs                             | Effects                                                                                      | Core |
 | -------------------- | ---- | ---------- | -------------- | ----------------- | --------------------------------- | -------------------------------------------------------------------------------------------- | ---- |
 | Attack Move          | T4   | N/A        | Fleet Strength | Planet            | 5 Influence, 1 fuel               | Move selected Strength at Speed 1, Range 5. Assault on arrival.                              |      |
@@ -169,7 +182,7 @@ The Action tables use compact player-facing effect text. This text summarizes th
 
 ### Action Pool
 
-Players will always have access to 1 Standard of every Action in the core pool. Then, each Axis will provide more or better Actions. Each axis defines its own Action pool.
+The planned Action pool gives players 1 Standard of every Action in the core pool. Then, each Axis will provide more or better Actions. Each axis defines its own Action pool. The current Ruleset instead offers every Action Definition to every player.
 
 Core Action Pool:
 

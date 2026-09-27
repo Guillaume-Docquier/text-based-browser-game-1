@@ -6,8 +6,9 @@ Partially Implemented
 
 - [x] Resource catalogue and empire stockpiles
 - [x] Action costs and gains
+- [x] Metal used to build Fleets through Actions
 - [ ] Resource production and scarcity
-- [ ] Resource uses and balance
+- [ ] Distinct uses and balance across the full Resource catalogue
 
 ## Context
 

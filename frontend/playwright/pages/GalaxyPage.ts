@@ -8,7 +8,7 @@ export class GalaxyPage extends GamePage {
 
   private readonly regions: Locator
   private readonly stars: Locator
-  private readonly starSystemStar: Locator
+  public readonly starSystemStar: Locator
   private readonly planets: Locator
   private readonly resetViewButton: Locator
 
@@ -24,6 +24,7 @@ export class GalaxyPage extends GamePage {
   public readonly sharedStars: Locator
 
   public readonly starSystemMap: Locator
+  public readonly foregroundBody: Locator
   public readonly planetDetailsPane: Locator
 
   public readonly ownedPlanets: Locator
@@ -42,6 +43,7 @@ export class GalaxyPage extends GamePage {
     this.sharedStars = this.ownStars.filter({ has: page.locator('[data-ownership-marker="opponent"]') })
 
     this.starSystemMap = page.getByRole("group", { name: / Star System map$/ })
+    this.foregroundBody = this.starSystemMap.locator(':scope > g > g:last-child > [role="button"]')
     this.starSystemStar = page.getByRole("button", { name: /^Return to Galaxy from / })
 
     this.planets = page.getByRole("button", { name: /^View .+ details/ })
@@ -68,8 +70,20 @@ export class GalaxyPage extends GamePage {
     await star.click()
   }
 
-  public planet(index: LocatorIndex): Locator {
-    return index === "last" ? this.planets.last() : this.planets.nth(index)
+  public planet(name: string): Locator {
+    return this.planets.filter({ has: this.page.locator("title", { hasText: `${name},` }) })
+  }
+
+  public async hoverBody(body: Locator): Promise<void> {
+    await body.locator(":scope > circle").hover()
+  }
+
+  public async leaveBodies(): Promise<void> {
+    await this.starSystemMap.hover({ position: { x: 10, y: 10 } })
+  }
+
+  public async hoverFleet(marker: Locator): Promise<void> {
+    await this.fleetIcon(marker).hover()
   }
 
   public async openPlanetProfile(planet: Locator): Promise<void> {
