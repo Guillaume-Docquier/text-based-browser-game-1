@@ -133,6 +133,6 @@ An Effect resolution failure or an invalid locked Action Submission indicates an
 
 - A reusable Effect Definition vocabulary may struggle to express exceptional Actions without becoming too generic or complex.
 - Phase order and interactions between Effects can produce non-obvious outcomes unless Actions and Turn results explain them clearly.
-- Frontend target-choice logic can drift from server validation, especially when target slots depend on one another or on state the client cannot see. How to reuse this logic across frontend and backend under the current [code-sharing decision](../../architecture/decisions/007-code-sharing.md) remains unresolved.
+- Frontend target-choice logic can drift from server validation, especially when target slots depend on one another or on state the client cannot see. A [shared package](../../architecture/decisions/007-code-sharing.md) can reduce duplicated logic, but the server must still validate against authoritative state.
 - Invalid combinations in Action Definitions or Effect Definitions can make an entire Ruleset unplayable without strong authoring-time and game-start validation.
 - Persisted Rulesets need durable versioning so engine changes do not alter or strand active games.
