@@ -24,16 +24,16 @@ export abstract class Effect {
   /**
    * Effect outcomes are recorded automatically, no need to handle them.
    */
-  public resolve(context: TurnContext): Result<EffectOutcome, EffectError> {
+  public resolve(context: TurnContext): Result<EffectOutcome[], EffectError> {
     const result = this.doResolve(context)
     if (Result.isSuccess(result)) {
-      context.effectPool.recordOutcome(this, result.value)
+      context.effectPool.recordOutcomes(this, result.value)
     }
 
     return result
   }
 
-  protected abstract doResolve(context: TurnContext): Result<EffectOutcome, EffectError>
+  protected abstract doResolve(context: TurnContext): Result<EffectOutcome[], EffectError>
 
   public toJson(): EffectJson {
     return { id: this.id, type: this.type }

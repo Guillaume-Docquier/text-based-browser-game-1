@@ -3,7 +3,6 @@ import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { AvailableAction, SubmittedAction } from "game-rules/action-submission/Action.ts"
 import type { AccountId } from "game-rules/models/AccountId.ts"
 import type { FleetId } from "game-rules/models/FleetId.ts"
-import type { FleetName } from "game-rules/models/FleetName.ts"
 import type { GameId } from "game-rules/models/GameId.ts"
 import type { PlanetId } from "game-rules/models/PlanetId.ts"
 import type { PlayerId } from "game-rules/models/PlayerId.ts"
@@ -11,6 +10,7 @@ import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.
 import type { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
 import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
 import type { Fleet } from "game-rules/turn-resolution/Fleet.ts"
+import type { Planet } from "game-rules/turn-resolution/Planet.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
@@ -62,29 +62,14 @@ export type TurnToProcessModel = {
   readonly rngState: RngState<number>
   readonly submittedActions: SubmittedAction[]
   readonly players: Record<PlayerId, TurnToProcessPlayerModel>
-  readonly planets: Record<PlanetId, TurnToProcessPlanetModel>
-  readonly fleets: Record<FleetId, TurnToProcessFleetModel>
+  readonly planets: Record<PlanetId, Planet>
+  readonly fleets: Record<FleetId, Fleet>
   readonly ruleset: Ruleset
 }
 
 type TurnToProcessPlayerModel = {
   readonly id: PlayerId
   readonly resources: Resources
-}
-
-type TurnToProcessPlanetModel = {
-  readonly id: PlanetId
-  readonly ownerPlayerId: PlayerId | null
-  readonly x: number
-  readonly y: number
-}
-
-type TurnToProcessFleetModel = {
-  readonly id: FleetId
-  readonly ownerPlayerId: PlayerId
-  readonly name: FleetName
-  strength: number
-  readonly originPlanetId: PlanetId
 }
 
 export type ProcessedTurnModel = {
@@ -223,19 +208,16 @@ export class TurnsRepository extends PostgresRepository {
         .orderBy(asc(actionsTable.playerId)),
       tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, games[0].rulesetId)),
       tx
-        .select({ id: planetsTable.id, ownerPlayerId: planetsTable.ownerPlayerId, x: planetsTable.x, y: planetsTable.y })
+        .select({
+          id: planetsTable.id,
+          name: planetsTable.name,
+          ownerPlayerId: planetsTable.ownerPlayerId,
+          x: planetsTable.x,
+          y: planetsTable.y,
+        })
         .from(planetsTable)
         .where(eq(planetsTable.gameId, startTurnProcessingModel.turn.gameId)),
-      tx
-        .select({
-          id: fleetsTable.id,
-          ownerPlayerId: fleetsTable.ownerPlayerId,
-          name: fleetsTable.name,
-          strength: fleetsTable.strength,
-          originPlanetId: fleetsTable.originPlanetId,
-        })
-        .from(fleetsTable)
-        .where(eq(fleetsTable.gameId, startTurnProcessingModel.turn.gameId)),
+      tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, startTurnProcessingModel.turn.gameId)),
     ])
 
     Assert.isTrue(rulesets.length === 1)
@@ -344,7 +326,12 @@ export class TurnsRepository extends PostgresRepository {
             },
           })
 
-        const fleets = processedTurnModel.fleets.map((fleet) => ({ ...fleet, gameId: processedTurnModel.gameId }))
+        const fleets = processedTurnModel.fleets.map((fleet) => ({
+          ...fleet,
+          gameId: processedTurnModel.gameId,
+          destinationPlanetId: fleet.destinationPlanetId ?? null,
+          distanceToEnd: fleet.distanceToEnd ?? null,
+        }))
         if (fleets.length > 0) {
           await tx
             .insert(fleetsTable)
@@ -354,6 +341,8 @@ export class TurnsRepository extends PostgresRepository {
               set: {
                 strength: sql`excluded.strength`,
                 originPlanetId: sql`excluded.origin_planet_id`,
+                destinationPlanetId: sql`excluded.destination_planet_id`,
+                distanceToEnd: sql`excluded.distance_to_end`,
               },
             })
         }
@@ -434,8 +423,8 @@ function toTurnToProcessModel({
   rngState: RngState<number>
   resources: ResourceRow[]
   players: Array<{ id: PlayerId }>
-  planets: TurnToProcessPlanetModel[]
-  fleets: TurnToProcessFleetModel[]
+  planets: Planet[]
+  fleets: Array<typeof fleetsTable.$inferSelect>
   submittedActions: SubmittedActionRow[]
   ruleset: Ruleset
 }): TurnToProcessModel {
@@ -463,7 +452,15 @@ function toTurnToProcessModel({
     ),
     players: indexBy("id", playerModels),
     planets: indexBy("id", planets),
-    fleets: indexBy("id", fleets),
+    fleets: indexBy("id", fleets.map(toFleet)),
     ruleset,
+  }
+}
+
+function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): Fleet {
+  return {
+    ...fleet,
+    ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
+    ...(distanceToEnd === null ? {} : { distanceToEnd }),
   }
 }

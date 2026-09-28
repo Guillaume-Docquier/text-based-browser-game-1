@@ -25,7 +25,7 @@ export class FleetBuildEffect extends Effect {
     this.targetPlanetId = resolveTargetId(this.submittedAction.selectedTargets, this.effectDefinition.targets.planet)
   }
 
-  protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
+  protected override doResolve(context: TurnContext): Result<EffectOutcome[], EffectError> {
     // This is O(Fleets), but we expect the number of fleets to stay small, and the number of build effects per turn to also be small.
     // When efficiency becomes a problem, we can reevaluate this.
     // The biggest upside right now is that context.turnState.fleets is the authoritative, always consistent, source of truth for fleets and requires 0 upkeep.
@@ -34,9 +34,9 @@ export class FleetBuildEffect extends Effect {
     )
 
     if (existingFleet === undefined) {
-      return Result.Success(this.build(context))
+      return Result.Success([this.build(context)])
     } else {
-      return Result.Success(this.reinforce(existingFleet))
+      return Result.Success([this.reinforce(existingFleet)])
     }
   }
 

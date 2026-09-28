@@ -1,4 +1,5 @@
 import { Assert, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
+import { NonNegativeNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
 import { computeAvailableActions } from "game-rules/action-submission/computeAvailableActions.ts"
 import { getUncommittedResources } from "game-rules/action-submission/getUncommittedResources.ts"
 import { SelectedTargetsSchema } from "game-rules/action-submission/SelectedTargets.ts"
@@ -301,6 +302,8 @@ export const FleetDtoSchema = z.object({
   name: FleetNameSchema,
   strength: z.number(),
   originPlanetId: PlanetIdSchema,
+  destinationPlanetId: PlanetIdSchema.optional(),
+  distanceToEnd: NonNegativeNumberSchema.optional(),
 })
 
 type ActionDto = z.infer<typeof ActionDtoSchema>

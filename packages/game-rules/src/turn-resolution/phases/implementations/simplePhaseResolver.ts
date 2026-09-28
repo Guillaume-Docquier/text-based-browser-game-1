@@ -11,9 +11,9 @@ export function simplePhaseResolver(
   context: TurnContext,
 ): Result<TurnContext, ResolvePhaseError> {
   for (const effect of context.effectPool.getEffectsOfType(effectDefinitionType)) {
-    const outcome = effect.resolve(context)
-    if (Result.isFailure(outcome)) {
-      return Result.Failure(ResolvePhaseError.FailedEffect({ error: outcome.error }))
+    const result = effect.resolve(context)
+    if (Result.isFailure(result)) {
+      return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
     }
   }
 

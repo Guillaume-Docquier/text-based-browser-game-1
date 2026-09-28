@@ -1,3 +1,4 @@
+import type { NonNegativeNumber } from "@guillaume-docquier/tools-ts/schemas"
 import { sql } from "drizzle-orm"
 import {
   bigint,
@@ -325,6 +326,8 @@ export const fleetsTable = pgTable(
     name: fleetNameColumn("name").notNull(),
     strength: integer("strength").notNull(),
     originPlanetId: planetIdColumn("origin_planet_id").notNull(),
+    destinationPlanetId: planetIdColumn("destination_planet_id"),
+    distanceToEnd: doublePrecision("distance_to_end").$type<NonNegativeNumber>(),
   },
   (table) => [
     foreignKey({
@@ -341,6 +344,11 @@ export const fleetsTable = pgTable(
       columns: [table.gameId, table.originPlanetId],
       foreignColumns: [planetsTable.gameId, planetsTable.id],
       name: "fleets_gameId_originPlanetId_planets_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.destinationPlanetId],
+      foreignColumns: [planetsTable.gameId, planetsTable.id],
+      name: "fleets_gameId_destinationPlanetId_planets_fk",
     }).onDelete("cascade"),
     check("fleets_strength_positive_check", sql`${table.strength} > 0`),
     unique("fleets_game_id_owner_player_id_origin_planet_id_unique").on(table.gameId, table.ownerPlayerId, table.originPlanetId),

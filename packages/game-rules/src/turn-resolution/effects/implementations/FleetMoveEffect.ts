@@ -108,7 +108,7 @@ export class FleetMoveEffect extends Effect {
     destinationPlanet: Planet
   }): EffectOutcome {
     fleetAtDestination.strength += fleet.strength
-    fleet.strength = 0 // TODO Need to delete the fleet at some point
+    fleet.strength = 0
 
     return EffectOutcome.Resolved({
       result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}" and merged ${fleet.strength} strength into Fleet "${fleetAtDestination.name}"`,

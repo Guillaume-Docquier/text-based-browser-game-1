@@ -22,6 +22,13 @@
       "when": 1790632471907,
       "tag": "0002_limit-planet-name-length",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790633774823,
+      "tag": "0003_fleet-movement-state",
+      "breakpoints": true
     }
   ]
 }

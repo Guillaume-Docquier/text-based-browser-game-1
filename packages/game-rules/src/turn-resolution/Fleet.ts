@@ -22,6 +22,8 @@ export type Fleet = {
   distanceToEnd?: NonNegativeNumber | undefined
   /**
    * Defined only when moving.
+   * We'd use a discriminated union here, but since we mutate the fleet, it's a bit hard to do.
+   *
    * The internal turn tick at which the fleet arrived, for tie-breakers.
    * Tick 0 means the fleet was already on the destination planet at the start of the turn.
    */
