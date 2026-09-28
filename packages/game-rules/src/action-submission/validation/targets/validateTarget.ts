@@ -1,10 +1,10 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import { evaluateOwnedBySubmittingPlayerConstraint } from "#game-rules/action-submission/validation/validators/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
+import { evaluateOwnedBySubmittingPlayerConstraint } from "#game-rules/action-submission/validation/targets/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
 import type {
   TargetConstraintError,
   TargetConstraintIssue,
   TargetForValidation,
-} from "#game-rules/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
+} from "#game-rules/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetConstraint } from "#game-rules/ruleset/target-definitions/TargetConstraint.ts"

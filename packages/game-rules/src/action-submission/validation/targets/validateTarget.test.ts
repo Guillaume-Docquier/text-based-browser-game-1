@@ -1,6 +1,6 @@
 import { branded } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { validateTarget } from "#game-rules/action-submission/validation/validators/validateTarget.ts"
+import { validateTarget } from "#game-rules/action-submission/validation/targets/validateTarget.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"

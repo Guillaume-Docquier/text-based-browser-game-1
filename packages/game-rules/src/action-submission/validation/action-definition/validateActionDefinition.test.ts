@@ -1,7 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSubmittedActionStub } from "#game-rules/action-submission/Action.stub.ts"
-import { validateActionDefinition } from "#game-rules/action-submission/validation/validators/validateActionDefinition.ts"
+import { validateActionDefinition } from "#game-rules/action-submission/validation/action-definition/validateActionDefinition.ts"
 import { createRulesetStub } from "#game-rules/ruleset/Ruleset.stub.ts"
 
 describe("validateActionDefinition", () => {

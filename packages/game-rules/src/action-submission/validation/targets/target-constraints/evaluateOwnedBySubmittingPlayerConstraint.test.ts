@@ -1,6 +1,6 @@
 import { branded, Result, typedParse } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
-import { evaluateOwnedBySubmittingPlayerConstraint } from "#game-rules/action-submission/validation/validators/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
+import { evaluateOwnedBySubmittingPlayerConstraint } from "#game-rules/action-submission/validation/targets/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
 import { FleetNameSchema } from "#game-rules/models/FleetName.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
