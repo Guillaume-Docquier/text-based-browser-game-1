@@ -1,5 +1,4 @@
 import { branded } from "@guillaume-docquier/tools-ts"
-import type { ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
@@ -8,7 +7,7 @@ import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-d
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 
 export const GainFuel: ActionDefinition = {
-  id: branded<ActionDefinitionId>("GAIN_FUEL"),
+  id: branded("GAIN_FUEL"),
   name: "Refine Fuel",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.ADVANCED,
