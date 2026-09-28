@@ -1,0 +1,7 @@
+flags:
+  backend:
+    paths:
+      - apps/backend/src/
+  game-rules:
+    paths:
+      - packages/game-rules/src/

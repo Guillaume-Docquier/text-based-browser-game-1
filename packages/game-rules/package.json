@@ -10,15 +10,17 @@
   "scripts": {
     "checks": "pnpm typecheck && pnpm test",
     "test": "vitest run",
+    "test:coverage": "pnpm test --coverage",
     "typecheck": "tsc"
   },
   "dependencies": {
     "@guillaume-docquier/tools-ts": "catalog:",
-    "type-fest": "^5.10.0",
     "uuid": "^14.0.2",
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.0",
+    "type-fest": "^5.10.0",
     "typescript": "catalog:",
     "vitest": "^5.0.0"
   }

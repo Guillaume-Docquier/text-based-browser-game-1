@@ -119,6 +119,8 @@ jobs:
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v7
         with:
+          files: ./apps/backend/coverage/lcov.info
+          disable_search: true
           flags: backend
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -136,5 +138,13 @@ jobs:
       - name: Typecheck
         run: pnpm --filter game-rules typecheck
 
-      - name: Tests
-        run: pnpm --filter game-rules test
+      - name: Tests with coverage
+        run: pnpm --filter game-rules test:coverage
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./packages/game-rules/coverage/lcov.info
+          disable_search: true
+          flags: game-rules
+          token: ${{ secrets.CODECOV_TOKEN }}

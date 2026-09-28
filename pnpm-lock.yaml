@@ -247,9 +247,6 @@ importers:
       transformation-matrix:
         specifier: ^3.1.0
         version: 3.1.0
-      type-fest:
-        specifier: ^5.10.0
-        version: 5.10.0
       uuid:
         specifier: ^14.0.2
         version: 14.0.2
@@ -293,6 +290,9 @@ importers:
       testcontainers:
         specifier: ^12.1.0
         version: 12.1.0(supports-color@8.1.1)
+      type-fest:
+        specifier: ^5.10.0
+        version: 5.10.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -420,9 +420,6 @@ importers:
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
         version: 8.6.1
-      type-fest:
-        specifier: ^5.10.0
-        version: 5.10.0
       uuid:
         specifier: ^14.0.2
         version: 14.0.2
@@ -430,6 +427,12 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^5.0.0
+        version: 5.0.0(vitest@5.0.0)
+      type-fest:
+        specifier: ^5.10.0
+        version: 5.10.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
