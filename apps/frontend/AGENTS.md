@@ -34,13 +34,15 @@ On native Windows in the Codex sandbox, do not run the aggregate `pnpm --filter 
 ## End-to-end Tests
 
 - Run Playwright commands in a terminal with a TTY. For Codex `exec_command`, set `tty: true` so its live progress is visible.
-- For an agent-run test, add the `list` reporter and enable step output. The configured HTML report remains available because `--add-reporter` adds to it. On Windows, run these lines in one PowerShell command with `tty: true`:
+- For an agent-run test, add the `list` reporter and enable step output. Set `PLAYWRIGHT_HTML_OPEN=never` for that command: Playwright still writes the configured HTML report, but after a failure it will not serve the report and wait for Ctrl+C, which can make the Codex terminal look hung. On Windows, run these lines in one PowerShell command with `tty: true`:
 
   ```powershell
+  $env:PLAYWRIGHT_HTML_OPEN = "never"
   $env:PLAYWRIGHT_LIST_PRINT_STEPS = "1"
   pnpm --filter frontend e2e playwright/specs/planets.spec.ts --project chromium --add-reporter=list
   ```
 
+- If a worktree is outside Codex's writable roots and pnpm fails with `EPERM` while creating a `_tmp_*` file, rerun the same E2E command through a reviewed `require_escalated` sandbox exception. Playwright has not started in that case.
 - Poll the running terminal session for output. A quiet interval alone does not mean the test is stalled; use the latest test or step, timeout, and diagnostics before interrupting it.
 - Structure tests with descriptive `test.step()` blocks reflecting user behavior. Do not use AAA sections.
 - Page objects own selectors, reusable interactions, and routes. Tests use intent-revealing methods such as `page.navbar.signOut()`; navigation methods return the destination page object.
