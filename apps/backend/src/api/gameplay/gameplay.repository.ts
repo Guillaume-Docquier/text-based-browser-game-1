@@ -551,7 +551,6 @@ export class GameplayRepository extends PostgresRepository {
       .where(and(eq(turnsProcessingTable.gameId, context.gameId), eq(turnsProcessingTable.turn, context.turn)))
   }
 
-  // oxlint-disable-next-line no-unused-vars -- context is required here as a proof that these actions can be updated, because to get the context you had to check. It's not a super strong enforcement, but the spirit is there.
   public async updateActionSubmissions({ context, actions }: UpdateActionSubmissionsModel, tx: Transaction): Promise<void> {
     const updatedAt = this.clock.now()
 
@@ -559,7 +558,17 @@ export class GameplayRepository extends PostgresRepository {
     await Promise.all(
       actions.map(
         async (action) =>
-          await tx.update(actionsTable).set({ selectedTargets: action.selectedTargets, updatedAt }).where(eq(actionsTable.id, action.id)),
+          await tx
+            .update(actionsTable)
+            .set({ selectedTargets: action.selectedTargets, updatedAt })
+            .where(
+              and(
+                eq(actionsTable.gameId, context.gameId),
+                eq(actionsTable.playerId, context.playerId),
+                eq(actionsTable.turn, context.turn),
+                eq(actionsTable.id, action.id),
+              ),
+            ),
       ),
     )
   }

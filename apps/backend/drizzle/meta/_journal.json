@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1790531906132,
+      "when": 1790564441048,
       "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1790538521640,
-      "tag": "0001_standardize-fleet-owner-player-id",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1790545957682,
-      "tag": "0002_turquoise-player-color",
       "breakpoints": true
     }
   ]

@@ -154,7 +154,8 @@ describe("TurnProcessor", () => {
         }),
         actions: expect.any(Array),
       })
-      expect(playerView.actions.map(({ id }) => id)).not.toStrictEqual(initialPlayerView.actions.map(({ id }) => id))
+      expect(playerView.actions.map(({ id }) => id)).toStrictEqual(initialPlayerView.actions.map(({ id }) => id))
+      expect(playerView.actions.every(({ selectedTargets }) => selectedTargets === null)).toBe(true)
       expect(repeatedPlayerView.actions).toStrictEqual(playerView.actions)
     })
 

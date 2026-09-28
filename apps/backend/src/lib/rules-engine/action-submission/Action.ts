@@ -6,7 +6,8 @@ import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definiti
 export type Action = AvailableAction | SubmittedAction
 
 /**
- * All actions are defined by a unique identifier, for a specific player and reference an action definition.
+ * Each Ruleset Action Pool entry gives this Action a stable identifier across turns.
+ * The player and turn scope distinguish rows that share that identifier.
  * By default, the action is available and has no selected targets.
  */
 export type AvailableAction = Readonly<{

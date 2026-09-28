@@ -1,5 +1,5 @@
 {
-  "id": "4d2df4b0-997a-45de-9bbe-89ac1681bdff",
+  "id": "43dcf584-5866-4bf3-b827-dcc5918fd82c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -85,10 +85,9 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
         },
         "game_id": {
           "name": "game_id",
@@ -128,35 +127,7 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "actions_game_id_player_id_turn_index": {
-          "name": "actions_game_id_player_id_turn_index",
-          "columns": [
-            {
-              "expression": "game_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "player_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "turn",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "actions_gameId_playerId_game_players_fk": {
           "name": "actions_gameId_playerId_game_players_fk",
@@ -168,7 +139,12 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "actions_game_id_player_id_turn_id_pk": {
+          "name": "actions_game_id_player_id_turn_id_pk",
+          "columns": ["game_id", "player_id", "turn", "id"]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -190,8 +166,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "player_id": {
-          "name": "player_id",
+        "owner_player_id": {
+          "name": "owner_player_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -248,11 +224,11 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "fleets_gameId_playerId_game_players_fk": {
-          "name": "fleets_gameId_playerId_game_players_fk",
+        "fleets_gameId_ownerPlayerId_game_players_fk": {
+          "name": "fleets_gameId_ownerPlayerId_game_players_fk",
           "tableFrom": "fleets",
           "tableTo": "players",
-          "columnsFrom": ["game_id", "player_id"],
+          "columnsFrom": ["game_id", "owner_player_id"],
           "columnsTo": ["game_id", "player_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -269,10 +245,10 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "fleets_game_id_player_id_origin_planet_id_unique": {
-          "name": "fleets_game_id_player_id_origin_planet_id_unique",
+        "fleets_game_id_owner_player_id_origin_planet_id_unique": {
+          "name": "fleets_game_id_owner_player_id_origin_planet_id_unique",
           "nullsNotDistinct": false,
-          "columns": ["game_id", "player_id", "origin_planet_id"]
+          "columns": ["game_id", "owner_player_id", "origin_planet_id"]
         }
       },
       "policies": {},
@@ -1004,7 +980,7 @@
       "name": "player_color",
       "schema": "public",
       "values": [
-        "WHITE",
+        "TURQUOISE",
         "RED",
         "BLUE",
         "TEAL",
