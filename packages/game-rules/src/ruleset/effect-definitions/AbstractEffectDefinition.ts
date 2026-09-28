@@ -1,5 +1,5 @@
-import type { EffectDefinitionTargetDefinition } from "game-rules/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
-import type { TargetRole } from "game-rules/ruleset/effect-definitions/TargetRole.ts"
+import type { EffectDefinitionTargetDefinition } from "#game-rules/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
+import type { TargetRole } from "#game-rules/ruleset/effect-definitions/TargetRole.ts"
 
 export type AbstractEffectDefinition = Readonly<{
   /**

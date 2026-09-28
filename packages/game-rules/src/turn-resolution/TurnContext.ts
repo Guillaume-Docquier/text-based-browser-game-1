@@ -1,7 +1,7 @@
 import type { Rng } from "@guillaume-docquier/tools-ts"
-import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
-import type { EffectPool } from "game-rules/turn-resolution/effects/EffectPool.ts"
-import type { TurnState } from "game-rules/turn-resolution/TurnState.ts"
+import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
+import type { EffectPool } from "#game-rules/turn-resolution/effects/EffectPool.ts"
+import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
 
 export type TurnContext = Readonly<{
   /**

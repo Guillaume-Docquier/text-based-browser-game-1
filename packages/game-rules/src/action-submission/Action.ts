@@ -1,7 +1,7 @@
-import type { SelectedTargets } from "game-rules/action-submission/SelectedTargets.ts"
-import type { ActionDefinitionId } from "game-rules/models/ActionDefinitionId.ts"
-import type { ActionId } from "game-rules/models/ActionId.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
+import type { SelectedTargets } from "#game-rules/action-submission/SelectedTargets.ts"
+import type { ActionDefinitionId } from "#game-rules/models/ActionDefinitionId.ts"
+import type { ActionId } from "#game-rules/models/ActionId.ts"
+import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 
 export type Action = AvailableAction | SubmittedAction
 

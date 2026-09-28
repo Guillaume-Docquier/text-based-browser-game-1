@@ -1,10 +1,10 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import type { SubmittedAction } from "game-rules/action-submission/Action.ts"
-import type { EffectDefinition } from "game-rules/ruleset/effect-definitions/EffectDefinition.ts"
-import type { EffectError } from "game-rules/turn-resolution/effects/EffectError.ts"
-import type { EffectJson } from "game-rules/turn-resolution/effects/EffectJson.ts"
-import type { EffectOutcome } from "game-rules/turn-resolution/effects/EffectOutcome.ts"
-import type { TurnContext } from "game-rules/turn-resolution/TurnContext.ts"
+import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
+import type { EffectDefinition } from "#game-rules/ruleset/effect-definitions/EffectDefinition.ts"
+import type { EffectError } from "#game-rules/turn-resolution/effects/EffectError.ts"
+import type { EffectJson } from "#game-rules/turn-resolution/effects/EffectJson.ts"
+import type { EffectOutcome } from "#game-rules/turn-resolution/effects/EffectOutcome.ts"
+import type { TurnContext } from "#game-rules/turn-resolution/TurnContext.ts"
 
 export abstract class Effect {
   public readonly id: number

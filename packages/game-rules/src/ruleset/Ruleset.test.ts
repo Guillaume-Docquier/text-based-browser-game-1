@@ -1,14 +1,14 @@
 import { type DeepUnbranded, indexBy, Result } from "@guillaume-docquier/tools-ts"
-import { createActionDefinitionStub } from "game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
-import type { ActionDefinition } from "game-rules/ruleset/action-definitions/ActionDefinition.ts"
-import { FleetBuildEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
-import { ResourceGainEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
-import { ResourceLossEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
-import { createResourcesStub } from "game-rules/ruleset/effect-definitions/Resources.stub.ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
-import { Ruleset } from "game-rules/ruleset/Ruleset.ts"
 import { describe, expect, it } from "vitest"
+import { createActionDefinitionStub } from "#game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
+import type { ActionDefinition } from "#game-rules/ruleset/action-definitions/ActionDefinition.ts"
+import { FleetBuildEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
+import { ResourceGainEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
+import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
+import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
+import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
+import { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
 
 const validActionDefinition = createActionDefinitionStub({
   id: "VALID_ACTION",

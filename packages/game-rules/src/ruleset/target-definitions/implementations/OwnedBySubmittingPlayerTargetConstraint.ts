@@ -1,11 +1,11 @@
 import { typedParse } from "@guillaume-docquier/tools-ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
+import { z } from "zod"
+import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
 import type {
   AbstractTargetConstraint,
   NoTargetConstraintParameters,
   NoTargetReferences,
-} from "game-rules/ruleset/target-definitions/AbstractTargetConstraint.ts"
-import { z } from "zod"
+} from "#game-rules/ruleset/target-definitions/AbstractTargetConstraint.ts"
 
 /**
  * Requires a target to be owned by the submitting player.

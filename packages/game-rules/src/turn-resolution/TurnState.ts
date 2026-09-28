@@ -1,10 +1,10 @@
-import type { SubmittedAction } from "game-rules/action-submission/Action.ts"
-import type { FleetId } from "game-rules/models/FleetId.ts"
-import type { FleetName } from "game-rules/models/FleetName.ts"
-import type { GameId } from "game-rules/models/GameId.ts"
-import type { PlanetId } from "game-rules/models/PlanetId.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
+import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
+import type { FleetId } from "#game-rules/models/FleetId.ts"
+import type { FleetName } from "#game-rules/models/FleetName.ts"
+import type { GameId } from "#game-rules/models/GameId.ts"
+import type { PlanetId } from "#game-rules/models/PlanetId.ts"
+import type { PlayerId } from "#game-rules/models/PlayerId.ts"
+import type { Resources } from "#game-rules/ruleset/effect-definitions/Resources.ts"
 
 /**
  * The current state of the turn.

@@ -1,6 +1,6 @@
-import type { AvailableAction } from "game-rules/action-submission/Action.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
+import type { AvailableAction } from "#game-rules/action-submission/Action.ts"
+import type { PlayerId } from "#game-rules/models/PlayerId.ts"
+import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
 
 /**
  * Computes each player's available Actions from the Ruleset's current Action Pool.

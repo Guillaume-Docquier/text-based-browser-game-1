@@ -1,7 +1,7 @@
-import { TargetTypeSchema, type TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
-import { TargetConstraintSchema, type TargetConstraint } from "game-rules/ruleset/target-definitions/TargetConstraint.ts"
 import { z } from "zod"
+import { TargetTypeSchema, type TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { TargetConstraintSchema, type TargetConstraint } from "#game-rules/ruleset/target-definitions/TargetConstraint.ts"
 
 export type TargetDefinition = Readonly<{
   targetType: TargetType

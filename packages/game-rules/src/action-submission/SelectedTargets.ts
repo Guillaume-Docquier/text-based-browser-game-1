@@ -1,6 +1,6 @@
-import { TargetTagSchema, type TargetTag } from "game-rules/ruleset/action-definitions/TargetTag.ts"
-import { TargetIdSchema, type TargetId } from "game-rules/ruleset/target-definitions/TargetId.ts"
 import { z } from "zod"
+import { TargetTagSchema, type TargetTag } from "#game-rules/ruleset/action-definitions/TargetTag.ts"
+import { TargetIdSchema, type TargetId } from "#game-rules/ruleset/target-definitions/TargetId.ts"
 
 /**
  * Maps Action Definition target slot tags to the selected target ids.

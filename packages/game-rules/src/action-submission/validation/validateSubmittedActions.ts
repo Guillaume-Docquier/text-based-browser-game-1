@@ -1,13 +1,13 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import type { SubmittedAction } from "game-rules/action-submission/Action.ts"
-import type { SubmittedActionIssue } from "game-rules/action-submission/validation/SubmittedActionIssue.ts"
-import type { SubmittedActionValidator } from "game-rules/action-submission/validation/SubmittedActionValidator.ts"
-import { validateActionDefinition } from "game-rules/action-submission/validation/validators/validateActionDefinition.ts"
-import { validateCosts } from "game-rules/action-submission/validation/validators/validateCosts.ts"
-import { validateTargets } from "game-rules/action-submission/validation/validators/validateTargets.ts"
-import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
-import type { TurnState } from "game-rules/turn-resolution/TurnState.ts"
 import type { ReadonlyDeep } from "type-fest"
+import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
+import type { SubmittedActionIssue } from "#game-rules/action-submission/validation/SubmittedActionIssue.ts"
+import type { SubmittedActionValidator } from "#game-rules/action-submission/validation/SubmittedActionValidator.ts"
+import { validateActionDefinition } from "#game-rules/action-submission/validation/validators/validateActionDefinition.ts"
+import { validateCosts } from "#game-rules/action-submission/validation/validators/validateCosts.ts"
+import { validateTargets } from "#game-rules/action-submission/validation/validators/validateTargets.ts"
+import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
+import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
 
 const validators: SubmittedActionValidator[] = [validateActionDefinition, validateTargets, validateCosts]
 

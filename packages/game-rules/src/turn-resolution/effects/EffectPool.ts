@@ -1,7 +1,7 @@
-import type { SubmittedAction } from "game-rules/action-submission/Action.ts"
-import type { EffectDefinition } from "game-rules/ruleset/effect-definitions/EffectDefinition.ts"
-import type { Effect } from "game-rules/turn-resolution/effects/Effect.ts"
-import type { EffectOutcome } from "game-rules/turn-resolution/effects/EffectOutcome.ts"
+import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
+import type { EffectDefinition } from "#game-rules/ruleset/effect-definitions/EffectDefinition.ts"
+import type { Effect } from "#game-rules/turn-resolution/effects/Effect.ts"
+import type { EffectOutcome } from "#game-rules/turn-resolution/effects/EffectOutcome.ts"
 
 /**
  * The EffectPool contains all the Effects that need to be applied to the TurnState

@@ -1,6 +1,6 @@
-import { type TargetTag, TargetTagSchema } from "game-rules/ruleset/action-definitions/TargetTag.ts"
-import type { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
 import { z } from "zod"
+import { type TargetTag, TargetTagSchema } from "#game-rules/ruleset/action-definitions/TargetTag.ts"
+import type { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
 
 export type EffectDefinitionTargetDefinition<TTargetType extends TargetType = TargetType> = {
   /**

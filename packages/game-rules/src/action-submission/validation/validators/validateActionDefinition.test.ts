@@ -1,8 +1,8 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import { createSubmittedActionStub } from "game-rules/action-submission/Action.stub.ts"
-import { validateActionDefinition } from "game-rules/action-submission/validation/validators/validateActionDefinition.ts"
-import { createRulesetStub } from "game-rules/ruleset/Ruleset.stub.ts"
 import { describe, expect, it } from "vitest"
+import { createSubmittedActionStub } from "#game-rules/action-submission/Action.stub.ts"
+import { validateActionDefinition } from "#game-rules/action-submission/validation/validators/validateActionDefinition.ts"
+import { createRulesetStub } from "#game-rules/ruleset/Ruleset.stub.ts"
 
 describe("validateActionDefinition", () => {
   it("should report an Action Definition that does not exist in the Ruleset", () => {

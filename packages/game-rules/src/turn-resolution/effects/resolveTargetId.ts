@@ -1,10 +1,10 @@
 import { Assert, branded } from "@guillaume-docquier/tools-ts"
-import type { SelectedTargets } from "game-rules/action-submission/SelectedTargets.ts"
-import type { FleetId } from "game-rules/models/FleetId.ts"
-import type { PlanetId } from "game-rules/models/PlanetId.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import type { EffectDefinitionTargetDefinition } from "game-rules/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
+import type { SelectedTargets } from "#game-rules/action-submission/SelectedTargets.ts"
+import type { FleetId } from "#game-rules/models/FleetId.ts"
+import type { PlanetId } from "#game-rules/models/PlanetId.ts"
+import type { PlayerId } from "#game-rules/models/PlayerId.ts"
+import type { EffectDefinitionTargetDefinition } from "#game-rules/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
+import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
 
 type TargetId<TTargetType extends TargetType> = {
   [TargetType.FLEET]: FleetId

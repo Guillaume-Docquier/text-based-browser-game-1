@@ -1,12 +1,12 @@
 import { typedParse } from "@guillaume-docquier/tools-ts"
-import { type ActionDefinition, ActionDefinitionSchema } from "game-rules/ruleset/action-definitions/ActionDefinition.ts"
-import { ActionTier } from "game-rules/ruleset/action-definitions/ActionTier.ts"
-import { ActionType } from "game-rules/ruleset/action-definitions/ActionType.ts"
-import { FleetBuildEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
-import { ResourceLossEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { type ActionDefinition, ActionDefinitionSchema } from "#game-rules/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionTier } from "#game-rules/ruleset/action-definitions/ActionTier.ts"
+import { ActionType } from "#game-rules/ruleset/action-definitions/ActionType.ts"
+import { FleetBuildEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
+import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
+import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 
 function buildFleetDirective({
   id,

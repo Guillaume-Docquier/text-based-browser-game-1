@@ -1,8 +1,8 @@
-import type { FleetId } from "game-rules/models/FleetId.ts"
-import type { PlanetId } from "game-rules/models/PlanetId.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import type { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
-import type { Fleet, Player, Planet } from "game-rules/turn-resolution/TurnState.ts"
+import type { FleetId } from "#game-rules/models/FleetId.ts"
+import type { PlanetId } from "#game-rules/models/PlanetId.ts"
+import type { PlayerId } from "#game-rules/models/PlayerId.ts"
+import type { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
+import type { Fleet, Player, Planet } from "#game-rules/turn-resolution/TurnState.ts"
 
 type TargetId<TTargetType extends TargetType> = {
   [TargetType.FLEET]: FleetId

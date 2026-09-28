@@ -1,8 +1,8 @@
 import type { DeepUnbranded } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts"
-import { createResourcesStub } from "game-rules/ruleset/effect-definitions/Resources.stub.ts"
-import { type Ruleset, RulesetSchema } from "game-rules/ruleset/Ruleset.ts"
 import { v4 } from "uuid"
+import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
+import { type Ruleset, RulesetSchema } from "#game-rules/ruleset/Ruleset.ts"
 
 /**
  * Creates a valid Ruleset with default values and optional overrides.

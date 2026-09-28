@@ -1,5 +1,5 @@
-import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
+import type { Resources } from "#game-rules/ruleset/effect-definitions/Resources.ts"
+import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
 
 /**
  * By default, all resources are 0. You can rely on this in your tests to make assertions lighter.

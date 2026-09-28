@@ -1,6 +1,6 @@
-import type { SubmittedActionIssue } from "game-rules/action-submission/validation/SubmittedActionIssue.ts"
-import type { EffectJson } from "game-rules/turn-resolution/effects/EffectJson.ts"
-import type { ResolvePhaseError } from "game-rules/turn-resolution/phases/ResolvePhaseError.ts"
+import type { SubmittedActionIssue } from "#game-rules/action-submission/validation/SubmittedActionIssue.ts"
+import type { EffectJson } from "#game-rules/turn-resolution/effects/EffectJson.ts"
+import type { ResolvePhaseError } from "#game-rules/turn-resolution/phases/ResolvePhaseError.ts"
 
 export type ResolveTurnError = InvalidSubmissions | FailedToResolvePhases | UnresolvedEffects
 type InvalidSubmissions = Readonly<{ type: "INVALID_SUBMISSIONS"; issues: SubmittedActionIssue[] }>

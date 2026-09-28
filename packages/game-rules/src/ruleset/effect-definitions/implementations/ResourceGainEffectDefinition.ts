@@ -1,8 +1,8 @@
 import { typedParse } from "@guillaume-docquier/tools-ts"
-import type { AbstractEffectDefinition, NoTargets } from "game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
-import type { EffectDefinitionFactoryParameters } from "game-rules/ruleset/effect-definitions/implementations/EffectDefinitionFactoryParameters.ts"
-import { QuantityOfResourceSchema, type QuantityOfResource } from "game-rules/ruleset/effect-definitions/QuantityOfResource.ts"
 import { z } from "zod"
+import type { AbstractEffectDefinition, NoTargets } from "#game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
+import type { EffectDefinitionFactoryParameters } from "#game-rules/ruleset/effect-definitions/implementations/EffectDefinitionFactoryParameters.ts"
+import { QuantityOfResourceSchema, type QuantityOfResource } from "#game-rules/ruleset/effect-definitions/QuantityOfResource.ts"
 
 export interface ResourceGainEffectDefinition extends AbstractEffectDefinition {
   readonly type: "RESOURCE_GAIN"

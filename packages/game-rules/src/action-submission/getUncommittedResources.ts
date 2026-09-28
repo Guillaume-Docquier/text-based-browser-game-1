@@ -1,7 +1,7 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import type { Action } from "game-rules/action-submission/Action.ts"
-import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
-import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
+import type { Action } from "#game-rules/action-submission/Action.ts"
+import type { Resources } from "#game-rules/ruleset/effect-definitions/Resources.ts"
+import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
 
 /**
  * I don't like the shape of this, but it belongs with action submission rules.

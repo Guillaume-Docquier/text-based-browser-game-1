@@ -2,11 +2,11 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import type {
   TargetConstraintError,
   TargetConstraintIssue,
-} from "game-rules/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
-import type { TargetableEntity } from "game-rules/turn-resolution/TargetableEntity.ts"
+} from "#game-rules/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
+import type { PlayerId } from "#game-rules/models/PlayerId.ts"
+import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import type { TargetableEntity } from "#game-rules/turn-resolution/TargetableEntity.ts"
 
 /**
  * Evaluates whether an action target belongs to the submitting player.
