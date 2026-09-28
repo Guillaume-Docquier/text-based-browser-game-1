@@ -216,6 +216,19 @@ async function seedGames({
   await resetTable(db, gamesTable)
   logger.info("├ Creating default games")
 
+  logger.info("├— solo game")
+  assertSuccess(
+    await lobbiesController.createLobby({
+      createdByAccountId: firstAccount.id,
+      configuration: {
+        name: "solo game",
+        nbSeats: 1,
+        turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+        rulesetId: StandardRuleset.id,
+      },
+    }),
+  )
+
   logger.info("├— insanely fast game")
   const insanelyFastGame = assertSuccess(
     await lobbiesController.createLobby({
