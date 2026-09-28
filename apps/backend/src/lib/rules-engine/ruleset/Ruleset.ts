@@ -4,6 +4,7 @@ import type { ActionId } from "#lib/db/actions/ActionId.ts"
 import { RulesetIdSchema, type RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   type ActionDefinition,
+  type ActionDefinitionId,
   ActionDefinitionIdSchema,
   ActionDefinitionSchema,
 } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
@@ -28,7 +29,7 @@ export type Ruleset = Branded<
      * The default choice when creating games. Only one ruleset can be the default ruleset.
      */
     isDefault: boolean
-    actionDefinitions: Readonly<Record<ActionDefinition["id"], ActionDefinition>>
+    actionDefinitions: Readonly<Record<ActionDefinitionId, ActionDefinition>>
     actionPool: readonly PooledAction[]
     startingResources: Readonly<Resources>
   }>

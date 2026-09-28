@@ -7,6 +7,7 @@ import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigu
 import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
+import type { ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -665,7 +666,7 @@ describe("TurnProcessor", () => {
 /**
  * @deprecated This is not very good, some actions will require real targets and this won't be the way
  */
-function getActionToSubmit(playerView: PlayerView, actionDefinitionId: string): SubmittedActionTargetsDto {
+function getActionToSubmit(playerView: PlayerView, actionDefinitionId: ActionDefinitionId): SubmittedActionTargetsDto {
   const action = playerView.actions.find((availableAction) => availableAction.actionDefinitionId === actionDefinitionId)
   Assert.isDefined(action)
   return {

@@ -3,17 +3,19 @@ import { v4 } from "uuid"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SelectedTargetsSchema } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
+import type { ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { typedParse } from "#lib/validation/typedParse.ts"
 
 export function createAvailableActionStub({
   id = v4(),
   playerId = v4(),
+  actionDefinitionId = v4(),
   ...overrides
 }: Partial<UnbrandedProperties<AvailableAction>> = {}): AvailableAction {
   return {
     id: branded(id),
     playerId: branded(playerId),
-    actionDefinitionId: v4(),
+    actionDefinitionId: branded<ActionDefinitionId>(actionDefinitionId),
     selectedTargets: null,
     ...overrides,
   }
@@ -22,6 +24,7 @@ export function createAvailableActionStub({
 export function createSubmittedActionStub({
   id = v4(),
   playerId = v4(),
+  actionDefinitionId = v4(),
   selectedTargets = {},
   ...overrides
 }: Partial<
@@ -32,7 +35,7 @@ export function createSubmittedActionStub({
   return {
     id: branded(id),
     playerId: brandedPlayerId,
-    actionDefinitionId: v4(),
+    actionDefinitionId: branded<ActionDefinitionId>(actionDefinitionId),
     selectedTargets: typedParse(SelectedTargetsSchema, selectedTargets),
     ...overrides,
   }

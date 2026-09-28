@@ -1,7 +1,7 @@
 import type { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import type { ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 
 export type Action = AvailableAction | SubmittedAction
 
@@ -13,7 +13,7 @@ export type Action = AvailableAction | SubmittedAction
 export type AvailableAction = Readonly<{
   id: ActionId
   playerId: PlayerId
-  actionDefinitionId: ActionDefinition["id"]
+  actionDefinitionId: ActionDefinitionId
   selectedTargets: null
 }>
 
@@ -23,7 +23,7 @@ export type AvailableAction = Readonly<{
 export type SubmittedAction = Readonly<{
   id: ActionId
   playerId: PlayerId
-  actionDefinitionId: ActionDefinition["id"]
+  actionDefinitionId: ActionDefinitionId
   /**
    * Contains selected target ids keyed by the tags of the action definition's target slots.
    */

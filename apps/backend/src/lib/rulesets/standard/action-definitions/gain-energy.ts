@@ -1,4 +1,5 @@
-import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import { branded } from "@guillaume-docquier/tools-ts"
+import type { ActionDefinition, ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
 import { ResourceGainEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
@@ -6,7 +7,7 @@ import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-d
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 
 export const GainEnergy: ActionDefinition = {
-  id: "GAIN_ENERGY",
+  id: branded<ActionDefinitionId>("GAIN_ENERGY"),
   name: "Generate Power",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.IMPROVED,
