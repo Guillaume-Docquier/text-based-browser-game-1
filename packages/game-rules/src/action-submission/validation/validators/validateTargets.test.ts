@@ -243,9 +243,9 @@ describe("validateTargets", () => {
     {
       targetType: TargetType.FLEET,
       targetId: "unknown-fleet",
-      issue: 'Target selected for tag "target" references unknown Fleet id "unknown-fleet"',
+      issue: 'Target selected for tag "target" references unknown FLEET id "unknown-fleet"',
     },
-    { targetType: TargetType.PLANET, targetId: "123", issue: 'Target selected for tag "target" references unknown Planet id "123"' },
+    { targetType: TargetType.PLANET, targetId: "123", issue: 'Target selected for tag "target" references unknown PLANET id "123"' },
   ])("should report an unknown $targetType target before evaluating its constraint", ({ targetType, targetId, issue }) => {
     // Arrange
     const playerId = branded<PlayerId>("submitting-player")

@@ -5,7 +5,6 @@ import { SubmittedActionIssue } from "#game-rules/action-submission/validation/S
 import { validateTarget } from "#game-rules/action-submission/validation/validators/validateTarget.ts"
 import type { ActionDefinition } from "#game-rules/ruleset/action-definitions/ActionDefinition.ts"
 import type { TargetTag } from "#game-rules/ruleset/action-definitions/TargetTag.ts"
-import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
 import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
 import { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
 
@@ -64,12 +63,7 @@ function validateAction(
 
     const target = TurnState.getTarget(turnState, { targetType: targetDefinition.targetType, targetId })
     if (target === undefined) {
-      const targetTypeName = {
-        [TargetType.FLEET]: "Fleet",
-        [TargetType.PLANET]: "Planet",
-        [TargetType.PLAYER]: "Player",
-      }[targetDefinition.targetType]
-      issues.push(`Target selected for tag "${targetTag}" references unknown ${targetTypeName} id "${targetId}"`)
+      issues.push(`Target selected for tag "${targetTag}" references unknown ${targetDefinition.targetType} id "${targetId}"`)
       continue
     }
 
