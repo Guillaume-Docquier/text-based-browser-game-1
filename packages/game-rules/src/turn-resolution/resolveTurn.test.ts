@@ -1,4 +1,4 @@
-import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
+import { indexBy, branded, Result, typedParse } from "@guillaume-docquier/tools-ts"
 import { createSubmittedActionStub } from "game-rules/action-submission/Action.stub.ts"
 import type { FleetId } from "game-rules/models/FleetId.ts"
 import { FleetNameSchema } from "game-rules/models/FleetName.ts"
@@ -15,7 +15,6 @@ import { EffectOutcome } from "game-rules/turn-resolution/effects/EffectOutcome.
 import { resolveTurn } from "game-rules/turn-resolution/resolveTurn.ts"
 import { ResolveTurnError } from "game-rules/turn-resolution/ResolveTurnError.ts"
 import { createTurnStateStub } from "game-rules/turn-resolution/TurnState.stub.ts"
-import { typedParse } from "game-rules/validation/typedParse.ts"
 import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 

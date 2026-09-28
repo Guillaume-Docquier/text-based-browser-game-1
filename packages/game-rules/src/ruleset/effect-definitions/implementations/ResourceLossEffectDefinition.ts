@@ -1,7 +1,7 @@
+import { typedParse } from "@guillaume-docquier/tools-ts"
 import type { AbstractEffectDefinition, NoTargets } from "game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
 import type { EffectDefinitionFactoryParameters } from "game-rules/ruleset/effect-definitions/implementations/EffectDefinitionFactoryParameters.ts"
 import { QuantityOfResourceSchema, type QuantityOfResource } from "game-rules/ruleset/effect-definitions/QuantityOfResource.ts"
-import { typedParse } from "game-rules/validation/typedParse.ts"
 import { z } from "zod"
 
 export interface ResourceLossEffectDefinition extends AbstractEffectDefinition {

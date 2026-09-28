@@ -1,5 +1,5 @@
 import type { GameId, LobbyPlayer, Planet, PlayerId } from "@api-types"
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Assert, Sort } from "@guillaume-docquier/tools-ts"
 import { Link } from "@tanstack/react-router"
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react"
 import { type ReactElement, useState } from "react"
@@ -322,18 +322,6 @@ function isOwnedPlanet(planet: Planet): planet is OwnedPlanet {
 function sortPlanetRows(rows: readonly PlanetRow[], sort: PlanetSort): PlanetRow[] {
   const direction = sort.direction === "ascending" ? 1 : -1
 
-  return rows.toSorted(compose(direction, SORT_COMPARATORS[sort.column], SORT_COMPARATORS.planet, SORT_COMPARATORS.id))
-}
-
-function compose(direction: number, ...comparators: readonly PlanetRowComparator[]): PlanetRowComparator {
-  return (first, second) => {
-    for (const comparator of comparators) {
-      const comparison = comparator(first, second)
-      if (comparison !== 0) {
-        return direction * comparison
-      }
-    }
-
-    return 0
-  }
+  const compare = Sort.compose(SORT_COMPARATORS[sort.column], SORT_COMPARATORS.planet, SORT_COMPARATORS.id)
+  return rows.toSorted((first, second) => direction * compare(first, second))
 }
