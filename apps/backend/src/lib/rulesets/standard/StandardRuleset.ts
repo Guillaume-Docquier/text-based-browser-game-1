@@ -8,6 +8,17 @@ import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-in
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 
+const ACTION_DEFINITIONS = [
+  GainInfluence,
+  WinTheGame,
+  GainEnergy,
+  GainFuel,
+  GainMetal,
+  BuildFleetStandard,
+  BuildFleetImproved,
+  BuildFleetExceptional,
+]
+
 export const StandardRuleset = Ruleset.create({
   /**
    * Stable id so that it is updated on deploy
@@ -15,16 +26,11 @@ export const StandardRuleset = Ruleset.create({
   id: "core_standard_v1",
   name: "Standard V1",
   isDefault: true,
-  actionDefinitions: indexBy("id", [
-    GainInfluence,
-    WinTheGame,
-    GainEnergy,
-    GainFuel,
-    GainMetal,
-    BuildFleetStandard,
-    BuildFleetImproved,
-    BuildFleetExceptional,
-  ]),
+  actionDefinitions: indexBy("id", ACTION_DEFINITIONS),
+  actionPool: ACTION_DEFINITIONS.map((actionDefinition) => ({
+    id: `${actionDefinition.id}_1`,
+    actionDefinitionId: actionDefinition.id,
+  })),
   startingResources: {
     [ResourceType.INFLUENCE]: 3,
     [ResourceType.METAL]: 2,

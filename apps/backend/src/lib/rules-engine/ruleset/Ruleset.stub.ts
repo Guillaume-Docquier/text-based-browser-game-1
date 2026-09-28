@@ -15,6 +15,7 @@ export function createRulesetStub(overrides: Partial<DeepUnbranded<Ruleset>> = {
     name: v4(),
     isDefault: false,
     actionDefinitions: {},
+    actionPool: [],
     startingResources: createResourcesStub(),
     ...overrides,
   })

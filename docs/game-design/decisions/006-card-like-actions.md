@@ -7,6 +7,7 @@ Partially Implemented
 - [x] Card-like Action Definitions with types and tiers
 - [x] Data-driven Action presentation
 - [x] Per-Turn Available Action pool
+- [x] Ruleset-defined Action Pool with stable Action IDs
 - [x] Multiple Action selection
 - [x] Targeted Build Fleet Actions that spend Influence and Metal
 - [ ] Ideology-driven Action pools

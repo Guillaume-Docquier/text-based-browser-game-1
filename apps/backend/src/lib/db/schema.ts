@@ -167,7 +167,10 @@ export const resourcesTable = pgTable(
 export const actionsTable = pgTable(
   "actions",
   {
-    id: actionIdColumn("id").primaryKey().defaultRandom(),
+    /**
+     * Actions have stable ids defined by ruleset action pools
+     */
+    id: actionIdColumn("id").notNull(),
     gameId: gameIdColumn("game_id").notNull(),
     playerId: playerIdColumn("player_id").notNull(),
     turn: integer("turn").notNull(),
@@ -179,12 +182,14 @@ export const actionsTable = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
+    primaryKey({
+      columns: [table.gameId, table.playerId, table.turn, table.id],
+    }),
     foreignKey({
       columns: [table.gameId, table.playerId],
       foreignColumns: [playersTable.gameId, playersTable.playerId],
       name: "actions_gameId_playerId_game_players_fk",
     }).onDelete("cascade"),
-    index().on(table.gameId, table.playerId, table.turn),
   ],
 )
 

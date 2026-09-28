@@ -13,6 +13,7 @@ Partially Implemented
 - [x] Data-driven frontend Action presentation
 - [x] Resource stockpile and affordability presentation
 - [x] Available Actions
+- [x] Ruleset-defined Action Pool with stable Action IDs
 - [x] Frontend target selection for Build Fleet's owned Planet target
 - [x] Fleet Build Effect and resolution Phase
 - [ ] Frontend target selection for all target types
@@ -47,6 +48,7 @@ Relates to:
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Ruleset                   | The persisted rules used by one game, including its Action Definitions, Effect Definitions, and other game settings.     |
 | Action Definition         | Declarative content describing an Action's presentation, Effect Definitions, source and input requirements, and targets. |
+| Pooled Action             | An Action Pool entry with a stable Action ID and a reference to an Action Definition.                                    |
 | Available Action Instance | A currently usable instance of an Action Definition offered to a player for submission.                                  |
 | Action Submission         | A player's proposed use of an Available Action Instance, including the selected source, inputs, and targets.             |
 | Resolved Action           | An Action Submission and its Effect Outcomes after the Turn has been resolved.                                           |
@@ -65,8 +67,8 @@ Relates to:
 
 The rules boundary is:
 
-1. A Ruleset persists Action Definitions. Each definition contains the Action metadata (id, name, tier, etc.), its composed Effect Definitions, its source and input requirements, and its target slots.
-2. For each player and Turn, the server evaluates the current game state and produces Available Action Instances.
+1. A Ruleset persists Action Definitions and one Action Pool. Each definition contains the Action metadata (id, name, tier, etc.), its composed Effect Definitions, its source and input requirements, and its target slots. Each Pooled Action has a stable Action ID and references a definition.
+2. For each player and Turn, the server creates Available Action Instances from the Action Pool. The same Action ID identifies a pool entry across Turns.
 3. The server provides each Available Action Instance and its Action Definition, including target slots. The client uses the player-visible game state to present target choices, including choices that depend on other selected targets. The server does not enumerate legal targets or target combinations.
 4. An Action Submission identifies the Available Action Instance and the player's selected source, inputs, and targets.
 5. The server validates the Action Submission when it is received and validates the locked submission again during Turn Resolution. Client-provided choices are never trusted as proof of legality.
@@ -74,7 +76,7 @@ The rules boundary is:
 
 An Action Definition stores its configured Effect Definitions in `effects`. Resource-loss definitions used for payment are stored separately in `costs`; both fields produce runtime Effects.
 
-An Action Definition is reusable rules content. An Available Action Instance is a server-authorized opportunity to use that content in the current state. An Action Submission is the player's chosen use of that opportunity. Keeping these concepts separate allows multiple instances of the same definition while preserving server authority.
+An Action Definition is reusable rules content. A Pooled Action gives that content a stable Action ID in the Ruleset. An Available Action Instance is a server-authorized opportunity to use it in the current state. An Action Submission is the player's chosen use of that opportunity. Keeping these concepts separate allows multiple instances of the same definition while preserving server authority.
 
 Each Action Definition target slot pairs a tag with a Target Definition containing the target type and constraints. An Action Submission stores selected target IDs under those tags. An Effect Definition names the targets it needs by role and maps each role to an Action Definition target tag; during resolution, the tag locates the selected ID. Several Effect Definitions can refer to the same slot, and one Effect Definition can be configured to use different slots in different Actions.
 

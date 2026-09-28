@@ -394,6 +394,41 @@ describe("gameplay.router", () => {
       expect(playerView.actions.find(({ id }) => id === buildFleet.id)?.selectedTargets).toStrictEqual({ planet: homePlanet.id })
     })
 
+    it("should update only the submitting player's Action when players share stable Action IDs", async () => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub())
+      const creator = await apiServer.createClient({ authenticated: true })
+      const opponent = await apiServer.createClient({ authenticated: true })
+
+      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
+      await opponent.client.lobbies.join.mutate({ gameId: createdGameId })
+      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+
+      const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const creatorAction = creatorView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      Assert.isDefined(creatorAction)
+
+      const opponentView = await opponent.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const opponentAction = opponentView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      Assert.isDefined(opponentAction)
+
+      // Act
+      await creator.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: creatorView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({ actionId: creatorAction.id, selectedTargets: {} }),
+      })
+
+      // Assert
+      expect(creatorAction.id).toBe(opponentAction.id)
+      expect(
+        (await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })).actions.find(({ id }) => id === creatorAction.id),
+      ).toMatchObject({ selectedTargets: {} })
+      expect(
+        (await opponent.client.gameplay.getPlayerView.query({ gameId: createdGameId })).actions.find(({ id }) => id === opponentAction.id),
+      ).toMatchObject({ selectedTargets: null })
+    })
+
     it("should submit and deselect multiple actions", async () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())

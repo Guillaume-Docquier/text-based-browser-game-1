@@ -8,6 +8,7 @@ Partially Implemented
 - [x] Agenda, Directive, and Program presentation
 - [x] Action tier, cost, effect, and affordability presentation
 - [x] Available Action pool
+- [x] Ruleset-defined Action Pool with stable Action IDs
 - [x] Multiple Action submissions
 - [x] Readiness locks Action submissions until the player unreadies or the next Turn starts
 - [x] Build Fleet Directives with owned-Planet targets and resource costs
@@ -44,21 +45,22 @@ Relates to:
 
 ## Core Concepts
 
-| Concept                   | Definition                                                                                                                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Action Definition         | The Ruleset content that declares an Action's presentation, type, tier, prerequisites, costs, composed Effect Definitions, sources, inputs, and target slots.                   |
-| Available Action Instance | A currently usable instance of an Action Definition offered to a player for submission.                                                                                         |
-| Action Submission         | A player's proposed use of an Available Action Instance with selected sources, inputs, and targets.                                                                             |
-| Action                    | Player-facing shorthand for the definition, available instance, or submission when that distinction is not important. There are three types: Agendas, Directives, and Programs. |
-| Agenda                    | A broad Action that shifts the Empire's Ideological Alignments.                                                                                                                 |
-| Directive                 | A specific Action that exploits the Empire's Ideological Alignments without affecting them.                                                                                     |
-| Program                   | An Action to achieve a Legacy Project. See [System 002-legacy](./002-legacy.md).                                                                                                |
-| Effect                    | Player-facing shorthand for what an Action does; the Rules Engine produces concrete Effects from the Action Definition's composed Effect Definitions.                           |
-| Influence                 | Planned default Action cost; the current Political Campaign Action has no cost. See [System 014-resources](./014-resources.md).                                                 |
+| Concept                   | Definition                                                                                                                                                                                     |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Action Definition         | The Ruleset content that declares an Action's presentation, type, tier, prerequisites, costs, composed Effect Definitions, sources, inputs, and target slots.                                  |
+| Pooled Action             | A Ruleset Action Pool entry with a stable Action ID and a reference to an Action Definition.                                                                                                   |
+| Available Action Instance | A currently usable instance of an Action Definition offered to a player for submission.                                                                                                        |
+| Action Submission         | A player's proposed use of an Available Action Instance with selected sources, inputs, and targets.                                                                                            |
+| Action                    | Player-facing shorthand for the definition, pooled action, available instance, or submission when that distinction is not important. There are three types: Agendas, Directives, and Programs. |
+| Agenda                    | A broad Action that shifts the Empire's Ideological Alignments.                                                                                                                                |
+| Directive                 | A specific Action that exploits the Empire's Ideological Alignments without affecting them.                                                                                                    |
+| Program                   | An Action to achieve a Legacy Project. See [System 002-legacy](./002-legacy.md).                                                                                                               |
+| Effect                    | Player-facing shorthand for what an Action does; the Rules Engine produces concrete Effects from the Action Definition's composed Effect Definitions.                                          |
+| Influence                 | Planned default Action cost; the current Political Campaign Action has no cost. See [System 014-resources](./014-resources.md).                                                                |
 
 ## Current Implementation
 
-The Standard Ruleset currently offers resource-gain Actions, a placeholder victory Action, and three Build Fleet Directives. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders a picker for Build Fleet's owned-Planet target. Every player receives one Available Action Instance per Ruleset Action Definition; ideological Action pools and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
+The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, and three Build Fleet Directives. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders a picker for Build Fleet's owned-Planet target. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
 
 The live Build Fleet values are temporary balance and differ from the planned Directive catalogue below. These are the current Standard Ruleset values:
 
@@ -72,7 +74,7 @@ Each Build Fleet submission chooses an owned Planet. Its costs are paid during T
 
 ## Rules
 
-The game's Ruleset contains Action Definitions. During each Turn, the server evaluates the current game state and gives each player their Available Action Instances. Multiple instances can share one Action Definition, such as several opportunities to use the same Move definition.
+The game's Ruleset contains Action Definitions and an Action Pool. During each Turn, the server gives each player one Available Action Instance for each pool entry. Multiple entries can share one Action Definition, such as several opportunities to use the same Move definition, but each entry has its own stable Action ID.
 
 The frontend will present target choices using the Action Definition and the game state available to the player. Choices can depend on other selected targets, so the server will not send an exhaustive list of valid targets or target combinations. Playing an Action creates an Action Submission containing the player's source, input, and target selections. The server validates the submission when received and again during Turn Resolution.
 
@@ -182,7 +184,7 @@ The Action tables use compact player-facing effect text. This text summarizes th
 
 ### Action Pool
 
-The planned Action pool gives players 1 Standard of every Action in the core pool. Then, each Axis will provide more or better Actions. Each axis defines its own Action pool. The current Ruleset instead offers every Action Definition to every player.
+The planned ideology-driven Action pools give players 1 Standard of every Action in the core pool. Then, each Axis will provide more or better Actions. Each axis defines its own Action pool. The current Ruleset has one fixed pool with one entry for each available Action Definition.
 
 Core Action Pool:
 

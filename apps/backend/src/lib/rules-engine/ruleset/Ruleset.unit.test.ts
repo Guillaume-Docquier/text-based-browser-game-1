@@ -35,6 +35,7 @@ describe("Ruleset.safeCreate", () => {
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [validActionDefinition]),
+      actionPool: [{ id: "VALID_ACTION_1", actionDefinitionId: validActionDefinition.id }],
       startingResources: createResourcesStub(),
     }
 
@@ -52,6 +53,7 @@ describe("Ruleset.safeCreate", () => {
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: { "incorrect-index": validActionDefinition },
+      actionPool: [],
       startingResources: createResourcesStub(),
     }
 
@@ -77,6 +79,7 @@ describe("Ruleset.safeCreate", () => {
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [actionDefinition]),
+      actionPool: [],
       startingResources: createResourcesStub(),
     }
 
@@ -103,6 +106,7 @@ describe("Ruleset.safeCreate", () => {
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [actionDefinition]),
+      actionPool: [],
       startingResources: createResourcesStub(),
     }
 
@@ -145,6 +149,7 @@ describe("Ruleset.safeCreate", () => {
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [actionDefinition]),
+      actionPool: [],
       startingResources: createResourcesStub(),
     }
 
@@ -156,5 +161,46 @@ describe("Ruleset.safeCreate", () => {
     expect(result).toStrictEqual(
       Result.Failure([expect.stringContaining("at actionDefinitions.TEST_ACTION.effects[0].parameters.strength")]),
     )
+  })
+
+  it("should reject an Action Pool entry that references a missing Action Definition", () => {
+    // Arrange
+    const ruleset: DeepUnbranded<Ruleset> = {
+      id: "test-ruleset",
+      name: "Test Ruleset",
+      isDefault: false,
+      actionDefinitions: indexBy("id", [validActionDefinition]),
+      actionPool: [{ id: "MISSING_ACTION_1", actionDefinitionId: "MISSING_ACTION" }],
+      startingResources: createResourcesStub(),
+    }
+
+    // Act
+    const result = Ruleset.safeCreate(ruleset)
+
+    // Assert
+    expect(result).toStrictEqual(
+      Result.Failure(["Action Pool action MISSING_ACTION_1 references missing Action Definition MISSING_ACTION"]),
+    )
+  })
+
+  it("should reject duplicate Action IDs in the Action Pool", () => {
+    // Arrange
+    const ruleset: DeepUnbranded<Ruleset> = {
+      id: "test-ruleset",
+      name: "Test Ruleset",
+      isDefault: false,
+      actionDefinitions: indexBy("id", [validActionDefinition]),
+      actionPool: [
+        { id: "VALID_ACTION_1", actionDefinitionId: validActionDefinition.id },
+        { id: "VALID_ACTION_1", actionDefinitionId: validActionDefinition.id },
+      ],
+      startingResources: createResourcesStub(),
+    }
+
+    // Act
+    const result = Ruleset.safeCreate(ruleset)
+
+    // Assert
+    expect(result).toStrictEqual(Result.Failure(["Action Pool contains duplicate action id VALID_ACTION_1"]))
   })
 })
