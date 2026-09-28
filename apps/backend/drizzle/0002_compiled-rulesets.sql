@@ -1,0 +1,1 @@
+ALTER TABLE "rulesets" ADD COLUMN "compiled_data" jsonb NOT NULL;

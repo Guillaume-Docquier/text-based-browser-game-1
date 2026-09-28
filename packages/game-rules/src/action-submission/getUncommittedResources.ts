@@ -1,7 +1,7 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Action } from "#game-rules/action-submission/Action.ts"
+import type { CompiledRuleset } from "#game-rules/ruleset/CompiledRuleset.ts"
 import type { Resources } from "#game-rules/ruleset/effect-definitions/Resources.ts"
-import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
 
 /**
  * I don't like the shape of this, but it belongs with action submission rules.
@@ -19,7 +19,7 @@ export function getUncommittedResources({
 }: {
   resources: Readonly<Resources>
   actions: Array<Pick<Action, "actionDefinitionId">>
-  ruleset: Ruleset
+  ruleset: CompiledRuleset
 }): Resources {
   const uncommittedResources = { ...resources }
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { computeAvailableActions } from "#game-rules/action-submission/computeAvailableActions.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { createActionDefinitionStub } from "#game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
-import { createRulesetStub } from "#game-rules/ruleset/Ruleset.stub.ts"
+import { createCompiledRulesetStub } from "#game-rules/ruleset/CompiledRuleset.stub.ts"
 
 describe("computeAvailableActions", () => {
   it("should use the Action Pool for each player, including distinct copies of one Action Definition", () => {
@@ -12,12 +12,9 @@ describe("computeAvailableActions", () => {
     const secondPlayerId = branded<PlayerId>("second-player")
     const pooledDefinition = createActionDefinitionStub({ id: "POOLED_ACTION" })
     const unpooledDefinition = createActionDefinitionStub({ id: "UNPOOLED_ACTION" })
-    const ruleset = createRulesetStub({
+    const ruleset = createCompiledRulesetStub({
       actionDefinitions: indexBy("id", [pooledDefinition, unpooledDefinition]),
-      actionPool: [
-        { id: "POOLED_ACTION_1", actionDefinitionId: pooledDefinition.id },
-        { id: "POOLED_ACTION_2", actionDefinitionId: pooledDefinition.id },
-      ],
+      actionPool: [{ actionDefinitionId: pooledDefinition.id }, { actionDefinitionId: pooledDefinition.id }],
     })
 
     // Act
@@ -25,10 +22,30 @@ describe("computeAvailableActions", () => {
 
     // Assert
     expect(actions).toStrictEqual([
-      { id: "POOLED_ACTION_1", playerId: firstPlayerId, actionDefinitionId: pooledDefinition.id, selectedTargets: null },
-      { id: "POOLED_ACTION_2", playerId: firstPlayerId, actionDefinitionId: pooledDefinition.id, selectedTargets: null },
-      { id: "POOLED_ACTION_1", playerId: secondPlayerId, actionDefinitionId: pooledDefinition.id, selectedTargets: null },
-      { id: "POOLED_ACTION_2", playerId: secondPlayerId, actionDefinitionId: pooledDefinition.id, selectedTargets: null },
+      {
+        id: "8ee6a227-3423-54ee-bb4b-746b6b94e14d",
+        playerId: firstPlayerId,
+        actionDefinitionId: pooledDefinition.id,
+        selectedTargets: null,
+      },
+      {
+        id: "e78a1435-91dc-5cee-bdf8-1579ad1c6621",
+        playerId: firstPlayerId,
+        actionDefinitionId: pooledDefinition.id,
+        selectedTargets: null,
+      },
+      {
+        id: "8ee6a227-3423-54ee-bb4b-746b6b94e14d",
+        playerId: secondPlayerId,
+        actionDefinitionId: pooledDefinition.id,
+        selectedTargets: null,
+      },
+      {
+        id: "e78a1435-91dc-5cee-bdf8-1579ad1c6621",
+        playerId: secondPlayerId,
+        actionDefinitionId: pooledDefinition.id,
+        selectedTargets: null,
+      },
     ])
   })
 })

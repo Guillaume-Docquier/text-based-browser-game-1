@@ -4,7 +4,7 @@ import type { AccountId } from "game-rules/models/AccountId.ts"
 import type { GameId } from "game-rules/models/GameId.ts"
 import type { PlayerId } from "game-rules/models/PlayerId.ts"
 import type { RulesetId } from "game-rules/models/RulesetId.ts"
-import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
+import type { CompiledRuleset } from "game-rules/ruleset/CompiledRuleset.ts"
 import type { Alias } from "#lib/db/accounts/Alias.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import type { GameStatus } from "#lib/db/games/GameStatus.ts"
@@ -16,7 +16,7 @@ import { couldNot } from "#lib/errors.ts"
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect
 
-export type RulesetSummaryModel = Pick<Ruleset, "id" | "name" | "isDefault">
+export type RulesetSummaryModel = Pick<CompiledRuleset, "id" | "name" | "isDefault">
 
 export type LobbyCreationSettingsModel = Readonly<{
   rulesets: readonly RulesetSummaryModel[]

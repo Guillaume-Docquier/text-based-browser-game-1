@@ -60,7 +60,7 @@ Relates to:
 
 ## Current Implementation
 
-The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, and three Build Fleet Directives. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders a picker for Build Fleet's owned-Planet target. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
+The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, and three Build Fleet Directives. The Ruleset compiler gives each Pooled Action a stable Action ID and it references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders a picker for Build Fleet's owned-Planet target. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
 
 The live Build Fleet values are temporary balance and differ from the planned Directive catalogue below. These are the current Standard Ruleset values:
 
@@ -74,7 +74,7 @@ Each Build Fleet submission chooses an owned Planet. Its costs are paid during T
 
 ## Rules
 
-The game's Ruleset contains Action Definitions and an Action Pool. During each Turn, the server gives each player one Available Action Instance for each pool entry. Multiple entries can share one Action Definition, such as several opportunities to use the same Move definition, but each entry has its own stable Action ID.
+The game's authored Ruleset contains Action Definitions and an Action Pool without Action IDs. Its compiled form adds the IDs. During each Turn, the server gives each player one Available Action Instance for each compiled pool entry. Multiple entries can share one Action Definition, such as several opportunities to use the same Move definition, but each entry has its own stable Action ID.
 
 The frontend will present target choices using the Action Definition and the game state available to the player. Choices can depend on other selected targets, so the server will not send an exhaustive list of valid targets or target combinations. Playing an Action creates an Action Submission containing the player's source, input, and target selections. The server validates the submission when received and again during Turn Resolution.
 

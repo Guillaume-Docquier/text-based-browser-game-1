@@ -11,7 +11,7 @@ import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceTyp
 import { BuildFleetStandard } from "#game-rules/test-ruleset/action-definitions/build-fleet.ts"
 import { GainInfluence } from "#game-rules/test-ruleset/action-definitions/gain-influence.ts"
 import { WinTheGame } from "#game-rules/test-ruleset/action-definitions/win-the-game.ts"
-import { TestRuleset } from "#game-rules/test-ruleset/TestRuleset.ts"
+import { CompiledTestRuleset as TestRuleset } from "#game-rules/test-ruleset/TestRuleset.ts"
 import { createSeededRng } from "#game-rules/testing/createSeededRng.ts"
 import { EffectOutcome } from "#game-rules/turn-resolution/effects/EffectOutcome.ts"
 import { resolveTurn } from "#game-rules/turn-resolution/resolveTurn.ts"

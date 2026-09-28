@@ -1,6 +1,6 @@
 import { Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { validateSubmittedActions } from "#game-rules/action-submission/validation/validateSubmittedActions.ts"
-import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
+import type { CompiledRuleset } from "#game-rules/ruleset/CompiledRuleset.ts"
 import { EffectFactory } from "#game-rules/turn-resolution/effects/EffectFactory.ts"
 import { EffectPool } from "#game-rules/turn-resolution/effects/EffectPool.ts"
 import { MonotonicIdFactory } from "#game-rules/turn-resolution/MonotonicIdFactory.ts"
@@ -14,7 +14,7 @@ import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
  * Takes a turn state and applies all its actions on it, then returns it.
  * The turnState will be mutated. You should not provide an object that cannot / must not be mutated.
  */
-export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): Result<ResolvedTurnState, ResolveTurnError> {
+export function resolveTurn(turnState: TurnState, ruleset: CompiledRuleset, rng: Rng): Result<ResolvedTurnState, ResolveTurnError> {
   const context: TurnContext = {
     rng,
     turnState,

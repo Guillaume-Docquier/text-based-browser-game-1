@@ -1,15 +1,14 @@
 import { branded, type Branded, type DeepUnbranded, Result, safeTypedParse, typedParse } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#game-rules/models/ActionDefinitionId.ts"
-import type { ActionId } from "#game-rules/models/ActionId.ts"
 import { RulesetIdSchema, type RulesetId } from "#game-rules/models/RulesetId.ts"
 import { type ActionDefinition, ActionDefinitionSchema } from "#game-rules/ruleset/action-definitions/ActionDefinition.ts"
 import type { Resources } from "#game-rules/ruleset/effect-definitions/Resources.ts"
 import { ResourceTypeSchema } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { type PooledAction, PooledActionSchema } from "#game-rules/ruleset/PooledAction.ts"
+import { type UncompiledPooledAction, UncompiledPooledActionSchema } from "#game-rules/ruleset/UncompiledPooledAction.ts"
 
 /**
- * The complete data-driven rules for a game.
+ * The authored data-driven rules for a game.
  * The Ruleset integrity is guaranteed by the brand.
  */
 export type Ruleset = Branded<
@@ -25,7 +24,7 @@ export type Ruleset = Branded<
      */
     isDefault: boolean
     actionDefinitions: Readonly<Record<ActionDefinitionId, ActionDefinition>>
-    actionPool: readonly PooledAction[]
+    actionPool: readonly UncompiledPooledAction[]
     startingResources: Readonly<Resources>
   }>
 >
@@ -45,17 +44,18 @@ export const Ruleset = {
   },
 } as const
 
-export const RulesetSchema = z
-  .object({
-    id: RulesetIdSchema,
-    name: z.string(),
-    isDefault: z.boolean(),
-    actionDefinitions: z.record(ActionDefinitionIdSchema, ActionDefinitionSchema).superRefine(validateActionDefinitionIndices),
-    actionPool: z.array(PooledActionSchema).readonly().superRefine(validateUniquePooledActionIds),
-    startingResources: z.record(ResourceTypeSchema, z.number()),
-  })
-  .superRefine(validatePooledActionDefinitionsExist)
-  .transform(branded<Ruleset>) satisfies z.ZodType<Ruleset>
+export const RulesetFieldsSchema = z.object({
+  id: RulesetIdSchema,
+  name: z.string(),
+  isDefault: z.boolean(),
+  actionDefinitions: z.record(ActionDefinitionIdSchema, ActionDefinitionSchema).superRefine(validateActionDefinitionIndices),
+  actionPool: z.array(UncompiledPooledActionSchema).readonly(),
+  startingResources: z.record(ResourceTypeSchema, z.number()),
+})
+
+export const RulesetSchema = RulesetFieldsSchema.superRefine(validatePooledActionDefinitionsExist).transform(
+  branded<Ruleset>,
+) satisfies z.ZodType<Ruleset>
 
 /**
  * Requires that every action definition key is the id of the action definition value.
@@ -71,28 +71,16 @@ function validateActionDefinitionIndices(actionDefinitions: Ruleset["actionDefin
   }
 }
 
-function validateUniquePooledActionIds(actionPool: Ruleset["actionPool"], context: z.RefinementCtx): void {
-  const actionIds = new Set<ActionId>()
-
-  for (const [index, action] of actionPool.entries()) {
-    if (actionIds.has(action.id)) {
-      context.addIssue({
-        code: "custom",
-        path: [index, "id"],
-        message: `Action Pool contains duplicate action id ${action.id}`,
-      })
-    }
-    actionIds.add(action.id)
-  }
-}
-
-function validatePooledActionDefinitionsExist(ruleset: Pick<Ruleset, "actionDefinitions" | "actionPool">, context: z.RefinementCtx): void {
+export function validatePooledActionDefinitionsExist(
+  ruleset: Pick<Ruleset, "actionDefinitions" | "actionPool">,
+  context: z.RefinementCtx,
+): void {
   for (const [index, action] of ruleset.actionPool.entries()) {
     if (ruleset.actionDefinitions[action.actionDefinitionId] === undefined) {
       context.addIssue({
         code: "custom",
         path: ["actionPool", index, "actionDefinitionId"],
-        message: `Action Pool action ${action.id} references missing Action Definition ${action.actionDefinitionId}`,
+        message: `Action Pool entry ${index} references missing Action Definition ${action.actionDefinitionId}`,
       })
     }
   }

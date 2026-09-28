@@ -1,11 +1,11 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
+import type { CompiledRuleset } from "#game-rules/ruleset/CompiledRuleset.ts"
 import type { EffectDefinition } from "#game-rules/ruleset/effect-definitions/EffectDefinition.ts"
 import { FleetBuildEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
 import { ResourceGainEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
 import { ResourceLossEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
 import { VictoryEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/VictoryEffectDefinition.ts"
-import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
 import type { Effect } from "#game-rules/turn-resolution/effects/Effect.ts"
 import { FleetBuildEffect } from "#game-rules/turn-resolution/effects/implementations/FleetBuildEffect.ts"
 import { ResourceGainEffect } from "#game-rules/turn-resolution/effects/implementations/ResourceGainEffect.ts"
@@ -17,7 +17,7 @@ export const EffectFactory = {
   /**
    * Creates all effects for an action submission
    */
-  fromSubmittedAction: (submittedAction: SubmittedAction, ruleset: Ruleset, monotonicIdFactory: MonotonicIdFactory): Effect[] => {
+  fromSubmittedAction: (submittedAction: SubmittedAction, ruleset: CompiledRuleset, monotonicIdFactory: MonotonicIdFactory): Effect[] => {
     const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
     Assert.isDefined(actionDefinition)
 

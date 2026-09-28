@@ -35,7 +35,7 @@ describe("Ruleset.safeCreate", () => {
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [validActionDefinition]),
-      actionPool: [{ id: "VALID_ACTION_1", actionDefinitionId: validActionDefinition.id }],
+      actionPool: [{ actionDefinitionId: validActionDefinition.id }],
       startingResources: createResourcesStub(),
     }
 
@@ -170,7 +170,7 @@ describe("Ruleset.safeCreate", () => {
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [validActionDefinition]),
-      actionPool: [{ id: "MISSING_ACTION_1", actionDefinitionId: "MISSING_ACTION" }],
+      actionPool: [{ actionDefinitionId: "MISSING_ACTION" }],
       startingResources: createResourcesStub(),
     }
 
@@ -178,22 +178,17 @@ describe("Ruleset.safeCreate", () => {
     const result = Ruleset.safeCreate(ruleset)
 
     // Assert
-    expect(result).toStrictEqual(
-      Result.Failure(["Action Pool action MISSING_ACTION_1 references missing Action Definition MISSING_ACTION"]),
-    )
+    expect(result).toStrictEqual(Result.Failure(["Action Pool entry 0 references missing Action Definition MISSING_ACTION"]))
   })
 
-  it("should reject duplicate Action IDs in the Action Pool", () => {
+  it("should allow repeated Action Definitions in the authored Action Pool", () => {
     // Arrange
     const ruleset: DeepUnbranded<Ruleset> = {
       id: "test-ruleset",
       name: "Test Ruleset",
       isDefault: false,
       actionDefinitions: indexBy("id", [validActionDefinition]),
-      actionPool: [
-        { id: "VALID_ACTION_1", actionDefinitionId: validActionDefinition.id },
-        { id: "VALID_ACTION_1", actionDefinitionId: validActionDefinition.id },
-      ],
+      actionPool: [{ actionDefinitionId: validActionDefinition.id }, { actionDefinitionId: validActionDefinition.id }],
       startingResources: createResourcesStub(),
     }
 
@@ -201,6 +196,6 @@ describe("Ruleset.safeCreate", () => {
     const result = Ruleset.safeCreate(ruleset)
 
     // Assert
-    expect(result).toStrictEqual(Result.Failure(["Action Pool contains duplicate action id VALID_ACTION_1"]))
+    expect(result).toStrictEqual(Result.Success(ruleset))
   })
 })

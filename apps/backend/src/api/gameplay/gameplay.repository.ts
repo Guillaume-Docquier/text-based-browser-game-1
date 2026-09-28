@@ -10,9 +10,9 @@ import type { GameId } from "game-rules/models/GameId.ts"
 import type { PlanetId } from "game-rules/models/PlanetId.ts"
 import type { PlayerId } from "game-rules/models/PlayerId.ts"
 import type { RulesetId } from "game-rules/models/RulesetId.ts"
+import type { CompiledRuleset } from "game-rules/ruleset/CompiledRuleset.ts"
 import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
 import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
 import type { Fleet, Planet } from "game-rules/turn-resolution/TurnState.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
@@ -58,7 +58,7 @@ export type ActionSubmissionsForUpdate = Branded<
     turn: number
     resources: Readonly<Resources>
     actions: readonly Action[]
-    ruleset: Ruleset
+    ruleset: CompiledRuleset
   }>
 >
 
@@ -109,7 +109,7 @@ export type PlayerViewModel = Readonly<{
    * All the available actions, with their selected targets if submitted.
    */
   actions: readonly PlayerViewActionModel[]
-  ruleset: Ruleset
+  ruleset: CompiledRuleset
 }>
 
 /**
@@ -125,7 +125,7 @@ export type GameForStart = Branded<
     readonly status: GameStatus
     readonly turnInterval: Time
     readonly playerIds: readonly PlayerId[]
-    readonly ruleset: Ruleset
+    readonly ruleset: CompiledRuleset
   }
 >
 
@@ -216,7 +216,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const playerIds: readonly PlayerId[] = playerIdRows.map(({ playerId }) => playerId)
 
-    const ruleset = await this.getRuleset({ rulesetId: gameForStart.rulesetId }, tx)
+    const ruleset = await this.getCompiledRuleset({ rulesetId: gameForStart.rulesetId }, tx)
     if (ruleset === undefined) {
       throw new TransactionRollbackError("No ruleset found for this game")
     }
@@ -323,7 +323,7 @@ export class GameplayRepository extends PostgresRepository {
           Assert.isTrue(gameRows.length === 1)
           Assert.isDefined(gameRows[0])
 
-          const ruleset = await this.getRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
+          const ruleset = await this.getCompiledRuleset({ rulesetId: gameRows[0].rulesetId }, tx)
           if (ruleset === undefined) {
             throw new TransactionRollbackError("No ruleset found for this game")
           }
@@ -437,7 +437,7 @@ export class GameplayRepository extends PostgresRepository {
     Assert.isTrue(games.length === 1)
     Assert.isDefined(games[0])
 
-    const ruleset = await this.getRuleset({ rulesetId: games[0].rulesetId }, tx)
+    const ruleset = await this.getCompiledRuleset({ rulesetId: games[0].rulesetId }, tx)
     if (ruleset === undefined) {
       throw new TransactionRollbackError("No ruleset found for this game")
     }
@@ -578,14 +578,14 @@ export class GameplayRepository extends PostgresRepository {
    * Gets the ruleset by id.
    * Does not assume that the ruleset must exist.
    */
-  private async getRuleset({ rulesetId }: { rulesetId: RulesetId }, tx: Transaction): Promise<Ruleset | undefined> {
+  private async getCompiledRuleset({ rulesetId }: { rulesetId: RulesetId }, tx: Transaction): Promise<CompiledRuleset | undefined> {
     const rulesetRows = await tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, rulesetId))
     Assert.isTrue(rulesetRows.length <= 1)
     if (rulesetRows[0] === undefined) {
       return undefined
     }
 
-    return RulesetsRepository.toRuleset(rulesetRows[0])
+    return RulesetsRepository.toCompiledRuleset(rulesetRows[0])
   }
 }
 

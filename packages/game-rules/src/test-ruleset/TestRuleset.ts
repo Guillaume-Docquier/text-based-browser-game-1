@@ -1,4 +1,5 @@
 import { indexBy } from "@guillaume-docquier/tools-ts"
+import { compileRuleset } from "#game-rules/ruleset/compileRuleset.ts"
 import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
 import { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#game-rules/test-ruleset/action-definitions/build-fleet.ts"
@@ -25,7 +26,6 @@ export const TestRuleset = Ruleset.create({
   isDefault: false,
   actionDefinitions: indexBy("id", ACTION_DEFINITIONS),
   actionPool: ACTION_DEFINITIONS.map((actionDefinition) => ({
-    id: `${actionDefinition.id}_1`,
     actionDefinitionId: actionDefinition.id,
   })),
   startingResources: {
@@ -36,3 +36,5 @@ export const TestRuleset = Ruleset.create({
     [ResourceType.COLONY]: 0,
   },
 })
+
+export const CompiledTestRuleset = compileRuleset(TestRuleset)

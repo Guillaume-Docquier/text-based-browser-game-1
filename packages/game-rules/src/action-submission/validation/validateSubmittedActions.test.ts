@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest"
 import { createSubmittedActionStub } from "#game-rules/action-submission/Action.stub.ts"
 import { validateSubmittedActions } from "#game-rules/action-submission/validation/validateSubmittedActions.ts"
-import { createRulesetStub } from "#game-rules/ruleset/Ruleset.stub.ts"
+import { createCompiledRulesetStub } from "#game-rules/ruleset/CompiledRuleset.stub.ts"
 import { createTurnStateStub } from "#game-rules/turn-resolution/TurnState.stub.ts"
 
 describe("validateSubmittedActions", () => {
   it("should discard validator failures", () => {
     // Arrange
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: "UNKNOWN_ACTION" })
-    const ruleset = createRulesetStub({ actionDefinitions: {} })
+    const ruleset = createCompiledRulesetStub({ actionDefinitions: {} })
     const turnState = createTurnStateStub()
 
     // Act

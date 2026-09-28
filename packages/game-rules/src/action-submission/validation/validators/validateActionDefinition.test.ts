@@ -2,13 +2,13 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSubmittedActionStub } from "#game-rules/action-submission/Action.stub.ts"
 import { validateActionDefinition } from "#game-rules/action-submission/validation/validators/validateActionDefinition.ts"
-import { createRulesetStub } from "#game-rules/ruleset/Ruleset.stub.ts"
+import { createCompiledRulesetStub } from "#game-rules/ruleset/CompiledRuleset.stub.ts"
 
 describe("validateActionDefinition", () => {
   it("should report an Action Definition that does not exist in the Ruleset", () => {
     // Arrange
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: "UNKNOWN_ACTION" })
-    const ruleset = createRulesetStub({ actionDefinitions: {} })
+    const ruleset = createCompiledRulesetStub({ actionDefinitions: {} })
 
     // Act
     const result = validateActionDefinition([submittedAction], ruleset)

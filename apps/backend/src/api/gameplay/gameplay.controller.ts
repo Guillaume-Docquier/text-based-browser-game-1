@@ -12,9 +12,9 @@ import { type GameId, GameIdSchema } from "game-rules/models/GameId.ts"
 import { PlanetIdSchema } from "game-rules/models/PlanetId.ts"
 import { type PlayerId, PlayerIdSchema } from "game-rules/models/PlayerId.ts"
 import { StarIdSchema } from "game-rules/models/StarId.ts"
+import { CompiledRulesetSchema } from "game-rules/ruleset/CompiledRuleset.ts"
 import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
 import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { RulesetSchema } from "game-rules/ruleset/Ruleset.ts"
 import { z } from "zod"
 import { createGalaxy } from "#api/gameplay/galaxy-creation/createGalaxy.ts"
 import { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
@@ -321,7 +321,7 @@ export const PlayerViewDtoSchema = z.object({
   turnStatus: z.enum(TurnStatus),
   turnEndsAt: z.date(),
   resources: ResourcesDtoSchema,
-  ruleset: RulesetSchema,
+  ruleset: CompiledRulesetSchema,
   actions: z.array(ActionDtoSchema),
 })
 

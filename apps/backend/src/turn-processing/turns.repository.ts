@@ -7,9 +7,9 @@ import type { FleetName } from "game-rules/models/FleetName.ts"
 import type { GameId } from "game-rules/models/GameId.ts"
 import type { PlanetId } from "game-rules/models/PlanetId.ts"
 import type { PlayerId } from "game-rules/models/PlayerId.ts"
+import type { CompiledRuleset } from "game-rules/ruleset/CompiledRuleset.ts"
 import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
 import type { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
 import type { Fleet } from "game-rules/turn-resolution/TurnState.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
@@ -64,7 +64,7 @@ export type TurnToProcessModel = {
   readonly players: Record<PlayerId, TurnToProcessPlayerModel>
   readonly planets: Record<PlanetId, TurnToProcessPlanetModel>
   readonly fleets: Record<FleetId, TurnToProcessFleetModel>
-  readonly ruleset: Ruleset
+  readonly ruleset: CompiledRuleset
 }
 
 type TurnToProcessPlayerModel = {
@@ -241,7 +241,7 @@ export class TurnsRepository extends PostgresRepository {
     Assert.isTrue(rulesets.length === 1)
     Assert.isDefined(rulesets[0])
 
-    const ruleset = RulesetsRepository.toRuleset(rulesets[0])
+    const ruleset = RulesetsRepository.toCompiledRuleset(rulesets[0])
 
     return toTurnToProcessModel({
       turnForProcessing: startTurnProcessingModel.turn,
@@ -437,7 +437,7 @@ function toTurnToProcessModel({
   planets: TurnToProcessPlanetModel[]
   fleets: TurnToProcessFleetModel[]
   submittedActions: SubmittedActionRow[]
-  ruleset: Ruleset
+  ruleset: CompiledRuleset
 }): TurnToProcessModel {
   const resourcesByPlayerId = Map.groupBy(resources, (resource) => resource.playerId)
   const playerModels: TurnToProcessPlayerModel[] = players.map(({ id }) => {

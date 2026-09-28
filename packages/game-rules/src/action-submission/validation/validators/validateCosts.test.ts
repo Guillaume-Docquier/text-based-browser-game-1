@@ -4,10 +4,10 @@ import { createSubmittedActionStub } from "#game-rules/action-submission/Action.
 import { validateCosts } from "#game-rules/action-submission/validation/validators/validateCosts.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { createActionDefinitionStub } from "#game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
+import { createCompiledRulesetStub as createRulesetStub } from "#game-rules/ruleset/CompiledRuleset.stub.ts"
 import { ResourceLossEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
 import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
 import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { createRulesetStub } from "#game-rules/ruleset/Ruleset.stub.ts"
 import { createTurnStateStub } from "#game-rules/turn-resolution/TurnState.stub.ts"
 
 const actionDefinition = createActionDefinitionStub({

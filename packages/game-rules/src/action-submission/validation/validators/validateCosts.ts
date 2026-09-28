@@ -2,7 +2,7 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
 import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#game-rules/action-submission/validation/SubmittedActionIssue.ts"
-import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
+import type { CompiledRuleset } from "#game-rules/ruleset/CompiledRuleset.ts"
 import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
 
 /**
@@ -10,7 +10,7 @@ import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
  */
 export function validateCosts(
   submittedActions: readonly SubmittedAction[],
-  ruleset: Ruleset,
+  ruleset: CompiledRuleset,
   turnState: ReadonlyDeep<TurnState>,
 ): Result<SubmittedActionIssue[], string> {
   const turnStateCopy = structuredClone(turnState) as TurnState

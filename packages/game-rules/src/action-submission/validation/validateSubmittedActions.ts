@@ -6,14 +6,14 @@ import type { SubmittedActionValidator } from "#game-rules/action-submission/val
 import { validateActionDefinition } from "#game-rules/action-submission/validation/validators/validateActionDefinition.ts"
 import { validateCosts } from "#game-rules/action-submission/validation/validators/validateCosts.ts"
 import { validateTargets } from "#game-rules/action-submission/validation/validators/validateTargets.ts"
-import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
+import type { CompiledRuleset } from "#game-rules/ruleset/CompiledRuleset.ts"
 import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
 
 const validators: SubmittedActionValidator[] = [validateActionDefinition, validateTargets, validateCosts]
 
 export function validateSubmittedActions(
   submittedActions: readonly SubmittedAction[],
-  ruleset: Ruleset,
+  ruleset: CompiledRuleset,
   turnState: ReadonlyDeep<TurnState>,
 ): SubmittedActionIssue[] {
   return validators

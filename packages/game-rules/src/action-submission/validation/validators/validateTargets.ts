@@ -11,8 +11,8 @@ import type { FleetId } from "#game-rules/models/FleetId.ts"
 import type { PlanetId } from "#game-rules/models/PlanetId.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import type { TargetTag } from "#game-rules/ruleset/action-definitions/TargetTag.ts"
+import type { CompiledRuleset } from "#game-rules/ruleset/CompiledRuleset.ts"
 import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
-import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import type { TargetConstraint } from "#game-rules/ruleset/target-definitions/TargetConstraint.ts"
 import type { TargetDefinition } from "#game-rules/ruleset/target-definitions/TargetDefinition.ts"
@@ -25,7 +25,7 @@ import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
  */
 export function validateTargets(
   submittedActions: readonly SubmittedAction[],
-  ruleset: Ruleset,
+  ruleset: CompiledRuleset,
   turnState: ReadonlyDeep<TurnState>,
 ): Result<SubmittedActionIssue[], string> {
   const issues: SubmittedActionIssue[] = []

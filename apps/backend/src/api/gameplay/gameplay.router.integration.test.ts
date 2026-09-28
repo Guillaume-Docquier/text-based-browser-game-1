@@ -1,7 +1,7 @@
 import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { PlayerId } from "game-rules/models/PlayerId.ts"
 import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { TestRuleset } from "game-rules/test-ruleset/TestRuleset.ts"
+import { CompiledTestRuleset as TestRuleset } from "game-rules/test-ruleset/TestRuleset.ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"

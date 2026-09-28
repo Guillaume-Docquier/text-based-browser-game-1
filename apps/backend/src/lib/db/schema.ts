@@ -34,7 +34,7 @@ import { actionDefinitionIdColumn } from "#lib/db/rulesets/ActionDefinitionId.ts
 import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
-import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
+import type { CompiledRulesetRulesJson, RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
 /**
  * Turns a fake enum (const {} as const) into a pgEnum compatible parameter.
@@ -60,6 +60,7 @@ export const rulesetsTable = pgTable(
     name: text("name").notNull(),
     isDefault: boolean("is_default").notNull(),
     rules: jsonb("data").$type<RulesetRulesJson>().notNull(),
+    compiledRules: jsonb("compiled_data").$type<CompiledRulesetRulesJson>().notNull(),
   },
   (table) => [
     uniqueIndex("rulesets_is_default_unique")

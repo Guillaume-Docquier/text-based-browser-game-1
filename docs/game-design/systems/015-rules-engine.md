@@ -7,6 +7,7 @@ Partially Implemented
 - [x] Data Driven Rules Engine
 - [x] Standard Ruleset
 - [x] Ruleset persistence
+- [x] Ruleset compilation and compiled Ruleset persistence
 - [x] Lobby Ruleset selection
 - [x] Effect Outcomes
 - [x] Production Turn Processing Integration
@@ -46,7 +47,8 @@ Relates to:
 
 | Concept                   | Definition                                                                                                               |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Ruleset                   | The persisted rules used by one game, including its Action Definitions, Effect Definitions, and other game settings.     |
+| Ruleset                   | The original authored rules, persisted alongside their compiled form.                                                    |
+| Compiled Ruleset          | The gameplay Ruleset produced by the compiler, including generated Action IDs.                                           |
 | Action Definition         | Declarative content describing an Action's presentation, Effect Definitions, source and input requirements, and targets. |
 | Pooled Action             | An Action Pool entry with a stable Action ID and a reference to an Action Definition.                                    |
 | Available Action Instance | A currently usable instance of an Action Definition offered to a player for submission.                                  |
@@ -67,7 +69,7 @@ Relates to:
 
 The rules boundary is:
 
-1. A Ruleset persists Action Definitions and one Action Pool. Each definition contains the Action metadata (id, name, tier, etc.), its composed Effect Definitions, its source and input requirements, and its target slots. Each Pooled Action has a stable Action ID and references a definition.
+1. An authored Ruleset defines Action Definitions and one ordered Action Pool of Action Definition references. The compiler gives every pool entry a deterministic Action ID and persists the Compiled Ruleset alongside the authored Ruleset. Each definition contains Action metadata (id, name, tier, etc.), its composed Effect Definitions, its source and input requirements, and its target slots.
 2. For each player and Turn, the server creates Available Action Instances from the Action Pool. The same Action ID identifies a pool entry across Turns.
 3. The server provides each Available Action Instance and its Action Definition, including target slots. The client uses the player-visible game state to present target choices, including choices that depend on other selected targets. The server does not enumerate legal targets or target combinations.
 4. An Action Submission identifies the Available Action Instance and the player's selected source, inputs, and targets.
@@ -84,7 +86,7 @@ Enumerating every valid combination would make payloads and server computation g
 
 ### Current Ruleset Scope
 
-Developer-authored Rulesets are persisted and every game explicitly selects one during lobby creation. Standard is the default Ruleset, while Test provides stable automated-test content. Game start, player views, Action Submission validation, and Turn Resolution load the selected Ruleset from persistence.
+Developer-authored Rulesets are persisted with their Compiled Rulesets in the same database row. Compilation currently derives deterministic Action IDs from an Action Definition ID and its occurrence number in the pool; repeated references to one Action Definition receive distinct IDs. Adding or reordering other definitions leaves those IDs unchanged. Standard is the default Ruleset, while Test provides stable automated-test content. Every game explicitly selects one during lobby creation. Game start, player views, Action Submission validation, and Turn Resolution load the selected Compiled Ruleset from persistence. Target Definition aggregation and deduplication remain future compiler work.
 
 As a temporary exception to the immutable, versioned direction in GDDR 009, seeded Ruleset records remain mutable. Deploy-time seed updates therefore change the Ruleset used by waiting, active, and completed games. Ruleset snapshots and versioning remain future work; player authoring is not part of the current scope.
 

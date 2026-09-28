@@ -28,7 +28,6 @@ export const StandardRuleset = Ruleset.create({
   isDefault: true,
   actionDefinitions: indexBy("id", ACTION_DEFINITIONS),
   actionPool: ACTION_DEFINITIONS.map((actionDefinition) => ({
-    id: `${actionDefinition.id}_1`,
     actionDefinitionId: actionDefinition.id,
   })),
   startingResources: {
