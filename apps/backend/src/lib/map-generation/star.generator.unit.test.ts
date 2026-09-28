@@ -1,6 +1,6 @@
 import { Rng, createGeneratorStub } from "@guillaume-docquier/tools-ts"
-import { createSeededRng } from "game-rules/testing/createSeededRng.ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { starGenerator } from "#lib/map-generation/star.generator.ts"
 
 describe("starGenerator", () => {

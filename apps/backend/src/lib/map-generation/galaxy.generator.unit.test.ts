@@ -1,6 +1,6 @@
 import type { Rng, XY } from "@guillaume-docquier/tools-ts"
-import { createSeededRng } from "game-rules/testing/createSeededRng.ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 

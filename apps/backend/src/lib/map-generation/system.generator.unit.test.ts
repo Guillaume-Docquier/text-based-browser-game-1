@@ -1,6 +1,6 @@
 import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
-import { createSeededRng } from "game-rules/testing/createSeededRng.ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { systemGenerator } from "#lib/map-generation/system.generator.ts"
 
 describe("systemGenerator", () => {

@@ -1,5 +1,5 @@
-import { createSeededRng } from "game-rules/testing/createSeededRng.ts"
 import { describe, expect, it } from "vitest"
+import { createSeededRng } from "#lib/createSeededRng.ts"
 import { clusterGenerator } from "#lib/map-generation/points/cluster.generator.ts"
 
 describe("clusterGenerator", () => {
