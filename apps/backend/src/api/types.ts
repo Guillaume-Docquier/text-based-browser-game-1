@@ -3,6 +3,7 @@
  */
 
 import type { inferRouterOutputs } from "@trpc/server"
+import type { ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import type { TrpcRouter } from "./createApi.ts"
 
 type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
@@ -35,7 +36,7 @@ export type SelectedTargets = Action["selectedTargets"]
 export type TargetId = NonNullable<SelectedTargets>[keyof NonNullable<SelectedTargets>]
 export type ResourceType = keyof PlayerView["resources"]
 export type Ruleset = PlayerView["ruleset"]
-export type ActionDefinition = Ruleset["actionDefinitions"][string]
+export type ActionDefinition = Ruleset["actionDefinitions"][ActionDefinitionId]
 export type TargetDefinition = ActionDefinition["targets"][keyof ActionDefinition["targets"]]
 export type TargetConstraints = TargetDefinition["constraints"]
 export type TargetConstraint = TargetConstraints[number]

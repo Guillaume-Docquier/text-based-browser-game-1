@@ -1,9 +1,10 @@
+import type { ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 
 export type SubmittedActionIssue = Readonly<{
   issue: string
   submittedActionId: string
-  actionDefinitionId: string
+  actionDefinitionId: ActionDefinitionId
   actionDefinitionName: string | undefined
 }>
 

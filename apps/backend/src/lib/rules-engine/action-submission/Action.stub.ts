@@ -8,12 +8,13 @@ import { typedParse } from "#lib/validation/typedParse.ts"
 export function createAvailableActionStub({
   id = v4(),
   playerId = v4(),
+  actionDefinitionId = v4(),
   ...overrides
 }: Partial<UnbrandedProperties<AvailableAction>> = {}): AvailableAction {
   return {
     id: branded(id),
     playerId: branded(playerId),
-    actionDefinitionId: v4(),
+    actionDefinitionId: branded(actionDefinitionId),
     selectedTargets: null,
     ...overrides,
   }
@@ -22,6 +23,7 @@ export function createAvailableActionStub({
 export function createSubmittedActionStub({
   id = v4(),
   playerId = v4(),
+  actionDefinitionId = v4(),
   selectedTargets = {},
   ...overrides
 }: Partial<
@@ -32,7 +34,7 @@ export function createSubmittedActionStub({
   return {
     id: branded(id),
     playerId: brandedPlayerId,
-    actionDefinitionId: v4(),
+    actionDefinitionId: branded(actionDefinitionId),
     selectedTargets: typedParse(SelectedTargetsSchema, selectedTargets),
     ...overrides,
   }

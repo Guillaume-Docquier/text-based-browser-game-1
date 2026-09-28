@@ -1,3 +1,4 @@
+import { branded } from "@guillaume-docquier/tools-ts"
 import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
@@ -6,7 +7,7 @@ import { VictoryEffectDefinition } from "#lib/rules-engine/ruleset/effect-defini
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 
 export const WinTheGame: ActionDefinition = {
-  id: "WIN_THE_GAME",
+  id: branded("WIN_THE_GAME"),
   name: "Win The Game",
   type: ActionType.PROGRAM,
   tier: ActionTier.EXCEPTIONAL,

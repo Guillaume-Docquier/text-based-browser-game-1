@@ -1,12 +1,9 @@
 import { branded, type Branded, type DeepUnbranded, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import type { ActionId } from "#lib/db/actions/ActionId.ts"
+import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import { RulesetIdSchema, type RulesetId } from "#lib/db/rulesets/RulesetId.ts"
-import {
-  type ActionDefinition,
-  ActionDefinitionIdSchema,
-  ActionDefinitionSchema,
-} from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import { type ActionDefinition, ActionDefinitionSchema } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import type { Resources } from "#lib/rules-engine/ruleset/effect-definitions/Resources.ts"
 import { ResourceTypeSchema } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { type PooledAction, PooledActionSchema } from "#lib/rules-engine/ruleset/PooledAction.ts"
@@ -28,7 +25,7 @@ export type Ruleset = Branded<
      * The default choice when creating games. Only one ruleset can be the default ruleset.
      */
     isDefault: boolean
-    actionDefinitions: Readonly<Record<ActionDefinition["id"], ActionDefinition>>
+    actionDefinitions: Readonly<Record<ActionDefinitionId, ActionDefinition>>
     actionPool: readonly PooledAction[]
     startingResources: Readonly<Resources>
   }>

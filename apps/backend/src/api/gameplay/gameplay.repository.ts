@@ -12,6 +12,7 @@ import type { PlanetId } from "#lib/db/planets/PlanetId.ts"
 import type { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
+import type { ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import {
   actionsTable,
@@ -27,7 +28,7 @@ import {
 } from "#lib/db/schema.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { Action, AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
+import type { Action, AvailableAction } from "#lib/rules-engine/action-submission/Action.ts"
 import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
 import type { Resources } from "#lib/rules-engine/ruleset/effect-definitions/Resources.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
@@ -90,7 +91,7 @@ export type ReadinessForUpdate = Branded<
 
 type PlayerViewActionModel = Readonly<{
   id: ActionId
-  actionDefinitionId: SubmittedAction["actionDefinitionId"]
+  actionDefinitionId: ActionDefinitionId
   selectedTargets: SelectedTargets | null
 }>
 

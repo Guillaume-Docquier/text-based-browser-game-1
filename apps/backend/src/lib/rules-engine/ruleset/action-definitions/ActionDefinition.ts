@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
 import { type TargetTag, TargetTagSchema } from "#lib/rules-engine/ruleset/action-definitions/TargetTag.ts"
@@ -12,9 +13,6 @@ import { type TargetDefinition, TargetDefinitionSchema } from "#lib/rules-engine
 /**
  * The definition of an Action.
  */
-export type ActionDefinitionId = string
-export const ActionDefinitionIdSchema = z.string() satisfies z.ZodType<ActionDefinitionId>
-
 export type ActionDefinition = Readonly<{
   /**
    * Unique action definition id for reference in action submissions.
