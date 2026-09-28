@@ -1,16 +1,17 @@
 import { indexBy, Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import type { NonNegativeNumber } from "@guillaume-docquier/tools-ts/schemas"
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
 import type { AvailableAction, SubmittedAction } from "game-rules/action-submission/Action.ts"
 import type { AccountId } from "game-rules/models/AccountId.ts"
 import type { FleetId } from "game-rules/models/FleetId.ts"
+import type { FleetName } from "game-rules/models/FleetName.ts"
 import type { GameId } from "game-rules/models/GameId.ts"
 import type { PlanetId } from "game-rules/models/PlanetId.ts"
+import type { PlanetName } from "game-rules/models/PlanetName.ts"
 import type { PlayerId } from "game-rules/models/PlayerId.ts"
 import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
 import type { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
 import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
-import type { Fleet } from "game-rules/turn-resolution/Fleet.ts"
-import type { Planet } from "game-rules/turn-resolution/Planet.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
@@ -31,6 +32,7 @@ import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type ResourceRow = typeof resourcesTable.$inferSelect
 type SubmittedActionRow = typeof actionsTable.$inferSelect
+type FleetRow = typeof fleetsTable.$inferSelect
 
 /**
  * Owning a TurnForProcessing within a transaction guarantees that the Turn Processing row is locked and needs processing.
@@ -62,14 +64,32 @@ export type TurnToProcessModel = {
   readonly rngState: RngState<number>
   readonly submittedActions: SubmittedAction[]
   readonly players: Record<PlayerId, TurnToProcessPlayerModel>
-  readonly planets: Record<PlanetId, Planet>
-  readonly fleets: Record<FleetId, Fleet>
+  readonly planets: Record<PlanetId, TurnToProcessPlanetModel>
+  readonly fleets: Record<FleetId, TurnToProcessFleetModel>
   readonly ruleset: Ruleset
 }
 
 type TurnToProcessPlayerModel = {
   readonly id: PlayerId
   readonly resources: Resources
+}
+
+type TurnToProcessPlanetModel = {
+  readonly id: PlanetId
+  readonly name: PlanetName
+  readonly ownerPlayerId: PlayerId | null
+  readonly x: number
+  readonly y: number
+}
+
+type TurnToProcessFleetModel = {
+  readonly id: FleetId
+  readonly ownerPlayerId: PlayerId
+  readonly name: FleetName
+  strength: number
+  readonly originPlanetId: PlanetId
+  destinationPlanetId?: PlanetId | undefined
+  distanceToEnd?: NonNegativeNumber | undefined
 }
 
 export type ProcessedTurnModel = {
@@ -82,7 +102,7 @@ export type ProcessedTurnModel = {
     resourceType: ResourceType
     amount: number
   }>
-  fleets: Fleet[]
+  fleets: TurnToProcessFleetModel[]
   winnerAccountId?: AccountId
   nextTurn: number
   availableActions: AvailableAction[]
@@ -423,8 +443,8 @@ function toTurnToProcessModel({
   rngState: RngState<number>
   resources: ResourceRow[]
   players: Array<{ id: PlayerId }>
-  planets: Planet[]
-  fleets: Array<typeof fleetsTable.$inferSelect>
+  planets: TurnToProcessPlanetModel[]
+  fleets: FleetRow[]
   submittedActions: SubmittedActionRow[]
   ruleset: Ruleset
 }): TurnToProcessModel {
@@ -452,12 +472,12 @@ function toTurnToProcessModel({
     ),
     players: indexBy("id", playerModels),
     planets: indexBy("id", planets),
-    fleets: indexBy("id", fleets.map(toFleet)),
+    fleets: indexBy("id", fleets.map(toTurnToProcessFleetModel)),
     ruleset,
   }
 }
 
-function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): Fleet {
+function toTurnToProcessFleetModel({ destinationPlanetId, distanceToEnd, ...fleet }: FleetRow): TurnToProcessFleetModel {
   return {
     ...fleet,
     ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
