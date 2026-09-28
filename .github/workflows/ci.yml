@@ -26,9 +26,6 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Typecheck game rules
-        run: pnpm --filter game-rules typecheck
-
       - name: Format
         run: pnpm format
 
