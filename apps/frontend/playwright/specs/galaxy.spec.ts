@@ -31,16 +31,16 @@ test("the galaxy view distinguishes systems with claimed planets and system view
   })
 
   await test.step("Label Planets with their owner or Unclaimed", async () => {
-    await aliceGalaxyPage.openStarSystem(aliceGalaxyPage.ownStars.first())
+    await aliceGalaxyPage.openStarSystem(aliceGalaxyPage.ownStar(0))
     await expect(aliceGalaxyPage.ownedPlanets).toHaveCount(1)
-    await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.ownedPlanets.first())).toHaveText(alice.alias)
+    await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.ownedPlanet(0))).toHaveText(alice.alias)
     await expect(aliceGalaxyPage.unclaimedPlanets).not.toHaveCount(0)
-    await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.unclaimedPlanets.first())).toHaveText("Unclaimed")
+    await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.unclaimedPlanet(0))).toHaveText("Unclaimed")
   })
 
   await test.step("Bring hovered bodies above other map content", async () => {
     await aliceGalaxyPage.leaveBodies()
-    const planet = aliceGalaxyPage.ownedPlanets.first()
+    const planet = aliceGalaxyPage.ownedPlanet(0)
     const planetLabel = await planet.getAttribute("aria-label")
     const starLabel = await aliceGalaxyPage.starSystemStar.getAttribute("aria-label")
     const originalForeground = await aliceGalaxyPage.foregroundBody.getAttribute("aria-label")

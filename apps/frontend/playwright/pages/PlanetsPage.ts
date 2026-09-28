@@ -1,10 +1,11 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, type Branded } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import type { GalaxyPage } from "./GalaxyPage.ts"
 import { GamePage } from "./GamePage.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
 
 type PlanetColumnName = "planetName" | "ownerName" | "coordinates" | "fertility" | "metal" | "fuel" | "energy" | "maxPopulation" | "area"
+type PlanetRowLocator = Branded<"PlanetRowLocator", Locator>
 
 const PLANET_COLUMN_INDICES = {
   planetName: 0,
@@ -37,19 +38,19 @@ export class PlanetsPage extends GamePage {
     this.rows = this.table.locator("tbody tr").filter({ has: page.getByRole("link") })
   }
 
-  public row(index: LocatorIndex): Locator {
-    return index === "last" ? this.rows.last() : this.rows.nth(index)
+  public row(index: LocatorIndex): PlanetRowLocator {
+    return branded(index === "last" ? this.rows.last() : this.rows.nth(index))
   }
 
-  public planetName(row: Locator): Locator {
+  public planetName(row: PlanetRowLocator): Locator {
     return row.getByRole("cell").nth(0)
   }
 
-  public ownerName(row: Locator): Locator {
+  public ownerName(row: PlanetRowLocator): Locator {
     return row.getByRole("cell").nth(1)
   }
 
-  public coordinate(row: Locator): Locator {
+  public coordinate(row: PlanetRowLocator): Locator {
     return row.getByRole("link")
   }
 
@@ -70,19 +71,19 @@ export class PlanetsPage extends GamePage {
     await this.table.getByRole("button", { name: column, exact: true }).click()
   }
 
-  public async getPlanetName(row: Locator): Promise<string> {
+  public async getPlanetName(row: PlanetRowLocator): Promise<string> {
     const name = await this.planetName(row).textContent()
     Assert.isDefined(name)
     return name
   }
 
-  public async getOwnerName(row: Locator): Promise<string> {
+  public async getOwnerName(row: PlanetRowLocator): Promise<string> {
     const name = await this.ownerName(row).textContent()
     Assert.isDefined(name)
     return name.trim()
   }
 
-  public async getCoordinate(row: Locator): Promise<string> {
+  public async getCoordinate(row: PlanetRowLocator): Promise<string> {
     const coordinates = await this.coordinate(row).textContent()
     Assert.isDefined(coordinates)
     return coordinates
@@ -98,7 +99,7 @@ export class PlanetsPage extends GamePage {
     return await this.rows.locator(`td:nth-child(${columnIndex + 1})`).allTextContents()
   }
 
-  public async openCoordinate(row: Locator): Promise<GalaxyPage> {
+  public async openCoordinate(row: PlanetRowLocator): Promise<GalaxyPage> {
     await this.coordinate(row).click()
     const { GalaxyPage } = await import("./GalaxyPage.ts")
     return new GalaxyPage(this.page)

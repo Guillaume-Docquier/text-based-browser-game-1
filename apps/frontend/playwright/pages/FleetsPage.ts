@@ -1,10 +1,11 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, type Branded } from "@guillaume-docquier/tools-ts"
 import type { Locator, Page } from "@playwright/test"
 import type { GalaxyPage } from "./GalaxyPage.ts"
 import { GamePage } from "./GamePage.ts"
 import type { LocatorIndex } from "./LocatorIndex.ts"
 
 type FleetColumnName = "FLEET_NAME" | "OWNER_NAME" | "STRENGTH" | "ORIGIN_PLANET"
+type FleetRowLocator = Branded<"FleetRowLocator", Locator>
 
 const FleetColumnIndices = {
   FLEET_NAME: 0,
@@ -36,19 +37,19 @@ export class FleetsPage extends GamePage {
     this.emptyMessage = this.table.getByRole("cell", { name: /No (matching )?fleets/ })
   }
 
-  public row(index: LocatorIndex): Locator {
-    return index === "last" ? this.rows.last() : this.rows.nth(index)
+  public row(index: LocatorIndex): FleetRowLocator {
+    return branded(index === "last" ? this.rows.last() : this.rows.nth(index))
   }
 
-  public fleetName(row: Locator): Locator {
+  public fleetName(row: FleetRowLocator): Locator {
     return row.getByRole("cell").nth(FleetColumnIndices.FLEET_NAME)
   }
 
-  public originPlanet(row: Locator): Locator {
+  public originPlanet(row: FleetRowLocator): Locator {
     return row.getByRole("cell").nth(FleetColumnIndices.ORIGIN_PLANET)
   }
 
-  public originPlanetLink(row: Locator): Locator {
+  public originPlanetLink(row: FleetRowLocator): Locator {
     return this.originPlanet(row).getByRole("link")
   }
 
@@ -69,19 +70,19 @@ export class FleetsPage extends GamePage {
     await this.table.getByRole("button", { name: column, exact: true }).click()
   }
 
-  public async getFleetName(row: Locator): Promise<string> {
+  public async getFleetName(row: FleetRowLocator): Promise<string> {
     const id = await this.fleetName(row).textContent()
     Assert.isDefined(id)
     return id
   }
 
-  public async getOriginPlanet(row: Locator): Promise<string> {
+  public async getOriginPlanet(row: FleetRowLocator): Promise<string> {
     const name = await this.originPlanetLink(row).locator("span").first().textContent()
     Assert.isDefined(name)
     return name
   }
 
-  public async getCoordinate(row: Locator): Promise<string> {
+  public async getCoordinate(row: FleetRowLocator): Promise<string> {
     const coordinates = await this.originPlanetLink(row).locator("span").nth(1).textContent()
     Assert.isDefined(coordinates)
     const match = /^\((.+)\)$/.exec(coordinates)
@@ -96,7 +97,7 @@ export class FleetsPage extends GamePage {
     return await this.rows.locator(`td:nth-child(${columnIndex + 1})`).allTextContents()
   }
 
-  public async openOriginPlanet(row: Locator): Promise<GalaxyPage> {
+  public async openOriginPlanet(row: FleetRowLocator): Promise<GalaxyPage> {
     await this.originPlanetLink(row).click()
     const { GalaxyPage } = await import("./GalaxyPage.ts")
     return new GalaxyPage(this.page)
