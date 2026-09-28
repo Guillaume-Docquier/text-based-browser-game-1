@@ -121,3 +121,17 @@ jobs:
         with:
           flags: backend
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  game-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout ${{ github.head_ref || github.ref_name }}
+        uses: actions/checkout@v7.0.1
+
+      - name: Setting up pnpm
+        uses: pnpm/setup@v3.0.0
+
+      - name: Typecheck
+        run: pnpm --filter game-rules typecheck
