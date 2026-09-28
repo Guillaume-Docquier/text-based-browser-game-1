@@ -1,10 +1,10 @@
 import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client"
+import { AccountIdSchema } from "game-rules/models/AccountId.ts"
+import { typedParse } from "game-rules/validation/typedParse.ts"
 import type { AccountModel, AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { AUTH_ID_HEADER } from "#api/accounts/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
-import { AccountIdSchema } from "#lib/db/accounts/AccountId.ts"
-import { typedParse } from "#lib/validation/typedParse.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
 export type AuthenticatedApiClient = {

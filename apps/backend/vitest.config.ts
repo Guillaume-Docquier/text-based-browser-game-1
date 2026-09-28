@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
@@ -6,7 +7,7 @@ export default defineConfig({
       exclude: ["src/**/*.test.ts", "src/tests/**", "**entry.*.ts", "src/lib/parseEnv.ts", "src/lib/db/createDb.ts"],
       include: ["src/**/*.ts"],
       provider: "v8",
-      reporter: ["text", "lcov"],
+      reporter: ["text", ["lcov", { projectRoot: fileURLToPath(new URL("../..", import.meta.url)) }]],
       reportsDirectory: "./coverage",
     },
     environment: "node",

@@ -1,11 +1,11 @@
 import { branded, type Rng } from "@guillaume-docquier/tools-ts"
+import type { PlayerId } from "game-rules/models/PlayerId.ts"
 import { v5 } from "uuid"
 import { assignHomePlanets } from "#api/gameplay/galaxy-creation/assignHomePlanets.ts"
 import type { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
 import { toPlanetCoordinates } from "#api/gameplay/galaxy-creation/PlanetCoordinates.ts"
 import { toStarCoordinates } from "#api/gameplay/galaxy-creation/StarCoordinates.ts"
 import type { Galaxy } from "#api/gameplay/Galaxy.ts"
-import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { type GeneratedGalaxy, galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 

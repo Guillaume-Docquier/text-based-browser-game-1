@@ -1,12 +1,12 @@
 import { Logger } from "@guillaume-docquier/tools-ts"
 import { pushSchema } from "drizzle-kit/api"
 import { drizzle } from "drizzle-orm/pglite"
+import { TestRuleset } from "game-rules/test-ruleset/TestRuleset.ts"
 import { beforeAll } from "vitest"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import * as schema from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
-import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 import { pglite } from "#tests/pglite.ts"
 
 beforeAll(async () => {

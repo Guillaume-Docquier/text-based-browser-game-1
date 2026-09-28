@@ -2,6 +2,7 @@ import { Assert, type Logger, type Result, Time, UnitOfTime } from "@guillaume-d
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import type { Table } from "drizzle-orm/table"
+import { typedParse } from "game-rules/validation/typedParse.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
 import { type AccountModel, AccountsRepository, type NewAccountModel } from "#api/accounts/accounts.repository.ts"
@@ -15,7 +16,6 @@ import { parseEnv } from "#lib/parseEnv.ts"
 import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
-import { typedParse } from "#lib/validation/typedParse.ts"
 
 const YES_I_KNOW = "yes i know"
 

@@ -1,6 +1,6 @@
+import { typedParse } from "game-rules/validation/typedParse.ts"
 import { v4 } from "uuid"
 import { AliasSchema } from "#lib/db/accounts/Alias.ts"
-import { typedParse } from "#lib/validation/typedParse.ts"
 import type { NewAccountModel } from "./accounts.repository.ts"
 
 export function createNewAccountModelStub(overrides?: Partial<NewAccountModel>): NewAccountModel {

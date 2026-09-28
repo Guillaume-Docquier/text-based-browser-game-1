@@ -1,5 +1,5 @@
+import type { StarId } from "game-rules/models/StarId.ts"
 import type { StarCoordinates } from "#api/gameplay/galaxy-creation/StarCoordinates.ts"
-import type { StarId } from "#lib/db/stars/StarId.ts"
 
 export type Star = {
   readonly id: StarId

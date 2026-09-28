@@ -1,7 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
+import { type AccountId, AccountIdSchema } from "game-rules/models/AccountId.ts"
 import { z } from "zod"
 import type { AccountsRepository, FinishOnboardingError } from "#api/accounts/accounts.repository.ts"
-import { type AccountId, AccountIdSchema } from "#lib/db/accounts/AccountId.ts"
 import { type Alias, AliasSchema } from "#lib/db/accounts/Alias.ts"
 
 export class AccountsController {

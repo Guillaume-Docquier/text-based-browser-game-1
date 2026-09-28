@@ -1,8 +1,8 @@
 import { branded, type DeepUnbranded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
+import { SelectedTargetsSchema } from "game-rules/action-submission/SelectedTargets.ts"
+import { typedParse } from "game-rules/validation/typedParse.ts"
 import { v4 } from "uuid"
 import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
-import { SelectedTargetsSchema } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
-import { typedParse } from "#lib/validation/typedParse.ts"
 
 export function createSubmittedActionTargetsDtoStub({
   actionId = v4(),

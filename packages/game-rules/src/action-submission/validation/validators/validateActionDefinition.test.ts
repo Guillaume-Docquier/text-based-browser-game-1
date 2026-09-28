@@ -1,0 +1,28 @@
+import { Result } from "@guillaume-docquier/tools-ts"
+import { createSubmittedActionStub } from "game-rules/action-submission/Action.stub.ts"
+import { validateActionDefinition } from "game-rules/action-submission/validation/validators/validateActionDefinition.ts"
+import { createRulesetStub } from "game-rules/ruleset/Ruleset.stub.ts"
+import { describe, expect, it } from "vitest"
+
+describe("validateActionDefinition", () => {
+  it("should report an Action Definition that does not exist in the Ruleset", () => {
+    // Arrange
+    const submittedAction = createSubmittedActionStub({ actionDefinitionId: "UNKNOWN_ACTION" })
+    const ruleset = createRulesetStub({ actionDefinitions: {} })
+
+    // Act
+    const result = validateActionDefinition([submittedAction], ruleset)
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success([
+        {
+          issue: "Action definition does not exist in the Ruleset",
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: submittedAction.actionDefinitionId,
+          actionDefinitionName: undefined,
+        },
+      ]),
+    )
+  })
+})

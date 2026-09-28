@@ -1,6 +1,6 @@
 import { Assert, type Logger, Result, type Enumify } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
-import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import type { AccountId } from "game-rules/models/AccountId.ts"
 import type { Alias } from "#lib/db/accounts/Alias.ts"
 import { Postgres } from "#lib/db/drizzle/Postgres.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"

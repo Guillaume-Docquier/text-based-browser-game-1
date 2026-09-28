@@ -4,7 +4,6 @@ import { dark } from "@clerk/ui/themes"
 import { Logger, createConsoleLogSink, prettyConsoleFormatter } from "@guillaume-docquier/tools-ts"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
-import { sharedRuntimeMarker } from "game-rules/runtimeMarker"
 import { type ReactElement, StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { Onboarding } from "@/features/auth/Onboarding.tsx"
@@ -23,8 +22,6 @@ const logger = await Logger.configure({
     }),
   },
 })
-
-logger.info("Shared TypeScript (frontend)", { sharedRuntimeMarker })
 
 const env = parseEnv({ logger })
 

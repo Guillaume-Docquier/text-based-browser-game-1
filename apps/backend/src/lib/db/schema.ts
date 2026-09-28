@@ -16,6 +16,8 @@ import {
   unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core"
+import type { SelectedTargets } from "game-rules/action-submission/SelectedTargets.ts"
+import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
 import type { Alias } from "#lib/db/accounts/Alias.ts"
 import { actionIdColumn } from "#lib/db/actions/ActionId.ts"
@@ -32,8 +34,6 @@ import { actionDefinitionIdColumn } from "#lib/db/rulesets/ActionDefinitionId.ts
 import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
-import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
 /**

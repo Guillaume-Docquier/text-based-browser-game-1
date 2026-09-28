@@ -4,13 +4,23 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./runtimeMarker": "./src/runtimeMarker.ts"
+    "./*": "./src/*"
   },
   "scripts": {
-    "checks": "pnpm typecheck",
+    "checks": "pnpm typecheck && pnpm test",
+    "test": "vitest run",
+    "test:coverage": "pnpm test --coverage",
     "typecheck": "tsc"
   },
+  "dependencies": {
+    "@guillaume-docquier/tools-ts": "catalog:",
+    "uuid": "catalog:",
+    "zod": "catalog:"
+  },
   "devDependencies": {
-    "typescript": "catalog:"
+    "@vitest/coverage-v8": "catalog:",
+    "type-fest": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

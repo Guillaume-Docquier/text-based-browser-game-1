@@ -1,10 +1,10 @@
 import { Assert, type Logger, omit, Result } from "@guillaume-docquier/tools-ts"
 import { eq } from "drizzle-orm"
+import type { RulesetId } from "game-rules/models/RulesetId.ts"
+import { Ruleset } from "game-rules/ruleset/Ruleset.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 
 export type RulesetRulesJson = Omit<Ruleset, "id" | "name" | "isDefault">
 

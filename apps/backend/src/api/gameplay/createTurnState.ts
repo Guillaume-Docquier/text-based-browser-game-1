@@ -1,9 +1,9 @@
 import { indexBy } from "@guillaume-docquier/tools-ts"
-import type { GameId } from "#lib/db/games/GameId.ts"
-import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import type { SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
-import type { Resources } from "#lib/rules-engine/ruleset/effect-definitions/Resources.ts"
-import type { Fleet, Planet, TurnState } from "#lib/rules-engine/turn-resolution/TurnState.ts"
+import type { SubmittedAction } from "game-rules/action-submission/Action.ts"
+import type { GameId } from "game-rules/models/GameId.ts"
+import type { PlayerId } from "game-rules/models/PlayerId.ts"
+import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
+import type { Fleet, Planet, TurnState } from "game-rules/turn-resolution/TurnState.ts"
 
 export function createTurnState({
   gameId,

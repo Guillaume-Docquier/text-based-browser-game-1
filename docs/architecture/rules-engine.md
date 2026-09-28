@@ -1,6 +1,6 @@
 # Rules Engine
 
-The Rules Engine is the persistence agnostic engine to resolve game turns.
+The Rules Engine lives in `packages/game-rules/src` and is the persistence agnostic engine to resolve game turns. The backend owns the Standard Ruleset; the game-rules package owns an independent Test Ruleset.
 
 The Rules Engine works by converting Actions Submissions into their corresponding Effects that are resolved in Phases.
 
