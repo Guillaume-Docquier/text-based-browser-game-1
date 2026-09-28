@@ -1,11 +1,9 @@
 import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 
-/** A non-empty Planet name of at most 36 characters. */
-export type PlanetName = Branded<"PlanetName", string>
-
 export const PLANET_NAME_MAX_LENGTH = 36
 
+export type PlanetName = Branded<"PlanetName", string>
 export const PlanetNameSchema = z
   .string()
   .trim()
