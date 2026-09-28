@@ -1,9 +1,5 @@
-import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { uuid } from "drizzle-orm/pg-core"
-import { z } from "zod"
-
-export type PlayerId = Branded<"PlayerId", string>
-export const PlayerIdSchema = z.uuid().transform(branded<PlayerId>)
+import type { PlayerId } from "game-rules/models/PlayerId.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let drizzle inference do the work
 export const playerIdColumn = (name: string) => uuid(name).$type<PlayerId>()

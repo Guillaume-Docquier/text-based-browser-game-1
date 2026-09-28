@@ -4,13 +4,22 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./runtimeMarker": "./src/runtimeMarker.ts"
+    "./runtimeMarker": "./src/runtimeMarker.ts",
+    "./*": "./src/*"
   },
   "scripts": {
-    "checks": "pnpm typecheck",
+    "checks": "pnpm typecheck && pnpm test",
+    "test": "vitest run",
     "typecheck": "tsc"
   },
+  "dependencies": {
+    "@guillaume-docquier/tools-ts": "catalog:",
+    "type-fest": "^5.10.0",
+    "uuid": "^14.0.2",
+    "zod": "^4.6.5"
+  },
   "devDependencies": {
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^5.0.0"
   }
 }

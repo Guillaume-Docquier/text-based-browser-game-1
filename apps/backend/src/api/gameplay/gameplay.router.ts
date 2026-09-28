@@ -1,8 +1,8 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
+import { GameIdSchema } from "game-rules/models/GameId.ts"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import { GameIdSchema } from "#lib/db/games/GameId.ts"
 import { PlayerViewDtoSchema, type GameplayController, StartedGameDtoSchema, UpdateReadinessDtoSchema } from "./gameplay.controller.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./UpdateActionSubmissionUseCase.ts"
 

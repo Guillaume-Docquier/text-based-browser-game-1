@@ -1,10 +1,10 @@
 import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
+import type { PlayerId } from "game-rules/models/PlayerId.ts"
+import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
 import { describe, expect, it } from "vitest"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
-import type { PlayerId } from "#lib/db/players/PlayerId.ts"
-import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 
 const NB_CONCURRENCY_TEST_ACCOUNTS = MAX_NB_SEATS

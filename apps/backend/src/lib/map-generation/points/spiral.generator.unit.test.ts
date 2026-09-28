@@ -1,5 +1,5 @@
+import { createSeededRng } from "game-rules/testing/createSeededRng.ts"
 import { describe, expect, it } from "vitest"
-import { createSeededRng } from "#lib/createSeededRng.ts"
 import { spiralGenerator } from "#lib/map-generation/points/spiral.generator.ts"
 
 const DEFAULT_OPTIONS = {

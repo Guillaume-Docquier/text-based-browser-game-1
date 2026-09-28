@@ -1,6 +1,6 @@
 import { branded, Time, type UnbrandedProperties, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { TestRuleset } from "game-rules/test-ruleset/TestRuleset.ts"
 import type { CreateLobbyConfigurationDto } from "#api/lobbies/lobbies.controller.ts"
-import { TestRuleset } from "#lib/rulesets/test/TestRuleset.ts"
 
 export function createLobbyConfigurationDtoStub({
   rulesetId = TestRuleset.id,

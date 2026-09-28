@@ -1,6 +1,6 @@
 import { Rng, createGeneratorStub } from "@guillaume-docquier/tools-ts"
+import { createSeededRng } from "game-rules/testing/createSeededRng.ts"
 import { describe, expect, it } from "vitest"
-import { createSeededRng } from "#lib/createSeededRng.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { BIOME_ATTRIBUTE_RANGES, planetGenerator, SIZE_ATTRIBUTE_RANGES } from "#lib/map-generation/planet.generator.ts"

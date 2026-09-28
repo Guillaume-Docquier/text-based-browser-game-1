@@ -1,17 +1,17 @@
 import { Assert, type Branded, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
-import type { AccountId } from "#lib/db/accounts/AccountId.ts"
+import type { AccountId } from "game-rules/models/AccountId.ts"
+import type { GameId } from "game-rules/models/GameId.ts"
+import type { PlayerId } from "game-rules/models/PlayerId.ts"
+import type { RulesetId } from "game-rules/models/RulesetId.ts"
+import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
 import type { Alias } from "#lib/db/accounts/Alias.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
-import type { GameId } from "#lib/db/games/GameId.ts"
 import type { GameStatus } from "#lib/db/games/GameStatus.ts"
 import type { PlayerColor } from "#lib/db/players/PlayerColor.ts"
-import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
-import type { RulesetId } from "#lib/db/rulesets/RulesetId.ts"
 import { accountsTable, gamesTable, playersTable, rulesetsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { Ruleset } from "#lib/rules-engine/ruleset/Ruleset.ts"
 
 type CreateGameRow = typeof gamesTable.$inferInsert
 type GameRow = typeof gamesTable.$inferSelect

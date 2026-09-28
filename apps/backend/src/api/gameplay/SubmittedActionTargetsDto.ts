@@ -1,6 +1,6 @@
+import { SelectedTargetsSchema } from "game-rules/action-submission/SelectedTargets.ts"
+import { ActionIdSchema } from "game-rules/models/ActionId.ts"
 import { z } from "zod"
-import { ActionIdSchema } from "#lib/db/actions/ActionId.ts"
-import { SelectedTargetsSchema } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
 
 export type SubmittedActionTargetsDto = z.infer<typeof SubmittedActionTargetsDtoSchema>
 export const SubmittedActionTargetsDtoSchema = z.object({

@@ -1,6 +1,6 @@
 import { branded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
+import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
 import { v4 } from "uuid"
-import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import type { ResourceUpdateModel } from "#tests/resources/resources.repository.ts"
 
 export function createResourceUpdateModelStub({

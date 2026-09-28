@@ -1,11 +1,11 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq, sql } from "drizzle-orm"
-import type { GameId } from "#lib/db/games/GameId.ts"
-import type { PlayerId } from "#lib/db/players/PlayerId.ts"
+import type { GameId } from "game-rules/models/GameId.ts"
+import type { PlayerId } from "game-rules/models/PlayerId.ts"
+import type { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { resourcesTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 
 export type ResourceUpdateModel = {
   gameId: GameId

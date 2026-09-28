@@ -1,6 +1,6 @@
 import { Angle, Assert, Distance, type Mutable, type Rng, UnitOfAngle, UnitOfDistance, type XY } from "@guillaume-docquier/tools-ts"
+import type { PlayerId } from "game-rules/models/PlayerId.ts"
 import type { GalaxyCreationSettings } from "#api/gameplay/galaxy-creation/GalaxyCreationSettings.ts"
-import type { PlayerId } from "#lib/db/players/PlayerId.ts"
 import type { Galaxy, System } from "../Galaxy.ts"
 
 /**

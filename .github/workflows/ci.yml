@@ -135,3 +135,6 @@ jobs:
 
       - name: Typecheck
         run: pnpm --filter game-rules typecheck
+
+      - name: Tests
+        run: pnpm --filter game-rules test
