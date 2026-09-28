@@ -1544,16 +1544,8 @@ packages:
   '@kwsites/file-exists@1.1.1':
     resolution: {integrity: sha512-m9/5YGR18lIwxSFDwfE3oA7bWuq9kdau6ugN4H2rJeyhFQZcG9AgSHkQtSD15a8WvTgfz9aikZMrKPHvbpqFiw==}
 
-  '@logtape/logtape@2.3.2':
-    resolution: {integrity: sha512-SfxHfSdDlTp6tLpYP5uezNitSCTQUB3FZ1MXDbgDBN9t9kvF+XL0rOGTIa/pJcDMy1o9FELaZ25E/Ypmsf5fNQ==}
-
   '@logtape/logtape@2.3.7':
     resolution: {integrity: sha512-y0X4Liaj9voRRn0aAffCw2HCRpZEibOdmHiOgwsAT0hgHS8MaDKHl9cQGZ8r8uZR+b+yN9qznNYru6z9oOEMVw==}
-
-  '@logtape/redaction@2.3.2':
-    resolution: {integrity: sha512-tLiLxtMm99oKP6g19+yBUmk54HawuVKh4xlW9lAPhyayjisnJ9gwjihxjqd6lo0Bf090/gQvI9eJ3MWSS8w+aw==}
-    peerDependencies:
-      '@logtape/logtape': ^2.3.2
 
   '@logtape/redaction@2.3.7':
     resolution: {integrity: sha512-U6bvNtgp5aFBpOQLjfRS8PVLKN3abQwOxt+Q4CbGtLJ9qOLMaxwqTS/R97k+dTzCf5UiSiyNFnDiC9klLgp9Wg==}
@@ -9001,8 +8993,8 @@ snapshots:
 
   '@guillaume-docquier/tools-ts@6.7.0':
     dependencies:
-      '@logtape/logtape': 2.3.2
-      '@logtape/redaction': 2.3.2(@logtape/logtape@2.3.2)
+      '@logtape/logtape': 2.3.7
+      '@logtape/redaction': 2.3.7(@logtape/logtape@2.3.7)
 
   '@guillaume-docquier/tools-ts@8.6.1':
     dependencies:
@@ -9225,13 +9217,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@logtape/logtape@2.3.2': {}
-
   '@logtape/logtape@2.3.7': {}
-
-  '@logtape/redaction@2.3.2(@logtape/logtape@2.3.2)':
-    dependencies:
-      '@logtape/logtape': 2.3.2
 
   '@logtape/redaction@2.3.7(@logtape/logtape@2.3.7)':
     dependencies:
