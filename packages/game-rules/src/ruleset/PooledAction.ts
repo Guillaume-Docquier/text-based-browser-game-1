@@ -1,6 +1,6 @@
-import { ActionDefinitionIdSchema, type ActionDefinitionId } from "game-rules/models/ActionDefinitionId.ts"
-import { ActionIdSchema, type ActionId } from "game-rules/models/ActionId.ts"
 import { z } from "zod"
+import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#game-rules/models/ActionDefinitionId.ts"
+import { ActionIdSchema, type ActionId } from "#game-rules/models/ActionId.ts"
 
 /**
  * A stable Action in a Ruleset's Action Pool.

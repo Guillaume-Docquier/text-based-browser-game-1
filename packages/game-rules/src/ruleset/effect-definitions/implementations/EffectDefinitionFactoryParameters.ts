@@ -1,5 +1,5 @@
 import type { UnbrandedProperties } from "@guillaume-docquier/tools-ts"
-import type { AbstractEffectDefinition } from "game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
+import type { AbstractEffectDefinition } from "#game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
 
 /**
  * Parameters accepted by effect definition factories.

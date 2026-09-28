@@ -1,9 +1,9 @@
 import { branded, indexBy } from "@guillaume-docquier/tools-ts"
-import { computeAvailableActions } from "game-rules/action-submission/computeAvailableActions.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import { createActionDefinitionStub } from "game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
-import { createRulesetStub } from "game-rules/ruleset/Ruleset.stub.ts"
 import { describe, expect, it } from "vitest"
+import { computeAvailableActions } from "#game-rules/action-submission/computeAvailableActions.ts"
+import type { PlayerId } from "#game-rules/models/PlayerId.ts"
+import { createActionDefinitionStub } from "#game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
+import { createRulesetStub } from "#game-rules/ruleset/Ruleset.stub.ts"
 
 describe("computeAvailableActions", () => {
   it("should use the Action Pool for each player, including distinct copies of one Action Definition", () => {

@@ -1,5 +1,5 @@
-import type { SubmittedAction } from "game-rules/action-submission/Action.ts"
-import type { EffectOutcome } from "game-rules/turn-resolution/effects/EffectOutcome.ts"
+import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
+import type { EffectOutcome } from "#game-rules/turn-resolution/effects/EffectOutcome.ts"
 
 /**
  * The resolved action payload after turn resolution.

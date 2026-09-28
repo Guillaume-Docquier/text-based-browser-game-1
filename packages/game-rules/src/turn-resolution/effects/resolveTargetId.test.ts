@@ -1,7 +1,7 @@
 import { AssertionError, branded } from "@guillaume-docquier/tools-ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
-import { resolveTargetId, safeResolveTargetId } from "game-rules/turn-resolution/effects/resolveTargetId.ts"
 import { describe, expect, it } from "vitest"
+import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
+import { resolveTargetId, safeResolveTargetId } from "#game-rules/turn-resolution/effects/resolveTargetId.ts"
 
 describe("resolveTargetId", () => {
   describe("safeResolveTargetId", () => {

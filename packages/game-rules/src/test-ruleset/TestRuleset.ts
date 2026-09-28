@@ -1,12 +1,12 @@
 import { indexBy } from "@guillaume-docquier/tools-ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { Ruleset } from "game-rules/ruleset/Ruleset.ts"
-import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "game-rules/test-ruleset/action-definitions/build-fleet.ts"
-import { GainEnergy } from "game-rules/test-ruleset/action-definitions/gain-energy.ts"
-import { GainFuel } from "game-rules/test-ruleset/action-definitions/gain-fuel.ts"
-import { GainInfluence } from "game-rules/test-ruleset/action-definitions/gain-influence.ts"
-import { GainMetal } from "game-rules/test-ruleset/action-definitions/gain-metal.ts"
-import { WinTheGame } from "game-rules/test-ruleset/action-definitions/win-the-game.ts"
+import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
+import { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
+import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#game-rules/test-ruleset/action-definitions/build-fleet.ts"
+import { GainEnergy } from "#game-rules/test-ruleset/action-definitions/gain-energy.ts"
+import { GainFuel } from "#game-rules/test-ruleset/action-definitions/gain-fuel.ts"
+import { GainInfluence } from "#game-rules/test-ruleset/action-definitions/gain-influence.ts"
+import { GainMetal } from "#game-rules/test-ruleset/action-definitions/gain-metal.ts"
+import { WinTheGame } from "#game-rules/test-ruleset/action-definitions/win-the-game.ts"
 
 const ACTION_DEFINITIONS = [
   GainInfluence,

@@ -1,8 +1,8 @@
 import type { DeepUnbranded } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts"
-import { type ActionDefinition, ActionDefinitionSchema } from "game-rules/ruleset/action-definitions/ActionDefinition.ts"
-import { ActionTier } from "game-rules/ruleset/action-definitions/ActionTier.ts"
-import { ActionType } from "game-rules/ruleset/action-definitions/ActionType.ts"
+import { type ActionDefinition, ActionDefinitionSchema } from "#game-rules/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionTier } from "#game-rules/ruleset/action-definitions/ActionTier.ts"
+import { ActionType } from "#game-rules/ruleset/action-definitions/ActionType.ts"
 
 export function createActionDefinitionStub({ ...overrides }: Partial<DeepUnbranded<ActionDefinition>> = {}): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {

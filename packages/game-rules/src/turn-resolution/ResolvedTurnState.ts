@@ -1,5 +1,5 @@
-import type { ResolvedAction } from "game-rules/turn-resolution/ResolvedAction.ts"
-import type { TurnState } from "game-rules/turn-resolution/TurnState.ts"
+import type { ResolvedAction } from "#game-rules/turn-resolution/ResolvedAction.ts"
+import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
 
 /**
  * The state of the turn after resolution.

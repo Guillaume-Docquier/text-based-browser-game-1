@@ -1,5 +1,5 @@
-import type { SubmittedAction } from "game-rules/action-submission/Action.ts"
-import type { ActionDefinitionId } from "game-rules/models/ActionDefinitionId.ts"
+import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
+import type { ActionDefinitionId } from "#game-rules/models/ActionDefinitionId.ts"
 
 export type SubmittedActionIssue = Readonly<{
   issue: string

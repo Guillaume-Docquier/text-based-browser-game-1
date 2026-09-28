@@ -1,8 +1,8 @@
-import { createSubmittedActionStub } from "game-rules/action-submission/Action.stub.ts"
-import { validateSubmittedActions } from "game-rules/action-submission/validation/validateSubmittedActions.ts"
-import { createRulesetStub } from "game-rules/ruleset/Ruleset.stub.ts"
-import { createTurnStateStub } from "game-rules/turn-resolution/TurnState.stub.ts"
 import { describe, expect, it } from "vitest"
+import { createSubmittedActionStub } from "#game-rules/action-submission/Action.stub.ts"
+import { validateSubmittedActions } from "#game-rules/action-submission/validation/validateSubmittedActions.ts"
+import { createRulesetStub } from "#game-rules/ruleset/Ruleset.stub.ts"
+import { createTurnStateStub } from "#game-rules/turn-resolution/TurnState.stub.ts"
 
 describe("validateSubmittedActions", () => {
   it("should discard validator failures", () => {

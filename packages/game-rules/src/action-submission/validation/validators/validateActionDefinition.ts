@@ -1,7 +1,7 @@
 import { Result, type Success } from "@guillaume-docquier/tools-ts"
-import type { SubmittedAction } from "game-rules/action-submission/Action.ts"
-import { SubmittedActionIssue } from "game-rules/action-submission/validation/SubmittedActionIssue.ts"
-import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
+import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
+import { SubmittedActionIssue } from "#game-rules/action-submission/validation/SubmittedActionIssue.ts"
+import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
 
 /**
  * Validates that an Action Submission references an Action Definition in the Ruleset.

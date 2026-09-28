@@ -1,5 +1,5 @@
-import { MonotonicIdFactory } from "game-rules/turn-resolution/MonotonicIdFactory.ts"
 import { describe, it, expect } from "vitest"
+import { MonotonicIdFactory } from "#game-rules/turn-resolution/MonotonicIdFactory.ts"
 
 describe("MonotonicIdFactory", () => {
   it("should create ids in sequence", () => {

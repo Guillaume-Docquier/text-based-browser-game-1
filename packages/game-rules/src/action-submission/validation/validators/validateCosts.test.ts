@@ -1,14 +1,14 @@
 import { branded, Result } from "@guillaume-docquier/tools-ts"
-import { createSubmittedActionStub } from "game-rules/action-submission/Action.stub.ts"
-import { validateCosts } from "game-rules/action-submission/validation/validators/validateCosts.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import { createActionDefinitionStub } from "game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
-import { ResourceLossEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
-import { createResourcesStub } from "game-rules/ruleset/effect-definitions/Resources.stub.ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { createRulesetStub } from "game-rules/ruleset/Ruleset.stub.ts"
-import { createTurnStateStub } from "game-rules/turn-resolution/TurnState.stub.ts"
 import { describe, expect, it } from "vitest"
+import { createSubmittedActionStub } from "#game-rules/action-submission/Action.stub.ts"
+import { validateCosts } from "#game-rules/action-submission/validation/validators/validateCosts.ts"
+import type { PlayerId } from "#game-rules/models/PlayerId.ts"
+import { createActionDefinitionStub } from "#game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
+import { ResourceLossEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
+import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
+import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
+import { createRulesetStub } from "#game-rules/ruleset/Ruleset.stub.ts"
+import { createTurnStateStub } from "#game-rules/turn-resolution/TurnState.stub.ts"
 
 const actionDefinition = createActionDefinitionStub({
   costs: [ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE })],

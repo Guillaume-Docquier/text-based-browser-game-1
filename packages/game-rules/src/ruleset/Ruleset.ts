@@ -1,12 +1,12 @@
 import { branded, type Branded, type DeepUnbranded, Result, safeTypedParse, typedParse } from "@guillaume-docquier/tools-ts"
-import { ActionDefinitionIdSchema, type ActionDefinitionId } from "game-rules/models/ActionDefinitionId.ts"
-import type { ActionId } from "game-rules/models/ActionId.ts"
-import { RulesetIdSchema, type RulesetId } from "game-rules/models/RulesetId.ts"
-import { type ActionDefinition, ActionDefinitionSchema } from "game-rules/ruleset/action-definitions/ActionDefinition.ts"
-import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
-import { ResourceTypeSchema } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { type PooledAction, PooledActionSchema } from "game-rules/ruleset/PooledAction.ts"
 import { z } from "zod"
+import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#game-rules/models/ActionDefinitionId.ts"
+import type { ActionId } from "#game-rules/models/ActionId.ts"
+import { RulesetIdSchema, type RulesetId } from "#game-rules/models/RulesetId.ts"
+import { type ActionDefinition, ActionDefinitionSchema } from "#game-rules/ruleset/action-definitions/ActionDefinition.ts"
+import type { Resources } from "#game-rules/ruleset/effect-definitions/Resources.ts"
+import { ResourceTypeSchema } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
+import { type PooledAction, PooledActionSchema } from "#game-rules/ruleset/PooledAction.ts"
 
 /**
  * The complete data-driven rules for a game.

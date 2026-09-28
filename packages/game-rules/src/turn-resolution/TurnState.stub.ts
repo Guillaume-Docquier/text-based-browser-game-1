@@ -1,6 +1,6 @@
 import { branded } from "@guillaume-docquier/tools-ts"
-import type { GameId } from "game-rules/models/GameId.ts"
-import type { TurnState } from "game-rules/turn-resolution/TurnState.ts"
+import type { GameId } from "#game-rules/models/GameId.ts"
+import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
 
 export function createTurnStateStub(overrides?: Partial<TurnState>): TurnState {
   return {

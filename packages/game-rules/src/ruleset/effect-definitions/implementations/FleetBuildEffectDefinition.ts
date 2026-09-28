@@ -1,14 +1,14 @@
 import { typedParse } from "@guillaume-docquier/tools-ts"
-import type { AbstractEffectDefinition } from "game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
+import { z } from "zod"
+import type { AbstractEffectDefinition } from "#game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
 import {
   type EffectDefinitionTargetDefinition,
   EffectDefinitionTargetDefinitionSchema,
-} from "game-rules/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
-import type { EffectDefinitionFactoryParameters } from "game-rules/ruleset/effect-definitions/implementations/EffectDefinitionFactoryParameters.ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
-import { type Integer, IntegerSchema } from "game-rules/validation/Integer.ts"
-import { type PositiveNumber, PositiveNumberSchema } from "game-rules/validation/PositiveNumber.ts"
-import { z } from "zod"
+} from "#game-rules/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
+import type { EffectDefinitionFactoryParameters } from "#game-rules/ruleset/effect-definitions/implementations/EffectDefinitionFactoryParameters.ts"
+import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
+import { type Integer, IntegerSchema } from "#game-rules/validation/Integer.ts"
+import { type PositiveNumber, PositiveNumberSchema } from "#game-rules/validation/PositiveNumber.ts"
 
 /**
  * Builds a fleet of strength X on target planet.

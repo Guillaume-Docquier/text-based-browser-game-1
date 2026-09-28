@@ -1,4 +1,4 @@
-import type { EffectError } from "game-rules/turn-resolution/effects/EffectError.ts"
+import type { EffectError } from "#game-rules/turn-resolution/effects/EffectError.ts"
 
 export type ResolvePhaseError = FailedEffect
 type FailedEffect = Readonly<{ type: "FAILED_TO_RESOLVE_EFFECT"; error: EffectError }>

@@ -1,14 +1,14 @@
-import { ActionDefinitionIdSchema, type ActionDefinitionId } from "game-rules/models/ActionDefinitionId.ts"
-import { ActionTierSchema, type ActionTier } from "game-rules/ruleset/action-definitions/ActionTier.ts"
-import { ActionTypeSchema, type ActionType } from "game-rules/ruleset/action-definitions/ActionType.ts"
-import { type TargetTag, TargetTagSchema } from "game-rules/ruleset/action-definitions/TargetTag.ts"
-import { EffectDefinitionSchema, type EffectDefinition } from "game-rules/ruleset/effect-definitions/EffectDefinition.ts"
+import { z } from "zod"
+import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#game-rules/models/ActionDefinitionId.ts"
+import { ActionTierSchema, type ActionTier } from "#game-rules/ruleset/action-definitions/ActionTier.ts"
+import { ActionTypeSchema, type ActionType } from "#game-rules/ruleset/action-definitions/ActionType.ts"
+import { type TargetTag, TargetTagSchema } from "#game-rules/ruleset/action-definitions/TargetTag.ts"
+import { EffectDefinitionSchema, type EffectDefinition } from "#game-rules/ruleset/effect-definitions/EffectDefinition.ts"
 import {
   ResourceLossEffectDefinitionSchema,
   type ResourceLossEffectDefinition,
-} from "game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
-import { type TargetDefinition, TargetDefinitionSchema } from "game-rules/ruleset/target-definitions/TargetDefinition.ts"
-import { z } from "zod"
+} from "#game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
+import { type TargetDefinition, TargetDefinitionSchema } from "#game-rules/ruleset/target-definitions/TargetDefinition.ts"
 
 /**
  * The definition of an Action.

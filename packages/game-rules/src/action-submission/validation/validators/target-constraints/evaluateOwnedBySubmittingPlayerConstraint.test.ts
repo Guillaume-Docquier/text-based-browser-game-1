@@ -1,12 +1,12 @@
 import { branded, Result, typedParse } from "@guillaume-docquier/tools-ts"
-import { evaluateOwnedBySubmittingPlayerConstraint } from "game-rules/action-submission/validation/validators/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
-import { FleetNameSchema } from "game-rules/models/FleetName.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import { createResourcesStub } from "game-rules/ruleset/effect-definitions/Resources.stub.ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
-import type { TargetableFleet, TargetablePlanet, TargetablePlayer } from "game-rules/turn-resolution/TargetableEntity.ts"
 import { describe, expect, it } from "vitest"
+import { evaluateOwnedBySubmittingPlayerConstraint } from "#game-rules/action-submission/validation/validators/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
+import { FleetNameSchema } from "#game-rules/models/FleetName.ts"
+import type { PlayerId } from "#game-rules/models/PlayerId.ts"
+import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
+import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
+import { OwnedBySubmittingPlayerConstraint } from "#game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import type { TargetableFleet, TargetablePlanet, TargetablePlayer } from "#game-rules/turn-resolution/TargetableEntity.ts"
 
 describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
   describe("evaluate", () => {
