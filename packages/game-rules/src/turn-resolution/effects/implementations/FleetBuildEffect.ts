@@ -1,4 +1,5 @@
-import { Assert, branded, Range, Result, type Rng, typedParse } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Range, Result, type Rng } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { v5 } from "uuid"
 import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
 import type { FleetId } from "#game-rules/models/FleetId.ts"

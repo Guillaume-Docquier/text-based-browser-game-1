@@ -1,4 +1,5 @@
-import { branded, Result, typedParse } from "@guillaume-docquier/tools-ts"
+import { branded, Result } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { describe, expect, it } from "vitest"
 import { evaluateOwnedBySubmittingPlayerConstraint } from "#game-rules/action-submission/validation/targets/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
 import { FleetNameSchema } from "#game-rules/models/FleetName.ts"

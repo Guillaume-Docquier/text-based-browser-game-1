@@ -1,4 +1,5 @@
-import { indexBy, branded, Result, typedParse } from "@guillaume-docquier/tools-ts"
+import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { createSubmittedActionStub } from "#game-rules/action-submission/Action.stub.ts"

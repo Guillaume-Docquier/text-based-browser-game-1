@@ -1,5 +1,5 @@
 import type { DeepUnbranded } from "@guillaume-docquier/tools-ts"
-import { typedParse } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { v4 } from "uuid"
 import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
 import { type Ruleset, RulesetSchema } from "#game-rules/ruleset/Ruleset.ts"

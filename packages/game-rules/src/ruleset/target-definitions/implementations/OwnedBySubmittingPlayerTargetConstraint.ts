@@ -1,4 +1,4 @@
-import { typedParse } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { z } from "zod"
 import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
 import type {

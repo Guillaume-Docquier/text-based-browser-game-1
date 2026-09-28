@@ -1,4 +1,4 @@
-import { typedParse } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { z } from "zod"
 import type { AbstractEffectDefinition, NoTargets } from "#game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
 import type { EffectDefinitionFactoryParameters } from "#game-rules/ruleset/effect-definitions/implementations/EffectDefinitionFactoryParameters.ts"

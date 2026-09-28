@@ -1,6 +1,6 @@
+import { PositiveNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
 import { z } from "zod"
 import { ResourceTypeSchema } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { PositiveNumberSchema } from "#game-rules/validation/PositiveNumber.ts"
 
 export type QuantityOfResource = z.infer<typeof QuantityOfResourceSchema>
 

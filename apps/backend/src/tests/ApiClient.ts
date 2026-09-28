@@ -1,4 +1,4 @@
-import { typedParse } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client"
 import { AccountIdSchema } from "game-rules/models/AccountId.ts"
 import type { AccountModel, AccountsRepository } from "#api/accounts/accounts.repository.ts"
