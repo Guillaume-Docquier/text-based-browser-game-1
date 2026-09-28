@@ -2,7 +2,7 @@ import { Assert, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } fro
 import { computeAvailableActions } from "game-rules/action-submission/computeAvailableActions.ts"
 import { getUncommittedResources } from "game-rules/action-submission/getUncommittedResources.ts"
 import { SelectedTargetsSchema } from "game-rules/action-submission/SelectedTargets.ts"
-import { validateCosts } from "game-rules/action-submission/validation/validators/validateCosts.ts"
+import { validateCosts } from "game-rules/action-submission/validation/costs/validateCosts.ts"
 import { type AccountId, AccountIdSchema } from "game-rules/models/AccountId.ts"
 import { ActionDefinitionIdSchema } from "game-rules/models/ActionDefinitionId.ts"
 import { ActionIdSchema } from "game-rules/models/ActionId.ts"

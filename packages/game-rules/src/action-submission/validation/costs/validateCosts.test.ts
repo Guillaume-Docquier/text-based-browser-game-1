@@ -1,7 +1,7 @@
 import { branded, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSubmittedActionStub } from "#game-rules/action-submission/Action.stub.ts"
-import { validateCosts } from "#game-rules/action-submission/validation/validators/validateCosts.ts"
+import { validateCosts } from "#game-rules/action-submission/validation/costs/validateCosts.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { createActionDefinitionStub } from "#game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
 import { ResourceLossEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"

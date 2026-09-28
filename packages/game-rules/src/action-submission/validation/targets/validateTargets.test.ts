@@ -1,7 +1,7 @@
 import { indexBy, branded, Result, typedParse } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createSubmittedActionStub } from "#game-rules/action-submission/Action.stub.ts"
-import { validateTargets } from "#game-rules/action-submission/validation/validators/validateTargets.ts"
+import { validateTargets } from "#game-rules/action-submission/validation/targets/validateTargets.ts"
 import type { FleetId } from "#game-rules/models/FleetId.ts"
 import { FleetNameSchema } from "#game-rules/models/FleetName.ts"
 import type { PlanetId } from "#game-rules/models/PlanetId.ts"
