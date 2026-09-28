@@ -1,5 +1,5 @@
 import { defineConfig, type OxlintConfig } from "oxlint"
-import baseConfig from "../oxlint.config.ts"
+import baseConfig from "../../oxlint.config.ts"
 import { Boundaries } from "./boundaries.ts"
 
 export default defineConfig({

@@ -2,6 +2,6 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "buildCommand": "pnpm --filter frontend build",
-    "watchPatterns": ["frontend/**", "shared/**", "package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"]
+    "watchPatterns": ["apps/frontend/**", "packages/game-rules/**", "package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"]
   }
 }
