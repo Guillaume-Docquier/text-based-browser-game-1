@@ -18,6 +18,7 @@ import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energ
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#lib/rulesets/standard/action-definitions/gain-influence.ts"
 import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.ts"
+import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#lib/rulesets/standard/action-definitions/move-fleet.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
@@ -244,6 +245,24 @@ describe("gameplay.router", () => {
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetExceptional.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetStandard.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetExceptional.id,
           selectedTargets: null,
           canAfford: false,
         },
@@ -511,6 +530,24 @@ describe("gameplay.router", () => {
           selectedTargets: null,
           canAfford: false,
         },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetStandard.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetExceptional.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
       ]
       expect(selectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedSelectedActions))
       expect(selectedPlayerView.actions).toHaveLength(expectedSelectedActions.length)
@@ -561,6 +598,24 @@ describe("gameplay.router", () => {
         {
           id: expect.any(String),
           actionDefinitionId: BuildFleetExceptional.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetStandard.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetImproved.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: MoveFleetExceptional.id,
           selectedTargets: null,
           canAfford: false,
         },

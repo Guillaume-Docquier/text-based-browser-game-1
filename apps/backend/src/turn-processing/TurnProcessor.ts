@@ -136,6 +136,16 @@ export class TurnProcessor {
     }
 
     const processedAt = this.clock.now()
+    const fleetsToUpdate = []
+    const fleetIdsToDelete = []
+    for (const fleet of Object.values(resolvedTurnResult.value.fleets)) {
+      if (fleet.strength === 0) {
+        fleetIdsToDelete.push(fleet.id)
+      } else {
+        fleetsToUpdate.push(fleet)
+      }
+    }
+
     const turnResult: ProcessedTurnModel = {
       gameId: turnToProcess.gameId,
       turn: turnToProcess.turn,
@@ -153,7 +163,8 @@ export class TurnProcessor {
           amount: player.resources[resourceType],
         })),
       ),
-      fleets: Object.values(resolvedTurnResult.value.fleets),
+      fleetsToUpdate,
+      fleetIdsToDelete,
     }
 
     if (resolvedTurnResult.value.winnerPlayerId === undefined) {

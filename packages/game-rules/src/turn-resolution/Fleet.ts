@@ -10,16 +10,19 @@ export type Fleet = {
   readonly name: FleetName
   strength: number
   originPlanetId: PlanetId
+
   /**
    * Defined only when moving.
    * We'd use a discriminated union here, but since we mutate the fleet, it's a bit hard to do.
    */
   destinationPlanetId?: PlanetId | undefined
+
   /**
    * Defined only when moving.
    * We'd use a discriminated union here, but since we mutate the fleet, it's a bit hard to do.
    */
   distanceToEnd?: NonNegativeNumber | undefined
+
   /**
    * Defined only when moving.
    * We'd use a discriminated union here, but since we mutate the fleet, it's a bit hard to do.

@@ -2,7 +2,9 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
+
+The Standard and Test Rulesets offer three Move Fleet Directives with speeds of 0.1, 1, and 5 light-years per Turn. They require an owned Fleet and a destination Planet. The Fleet Move Effect tracks progress toward that Planet. Range limits, partial-Strength movement, automatic continuation, and complete arrival and location handling remain planned.
 
 ## Purpose
 

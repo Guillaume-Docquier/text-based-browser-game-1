@@ -12,6 +12,7 @@ Partially Implemented
 - [x] Multiple Action submissions
 - [x] Readiness locks Action submissions until the player unreadies or the next Turn starts
 - [x] Build Fleet Directives with owned-Planet targets and resource costs
+- [x] Move Fleet Directives with owned-Fleet and destination-Planet targets
 - [ ] Ideology-driven Action pools
 
 ## Purpose
@@ -60,7 +61,7 @@ Relates to:
 
 ## Current Implementation
 
-The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, and three Build Fleet Directives. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders a picker for Build Fleet's owned-Planet target. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
+The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, three Build Fleet Directives, and three Move Fleet Directives. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders target pickers for Build Fleet's owned Planet and Move Fleet's owned Fleet and destination Planet. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
 
 The live Build Fleet values are temporary balance and differ from the planned Directive catalogue below. These are the current Standard Ruleset values:
 
@@ -71,6 +72,16 @@ The live Build Fleet values are temporary balance and differ from the planned Di
 | Exceptional (T1) |             10 |          5 |          1,000 |
 
 Each Build Fleet submission chooses an owned Planet. Its costs are paid during Turn Resolution; the Fleet Build Phase then creates or reinforces the player's Fleet there. See [System 010-fleets](./010-fleets.md) for Fleet identity and presentation.
+
+Each Move Fleet submission chooses an owned Fleet and a destination Planet. The current Move Fleet values are temporary and differ from the planned catalogue below:
+
+| Move Fleet tier  | Influence cost | Fuel cost | Speed (light-years per Turn) |
+| ---------------- | -------------: | --------: | ---------------------------: |
+| Standard (T4)    |              3 |         1 |                          0.1 |
+| Improved (T3)    |              3 |         3 |                            1 |
+| Exceptional (T1) |              3 |         5 |                            5 |
+
+Range limits and choosing part of a Fleet's Strength remain planned.
 
 ## Rules
 

@@ -1,6 +1,6 @@
 import { indexBy, Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { NonNegativeNumber } from "@guillaume-docquier/tools-ts/schemas"
-import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
+import { and, asc, eq, inArray, isNull, lte, sql } from "drizzle-orm"
 import type { AvailableAction, SubmittedAction } from "game-rules/action-submission/Action.ts"
 import type { AccountId } from "game-rules/models/AccountId.ts"
 import type { FleetId } from "game-rules/models/FleetId.ts"
@@ -102,7 +102,8 @@ export type ProcessedTurnModel = {
     resourceType: ResourceType
     amount: number
   }>
-  fleets: TurnToProcessFleetModel[]
+  fleetsToUpdate: TurnToProcessFleetModel[]
+  fleetIdsToDelete: FleetId[]
   winnerAccountId?: AccountId
   nextTurn: number
   availableActions: AvailableAction[]
@@ -346,7 +347,13 @@ export class TurnsRepository extends PostgresRepository {
             },
           })
 
-        const fleets = processedTurnModel.fleets.map((fleet) => ({
+        if (processedTurnModel.fleetIdsToDelete.length > 0) {
+          await tx
+            .delete(fleetsTable)
+            .where(and(eq(fleetsTable.gameId, processedTurnModel.gameId), inArray(fleetsTable.id, processedTurnModel.fleetIdsToDelete)))
+        }
+
+        const fleets = processedTurnModel.fleetsToUpdate.map((fleet) => ({
           ...fleet,
           gameId: processedTurnModel.gameId,
           destinationPlanetId: fleet.destinationPlanetId ?? null,
