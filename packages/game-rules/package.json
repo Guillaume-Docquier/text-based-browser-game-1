@@ -14,13 +14,13 @@
   },
   "dependencies": {
     "@guillaume-docquier/tools-ts": "catalog:",
-    "uuid": "^14.0.2",
-    "zod": "^4.6.5"
+    "uuid": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^5.0.0",
-    "type-fest": "^5.10.0",
+    "@vitest/coverage-v8": "catalog:",
+    "type-fest": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^5.0.0"
+    "vitest": "catalog:"
   }
 }
