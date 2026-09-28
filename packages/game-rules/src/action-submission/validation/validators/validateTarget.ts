@@ -13,11 +13,15 @@ import type { TargetDefinition } from "#game-rules/ruleset/target-definitions/Ta
 /**
  * Checks a resolved target against the slot's type and constraints.
  */
-export function validateTarget(
-  target: TargetForValidation,
-  submittingPlayerId: PlayerId,
-  targetDefinition: TargetDefinition,
-): string | null {
+export function validateTarget({
+  target,
+  submittingPlayerId,
+  targetDefinition,
+}: {
+  target: TargetForValidation
+  submittingPlayerId: PlayerId
+  targetDefinition: TargetDefinition
+}): string | null {
   if (target.type !== targetDefinition.targetType) {
     return `Expected a ${targetDefinition.targetType} target, received ${target.type}`
   }

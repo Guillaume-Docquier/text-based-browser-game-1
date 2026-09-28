@@ -6,21 +6,42 @@ import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts
 import { OwnedBySubmittingPlayerConstraint } from "#game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 
 describe("validateTarget", () => {
-  it("should check a resolved target using its slot definition and submitting player", () => {
-    const playerId = branded<PlayerId>("submitting-player")
+  it("should accept a target owned by the submitting player", () => {
+    // Arrange
+    const submittingPlayerId = branded<PlayerId>("submitting-player")
     const targetDefinition = { targetType: TargetType.PLANET, constraints: [OwnedBySubmittingPlayerConstraint.create()] }
+    const ownedPlanetTarget = { type: TargetType.PLANET, ownerPlayerId: submittingPlayerId }
 
-    expect(validateTarget({ type: TargetType.PLANET, ownerPlayerId: playerId }, playerId, targetDefinition)).toBeNull()
-    expect(validateTarget({ type: TargetType.PLANET, ownerPlayerId: null }, playerId, targetDefinition)).toBe(
-      "Expected target planet to be owned by the submitting player.",
-    )
+    // Act
+    const result = validateTarget({ target: ownedPlanetTarget, submittingPlayerId, targetDefinition })
+
+    // Assert
+    expect(result).toBeNull()
+  })
+
+  it("should reject a target not owned by the submitting player", () => {
+    // Arrange
+    const submittingPlayerId = branded<PlayerId>("submitting-player")
+    const targetDefinition = { targetType: TargetType.PLANET, constraints: [OwnedBySubmittingPlayerConstraint.create()] }
+    const unclaimedPlanetTarget = { type: TargetType.PLANET, ownerPlayerId: null }
+
+    // Act
+    const result = validateTarget({ target: unclaimedPlanetTarget, submittingPlayerId, targetDefinition })
+
+    // Assert
+    expect(result).toBe("Expected target planet to be owned by the submitting player.")
   })
 
   it("should reject a target with the wrong type for its slot", () => {
-    const playerId = branded<PlayerId>("submitting-player")
+    // Arrange
+    const submittingPlayerId = branded<PlayerId>("submitting-player")
+    const targetDefinition = { targetType: TargetType.PLANET, constraints: [] }
+    const ownedFleetTarget = { type: TargetType.FLEET, ownerPlayerId: submittingPlayerId }
 
-    expect(
-      validateTarget({ type: TargetType.FLEET, ownerPlayerId: playerId }, playerId, { targetType: TargetType.PLANET, constraints: [] }),
-    ).toBe("Expected a PLANET target, received FLEET")
+    // Act
+    const result = validateTarget({ target: ownedFleetTarget, submittingPlayerId, targetDefinition })
+
+    // Assert
+    expect(result).toBe("Expected a PLANET target, received FLEET")
   })
 })

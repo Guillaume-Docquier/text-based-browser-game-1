@@ -2,16 +2,12 @@ import { branded, Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
 import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
 import { SubmittedActionIssue } from "#game-rules/action-submission/validation/SubmittedActionIssue.ts"
-import type { TargetForValidation } from "#game-rules/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
 import { validateTarget } from "#game-rules/action-submission/validation/validators/validateTarget.ts"
-import type { FleetId } from "#game-rules/models/FleetId.ts"
-import type { PlanetId } from "#game-rules/models/PlanetId.ts"
-import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import type { ActionDefinition } from "#game-rules/ruleset/action-definitions/ActionDefinition.ts"
 import type { TargetTag } from "#game-rules/ruleset/action-definitions/TargetTag.ts"
 import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
 import type { Ruleset } from "#game-rules/ruleset/Ruleset.ts"
-import type { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
+import { TurnState } from "#game-rules/turn-resolution/TurnState.ts"
 
 /**
  * Validates selections for every Action Definition target slot against its type and constraints.
@@ -66,7 +62,7 @@ function validateAction(
       continue
     }
 
-    const target = getTarget(targetDefinition.targetType, targetId, turnState)
+    const target = TurnState.getTarget(turnState, { targetType: targetDefinition.targetType, targetId })
     if (target === undefined) {
       const targetTypeName = {
         [TargetType.FLEET]: "Fleet",
@@ -77,49 +73,11 @@ function validateAction(
       continue
     }
 
-    const issue = validateTarget(target, submittedAction.playerId, targetDefinition)
+    const issue = validateTarget({ target, submittingPlayerId: submittedAction.playerId, targetDefinition })
     if (issue !== null) {
       issues.push(issue)
     }
   }
 
   return issues
-}
-
-function getTarget(targetType: TargetType, targetId: string, turnState: ReadonlyDeep<TurnState>): TargetForValidation | undefined {
-  switch (targetType) {
-    case TargetType.PLAYER:
-      return getPlayerTarget(turnState, targetId)
-    case TargetType.FLEET:
-      return getFleetTarget(turnState, targetId)
-    case TargetType.PLANET:
-      return getPlanetTarget(turnState, targetId)
-  }
-}
-
-function getPlayerTarget(turnState: ReadonlyDeep<TurnState>, targetId: string): TargetForValidation | undefined {
-  const player = turnState.players[branded<PlayerId>(targetId)]
-  if (player === undefined) {
-    return undefined
-  }
-
-  return { type: TargetType.PLAYER }
-}
-
-function getFleetTarget(turnState: ReadonlyDeep<TurnState>, targetId: string): TargetForValidation | undefined {
-  const fleet = turnState.fleets[branded<FleetId>(targetId)]
-  if (fleet === undefined) {
-    return undefined
-  }
-
-  return { type: TargetType.FLEET, ownerPlayerId: fleet.ownerPlayerId }
-}
-
-function getPlanetTarget(turnState: ReadonlyDeep<TurnState>, targetId: string): TargetForValidation | undefined {
-  const planet = turnState.planets[branded<PlanetId>(targetId)]
-  if (planet === undefined) {
-    return undefined
-  }
-
-  return { type: TargetType.PLANET, ownerPlayerId: planet.ownerPlayerId }
 }

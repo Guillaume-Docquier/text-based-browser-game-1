@@ -1,22 +1,14 @@
-import type {
-  Fleet,
-  LobbyPlayers,
-  Planet,
-  PlayerId,
-  PlayerView,
-  TargetConstraintType,
-  TargetConstraints,
-  TargetDefinition,
-  TargetId,
-} from "@api-types"
+import type { LobbyPlayers, PlayerView, TargetDefinition, TargetId } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
+import type { TargetForValidation } from "game-rules/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
+import { validateTarget } from "game-rules/action-submission/validation/validators/validateTarget.ts"
+import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
 import type { ReactElement } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
 import { formatRulesetTerm } from "@/features/play/effectDefinitionToRulesText.ts"
 
 type TargetOption = { id: TargetId; label: string }
-type TargetCandidate = TargetOption &
-  ({ targetType: "PLANET"; planet: Planet } | { targetType: "FLEET"; fleet: Fleet } | { targetType: "PLAYER" })
+type TargetCandidate = TargetOption & { target: TargetForValidation }
 
 /**
  * Selects an entity for one Action Definition target slot.
@@ -77,48 +69,32 @@ export function TargetPicker({
  * Resolves target choices from the player-visible game state and the slot constraints.
  */
 export function getTargetOptions(targetDefinition: TargetDefinition, playerView: PlayerView, players: LobbyPlayers): TargetOption[] {
-  // Keep this local constraint check until target resolution is shared with the backend.
-  return getTargetCandidates(targetDefinition, playerView, players).filter((candidate) =>
-    matchesConstraints(candidate, targetDefinition.constraints, playerView.player.id),
+  return getTargetCandidates(targetDefinition, playerView, players).filter(
+    (candidate) => validateTarget({ target: candidate.target, submittingPlayerId: playerView.player.id, targetDefinition }) === null,
   )
 }
 
 function getTargetCandidates(targetDefinition: TargetDefinition, playerView: PlayerView, players: LobbyPlayers): TargetCandidate[] {
   switch (targetDefinition.targetType) {
-    case "PLANET":
+    case TargetType.PLANET:
       return playerView.galaxy.systems.flatMap(({ planets }) =>
         planets.map((planet) => ({
-          targetType: "PLANET" as const,
           id: planet.id,
           label: `${planet.name} (${planet.coordinates})`,
-          planet,
+          target: { type: TargetType.PLANET, ownerPlayerId: planet.ownerPlayerId },
         })),
       )
-    case "PLAYER":
-      return players.map((player) => ({ targetType: "PLAYER", id: player.id, label: player.alias }))
-    case "FLEET":
+    case TargetType.PLAYER:
+      return players.map((player) => ({
+        id: player.id,
+        label: player.alias,
+        target: { type: TargetType.PLAYER },
+      }))
+    case TargetType.FLEET:
       return playerView.fleets.map((fleet) => ({
-        targetType: "FLEET",
         id: fleet.id,
         label: `Fleet ${fleet.id.slice(0, 8)} (${fleet.strength} strength)`,
-        fleet,
+        target: { type: TargetType.FLEET, ownerPlayerId: fleet.ownerPlayerId },
       }))
   }
-}
-
-const TARGET_CONSTRAINT_MATCHERS = {
-  OWNED_BY_SUBMITTING_PLAYER: (candidate: TargetCandidate, currentPlayerId: PlayerId): boolean => {
-    switch (candidate.targetType) {
-      case "PLANET":
-        return candidate.planet.ownerPlayerId === currentPlayerId
-      case "FLEET":
-        return candidate.fleet.ownerPlayerId === currentPlayerId
-      case "PLAYER":
-        return false
-    }
-  },
-} satisfies Record<TargetConstraintType, (candidate: TargetCandidate, currentPlayerId: PlayerId) => boolean>
-
-function matchesConstraints(candidate: TargetCandidate, constraints: TargetConstraints, currentPlayerId: PlayerId): boolean {
-  return constraints.every((constraint) => TARGET_CONSTRAINT_MATCHERS[constraint.type](candidate, currentPlayerId))
 }
