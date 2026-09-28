@@ -1,3 +1,4 @@
+import { typedParse } from "@guillaume-docquier/tools-ts"
 import type { AbstractEffectDefinition } from "game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
 import {
   type EffectDefinitionTargetDefinition,
@@ -7,7 +8,6 @@ import type { EffectDefinitionFactoryParameters } from "game-rules/ruleset/effec
 import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
 import { type Integer, IntegerSchema } from "game-rules/validation/Integer.ts"
 import { type PositiveNumber, PositiveNumberSchema } from "game-rules/validation/PositiveNumber.ts"
-import { typedParse } from "game-rules/validation/typedParse.ts"
 import { z } from "zod"
 
 /**

@@ -1,6 +1,6 @@
+import { typedParse } from "@guillaume-docquier/tools-ts"
 import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client"
 import { AccountIdSchema } from "game-rules/models/AccountId.ts"
-import { typedParse } from "game-rules/validation/typedParse.ts"
 import type { AccountModel, AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { AUTH_ID_HEADER } from "#api/accounts/TestHeaderAuthProvider.ts"

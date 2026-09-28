@@ -10,9 +10,11 @@ const ResourceRank = {
   COLONY: 5,
 } as const satisfies Record<ResourceType, number>
 
+const NUMERIC_COMPARATOR = Sort.numeric()
+
 /** Sorts costs in their canonical display order. */
 export function sortCostsByResource<T extends { readonly resourceType: ResourceType }>(costs: readonly T[]): T[] {
-  return costs.toSorted((first, second) => Sort.byAscending(ResourceRank[first.resourceType], ResourceRank[second.resourceType]))
+  return costs.toSorted((first, second) => NUMERIC_COMPARATOR(ResourceRank[first.resourceType], ResourceRank[second.resourceType]))
 }
 
 export const RESOURCE_ICONS = {

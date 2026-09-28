@@ -1,5 +1,5 @@
+import { typedParse } from "@guillaume-docquier/tools-ts"
 import type { AbstractEffectDefinition, NoParameters, NoTargets } from "game-rules/ruleset/effect-definitions/AbstractEffectDefinition.ts"
-import { typedParse } from "game-rules/validation/typedParse.ts"
 import { z } from "zod"
 
 export interface VictoryEffectDefinition extends AbstractEffectDefinition {

@@ -15,6 +15,8 @@ export const ActionTierRank = {
   EXCEPTIONAL: 5, // Best
 } as const satisfies Record<ActionTier, number>
 
+const NUMERIC_COMPARATOR = Sort.numeric()
+
 export function ActionSelector({
   gameId,
   playerView,
@@ -80,7 +82,7 @@ function toActionAndDefinition(actionDefinitions: Ruleset["actionDefinitions"]):
 }
 
 function sortByTier(first: ActionAndDefinition, second: ActionAndDefinition): number {
-  const tierOrder = Sort.byAscending(ActionTierRank[first.definition.tier], ActionTierRank[second.definition.tier])
+  const tierOrder = NUMERIC_COMPARATOR(ActionTierRank[first.definition.tier], ActionTierRank[second.definition.tier])
   if (tierOrder !== 0) {
     return tierOrder
   }

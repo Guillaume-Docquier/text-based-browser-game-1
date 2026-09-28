@@ -1,10 +1,10 @@
+import { typedParse } from "@guillaume-docquier/tools-ts"
 import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
 import type {
   AbstractTargetConstraint,
   NoTargetConstraintParameters,
   NoTargetReferences,
 } from "game-rules/ruleset/target-definitions/AbstractTargetConstraint.ts"
-import { typedParse } from "game-rules/validation/typedParse.ts"
 import { z } from "zod"
 
 /**

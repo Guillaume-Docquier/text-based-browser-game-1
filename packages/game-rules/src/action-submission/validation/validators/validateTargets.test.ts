@@ -1,4 +1,4 @@
-import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
+import { indexBy, branded, Result, typedParse } from "@guillaume-docquier/tools-ts"
 import { createSubmittedActionStub } from "game-rules/action-submission/Action.stub.ts"
 import { validateTargets } from "game-rules/action-submission/validation/validators/validateTargets.ts"
 import type { FleetId } from "game-rules/models/FleetId.ts"
@@ -13,7 +13,6 @@ import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
 import { createRulesetStub } from "game-rules/ruleset/Ruleset.stub.ts"
 import { OwnedBySubmittingPlayerConstraint } from "game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { createTurnStateStub } from "game-rules/turn-resolution/TurnState.stub.ts"
-import { typedParse } from "game-rules/validation/typedParse.ts"
 import { describe, expect, it } from "vitest"
 
 describe("validateTargets", () => {

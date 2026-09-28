@@ -1,4 +1,4 @@
-import { Assert, branded, Range, Result, type Rng } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Range, Result, type Rng, typedParse } from "@guillaume-docquier/tools-ts"
 import type { SubmittedAction } from "game-rules/action-submission/Action.ts"
 import type { FleetId } from "game-rules/models/FleetId.ts"
 import { type FleetName, FleetNameSchema } from "game-rules/models/FleetName.ts"
@@ -12,7 +12,6 @@ import { EffectOutcome } from "game-rules/turn-resolution/effects/EffectOutcome.
 import { resolveTargetId } from "game-rules/turn-resolution/effects/resolveTargetId.ts"
 import type { TurnContext } from "game-rules/turn-resolution/TurnContext.ts"
 import type { Fleet } from "game-rules/turn-resolution/TurnState.ts"
-import { typedParse } from "game-rules/validation/typedParse.ts"
 import { v5 } from "uuid"
 
 export class FleetBuildEffect extends Effect {

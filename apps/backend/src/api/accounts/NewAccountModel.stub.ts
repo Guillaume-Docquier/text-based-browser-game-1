@@ -1,4 +1,4 @@
-import { typedParse } from "game-rules/validation/typedParse.ts"
+import { typedParse } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import { AliasSchema } from "#lib/db/accounts/Alias.ts"
 import type { NewAccountModel } from "./accounts.repository.ts"
