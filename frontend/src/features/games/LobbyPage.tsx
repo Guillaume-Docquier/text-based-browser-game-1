@@ -102,14 +102,7 @@ function LobbyActions({ game }: { game: ApiTypes.Lobby }): ReactElement {
         <Button
           disabled={startGame.isPending}
           onClick={() => {
-            startGame.mutate(
-              { gameId: game.id },
-              {
-                onSuccess: () => {
-                  void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
-                },
-              },
-            )
+            startGame.mutate({ gameId: game.id })
           }}
         >
           Start game
