@@ -1,7 +1,7 @@
 import type { ActionId } from "#lib/db/actions/ActionId.ts"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
+import type { ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
-import type { ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 
 export type Action = AvailableAction | SubmittedAction
 

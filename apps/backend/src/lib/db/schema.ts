@@ -28,11 +28,11 @@ import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
+import { actionDefinitionIdColumn } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import { rulesetIdColumn } from "#lib/db/rulesets/RulesetId.ts"
 import { starIdColumn } from "#lib/db/stars/StarId.ts"
 import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import type { SelectedTargets } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
-import type { ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import type { RulesetRulesJson } from "#lib/rulesets/rulesets.repository.ts"
 
@@ -175,7 +175,7 @@ export const actionsTable = pgTable(
     gameId: gameIdColumn("game_id").notNull(),
     playerId: playerIdColumn("player_id").notNull(),
     turn: integer("turn").notNull(),
-    actionDefinitionId: text("action_definition_id").$type<ActionDefinitionId>().notNull(),
+    actionDefinitionId: actionDefinitionIdColumn("action_definition_id").notNull(),
     /**
      * non-null when the action is selected, empty object ({}) if the action is selected and has no targets to specify
      */

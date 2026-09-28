@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { ActionIdSchema, type ActionId } from "#lib/db/actions/ActionId.ts"
-import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 
 /**
  * A stable Action in a Ruleset's Action Pool.

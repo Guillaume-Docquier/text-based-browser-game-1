@@ -1,9 +1,9 @@
 import { branded, type DeepUnbranded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
 import { v4 } from "uuid"
 import type { PlayerId } from "#lib/db/players/PlayerId.ts"
+import type { ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import type { AvailableAction, SubmittedAction } from "#lib/rules-engine/action-submission/Action.ts"
 import { SelectedTargetsSchema } from "#lib/rules-engine/action-submission/SelectedTargets.ts"
-import type { ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { typedParse } from "#lib/validation/typedParse.ts"
 
 export function createAvailableActionStub({

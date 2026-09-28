@@ -1,5 +1,5 @@
-import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
+import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import { ActionTierSchema, type ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionTypeSchema, type ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
 import { type TargetTag, TargetTagSchema } from "#lib/rules-engine/ruleset/action-definitions/TargetTag.ts"
@@ -9,12 +9,6 @@ import {
   type ResourceLossEffectDefinition,
 } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
 import { type TargetDefinition, TargetDefinitionSchema } from "#lib/rules-engine/ruleset/target-definitions/TargetDefinition.ts"
-
-/**
- * The identifier of an Action Definition.
- */
-export type ActionDefinitionId = Branded<"ActionDefinitionId", string>
-export const ActionDefinitionIdSchema = z.string().transform(branded<ActionDefinitionId>) satisfies z.ZodType<ActionDefinitionId>
 
 /**
  * The definition of an Action.

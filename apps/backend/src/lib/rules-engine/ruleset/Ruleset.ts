@@ -1,13 +1,9 @@
 import { branded, type Branded, type DeepUnbranded, Result } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import type { ActionId } from "#lib/db/actions/ActionId.ts"
+import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import { RulesetIdSchema, type RulesetId } from "#lib/db/rulesets/RulesetId.ts"
-import {
-  type ActionDefinition,
-  type ActionDefinitionId,
-  ActionDefinitionIdSchema,
-  ActionDefinitionSchema,
-} from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import { type ActionDefinition, ActionDefinitionSchema } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import type { Resources } from "#lib/rules-engine/ruleset/effect-definitions/Resources.ts"
 import { ResourceTypeSchema } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { type PooledAction, PooledActionSchema } from "#lib/rules-engine/ruleset/PooledAction.ts"

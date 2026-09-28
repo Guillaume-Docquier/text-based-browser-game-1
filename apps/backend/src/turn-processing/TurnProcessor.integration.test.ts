@@ -7,7 +7,7 @@ import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigu
 import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDbMock } from "#lib/db/createDb.mock.ts"
-import type { ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import type { ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import { ResourceType } from "#lib/rules-engine/ruleset/effect-definitions/ResourceType.ts"
 import { BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"

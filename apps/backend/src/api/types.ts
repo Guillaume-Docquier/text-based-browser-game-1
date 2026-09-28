@@ -3,7 +3,7 @@
  */
 
 import type { inferRouterOutputs } from "@trpc/server"
-import type { ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import type { ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
 import type { TrpcRouter } from "./createApi.ts"
 
 type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>

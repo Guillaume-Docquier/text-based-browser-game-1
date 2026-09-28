@@ -1,5 +1,6 @@
 import { branded } from "@guillaume-docquier/tools-ts"
-import type { ActionDefinition, ActionDefinitionId } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
+import type { ActionDefinitionId } from "#lib/db/rulesets/ActionDefinitionId.ts"
+import type { ActionDefinition } from "#lib/rules-engine/ruleset/action-definitions/ActionDefinition.ts"
 import { ActionTier } from "#lib/rules-engine/ruleset/action-definitions/ActionTier.ts"
 import { ActionType } from "#lib/rules-engine/ruleset/action-definitions/ActionType.ts"
 import { ResourceLossEffectDefinition } from "#lib/rules-engine/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
