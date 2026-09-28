@@ -1,7 +1,6 @@
 packages:
-  - backend
-  - frontend
-  - shared
+  - apps/*
+  - packages/*
 
 catalog:
   "@guillaume-docquier/tools-ts": ^8.6.1

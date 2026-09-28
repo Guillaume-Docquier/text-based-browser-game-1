@@ -1,6 +1,6 @@
 import { react } from "@guillaume-docquier/oxlint"
 import { defineConfig, type OxlintConfig } from "oxlint"
-import baseConfig from "../oxlint.config.ts"
+import baseConfig from "../../oxlint.config.ts"
 
 export default defineConfig({
   extends: [baseConfig],
