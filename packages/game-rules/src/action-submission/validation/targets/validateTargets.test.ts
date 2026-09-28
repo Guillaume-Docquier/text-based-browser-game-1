@@ -6,6 +6,7 @@ import { validateTargets } from "#game-rules/action-submission/validation/target
 import type { FleetId } from "#game-rules/models/FleetId.ts"
 import { FleetNameSchema } from "#game-rules/models/FleetName.ts"
 import type { PlanetId } from "#game-rules/models/PlanetId.ts"
+import { PlanetNameSchema } from "#game-rules/models/PlanetName.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { createActionDefinitionStub } from "#game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
 import { FleetBuildEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
@@ -141,7 +142,7 @@ describe("validateTargets", () => {
       fleets: indexBy("id", [
         { id: fleetId, ownerPlayerId: playerId, name: typedParse(FleetNameSchema, "Test Fleet"), strength: 1, originPlanetId: planetId },
       ]),
-      planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
+      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: playerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -180,7 +181,7 @@ describe("validateTargets", () => {
           originPlanetId: planetId,
         },
       ]),
-      planets: indexBy("id", [{ id: planetId, ownerPlayerId: otherPlayerId, x: 0, y: 0 }]),
+      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: otherPlayerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -221,7 +222,7 @@ describe("validateTargets", () => {
       selectedTargets: { planet: planetId },
     })
     const turnState = createTurnStateStub({
-      planets: indexBy("id", [{ id: planetId, ownerPlayerId: null, x: 0, y: 0 }]),
+      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: null, x: 0, y: 0 }]),
     })
 
     // Act
