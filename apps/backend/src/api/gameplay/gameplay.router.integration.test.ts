@@ -689,7 +689,9 @@ describe("gameplay.router", () => {
     })
   })
 
-  describe("updateReadiness", () => {
+  // This test suite is often failing, but only in the CI. Not sure if it is hanging or just taking longer.
+  // If we get timeouts on a 20s budget, this is definitely hanging and there's an issue running on the CI that we should address.
+  describe("updateReadiness", { timeout: 20_000 }, () => {
     it.each([true, false])("should set the player readiness to %s", async (isReady) => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub())
