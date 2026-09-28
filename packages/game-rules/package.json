@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./runtimeMarker": "./src/runtimeMarker.ts",
     "./*": "./src/*"
   },
   "scripts": {

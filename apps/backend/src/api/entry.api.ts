@@ -1,7 +1,6 @@
 import type { AddressInfo } from "node:net"
 import { Assert, Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
-import { sharedRuntimeMarker } from "game-rules/runtimeMarker"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AuthService } from "#api/accounts/auth.service.ts"
@@ -31,8 +30,6 @@ main().catch((error) => {
  */
 async function main(): Promise<void> {
   const logger = await configureLogger({ scope: "api" })
-
-  logger.info("Shared TypeScript (backend)", { sharedRuntimeMarker })
 
   logger.info("Parsing environment", { nodeVersion: process.version })
   const env = parseEnv({ logger, schema: envSchema })
