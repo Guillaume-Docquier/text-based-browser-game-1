@@ -20,7 +20,7 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          REGEX='^(project|frontend|backend|ci|adr|infra|docs)(\([a-z0-9][a-z0-9._/-]*\))?: .+'
+          REGEX='^(project|frontend|backend|game-rules|ci|adr|infra|docs)(\([a-z0-9][a-z0-9._/-]*\))?: .+'
 
           if [[ ! "$PR_TITLE" =~ $REGEX ]]; then
             echo "is_valid=false" >> "$GITHUB_OUTPUT"
@@ -37,10 +37,10 @@ jobs:
           message: |
             ### ❌ The PR title is invalid ❌
 
-            Expected format: `<project|frontend|backend|ci|adr|infra|docs>(<scope>)?: <description>`
+            Expected format: `<project|frontend|backend|game-rules|ci|adr|infra|docs>(<scope>)?: <description>`
 
             Examples:
-            - `backend: some work`
+            - `game-rules(action-costs): some work`
             - `project(deps): some work`
 
       - name: Comment on valid title
