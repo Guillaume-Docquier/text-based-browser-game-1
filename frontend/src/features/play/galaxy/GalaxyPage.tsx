@@ -3,8 +3,8 @@ import { ArrowLeft, LocateFixed } from "lucide-react"
 import { type AnimationEvent, type MouseEvent, type ReactElement, useState } from "react"
 import { Button } from "@/components/button.tsx"
 import { GalaxyMap } from "@/features/play/galaxy/GalaxyMap.tsx"
-import { PlanetDetailsPane } from "@/features/play/galaxy/PlanetDetailsPane.tsx"
-import { StarSystemMap } from "@/features/play/galaxy/StarSystemMap.tsx"
+import { PlanetDetailsPane } from "@/features/play/galaxy/star-system/PlanetDetailsPane.tsx"
+import { StarSystemMap } from "@/features/play/galaxy/star-system/StarSystemMap.tsx"
 import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 
 type GalaxyView = { type: "galaxy" } | { type: "star-system"; system: StarSystem; transition: "entering" | "exiting" }
@@ -120,6 +120,7 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
               >
                 <StarSystemMap
                   system={selectedSystem}
+                  fleets={playerView.fleets}
                   players={game.players}
                   resetSignal={starSystemResetSignal}
                   onSelectGalaxy={showGalaxy}

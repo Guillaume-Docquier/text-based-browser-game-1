@@ -1,22 +1,31 @@
-import type { LobbyPlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
+import type { Fleet, LobbyPlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
+import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
-import { PLANET_BIOME_COLORS } from "@/features/play/galaxy/planetBiomeColors.ts"
+import { useState } from "react"
+import { flushSync } from "react-dom"
+import starImage from "@/assets/planets/star-small.png"
+import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.tsx"
+import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
+import { PLAYER_COLOR_HEX, UNCLAIMED_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 const CENTER = 500
 const VIEWPORT_CENTER = { x: CENTER, y: CENTER }
-const STAR_RADIUS = 18
+const STAR_RADIUS = 45
 const INNER_ORBIT_RADIUS = 90
-const OUTER_ORBIT_RADIUS = 420
+const ORBIT_SPACING = 70
+// Generated orbital slots are 5 AU apart; preserve unoccupied slots in the display.
+const ORBIT_SPACING_AU = 5
+// Room outside the outermost body for owner labels and fleets.
+const VIEW_PADDING = 50
 const PLANET_RADII = {
-  SMALL: STAR_RADIUS / 4,
-  MEDIUM: STAR_RADIUS / 2,
-  LARGE: STAR_RADIUS / 1.25,
+  SMALL: 25,
+  MEDIUM: 30,
+  LARGE: 35,
 } as const satisfies Record<PlanetSize, number>
 
 type PlanetViewModel = PlanetModel & {
   radius: number
-  color: `#${string}`
   orbitRadius: number
 }
 
@@ -24,7 +33,8 @@ type PlanetViewModel = PlanetModel & {
  * Renders one Star System with its planets and occupied orbits.
  *
  * @param system - The Star System to render.
- * @param players - The players whose names identify claimed Planets.
+ * @param fleets - The Fleets stationed in the Star System.
+ * @param players - The players whose names and colors identify claimed Planets and Fleets.
  * @param resetSignal - A value whose changes reset pan and zoom.
  * @param onSelectGalaxy - Returns to the galaxy-wide map.
  * @param onSelectPlanet - Selects a Planet for inspection.
@@ -32,23 +42,44 @@ type PlanetViewModel = PlanetModel & {
  */
 export function StarSystemMap({
   system,
+  fleets,
   players,
   resetSignal,
   onSelectGalaxy,
   onSelectPlanet,
 }: {
   system: StarSystem
+  fleets: readonly Fleet[]
   players: readonly LobbyPlayer[]
   resetSignal: number
   onSelectGalaxy: () => void
   onSelectPlanet: (planet: PlanetModel) => void
 }): ReactElement {
   const panZoom = useMapPanZoom({ resetSignal, viewportCenter: VIEWPORT_CENTER })
+  const [hoveredBody, setHoveredBody] = useState<string>()
   const planets = toPlanetViewModels(system)
+  const outerOrbitRadius = planets.at(-1)?.orbitRadius ?? 0
+  const viewRadius = outerOrbitRadius + VIEW_PADDING
 
   function selectGalaxy(): void {
     panZoom.centerOn(VIEWPORT_CENTER, { onCentered: onSelectGalaxy })
   }
+
+  const bodies = [
+    <Star key="star" name={system.star.name} onSelect={selectGalaxy} />,
+    ...planets.map((planet) => (
+      <Planet
+        key={`planet-${planet.id}`}
+        planet={planet}
+        fleets={fleets.filter((fleet) => fleet.originPlanetId === planet.id)}
+        players={players}
+        ownerName={getPlanetOwnerName(planet, players)}
+        onSelect={onSelectPlanet}
+      />
+    )),
+  ]
+  // SVG paints later siblings on top. Stable keys move the whole body without remounting it.
+  const bodiesInPaintOrder = bodies.toSorted((first, second) => Number(first.key === hoveredBody) - Number(second.key === hoveredBody))
 
   return (
     <svg
@@ -56,8 +87,8 @@ export function StarSystemMap({
       aria-label={`${system.star.name} Star System map`}
       aria-busy={panZoom.isCentering}
       role="group"
-      viewBox="0 0 1000 1000"
-      className={`size-full touch-none select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"} ${
+      viewBox={`${CENTER - viewRadius} ${CENTER - viewRadius} ${viewRadius * 2} ${viewRadius * 2}`}
+      className={`size-full touch-none bg-[#05080f] select-none ${panZoom.isPanning ? "cursor-grabbing" : "cursor-grab"} ${
         panZoom.isCentering ? "pointer-events-none" : ""
       }`}
       onPointerCancel={panZoom.onPointerCancel}
@@ -65,26 +96,30 @@ export function StarSystemMap({
       onPointerMove={panZoom.onPointerMove}
       onPointerUp={panZoom.onPointerUp}
     >
-      <defs>
-        <radialGradient id="system-star-glow">
-          <stop offset="0%" stopColor="#fde047" stopOpacity="0.55" />
-          <stop offset="45%" stopColor="#facc15" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="#facc15" stopOpacity="0" />
-        </radialGradient>
-      </defs>
       <g
         transform={panZoom.transform}
         className={panZoom.isCentering ? "transition-transform ease-in-out" : undefined}
         style={panZoom.isCentering ? { transitionDuration: `${panZoom.centeringDurationMs}ms` } : undefined}
         onTransitionEnd={panZoom.onTransformTransitionEnd}
       >
-        <rect width="1000" height="1000" fill="#05080f" />
         {planets.map((planet) => (
           <OccupiedOrbit key={`orbit-${planet.id}`} radius={planet.orbitRadius} />
         ))}
-        <Star name={system.star.name} onSelect={selectGalaxy} />
-        {planets.map((planet) => (
-          <Planet key={planet.id} planet={planet} ownerName={getPlanetOwnerName(planet, players)} onSelect={onSelectPlanet} />
+        {bodiesInPaintOrder.map((body) => (
+          <g
+            key={body.key}
+            onPointerEnter={() => {
+              // Finish moving the group before pointerdown; moving it during a click cancels that click.
+              flushSync(() => {
+                setHoveredBody(String(body.key))
+              })
+            }}
+            onPointerLeave={() => {
+              setHoveredBody((current) => (current === body.key ? undefined : current))
+            }}
+          >
+            {body}
+          </g>
         ))}
       </g>
     </svg>
@@ -118,29 +153,14 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
         activateWithKeyboard(event, onSelect)
       }}
     >
-      <circle
-        cx={CENTER}
-        cy={CENTER}
-        r={STAR_RADIUS * 3}
-        fill="url(#system-star-glow)"
-        className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-125 group-focus/star:scale-125"
-      />
-      <circle
-        cx={CENTER}
-        cy={CENTER}
-        r={STAR_RADIUS * 3}
-        fill="url(#system-star-glow)"
-        opacity="0"
-        className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-150 group-hover/star:opacity-80 group-focus/star:scale-150 group-focus/star:opacity-80"
-      />
-      <circle
-        cx={CENTER}
-        cy={CENTER}
-        r={STAR_RADIUS}
-        fill="#fde047"
-        stroke="#fef9c3"
-        strokeWidth="2"
-        className="pointer-events-none origin-center transition-[fill,transform] duration-200 ease-out [transform-box:fill-box] group-hover/star:scale-125 group-hover/star:fill-yellow-100 group-focus/star:scale-125 group-focus/star:fill-yellow-100"
+      <image
+        href={starImage}
+        x={CENTER - STAR_RADIUS}
+        y={CENTER - STAR_RADIUS}
+        width={STAR_RADIUS * 2}
+        height={STAR_RADIUS * 2}
+        aria-hidden="true"
+        className="pointer-events-none"
       />
       <StarLabel x={CENTER} y={CENTER} text={name} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible star. */}
@@ -159,13 +179,20 @@ function Star({ name, onSelect }: { name: string; onSelect: () => void }): React
 
 function Planet({
   planet,
+  fleets,
+  players,
   ownerName,
   onSelect,
 }: {
   planet: PlanetViewModel
+  fleets: readonly Fleet[]
+  players: readonly LobbyPlayer[]
   ownerName: string | undefined
   onSelect: (planet: PlanetModel) => void
 }): ReactElement {
+  const owner = players.find(({ id }) => id === planet.ownerPlayerId)
+  const ownerColor = owner === undefined ? "#e5edf6" : PLAYER_COLOR_HEX[owner.color]
+
   function selectPlanet(event: MouseEvent<SVGGElement>): void {
     event.stopPropagation()
     onSelect(planet)
@@ -185,24 +212,19 @@ function Planet({
       }}
     >
       <title>{`${planet.name}, ${planet.size.toLowerCase()} ${planet.biome.toLowerCase()} planet`}</title>
-      <circle
-        cx={planet.x}
-        cy={planet.y}
-        r={planet.radius + 8}
-        fill={planet.color}
-        opacity="0"
-        className="pointer-events-none origin-center transition-[opacity,transform] duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-hover/planet:opacity-25 group-focus/planet:scale-125 group-focus/planet:opacity-25"
-      />
-      <circle
-        cx={planet.x}
-        cy={planet.y}
-        r={planet.radius}
-        fill={planet.color}
+      <image
+        href={PLANET_BIOME_IMAGES[planet.biome]}
+        x={planet.x - planet.radius}
+        y={planet.y - planet.radius}
+        width={planet.radius * 2}
+        height={planet.radius * 2}
+        aria-hidden="true"
         data-biome={planet.biome}
         data-size={planet.size}
-        className="pointer-events-none origin-center transition-transform duration-200 ease-out [transform-box:fill-box] group-hover/planet:scale-125 group-focus/planet:scale-125"
+        className="pointer-events-none"
       />
-      <PlanetLabel planet={planet} ownerName={ownerName} />
+      <PlanetLabel planet={planet} ownerName={ownerName} ownerColor={ownerColor} />
+      <FleetMarkers x={planet.x} y={planet.y + planet.radius + 30} fleets={fleets} players={players} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible planet. */}
       <circle
         cx={planet.x}
@@ -217,27 +239,30 @@ function Planet({
   )
 }
 
-function PlanetLabel({ planet, ownerName }: { planet: PlanetViewModel; ownerName: string | undefined }): ReactElement {
+function PlanetLabel({
+  planet,
+  ownerName,
+  ownerColor,
+}: {
+  planet: PlanetViewModel
+  ownerName: string | undefined
+  ownerColor: string
+}): ReactElement {
   return (
     <text
       x={planet.x}
-      y={planet.y + planet.radius + 24}
+      y={planet.y + planet.radius + 12}
       textAnchor="middle"
       dominantBaseline="hanging"
-      fill="#e5edf6"
-      fontSize="14"
-      fontWeight="500"
+      fill={ownerName === undefined ? UNCLAIMED_COLOR_HEX : ownerColor}
+      fontSize="16"
+      fontWeight={ownerName === undefined ? "400" : "600"}
       paintOrder="stroke"
       stroke="#05080f"
       strokeWidth="4"
       strokeLinejoin="round"
     >
-      <tspan x={planet.x}>{planet.name}</tspan>
-      {ownerName === undefined ? null : (
-        <tspan x={planet.x} dy="20" fill="#94a3b8" fontSize="12" fontWeight="400">
-          {ownerName}
-        </tspan>
-      )}
+      {ownerName ?? "Unclaimed"}
     </text>
   )
 }
@@ -284,24 +309,22 @@ function toPlanetViewModels(system: StarSystem): PlanetViewModel[] {
   const planetsByOrbit = system.planets
     .map((planet) => ({
       planet,
-      offsetX: planet.x - system.star.x,
-      offsetY: planet.y - system.star.y,
+      angle: Math.atan2(planet.y - system.star.y, planet.x - system.star.x),
       distance: Math.hypot(planet.x - system.star.x, planet.y - system.star.y),
     }))
     .toSorted((firstPlanet, secondPlanet) => firstPlanet.distance - secondPlanet.distance)
-  const orbitSpacing = planetsByOrbit.length <= 1 ? 0 : (OUTER_ORBIT_RADIUS - INNER_ORBIT_RADIUS) / (planetsByOrbit.length - 1)
 
-  return planetsByOrbit.map(({ planet, offsetX, offsetY, distance }, index) => {
-    const orbitRadius = INNER_ORBIT_RADIUS + orbitSpacing * index
-    const directionScale = distance === 0 ? 0 : orbitRadius / distance
+  return planetsByOrbit.map(({ planet, angle, distance }) => {
+    const distanceAu = Distance.convert(Distance.create(distance, UnitOfDistance.LIGHT_YEARS), UnitOfDistance.ASTRONOMICAL_UNITS).value
+    const orbitIndex = Math.round(distanceAu / ORBIT_SPACING_AU) - 1
+    const orbitRadius = INNER_ORBIT_RADIUS + ORBIT_SPACING * orbitIndex
 
     return {
       ...planet,
       radius: PLANET_RADII[planet.size],
-      color: PLANET_BIOME_COLORS[planet.biome],
       orbitRadius,
-      x: CENTER + offsetX * directionScale,
-      y: CENTER + offsetY * directionScale,
+      x: CENTER + Math.cos(angle) * orbitRadius,
+      y: CENTER + Math.sin(angle) * orbitRadius,
     }
   })
 }

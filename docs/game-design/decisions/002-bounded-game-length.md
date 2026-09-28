@@ -7,6 +7,8 @@ Planned
 - [ ] Bounded game length
 - [ ] Hard win conditions
 
+The current `Win The Game` Action is a Rules Engine placeholder. It does not implement a fixed game duration or the predefined hard-win achievement described by this decision.
+
 ## Context
 
 Each game should be guaranteed to end and should not be too long. Very long games, or infinite universes, tend to die out with the player base.

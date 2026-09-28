@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Biome, Size, initial Planet Attributes, and one Home Planet per player are generated deterministically when a game starts, persisted, and visible on the Star System map. Colonization, vision memory, Terraforming, and Planet Development remain planned.
+Biome, Size, initial Planet Attributes, and one Home Planet per player are generated deterministically when a game starts, persisted, and visible on the Star System map. Build Fleet Actions can target owned Planets, and their stationed Fleets appear there. Colonization, vision memory, Terraforming, and automatic Planet Development remain planned.
 
 ## Purpose
 
@@ -97,6 +97,8 @@ Colonization resolves after Fleet Combat. A Colonization Attempt is valid only i
 A newly colonized Planet starts with `min(Max Population / 2, max(2, floor(colonizing Fleet Strength / 5)))` Population. In other words, every colonized Planet starts with between 2 and half its Max Population based on the colonizing Fleet Strength divided by 5, rounded down.
 
 ## Planet Development
+
+The following automatic development rules are planned. Current Fleet construction is a paid Build Fleet Action targeting an owned Planet, described in [System 003-actions](./003-actions.md) and [System 010-fleets](./010-fleets.md).
 
 Ongoing planetary simulation is a core strategic system. Planets develop automatically during Turn Resolution, so population, production, construction, and fleets continue to progress without a separate player Action. This also makes missed Turns less damaging, but missed-Turn resilience is a benefit of the simulation rather than its purpose. Population is a pool of whole-number workers. Each worker is assigned to one activity: Food, Metal production, Fuel production, Energy production, Infrastructure construction, or Fleet construction. Worker allocation and construction choices follow empire-wide ideological priorities; Agendas and Directives may later provide global or local intervention.
 

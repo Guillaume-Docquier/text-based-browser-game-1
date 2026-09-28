@@ -1,3 +1,4 @@
+import { Assert } from "@guillaume-docquier/tools-ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
@@ -29,12 +30,31 @@ test("the galaxy view distinguishes systems with claimed planets and system view
     await expect(bobGalaxyPage.sharedStars).toHaveCount(0)
   })
 
-  await test.step("Show the owner name only beneath claimed Planets", async () => {
+  await test.step("Label Planets with their owner or Unclaimed", async () => {
     await aliceGalaxyPage.openStarSystem(aliceGalaxyPage.ownStars.first())
     await expect(aliceGalaxyPage.ownedPlanets).toHaveCount(1)
-    await expect(aliceGalaxyPage.planetOwnerName(aliceGalaxyPage.ownedPlanets.first())).toHaveText(/.+/)
+    await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.ownedPlanets.first())).toHaveText(alice.alias)
     await expect(aliceGalaxyPage.unclaimedPlanets).not.toHaveCount(0)
-    await expect(aliceGalaxyPage.planetOwnerName(aliceGalaxyPage.unclaimedPlanets.first())).toHaveCount(0)
+    await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.unclaimedPlanets.first())).toHaveText("Unclaimed")
+  })
+
+  await test.step("Bring hovered bodies above other map content", async () => {
+    await aliceGalaxyPage.leaveBodies()
+    const planet = aliceGalaxyPage.ownedPlanets.first()
+    const planetLabel = await planet.getAttribute("aria-label")
+    const starLabel = await aliceGalaxyPage.starSystemStar.getAttribute("aria-label")
+    const originalForeground = await aliceGalaxyPage.foregroundBody.getAttribute("aria-label")
+
+    Assert.isDefined(planetLabel)
+    Assert.isDefined(starLabel)
+    Assert.isDefined(originalForeground)
+
+    await aliceGalaxyPage.hoverBody(planet)
+    await expect(aliceGalaxyPage.foregroundBody).toHaveAttribute("aria-label", planetLabel)
+    await aliceGalaxyPage.hoverBody(aliceGalaxyPage.starSystemStar)
+    await expect(aliceGalaxyPage.foregroundBody).toHaveAttribute("aria-label", starLabel)
+    await aliceGalaxyPage.leaveBodies()
+    await expect(aliceGalaxyPage.foregroundBody).toHaveAttribute("aria-label", originalForeground)
   })
 })
 
@@ -74,7 +94,7 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     await galaxyPage.openStarSystem(selectedStar)
     await expect(galaxyPage.starSystemMap).toBeVisible()
 
-    const firstPlanet = galaxyPage.planet(0)
+    const firstPlanet = galaxyPage.planet("planet 72231")
     const firstPlanetName = await galaxyPage.getPlanetName(firstPlanet)
     await galaxyPage.openPlanetProfile(firstPlanet)
     expect(firstPlanetName).toBe("planet 72231")
@@ -85,7 +105,7 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     await expect(galaxyPage.planetDetailsPane).toContainText("Max population")
     await expect(galaxyPage.planetDetailsPane).toContainText("Coordinates")
 
-    const secondPlanet = galaxyPage.planet(1)
+    const secondPlanet = galaxyPage.planet("planet 73768")
     const secondPlanetName = await galaxyPage.getPlanetName(secondPlanet)
     await galaxyPage.openPlanetProfile(secondPlanet)
     expect(secondPlanetName).toBe("planet 73768")

@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Turn timing, lifecycle, Action locking, and public reversible Readiness are implemented. Some resolution mechanics described below remain planned.
+Turn timing, lifecycle, Action locking, public reversible Readiness, and the Pay Costs, Fleet Build, Income, and Victory effect resolvers are implemented. The current Victory effect is a placeholder, not the planned bounded game length or Legacy win condition. Fleet Movement, Fleet Combat, Planet Development, and Colonization resolution remain planned.
 
 ## Purpose
 
@@ -24,6 +24,7 @@ Relates to:
 - [System 012-movement](012-movement.md)
 - [System 011-combat](./011-combat.md)
 - [System 008-planets](./008-planets.md)
+- [System 010-fleets](./010-fleets.md)
 - [System 015-rules-engine](./015-rules-engine.md)
 
 ## Core Concepts

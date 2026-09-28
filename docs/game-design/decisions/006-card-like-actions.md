@@ -8,6 +8,7 @@ Partially Implemented
 - [x] Data-driven Action presentation
 - [x] Per-Turn Available Action pool
 - [x] Multiple Action selection
+- [x] Targeted Build Fleet Actions that spend Influence and Metal
 - [ ] Ideology-driven Action pools
 
 ## Context
