@@ -1,3 +1,5 @@
+import { branded } from "@guillaume-docquier/tools-ts"
+import type { ReadonlyDeep } from "type-fest"
 import type { SubmittedAction } from "#game-rules/action-submission/Action.ts"
 import type { FleetId } from "#game-rules/models/FleetId.ts"
 import type { FleetName } from "#game-rules/models/FleetName.ts"
@@ -5,6 +7,8 @@ import type { GameId } from "#game-rules/models/GameId.ts"
 import type { PlanetId } from "#game-rules/models/PlanetId.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import type { Resources } from "#game-rules/ruleset/effect-definitions/Resources.ts"
+import { TargetType } from "#game-rules/ruleset/effect-definitions/TargetType.ts"
+import type { TargetableEntity } from "#game-rules/turn-resolution/TargetableEntity.ts"
 
 /**
  * The current state of the turn.
@@ -40,6 +44,31 @@ export type TurnState = {
    * If set, the game ends.
    */
   winnerPlayerId: PlayerId | undefined
+}
+
+export const TurnState = {
+  /**
+   * Finds a target in the turn state and returns its full entity with a target type tag.
+   */
+  getTarget(
+    turnState: ReadonlyDeep<TurnState>,
+    { targetType, targetId }: { targetType: TargetType; targetId: string },
+  ): ReadonlyDeep<TargetableEntity> | undefined {
+    switch (targetType) {
+      case TargetType.PLAYER: {
+        const player = turnState.players[branded<PlayerId>(targetId)]
+        return player === undefined ? undefined : { type: TargetType.PLAYER, ...player }
+      }
+      case TargetType.FLEET: {
+        const fleet = turnState.fleets[branded<FleetId>(targetId)]
+        return fleet === undefined ? undefined : { type: TargetType.FLEET, ...fleet }
+      }
+      case TargetType.PLANET: {
+        const planet = turnState.planets[branded<PlanetId>(targetId)]
+        return planet === undefined ? undefined : { type: TargetType.PLANET, ...planet }
+      }
+    }
+  },
 }
 
 export type Player = {

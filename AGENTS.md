@@ -18,21 +18,24 @@ This is a TypeScript monorepo using pnpm workspaces.
 
 ### Key Directories
 
-| Directory                    | Description                                                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| frontend/                    | The web application.                                                                                               |
-| backend/src/api/             | The api for the frontend.                                                                                          |
-| backend/src/turn-processing/ | The turn processing engine.                                                                                        |
-| infra/                       | The IaC for 3rd parties that we use.                                                                               |
-| docs/                        | Detailed project documentation. Repository-level guidance also lives in README.md, CONTRIBUTING.md, and AGENTS.md. |
+| Directory                         | Description                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| apps/frontend/                    | The web application.                                                                                               |
+| apps/backend/src/api/             | The API for the frontend.                                                                                          |
+| apps/backend/src/turn-processing/ | The turn processing engine.                                                                                        |
+| packages/                         | Workspace packages reusable by the apps.                                                                           |
+| infra/                            | The IaC for 3rd parties that we use.                                                                               |
+| docs/                             | Detailed project documentation. Repository-level guidance also lives in README.md, CONTRIBUTING.md, and AGENTS.md. |
 
 ### Dependencies
 
 ```
-frontend/ ───api-types───▶ backend/src/api/ ───actions-validation───▶ backend/src/turn-processing/
+apps/frontend/ ──▶ packages/ ◀── apps/backend/
+apps/frontend/ ──type-only API contracts──▶ apps/backend/src/api/types.ts
+apps/backend/src/api/ ───▶ apps/backend/src/turn-processing/
 ```
 
-There are no other allowed dependencies.
+Across workspace projects, runtime imports from the apps may only target shared packages. The frontend may import backend API contract types through `@api-types` with `import type`; it must not import backend runtime code or other backend modules. The backend must not import from the frontend, and shared packages must not import from either app, including type-only imports.
 
 ## Scoped Instructions
 
@@ -80,7 +83,7 @@ Minimum verification for meaningful changes:
 
 - `pnpm checks` (when touching all projects, except in the native Windows Codex sandbox)
 - Use the scoped command in the nearest `AGENTS.md` when touching only one project.
-- In the native Windows Codex sandbox, `pnpm checks` also reaches Storybook through a nested command. Run `pnpm lint:fix`, `pnpm format:fix`, `pnpm typecheck`, `pnpm --filter shared checks`, and `pnpm --filter backend checks` separately, then follow the split frontend checks in `frontend/AGENTS.md`.
+- In the native Windows Codex sandbox, `pnpm checks` also reaches Storybook through a nested command. Run `pnpm lint:fix`, `pnpm format:fix`, `pnpm typecheck`, `pnpm --filter game-rules checks`, and `pnpm --filter backend checks` separately, then follow the split frontend checks in `apps/frontend/AGENTS.md`.
 - Do not attempt to start a Vite/Storybook process for the user, they will do it themselves if they need to.
 - Call out relevant extra manual verification that the user should perform for the area changed
 

@@ -1,6 +1,6 @@
 # Overview
 
-The project is structured as a pnpm workspace monorepo with separate deployable frontend and backend packages.
+The project is structured as a pnpm workspace monorepo with separate deployable frontend and backend apps and reusable packages shared by both apps. The frontend imports backend API contract types only; runtime code shared between apps belongs in packages. See [ADR-007](./decisions/007-code-sharing.md).
 
 The game will have:
 
