@@ -1,4 +1,5 @@
-import { Assert, type Logger, type Result, Time, UnitOfTime, typedParse } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, type Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import type { Table } from "drizzle-orm/table"

@@ -1,4 +1,5 @@
-import { branded, type Branded, type DeepUnbranded, Result, safeTypedParse, typedParse } from "@guillaume-docquier/tools-ts"
+import { branded, type Branded, type DeepUnbranded, Result } from "@guillaume-docquier/tools-ts"
+import { safeTypedParse, typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { z } from "zod"
 import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#game-rules/models/ActionDefinitionId.ts"
 import type { ActionId } from "#game-rules/models/ActionId.ts"

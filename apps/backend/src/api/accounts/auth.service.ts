@@ -1,4 +1,5 @@
-import { type Logger, Result, typedParse } from "@guillaume-docquier/tools-ts"
+import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { RequestHandler } from "express"
 import { v4 } from "uuid"
 import type { AccountDto, AccountsController } from "#api/accounts/accounts.controller.ts"

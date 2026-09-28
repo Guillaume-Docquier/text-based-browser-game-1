@@ -1,4 +1,5 @@
-import { branded, type DeepUnbranded, type UnbrandedProperties, typedParse } from "@guillaume-docquier/tools-ts"
+import { branded, type DeepUnbranded, type UnbrandedProperties } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { v4 } from "uuid"
 import type { AvailableAction, SubmittedAction } from "#game-rules/action-submission/Action.ts"
 import { SelectedTargetsSchema } from "#game-rules/action-submission/SelectedTargets.ts"
