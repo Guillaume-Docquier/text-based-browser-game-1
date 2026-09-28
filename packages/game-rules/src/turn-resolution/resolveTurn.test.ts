@@ -11,7 +11,7 @@ import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceTyp
 import { BuildFleetStandard } from "#game-rules/test-ruleset/action-definitions/build-fleet.ts"
 import { GainInfluence } from "#game-rules/test-ruleset/action-definitions/gain-influence.ts"
 import { WinTheGame } from "#game-rules/test-ruleset/action-definitions/win-the-game.ts"
-import { CompiledTestRuleset as TestRuleset } from "#game-rules/test-ruleset/TestRuleset.ts"
+import { CompiledTestRuleset } from "#game-rules/test-ruleset/TestRuleset.ts"
 import { createSeededRng } from "#game-rules/testing/createSeededRng.ts"
 import { EffectOutcome } from "#game-rules/turn-resolution/effects/EffectOutcome.ts"
 import { resolveTurn } from "#game-rules/turn-resolution/resolveTurn.ts"
@@ -39,7 +39,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(turnState, CompiledTestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -50,7 +50,7 @@ describe("resolveTurn", () => {
               submittedActionId: submittedAction.id,
               actionDefinitionId: WinTheGame.id,
               // oxlint-disable-next-line typescript/no-non-null-assertion -- It's there
-              actionDefinitionName: TestRuleset.actionDefinitions[submittedAction.actionDefinitionId]!.name,
+              actionDefinitionName: CompiledTestRuleset.actionDefinitions[submittedAction.actionDefinitionId]!.name,
               issue: "Missing 7 INFLUENCE",
             },
             {
@@ -95,7 +95,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(turnState, CompiledTestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -155,7 +155,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(turnState, CompiledTestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -218,7 +218,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(turnState, CompiledTestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -269,7 +269,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(turnState, CompiledTestRuleset, createSeededRng())
 
     // Assert
     const expectedFleetId = branded<FleetId>("8015283d-3c8d-5774-8ba8-0148df312e65")
@@ -326,7 +326,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(turnState, CompiledTestRuleset, createSeededRng())
 
     // Assert
     expect(result).toStrictEqual<typeof result>(
@@ -380,7 +380,7 @@ describe("resolveTurn", () => {
     })
 
     // Act
-    const result = resolveTurn(turnState, TestRuleset, createSeededRng())
+    const result = resolveTurn(turnState, CompiledTestRuleset, createSeededRng())
 
     // Assert
     const expectedFleetId = branded<FleetId>("8015283d-3c8d-5774-8ba8-0148df312e65")

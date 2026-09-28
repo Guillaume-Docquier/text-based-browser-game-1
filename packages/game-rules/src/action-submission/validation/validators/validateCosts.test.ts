@@ -4,7 +4,7 @@ import { createSubmittedActionStub } from "#game-rules/action-submission/Action.
 import { validateCosts } from "#game-rules/action-submission/validation/validators/validateCosts.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { createActionDefinitionStub } from "#game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
-import { createCompiledRulesetStub as createRulesetStub } from "#game-rules/ruleset/CompiledRuleset.stub.ts"
+import { createCompiledRulesetStub } from "#game-rules/ruleset/CompiledRuleset.stub.ts"
 import { ResourceLossEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
 import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
 import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
@@ -14,7 +14,7 @@ const actionDefinition = createActionDefinitionStub({
   costs: [ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE })],
 })
 
-const ruleset = createRulesetStub({
+const ruleset = createCompiledRulesetStub({
   actionDefinitions: {
     [actionDefinition.id]: actionDefinition,
   },
@@ -93,7 +93,7 @@ describe("validateCosts", () => {
         ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
       ],
     })
-    const rulesetWithMultipleCosts = createRulesetStub({
+    const rulesetWithMultipleCosts = createCompiledRulesetStub({
       actionDefinitions: {
         [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
       },
@@ -134,7 +134,7 @@ describe("validateCosts", () => {
         ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
       ],
     })
-    const rulesetWithMultipleCosts = createRulesetStub({
+    const rulesetWithMultipleCosts = createCompiledRulesetStub({
       actionDefinitions: {
         [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
       },
@@ -176,7 +176,7 @@ describe("validateCosts", () => {
         ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
       ],
     })
-    const rulesetWithMultipleCosts = createRulesetStub({
+    const rulesetWithMultipleCosts = createCompiledRulesetStub({
       actionDefinitions: {
         [actionDefinitionWithMultipleCosts.id]: actionDefinitionWithMultipleCosts,
       },

@@ -1,7 +1,7 @@
 import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { PlayerId } from "game-rules/models/PlayerId.ts"
 import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { CompiledTestRuleset as TestRuleset } from "game-rules/test-ruleset/TestRuleset.ts"
+import { CompiledTestRuleset } from "game-rules/test-ruleset/TestRuleset.ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
@@ -265,7 +265,7 @@ describe("gameplay.router", () => {
           [ResourceType.METAL]: { uncommitted: 2, total: 2 },
           [ResourceType.FUEL]: { uncommitted: 1, total: 1 },
         }),
-        ruleset: TestRuleset,
+        ruleset: CompiledTestRuleset,
         actions: expect.arrayContaining(expectedActions),
       })
       expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)

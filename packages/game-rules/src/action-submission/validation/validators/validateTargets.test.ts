@@ -7,7 +7,7 @@ import { FleetNameSchema } from "#game-rules/models/FleetName.ts"
 import type { PlanetId } from "#game-rules/models/PlanetId.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { createActionDefinitionStub } from "#game-rules/ruleset/action-definitions/ActionDefinition.stub.ts"
-import { createCompiledRulesetStub as createRulesetStub } from "#game-rules/ruleset/CompiledRuleset.stub.ts"
+import { createCompiledRulesetStub } from "#game-rules/ruleset/CompiledRuleset.stub.ts"
 import { FleetBuildEffectDefinition } from "#game-rules/ruleset/effect-definitions/implementations/FleetBuildEffectDefinition.ts"
 import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
 import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
@@ -24,7 +24,7 @@ describe("validateTargets", () => {
         targetPlayer: { targetType: TargetType.PLAYER, constraints: [] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const ruleset = createCompiledRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
@@ -51,7 +51,7 @@ describe("validateTargets", () => {
     // Arrange
     const playerId = branded<PlayerId>("player-id")
     const actionDefinition = createActionDefinitionStub()
-    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const ruleset = createCompiledRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
@@ -89,7 +89,7 @@ describe("validateTargets", () => {
       },
       effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 1 })],
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const ruleset = createCompiledRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
@@ -130,7 +130,7 @@ describe("validateTargets", () => {
         planet: { targetType: TargetType.PLANET, constraints: [constraint] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const ruleset = createCompiledRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
@@ -163,7 +163,7 @@ describe("validateTargets", () => {
         planet: { targetType: TargetType.PLANET, constraints: [constraint] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const ruleset = createCompiledRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
@@ -213,7 +213,7 @@ describe("validateTargets", () => {
         planet: { targetType: TargetType.PLANET, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const ruleset = createCompiledRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
@@ -254,7 +254,7 @@ describe("validateTargets", () => {
         target: { targetType, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
       },
     })
-    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const ruleset = createCompiledRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
