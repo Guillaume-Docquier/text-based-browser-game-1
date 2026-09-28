@@ -1,7 +1,7 @@
 import type { LobbyPlayers, PlayerView, TargetDefinition, TargetId } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
+import type { TargetForValidation } from "game-rules/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts"
 import { validateTarget } from "game-rules/action-submission/validation/targets/validateTarget.ts"
-import type { TargetForValidation } from "game-rules/action-submission/validation/validators/target-constraints/TargetConstraintEvaluator.ts"
 import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
 import type { ReactElement } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
