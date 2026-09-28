@@ -10,6 +10,7 @@ import { FleetIdSchema } from "game-rules/models/FleetId.ts"
 import { FleetNameSchema } from "game-rules/models/FleetName.ts"
 import { type GameId, GameIdSchema } from "game-rules/models/GameId.ts"
 import { PlanetIdSchema } from "game-rules/models/PlanetId.ts"
+import { PlanetNameSchema } from "game-rules/models/PlanetName.ts"
 import { type PlayerId, PlayerIdSchema } from "game-rules/models/PlayerId.ts"
 import { StarIdSchema } from "game-rules/models/StarId.ts"
 import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
@@ -271,7 +272,7 @@ export const StarDtoSchema = z.object({
 export const PlanetDtoSchema = z.object({
   id: PlanetIdSchema,
   ownerPlayerId: PlayerIdSchema.nullable(),
-  name: z.string(),
+  name: PlanetNameSchema,
   coordinates: PlanetCoordinatesSchema,
   x: z.number(),
   y: z.number(),

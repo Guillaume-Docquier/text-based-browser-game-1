@@ -27,6 +27,7 @@ import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
+import { planetNameColumn } from "#lib/db/planets/PlanetName.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
@@ -285,7 +286,7 @@ export const planetsTable = pgTable(
     starId: starIdColumn("star_id").notNull(),
     id: planetIdColumn("id").notNull(),
     ownerPlayerId: playerIdColumn("owner_player_id"),
-    name: text("name").notNull(),
+    name: planetNameColumn("name").notNull(),
     coordinates: text("coordinates").notNull(),
     x: doublePrecision("x").notNull(),
     y: doublePrecision("y").notNull(),

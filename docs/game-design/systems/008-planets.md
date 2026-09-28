@@ -44,6 +44,8 @@ Relates to:
 
 ## Rules
 
+Planet names contain 1 to 36 characters after trimming whitespace. Names cannot contain null characters.
+
 ## Home Planets
 
 When a game starts, every player receives one Home Planet. Players are shuffled deterministically, then placed in a ring around the galaxy center. Noise is added to make the positions look more random. Home Planets receive no special attributes.

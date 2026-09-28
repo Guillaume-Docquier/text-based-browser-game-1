@@ -15,6 +15,13 @@
       "when": 1790565720608,
       "tag": "0001_limit-action-definition-id-length",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790632471907,
+      "tag": "0002_limit-planet-name-length",
+      "breakpoints": true
     }
   ]
 }
