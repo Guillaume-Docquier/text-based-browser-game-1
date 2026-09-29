@@ -109,13 +109,12 @@ export function ActionCard({
         <p className={cn("leading-relaxed", canAfford ? "text-card-foreground" : "text-zinc-500")}>
           {effectDefinitionsToRulesText(actionDefinition.effects)}
         </p>
-        {targetSlots.map(({ tag, targetDefinition }) => (
+        {targetSlots.map(({ tag, targetDefinition, options }) => (
           <TargetPicker
             key={tag}
             targetTag={tag}
             targetDefinition={targetDefinition}
-            playerView={playerView}
-            players={players}
+            options={options}
             value={selectedTargets[tag]}
             disabled={disabled}
             onChange={(targetId) => {

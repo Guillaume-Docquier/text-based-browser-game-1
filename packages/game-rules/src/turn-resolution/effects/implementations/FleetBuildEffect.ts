@@ -30,7 +30,10 @@ export class FleetBuildEffect extends Effect {
     // When efficiency becomes a problem, we can reevaluate this.
     // The biggest upside right now is that context.turnState.fleets is the authoritative, always consistent, source of truth for fleets and requires 0 upkeep.
     const existingFleet = Object.values(context.turnState.fleets).find(
-      (candidate) => candidate.ownerPlayerId === this.submittedAction.playerId && candidate.originPlanetId === this.targetPlanetId,
+      (candidate) =>
+        candidate.ownerPlayerId === this.submittedAction.playerId &&
+        candidate.originPlanetId === this.targetPlanetId &&
+        candidate.destinationPlanetId === undefined,
     )
 
     if (existingFleet === undefined) {

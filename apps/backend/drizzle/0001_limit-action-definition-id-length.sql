@@ -1,1 +1,0 @@
-ALTER TABLE "actions" ALTER COLUMN "action_definition_id" SET DATA TYPE varchar(36);

@@ -351,7 +351,6 @@ export const fleetsTable = pgTable(
       name: "fleets_gameId_destinationPlanetId_planets_fk",
     }).onDelete("cascade"),
     check("fleets_strength_positive_check", sql`${table.strength} > 0`),
-    unique("fleets_game_id_owner_player_id_origin_planet_id_unique").on(table.gameId, table.ownerPlayerId, table.originPlanetId),
     index("fleets_game_id_origin_planet_id_idx").on(table.gameId, table.originPlanetId),
   ],
 )

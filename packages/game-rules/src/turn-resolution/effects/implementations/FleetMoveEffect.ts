@@ -52,7 +52,11 @@ export class FleetMoveEffect extends Effect {
     // When efficiency becomes a problem, we can reevaluate this.
     // The biggest upside right now is that context.turnState.fleets is the authoritative, always consistent, source of truth for fleets and requires 0 upkeep.
     const fleetAtDestination = Object.values(context.turnState.fleets).find(
-      (candidate) => candidate.ownerPlayerId === this.submittedAction.playerId && candidate.originPlanetId === this.targetPlanetId,
+      (candidate) =>
+        candidate.id !== fleet.id &&
+        candidate.ownerPlayerId === this.submittedAction.playerId &&
+        candidate.originPlanetId === this.targetPlanetId &&
+        candidate.destinationPlanetId === undefined,
     )
 
     if (fleetAtDestination === undefined) {
@@ -74,7 +78,7 @@ export class FleetMoveEffect extends Effect {
     fleet.destinationPlanetId ??= destinationPlanet.id
     fleet.distanceToEnd ??= typedParse(
       NonNegativeNumberSchema,
-      Math.hypot(destinationPlanet.x - originPlanet.x, destinationPlanet.y, originPlanet.y),
+      Math.hypot(destinationPlanet.x - originPlanet.x, destinationPlanet.y - originPlanet.y),
     )
 
     const distanceMoved = Math.min(this.effectDefinition.parameters.speed, fleet.distanceToEnd)
@@ -93,6 +97,10 @@ export class FleetMoveEffect extends Effect {
   }
 
   private land({ fleet, destinationPlanet }: { fleet: Fleet; destinationPlanet: Planet }): EffectOutcome {
+    fleet.originPlanetId = destinationPlanet.id
+    fleet.destinationPlanetId = undefined
+    fleet.distanceToEnd = undefined
+
     return EffectOutcome.Resolved({
       result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}"`,
     })
@@ -107,11 +115,12 @@ export class FleetMoveEffect extends Effect {
     fleetAtDestination: Fleet
     destinationPlanet: Planet
   }): EffectOutcome {
-    fleetAtDestination.strength += fleet.strength
+    const mergedStrength = fleet.strength
+    fleetAtDestination.strength += mergedStrength
     fleet.strength = 0
 
     return EffectOutcome.Resolved({
-      result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}" and merged ${fleet.strength} strength into Fleet "${fleetAtDestination.name}"`,
+      result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}" and merged ${mergedStrength} strength into Fleet "${fleetAtDestination.name}"`,
     })
   }
 }

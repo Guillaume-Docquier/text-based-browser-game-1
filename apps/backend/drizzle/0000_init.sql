@@ -17,7 +17,7 @@ CREATE TABLE "actions" (
 	"game_id" integer NOT NULL,
 	"player_id" uuid NOT NULL,
 	"turn" integer NOT NULL,
-	"action_definition_id" text NOT NULL,
+	"action_definition_id" varchar(36) NOT NULL,
 	"selected_targets" jsonb,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "actions_game_id_player_id_turn_id_pk" PRIMARY KEY("game_id","player_id","turn","id")
@@ -30,7 +30,8 @@ CREATE TABLE "fleets" (
 	"name" varchar(36) NOT NULL,
 	"strength" integer NOT NULL,
 	"origin_planet_id" text NOT NULL,
-	CONSTRAINT "fleets_game_id_owner_player_id_origin_planet_id_unique" UNIQUE("game_id","owner_player_id","origin_planet_id"),
+	"destination_planet_id" text,
+	"distance_to_end" double precision,
 	CONSTRAINT "fleets_strength_positive_check" CHECK ("fleets"."strength" > 0)
 );
 --> statement-breakpoint
@@ -54,7 +55,7 @@ CREATE TABLE "planets" (
 	"star_id" text NOT NULL,
 	"id" text NOT NULL,
 	"owner_player_id" uuid,
-	"name" text NOT NULL,
+	"name" varchar(36) NOT NULL,
 	"coordinates" text NOT NULL,
 	"x" double precision NOT NULL,
 	"y" double precision NOT NULL,
@@ -129,6 +130,7 @@ ALTER TABLE "actions" ADD CONSTRAINT "actions_gameId_playerId_game_players_fk" F
 ALTER TABLE "fleets" ADD CONSTRAINT "fleets_gameId_games_fk" FOREIGN KEY ("game_id") REFERENCES "public"."games"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fleets" ADD CONSTRAINT "fleets_gameId_ownerPlayerId_game_players_fk" FOREIGN KEY ("game_id","owner_player_id") REFERENCES "public"."players"("game_id","player_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fleets" ADD CONSTRAINT "fleets_gameId_originPlanetId_planets_fk" FOREIGN KEY ("game_id","origin_planet_id") REFERENCES "public"."planets"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fleets" ADD CONSTRAINT "fleets_gameId_destinationPlanetId_planets_fk" FOREIGN KEY ("game_id","destination_planet_id") REFERENCES "public"."planets"("game_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_created_by_account_id_accounts_id_fk" FOREIGN KEY ("created_by_account_id") REFERENCES "public"."accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_winner_account_id_accounts_id_fk" FOREIGN KEY ("winner_account_id") REFERENCES "public"."accounts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "games" ADD CONSTRAINT "games_ruleset_id_rulesets_id_fk" FOREIGN KEY ("ruleset_id") REFERENCES "public"."rulesets"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint

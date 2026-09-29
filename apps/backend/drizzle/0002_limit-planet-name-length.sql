@@ -1,1 +1,0 @@
-ALTER TABLE "planets" ALTER COLUMN "name" SET DATA TYPE varchar(36);

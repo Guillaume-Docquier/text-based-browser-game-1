@@ -1,5 +1,5 @@
 {
-  "id": "43dcf584-5866-4bf3-b827-dcc5918fd82c",
+  "id": "42f036d1-78ae-431a-9e38-bac0526f2104",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -109,7 +109,7 @@
         },
         "action_definition_id": {
           "name": "action_definition_id",
-          "type": "text",
+          "type": "varchar(36)",
           "primaryKey": false,
           "notNull": true
         },
@@ -133,8 +133,14 @@
           "name": "actions_gameId_playerId_game_players_fk",
           "tableFrom": "actions",
           "tableTo": "players",
-          "columnsFrom": ["game_id", "player_id"],
-          "columnsTo": ["game_id", "player_id"],
+          "columnsFrom": [
+            "game_id",
+            "player_id"
+          ],
+          "columnsTo": [
+            "game_id",
+            "player_id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -142,7 +148,12 @@
       "compositePrimaryKeys": {
         "actions_game_id_player_id_turn_id_pk": {
           "name": "actions_game_id_player_id_turn_id_pk",
-          "columns": ["game_id", "player_id", "turn", "id"]
+          "columns": [
+            "game_id",
+            "player_id",
+            "turn",
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -189,6 +200,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "destination_planet_id": {
+          "name": "destination_planet_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "distance_to_end": {
+          "name": "distance_to_end",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -219,8 +242,12 @@
           "name": "fleets_gameId_games_fk",
           "tableFrom": "fleets",
           "tableTo": "games",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -228,8 +255,14 @@
           "name": "fleets_gameId_ownerPlayerId_game_players_fk",
           "tableFrom": "fleets",
           "tableTo": "players",
-          "columnsFrom": ["game_id", "owner_player_id"],
-          "columnsTo": ["game_id", "player_id"],
+          "columnsFrom": [
+            "game_id",
+            "owner_player_id"
+          ],
+          "columnsTo": [
+            "game_id",
+            "player_id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -237,20 +270,35 @@
           "name": "fleets_gameId_originPlanetId_planets_fk",
           "tableFrom": "fleets",
           "tableTo": "planets",
-          "columnsFrom": ["game_id", "origin_planet_id"],
-          "columnsTo": ["game_id", "id"],
+          "columnsFrom": [
+            "game_id",
+            "origin_planet_id"
+          ],
+          "columnsTo": [
+            "game_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fleets_gameId_destinationPlanetId_planets_fk": {
+          "name": "fleets_gameId_destinationPlanetId_planets_fk",
+          "tableFrom": "fleets",
+          "tableTo": "planets",
+          "columnsFrom": [
+            "game_id",
+            "destination_planet_id"
+          ],
+          "columnsTo": [
+            "game_id",
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "fleets_game_id_owner_player_id_origin_planet_id_unique": {
-          "name": "fleets_game_id_owner_player_id_origin_planet_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["game_id", "owner_player_id", "origin_planet_id"]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
         "fleets_strength_positive_check": {
@@ -357,8 +405,12 @@
           "name": "games_created_by_account_id_accounts_id_fk",
           "tableFrom": "games",
           "tableTo": "accounts",
-          "columnsFrom": ["created_by_account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "created_by_account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -366,8 +418,12 @@
           "name": "games_winner_account_id_accounts_id_fk",
           "tableFrom": "games",
           "tableTo": "accounts",
-          "columnsFrom": ["winner_account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "winner_account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -375,8 +431,12 @@
           "name": "games_ruleset_id_rulesets_id_fk",
           "tableFrom": "games",
           "tableTo": "rulesets",
-          "columnsFrom": ["ruleset_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "ruleset_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -417,7 +477,7 @@
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(36)",
           "primaryKey": false,
           "notNull": true
         },
@@ -496,8 +556,14 @@
           "name": "planets_gameId_starId_planets_fk",
           "tableFrom": "planets",
           "tableTo": "stars",
-          "columnsFrom": ["game_id", "star_id"],
-          "columnsTo": ["game_id", "id"],
+          "columnsFrom": [
+            "game_id",
+            "star_id"
+          ],
+          "columnsTo": [
+            "game_id",
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -505,8 +571,14 @@
           "name": "planets_gameId_ownerPlayerId_game_players_fk",
           "tableFrom": "planets",
           "tableTo": "players",
-          "columnsFrom": ["game_id", "owner_player_id"],
-          "columnsTo": ["game_id", "player_id"],
+          "columnsFrom": [
+            "game_id",
+            "owner_player_id"
+          ],
+          "columnsTo": [
+            "game_id",
+            "player_id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -514,7 +586,10 @@
       "compositePrimaryKeys": {
         "planets_game_id_id_pk": {
           "name": "planets_game_id_id_pk",
-          "columns": ["game_id", "id"]
+          "columns": [
+            "game_id",
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -566,8 +641,12 @@
           "name": "players_game_id_games_id_fk",
           "tableFrom": "players",
           "tableTo": "games",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -575,8 +654,12 @@
           "name": "players_player_id_accounts_id_fk",
           "tableFrom": "players",
           "tableTo": "accounts",
-          "columnsFrom": ["player_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -584,14 +667,20 @@
       "compositePrimaryKeys": {
         "players_game_id_player_id_pk": {
           "name": "players_game_id_player_id_pk",
-          "columns": ["game_id", "player_id"]
+          "columns": [
+            "game_id",
+            "player_id"
+          ]
         }
       },
       "uniqueConstraints": {
         "players_game_id_color_unique": {
           "name": "players_game_id_color_unique",
           "nullsNotDistinct": false,
-          "columns": ["game_id", "color"]
+          "columns": [
+            "game_id",
+            "color"
+          ]
         }
       },
       "policies": {},
@@ -635,8 +724,14 @@
           "name": "resources_gameId_playerId_game_players_fk",
           "tableFrom": "resources",
           "tableTo": "players",
-          "columnsFrom": ["game_id", "player_id"],
-          "columnsTo": ["game_id", "player_id"],
+          "columnsFrom": [
+            "game_id",
+            "player_id"
+          ],
+          "columnsTo": [
+            "game_id",
+            "player_id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -644,7 +739,11 @@
       "compositePrimaryKeys": {
         "resources_game_id_player_id_resource_type_pk": {
           "name": "resources_game_id_player_id_resource_type_pk",
-          "columns": ["game_id", "player_id", "resource_type"]
+          "columns": [
+            "game_id",
+            "player_id",
+            "resource_type"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -753,8 +852,12 @@
           "name": "stars_game_id_games_id_fk",
           "tableFrom": "stars",
           "tableTo": "games",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -762,7 +865,10 @@
       "compositePrimaryKeys": {
         "stars_game_id_id_pk": {
           "name": "stars_game_id_id_pk",
-          "columns": ["game_id", "id"]
+          "columns": [
+            "game_id",
+            "id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -827,8 +933,14 @@
           "name": "turns_processing_game_id_turn_turns_fk",
           "tableFrom": "turns_processing",
           "tableTo": "turns",
-          "columnsFrom": ["game_id", "turn"],
-          "columnsTo": ["game_id", "turn"],
+          "columnsFrom": [
+            "game_id",
+            "turn"
+          ],
+          "columnsTo": [
+            "game_id",
+            "turn"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -836,7 +948,10 @@
       "compositePrimaryKeys": {
         "turns_processing_game_id_turn_pk": {
           "name": "turns_processing_game_id_turn_pk",
-          "columns": ["game_id", "turn"]
+          "columns": [
+            "game_id",
+            "turn"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -942,8 +1057,12 @@
           "name": "turns_game_id_games_id_fk",
           "tableFrom": "turns",
           "tableTo": "games",
-          "columnsFrom": ["game_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -951,7 +1070,10 @@
       "compositePrimaryKeys": {
         "turns_game_id_turn_pk": {
           "name": "turns_game_id_turn_pk",
-          "columns": ["game_id", "turn"]
+          "columns": [
+            "game_id",
+            "turn"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -964,17 +1086,31 @@
     "public.game_status": {
       "name": "game_status",
       "schema": "public",
-      "values": ["WAITING_FOR_PLAYERS", "READY_TO_START", "IN_PROGRESS", "ENDED"]
+      "values": [
+        "WAITING_FOR_PLAYERS",
+        "READY_TO_START",
+        "IN_PROGRESS",
+        "ENDED"
+      ]
     },
     "public.planet_biome": {
       "name": "planet_biome",
       "schema": "public",
-      "values": ["OCEANIC", "METALLIC", "FROZEN", "VOLCANIC"]
+      "values": [
+        "OCEANIC",
+        "METALLIC",
+        "FROZEN",
+        "VOLCANIC"
+      ]
     },
     "public.planet_size": {
       "name": "planet_size",
       "schema": "public",
-      "values": ["SMALL", "MEDIUM", "LARGE"]
+      "values": [
+        "SMALL",
+        "MEDIUM",
+        "LARGE"
+      ]
     },
     "public.player_color": {
       "name": "player_color",
@@ -1001,12 +1137,23 @@
     "public.resource_type": {
       "name": "resource_type",
       "schema": "public",
-      "values": ["INFLUENCE", "METAL", "FUEL", "ENERGY", "COLONY"]
+      "values": [
+        "INFLUENCE",
+        "METAL",
+        "FUEL",
+        "ENERGY",
+        "COLONY"
+      ]
     },
     "public.turn_status": {
       "name": "turn_status",
       "schema": "public",
-      "values": ["COLLECTING_ACTIONS", "AWAITING_PROCESSING", "PROCESSING", "COMPLETED"]
+      "values": [
+        "COLLECTING_ACTIONS",
+        "AWAITING_PROCESSING",
+        "PROCESSING",
+        "COMPLETED"
+      ]
     }
   },
   "schemas": {},
