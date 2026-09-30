@@ -19,6 +19,10 @@ export type MovingFleetView = {
   readonly markerPosition: MapPoint
   readonly end: MapPoint
   readonly heading: number
+  /**
+   * Marks a Fleet projected at the edge of a Star System while physically outside it.
+   */
+  readonly isOutsideSystem?: boolean
 }
 
 type PlanetLocation = { readonly planet: Planet; readonly system: StarSystem }

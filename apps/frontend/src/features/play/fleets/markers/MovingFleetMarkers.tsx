@@ -56,17 +56,20 @@ export function MovingFleetMarkers({
 }): ReactElement {
   return (
     <g className="pointer-events-none">
-      {fleets.map(({ fleet, owner, origin, destination, markerPosition, heading }) => {
+      {fleets.map(({ fleet, owner, origin, destination, markerPosition, heading, isOutsideSystem = false }) => {
         const strengthLabel = fleet.strength.toLocaleString()
 
         return (
           <g
             key={fleet.id}
             role="img"
-            aria-label={`${fleet.name}, ${owner.alias ?? `Player ${owner.id}`}, ${strengthLabel} strength, traveling from ${origin.name} to ${destination.name}`}
+            aria-label={`${fleet.name}, ${owner.alias ?? `Player ${owner.id}`}, ${strengthLabel} strength, traveling from ${origin.name} to ${destination.name}${isOutsideSystem ? ", outside this Star System" : ""}`}
             data-fleet-marker={fleet.id}
             transform={`translate(${markerPosition.x} ${markerPosition.y}) scale(${scale})`}
           >
+            {isOutsideSystem && (
+              <circle r="23" fill="#05080f" stroke={PLAYER_COLOR_HEX[owner.color]} strokeWidth="1.5" aria-hidden="true" />
+            )}
             <g transform={`rotate(${heading}) translate(0 -12)`}>
               <FleetIcon color={PLAYER_COLOR_HEX[owner.color]} />
             </g>

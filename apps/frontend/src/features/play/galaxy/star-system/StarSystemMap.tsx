@@ -1,7 +1,7 @@
 import type { Fleet, LobbyPlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
 import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
-import { useId, useState } from "react"
+import { useState } from "react"
 import { flushSync } from "react-dom"
 import starImage from "@/assets/planets/star-small.png"
 import { MovingFleetMarkers, MovingFleetRoutes } from "@/features/play/fleets/markers/MovingFleetMarkers.tsx"
@@ -124,7 +124,6 @@ export function StarSystemMap({
         {planets.map((planet) => (
           <OccupiedOrbit key={`orbit-${planet.id}`} radius={planet.orbitRadius} />
         ))}
-        <SystemBoundary radius={boundaryRadius} />
         <MovingFleetRoutes fleets={movingFleets} />
         {bodiesInPaintOrder.map((body) => (
           <g
@@ -146,78 +145,6 @@ export function StarSystemMap({
         <MovingFleetMarkers fleets={movingFleets} />
       </g>
     </svg>
-  )
-}
-
-function SystemBoundary({ radius }: { radius: number }): ReactElement {
-  const glowFilterId = `system-boundary-${useId().replaceAll(":", "-")}`
-  const filterRadius = radius + VIEW_PADDING
-
-  return (
-    <g data-system-boundary="" aria-hidden="true" className="pointer-events-none">
-      <defs>
-        <filter
-          id={glowFilterId}
-          filterUnits="userSpaceOnUse"
-          x={CENTER - filterRadius}
-          y={CENTER - filterRadius}
-          width={filterRadius * 2}
-          height={filterRadius * 2}
-          colorInterpolationFilters="sRGB"
-        >
-          <feGaussianBlur stdDeviation="3" />
-        </filter>
-      </defs>
-      {/* Keep the luminous core sharp; only the separate halo is blurred. */}
-      <g fill="none">
-        <circle cx={CENTER} cy={CENTER} r={radius} stroke="#65baff" strokeWidth="5" strokeOpacity="0.25" filter={`url(#${glowFilterId})`} />
-        <circle
-          cx={CENTER}
-          cy={CENTER}
-          r={radius}
-          stroke="#c9e8ff"
-          strokeWidth="1.5"
-          strokeOpacity="0.50"
-          vectorEffect="non-scaling-stroke"
-        />
-        <circle
-          cx={CENTER}
-          cy={CENTER}
-          r={radius + 8}
-          stroke="#8fc8ef"
-          strokeWidth="1.25"
-          strokeOpacity="0.65"
-          strokeDasharray="1 7 3 7"
-          vectorEffect="non-scaling-stroke"
-        />
-      </g>
-      <SystemBoundaryTicks radius={radius} />
-    </g>
-  )
-}
-
-function SystemBoundaryTicks({ radius }: { radius: number }): ReactElement {
-  return (
-    <g stroke="#b4d8f2" strokeWidth="1" strokeLinecap="square">
-      {Array.from({ length: 36 }, (_, index) => {
-        const isMajor = index % 3 === 0
-
-        return (
-          <g key={index} transform={`rotate(${index * 10} ${CENTER} ${CENTER})`} opacity={isMajor ? 0.85 : 0.55}>
-            <line
-              x1={CENTER}
-              y1={CENTER - radius - 14}
-              x2={CENTER}
-              y2={CENTER - radius - (isMajor ? 30 : 22)}
-              vectorEffect="non-scaling-stroke"
-            />
-            {isMajor && (
-              <line x1={CENTER} y1={CENTER - radius + 6} x2={CENTER} y2={CENTER - radius + 18} vectorEffect="non-scaling-stroke" />
-            )}
-          </g>
-        )
-      })}
-    </g>
   )
 }
 

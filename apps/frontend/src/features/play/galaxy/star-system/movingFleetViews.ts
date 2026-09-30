@@ -43,6 +43,7 @@ export function getMovingFleetViews({
     let end: MapPoint
     let position: MapPoint
     let markerPosition: MapPoint
+    let isOutsideSystem = false
 
     if (originIsLocal && destinationIsLocal) {
       const displayedOrigin = displayedPlanets.get(origin.planet.id)
@@ -66,6 +67,7 @@ export function getMovingFleetViews({
         y: center + Math.sin(boundaryAngle) * boundaryRadius,
       }
       const insideSystem = distance(worldPosition, system.star) <= boundaryDistance
+      isOutsideSystem = !insideSystem
       const localProgress = insideSystem
         ? Scalar.clamp(distance(worldPosition, localPlanet) / distance(worldBoundary, localPlanet), 0, 1)
         : 1
@@ -91,6 +93,7 @@ export function getMovingFleetViews({
       start,
       position,
       markerPosition,
+      isOutsideSystem,
       end,
       heading: (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI + 90,
     })
