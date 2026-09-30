@@ -24,17 +24,17 @@
     "wts": "pnpm ci && cp ../text-based-browser-game-1/apps/backend/.env apps/backend/.env && cp ../text-based-browser-game-1/apps/frontend/.env apps/frontend/.env"
   },
   "devDependencies": {
-    "@guillaume-docquier/oxfmt": "^1.0.10",
-    "@guillaume-docquier/oxlint": "^1.8.3",
+    "@guillaume-docquier/oxfmt": "^1.0.14",
+    "@guillaume-docquier/oxlint": "^1.8.7",
     "@guillaume-docquier/show-me": "^1.7.1",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-boundaries": "^7.2.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.5.1",
-    "oxfmt": ">=0.68.0",
-    "oxlint": "^1.83.0",
-    "oxlint-tsgolint": "^7.0.2002",
+    "lint-staged": "^17.6.0",
+    "oxfmt": ">=0.70.0",
+    "oxlint": "^1.85.0",
+    "oxlint-tsgolint": "^7.0.2003",
     "typescript": "catalog:"
   },
   "lint-staged": {
