@@ -1,6 +1,5 @@
 import { defineConfig, type OxlintConfig } from "oxlint"
 import baseConfig from "../../oxlint.config.ts"
-import { Boundaries } from "./boundaries.ts"
 
 export default defineConfig({
   extends: [baseConfig],
@@ -8,9 +7,6 @@ export default defineConfig({
   env: {
     node: true,
   },
-  jsPlugins: ["eslint-plugin-boundaries"],
-  settings: Boundaries.settings,
-  rules: Boundaries.rules,
   overrides: [
     {
       files: ["src/**/*.ts"],

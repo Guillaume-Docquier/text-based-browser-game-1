@@ -12,5 +12,5 @@
     "erasableSyntaxOnly": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["*.ts"]
+  "include": ["*.ts", "packages/*/oxlint.config.ts"]
 }

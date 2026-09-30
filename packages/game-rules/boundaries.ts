@@ -4,9 +4,8 @@ import type { OxlintConfig } from "oxlint"
 
 type Element = (typeof Elements)[keyof typeof Elements]
 const Elements = {
-  RULESET_MODEL: { type: "ruleset", pattern: "src/lib/rules-engine/ruleset" },
-  VALIDATION: { type: "validation", pattern: "src/lib/validation" },
-  DB_IDS: { type: "db-ids", pattern: "src/lib/db", filePattern: "src/lib/db/*/*Id.ts" },
+  RULESET_MODEL: { type: "ruleset", pattern: "src/ruleset" },
+  MODEL_IDS: { type: "model-ids", pattern: "src/models", filePattern: "src/models/*Id.ts" },
 } as const
 
 const DisallowEverything = { to: { module: { origin: "local" } } } as const
@@ -28,8 +27,7 @@ export const Boundaries = {
     },
     "boundaries/elements": [
       { ...Elements.RULESET_MODEL, partialMatch: false },
-      { ...Elements.VALIDATION, partialMatch: false },
-      { type: Elements.DB_IDS.type, pattern: Elements.DB_IDS.pattern, partialMatch: false },
+      { type: Elements.MODEL_IDS.type, pattern: Elements.MODEL_IDS.pattern, partialMatch: false },
     ],
   } satisfies Settings & Pick<NonNullable<OxlintConfig["settings"]>, "import/resolver">,
   rules: {
@@ -44,7 +42,7 @@ export const Boundaries = {
           ...policy({
             element: Elements.RULESET_MODEL,
             disallow: DisallowEverything,
-            allow: elements([Elements.RULESET_MODEL, Elements.VALIDATION, Elements.DB_IDS]),
+            allow: elements([Elements.RULESET_MODEL, Elements.MODEL_IDS]),
           }),
         ],
       },
@@ -81,7 +79,7 @@ function elements(definitions: readonly Element[]): NonNullable<DependenciesPoli
   return {
     to: definitions.map((definition) => ({
       element: { type: definition.type },
-      // Not that great, but eh, will do for now
+      // Restrict the models exception to ID modules.
       ...("filePattern" in definition ? { file: { path: definition.filePattern } } : {}),
     })),
   } satisfies NonNullable<DependenciesPolicy["allow"]>
