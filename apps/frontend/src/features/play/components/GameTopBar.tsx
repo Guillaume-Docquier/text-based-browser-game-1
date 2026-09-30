@@ -1,61 +1,43 @@
 import type { Lobby, PlayerId, PlayerView } from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
-import { Clock3, Crown, RefreshCw, TimerReset } from "lucide-react"
+import { Crown, RefreshCw } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { Button } from "@/components/button.tsx"
 import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
+import { TurnButton } from "@/features/play/components/TurnButton.tsx"
 import { TurnStatusBadge } from "@/features/play/components/TurnStatusBadge.tsx"
 import { formatRulesetTerm } from "@/features/play/effectDefinitionToRulesText.ts"
 import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
+import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
-import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function GameTopBar({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
   return (
-    <header className="flex min-h-24 flex-col justify-center border-b border-border/70 bg-background/80 px-4 py-4 sm:px-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0 space-y-1">
+    <header className="shrink-0 border-b border-border/70 bg-background/80 px-4 sm:px-6">
+      <div className="grid min-w-0 grid-cols-1 items-center gap-x-4 sm:h-[calc(6rem-1px)] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-1 py-3 sm:py-0">
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Game #{game.id}</div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">{game.configuration.name}</h1>
             <TurnStatusBadge status={playerView.turnStatus} />
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <PlayerFact game={game} player={playerView.player} />
+        <div className="min-w-0 justify-self-center self-stretch">
+          <TurnControl game={game} playerView={playerView} />
+        </div>
+        <div className="min-w-0 justify-self-end py-3 sm:py-0">
           <ResourcesFact resources={playerView.resources} />
-          <TurnFact turn={playerView.turn} />
-          <NextTurnFact targetTimestamp={playerView.turnEndsAt} />
         </div>
       </div>
       {game.winnerAccountId === null ? null : (
-        <div className="mt-3 flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
           <Crown className="size-4" />
           <span>{getWinnerLabel(branded(game.winnerAccountId), game)} has won the game.</span>
         </div>
       )}
     </header>
   )
-}
-
-function PlayerFact({ game, player }: { game: Lobby; player: PlayerView["player"] }): ReactElement {
-  return (
-    <TopBarFact
-      icon={
-        <span
-          aria-hidden="true"
-          className="size-4 rounded-full border border-foreground/30"
-          style={{ backgroundColor: PLAYER_COLOR_HEX[player.color] }}
-        />
-      }
-      label={formatPlayerColor(player.color)}
-      value={getPlayerLabel(game, player.id)}
-    />
-  )
-}
-
-function TurnFact({ turn }: { turn: PlayerView["turn"] }): ReactElement {
-  return <TopBarFact icon={<TimerReset className="size-4" />} label="Turn" value={turn.toString()} />
 }
 
 function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): ReactElement {
@@ -71,29 +53,24 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
 
   return (
     <div className="group/resources relative">
-      <div className="flex min-h-11 items-center rounded-md border border-border/70 bg-card/45 px-3 py-1.5">
-        <div>
-          <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Resources</div>
-          <div className="flex gap-x-3">
-            {sortedResources.map(({ resourceType, total, uncommitted }) => {
-              const ResourceIcon = RESOURCE_ICONS[resourceType]
-              const resourceName = formatRulesetTerm(resourceType)
+      <div className="flex flex-wrap justify-end gap-x-3 gap-y-2">
+        {sortedResources.map(({ resourceType, total, uncommitted }) => {
+          const ResourceIcon = RESOURCE_ICONS[resourceType]
+          const resourceName = formatRulesetTerm(resourceType)
 
-              return (
-                <div
-                  key={resourceType}
-                  className="flex items-center gap-1 text-sm font-medium"
-                  aria-label={`${uncommitted} available of ${total} ${resourceName}`}
-                >
-                  <span>
-                    {uncommitted} / {total}
-                  </span>
-                  <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
-                </div>
-              )
-            })}
-          </div>
-        </div>
+          return (
+            <div
+              key={resourceType}
+              className="flex items-center gap-1 text-sm font-medium"
+              aria-label={`${uncommitted} available of ${total} ${resourceName}`}
+            >
+              <span>
+                {uncommitted} / {total}
+              </span>
+              <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
+            </div>
+          )
+        })}
       </div>
       <div className="invisible absolute top-full right-0 z-20 w-full pt-2 opacity-0 transition-opacity group-hover/resources:visible group-hover/resources:opacity-100">
         <div className="grid grid-cols-[max-content_1rem_max-content] justify-start gap-x-1 gap-y-1 rounded-md border border-border/70 bg-card px-3 py-2 shadow-lg">
@@ -116,12 +93,13 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
   )
 }
 
-function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): ReactElement {
+function TurnControl({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
   const logger = useLogger()
+  const updateReadiness = useUpdateReadiness()
   const refreshClientData = useRefreshClientData()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentTime, setCurrentTime] = useState(() => new Date())
-  const turnEndsAt = new Date(targetTimestamp)
+  const turnEndsAt = new Date(playerView.turnEndsAt)
   const timeLeft = calculateTimeLeft({ past: currentTime, future: turnEndsAt })
   const turnEndsAtLabel = new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -165,12 +143,25 @@ function NextTurnFact({ targetTimestamp }: { targetTimestamp: string | Date }): 
   }
 
   return (
-    <TopBarFact
-      icon={<Clock3 className="size-4" />}
-      label="Next turn"
-      value={`${timeLeft.duration.days}d ${timeLeft.duration.hours}h ${timeLeft.duration.minutes}m ${timeLeft.duration.seconds}s`}
-      detail={turnEndsAtLabel}
-    />
+    <div className="relative h-full">
+      <TurnButton
+        turn={playerView.turn}
+        countdown={formatCountdown(timeLeft.duration)}
+        deadline={turnEndsAtLabel}
+        isLockedIn={playerView.player.isReady}
+        isPending={updateReadiness.isPending}
+        disabled={updateReadiness.isPending || playerView.turnStatus !== "COLLECTING_ACTIONS" || game.winnerAccountId !== null}
+        onToggle={() => {
+          updateReadiness.mutate({ gameId: game.id, turn: playerView.turn, isReady: !playerView.player.isReady })
+        }}
+      />
+      {updateReadiness.error === null ? null : (
+        <Alert variant="destructive" className="absolute top-full left-1/2 z-20 mt-2 w-72 -translate-x-1/2 bg-card">
+          <AlertTitle>Could not change lock-in status</AlertTitle>
+          <AlertDescription>{updateReadiness.error.message}</AlertDescription>
+        </Alert>
+      )}
+    </div>
   )
 }
 
@@ -188,7 +179,7 @@ function NextTurnRefreshButton({
       type="button"
       variant="outline"
       aria-label="Refresh game data for the next turn"
-      className="h-auto min-h-11 justify-start gap-2 rounded-md border-primary/50 bg-primary/10 px-3 py-1.5 text-left shadow-sm hover:border-primary/70 hover:bg-primary/20"
+      className="h-full min-h-20 w-48 max-w-full flex-col gap-1 rounded-none border-0 border-b-2 border-primary/60 bg-transparent px-3 py-2 text-center shadow-none hover:border-primary hover:bg-primary/10"
       disabled={isRefreshing}
       onClick={onRefresh}
     >
@@ -197,25 +188,10 @@ function NextTurnRefreshButton({
         <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Next turn</div>
         <div className="truncate text-sm font-medium text-foreground">
           {isRefreshing ? "Refreshing..." : "Refresh"}
-          <span className="ml-2 text-muted-foreground">{detail}</span>
+          <span className="block text-xs text-muted-foreground">{detail}</span>
         </div>
       </div>
     </Button>
-  )
-}
-
-function TopBarFact({ icon, label, value, detail }: { icon: ReactElement; label: string; value: string; detail?: string }): ReactElement {
-  return (
-    <div className="flex min-h-11 items-center gap-2 rounded-md border border-border/70 bg-card/45 px-3">
-      <div className="text-primary">{icon}</div>
-      <div className="min-w-0">
-        <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">{label}</div>
-        <div className="truncate text-sm font-medium text-foreground">
-          {value}
-          {detail === undefined ? null : <span className="ml-2 text-muted-foreground">{detail}</span>}
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -228,9 +204,9 @@ function getWinnerLabel(winnerPlayerId: PlayerId, game: Lobby): string {
   return winner.alias
 }
 
-function getPlayerLabel(game: Lobby, playerId: PlayerId): string {
-  const player = game.players.find(({ id }) => id === playerId)
-  return player?.alias ?? `Player ${playerId}`
+function formatCountdown(duration: Temporal.Duration): string {
+  const hours = duration.days * 24 + duration.hours
+  return [hours, duration.minutes, duration.seconds].map((value) => value.toString().padStart(2, "0")).join(":")
 }
 
 type TimeLeft = {
