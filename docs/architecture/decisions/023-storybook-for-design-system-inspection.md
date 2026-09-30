@@ -4,17 +4,21 @@
 
 Accepted
 
+### Amendment history
+
+- 2026-09-30: Allow selected application components alongside shared design-system components, with separate Design System and Application sidebar sections, so feature states can be inspected without mixing them into the design system.
+
 ## Context
 
 Reusable frontend components live in `frontend/src/components`, but inspecting them currently requires finding or creating an application page that renders each relevant state. This makes design-system review slower and couples component inspection to feature development.
 
-The project needs an isolated sandbox for manually reviewing shared components and their variants. It does not currently need Storybook-based interaction tests, accessibility tests, visual regression tests, or CI publication.
+The project needs an isolated sandbox for manually reviewing shared components and their variants, as well as selected application components with useful standalone states. It does not currently need Storybook-based interaction tests, accessibility tests, visual regression tests, or CI publication.
 
 ## Decision
 
-Use Storybook 10 with the React Vite framework as the local design-system sandbox.
+Use Storybook 10 with the React Vite framework as the local component-inspection sandbox, with Design System first in the sidebar and Application second.
 
-Stories are colocated with the components in `frontend/src/components` and use the `*.stories.tsx` suffix. Storybook only discovers stories in that directory. Global application styles are loaded in the Storybook preview so components render with the same Tailwind, Shadcn, font, and theme definitions as the frontend.
+Stories are colocated with their components and use the `*.stories.tsx` suffix. Storybook discovers stories throughout `apps/frontend/src`. Shared components in `src/components` use titles starting with `Design System/`; feature components use `Application/`. Application is a broad section for now. Global application styles are loaded in the Storybook preview so components render with the same Tailwind, Shadcn, font, and theme definitions as the frontend.
 
 Storybook uses a minimal Vite configuration containing the Tailwind plugin instead of loading the application Vite configuration. This keeps component inspection independent from application environment variables, backend proxy configuration, and TanStack Router generation.
 
@@ -22,6 +26,6 @@ Storybook remains a manual inspection tool. We do not install or configure Story
 
 ## Consequences
 
-Shared components and their important variants can be inspected without navigating the application or satisfying application runtime dependencies. Component changes should add or update colocated stories when that improves design-system coverage.
+Shared components and selected application components can be inspected without navigating the application or satisfying application runtime dependencies. Stories remain independent of live authentication and backend services. Component changes should add or update colocated stories when that improves inspection of meaningful states; application components do not all require stories.
 
 The frontend now carries Storybook-specific development dependencies and configuration. Stories are typechecked with the rest of the frontend source, and Storybook upgrades must remain compatible with the frontend's React, Vite, and Tailwind versions.

@@ -3,6 +3,11 @@ import "../src/index.css"
 
 const preview: Preview = {
   parameters: {
+    options: {
+      storySort: {
+        order: ["Design System", "Application"],
+      },
+    },
     backgrounds: {
       default: "cosmic",
       values: [{ name: "cosmic", value: "#252525" }],

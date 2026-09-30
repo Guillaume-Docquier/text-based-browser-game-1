@@ -4,7 +4,7 @@ import { useState } from "react"
 import { TurnButton } from "./TurnButton.tsx"
 
 const meta = {
-  title: "Game/Turn Button",
+  title: "Application/Turn Button",
   component: TurnButton,
   args: {
     turn: 142,

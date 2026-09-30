@@ -13,6 +13,12 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 | `.storybook`     | Storybook configuration. Stories live next to their components.                     |
 | `playwright`     | End-to-end tests using page objects and Clerk authentication.                       |
 
+## Storybook
+
+- Keep stories next to their components. Use `Design System/<Component>` for shared components in `src/components` and `Application/<Component>` for feature components.
+- Design System appears first in the sidebar. Application is a broad section for selected feature components whose states benefit from isolated inspection; not every feature component needs a story.
+- Keep stories independent of live authentication and backend services. See [ADR-023](../../docs/architecture/decisions/023-storybook-for-design-system-inspection.md).
+
 ## Backend API Types
 
 - Import named backend contract types with `import type` from `@api-types`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
