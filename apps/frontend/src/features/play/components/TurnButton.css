@@ -68,16 +68,17 @@
   text-transform: uppercase;
 }
 
-.turn-button:enabled:is(:hover, :focus-visible) {
+/* Pending requests block clicks without resetting the hovered appearance. */
+.turn-button:is(:enabled, [aria-busy="true"]):is(:hover, :focus-visible) {
   --turn-frame: var(--color-lime-400);
   color: var(--turn-frame);
 }
 
-.turn-button[aria-pressed="true"]:enabled:is(:hover, :focus-visible) {
+.turn-button[aria-pressed="true"]:is(:enabled, [aria-busy="true"]):is(:hover, :focus-visible) {
   --turn-frame: var(--color-red-400);
 }
 
-.turn-button:enabled:is(:hover, :focus-visible)::before {
+.turn-button:is(:enabled, [aria-busy="true"]):is(:hover, :focus-visible)::before {
   background: color-mix(in oklab, var(--turn-frame) 15%, var(--color-background));
 }
 
@@ -85,15 +86,15 @@
   inset: 3px;
 }
 
-.turn-button:enabled:is(:hover, :focus-visible) .turn-button__details {
+.turn-button:is(:enabled, [aria-busy="true"]):is(:hover, :focus-visible) .turn-button__details {
   opacity: 0;
 }
 
-.turn-button:enabled:is(:hover, :focus-visible) .turn-button__action {
+.turn-button:is(:enabled, [aria-busy="true"]):is(:hover, :focus-visible) .turn-button__action {
   visibility: visible;
 }
 
-.turn-button:disabled {
+.turn-button:disabled:not([aria-busy="true"]) {
   cursor: default;
   opacity: 0.6;
 }
