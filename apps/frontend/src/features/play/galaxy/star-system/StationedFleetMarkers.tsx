@@ -1,13 +1,13 @@
 import type { Fleet, LobbyPlayer } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { ReactElement } from "react"
-import { FleetIcon } from "@/features/play/galaxy/FleetIcon.tsx"
+import { FleetIcon } from "@/features/play/fleets/markers/FleetIcon.tsx"
 import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 const MIN_SLOT_WIDTH = 44
 
 /** Renders stationed Fleets in a centered row with each Fleet's visible Strength. */
-export function FleetMarkers({
+export function StationedFleetMarkers({
   x,
   y,
   fleets,

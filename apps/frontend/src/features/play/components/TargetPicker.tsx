@@ -1,14 +1,20 @@
 import type { LobbyPlayers, PlayerView, TargetDefinition, TargetId } from "@api-types"
-import { Assert } from "@guillaume-docquier/tools-ts"
+import type { Comparator } from "@guillaume-docquier/tools-ts"
 import type { TargetForValidation } from "game-rules/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts"
 import { validateTarget } from "game-rules/action-submission/validation/targets/validateTarget.ts"
 import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
 import type { ReactElement } from "react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select.tsx"
+import { SearchSelect } from "@/components/search-select.tsx"
 import { formatRulesetTerm } from "@/features/play/effectDefinitionToRulesText.ts"
 
-type TargetOption = { id: TargetId; label: string }
+/**
+ * A player-visible choice for an Action target slot.
+ */
+export type TargetOption = { id: TargetId; label: string }
 type TargetCandidate = TargetOption & { target: TargetForValidation }
+
+const TEXT_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" })
+const sortByLabel: Comparator<{ label: string }> = (first, second) => TEXT_COLLATOR.compare(first.label, second.label)
 
 /**
  * Selects an entity for one Action Definition target slot.
@@ -16,51 +22,34 @@ type TargetCandidate = TargetOption & { target: TargetForValidation }
 export function TargetPicker({
   targetTag,
   targetDefinition,
-  playerView,
-  players,
+  options,
   value,
   disabled,
   onChange,
 }: {
   targetTag: string
   targetDefinition: TargetDefinition
-  playerView: PlayerView
-  players: LobbyPlayers
+  options: readonly TargetOption[]
   value: TargetId | undefined
   disabled: boolean
   onChange: (targetId: TargetId) => void
 }): ReactElement {
   const label = formatRulesetTerm(targetTag)
-  const options = getTargetOptions(targetDefinition, playerView, players)
   const onlyOption = options.length === 1 ? options[0] : undefined
 
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-xs font-semibold tracking-wide text-muted-foreground">{label} target</span>
-      <Select
+      <SearchSelect
+        label={`${label} target`}
+        options={options}
         value={onlyOption?.id ?? value}
-        disabled={disabled || options.length <= 1}
-        onValueChange={(id) => {
-          const option = options.find((candidate) => candidate.id === id)
-          Assert.isDefined(option)
-          onChange(option.id)
-        }}
-      >
-        <SelectTrigger aria-label={`${label} target`} className="w-full min-w-0">
-          <SelectValue
-            placeholder={
-              options.length === 0 ? `No ${targetDefinition.targetType.toLowerCase()} targets available` : `Choose ${label.toLowerCase()}`
-            }
-          />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option.id} value={option.id}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        disabled={disabled}
+        placeholder={
+          options.length === 0 ? `No ${targetDefinition.targetType.toLowerCase()} targets available` : `Choose ${label.toLowerCase()}`
+        }
+        onValueChange={onChange}
+      />
     </div>
   )
 }
@@ -69,9 +58,11 @@ export function TargetPicker({
  * Resolves target choices from the player-visible game state and the slot constraints.
  */
 export function getTargetOptions(targetDefinition: TargetDefinition, playerView: PlayerView, players: LobbyPlayers): TargetOption[] {
-  return getTargetCandidates(targetDefinition, playerView, players).filter(
-    (candidate) => validateTarget({ target: candidate.target, submittingPlayerId: playerView.player.id, targetDefinition }) === null,
-  )
+  return getTargetCandidates(targetDefinition, playerView, players)
+    .filter(
+      (candidate) => validateTarget({ target: candidate.target, submittingPlayerId: playerView.player.id, targetDefinition }) === null,
+    )
+    .sort(sortByLabel)
 }
 
 function getTargetCandidates(targetDefinition: TargetDefinition, playerView: PlayerView, players: LobbyPlayers): TargetCandidate[] {

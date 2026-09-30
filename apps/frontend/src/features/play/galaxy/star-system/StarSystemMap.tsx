@@ -4,8 +4,10 @@ import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { useState } from "react"
 import { flushSync } from "react-dom"
 import starImage from "@/assets/planets/star-small.png"
-import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.tsx"
+import { MovingFleetMarkers, MovingFleetRoutes } from "@/features/play/fleets/markers/MovingFleetMarkers.tsx"
+import { getMovingFleetViews } from "@/features/play/galaxy/star-system/movingFleetViews.ts"
 import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
+import { StationedFleetMarkers } from "@/features/play/galaxy/star-system/StationedFleetMarkers.tsx"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 import { PLAYER_COLOR_HEX, UNCLAIMED_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
@@ -16,8 +18,8 @@ const INNER_ORBIT_RADIUS = 90
 const ORBIT_SPACING = 70
 // Generated orbital slots are 5 AU apart; preserve unoccupied slots in the display.
 const ORBIT_SPACING_AU = 5
-// Room outside the outermost body for owner labels and fleets.
-const VIEW_PADDING = 50
+// Room outside the system boundary for Fleet icons and Strength labels.
+const VIEW_PADDING = 60
 const PLANET_RADII = {
   SMALL: 25,
   MEDIUM: 30,
@@ -33,7 +35,8 @@ type PlanetViewModel = PlanetModel & {
  * Renders one Star System with its planets and occupied orbits.
  *
  * @param system - The Star System to render.
- * @param fleets - The Fleets stationed in the Star System.
+ * @param systems - The Galaxy's systems, used to locate both ends of a Fleet's route.
+ * @param fleets - The Fleets visible in the Galaxy.
  * @param players - The players whose names and colors identify claimed Planets and Fleets.
  * @param resetSignal - A value whose changes reset pan and zoom.
  * @param onSelectGalaxy - Returns to the galaxy-wide map.
@@ -42,6 +45,7 @@ type PlanetViewModel = PlanetModel & {
  */
 export function StarSystemMap({
   system,
+  systems,
   fleets,
   players,
   resetSignal,
@@ -49,6 +53,7 @@ export function StarSystemMap({
   onSelectPlanet,
 }: {
   system: StarSystem
+  systems: readonly StarSystem[]
   fleets: readonly Fleet[]
   players: readonly LobbyPlayer[]
   resetSignal: number
@@ -59,7 +64,21 @@ export function StarSystemMap({
   const [hoveredBody, setHoveredBody] = useState<string>()
   const planets = toPlanetViewModels(system)
   const outerOrbitRadius = planets.at(-1)?.orbitRadius ?? 0
-  const viewRadius = outerOrbitRadius + VIEW_PADDING
+  const boundaryRadius = outerOrbitRadius + ORBIT_SPACING * 2
+  const boundaryDistance =
+    Math.max(0, ...system.planets.map((planet) => Math.hypot(planet.x - system.star.x, planet.y - system.star.y))) +
+    Distance.convert(Distance.create(ORBIT_SPACING_AU * 2, UnitOfDistance.ASTRONOMICAL_UNITS), UnitOfDistance.LIGHT_YEARS).value
+  const viewRadius = boundaryRadius + VIEW_PADDING
+  const movingFleets = getMovingFleetViews({
+    system,
+    systems,
+    planets,
+    fleets,
+    players,
+    boundaryRadius,
+    boundaryDistance,
+    center: CENTER,
+  })
 
   function selectGalaxy(): void {
     panZoom.centerOn(VIEWPORT_CENTER, { onCentered: onSelectGalaxy })
@@ -71,7 +90,7 @@ export function StarSystemMap({
       <Planet
         key={`planet-${planet.id}`}
         planet={planet}
-        fleets={fleets.filter((fleet) => fleet.originPlanetId === planet.id)}
+        fleets={fleets.filter((fleet) => fleet.originPlanetId === planet.id && fleet.destinationPlanetId === undefined)}
         players={players}
         ownerName={getPlanetOwnerName(planet, players)}
         onSelect={onSelectPlanet}
@@ -105,9 +124,11 @@ export function StarSystemMap({
         {planets.map((planet) => (
           <OccupiedOrbit key={`orbit-${planet.id}`} radius={planet.orbitRadius} />
         ))}
+        <MovingFleetRoutes fleets={movingFleets} />
         {bodiesInPaintOrder.map((body) => (
           <g
             key={body.key}
+            data-system-body=""
             onPointerEnter={() => {
               // Finish moving the group before pointerdown; moving it during a click cancels that click.
               flushSync(() => {
@@ -121,6 +142,7 @@ export function StarSystemMap({
             {body}
           </g>
         ))}
+        <MovingFleetMarkers fleets={movingFleets} />
       </g>
     </svg>
   )
@@ -224,7 +246,7 @@ function Planet({
         className="pointer-events-none"
       />
       <PlanetLabel planet={planet} ownerName={ownerName} ownerColor={ownerColor} />
-      <FleetMarkers x={planet.x} y={planet.y + planet.radius + 30} fleets={fleets} players={players} />
+      <StationedFleetMarkers x={planet.x} y={planet.y + planet.radius + 30} fleets={fleets} players={players} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible planet. */}
       <circle
         cx={planet.x}

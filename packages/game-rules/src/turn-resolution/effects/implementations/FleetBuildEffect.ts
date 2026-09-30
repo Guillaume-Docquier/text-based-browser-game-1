@@ -12,8 +12,8 @@ import { Effect } from "#game-rules/turn-resolution/effects/Effect.ts"
 import type { EffectError } from "#game-rules/turn-resolution/effects/EffectError.ts"
 import { EffectOutcome } from "#game-rules/turn-resolution/effects/EffectOutcome.ts"
 import { resolveTargetId } from "#game-rules/turn-resolution/effects/resolveTargetId.ts"
+import type { Fleet } from "#game-rules/turn-resolution/Fleet.ts"
 import type { TurnContext } from "#game-rules/turn-resolution/TurnContext.ts"
-import type { Fleet } from "#game-rules/turn-resolution/TurnState.ts"
 
 export class FleetBuildEffect extends Effect {
   private readonly effectDefinition: FleetBuildEffectDefinition
@@ -25,26 +25,22 @@ export class FleetBuildEffect extends Effect {
     this.targetPlanetId = resolveTargetId(this.submittedAction.selectedTargets, this.effectDefinition.targets.planet)
   }
 
-  protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
+  protected override doResolve(context: TurnContext): Result<EffectOutcome[], EffectError> {
     // This is O(Fleets), but we expect the number of fleets to stay small, and the number of build effects per turn to also be small.
     // When efficiency becomes a problem, we can reevaluate this.
     // The biggest upside right now is that context.turnState.fleets is the authoritative, always consistent, source of truth for fleets and requires 0 upkeep.
-    const fleet = Object.values(context.turnState.fleets).find(
-      (candidate) => candidate.ownerPlayerId === this.submittedAction.playerId && candidate.originPlanetId === this.targetPlanetId,
+    const existingFleet = Object.values(context.turnState.fleets).find(
+      (candidate) =>
+        candidate.ownerPlayerId === this.submittedAction.playerId &&
+        candidate.originPlanetId === this.targetPlanetId &&
+        candidate.destinationPlanetId === undefined,
     )
 
-    if (fleet !== undefined) {
-      return Result.Success(this.reinforce(fleet))
+    if (existingFleet === undefined) {
+      return Result.Success([this.build(context)])
     } else {
-      return Result.Success(this.build(context))
+      return Result.Success([this.reinforce(existingFleet)])
     }
-  }
-
-  private reinforce(fleet: Fleet): EffectOutcome {
-    fleet.strength += this.effectDefinition.parameters.strength
-    return EffectOutcome.Resolved({
-      result: `Player "${this.submittedAction.playerId}" reinforced Fleet "${fleet.id}" by ${this.effectDefinition.parameters.strength} on Planet "${this.targetPlanetId}"`,
-    })
   }
 
   private build(context: TurnContext): EffectOutcome {
@@ -66,6 +62,13 @@ export class FleetBuildEffect extends Effect {
 
     return EffectOutcome.Resolved({
       result: `Player "${this.submittedAction.playerId}" built Fleet "${fleetId}" with strength ${this.effectDefinition.parameters.strength} on Planet "${this.targetPlanetId}"`,
+    })
+  }
+
+  private reinforce(fleet: Fleet): EffectOutcome {
+    fleet.strength += this.effectDefinition.parameters.strength
+    return EffectOutcome.Resolved({
+      result: `Player "${this.submittedAction.playerId}" reinforced Fleet "${fleet.id}" by ${this.effectDefinition.parameters.strength} on Planet "${this.targetPlanetId}"`,
     })
   }
 }

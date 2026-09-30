@@ -13,7 +13,8 @@ import type { RulesetId } from "game-rules/models/RulesetId.ts"
 import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
 import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
 import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
-import type { Fleet, Planet } from "game-rules/turn-resolution/TurnState.ts"
+import type { Fleet } from "game-rules/turn-resolution/Fleet.ts"
+import type { Planet } from "game-rules/turn-resolution/Planet.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
@@ -357,23 +358,13 @@ export class GameplayRepository extends PostgresRepository {
 
           const stars = await tx.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(starsTable.id)
           const planets = await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(planetsTable.id)
-          const fleets = await tx
-            .select({
-              id: fleetsTable.id,
-              ownerPlayerId: fleetsTable.ownerPlayerId,
-              name: fleetsTable.name,
-              strength: fleetsTable.strength,
-              originPlanetId: fleetsTable.originPlanetId,
-            })
-            .from(fleetsTable)
-            .where(eq(fleetsTable.gameId, gameId))
-            .orderBy(fleetsTable.id)
+          const fleetRows = await tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, gameId)).orderBy(fleetsTable.id)
 
           return {
             player,
             opponents,
             galaxy: toGalaxyModel({ stars, planets }),
-            fleets,
+            fleets: fleetRows.map(toFleet),
             gameId,
             turn: turn.turn,
             turnStatus: turn.status,
@@ -471,7 +462,13 @@ export class GameplayRepository extends PostgresRepository {
     }
 
     return await db
-      .select({ id: planetsTable.id, ownerPlayerId: planetsTable.ownerPlayerId, x: planetsTable.x, y: planetsTable.y })
+      .select({
+        id: planetsTable.id,
+        name: planetsTable.name,
+        ownerPlayerId: planetsTable.ownerPlayerId,
+        x: planetsTable.x,
+        y: planetsTable.y,
+      })
       .from(planetsTable)
       .where(and(eq(planetsTable.gameId, gameId), inArray(planetsTable.id, planetIds)))
   }
@@ -484,16 +481,11 @@ export class GameplayRepository extends PostgresRepository {
       return []
     }
 
-    return await db
-      .select({
-        id: fleetsTable.id,
-        ownerPlayerId: fleetsTable.ownerPlayerId,
-        name: fleetsTable.name,
-        strength: fleetsTable.strength,
-        originPlanetId: fleetsTable.originPlanetId,
-      })
+    const fleetRows = await db
+      .select()
       .from(fleetsTable)
       .where(and(eq(fleetsTable.gameId, gameId), inArray(fleetsTable.id, fleetIds)))
+    return fleetRows.map(toFleet)
   }
 
   public async getReadinessForUpdate(
@@ -613,4 +605,12 @@ function toGalaxyModel({
   }))
 
   return { systems }
+}
+
+function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): Fleet {
+  return {
+    ...fleet,
+    ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
+    ...(distanceToEnd === null ? {} : { distanceToEnd }),
+  }
 }

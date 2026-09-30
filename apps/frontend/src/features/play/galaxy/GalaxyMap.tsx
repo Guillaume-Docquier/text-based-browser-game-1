@@ -1,5 +1,7 @@
-import type { Galaxy, PlayerId, StarSystem } from "@api-types"
+import type { Fleet, Galaxy, LobbyPlayer, PlayerId, StarSystem } from "@api-types"
 import type { KeyboardEvent, ReactElement } from "react"
+import { MovingFleetMarkers, MovingFleetRoutes } from "@/features/play/fleets/markers/MovingFleetMarkers.tsx"
+import { getMovingFleetJourneys, type MovingFleetView } from "@/features/play/fleets/markers/movingFleetViews.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 
 const GALAXY_SIZE = 1_000
@@ -7,6 +9,8 @@ const GALAXY_PADDING = 25
 const GALAXY_MAP_SIZE = GALAXY_SIZE + GALAXY_PADDING * 2
 const GALAXY_VIEWPORT_CENTER = { x: GALAXY_SIZE / 2, y: GALAXY_SIZE / 2 }
 const LIGHT_YEAR_SIZE = 10
+// Match the shared Fleet icon and its label to the galaxy's 3-unit star glow.
+const FLEET_MARKER_SCALE = 0.1
 const REGION_COUNT_PER_AXIS = 10
 const REGION_SIZE = GALAXY_SIZE / REGION_COUNT_PER_AXIS
 const REGION_ZOOM_PADDING = 2
@@ -24,6 +28,8 @@ const MAJOR_GRID_LINES = Array.from({ length: REGION_COUNT_PER_AXIS + 1 }, (_, i
  * Renders the galaxy-wide star map.
  *
  * @param galaxy - The galaxy visible to the player.
+ * @param fleets - Fleets traveling through the galaxy.
+ * @param players - Players whose colors identify Fleets.
  * @param currentPlayerId - The player viewing the galaxy.
  * @param resetSignal - A value whose changes reset pan and zoom.
  * @param onSelectSystem - Selects a Star System for inspection.
@@ -31,16 +37,21 @@ const MAJOR_GRID_LINES = Array.from({ length: REGION_COUNT_PER_AXIS + 1 }, (_, i
  */
 export function GalaxyMap({
   galaxy,
+  fleets,
+  players,
   currentPlayerId,
   resetSignal,
   onSelectSystem,
 }: {
   galaxy: Galaxy
+  fleets: readonly Fleet[]
+  players: readonly LobbyPlayer[]
   currentPlayerId: PlayerId
   resetSignal: number
   onSelectSystem: (system: StarSystem) => void
 }): ReactElement {
   const panZoom = useMapPanZoom({ resetSignal, viewportCenter: GALAXY_VIEWPORT_CENTER })
+  const movingFleets = getMovingFleetViews(galaxy, fleets, players)
 
   function selectSystem(system: StarSystem): void {
     panZoom.centerOn(
@@ -92,9 +103,11 @@ export function GalaxyMap({
         <rect x={-GALAXY_PADDING} y={-GALAXY_PADDING} width={GALAXY_MAP_SIZE} height={GALAXY_MAP_SIZE} fill="#05080f" />
         <GalaxyGrid />
         <GalaxyRegions onSelect={selectRegion} />
+        <MovingFleetRoutes fleets={movingFleets} />
         {galaxy.systems.map((system) => (
           <GalaxyStar key={system.star.id} system={system} currentPlayerId={currentPlayerId} onSelect={selectSystem} />
         ))}
+        <MovingFleetMarkers fleets={movingFleets} scale={FLEET_MARKER_SCALE} strengthLabelY={28} />
       </g>
     </svg>
   )
@@ -197,6 +210,33 @@ function GalaxyGridLine({
       vectorEffect="non-scaling-stroke"
     />
   )
+}
+
+function getMovingFleetViews(galaxy: Galaxy, fleets: readonly Fleet[], players: readonly LobbyPlayer[]): MovingFleetView[] {
+  return getMovingFleetJourneys(galaxy.systems, fleets, players).map(({ fleet, owner, origin, destination, traveledFraction }) => {
+    const start = { x: origin.system.star.x * LIGHT_YEAR_SIZE, y: origin.system.star.y * LIGHT_YEAR_SIZE }
+    const end = { x: destination.system.star.x * LIGHT_YEAR_SIZE, y: destination.system.star.y * LIGHT_YEAR_SIZE }
+    const routeX = end.x - start.x
+    const routeY = end.y - start.y
+    const directionX = routeX === 0 && routeY === 0 ? destination.planet.x - origin.planet.x : routeX
+    const directionY = routeX === 0 && routeY === 0 ? destination.planet.y - origin.planet.y : routeY
+    const position = {
+      x: start.x + routeX * traveledFraction,
+      y: start.y + routeY * traveledFraction,
+    }
+
+    return {
+      fleet,
+      owner,
+      origin: origin.planet,
+      destination: destination.planet,
+      start,
+      end,
+      position,
+      markerPosition: position,
+      heading: (Math.atan2(directionY, directionX) * 180) / Math.PI + 90,
+    }
+  })
 }
 
 function GalaxyStar({

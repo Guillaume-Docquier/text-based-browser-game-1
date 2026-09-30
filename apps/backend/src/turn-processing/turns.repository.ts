@@ -1,16 +1,17 @@
 import { indexBy, Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { and, asc, eq, isNull, lte, sql } from "drizzle-orm"
+import type { NonNegativeNumber } from "@guillaume-docquier/tools-ts/schemas"
+import { and, asc, eq, inArray, isNull, lte, sql } from "drizzle-orm"
 import type { AvailableAction, SubmittedAction } from "game-rules/action-submission/Action.ts"
 import type { AccountId } from "game-rules/models/AccountId.ts"
 import type { FleetId } from "game-rules/models/FleetId.ts"
 import type { FleetName } from "game-rules/models/FleetName.ts"
 import type { GameId } from "game-rules/models/GameId.ts"
 import type { PlanetId } from "game-rules/models/PlanetId.ts"
+import type { PlanetName } from "game-rules/models/PlanetName.ts"
 import type { PlayerId } from "game-rules/models/PlayerId.ts"
 import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
 import type { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
 import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
-import type { Fleet } from "game-rules/turn-resolution/TurnState.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
@@ -31,6 +32,7 @@ import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
 type ResourceRow = typeof resourcesTable.$inferSelect
 type SubmittedActionRow = typeof actionsTable.$inferSelect
+type FleetRow = typeof fleetsTable.$inferSelect
 
 /**
  * Owning a TurnForProcessing within a transaction guarantees that the Turn Processing row is locked and needs processing.
@@ -74,6 +76,7 @@ type TurnToProcessPlayerModel = {
 
 type TurnToProcessPlanetModel = {
   readonly id: PlanetId
+  readonly name: PlanetName
   readonly ownerPlayerId: PlayerId | null
   readonly x: number
   readonly y: number
@@ -85,6 +88,8 @@ type TurnToProcessFleetModel = {
   readonly name: FleetName
   strength: number
   readonly originPlanetId: PlanetId
+  destinationPlanetId?: PlanetId | undefined
+  distanceToEnd?: NonNegativeNumber | undefined
 }
 
 export type ProcessedTurnModel = {
@@ -97,7 +102,8 @@ export type ProcessedTurnModel = {
     resourceType: ResourceType
     amount: number
   }>
-  fleets: Fleet[]
+  fleetsToUpdate: TurnToProcessFleetModel[]
+  fleetIdsToDelete: FleetId[]
   winnerAccountId?: AccountId
   nextTurn: number
   availableActions: AvailableAction[]
@@ -223,19 +229,16 @@ export class TurnsRepository extends PostgresRepository {
         .orderBy(asc(actionsTable.playerId)),
       tx.select().from(rulesetsTable).where(eq(rulesetsTable.id, games[0].rulesetId)),
       tx
-        .select({ id: planetsTable.id, ownerPlayerId: planetsTable.ownerPlayerId, x: planetsTable.x, y: planetsTable.y })
+        .select({
+          id: planetsTable.id,
+          name: planetsTable.name,
+          ownerPlayerId: planetsTable.ownerPlayerId,
+          x: planetsTable.x,
+          y: planetsTable.y,
+        })
         .from(planetsTable)
         .where(eq(planetsTable.gameId, startTurnProcessingModel.turn.gameId)),
-      tx
-        .select({
-          id: fleetsTable.id,
-          ownerPlayerId: fleetsTable.ownerPlayerId,
-          name: fleetsTable.name,
-          strength: fleetsTable.strength,
-          originPlanetId: fleetsTable.originPlanetId,
-        })
-        .from(fleetsTable)
-        .where(eq(fleetsTable.gameId, startTurnProcessingModel.turn.gameId)),
+      tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, startTurnProcessingModel.turn.gameId)),
     ])
 
     Assert.isTrue(rulesets.length === 1)
@@ -344,7 +347,18 @@ export class TurnsRepository extends PostgresRepository {
             },
           })
 
-        const fleets = processedTurnModel.fleets.map((fleet) => ({ ...fleet, gameId: processedTurnModel.gameId }))
+        if (processedTurnModel.fleetIdsToDelete.length > 0) {
+          await tx
+            .delete(fleetsTable)
+            .where(and(eq(fleetsTable.gameId, processedTurnModel.gameId), inArray(fleetsTable.id, processedTurnModel.fleetIdsToDelete)))
+        }
+
+        const fleets = processedTurnModel.fleetsToUpdate.map((fleet) => ({
+          ...fleet,
+          gameId: processedTurnModel.gameId,
+          destinationPlanetId: fleet.destinationPlanetId ?? null,
+          distanceToEnd: fleet.distanceToEnd ?? null,
+        }))
         if (fleets.length > 0) {
           await tx
             .insert(fleetsTable)
@@ -354,6 +368,8 @@ export class TurnsRepository extends PostgresRepository {
               set: {
                 strength: sql`excluded.strength`,
                 originPlanetId: sql`excluded.origin_planet_id`,
+                destinationPlanetId: sql`excluded.destination_planet_id`,
+                distanceToEnd: sql`excluded.distance_to_end`,
               },
             })
         }
@@ -435,7 +451,7 @@ function toTurnToProcessModel({
   resources: ResourceRow[]
   players: Array<{ id: PlayerId }>
   planets: TurnToProcessPlanetModel[]
-  fleets: TurnToProcessFleetModel[]
+  fleets: FleetRow[]
   submittedActions: SubmittedActionRow[]
   ruleset: Ruleset
 }): TurnToProcessModel {
@@ -463,7 +479,15 @@ function toTurnToProcessModel({
     ),
     players: indexBy("id", playerModels),
     planets: indexBy("id", planets),
-    fleets: indexBy("id", fleets),
+    fleets: indexBy("id", fleets.map(toTurnToProcessFleetModel)),
     ruleset,
+  }
+}
+
+function toTurnToProcessFleetModel({ destinationPlanetId, distanceToEnd, ...fleet }: FleetRow): TurnToProcessFleetModel {
+  return {
+    ...fleet,
+    ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
+    ...(distanceToEnd === null ? {} : { distanceToEnd }),
   }
 }

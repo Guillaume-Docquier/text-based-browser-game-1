@@ -37,9 +37,9 @@ export class EffectPool {
     return this.effects.size === 0
   }
 
-  public recordOutcome(effect: Effect, outcome: EffectOutcome): void {
+  public recordOutcomes(effect: Effect, outcomes: readonly EffectOutcome[]): void {
     this.effects.delete(effect)
-    this.outcomes.getOrInsert(effect.submittedAction, []).push(outcome)
+    this.outcomes.getOrInsert(effect.submittedAction, []).push(...outcomes)
   }
 
   public getOutcomes(submittedAction: SubmittedAction): readonly EffectOutcome[] {

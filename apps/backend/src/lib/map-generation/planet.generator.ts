@@ -1,11 +1,13 @@
 import { Assert, Range, type Rng, type XY } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { type PlanetName, PlanetNameSchema } from "game-rules/models/PlanetName.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 
 export type GeneratedPlanet = {
   readonly x: number
   readonly y: number
-  readonly name: string
+  readonly name: PlanetName
   readonly biome: PlanetBiome
   readonly size: PlanetSize
   readonly fertility: number
@@ -95,6 +97,6 @@ export function planetGenerator(starPosition: XY, orbitDistance: number, rng: Rn
 
 // To be improved
 const INT_RANGE = Range.integer({ min: 999, max: 999999 })
-function planetNameGenerator(rng: Rng): string {
-  return `planet ${rng.int(INT_RANGE)}`
+function planetNameGenerator(rng: Rng): PlanetName {
+  return typedParse(PlanetNameSchema, `planet ${rng.int(INT_RANGE)}`)
 }

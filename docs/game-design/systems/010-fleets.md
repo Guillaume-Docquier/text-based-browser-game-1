@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Build Fleet Actions create and reinforce stationed Fleets. The Fleets view and Star System markers show them. Movement, combat, splitting, cloaking, and colonization remain planned.
+Build Fleet Actions create and reinforce stationed Fleets. Move Fleet Directives advance Fleets and can land or merge them, but automatic continuation and the full movement lifecycle remain incomplete. The Fleets view and Star System markers show Fleets. Combat, splitting, cloaking, and colonization remain planned.
 
 ## Purpose
 
@@ -36,13 +36,15 @@ Relates to:
 
 A player can submit a Build Fleet Directive targeting one of their owned Planets. The server validates the target and combined Action costs when the submission is made, then validates locked submissions again during Turn Resolution. Pay Costs precedes Fleet Build. The available Standard Ruleset versions and their temporary balance values are recorded in [System 003-actions](./003-actions.md).
 
+The Standard Ruleset also offers three Move Fleet Directives. Each targets an owned Fleet and a destination Planet. Their current speeds and costs are recorded in [System 003-actions](./003-actions.md). Each submitted Directive advances the Fleet by up to its speed; remaining distance persists for another submission on a later Turn. A Fleet that arrives lands at the destination or merges its Strength into the same player's stationed Fleet there. Range limits and partial-Strength movement are not yet enforced.
+
 Fleet Build creates a Fleet with the Action's Strength, or adds that Strength to the same player's existing Fleet at the target Planet. It does not merge with another player's Fleet there. A new Fleet's ID is deterministic from the Game, Player, Planet, and creation Turn; reinforcement keeps the existing ID and name. New names are deterministic random values of the form `fleet <number>`.
 
-The player view currently exposes every Fleet in the Game to every player, including its name, owner, Strength, and origin Planet. The Fleets view can search names, filter by owner, sort its columns, and open the origin Planet in the Galaxy view. The Star System map shows each Fleet beneath its Planet's label with an owner-colored icon and Strength. No Fleet marker appears on the galaxy-wide map. Because movement is not implemented, the origin Planet is also the Fleet's current location. Cloaked Strength and visibility restrictions are not implemented.
+The player view currently exposes every Fleet in the Game to every player, including its name, owner, Strength, origin Planet, and movement state. The Fleets view can search names, filter by owner, sort its columns, and open the origin Planet in the Galaxy view. The Star System map shows stationed Fleets beneath their Planets' labels with owner-colored icons and Strength. Moving Fleets appear along their routes inside a Star System, or at its boundary while outside it. The galaxy-wide map shows moving Fleets on their routes between stars, with traveled and remaining segments, a destination-facing icon, and Strength. The Fleets view still uses the origin Planet for moving Fleets until they arrive. Cloaked Strength and visibility restrictions are not implemented.
 
 ### Planned Fleet Lifecycle
 
-A Fleet whose Total Strength reaches 0 disappears. Fleet Strength has no maximum. An empire has at most one Fleet at a given location. When fleets owned by the same empire meet at a location, they merge automatically into one Fleet with their combined Strength.
+A Fleet whose Total Strength reaches 0 disappears. Fleet Strength has no maximum. An empire has at most one stationed Fleet at a given Planet. Merging Fleets that meet through other future mechanics remains planned.
 
 To move a Fleet, the player selects a positive amount of its Strength. That Strength departs as the moving Fleet, while any remaining Strength stays at the origin.
 

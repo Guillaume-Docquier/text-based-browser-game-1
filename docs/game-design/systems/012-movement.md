@@ -2,7 +2,13 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
+
+The Standard and Test Rulesets offer three Move Fleet Directives with speeds of 0.1, 1, and 5 light-years per Turn. They require an owned Fleet and a destination Planet. Each submitted Directive advances the Fleet toward that Planet. Its remaining distance persists between Turns; on arrival, it lands or merges with the player's stationed Fleet there. Range limits, partial-Strength movement, automatic continuation, and chronological ordering across simultaneous arrivals remain planned.
+
+The galaxy map shows an In-Transit Fleet between its origin and destination stars according to its remaining distance. A solid route segment shows distance traveled, and a dashed segment shows distance remaining. The Fleet icon points toward its destination and displays its Strength. A movement between Planets in the same Star System appears at that star without a visible interstellar route.
+
+The Star System map has a boundary ring two orbital slots beyond its outermost Planet. It places an In-Transit Fleet at its position along the route while the Fleet is inside that system, or at the route's boundary crossing while the Fleet is outside. The icon faces the direction of travel. Solid and dashed route segments connect the relevant Planet and Fleet, and end at the boundary. A Fleet moving between Planets in one Star System remains on its route within that system.
 
 ## Purpose
 

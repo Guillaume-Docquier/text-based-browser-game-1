@@ -50,7 +50,7 @@ export class GalaxyPage extends GamePage {
     this.sharedStars = this.ownStars.filter({ has: page.locator('[data-ownership-marker="opponent"]') })
 
     this.starSystemMap = page.getByRole("group", { name: / Star System map$/ })
-    this.foregroundBody = this.starSystemMap.locator(':scope > g > g:last-child > [role="button"]')
+    this.foregroundBody = this.starSystemMap.locator(':scope > g > g[data-system-body] > [role="button"]').last()
     this.starSystemStar = branded(page.getByRole("button", { name: /^Return to Galaxy from / }))
 
     this.planets = page.getByRole("button", { name: /^View .+ details/ })

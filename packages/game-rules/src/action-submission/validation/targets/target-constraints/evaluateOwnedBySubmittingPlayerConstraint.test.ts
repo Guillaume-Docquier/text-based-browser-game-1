@@ -56,6 +56,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       const target: TargetablePlanet = {
         type: TargetType.PLANET,
         id: branded("1"),
+        name: branded("planet-1"),
         ownerPlayerId: submittingPlayerId,
         x: 0,
         y: 0,
@@ -73,6 +74,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       const target: TargetablePlanet = {
         type: TargetType.PLANET,
         id: branded("1"),
+        name: branded("planet-1"),
         ownerPlayerId: otherPlayerId,
         x: 0,
         y: 0,
@@ -90,6 +92,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       const target: TargetablePlanet = {
         type: TargetType.PLANET,
         id: branded("1"),
+        name: branded("planet-1"),
         ownerPlayerId: null,
         x: 0,
         y: 0,

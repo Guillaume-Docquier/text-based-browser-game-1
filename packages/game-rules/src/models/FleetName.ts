@@ -1,10 +1,9 @@
 import { branded, type Branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 
-export type FleetName = Branded<"FleetName", string>
-
 export const FLEET_NAME_MAX_LENGTH = 36
 
+export type FleetName = Branded<"FleetName", string>
 export const FleetNameSchema = z
   .string()
   .trim()

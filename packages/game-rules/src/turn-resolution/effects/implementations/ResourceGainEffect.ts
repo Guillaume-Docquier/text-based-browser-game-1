@@ -14,17 +14,17 @@ export class ResourceGainEffect extends Effect {
     this.effectDefinition = effectDefinition
   }
 
-  protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
+  protected override doResolve(context: TurnContext): Result<EffectOutcome[], EffectError> {
     const player = context.turnState.players[this.submittedAction.playerId]
     if (player === undefined) {
       return Result.Failure(EffectError.Failed({ error: `Could not resolve player with id "${this.submittedAction.playerId}"` }))
     }
 
     player.resources[this.effectDefinition.parameters.resourceType] += this.effectDefinition.parameters.quantity
-    return Result.Success(
+    return Result.Success([
       EffectOutcome.Resolved({
         result: `Player "${this.submittedAction.playerId}" gained ${this.effectDefinition.parameters.quantity} ${this.effectDefinition.parameters.resourceType}`,
       }),
-    )
+    ])
   }
 }

@@ -1,3 +1,4 @@
+import type { NonNegativeNumber } from "@guillaume-docquier/tools-ts/schemas"
 import { sql } from "drizzle-orm"
 import {
   bigint,
@@ -27,6 +28,7 @@ import { gameIdColumn } from "#lib/db/games/GameId.ts"
 import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { PlanetBiome } from "#lib/db/planets/PlanetBiome.ts"
 import { planetIdColumn } from "#lib/db/planets/PlanetId.ts"
+import { planetNameColumn } from "#lib/db/planets/PlanetName.ts"
 import { PlanetSize } from "#lib/db/planets/PlanetSize.ts"
 import { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { playerIdColumn } from "#lib/db/players/PlayerId.ts"
@@ -285,7 +287,7 @@ export const planetsTable = pgTable(
     starId: starIdColumn("star_id").notNull(),
     id: planetIdColumn("id").notNull(),
     ownerPlayerId: playerIdColumn("owner_player_id"),
-    name: text("name").notNull(),
+    name: planetNameColumn("name").notNull(),
     coordinates: text("coordinates").notNull(),
     x: doublePrecision("x").notNull(),
     y: doublePrecision("y").notNull(),
@@ -324,6 +326,8 @@ export const fleetsTable = pgTable(
     name: fleetNameColumn("name").notNull(),
     strength: integer("strength").notNull(),
     originPlanetId: planetIdColumn("origin_planet_id").notNull(),
+    destinationPlanetId: planetIdColumn("destination_planet_id"),
+    distanceToEnd: doublePrecision("distance_to_end").$type<NonNegativeNumber>(),
   },
   (table) => [
     foreignKey({
@@ -341,8 +345,12 @@ export const fleetsTable = pgTable(
       foreignColumns: [planetsTable.gameId, planetsTable.id],
       name: "fleets_gameId_originPlanetId_planets_fk",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.gameId, table.destinationPlanetId],
+      foreignColumns: [planetsTable.gameId, planetsTable.id],
+      name: "fleets_gameId_destinationPlanetId_planets_fk",
+    }).onDelete("cascade"),
     check("fleets_strength_positive_check", sql`${table.strength} > 0`),
-    unique("fleets_game_id_owner_player_id_origin_planet_id_unique").on(table.gameId, table.ownerPlayerId, table.originPlanetId),
     index("fleets_game_id_origin_planet_id_idx").on(table.gameId, table.originPlanetId),
   ],
 )

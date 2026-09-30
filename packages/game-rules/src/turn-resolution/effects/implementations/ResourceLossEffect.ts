@@ -14,7 +14,7 @@ export class ResourceLossEffect extends Effect {
     this.effectDefinition = effectDefinition
   }
 
-  protected override doResolve(context: TurnContext): Result<EffectOutcome, EffectError> {
+  protected override doResolve(context: TurnContext): Result<EffectOutcome[], EffectError> {
     const player = context.turnState.players[this.submittedAction.playerId]
     if (player === undefined) {
       return Result.Failure(EffectError.Failed({ error: `Could not resolve player with id "${this.submittedAction.playerId}"` }))
@@ -29,10 +29,10 @@ export class ResourceLossEffect extends Effect {
       )
     }
 
-    return Result.Success(
+    return Result.Success([
       EffectOutcome.Resolved({
         result: `Player "${this.submittedAction.playerId}" spent ${this.effectDefinition.parameters.quantity} ${this.effectDefinition.parameters.resourceType}`,
       }),
-    )
+    ])
   }
 }

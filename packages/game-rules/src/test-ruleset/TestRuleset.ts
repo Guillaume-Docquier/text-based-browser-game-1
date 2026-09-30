@@ -6,6 +6,7 @@ import { GainEnergy } from "#game-rules/test-ruleset/action-definitions/gain-ene
 import { GainFuel } from "#game-rules/test-ruleset/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#game-rules/test-ruleset/action-definitions/gain-influence.ts"
 import { GainMetal } from "#game-rules/test-ruleset/action-definitions/gain-metal.ts"
+import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#game-rules/test-ruleset/action-definitions/move-fleet.ts"
 import { WinTheGame } from "#game-rules/test-ruleset/action-definitions/win-the-game.ts"
 
 const ACTION_DEFINITIONS = [
@@ -17,6 +18,9 @@ const ACTION_DEFINITIONS = [
   BuildFleetStandard,
   BuildFleetImproved,
   BuildFleetExceptional,
+  MoveFleetStandard,
+  MoveFleetImproved,
+  MoveFleetExceptional,
 ]
 
 export const TestRuleset = Ruleset.create({

@@ -6,6 +6,7 @@ import { createSubmittedActionStub } from "#game-rules/action-submission/Action.
 import type { FleetId } from "#game-rules/models/FleetId.ts"
 import { FleetNameSchema } from "#game-rules/models/FleetName.ts"
 import type { PlanetId } from "#game-rules/models/PlanetId.ts"
+import { PlanetNameSchema } from "#game-rules/models/PlanetName.ts"
 import type { PlayerId } from "#game-rules/models/PlayerId.ts"
 import { createResourcesStub } from "#game-rules/ruleset/effect-definitions/Resources.stub.ts"
 import { ResourceType } from "#game-rules/ruleset/effect-definitions/ResourceType.ts"
@@ -266,7 +267,7 @@ describe("resolveTurn", () => {
           }),
         },
       ]),
-      planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
+      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: playerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -322,7 +323,7 @@ describe("resolveTurn", () => {
           }),
         },
       ]),
-      planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
+      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: playerId, x: 0, y: 0 }]),
       fleets: indexBy("id", [{ id: fleetId, ownerPlayerId: playerId, name: fleetName, strength: 5, originPlanetId: planetId }]),
     })
 
@@ -374,7 +375,7 @@ describe("resolveTurn", () => {
         { id: playerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
         { id: enemyPlayerId, resources: createResourcesStub({ [ResourceType.INFLUENCE]: 2, [ResourceType.METAL]: 1 }) },
       ]),
-      planets: indexBy("id", [{ id: planetId, ownerPlayerId: playerId, x: 0, y: 0 }]),
+      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: playerId, x: 0, y: 0 }]),
       fleets: indexBy("id", [
         { id: enemyFleetId, ownerPlayerId: enemyPlayerId, name: enemyFleetName, strength: 5, originPlanetId: planetId },
       ]),
