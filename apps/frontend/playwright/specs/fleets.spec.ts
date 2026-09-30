@@ -42,8 +42,8 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
     const bobPlayersPage = await bobActionsPage.openPlayers()
     await bobPlayersPage.toggleReady()
 
-    await expect(alicePlayersPage.turn).toHaveText("Turn1", { timeout: 15000 })
-    await expect(bobPlayersPage.turn).toHaveText("Turn1", { timeout: 15000 })
+    await expect(alicePlayersPage.turn).toHaveText("Turn 1", { timeout: 15000 })
+    await expect(bobPlayersPage.turn).toHaveText("Turn 1", { timeout: 15000 })
   })
 
   await test.step("Search and select a Move Fleet destination from one combobox", async () => {

@@ -1,0 +1,99 @@
+.turn-button {
+  --turn-frame: var(--color-amber-500);
+  position: relative;
+  display: grid;
+  width: 15rem;
+  max-width: 100%;
+  padding: 0.35rem 1.25rem;
+  border: 0;
+  background: var(--turn-frame);
+  color: var(--color-amber-400);
+  cursor: pointer;
+  clip-path: polygon(
+    0 12px,
+    12px 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% calc(100% - 12px),
+    calc(100% - 12px) 100%,
+    12px 100%,
+    0 calc(100% - 12px)
+  );
+}
+
+.turn-button::before {
+  position: absolute;
+  inset: 1px;
+  content: "";
+  background: var(--color-background);
+  clip-path: inherit;
+}
+
+.turn-button[aria-pressed="true"] {
+  --turn-frame: var(--color-lime-400);
+}
+
+.turn-button__details,
+.turn-button__action {
+  position: relative;
+  grid-area: 1 / 1;
+  align-self: center;
+  text-align: center;
+}
+
+.turn-button__details {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.turn-button__label {
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.turn-button__countdown {
+  border-block: 1px solid color-mix(in oklab, currentColor 25%, transparent);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+}
+
+.turn-button__action {
+  visibility: hidden;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.turn-button:enabled:is(:hover, :focus-visible) {
+  --turn-frame: var(--color-lime-400);
+  color: var(--turn-frame);
+}
+
+.turn-button[aria-pressed="true"]:enabled:is(:hover, :focus-visible) {
+  --turn-frame: var(--color-red-400);
+}
+
+.turn-button:enabled:is(:hover, :focus-visible)::before {
+  background: color-mix(in oklab, var(--turn-frame) 15%, var(--color-background));
+}
+
+.turn-button:focus-visible::before {
+  inset: 3px;
+}
+
+.turn-button:enabled:is(:hover, :focus-visible) .turn-button__details {
+  opacity: 0;
+}
+
+.turn-button:enabled:is(:hover, :focus-visible) .turn-button__action {
+  visibility: visible;
+}
+
+.turn-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}

@@ -12,7 +12,7 @@ export class PlayersPage extends GamePage {
     this.readyButton = page.getByRole("button", { name: "Ready", exact: true })
     this.opponentReady = page.getByRole("img", { name: "Ready", exact: true })
     this.opponentNotReady = page.getByRole("img", { name: "Not ready", exact: true })
-    this.turn = page.getByRole("banner").getByText("Turn", { exact: true }).locator("..")
+    this.turn = page.getByRole("banner").getByText(/^Turn \d+$/, { exact: true })
   }
 
   public async toggleReady(): Promise<void> {
