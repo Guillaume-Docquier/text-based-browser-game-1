@@ -28,20 +28,12 @@ export class FleetMoveEffect extends Effect {
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome[], EffectError> {
-    const fleet = TurnState.getFleet(context.turnState, this.targetFleetId)
-    if (fleet === undefined) {
-      return Result.Failure(EffectError.Failed({ error: "Target fleet could not be found." }))
+    const entitiesResult = this.getEntities(context)
+    if (Result.isFailure(entitiesResult)) {
+      return entitiesResult
     }
 
-    const originPlanet = TurnState.getPlanet(context.turnState, fleet.originPlanetId)
-    if (originPlanet === undefined) {
-      return Result.Failure(EffectError.Failed({ error: "Origin planet could not be found." }))
-    }
-
-    const destinationPlanet = TurnState.getPlanet(context.turnState, this.targetPlanetId)
-    if (destinationPlanet === undefined) {
-      return Result.Failure(EffectError.Failed({ error: "Target planet could not be found." }))
-    }
+    const { fleet, originPlanet, destinationPlanet } = entitiesResult.value
 
     const moveOutcome = this.move({ fleet, originPlanet, destinationPlanet })
     if (fleet.arrivedAtTick === undefined) {
@@ -64,6 +56,29 @@ export class FleetMoveEffect extends Effect {
     } else {
       return Result.Success([moveOutcome, this.merge({ fleet, fleetAtDestination, destinationPlanet })])
     }
+  }
+
+  /**
+   * Gets the entities this effect needs to work with.
+   * Returns an error if it fails to find the required entities.
+   */
+  private getEntities(context: TurnContext): Result<{ fleet: Fleet; originPlanet: Planet; destinationPlanet: Planet }, EffectError> {
+    const fleet = TurnState.getFleet(context.turnState, this.targetFleetId)
+    if (fleet === undefined) {
+      return Result.Failure(EffectError.Failed({ error: "Target fleet could not be found." }))
+    }
+
+    const originPlanet = TurnState.getPlanet(context.turnState, fleet.originPlanetId)
+    if (originPlanet === undefined) {
+      return Result.Failure(EffectError.Failed({ error: "Origin planet could not be found." }))
+    }
+
+    const destinationPlanet = TurnState.getPlanet(context.turnState, this.targetPlanetId)
+    if (destinationPlanet === undefined) {
+      return Result.Failure(EffectError.Failed({ error: "Destination planet could not be found." }))
+    }
+
+    return Result.Success({ fleet, originPlanet, destinationPlanet })
   }
 
   private move({
