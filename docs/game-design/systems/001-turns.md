@@ -35,7 +35,7 @@ Relates to:
 | Turn Resolution   | The internal processing period that begins when a Turn ends and produces the next game state.                   |
 | Phase             | A coarse, ordered stage of Turn Resolution that determines when a category of Effects resolves.                 |
 | Tick              | An ordered precision sub-step inside the Fleet Movement Phase, used to sequence movement progress and arrivals. |
-| Readiness         | A public state a player can set. When all players are Ready, the Turn ends.                                     |
+| Readiness         | A public state a player can set. When all players are Ready, the Turn ends. The UI presents Ready as Locked in. |
 | Action Submission | A player's proposed use of an Available Action Instance, locked for processing when the Turn ends.              |
 | Turn Status       | The lifecycle of one Turn: collecting actions, awaiting processing, processing, or completed.                   |
 
@@ -45,7 +45,7 @@ Turns have a constant and fixed duration determined before the game starts. The 
 
 At every moment, all players know how much time is left before the Turn ends. During a Turn, players can submit and revise Actions. All players play simultaneously, and their submitted Actions remain secret until resolution.
 
-During a Turn, players can declare themselves Ready. This is public information. When all players are Ready, the Turn ends. This is the only way that a Turn can take less time than the Turn duration determined before the game starts.
+During a Turn, players can declare themselves Ready. This is public information. The UI labels this action Lock in and presents the resulting Ready state as Locked in. Cancel clears Readiness while the Turn is still collecting Actions. When all players are Ready, the Turn ends. This is the only way that a Turn can take less time than the Turn duration determined before the game starts.
 
 When a Turn ends, its status changes from `COLLECTING_ACTIONS` to `AWAITING_PROCESSING` and all Action Submissions are locked in. Players cannot submit or revise them during Turn Resolution. The server claims the Turn with a processing queue row, changes it to `PROCESSING`, validates locked submissions, and the [System 015-rules-engine](./015-rules-engine.md) resolves the turn.
 

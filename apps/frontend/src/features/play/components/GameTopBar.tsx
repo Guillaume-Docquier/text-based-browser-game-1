@@ -14,24 +14,24 @@ import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function GameTopBar({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
   return (
-    <header className="flex min-h-24 flex-col justify-center border-b border-border/70 bg-background/80 px-4 py-4 sm:px-6">
-      <div className="grid min-w-0 grid-cols-1 items-center gap-4 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-1">
+    <header className="shrink-0 border-b border-border/70 bg-background/80 px-4 sm:px-6">
+      <div className="grid min-w-0 grid-cols-1 items-center gap-x-4 sm:h-[calc(6rem-1px)] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-1 py-3 sm:py-0">
           <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Game #{game.id}</div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">{game.configuration.name}</h1>
             <TurnStatusBadge status={playerView.turnStatus} />
           </div>
         </div>
-        <div className="min-w-0 justify-self-center">
+        <div className="min-w-0 justify-self-center self-stretch">
           <TurnControl game={game} playerView={playerView} />
         </div>
-        <div className="min-w-0 justify-self-end">
+        <div className="min-w-0 justify-self-end py-3 sm:py-0">
           <ResourcesFact resources={playerView.resources} />
         </div>
       </div>
       {game.winnerAccountId === null ? null : (
-        <div className="mt-3 flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
           <Crown className="size-4" />
           <span>{getWinnerLabel(branded(game.winnerAccountId), game)} has won the game.</span>
         </div>
@@ -53,29 +53,24 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
 
   return (
     <div className="group/resources relative">
-      <div className="flex min-h-11 items-center rounded-md border border-border/70 bg-card/45 px-3 py-1.5">
-        <div>
-          <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Resources</div>
-          <div className="flex flex-wrap gap-x-3">
-            {sortedResources.map(({ resourceType, total, uncommitted }) => {
-              const ResourceIcon = RESOURCE_ICONS[resourceType]
-              const resourceName = formatRulesetTerm(resourceType)
+      <div className="flex flex-wrap justify-end gap-x-3 gap-y-2">
+        {sortedResources.map(({ resourceType, total, uncommitted }) => {
+          const ResourceIcon = RESOURCE_ICONS[resourceType]
+          const resourceName = formatRulesetTerm(resourceType)
 
-              return (
-                <div
-                  key={resourceType}
-                  className="flex items-center gap-1 text-sm font-medium"
-                  aria-label={`${uncommitted} available of ${total} ${resourceName}`}
-                >
-                  <span>
-                    {uncommitted} / {total}
-                  </span>
-                  <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
-                </div>
-              )
-            })}
-          </div>
-        </div>
+          return (
+            <div
+              key={resourceType}
+              className="flex items-center gap-1 text-sm font-medium"
+              aria-label={`${uncommitted} available of ${total} ${resourceName}`}
+            >
+              <span>
+                {uncommitted} / {total}
+              </span>
+              <ResourceIcon className="size-4 text-amber-300" aria-hidden="true" />
+            </div>
+          )
+        })}
       </div>
       <div className="invisible absolute top-full right-0 z-20 w-full pt-2 opacity-0 transition-opacity group-hover/resources:visible group-hover/resources:opacity-100">
         <div className="grid grid-cols-[max-content_1rem_max-content] justify-start gap-x-1 gap-y-1 rounded-md border border-border/70 bg-card px-3 py-2 shadow-lg">
@@ -148,7 +143,7 @@ function TurnControl({ game, playerView }: { game: Lobby; playerView: PlayerView
   }
 
   return (
-    <div className="relative">
+    <div className="relative h-full">
       <TurnButton
         turn={playerView.turn}
         countdown={formatCountdown(timeLeft.duration)}
@@ -184,7 +179,7 @@ function NextTurnRefreshButton({
       type="button"
       variant="outline"
       aria-label="Refresh game data for the next turn"
-      className="h-auto min-h-11 justify-start gap-2 rounded-md border-primary/50 bg-primary/10 px-3 py-1.5 text-left shadow-sm hover:border-primary/70 hover:bg-primary/20"
+      className="h-full min-h-20 w-48 max-w-full flex-col gap-1 rounded-none border-0 border-b-2 border-primary/60 bg-transparent px-3 py-2 text-center shadow-none hover:border-primary hover:bg-primary/10"
       disabled={isRefreshing}
       onClick={onRefresh}
     >
@@ -193,7 +188,7 @@ function NextTurnRefreshButton({
         <div className="text-[0.7rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">Next turn</div>
         <div className="truncate text-sm font-medium text-foreground">
           {isRefreshing ? "Refreshing..." : "Refresh"}
-          <span className="ml-2 text-muted-foreground">{detail}</span>
+          <span className="block text-xs text-muted-foreground">{detail}</span>
         </div>
       </div>
     </Button>

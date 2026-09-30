@@ -10,7 +10,7 @@ Partially Implemented
 - [x] Available Action pool
 - [x] Ruleset-defined Action Pool with stable Action IDs
 - [x] Multiple Action submissions
-- [x] Readiness locks Action submissions until the player unreadies or the next Turn starts
+- [x] Readiness locks Action submissions until the player clears Readiness or the next Turn starts
 - [x] Build Fleet Directives with owned-Planet targets and resource costs
 - [x] Move Fleet Directives with owned-Fleet and destination-Planet targets
 - [ ] Ideology-driven Action pools
