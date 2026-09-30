@@ -4,9 +4,9 @@ import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { useId, useState } from "react"
 import { flushSync } from "react-dom"
 import starImage from "@/assets/planets/star-small.png"
-import { FleetMarkers } from "@/features/play/galaxy/star-system/FleetMarkers.tsx"
 import { getMovingFleetViews, MovingFleetMarkers, MovingFleetRoutes } from "@/features/play/galaxy/star-system/MovingFleetMarkers.tsx"
 import { PLANET_BIOME_IMAGES } from "@/features/play/galaxy/star-system/planetBiomeImages.ts"
+import { StationedFleetMarkers } from "@/features/play/galaxy/star-system/StationedFleetMarkers.tsx"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
 import { PLAYER_COLOR_HEX, UNCLAIMED_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
@@ -318,7 +318,7 @@ function Planet({
         className="pointer-events-none"
       />
       <PlanetLabel planet={planet} ownerName={ownerName} ownerColor={ownerColor} />
-      <FleetMarkers x={planet.x} y={planet.y + planet.radius + 30} fleets={fleets} players={players} />
+      <StationedFleetMarkers x={planet.x} y={planet.y + planet.radius + 30} fleets={fleets} players={players} />
       {/* Provides a larger pointer and keyboard focus target without changing the visible planet. */}
       <circle
         cx={planet.x}

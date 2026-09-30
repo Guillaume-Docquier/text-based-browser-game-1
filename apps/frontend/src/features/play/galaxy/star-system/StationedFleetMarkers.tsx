@@ -7,7 +7,7 @@ import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 const MIN_SLOT_WIDTH = 44
 
 /** Renders stationed Fleets in a centered row with each Fleet's visible Strength. */
-export function FleetMarkers({
+export function StationedFleetMarkers({
   x,
   y,
   fleets,
