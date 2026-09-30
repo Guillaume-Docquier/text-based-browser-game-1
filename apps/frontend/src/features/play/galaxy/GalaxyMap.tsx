@@ -1,9 +1,8 @@
-import type { Fleet, Galaxy, LobbyPlayer, Planet, PlayerId, StarSystem } from "@api-types"
-import { Assert } from "@guillaume-docquier/tools-ts"
+import type { Fleet, Galaxy, LobbyPlayer, PlayerId, StarSystem } from "@api-types"
 import type { KeyboardEvent, ReactElement } from "react"
-import { FleetIcon } from "@/features/play/galaxy/FleetIcon.tsx"
+import { MovingFleetMarkers, MovingFleetRoutes } from "@/features/play/fleets/markers/MovingFleetMarkers.tsx"
+import { getMovingFleetJourneys, type MovingFleetView } from "@/features/play/fleets/markers/movingFleetViews.ts"
 import { useMapPanZoom } from "@/features/play/galaxy/useMapPanZoom.ts"
-import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 const GALAXY_SIZE = 1_000
 const GALAXY_PADDING = 25
@@ -24,19 +23,6 @@ const MINOR_GRID_LINES = Array.from({ length: 99 }, (_, index) => index + 1)
   .filter((index) => index % 10 !== 0)
   .map((index) => index * LIGHT_YEAR_SIZE)
 const MAJOR_GRID_LINES = Array.from({ length: REGION_COUNT_PER_AXIS + 1 }, (_, index) => index * REGION_SIZE)
-
-type MapPoint = { readonly x: number; readonly y: number }
-type PlanetLocation = { readonly planet: Planet; readonly system: StarSystem }
-type MovingFleetView = {
-  readonly fleet: Fleet
-  readonly owner: LobbyPlayer
-  readonly origin: PlanetLocation
-  readonly destination: PlanetLocation
-  readonly start: MapPoint
-  readonly end: MapPoint
-  readonly position: MapPoint
-  readonly heading: number
-}
 
 /**
  * Renders the galaxy-wide star map.
@@ -121,7 +107,7 @@ export function GalaxyMap({
         {galaxy.systems.map((system) => (
           <GalaxyStar key={system.star.id} system={system} currentPlayerId={currentPlayerId} onSelect={selectSystem} />
         ))}
-        <MovingFleetMarkers fleets={movingFleets} />
+        <MovingFleetMarkers fleets={movingFleets} scale={FLEET_MARKER_SCALE} strengthLabelY={28} />
       </g>
     </svg>
   )
@@ -226,120 +212,31 @@ function GalaxyGridLine({
   )
 }
 
-function MovingFleetRoutes({ fleets }: { fleets: readonly MovingFleetView[] }): ReactElement {
-  return (
-    <g aria-hidden="true" className="pointer-events-none">
-      {fleets.map(({ fleet, owner, start, position, end }) => {
-        const color = PLAYER_COLOR_HEX[owner.color]
-
-        return (
-          <g key={fleet.id} data-fleet-route={fleet.id}>
-            <line
-              x1={start.x}
-              y1={start.y}
-              x2={position.x}
-              y2={position.y}
-              stroke={color}
-              strokeOpacity="0.85"
-              strokeWidth="2"
-              vectorEffect="non-scaling-stroke"
-            />
-            <line
-              x1={position.x}
-              y1={position.y}
-              x2={end.x}
-              y2={end.y}
-              stroke={color}
-              strokeOpacity="0.5"
-              strokeWidth="1.5"
-              strokeDasharray="4 4"
-              vectorEffect="non-scaling-stroke"
-            />
-          </g>
-        )
-      })}
-    </g>
-  )
-}
-
-function MovingFleetMarkers({ fleets }: { fleets: readonly MovingFleetView[] }): ReactElement {
-  return (
-    <g className="pointer-events-none">
-      {fleets.map(({ fleet, owner, origin, destination, position, heading }) => {
-        const strengthLabel = fleet.strength.toLocaleString()
-
-        return (
-          <g
-            key={fleet.id}
-            role="img"
-            aria-label={`${fleet.name}, ${owner.alias ?? `Player ${owner.id}`}, ${strengthLabel} strength, traveling from ${origin.planet.name} to ${destination.planet.name}`}
-            data-fleet-marker={fleet.id}
-            transform={`translate(${position.x} ${position.y}) scale(${FLEET_MARKER_SCALE})`}
-          >
-            <g transform={`rotate(${heading}) translate(0 -12)`}>
-              <FleetIcon color={PLAYER_COLOR_HEX[owner.color]} />
-            </g>
-            <text
-              y="28"
-              textAnchor="middle"
-              fill="#f8fafc"
-              fontSize="12"
-              paintOrder="stroke"
-              stroke="#05080f"
-              strokeWidth="3"
-              strokeLinejoin="round"
-            >
-              {strengthLabel}
-            </text>
-          </g>
-        )
-      })}
-    </g>
-  )
-}
-
 function getMovingFleetViews(galaxy: Galaxy, fleets: readonly Fleet[], players: readonly LobbyPlayer[]): MovingFleetView[] {
-  const planetsById = new Map(galaxy.systems.flatMap((system) => system.planets.map((planet) => [planet.id, { planet, system }] as const)))
-  const ownersById = new Map(players.map((player) => [player.id, player]))
-  const movingFleets: MovingFleetView[] = []
-
-  for (const fleet of fleets) {
-    if (fleet.destinationPlanetId === undefined || fleet.distanceToEnd === undefined) {
-      continue
-    }
-
-    const origin = planetsById.get(fleet.originPlanetId)
-    const destination = planetsById.get(fleet.destinationPlanetId)
-    const owner = ownersById.get(fleet.ownerPlayerId)
-    Assert.isDefined(origin)
-    Assert.isDefined(destination)
-    Assert.isDefined(owner)
-
-    const totalDistance = Math.hypot(destination.planet.x - origin.planet.x, destination.planet.y - origin.planet.y)
-    const traveledFraction = totalDistance === 0 ? 0 : Math.max(0, Math.min(1, 1 - fleet.distanceToEnd / totalDistance))
+  return getMovingFleetJourneys(galaxy.systems, fleets, players).map(({ fleet, owner, origin, destination, traveledFraction }) => {
     const start = { x: origin.system.star.x * LIGHT_YEAR_SIZE, y: origin.system.star.y * LIGHT_YEAR_SIZE }
     const end = { x: destination.system.star.x * LIGHT_YEAR_SIZE, y: destination.system.star.y * LIGHT_YEAR_SIZE }
     const routeX = end.x - start.x
     const routeY = end.y - start.y
     const directionX = routeX === 0 && routeY === 0 ? destination.planet.x - origin.planet.x : routeX
     const directionY = routeX === 0 && routeY === 0 ? destination.planet.y - origin.planet.y : routeY
+    const position = {
+      x: start.x + routeX * traveledFraction,
+      y: start.y + routeY * traveledFraction,
+    }
 
-    movingFleets.push({
+    return {
       fleet,
       owner,
-      origin,
-      destination,
+      origin: origin.planet,
+      destination: destination.planet,
       start,
       end,
-      position: {
-        x: start.x + routeX * traveledFraction,
-        y: start.y + routeY * traveledFraction,
-      },
+      position,
+      markerPosition: position,
       heading: (Math.atan2(directionY, directionX) * 180) / Math.PI + 90,
-    })
-  }
-
-  return movingFleets
+    }
+  })
 }
 
 function GalaxyStar({

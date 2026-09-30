@@ -7,6 +7,9 @@ const LEFT_FIN_PATH =
 const RIGHT_FIN_PATH =
   "M65.1 52.0 C67.8 55.0 71.4 58.8 73.8 61.9 C74.6 63.1 74.9 65.0 75.1 67.2 L76.2 81.9 C76.3 83.6 75.4 84.8 74.0 84.9 C72.5 85.0 70.9 83.4 70.4 81.7 C68.8 75.2 67.6 68.1 66.4 61.6 Z"
 
+/**
+ * Renders the shared Fleet silhouette in its owner's color.
+ */
 export function FleetIcon({ color }: { color: string }): ReactElement {
   const idPrefix = `fleet${useId().replaceAll(":", "-")}`
   const shadowId = `${idPrefix}-soft-shadow`
