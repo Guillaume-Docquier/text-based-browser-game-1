@@ -25,6 +25,14 @@ Turn Processing is isolated so workers can scale independently or move to anothe
 
 ## Testing
 
+### API slice testing boundary
+
+- The router is the strict testing boundary for API vertical slices. Exercise each slice through the API client, covering the real router, controller/use case, and production repository together.
+- Never write repository tests or controller/use-case tests for these slices.
+- Never implement test repositories, including repositories that insert or modify game state solely for test setup.
+- Integration tests must set up and observe game state through the API. Create and start games with the test client, then submit actions and process turns to reach the required state. Use the stable test ruleset and a fixed galaxy seed for deterministic scenarios.
+- This router-only boundary takes precedence over the repository-testing guidance in [ADR 016](../../docs/architecture/decisions/016-use-repositories-in-tests.md) for backend API slices.
+
 ### Docker-backed concurrency tests
 
 - On Windows with Codex, `CodexSandboxOffline` cannot access the Docker daemon pipe. Run `pnpm --filter backend test --project concurrency` with `exec_command` and `sandbox_permissions: "require_escalated"`. This uses the normal Docker-enabled account, not administrator elevation.
