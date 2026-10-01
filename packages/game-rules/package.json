@@ -13,7 +13,7 @@
     "checks": "pnpm typecheck && pnpm test",
     "test": "vitest run",
     "test:coverage": "pnpm test --coverage",
-    "typecheck": "tsc && tsc -p tsconfig.node.json"
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@guillaume-docquier/tools-ts": "catalog:",

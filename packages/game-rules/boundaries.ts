@@ -22,7 +22,7 @@ export const Boundaries = {
     },
     "import/resolver": {
       typescript: {
-        project: path.resolve(import.meta.dirname, "tsconfig.json"),
+        project: path.resolve(import.meta.dirname, "tsconfig.package.json"),
       },
     },
     "boundaries/elements": [

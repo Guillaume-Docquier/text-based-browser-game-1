@@ -1,6 +1,7 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "./tsconfig.package.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "lib": ["esnext"],
     "types": ["node"]
   },
