@@ -5,7 +5,7 @@ import type { OxlintConfig } from "oxlint"
 type Element = (typeof Elements)[keyof typeof Elements]
 const Elements = {
   RULESET_MODEL: { type: "ruleset", pattern: "src/ruleset" },
-  MODEL_IDS: { type: "model-ids", pattern: "src/models", filePattern: "src/models/*Id.ts" },
+  MODELS: { type: "models", pattern: "src/models" },
 } as const
 
 const DisallowEverything = { to: { module: { origin: "local" } } } as const
@@ -27,7 +27,7 @@ export const Boundaries = {
     },
     "boundaries/elements": [
       { ...Elements.RULESET_MODEL, partialMatch: false },
-      { type: Elements.MODEL_IDS.type, pattern: Elements.MODEL_IDS.pattern, partialMatch: false },
+      { ...Elements.MODELS, partialMatch: false },
     ],
   } satisfies Settings & Pick<NonNullable<OxlintConfig["settings"]>, "import/resolver">,
   rules: {
@@ -42,7 +42,7 @@ export const Boundaries = {
           ...policy({
             element: Elements.RULESET_MODEL,
             disallow: DisallowEverything,
-            allow: elements([Elements.RULESET_MODEL, Elements.MODEL_IDS]),
+            allow: elements([Elements.RULESET_MODEL, Elements.MODELS]),
           }),
         ],
       },
@@ -79,8 +79,6 @@ function elements(definitions: readonly Element[]): NonNullable<DependenciesPoli
   return {
     to: definitions.map((definition) => ({
       element: { type: definition.type },
-      // Restrict the models exception to ID modules.
-      ...("filePattern" in definition ? { file: { path: definition.filePattern } } : {}),
     })),
-  } satisfies NonNullable<DependenciesPolicy["allow"]>
+  }
 }
