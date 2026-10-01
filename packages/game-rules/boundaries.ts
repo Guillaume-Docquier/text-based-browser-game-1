@@ -4,9 +4,8 @@ import type { OxlintConfig } from "oxlint"
 
 type Element = (typeof Elements)[keyof typeof Elements]
 const Elements = {
-  RULESET_MODEL: { type: "ruleset", pattern: "src/lib/rules-engine/ruleset" },
-  VALIDATION: { type: "validation", pattern: "src/lib/validation" },
-  DB_IDS: { type: "db-ids", pattern: "src/lib/db", filePattern: "src/lib/db/*/*Id.ts" },
+  RULESET_MODEL: { type: "ruleset", pattern: "src/ruleset" },
+  MODELS: { type: "models", pattern: "src/models" },
 } as const
 
 const DisallowEverything = { to: { module: { origin: "local" } } } as const
@@ -23,13 +22,12 @@ export const Boundaries = {
     },
     "import/resolver": {
       typescript: {
-        project: path.resolve(import.meta.dirname, "tsconfig.json"),
+        project: path.resolve(import.meta.dirname, "tsconfig.package.json"),
       },
     },
     "boundaries/elements": [
       { ...Elements.RULESET_MODEL, partialMatch: false },
-      { ...Elements.VALIDATION, partialMatch: false },
-      { type: Elements.DB_IDS.type, pattern: Elements.DB_IDS.pattern, partialMatch: false },
+      { ...Elements.MODELS, partialMatch: false },
     ],
   } satisfies Settings & Pick<NonNullable<OxlintConfig["settings"]>, "import/resolver">,
   rules: {
@@ -44,7 +42,7 @@ export const Boundaries = {
           ...policy({
             element: Elements.RULESET_MODEL,
             disallow: DisallowEverything,
-            allow: elements([Elements.RULESET_MODEL, Elements.VALIDATION, Elements.DB_IDS]),
+            allow: elements([Elements.RULESET_MODEL, Elements.MODELS]),
           }),
         ],
       },
@@ -81,8 +79,6 @@ function elements(definitions: readonly Element[]): NonNullable<DependenciesPoli
   return {
     to: definitions.map((definition) => ({
       element: { type: definition.type },
-      // Not that great, but eh, will do for now
-      ...("filePattern" in definition ? { file: { path: definition.filePattern } } : {}),
     })),
-  } satisfies NonNullable<DependenciesPolicy["allow"]>
+  }
 }

@@ -1,21 +1,11 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
+  // Setup to run natively on node and run in the browser
   "compilerOptions": {
-    // File Layout
-    // "rootDir": "./src",
-    // "outDir": "./dist",
-
-    // Environment Settings
-    // See also https://aka.ms/tsconfig/module
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.package.tsbuildinfo",
     "module": "nodenext",
     "target": "esnext",
-    "lib": ["esnext"],
-    "types": ["node"],
+    "types": [],
 
-    // No Outputs - We run natively with node
-    "sourceMap": false,
-    "declaration": false,
-    "declarationMap": false,
     "noEmit": true,
 
     // Stricter Typechecking Options
@@ -37,5 +27,5 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "drizzle.config.ts", "scripts", "vitest.config.ts", "oxlint.config.ts"]
+  "include": ["src"]
 }
