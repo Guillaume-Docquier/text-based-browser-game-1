@@ -7,12 +7,18 @@ const Elements = {
   GALAXY_CREATION: { type: "galaxy-creation", pattern: "src/galaxy-creation" },
   ACTION_SUBMISSION: { type: "action-submission", pattern: "src/action-submission" },
   TURN_RESOLUTION: { type: "turn-resolution", pattern: "src/turn-resolution" },
-  TEST_RULESET: { type: "test-ruleset", pattern: "src/test-ruleset" },
   TESTING: { type: "testing", pattern: "src/testing" },
 } as const
 
 const testFiles = { file: { path: "**/*.{test,stub,mock}.ts" } }
-const productionFiles = { file: { path: "**/!(*.test|*.stub|*.mock).ts" } }
+const productionFiles = {
+  element: {
+    type: Object.values(Elements)
+      .filter(({ type }) => type !== Elements.TESTING.type)
+      .map(({ type }) => type),
+  },
+  file: { path: "**/!(*.test|*.stub|*.mock).ts" },
+}
 
 /**
  * Enforces persistence-free domain definitions and app-independent shared behavior.

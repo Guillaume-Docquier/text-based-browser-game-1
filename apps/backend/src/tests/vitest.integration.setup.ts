@@ -1,7 +1,7 @@
 import { Logger } from "@guillaume-docquier/tools-ts"
 import { pushSchema } from "drizzle-kit/api"
 import { drizzle } from "drizzle-orm/pglite"
-import { TestRuleset } from "shared/test-ruleset/TestRuleset.ts"
+import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { beforeAll } from "vitest"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
