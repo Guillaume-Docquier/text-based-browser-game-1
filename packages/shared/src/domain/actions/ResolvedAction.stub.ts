@@ -1,5 +1,4 @@
 import { createSubmittedActionStub } from "#shared/domain/actions/Action.stub.ts"
-import { createEffectOutcomeStub } from "#shared/domain/actions/EffectOutcome.stub.ts"
 import type { ResolvedAction } from "#shared/domain/actions/ResolvedAction.ts"
 
 /**
@@ -7,7 +6,7 @@ import type { ResolvedAction } from "#shared/domain/actions/ResolvedAction.ts"
  */
 export function createResolvedActionStub({
   submittedAction = createSubmittedActionStub(),
-  actionOutcomes = [createEffectOutcomeStub()],
+  actionOutcomes = [],
   ...overrides
 }: Partial<ResolvedAction> = {}): ResolvedAction {
   return {
