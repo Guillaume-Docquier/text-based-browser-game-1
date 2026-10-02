@@ -30,6 +30,8 @@ const meta = {
     const button = canvas.getByRole("button", { name: args.isLockedIn ? "Cancel lock in" : "Lock in" })
     const nextControl = canvas.getByRole("button", { name: "Next control" })
     const browserUserEvent = import.meta.env.VITEST === "true" ? (await import("vitest/browser")).userEvent : undefined
+    // Native keyboard events keep CSS focus and hover state consistent in browser tests.
+    const interaction = browserUserEvent ?? userEvent
     if (browserUserEvent !== undefined) {
       await browserUserEvent.hover(nextControl)
     }
@@ -63,14 +65,14 @@ const meta = {
       await expect(action).not.toBeVisible()
       await expect(clock).toHaveStyle({ opacity: "1" })
     }
-    await userEvent.tab()
+    await interaction.tab()
     if (args.disabled) {
       await expect(button).not.toHaveFocus()
     } else {
       await expect(button).toHaveFocus()
       await expect(action).toBeVisible()
       await expect(clock).toHaveStyle({ opacity: "0" })
-      await userEvent.tab()
+      await interaction.tab()
       await expect(nextControl).toHaveFocus()
       await expect(action).not.toBeVisible()
     }
@@ -110,35 +112,37 @@ export const Interactive: Story = {
   play: async ({ canvas, userEvent }): Promise<void> => {
     const button = canvas.getByRole("button", { name: "Lock in" })
     const nextControl = canvas.getByRole("button", { name: "Next control" })
-    if (import.meta.env.VITEST === "true") {
-      const { userEvent: browserUserEvent } = await import("vitest/browser")
+    const browserUserEvent = import.meta.env.VITEST === "true" ? (await import("vitest/browser")).userEvent : undefined
+    // Native keyboard events keep CSS focus and hover state consistent in browser tests.
+    const interaction = browserUserEvent ?? userEvent
+    if (browserUserEvent !== undefined) {
       await browserUserEvent.hover(nextControl)
     }
     await expect(button).toHaveAttribute("aria-pressed", "false")
-    await userEvent.tab()
+    await interaction.tab()
     await expect(button).toHaveFocus()
     await expect(canvas.getByText("Lock in", { exact: true })).toBeVisible()
-    await userEvent.keyboard("{Enter}")
+    await interaction.keyboard("{Enter}")
     await expect(button).toHaveAccessibleName("Cancel lock in")
     await expect(button).toHaveAttribute("aria-pressed", "true")
     await expect(canvas.getByText("Cancel", { exact: true })).toBeVisible()
-    await userEvent.tab()
+    await interaction.tab()
     await expect(nextControl).toHaveFocus()
-    await userEvent.tab({ shift: true })
+    await interaction.tab({ shift: true })
     await expect(button).toHaveFocus()
     await expect(canvas.getByText("Cancel", { exact: true })).toBeVisible()
-    await userEvent.keyboard(" ")
+    await interaction.keyboard(" ")
     await expect(button).toHaveAccessibleName("Lock in")
     await expect(button).toHaveAttribute("aria-pressed", "false")
     await expect(canvas.getByText("Lock in", { exact: true })).toBeVisible()
-    await userEvent.tab()
+    await interaction.tab()
     await expect(nextControl).toHaveFocus()
     await expect(canvas.getByText("Lock in", { exact: true })).not.toBeVisible()
     await expect(canvas.getByText("Next turn", { exact: true })).toBeVisible()
 
-    await userEvent.click(button)
+    await interaction.click(button)
     await expect(button).toHaveAccessibleName("Cancel lock in")
-    await userEvent.click(button)
+    await interaction.click(button)
     await expect(button).toHaveAccessibleName("Lock in")
     await expect(button).toHaveAttribute("aria-pressed", "false")
   },
