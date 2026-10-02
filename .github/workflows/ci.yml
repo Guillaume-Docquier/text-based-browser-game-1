@@ -58,7 +58,7 @@ jobs:
         run: pnpm --filter frontend e2e:install
 
       - name: Storybook component tests
-        run: pnpm --filter frontend storybook:test --reporter=default --reporter=junit --outputFile=test-results/storybook/results.xml
+        run: pnpm --filter frontend storybook:test
 
       - name: Upload Storybook test failures
         if: failure()

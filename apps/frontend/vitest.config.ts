@@ -7,6 +7,8 @@ export default mergeConfig(
   storybookViteConfig,
   defineConfig({
     test: {
+      reporters: ["default", "junit"],
+      outputFile: { junit: "./test-results/storybook/results.xml" },
       attachmentsDir: "./test-results/storybook",
       projects: [
         {
