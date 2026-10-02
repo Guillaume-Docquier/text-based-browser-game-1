@@ -29,7 +29,8 @@ const meta = {
   play: async ({ args, canvas, userEvent }): Promise<void> => {
     const button = canvas.getByRole("button", { name: args.isLockedIn ? "Cancel lock in" : "Lock in" })
     const nextControl = canvas.getByRole("button", { name: "Next control" })
-    const browserUserEvent = import.meta.env.VITEST === "true" ? (await import("vitest/browser")).userEvent : undefined
+    // VITEST is not exposed to browser stories; Vite supplies the test mode.
+    const browserUserEvent = import.meta.env.MODE === "test" ? (await import("vitest/browser")).userEvent : undefined
     // Native keyboard events keep CSS focus and hover state consistent in browser tests.
     const interaction = browserUserEvent ?? userEvent
     if (browserUserEvent !== undefined) {
@@ -112,7 +113,7 @@ export const Interactive: Story = {
   play: async ({ canvas, userEvent }): Promise<void> => {
     const button = canvas.getByRole("button", { name: "Lock in" })
     const nextControl = canvas.getByRole("button", { name: "Next control" })
-    const browserUserEvent = import.meta.env.VITEST === "true" ? (await import("vitest/browser")).userEvent : undefined
+    const browserUserEvent = import.meta.env.MODE === "test" ? (await import("vitest/browser")).userEvent : undefined
     // Native keyboard events keep CSS focus and hover state consistent in browser tests.
     const interaction = browserUserEvent ?? userEvent
     if (browserUserEvent !== undefined) {
