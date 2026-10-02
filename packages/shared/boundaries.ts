@@ -1,115 +1,98 @@
 import path from "node:path"
-import type { Rules, Settings } from "eslint-plugin-boundaries"
+import type { DependenciesPolicy, Rules, Settings } from "eslint-plugin-boundaries"
 import type { OxlintConfig } from "oxlint"
 
+type Element = (typeof Elements)[keyof typeof Elements]
 const Elements = {
   DOMAIN: { type: "domain", pattern: "src/domain" },
   GALAXY_CREATION: { type: "galaxy-creation", pattern: "src/galaxy-creation" },
   ACTION_SUBMISSION: { type: "action-submission", pattern: "src/action-submission" },
   TURN_RESOLUTION: { type: "turn-resolution", pattern: "src/turn-resolution" },
-  TESTING: { type: "testing", pattern: "src/testing" },
 } as const
 
-const testFiles = { file: { path: "**/*.{test,stub,mock}.ts" } }
-const productionFiles = {
-  element: {
-    type: Object.values(Elements)
-      .filter(({ type }) => type !== Elements.TESTING.type)
-      .map(({ type }) => type),
-  },
-  file: { path: "**/!(*.test|*.stub|*.mock).ts" },
-}
+const DisallowEverything = { to: { module: { origin: "local" } } } as const
 
 /**
- * Enforces persistence-free domain definitions and app-independent shared behavior.
- * Policies apply to type imports as well as runtime imports.
+ * Boundaries settings and rules
  */
 export const Boundaries = {
   settings: {
-    "boundaries/root-path": path.resolve(import.meta.dirname, "../.."),
-    "boundaries/include": ["packages/shared/src/**/*.ts", "apps/**/*.{ts,tsx}"],
-    "boundaries/flag-as-external": { unresolvableAlias: false, inNodeModules: true },
-    "import/resolver": {
-      typescript: { project: path.resolve(import.meta.dirname, "tsconfig.package.json") },
+    "boundaries/root-path": import.meta.dirname,
+    "boundaries/flag-as-external": {
+      unresolvableAlias: false,
+      inNodeModules: true,
     },
-    "boundaries/elements": [
-      ...Object.values(Elements).map((element) => ({ ...element, pattern: "packages/shared/" + element.pattern, partialMatch: false })),
-      { type: "backend", pattern: "apps/backend", partialMatch: false },
-      { type: "frontend", pattern: "apps/frontend", partialMatch: false },
-    ],
-    "boundaries/files": [
-      { category: "test", pattern: "**/*.test.ts" },
-      { category: "test-data", pattern: "**/*.{stub,mock}.ts" },
-    ],
+    "import/resolver": {
+      typescript: {
+        project: path.resolve(import.meta.dirname, "tsconfig.package.json"),
+      },
+    },
+    "boundaries/elements": [{ ...Elements.DOMAIN, partialMatch: false }],
   } satisfies Settings & Pick<NonNullable<OxlintConfig["settings"]>, "import/resolver">,
   rules: {
     "boundaries/dependencies": [
       "error",
       {
-        default: "disallow",
-        checkAllOrigins: true,
+        default: "allow",
+        checkAllOrigins: false,
         checkUnknownLocals: true,
         checkInternals: true,
         policies: [
-          {
-            allow: {
-              to: Object.values(Elements).map(({ type }) => ({ element: { type } })),
-            },
-          },
-          {
-            allow: {
-              to: {
-                module: {
-                  origin: "external",
-                  source: [
-                    "@guillaume-docquier/tools-ts",
-                    "@guillaume-docquier/tools-ts/schemas",
-                    "zod",
-                    "type-fest",
-                    "uuid",
-                    "transformation-matrix",
-                  ],
-                },
-              },
-            },
-          },
-          {
-            from: { element: { type: Elements.DOMAIN.type } },
-            disallow: { to: { module: { origin: "local" } } },
-          },
-          {
-            from: { element: { type: Elements.DOMAIN.type } },
-            allow: { to: { element: { type: Elements.DOMAIN.type } } },
-          },
-          {
-            from: { element: { type: Elements.DOMAIN.type } },
-            disallow: { to: { module: { origin: "external" } } },
-          },
-          {
-            from: { element: { type: Elements.DOMAIN.type } },
-            allow: {
-              to: {
-                module: { origin: "external", source: ["@guillaume-docquier/tools-ts", "@guillaume-docquier/tools-ts/schemas", "zod"] },
-              },
-            },
-          },
-          {
-            from: testFiles,
-            allow: {
-              to: [
-                ...Object.values(Elements).map(({ type }) => ({ element: { type } })),
-                { module: { origin: "external", source: ["vitest", "uuid"] } },
-              ],
-            },
-          },
-          {
-            from: productionFiles,
-            disallow: {
-              to: [testFiles, { element: { type: Elements.TESTING.type } }, { module: { origin: "external", source: "vitest" } }],
-            },
-          },
+          ...policy({
+            element: Elements.DOMAIN,
+            disallow: DisallowEverything,
+            allow: elements([Elements.DOMAIN]),
+          }),
+          ...policy({
+            element: Elements.GALAXY_CREATION,
+            disallow: DisallowEverything,
+            allow: elements([Elements.GALAXY_CREATION, Elements.DOMAIN]),
+          }),
+          ...policy({
+            element: Elements.ACTION_SUBMISSION,
+            disallow: DisallowEverything,
+            allow: elements([Elements.ACTION_SUBMISSION, Elements.DOMAIN]),
+          }),
+          ...policy({
+            element: Elements.TURN_RESOLUTION,
+            disallow: DisallowEverything,
+            allow: elements([Elements.TURN_RESOLUTION, Elements.DOMAIN]),
+          }),
         ],
       },
     ],
   } satisfies Pick<Rules, "boundaries/dependencies">,
+}
+
+/**
+ * When disallow and allow overlap, allow wins.
+ */
+function policy({
+  element,
+  allow,
+  disallow,
+}: {
+  element: Element
+  allow?: DependenciesPolicy["allow"]
+  disallow?: DependenciesPolicy["disallow"]
+}): DependenciesPolicy[] {
+  const policies: DependenciesPolicy[] = []
+
+  if (disallow !== undefined) {
+    policies.push({ from: { element }, disallow })
+  }
+
+  if (allow !== undefined) {
+    policies.push({ from: { element }, allow })
+  }
+
+  return policies
+}
+
+function elements(definitions: readonly Element[]): NonNullable<DependenciesPolicy["allow"]> {
+  return {
+    to: definitions.map((definition) => ({
+      element: { type: definition.type },
+    })),
+  }
 }
