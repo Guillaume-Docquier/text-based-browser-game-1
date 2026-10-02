@@ -1,25 +1,29 @@
 import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { and, desc, eq, gt, inArray } from "drizzle-orm"
-import type { Action, AvailableAction } from "game-rules/action-submission/Action.ts"
-import type { SelectedTargets } from "game-rules/action-submission/SelectedTargets.ts"
-import type { AccountId } from "game-rules/models/AccountId.ts"
-import type { ActionDefinitionId } from "game-rules/models/ActionDefinitionId.ts"
-import type { ActionId } from "game-rules/models/ActionId.ts"
-import type { FleetId } from "game-rules/models/FleetId.ts"
-import type { GameId } from "game-rules/models/GameId.ts"
-import type { PlanetId } from "game-rules/models/PlanetId.ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import type { RulesetId } from "game-rules/models/RulesetId.ts"
-import type { Resources } from "game-rules/ruleset/effect-definitions/Resources.ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import type { Ruleset } from "game-rules/ruleset/Ruleset.ts"
-import type { Fleet } from "game-rules/turn-resolution/Fleet.ts"
-import type { Planet } from "game-rules/turn-resolution/Planet.ts"
+import type { Action, AvailableAction } from "shared/domain/actions/Action.ts"
+import type { ActionId } from "shared/domain/actions/ActionId.ts"
+import type { SelectedTargets } from "shared/domain/actions/SelectedTargets.ts"
+import type { GameId } from "shared/domain/game/GameId.ts"
+import type { GameStatus } from "shared/domain/game/GameStatus.ts"
+import type { AccountId } from "shared/domain/identity/AccountId.ts"
+import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
+import type { Resources } from "shared/domain/resources/Resources.ts"
+import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import type { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
+import type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
+import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
+import type { Galaxy } from "shared/domain/world/Galaxy.ts"
+import type { Planet } from "shared/domain/world/planets/Planet.ts"
+import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+import type { Star } from "shared/domain/world/stars/Star.ts"
+import type { ResolutionFleet } from "shared/turn-resolution/state/ResolutionFleet.ts"
+import type { ResolutionPlanet } from "shared/turn-resolution/state/ResolutionPlanet.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
-import type { GameStatus } from "#lib/db/games/GameStatus.ts"
-import type { PlayerColor } from "#lib/db/players/PlayerColor.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import {
   actionsTable,
@@ -33,10 +37,8 @@ import {
   turnsProcessingTable,
   rulesetsTable,
 } from "#lib/db/schema.ts"
-import { TurnStatus } from "#lib/db/turns/TurnStatus.ts"
 import { couldNot } from "#lib/errors.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
-import type { Galaxy } from "./Galaxy.ts"
 
 type NewActionRow = typeof actionsTable.$inferInsert
 type NewResourceRow = typeof resourcesTable.$inferInsert
@@ -101,7 +103,7 @@ export type PlayerViewModel = Readonly<{
   player: PlayerViewPlayerModel
   opponents: Readonly<Record<PlayerId, PlayerViewPlayerModel>>
   galaxy: Galaxy
-  fleets: readonly Fleet[]
+  fleets: readonly ResolutionFleet[]
   turn: number
   turnStatus: TurnStatus
   turnEndsAt: Date
@@ -456,7 +458,7 @@ export class GameplayRepository extends PostgresRepository {
   public async getPlanetsByIds(
     { gameId, planetIds }: { gameId: GameId; planetIds: readonly PlanetId[] },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Planet[]> {
+  ): Promise<ResolutionPlanet[]> {
     if (planetIds.length === 0) {
       return []
     }
@@ -476,7 +478,7 @@ export class GameplayRepository extends PostgresRepository {
   public async getFleetsByIds(
     { gameId, fleetIds }: { gameId: GameId; fleetIds: readonly FleetId[] },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Fleet[]> {
+  ): Promise<ResolutionFleet[]> {
     if (fleetIds.length === 0) {
       return []
     }
@@ -600,14 +602,52 @@ function toGalaxyModel({
 }): Galaxy {
   const planetsByStarId = Map.groupBy(planets, (planet) => planet.starId)
   const systems = stars.map((star) => ({
-    star,
-    planets: planetsByStarId.get(star.id) ?? [],
+    star: toStarModel(star),
+    planets: (planetsByStarId.get(star.id) ?? []).map(toPlanetModel),
   }))
 
   return { systems }
 }
 
-function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): Fleet {
+function toStarModel({ id, name, coordinates, x, y }: typeof starsTable.$inferSelect): Star {
+  return { id, name, coordinates, x, y }
+}
+
+function toPlanetModel({
+  id,
+  ownerPlayerId,
+  name,
+  coordinates,
+  x,
+  y,
+  biome,
+  size,
+  fertility,
+  metal,
+  fuel,
+  energy,
+  maxPopulation,
+  area,
+}: typeof planetsTable.$inferSelect): Planet {
+  return {
+    id,
+    ownerPlayerId,
+    name,
+    coordinates,
+    x,
+    y,
+    biome,
+    size,
+    fertility,
+    metal,
+    fuel,
+    energy,
+    maxPopulation,
+    area,
+  }
+}
+
+function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): ResolutionFleet {
   return {
     ...fleet,
     ...(destinationPlanetId === null ? {} : { destinationPlanetId }),

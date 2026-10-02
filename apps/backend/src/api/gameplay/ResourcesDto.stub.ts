@@ -1,4 +1,4 @@
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
+import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { ResourcesDto } from "#api/gameplay/ResourcesDto.ts"
 
 export function createResourcesDtoStub(overrides?: Partial<ResourcesDto>): ResourcesDto {

@@ -3,20 +3,20 @@
  */
 
 import type { inferRouterOutputs } from "@trpc/server"
-import type { ActionDefinitionId } from "game-rules/models/ActionDefinitionId.ts"
+import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { TrpcRouter } from "./createApi.ts"
 
 type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 
 export type { TrpcRouter }
 
-export type { GameId } from "game-rules/models/GameId.ts"
-export type { PlanetId } from "game-rules/models/PlanetId.ts"
-export type { PlayerId } from "game-rules/models/PlayerId.ts"
-export type { AccountId } from "game-rules/models/AccountId.ts"
-export type { PlayerColor } from "#lib/db/players/PlayerColor.ts"
-export type { RulesetId } from "game-rules/models/RulesetId.ts"
-export type { TargetTag } from "game-rules/ruleset/action-definitions/TargetTag.ts"
+export type { GameId } from "shared/domain/game/GameId.ts"
+export type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+export type { PlayerId } from "shared/domain/players/PlayerId.ts"
+export type { AccountId } from "shared/domain/identity/AccountId.ts"
+export type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
+export type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
+export type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
 
 // Lobbies
 export type Lobby = TrpcRouterOutput["lobbies"]["getById"]

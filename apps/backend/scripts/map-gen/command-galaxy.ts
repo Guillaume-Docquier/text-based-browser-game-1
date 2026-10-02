@@ -1,7 +1,7 @@
 import path from "node:path"
 import { Distance, mulberry32Prng, UnitOfDistance, Rng, type XY } from "@guillaume-docquier/tools-ts"
 import { Command } from "commander"
-import { galaxyGenerator } from "#lib/map-generation/galaxy.generator.ts"
+import { galaxyGenerator } from "shared/galaxy-creation/generation/galaxy.generator.ts"
 import { createClusterCommand, type ClusterRenderOptions } from "./command-cluster.ts"
 import { createSpiralCommand, type SpiralRenderOptions } from "./command-spiral.ts"
 import { Parser } from "./Parser.ts"

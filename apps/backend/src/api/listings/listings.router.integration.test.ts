@@ -1,7 +1,7 @@
+import { GameStatus } from "shared/domain/game/GameStatus.ts"
 import { describe, expect, it } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
-import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 
 describe("listings.router", () => {

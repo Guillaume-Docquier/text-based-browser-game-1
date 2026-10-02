@@ -1,9 +1,9 @@
 import type { LobbyPlayers, PlayerView, TargetDefinition, TargetId } from "@api-types"
 import type { Comparator } from "@guillaume-docquier/tools-ts"
-import type { TargetForValidation } from "game-rules/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts"
-import { validateTarget } from "game-rules/action-submission/validation/targets/validateTarget.ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
 import type { ReactElement } from "react"
+import type { TargetForValidation } from "shared/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts"
+import { validateTarget } from "shared/action-submission/validation/targets/validateTarget.ts"
+import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 import { SearchSelect } from "@/components/search-select.tsx"
 import { formatRulesetTerm } from "@/features/play/effectDefinitionToRulesText.ts"
 

@@ -250,18 +250,15 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1(supports-color@8.1.1)
-      game-rules:
-        specifier: workspace:*
-        version: link:../../packages/game-rules
       p-retry:
         specifier: ^8.0.1
         version: 8.0.1
       pg:
         specifier: ^8.23.0
         version: 8.23.0
-      transformation-matrix:
-        specifier: ^3.1.0
-        version: 3.1.0
+      shared:
+        specifier: workspace:*
+        version: link:../../packages/shared
       uuid:
         specifier: 'catalog:'
         version: 14.0.2
@@ -350,9 +347,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      game-rules:
-        specifier: workspace:*
-        version: link:../../packages/game-rules
       lucide-react:
         specifier: ^1.48.0
         version: 1.48.0(react@19.3.0)
@@ -368,6 +362,9 @@ importers:
       shadcn:
         specifier: ^4.21.0
         version: 4.21.0(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(typescript@7.0.2)
+      shared:
+        specifier: workspace:*
+        version: link:../../packages/shared
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
@@ -430,11 +427,14 @@ importers:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.13)(yaml@2.9.0)
 
-  packages/game-rules:
+  packages/shared:
     dependencies:
       '@guillaume-docquier/tools-ts':
         specifier: 'catalog:'
         version: 10.1.0(zod@4.6.5)
+      transformation-matrix:
+        specifier: ^3.1.0
+        version: 3.1.0
       uuid:
         specifier: 'catalog:'
         version: 14.0.2

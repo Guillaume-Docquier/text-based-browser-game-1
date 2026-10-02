@@ -1,12 +1,12 @@
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
-import { type ActionDefinition, ActionDefinitionSchema } from "game-rules/ruleset/action-definitions/ActionDefinition.ts"
-import { ActionTier } from "game-rules/ruleset/action-definitions/ActionTier.ts"
-import { ActionType } from "game-rules/ruleset/action-definitions/ActionType.ts"
-import { FleetMoveEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/FleetMoveEffectDefinition.ts"
-import { ResourceLossEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { TargetType } from "game-rules/ruleset/effect-definitions/TargetType.ts"
-import { OwnedBySubmittingPlayerConstraint } from "game-rules/ruleset/target-definitions/implementations/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import { type ActionDefinition, ActionDefinitionSchema } from "shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionTier } from "shared/domain/ruleset/action-definitions/ActionTier.ts"
+import { ActionType } from "shared/domain/ruleset/action-definitions/ActionType.ts"
+import { FleetMoveEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
+import { OwnedBySubmittingPlayerConstraint } from "shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 
 function moveFleetDirective({ id, tier, fuel, speed }: { id: string; tier: ActionTier; fuel: number; speed: number }): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {

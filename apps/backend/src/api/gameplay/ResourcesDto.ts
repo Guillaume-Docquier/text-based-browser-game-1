@@ -1,4 +1,4 @@
-import { ResourceTypeSchema } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
+import { ResourceTypeSchema } from "shared/domain/resources/ResourceType.ts"
 import { z } from "zod"
 
 export type ResourceAmountsDto = z.infer<typeof ResourceAmountsDtoSchema>

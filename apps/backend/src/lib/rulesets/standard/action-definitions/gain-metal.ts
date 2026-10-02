@@ -1,10 +1,10 @@
 import { branded } from "@guillaume-docquier/tools-ts"
-import type { ActionDefinition } from "game-rules/ruleset/action-definitions/ActionDefinition.ts"
-import { ActionTier } from "game-rules/ruleset/action-definitions/ActionTier.ts"
-import { ActionType } from "game-rules/ruleset/action-definitions/ActionType.ts"
-import { ResourceGainEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/ResourceGainEffectDefinition.ts"
-import { ResourceLossEffectDefinition } from "game-rules/ruleset/effect-definitions/implementations/ResourceLossEffectDefinition.ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
+import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { ActionDefinition } from "shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionTier } from "shared/domain/ruleset/action-definitions/ActionTier.ts"
+import { ActionType } from "shared/domain/ruleset/action-definitions/ActionType.ts"
+import { ResourceGainEffectDefinition } from "shared/domain/ruleset/effect-definitions/ResourceGainEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
 
 export const GainMetal: ActionDefinition = {
   id: branded("GAIN_METAL"),
