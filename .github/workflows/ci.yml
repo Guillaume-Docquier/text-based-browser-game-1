@@ -138,7 +138,7 @@ jobs:
           flags: backend
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  game-rules:
+  shared:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -150,15 +150,15 @@ jobs:
         uses: pnpm/setup@v3.0.0
 
       - name: Typecheck
-        run: pnpm --filter game-rules typecheck
+        run: pnpm --filter shared typecheck
 
       - name: Tests with coverage
-        run: pnpm --filter game-rules test:coverage
+        run: pnpm --filter shared test:coverage
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v7
         with:
-          files: ./packages/game-rules/coverage/lcov.info
+          files: ./packages/shared/coverage/lcov.info
           disable_search: true
-          flags: game-rules
+          flags: shared
           token: ${{ secrets.CODECOV_TOKEN }}

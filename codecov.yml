@@ -2,6 +2,6 @@ flags:
   backend:
     paths:
       - apps/backend/src/
-  game-rules:
+  shared:
     paths:
-      - packages/game-rules/src/
+      - packages/shared/src/

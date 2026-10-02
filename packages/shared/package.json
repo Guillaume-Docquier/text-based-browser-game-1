@@ -1,0 +1,33 @@
+{
+  "name": "shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#shared/*": "./src/*"
+  },
+  "exports": {
+    "./domain/*": "./src/domain/*",
+    "./galaxy-creation/*": "./src/galaxy-creation/*",
+    "./action-submission/*": "./src/action-submission/*",
+    "./turn-resolution/*": "./src/turn-resolution/*",
+    "./testing/*": "./src/testing/*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "pnpm test --coverage",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@guillaume-docquier/tools-ts": "catalog:",
+    "transformation-matrix": "^3.1.0",
+    "uuid": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "catalog:",
+    "type-fest": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

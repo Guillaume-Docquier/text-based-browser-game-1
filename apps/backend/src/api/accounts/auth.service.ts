@@ -1,10 +1,10 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { RequestHandler } from "express"
+import { AliasSchema } from "shared/domain/identity/Alias.ts"
 import { v4 } from "uuid"
 import type { AccountDto, AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AuthProvider } from "#api/accounts/AuthProvider.ts"
-import { AliasSchema } from "#lib/db/accounts/Alias.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
 // I just don't really know how to adapt clerk to trpc yet. For now this does the job.

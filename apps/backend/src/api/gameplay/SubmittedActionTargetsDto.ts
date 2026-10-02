@@ -1,5 +1,5 @@
-import { SelectedTargetsSchema } from "game-rules/action-submission/SelectedTargets.ts"
-import { ActionIdSchema } from "game-rules/models/ActionId.ts"
+import { ActionIdSchema } from "shared/domain/actions/ActionId.ts"
+import { SelectedTargetsSchema } from "shared/domain/actions/SelectedTargets.ts"
 import { z } from "zod"
 
 export type SubmittedActionTargetsDto = z.infer<typeof SubmittedActionTargetsDtoSchema>

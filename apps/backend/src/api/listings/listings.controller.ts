@@ -1,8 +1,8 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import type { AccountId } from "game-rules/models/AccountId.ts"
-import { GameIdSchema } from "game-rules/models/GameId.ts"
+import { GameIdSchema } from "shared/domain/game/GameId.ts"
+import { GameStatus } from "shared/domain/game/GameStatus.ts"
+import type { AccountId } from "shared/domain/identity/AccountId.ts"
 import { z } from "zod"
-import { GameStatus } from "#lib/db/games/GameStatus.ts"
 import type { ListingsRepository } from "./listings.repository.ts"
 
 export class ListingsController {

@@ -1,6 +1,6 @@
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { AliasSchema } from "shared/domain/identity/Alias.ts"
 import { v4 } from "uuid"
-import { AliasSchema } from "#lib/db/accounts/Alias.ts"
 import type { NewAccountModel } from "./accounts.repository.ts"
 
 export function createNewAccountModelStub(overrides?: Partial<NewAccountModel>): NewAccountModel {

@@ -177,14 +177,14 @@ Schema parsing should produce refined/domain types and typed custom errors where
 
 ## Branded types and correct construction
 
-Use branded/refined types for meaningful primitives, avoid passing raw strings/numbers where a domain type exists:
+Use branded/refined types for meaningful primitives and validated data, avoid passing raw strings/numbers where a domain type exists:
 
 - IDs: `UserId`, `OrgId`, `WorkflowId`
 - parsed strings: `EmailAddress`, `NonEmptyString`, `Url`
 - constrained numbers: `PositiveInt`, `Cents`, `Percentage`
 - units: `Milliseconds`, `Bytes`, `UsdCents`
 
-Use `Brand<>` and `branded()` from `@guillaume-docquier/tools-ts` for this. Construct branded values through zod parsers for untrusted code, and through `branded<T>(value)` for trusted code because `branded` is type safe with its argument while zod schemas are not (they accept unknown).
+Use `Brand<>` and `branded()` from `@guillaume-docquier/tools-ts` for this. Parse untrusted input with the relevant Zod schema. When constructing a constrained branded or refined value from already typed input, use `typedParse` or `safeTypedParse` from `@guillaume-docquier/tools-ts/schemas` so TypeScript checks the input while Zod enforces runtime constraints. Use `branded<T>(value)` only for brands whose underlying type already carries all required runtime guarantees.
 
 Avoid optional/null/undefined values in functions that require a value. Push optionality outward. Branch or parse before calling.
 

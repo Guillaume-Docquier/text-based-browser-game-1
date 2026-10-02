@@ -1,6 +1,6 @@
 import { indexBy } from "@guillaume-docquier/tools-ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
-import { Ruleset } from "game-rules/ruleset/Ruleset.ts"
+import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"

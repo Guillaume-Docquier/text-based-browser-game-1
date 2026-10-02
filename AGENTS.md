@@ -79,8 +79,8 @@ When formatting the code, always run oxfmt with write. oxfmt is deterministic, t
 - Never commit, push, or open a pull request unless the human explicitly asks for it. A request to change code or tests does not imply permission to commit, push, or open a PR.
 - When asked to open a PR, always respect the PR template defined in the repository.
 - Always title PRs as `<prefix>(<scope>): <description>`, with both a prefix and a scope.
-- Use `project` as the prefix when the change spans multiple areas. For focused work, use the project being changed: `backend`, `frontend`, or `game-rules`.
-- Use the scope to name the concept being worked on, such as `project(pr-title-validation): ...` or `game-rules(action-costs): ...`.
+- Use `project` as the prefix when the change spans multiple areas. For focused work, use the project being changed: `backend`, `frontend`, or `shared`.
+- Use the scope to name the concept being worked on, such as `project(pr-title-validation): ...` or `shared(action-costs): ...`.
 - Pre-commit runs `pnpm lint-staged`, for linting and formatting
 - If a change affects schema, env usage, or deployment behavior, call that out explicitly in the PR.
 

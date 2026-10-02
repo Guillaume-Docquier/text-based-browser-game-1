@@ -4,17 +4,21 @@
 
 Accepted
 
+### Amendment history
+
+- 2026-10-01: Reconciled the parser location and safe-helper spelling with the existing tools-ts exports, and clarified that trusted construction still validates runtime constraints.
+
 ## Context
 
 Branded and refined types let TypeScript distinguish values that share the same primitive representation and record runtime constraints that the primitive type cannot express. A constrained value must be created only after it has been validated.
 
 We use Zod schemas to parse inputs and, for domain schemas, to enforce runtime constraints. Calling a schema's `parse` or `safeParse` method directly accepts an `unknown` input. When the caller already has a trusted, typed value, that API discards useful compile-time checking: a value with the wrong TypeScript type can reach the schema without a type error. Conversely, calling `branded()` directly is type-safe for the underlying primitive but performs no runtime validation, so it can bypass constraints such as integer or positive-number requirements.
 
-The game-rules package provides `typedParse` and `safeTypedParse` in `packages/game-rules/src/validation/typedParse.ts`. They preserve the schema's input type at compile time while still running its runtime validation. This decision complements [ADR-013](013-use-results-and-never-throw.md), [ADR-015](015-zod-validation-must-be-type-representable.md), and [ADR-027](027-effect-definition-schemas-validate-domain-data.md).
+The shared package uses `typedParse` and `safeTypedParse` from `@guillaume-docquier/tools-ts/schemas`. They preserve the schema's input type at compile time while still running its runtime validation. This decision complements [ADR-013](013-use-results-and-never-throw.md), [ADR-015](015-zod-validation-must-be-type-representable.md), and [ADR-027](027-effect-definition-schemas-validate-domain-data.md).
 
 ## Decision
 
-Use `typedParse(schema, value)` or `typedSafeParse(schema, value)` when parsing an already parsed value, including when constructing a branded or refined value, whose TypeScript type already matches the schema input.
+Use `typedParse(schema, value)` or `safeTypedParse(schema, value)` when parsing an already parsed value, including when constructing a branded or refined value, whose TypeScript type already matches the schema input.
 
 - Use `typedParse` only when schema failure is an internal invariant violation that should be fatal. Do not use it for invalid input that the caller is expected to handle.
 - Use `safeTypedParse` when schema failure is expected or must be reported. The caller must handle the unsuccessful result.

@@ -1,6 +1,6 @@
 import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
-import type { PlayerId } from "game-rules/models/PlayerId.ts"
-import { ResourceType } from "game-rules/ruleset/effect-definitions/ResourceType.ts"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
+import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { describe, expect, it } from "vitest"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
