@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import { expect } from "storybook/test"
 import { Input } from "@/components/input"
 import { Label } from "@/components/label"
 
@@ -13,7 +14,11 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+export const Default: Story = {
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Fleet name")).toBeVisible()
+  },
+}
 
 export const WithControl: Story = {
   render: () => (
@@ -22,4 +27,13 @@ export const WithControl: Story = {
       <Input id="fleet-name" placeholder="First Expeditionary Fleet" />
     </div>
   ),
+  play: async ({ canvas, userEvent }) => {
+    const input = canvas.getByLabelText("Fleet name")
+    const label = canvas.getByText("Fleet name")
+    await expect(label).toBeVisible()
+    await userEvent.click(label)
+    await expect(input).toHaveFocus()
+    await userEvent.type(input, "First Expeditionary Fleet")
+    await expect(input).toHaveValue("First Expeditionary Fleet")
+  },
 }

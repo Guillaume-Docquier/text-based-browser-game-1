@@ -34,6 +34,11 @@ export const Variants: Story = {
       <Button variant="link">Link</Button>
     </div>
   ),
+  play: async ({ canvas }) => {
+    for (const name of ["Default", "Secondary", "Outline", "Ghost", "Destructive", "Link"]) {
+      await expect(canvas.getByRole("button", { name })).toBeEnabled()
+    }
+  },
 }
 
 export const Sizes: Story = {
@@ -48,10 +53,19 @@ export const Sizes: Story = {
       </Button>
     </div>
   ),
+  play: async ({ canvas }) => {
+    for (const name of ["Extra small", "Small", "Default", "Large"]) {
+      await expect(canvas.getByRole("button", { name })).toBeEnabled()
+    }
+    await expect(canvas.getByRole("button", { name: "Launch fleet" })).toBeEnabled()
+  },
 }
 
 export const Disabled: Story = {
   args: {
     disabled: true,
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("button", { name: "Launch fleet" })).toBeDisabled()
   },
 }
