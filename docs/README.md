@@ -4,21 +4,21 @@ Use this map to find the smallest useful documentation set for a change. Do not 
 
 ## Overview
 
-| Need                          | Read                                                                             |
-| ----------------------------- | -------------------------------------------------------------------------------- |
-| Project summary               | [../README.md](../README.md)                                                     |
-| Human contribution policy     | [../CONTRIBUTING.md](../CONTRIBUTING.md)                                         |
-| Agent workflow and commands   | [../AGENTS.md](../AGENTS.md)                                                     |
-| Common domain vocabulary      | [glossary.md](./glossary.md)                                                     |
-| TypeScript coding standards   | [typescript-coding-standards.md](./typescript-coding-standards.md)               |
-| Product direction             | `game-design/`                                                                   |
-| Game design decisions index   | [game-design/decisions/README.md](./game-design/decisions/README.md)             |
-| New or changed GDDR workflow  | [game-design/decisions/how-to.md](./game-design/decisions/how-to.md)             |
-| Architecture direction        | `architecture/`                                                                  |
-| Architecture decisions index  | [architecture/decisions/README.md](./architecture/decisions/README.md)           |
-| New or changed ADR workflow   | [architecture/decisions/how-to.md](./architecture/decisions/how-to.md)           |
-| Current architecture overview | [architecture/overview.md](./architecture/overview.md)                           |
-| Shared package refactor plan  | [architecture/shared-package/README.md](./architecture/shared-package/README.md) |
+| Need                          | Read                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| Project summary               | [../README.md](../README.md)                                           |
+| Human contribution policy     | [../CONTRIBUTING.md](../CONTRIBUTING.md)                               |
+| Agent workflow and commands   | [../AGENTS.md](../AGENTS.md)                                           |
+| Common domain vocabulary      | [glossary.md](./glossary.md)                                           |
+| TypeScript coding standards   | [typescript-coding-standards.md](./typescript-coding-standards.md)     |
+| Product direction             | `game-design/`                                                         |
+| Game design decisions index   | [game-design/decisions/README.md](./game-design/decisions/README.md)   |
+| New or changed GDDR workflow  | [game-design/decisions/how-to.md](./game-design/decisions/how-to.md)   |
+| Architecture direction        | `architecture/`                                                        |
+| Architecture decisions index  | [architecture/decisions/README.md](./architecture/decisions/README.md) |
+| New or changed ADR workflow   | [architecture/decisions/how-to.md](./architecture/decisions/how-to.md) |
+| Current architecture overview | [architecture/overview.md](./architecture/overview.md)                 |
+| Shared package                | [packages/shared/README.md](../packages/shared/README.md)              |
 
 It all starts with game design:
 

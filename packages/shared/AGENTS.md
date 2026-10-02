@@ -11,7 +11,7 @@ There is no package build. Code must support isolated modules and erasable TypeS
 ## Commands
 
 - `pnpm --filter shared test`: run all shared package tests.
-- `pnpm --filter shared checks`: run all shared package quality checks.
+- `pnpm --filter shared typecheck`: typecheck the shared package.
 
 ## Testing
 

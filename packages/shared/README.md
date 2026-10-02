@@ -4,4 +4,4 @@ The `shared` package contains persistence agnostic domain definitions and gamepl
 
 Import shared code through its explicit subpath exports, such as `shared/domain/...`, `shared/galaxy-creation/...`, or `shared/turn-resolution/...`. The package has no root barrel; application projections, API contracts, repository models, database rows, and the backend Standard Ruleset remain with their owning applications.
 
-Run the package checks with `pnpm --filter shared checks`.
+Typecheck with `pnpm --filter shared typecheck` and run tests with `pnpm --filter shared test`.

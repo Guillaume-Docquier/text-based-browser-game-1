@@ -15,7 +15,6 @@
     "./testing/*": "./src/testing/*"
   },
   "scripts": {
-    "checks": "pnpm typecheck && pnpm test",
     "test": "vitest run",
     "test:coverage": "pnpm test --coverage",
     "typecheck": "tsc -b"

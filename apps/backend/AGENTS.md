@@ -18,10 +18,12 @@ Turn Processing is isolated so workers can scale independently or move to anothe
 
 ## Commands
 
-- `pnpm --filter backend test`: run all backend tests.
-- `pnpm --filter backend test --project concurrency`: run the concurrency tests, which start a PostgreSQL container through Testcontainers.
-- `pnpm --filter backend checks`: run all backend quality checks.
+- `pnpm --filter backend test --project unit`: runs fast in memory unit tests without a database.
+- `pnpm --filter backend test --project integration`: runs medium integration tests through the backend api with a PGLite database.
+- `pnpm --filter backend test --project concurrency`: runs slow concurrency tests with a real PostgreSQL database through Testcontainers.
 - `pnpm --filter backend db:generate --name <descriptive-migration-name>`: create a Drizzle migration. Always pass `--name`.
+
+On Windows with Codex, `CodexSandboxOffline` cannot access the Docker daemon pipe. Run `pnpm --filter backend test --project concurrency` with `exec_command` and `sandbox_permissions: "require_escalated"`. This uses the normal Docker-enabled account, not administrator elevation.
 
 ## Testing
 
@@ -32,11 +34,6 @@ Turn Processing is isolated so workers can scale independently or move to anothe
 - Never implement test repositories, including repositories that insert or modify game state solely for test setup.
 - Integration tests must set up and observe game state through the API. Create and start games with the test client, then submit actions and process turns to reach the required state. Use the stable test ruleset and a fixed galaxy seed for deterministic scenarios.
 - This router-only boundary takes precedence over the repository-testing guidance in [ADR 016](../../docs/architecture/decisions/016-use-repositories-in-tests.md) for backend API slices.
-
-### Docker-backed concurrency tests
-
-- On Windows with Codex, `CodexSandboxOffline` cannot access the Docker daemon pipe. Run `pnpm --filter backend test --project concurrency` with `exec_command` and `sandbox_permissions: "require_escalated"`. This uses the normal Docker-enabled account, not administrator elevation.
-- `pnpm --filter backend test` and `pnpm --filter backend checks` also run the concurrency tests, so use the same permission setting.
 
 ### General testing guidelines
 

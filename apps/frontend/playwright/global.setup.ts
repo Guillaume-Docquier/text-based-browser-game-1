@@ -16,15 +16,17 @@ for (const { alias, email, authFilePath } of Object.values(users)) {
     const createGamePage = await HomePage.goto(page)
 
     const needsOnboarding = await setup.step("sign in", async () => {
-      await clerk.signIn({ page, emailAddress: email })
-
       // On the CI, the db should be clean and users should always need to onboard
       if (isCI) {
+        await clerk.signIn({ page, emailAddress: email })
         return true
       }
 
       // Locally, the DB could be dirty, so we check the network response to decide
-      const onboardingStatusResponse = await page.waitForResponse((response) => response.url().includes("accounts.isOnboarded"))
+      const [onboardingStatusResponse] = await Promise.all([
+        page.waitForResponse((response) => response.url().includes("accounts.isOnboarded")),
+        clerk.signIn({ page, emailAddress: email }),
+      ])
       return !isOnboarded(await onboardingStatusResponse.json())
     })
 

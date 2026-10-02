@@ -8,7 +8,6 @@
     "btc": "pnpm --filter backend test --project concurrency",
     "bti": "pnpm --filter backend test --project integration",
     "btu": "pnpm --filter backend test --project unit",
-    "checks": "pnpm lint:fix && pnpm format:fix && pnpm typecheck && pnpm -r checks",
     "db:clean": "docker compose -f infra/docker-compose.yaml down --volumes && docker compose -f infra/docker-compose.yaml up --wait db && pnpm --filter backend db:migrate && pnpm --filter backend db:seed",
     "db:nuke": "rm -rf apps/backend/drizzle && pnpm --filter backend db:generate --name init && pnpm db:clean",
     "format": "oxfmt --check",
@@ -47,7 +46,7 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "12.5.1",
+      "version": "12.8.1",
       "onFail": "download"
     },
     "runtime": {

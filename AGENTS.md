@@ -72,20 +72,7 @@ Leverage the `@guillaume-docquier/tools-ts` npm package as much as possible. Thi
 
 Always use pnpm, never use npm.
 
-- `pnpm i`: install node_modules for all packages.
-- `pnpm checks`: runs all quality checks (lint:fix, format:fix, typecheck, build, tests, etc) on all packages.
-
 When formatting the code, always run oxfmt with write. oxfmt is deterministic, there's no point in checking before applying formatting.
-
-## Verification
-
-Minimum verification for meaningful changes:
-
-- `pnpm checks` (when touching all projects, except in the native Windows Codex sandbox)
-- Use the scoped command in the nearest `AGENTS.md` when touching only one project.
-- In the native Windows Codex sandbox, `pnpm checks` also reaches Storybook through a nested command. Run `pnpm lint:fix`, `pnpm format:fix`, `pnpm typecheck`, `pnpm --filter shared checks`, and `pnpm --filter backend checks` separately, then follow the split frontend checks in `apps/frontend/AGENTS.md`.
-- Do not attempt to start a Vite/Storybook process for the user, they will do it themselves if they need to.
-- Call out relevant extra manual verification that the user should perform for the area changed
 
 ## Commits And PRs
 
