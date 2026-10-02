@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import * as React from "react"
 import { expect } from "storybook/test"
-import { RangeSlider } from "@/components/RangeSlider"
+import { RangeSlider } from "./RangeSlider.tsx"
 
 const meta = {
   title: "Design System/RangeSlider",

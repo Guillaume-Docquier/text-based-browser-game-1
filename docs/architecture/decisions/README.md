@@ -33,6 +33,14 @@ This index summarizes all accepted ADRs. When applying the concepts, you should 
 | [029-application-supplied-business-defaults.md](./029-application-supplied-business-defaults.md)                        | Database columns should generally not define default values, the app provides them. There are a few exceptions to this.                                                                               | You add or update database columns.                                              |
 | [030-use-string-ids-for-game-entities](./030-use-string-ids-for-game-entities.md)                                       | IDs of entities within a game are strings throughout the system; the game itself is excluded, so `GameId` may remain numeric.                                                                         | You add or change a game entity ID or its storage or API representation.         |
 
+## Proposed ADRs
+
+These records are awaiting acceptance and do not override accepted decisions.
+
+| ADR                                                                 | Summary                                                                                                                                       | Use when                                                                  |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [031-storybook-agent-workflows](./031-storybook-agent-workflows.md) | Adopt maintained Storybook skills and tools for agent component workflows, with regression-focused tests and native TypeScript compatibility. | Reviewing agent tooling for component discovery, development, or testing. |
+
 ## Deprecated / Superseded ADRs
 
 | ADR                                                                 | Summary                                                                    | Use when                                      |

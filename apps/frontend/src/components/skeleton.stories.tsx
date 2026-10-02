@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect } from "storybook/test"
-import { Skeleton } from "@/components/skeleton"
+import { Skeleton } from "./skeleton.tsx"
 
 const meta = {
   title: "Design System/Skeleton",

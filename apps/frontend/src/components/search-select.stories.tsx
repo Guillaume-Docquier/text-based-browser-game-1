@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
 import { expect, within } from "storybook/test"
-import { SearchSelect } from "@/components/search-select.tsx"
+import { SearchSelect } from "./search-select.tsx"
 
 const SMALL_OPTIONS = [
   { id: "home-guard", label: "Home Guard" },
@@ -58,6 +58,29 @@ export const Default: Story = {
     await userEvent.click(combobox)
     await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{Enter}")
     await expect(combobox).toHaveValue("Reserve Fleet")
+  },
+}
+
+/**
+ * Dismissing an unfinished search preserves the previously selected fleet.
+ */
+export const EscapePreservesSelection: Story = {
+  render: () => <SearchSelectExample label="Fleet target" options={SMALL_OPTIONS} placeholder="Choose fleet" />,
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const combobox = canvas.getByRole("combobox", { name: "Fleet target" })
+    const body = within(canvasElement.ownerDocument.body)
+
+    await userEvent.click(combobox)
+    await userEvent.click(body.getByRole("option", { name: "Expeditionary Fleet" }))
+    await expect(combobox).toHaveValue("Expeditionary Fleet")
+
+    await userEvent.click(combobox)
+    await userEvent.type(combobox, "reserve")
+    await expect(body.getByRole("option", { name: "Reserve Fleet" })).toBeVisible()
+    await userEvent.keyboard("{Escape}")
+
+    await expect(combobox).toHaveValue("Expeditionary Fleet")
+    await expect(body.queryByRole("listbox")).not.toBeInTheDocument()
   },
 }
 

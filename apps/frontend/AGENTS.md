@@ -26,6 +26,26 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 - Keep stories independent of live authentication and backend services. See [ADR-023](../../docs/architecture/decisions/023-storybook-for-design-system-inspection.md).
 - `pnpm --filter frontend storybook:build` must be run through a reviewed, one-command Codex sandbox exception (`require_escalated` with the exact prefix `pnpm --filter frontend storybook:build`) to avoid sandbox cache write issues.
 
+### Agent workflow
+
+Use Storybook's maintained, project-specific guidance instead of a copied third-party skill. From `apps/frontend`, read `pnpm exec storybook skills stories` and `pnpm exec storybook skills write-story` before UI work. Run each `storybook tools <toolset> <tool>` command with `--help` before its first use; discover story IDs rather than guessing them.
+
+1. Run `pnpm exec storybook tools docs list --withStoryIds true`, then `docs show --id <returned-component-id>` for relevant components. Reuse the existing components and verify their props. If generated docs omit an API or show an unresolved example/import, read the actual component and colocated story; use this repository's imports.
+2. Develop with isolated stories and deterministic state. Import a colocated story's main component by relative path so the current metadata extractor resolves its API. Keep the existing selective story scope: add stories for meaningful shared or feature-component states, not every local JSX component or every prop combination. Explain a non-obvious scenario's purpose with a short story JSDoc comment.
+3. Use `stories changed` and `stories find-by-component` to find affected stories, including consumers of shared styles or utilities. Compare the result with the actual diff; an empty result does not prove no stories are affected. Fall back to `find-by-component` for edited components. Run `test run --stories <JSON-array>` for focused feedback. A passing Storybook tool run does not cover `storybook-native`; run `pnpm --filter frontend storybook:test` before handoff when changing components, stories, or shared UI dependencies.
+4. Reuse a Storybook server from the same checkout, or start `pnpm storybook --no-open --host 127.0.0.1` from `apps/frontend`. Give concurrent worktrees separate ports and keep all tool commands in that checkout's frontend directory. Use `stories preview` to obtain links, inspect the affected state with browser tools, and use `review create` for a focused local review when available. Leave the server running when sharing live links.
+
+Repository instructions take precedence over generated guidance: use pnpm, preserve the native TypeScript compiler, mock only uncontrollable boundaries through real seams, and keep the full test command covering native browser specs. Do not install or upgrade tooling as a side effect of ordinary UI work.
+
+### Test quality
+
+- Before adding a test, name the concrete regression and user-visible outcome it protects. Prefer one focused behavior or boundary per story. A visual example can remain a story without an extra visibility-only or enabled-only assertion.
+- Drive interactions with the play context's `userEvent`; await interactions and assertions. Query by role and accessible name or label. Scope queries to `canvas`; for portals, query `canvasElement.ownerDocument.body` with `within`.
+- Assert the resulting selection, value, accessible state, focus, or visible outcome. Prefer a controlled story harness over callback-spy assertions when it exposes the outcome. Assert callbacks only when the callback itself is the public contract.
+- Avoid CSS classes, private data attributes, DOM ancestry, broad snapshots, arbitrary delays, and duplicated production calculations. Check styles or geometry only when that specific presentation behavior is the requirement, using the native browser project where CSS hover/focus needs real browser events.
+- Keep fixtures deterministic and reuse domain stubs. Cover implemented empty, disabled, pending, invalid, or boundary states when they change behavior; do not invent defensive UI or add a Cartesian matrix of props.
+- For a new regression test, verify it would fail for a plausible implementation defect. A small temporary mutation is useful when confidence is unclear; restore production code after the check. Never weaken a meaningful assertion merely to make the suite pass.
+
 ## Backend API Types
 
 - Import named backend contract types with `import type` from `@api-types`. Do not use indexed access to extract nested API types in frontend code, or unroll/reconstruct their shapes locally.
