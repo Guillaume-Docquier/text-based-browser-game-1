@@ -31,9 +31,9 @@ export const Boundaries = {
     "boundaries/elements": [
       { ...Elements.DOMAIN, partialMatch: false },
       { ...Elements.TESTING, partialMatch: false },
-      // { ...Elements.GALAXY_CREATION, partialMatch: false },
-      // { ...Elements.ACTION_SUBMISSION, partialMatch: false },
-      // { ...Elements.TURN_RESOLUTION, partialMatch: false },
+      { ...Elements.GALAXY_CREATION, partialMatch: false },
+      { ...Elements.ACTION_SUBMISSION, partialMatch: false },
+      { ...Elements.TURN_RESOLUTION, partialMatch: false },
     ],
   } satisfies Settings & Pick<NonNullable<OxlintConfig["settings"]>, "import/resolver">,
   rules: {
@@ -63,12 +63,12 @@ export const Boundaries = {
           ...policy({
             element: Elements.ACTION_SUBMISSION,
             disallow: DisallowEverything,
-            allow: elements([Elements.ACTION_SUBMISSION, Elements.DOMAIN, Elements.TESTING]),
+            allow: elements([Elements.ACTION_SUBMISSION, Elements.TURN_RESOLUTION, Elements.DOMAIN, Elements.TESTING]),
           }),
           ...policy({
             element: Elements.TURN_RESOLUTION,
             disallow: DisallowEverything,
-            allow: elements([Elements.TURN_RESOLUTION, Elements.DOMAIN, Elements.TESTING]),
+            allow: elements([Elements.TURN_RESOLUTION, Elements.ACTION_SUBMISSION, Elements.DOMAIN, Elements.TESTING]),
           }),
         ],
       },
