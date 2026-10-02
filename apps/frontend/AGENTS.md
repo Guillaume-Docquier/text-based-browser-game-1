@@ -28,28 +28,31 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 
 ## Commands
 
-- `pnpm --filter frontend e2e`: run local end-to-end tests.
-
 On native Windows in the Codex sandbox, do not run the aggregate `pnpm --filter frontend checks` command. It invokes Storybook inside a nested command that cannot use the one-command exception. Run its checks in this order, using a separate `exec_command` call for each:
 
 1. `pnpm --filter frontend typecheck` in the default sandbox.
 2. `pnpm --filter frontend build` in the default sandbox.
 3. `pnpm --filter frontend storybook:build` through a reviewed, one-command Codex sandbox exception (`require_escalated` with the exact prefix `pnpm --filter frontend storybook:build`) to avoid sandbox cache write issues.
-4. `pnpm --filter frontend e2e` in the default sandbox, following the TTY and reporter instructions below.
+4. Run the E2E command below.
 
 ## End-to-end Tests
 
-- Run Playwright commands in a terminal with a TTY. For Codex `exec_command`, set `tty: true` so its live progress is visible.
-- For an agent-run test, add the `list` reporter and enable step output. Set `PLAYWRIGHT_HTML_OPEN=never` for that command: Playwright still writes the configured HTML report, but after a failure it will not serve the report and wait for Ctrl+C, which can make the Codex terminal look hung. On Windows, run these lines in one PowerShell command with `tty: true`:
+### Running Tests
 
-  ```powershell
-  $env:PLAYWRIGHT_HTML_OPEN = "never"
-  $env:PLAYWRIGHT_LIST_PRINT_STEPS = "1"
-  pnpm --filter frontend e2e playwright/specs/planets.spec.ts --project chromium --add-reporter=list
-  ```
+Use `exec_command` with `tty: true`. On native Windows, also use a reviewed `require_escalated` exception with prefix `pnpm --filter frontend e2e` so Playwright can stop its servers.
 
-- If a worktree is outside Codex's writable roots and pnpm fails with `EPERM` while creating a `_tmp_*` file, rerun the same E2E command through a reviewed `require_escalated` sandbox exception. Playwright has not started in that case.
-- Poll the running terminal session for output. A quiet interval alone does not mean the test is stalled; use the latest test or step, timeout, and diagnostics before interrupting it.
+Run these lines in one PowerShell command to print tests and steps and save the HTML report without automatically serving it:
+
+```powershell
+$env:PLAYWRIGHT_HTML_OPEN = "never"
+$env:PLAYWRIGHT_LIST_PRINT_STEPS = "1"
+pnpm --filter frontend e2e --add-reporter=list
+```
+
+Add a spec path for a focused run. Poll the terminal session until it exits; assess quiet intervals using the latest step, test timeout, and diagnostics.
+
+### Writing Tests
+
 - Structure tests with descriptive `test.step()` blocks reflecting user behavior. Do not use AAA sections.
 - Page objects own selectors, reusable interactions, and routes. Tests use intent-revealing methods such as `page.navbar.signOut()`; navigation methods return the destination page object.
 - Follow the [Playwright page-object conventions](playwright/AGENTS.md), including branded locators at page-object method boundaries and parameterized action selection instead of methods for individual Actions.
