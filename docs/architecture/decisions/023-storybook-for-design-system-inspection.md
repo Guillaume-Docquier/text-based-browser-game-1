@@ -10,6 +10,8 @@ Accepted
 
 - 2026-10-01: Add browser component testing with the Vitest addon so isolated UI behavior can move out of end-to-end tests.
 
+- 2026-10-01: Enforce component tests in the frontend CI job and retain failure diagnostics.
+
 ## Context
 
 Reusable frontend components live in `frontend/src/components`, but inspecting them currently requires finding or creating an application page that renders each relevant state. This makes design-system review slower and couples component inspection to feature development.
@@ -27,6 +29,8 @@ Storybook uses a minimal Vite configuration containing the Tailwind plugin inste
 Use the Storybook Vitest addon to run colocated stories as component tests in Chromium through Vitest browser mode. Write interaction and rendering assertions in story play functions using storybook/test. The test configuration reuses the minimal Storybook Vite configuration and remains independent of application environment variables, live authentication, and backend services.
 
 Run the suite with pnpm --filter frontend storybook:test, watch it with pnpm --filter frontend storybook:test:watch, or use the Storybook testing panel. Install Chromium with pnpm --filter frontend e2e:install. Component tests own isolated UI states, keyboard behavior, hover, and focus presentation. End-to-end tests retain real navigation, authentication, submissions, and resulting application state. Keep automated accessibility checks, visual regression testing, and Storybook publication outside this decision.
+
+Run the suite in the frontend CI job alongside the Storybook build, with Chromium installed and test failure reports uploaded. This job requires neither authentication credentials nor a database for component testing.
 
 ## Consequences
 
