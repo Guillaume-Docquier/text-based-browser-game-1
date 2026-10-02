@@ -7,6 +7,7 @@ export default mergeConfig(
   storybookViteConfig,
   defineConfig({
     test: {
+      attachmentsDir: "./test-results/storybook",
       projects: [
         {
           plugins: [
@@ -22,7 +23,6 @@ export default mergeConfig(
               provider: playwright(),
               headless: true,
               screenshotFailures: true,
-              screenshotDirectory: "./test-results/storybook",
               instances: [{ browser: "chromium" }],
             },
           },

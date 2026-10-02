@@ -1,12 +1,22 @@
 import { Assert, noop } from "@guillaume-docquier/tools-ts"
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { useState } from "react"
+import { type ReactElement, useState } from "react"
 import { expect } from "storybook/test"
+import { Button } from "@/components/button.tsx"
 import { TurnButton } from "./TurnButton.tsx"
 
 const meta = {
   title: "Application/Turn Button",
   component: TurnButton,
+  // A second control keeps keyboard focus transitions inside the story document.
+  decorators: [
+    (Story): ReactElement => (
+      <div className="flex items-center gap-4">
+        <Story />
+        <Button variant="outline">Next control</Button>
+      </div>
+    ),
+  ],
   args: {
     turn: 142,
     countdown: "02:17:43",
@@ -18,6 +28,11 @@ const meta = {
   },
   play: async ({ args, canvas, userEvent }): Promise<void> => {
     const button = canvas.getByRole("button", { name: args.isLockedIn ? "Cancel lock in" : "Lock in" })
+    const nextControl = canvas.getByRole("button", { name: "Next control" })
+    const browserUserEvent = import.meta.env.VITEST === "true" ? (await import("vitest/browser")).userEvent : undefined
+    if (browserUserEvent !== undefined) {
+      await browserUserEvent.hover(nextControl)
+    }
     const clock = canvas.getByText(args.countdown).parentElement
     Assert.isDefined(clock)
     const action = canvas.getByText(args.isLockedIn ? "Cancel" : "Lock in", { exact: true })
@@ -35,8 +50,7 @@ const meta = {
     }
 
     // Storybook's simulated pointer events do not activate CSS :hover.
-    if (import.meta.env.VITEST === "true") {
-      const { userEvent: browserUserEvent } = await import("vitest/browser")
+    if (browserUserEvent !== undefined) {
       await browserUserEvent.hover(button)
       if (!args.disabled || args.isPending) {
         await expect(action).toBeVisible()
@@ -45,7 +59,7 @@ const meta = {
         await expect(action).not.toBeVisible()
         await expect(clock).toHaveStyle({ opacity: "1" })
       }
-      await browserUserEvent.unhover(button)
+      await browserUserEvent.hover(nextControl)
       await expect(action).not.toBeVisible()
       await expect(clock).toHaveStyle({ opacity: "1" })
     }
@@ -57,6 +71,7 @@ const meta = {
       await expect(action).toBeVisible()
       await expect(clock).toHaveStyle({ opacity: "0" })
       await userEvent.tab()
+      await expect(nextControl).toHaveFocus()
       await expect(action).not.toBeVisible()
     }
   },
@@ -94,6 +109,11 @@ export const Interactive: Story = {
   },
   play: async ({ canvas, userEvent }): Promise<void> => {
     const button = canvas.getByRole("button", { name: "Lock in" })
+    const nextControl = canvas.getByRole("button", { name: "Next control" })
+    if (import.meta.env.VITEST === "true") {
+      const { userEvent: browserUserEvent } = await import("vitest/browser")
+      await browserUserEvent.hover(nextControl)
+    }
     await expect(button).toHaveAttribute("aria-pressed", "false")
     await userEvent.tab()
     await expect(button).toHaveFocus()
@@ -103,7 +123,8 @@ export const Interactive: Story = {
     await expect(button).toHaveAttribute("aria-pressed", "true")
     await expect(canvas.getByText("Cancel", { exact: true })).toBeVisible()
     await userEvent.tab()
-    await userEvent.tab()
+    await expect(nextControl).toHaveFocus()
+    await userEvent.tab({ shift: true })
     await expect(button).toHaveFocus()
     await expect(canvas.getByText("Cancel", { exact: true })).toBeVisible()
     await userEvent.keyboard(" ")
@@ -111,6 +132,7 @@ export const Interactive: Story = {
     await expect(button).toHaveAttribute("aria-pressed", "false")
     await expect(canvas.getByText("Lock in", { exact: true })).toBeVisible()
     await userEvent.tab()
+    await expect(nextControl).toHaveFocus()
     await expect(canvas.getByText("Lock in", { exact: true })).not.toBeVisible()
     await expect(canvas.getByText("Next turn", { exact: true })).toBeVisible()
 
