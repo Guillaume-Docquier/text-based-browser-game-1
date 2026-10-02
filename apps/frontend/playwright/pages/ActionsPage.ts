@@ -24,22 +24,6 @@ export class ActionsPage extends GamePage {
     await this.selectActionButton(name, identifyingText).click()
   }
 
-  public targetPicker(actionName: string, identifyingText: string, targetName: string): Locator {
-    return this.action(actionName, identifyingText).getByRole("combobox", { name: `${targetName} target` })
-  }
-
-  public targetChoices(targetName: string): Locator {
-    return this.page.getByRole("listbox", { name: `${targetName} target` })
-  }
-
-  public async searchTarget(actionName: string, identifyingText: string, targetName: string, query: string): Promise<void> {
-    await this.targetPicker(actionName, identifyingText, targetName).fill(query)
-  }
-
-  public async chooseTarget(targetName: string, optionName: string): Promise<void> {
-    await this.targetChoices(targetName).getByRole("option", { name: optionName, exact: false }).click()
-  }
-
   public actionUnaffordableOverlay(name: string): Locator {
     return this.action(name).locator("[data-unaffordable-overlay]")
   }

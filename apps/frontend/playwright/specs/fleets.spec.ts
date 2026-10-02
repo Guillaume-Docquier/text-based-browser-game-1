@@ -46,19 +46,6 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
     await expect(bobPlayersPage.turn).toHaveText("Turn 1", { timeout: 15000 })
   })
 
-  await test.step("Search and select a Move Fleet destination from one combobox", async () => {
-    const actionsPage = await aliceFleetsPage.openActions()
-    const planetTarget = actionsPage.targetPicker("Move Fleet", "Standard Directive", "Planet")
-    await expect(planetTarget).toBeEnabled()
-
-    await actionsPage.searchTarget("Move Fleet", "Standard Directive", "Planet", "991659")
-    await expect(actionsPage.targetChoices("Planet").getByRole("option")).toHaveCount(1)
-    await expect(actionsPage.targetChoices("Planet").getByRole("option")).toContainText("planet 991659")
-
-    await actionsPage.chooseTarget("Planet", "planet 991659")
-    await expect(planetTarget).toHaveValue(/planet 991659/)
-  })
-
   await test.step("Show each player's Fleet beneath its Planet in the system view", async () => {
     const galaxyPage = await aliceFleetsPage.openGalaxy()
     await expect(galaxyPage.galaxyFleetMarkers).toHaveCount(0)

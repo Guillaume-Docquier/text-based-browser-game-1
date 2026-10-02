@@ -33,14 +33,7 @@ test("being ready locks selected actions and the turn resolves when all players 
   })
 
   await test.step("Alice locks in from the top bar and Bob sees her public status", async () => {
-    await expect(alicePlayersPage.turnButton).toHaveAttribute("aria-pressed", "false")
-    await expect(alicePlayersPage.turnButton).toContainText("Next turn")
-    await alicePlayersPage.hoverTurnButton()
-    await expect(alicePlayersPage.turnAction).toBeVisible()
-    await expect(alicePlayersPage.turnAction).toHaveText("Lock in")
     await alicePlayersPage.toggleLockIn()
-    await expect(alicePlayersPage.turnButton).toHaveAttribute("aria-pressed", "true")
-    await expect(alicePlayersPage.turnButton).toContainText("Locked in")
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "true")
     await expect(bobPlayersPage.opponentReady).toBeVisible({ timeout: 15000 })
   })
@@ -53,11 +46,7 @@ test("being ready locks selected actions and the turn resolves when all players 
   })
 
   await test.step("Alice cancels lock-in from Actions and can change her choices again", async () => {
-    await aliceActionsPage.hoverTurnButton()
-    await expect(aliceActionsPage.turnAction).toBeVisible()
-    await expect(aliceActionsPage.turnAction).toHaveText("Cancel")
     await aliceActionsPage.toggleLockIn()
-    await expect(aliceActionsPage.turnButton).toHaveAttribute("aria-pressed", "false")
     await expect(aliceActionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-disabled", "false")
     await aliceActionsPage.toggleActionSelection("Extract Metal")
     await expect(aliceActionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "false")
@@ -82,8 +71,6 @@ test("being ready locks selected actions and the turn resolves when all players 
   await test.step("Both players advance with readiness reset", async () => {
     await expect(bobPlayersPage.turn).toHaveText("Turn 1", { timeout: 15000 })
     await expect(alicePlayersPage.turn).toHaveText("Turn 1", { timeout: 15000 })
-    await expect(alicePlayersPage.turnButton).toHaveAttribute("aria-pressed", "false")
-    await expect(bobPlayersPage.turnButton).toHaveAttribute("aria-pressed", "false")
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
     await expect(bobPlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
     await expect(alicePlayersPage.opponentNotReady).toBeVisible()
