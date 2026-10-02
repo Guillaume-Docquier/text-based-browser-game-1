@@ -26,10 +26,6 @@ Storybook uses a minimal Vite configuration containing the Tailwind plugin inste
 
 Use the Storybook Vitest addon to run colocated stories as component tests in Chromium through Vitest browser mode. Write interaction and rendering assertions in story play functions using storybook/test. The test configuration reuses the minimal Storybook Vite configuration and remains independent of application environment variables, live authentication, and backend services.
 
-Run the suite with pnpm --filter frontend storybook:test, watch it with pnpm --filter frontend storybook:test:watch, or use the Storybook testing panel. Install Chromium with pnpm --filter frontend e2e:install. Component tests own isolated UI states, keyboard behavior, hover, and focus presentation. End-to-end tests retain real navigation, authentication, submissions, and resulting application state. Keep automated accessibility checks, visual regression testing, and Storybook publication outside this decision.
-
-Run the suite in the frontend CI job alongside the Storybook build, with Chromium installed and test failure reports uploaded. This job requires neither authentication credentials nor a database for component testing.
-
 ## Consequences
 
 Shared components and selected application components can be inspected without navigating the application or satisfying application runtime dependencies. Stories remain independent of live authentication and backend services. Component changes should add or update colocated stories when that improves inspection of meaningful states; application components do not all require stories.
