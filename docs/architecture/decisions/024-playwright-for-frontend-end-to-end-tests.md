@@ -8,6 +8,7 @@ Accepted
 
 - 2026-08-09: Added CI execution using GitHub hosted Postgres service
 - 2026-08-23: Added 3 test users instead of just 1 to handle multi-user tests
+- 2026-10-01: Move isolated component presentation and interaction checks to Storybook browser tests while retaining real user flows and application-state assertions.
 
 ## Context
 
@@ -17,7 +18,7 @@ The backend has good integration feature oriented tests, but the frontend has no
 
 Use Playwright with Chromium for frontend end-to-end (e2e) tests in `frontend/playwright`.
 
-The e2e tests should test real user flows with real authentication, real backend, real everything.
+The e2e tests should test real user flows with real authentication, real backend, real everything. Assert resulting application state such as selected Actions, public Readiness, resource changes, navigation, and Turn advancement. Isolated component mechanics and presentation, such as filtering a standalone combobox or revealing a button action on hover, belong in the [Storybook browser tests](./023-storybook-for-design-system-inspection.md) when those components have stories. Retain E2E coverage for feature UI without isolated component coverage.
 
 Run the e2e tests in CI using a GitHub Actions Postgres service. Playwright starts the backend and frontend, and the backend applies migrations on boot. The tests create their own scenario data, so the
 database does not need a separate seed step.

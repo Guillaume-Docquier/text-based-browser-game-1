@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import { expect } from "storybook/test"
 import { Badge } from "@/components/badge"
 
 const meta = {
@@ -12,7 +13,11 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+export const Default: Story = {
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Active")).toBeVisible()
+  },
+}
 
 export const Variants: Story = {
   render: () => (
@@ -25,4 +30,9 @@ export const Variants: Story = {
       <Badge variant="link">Link</Badge>
     </div>
   ),
+  play: async ({ canvas }) => {
+    for (const name of ["Default", "Secondary", "Destructive", "Outline", "Ghost", "Link"]) {
+      await expect(canvas.getByText(name, { exact: true })).toBeVisible()
+    }
+  },
 }

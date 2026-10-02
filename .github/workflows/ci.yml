@@ -51,8 +51,22 @@ jobs:
       - name: Typecheck
         run: pnpm --filter frontend typecheck
 
-      - name: Storybook
+      - name: Storybook build
         run: pnpm --filter frontend storybook:build
+
+      - name: Install Playwright browser
+        run: pnpm --filter frontend e2e:install
+
+      - name: Storybook component tests
+        run: pnpm --filter frontend storybook:test
+
+      - name: Upload Storybook test failures
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: storybook-test-results
+          path: apps/frontend/test-results/storybook/
+          if-no-files-found: ignore
 
   e2e:
     runs-on: ubuntu-latest

@@ -21,6 +21,8 @@ The frontend uses React with the compiler, TailwindCSS, TanStack Router, Shadcn,
 
 - Keep stories next to their components. Use `Design System/<Component>` for shared components in `src/components` and `Application/<Component>` for feature components.
 - Design System appears first in the sidebar. Application is a broad section for selected feature components whose states benefit from isolated inspection; not every feature component needs a story.
+- Write component assertions in story play functions using storybook/test. Run pnpm --filter frontend storybook:test for Chromium browser tests. Keep isolated UI state and presentation assertions here; E2E tests cover flows and resulting application state.
+- For CSS hover and focus checks requiring native events, add colocated *.browser.test.ts specs using vitest/browser and reuse the stories through Storybook portable stories. The storybook:test command runs both the story plays and native browser specs.
 - Keep stories independent of live authentication and backend services. See [ADR-023](../../docs/architecture/decisions/023-storybook-for-design-system-inspection.md).
 - `pnpm --filter frontend storybook:build` must be run through a reviewed, one-command Codex sandbox exception (`require_escalated` with the exact prefix `pnpm --filter frontend storybook:build`) to avoid sandbox cache write issues.
 

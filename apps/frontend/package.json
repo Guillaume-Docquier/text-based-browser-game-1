@@ -11,6 +11,8 @@
     "e2e:ui": "playwright test --ui",
     "storybook": "storybook dev --port 6006",
     "storybook:build": "storybook build",
+    "storybook:test": "vitest run --project storybook --project storybook-native",
+    "storybook:test:watch": "vitest --project storybook --project storybook-native",
     "typecheck": "tsc -b"
   },
   "dependencies": {
@@ -41,7 +43,8 @@
     "@clerk/testing": "^2.2.39",
     "@playwright/test": "^1.63.0",
     "@rolldown/plugin-babel": "^0.2.4",
-    "@storybook/react-vite": "^10.6.0",
+    "@storybook/addon-vitest": "^10.6.1",
+    "@storybook/react-vite": "^10.6.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-plugin": "^1.168.40",
     "@types/babel__core": "^7.20.5",
@@ -49,9 +52,11 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/browser-playwright": "^5.0.0",
     "babel-plugin-react-compiler": "^1.0.0",
-    "storybook": "^10.6.0",
+    "storybook": "^10.6.1",
     "typescript": "catalog:",
-    "vite": "^8.3.1"
+    "vite": "^8.3.1",
+    "vitest": "catalog:"
   }
 }

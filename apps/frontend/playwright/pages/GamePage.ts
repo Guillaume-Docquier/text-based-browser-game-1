@@ -17,8 +17,7 @@ export abstract class GamePage extends BasePage {
 
   public readonly gameNameHeading: Locator
   public readonly resources: Locator
-  public readonly turnButton: Locator
-  public readonly turnAction: Locator
+  private readonly turnButton: Locator
 
   protected constructor(page: Page) {
     super(page)
@@ -26,7 +25,6 @@ export abstract class GamePage extends BasePage {
     this.gameTopBar = page.getByRole("banner")
     this.gameNameHeading = this.gameTopBar.getByRole("heading", { level: 1 })
     this.turnButton = this.gameTopBar.getByRole("button", { name: /^(Lock in|Cancel lock in)$/ })
-    this.turnAction = this.turnButton.getByText(/^(Lock in|Cancel)$/, { exact: true })
     this.resources = this.gameTopBar.locator(
       '[aria-label$="Influence"], [aria-label$="Metal"], [aria-label$="Energy"], [aria-label$="Fuel"], [aria-label$="Colony"]',
     )
@@ -43,13 +41,8 @@ export abstract class GamePage extends BasePage {
     return this.gameTopBar.locator(`[aria-label$=" ${name}"]`)
   }
 
-  public async hoverTurnButton(): Promise<void> {
-    await this.turnButton.hover()
-  }
-
   public async toggleLockIn(): Promise<void> {
     await this.turnButton.click()
-    await this.gameNameHeading.hover()
   }
 
   public resourceDetails(name: string): Locator {

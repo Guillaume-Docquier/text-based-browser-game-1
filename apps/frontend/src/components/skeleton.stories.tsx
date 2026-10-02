@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import { expect } from "storybook/test"
 import { Skeleton } from "@/components/skeleton"
 
 const meta = {
@@ -12,7 +13,18 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const skeletons = [...canvasElement.querySelectorAll<HTMLElement>('[data-slot="skeleton"]')]
+    await expect(skeletons).toHaveLength(1)
+    for (const skeleton of skeletons) {
+      await expect(skeleton).toBeVisible()
+      const { height, width } = skeleton.getBoundingClientRect()
+      await expect(width).toBeGreaterThan(0)
+      await expect(height).toBeGreaterThan(0)
+    }
+  },
+}
 
 export const CardPlaceholder: Story = {
   render: () => (
@@ -27,4 +39,14 @@ export const CardPlaceholder: Story = {
       <Skeleton className="h-24 w-full" />
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    const skeletons = [...canvasElement.querySelectorAll<HTMLElement>('[data-slot="skeleton"]')]
+    await expect(skeletons).toHaveLength(4)
+    for (const skeleton of skeletons) {
+      await expect(skeleton).toBeVisible()
+      const { height, width } = skeleton.getBoundingClientRect()
+      await expect(width).toBeGreaterThan(0)
+      await expect(height).toBeGreaterThan(0)
+    }
+  },
 }
