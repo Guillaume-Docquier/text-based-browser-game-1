@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { RocketIcon } from "lucide-react"
+import { expect } from "storybook/test"
 import { Button } from "@/components/button"
 
 const meta = {
@@ -13,7 +14,14 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+export const Default: Story = {
+  play: async ({ canvas, userEvent }) => {
+    const button = canvas.getByRole("button", { name: "Launch fleet" })
+    await expect(button).toBeEnabled()
+    await userEvent.tab()
+    await expect(button).toHaveFocus()
+  },
+}
 
 export const Variants: Story = {
   render: () => (
