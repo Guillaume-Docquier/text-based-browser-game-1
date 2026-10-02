@@ -24,7 +24,7 @@ Stories are colocated with their components and use the `*.stories.tsx` suffix. 
 
 Storybook uses a minimal Vite configuration containing the Tailwind plugin instead of loading the application Vite configuration. This keeps component inspection independent from application environment variables, backend proxy configuration, and TanStack Router generation.
 
-Use the Storybook Vitest addon to run colocated stories as component tests in Chromium through Vitest browser mode. Write interaction and rendering assertions in story play functions using storybook/test. The test configuration reuses the minimal Storybook Vite configuration and remains independent of application environment variables, live authentication, and backend services.
+Use the Storybook Vitest addon to run colocated stories as component tests in Chromium through Vitest browser mode. Write interaction and rendering assertions in story play functions using storybook/test. Native CSS interaction checks use colocated Vitest browser specs that reuse the stories. The test configuration reuses the minimal Storybook Vite configuration and remains independent of application environment variables, live authentication, and backend services.
 
 ## Consequences
 

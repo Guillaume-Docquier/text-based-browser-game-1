@@ -11,8 +11,8 @@
     "e2e:ui": "playwright test --ui",
     "storybook": "storybook dev --port 6006",
     "storybook:build": "storybook build",
-    "storybook:test": "vitest run --project storybook",
-    "storybook:test:watch": "vitest --project storybook",
+    "storybook:test": "vitest run --project storybook --project storybook-native",
+    "storybook:test:watch": "vitest --project storybook --project storybook-native",
     "typecheck": "tsc -b"
   },
   "dependencies": {
