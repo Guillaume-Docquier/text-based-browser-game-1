@@ -10,8 +10,6 @@ Accepted
 
 - 2026-10-01: Add browser component testing with the Vitest addon so isolated UI behavior can move out of end-to-end tests.
 
-- 2026-10-01: Enforce component tests in the frontend CI job and retain failure diagnostics.
-
 ## Context
 
 Reusable frontend components live in `frontend/src/components`, but inspecting them currently requires finding or creating an application page that renders each relevant state. This makes design-system review slower and couples component inspection to feature development.
