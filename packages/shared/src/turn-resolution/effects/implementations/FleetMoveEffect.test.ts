@@ -1,5 +1,6 @@
 import { branded, indexBy, Result } from "@guillaume-docquier/tools-ts"
 import { NonNegativeNumberSchema, typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { createSubmittedActionStub } from "#shared/domain/actions/Action.stub.ts"
 import { EffectOutcome } from "#shared/domain/actions/EffectOutcome.ts"
@@ -19,7 +20,7 @@ import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 describe("FleetMoveEffect", () => {
   it("should record every outcome when a fleet arrives", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const fleetId = branded<FleetId>("fleet-id")
     const originPlanetId = branded<PlanetId>("origin-planet-id")
     const destinationPlanetId = branded<PlanetId>("destination-planet-id")

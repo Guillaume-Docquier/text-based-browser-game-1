@@ -1,5 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { validateCosts } from "#shared/action-submission/validation/costs/validateCosts.ts"
 import { createSubmittedActionStub } from "#shared/domain/actions/Action.stub.ts"
@@ -29,7 +30,7 @@ const ruleset = createRulesetStub({
 describe("validateCosts", () => {
   it("should not mutate the turnState", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const submittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
@@ -51,8 +52,8 @@ describe("validateCosts", () => {
 
   it("should validate each player's costs against their own resources", () => {
     // Arrange
-    const firstPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000002")
-    const secondPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000003")
+    const firstPlayerId = typedParse(PlayerIdSchema, v4())
+    const secondPlayerId = typedParse(PlayerIdSchema, v4())
     const firstPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId: firstPlayerId })
     const secondPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: actionDefinition.id, playerId: secondPlayerId })
     const turnState = createTurnStateStub({
@@ -87,7 +88,7 @@ describe("validateCosts", () => {
 
   it("should aggregate costs for the same resource before reporting the shortage", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
       costs: [
         ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
@@ -128,7 +129,7 @@ describe("validateCosts", () => {
 
   it("should return issues when the sum of the action costs can't be paid", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
       costs: [
         ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),
@@ -170,7 +171,7 @@ describe("validateCosts", () => {
 
   it("should return issues where the sum of missing resources of each issue is the total missing resources", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const actionDefinitionWithMultipleCosts = createActionDefinitionStub({
       costs: [
         ResourceLossEffectDefinition.create({ quantity: 5, resourceType: ResourceType.INFLUENCE }),

@@ -31,9 +31,6 @@ export const EffectOutcome = {
   },
 } as const
 
-/**
- * Parses the recorded result of resolving an effect.
- */
 export const EffectOutcomeSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("RESOLVED"), result: z.string() }),
   z.object({ type: z.literal("PREVENTED"), reason: z.string() }),

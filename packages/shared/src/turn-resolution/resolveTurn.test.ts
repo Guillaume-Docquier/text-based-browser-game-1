@@ -361,7 +361,7 @@ describe("resolveTurn", () => {
   it("should keep an enemy fleet separate when building on the same planet", () => {
     // Arrange
     const planetId = branded<PlanetId>("planet-id")
-    const enemyPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000004")
+    const enemyPlayerId = typedParse(PlayerIdSchema, v4())
     const enemyFleetId = branded<FleetId>(v4())
     const enemyFleetName = typedParse(FleetNameSchema, "Enemy Fleet")
     const submittedAction = createSubmittedActionStub({

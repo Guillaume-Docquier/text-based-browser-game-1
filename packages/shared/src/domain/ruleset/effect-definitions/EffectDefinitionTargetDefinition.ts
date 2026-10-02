@@ -26,9 +26,6 @@ export type EffectDefinitionTargetDefinition<TTargetType extends TargetType = Ta
   targetType: TTargetType
 }
 
-/**
- * Operations for constructing schemas for effect target definitions.
- */
 export const EffectDefinitionTargetDefinition = {
   schemaFor<TTargetType extends TargetType>(
     targetTypeSchema: z.ZodType<TTargetType>,
@@ -40,7 +37,4 @@ export const EffectDefinitionTargetDefinition = {
   },
 } as const
 
-/**
- * Parses an effect target definition with any supported target type.
- */
 export const EffectDefinitionTargetDefinitionSchema = EffectDefinitionTargetDefinition.schemaFor(TargetTypeSchema)

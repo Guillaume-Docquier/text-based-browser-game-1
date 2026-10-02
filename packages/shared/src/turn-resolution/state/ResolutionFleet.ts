@@ -4,22 +4,7 @@ import type { Fleet } from "#shared/domain/world/fleets/Fleet.ts"
 /**
  * The mutable turn-resolution view of a fleet's identity, ownership, and movement.
  */
-export type ResolutionFleet = Pick<Fleet, "id" | "ownerPlayerId" | "name"> & {
-  strength: Fleet["strength"]
-  originPlanetId: Fleet["originPlanetId"]
-
-  /**
-   * Defined only when moving.
-   * We'd use a discriminated union here, but since we mutate the fleet, it's a bit hard to do.
-   */
-  destinationPlanetId?: Fleet["destinationPlanetId"]
-
-  /**
-   * Defined only when moving.
-   * We'd use a discriminated union here, but since we mutate the fleet, it's a bit hard to do.
-   */
-  distanceToEnd?: Fleet["distanceToEnd"]
-
+export type ResolutionFleet = Fleet & {
   /**
    * Defined only when moving.
    * We'd use a discriminated union here, but since we mutate the fleet, it's a bit hard to do.

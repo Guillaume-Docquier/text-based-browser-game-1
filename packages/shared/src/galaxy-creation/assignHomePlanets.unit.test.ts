@@ -1,5 +1,6 @@
 import { mulberry32Prng, Rng } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
 import { createGalaxyStub } from "#shared/domain/world/Galaxy.stub.ts"
@@ -12,7 +13,7 @@ import { GalaxyCreationSettings } from "#shared/galaxy-creation/GalaxyCreationSe
 describe("assignHomePlanets", () => {
   it("should mutate the galaxy", () => {
     // Arrange
-    const firstPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const firstPlayerId = typedParse(PlayerIdSchema, v4())
     const galaxy = createGalaxyStub({
       systems: [
         createStarSystemStub({

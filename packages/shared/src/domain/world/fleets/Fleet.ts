@@ -5,15 +5,23 @@ import { FleetIdSchema, type FleetId } from "#shared/domain/world/fleets/FleetId
 import { FleetNameSchema, type FleetName } from "#shared/domain/world/fleets/FleetName.ts"
 import { PlanetIdSchema, type PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 
-export type Fleet = Readonly<{
+export type Fleet = {
   id: FleetId
   ownerPlayerId: PlayerId
   name: FleetName
   strength: number
   originPlanetId: PlanetId
+  /**
+   * Defined only when moving.
+   * We'd use a discriminated union here, but since we mutate the fleet, it's a bit hard to do.
+   */
   destinationPlanetId?: PlanetId | undefined
+  /**
+   * Defined only when moving.
+   * We'd use a discriminated union here, but since we mutate the fleet, it's a bit hard to do.
+   */
   distanceToEnd?: NonNegativeNumber | undefined
-}>
+}
 
 export const FleetSchema = z.object({
   id: FleetIdSchema,

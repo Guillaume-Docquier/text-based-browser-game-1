@@ -1,5 +1,6 @@
 import { indexBy, branded, Result } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { validateTargets } from "#shared/action-submission/validation/targets/validateTargets.ts"
 import { createSubmittedActionStub } from "#shared/domain/actions/Action.stub.ts"
@@ -20,7 +21,7 @@ import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 describe("validateTargets", () => {
   it("should report a target selection missing for a required tag", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const actionDefinition = createActionDefinitionStub({
       targets: {
         targetPlayer: { targetType: TargetType.PLAYER, constraints: [] },
@@ -51,7 +52,7 @@ describe("validateTargets", () => {
 
   it("should report unexpected target tags", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const actionDefinition = createActionDefinitionStub()
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
@@ -84,7 +85,7 @@ describe("validateTargets", () => {
 
   it("should report empty target selections", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const actionDefinition = createActionDefinitionStub({
       targets: {
         planet: { targetType: TargetType.PLANET, constraints: [] },
@@ -122,7 +123,7 @@ describe("validateTargets", () => {
 
   it("should accept fleet and planet targets owned by the submitting player", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const fleetId = branded<FleetId>("fleet-id")
     const planetId = branded<PlanetId>("planet-id")
     const constraint = OwnedBySubmittingPlayerConstraint.create()
@@ -154,8 +155,8 @@ describe("validateTargets", () => {
 
   it("should report fleet and planet targets owned by another player", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
-    const otherPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000002")
+    const playerId = typedParse(PlayerIdSchema, v4())
+    const otherPlayerId = typedParse(PlayerIdSchema, v4())
     const fleetId = branded<FleetId>("fleet-id")
     const planetId = branded<PlanetId>("planet-id")
     const constraint = OwnedBySubmittingPlayerConstraint.create()
@@ -208,7 +209,7 @@ describe("validateTargets", () => {
 
   it("should report an unowned planet target", () => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const planetId = branded<PlanetId>("planet-id")
     const actionDefinition = createActionDefinitionStub({
       targets: {
@@ -250,7 +251,7 @@ describe("validateTargets", () => {
     { targetType: TargetType.PLANET, targetId: "123", issue: 'Target selected for tag "target" references unknown PLANET id "123"' },
   ])("should report an unknown $targetType target before evaluating its constraint", ({ targetType, targetId, issue }) => {
     // Arrange
-    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
+    const playerId = typedParse(PlayerIdSchema, v4())
     const actionDefinition = createActionDefinitionStub({
       targets: {
         target: { targetType, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
