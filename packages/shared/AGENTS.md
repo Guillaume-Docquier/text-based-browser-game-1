@@ -1,6 +1,6 @@
 # Shared Package Instructions
 
-These instructions apply to the `shared` package.
+The `shared` package contains persistence agnostic domain definitions and gameplay behavior used by the frontend and backend. Its behavioral areas include galaxy creation, action submission, and turn resolution. It also contains the independent Test Ruleset used by shared tests and backend test setup.
 
 ## Architecture
 

@@ -18,7 +18,6 @@ Use this map to find the smallest useful documentation set for a change. Do not 
 | Architecture decisions index  | [architecture/decisions/README.md](./architecture/decisions/README.md) |
 | New or changed ADR workflow   | [architecture/decisions/how-to.md](./architecture/decisions/how-to.md) |
 | Current architecture overview | [architecture/overview.md](./architecture/overview.md)                 |
-| Shared package                | [packages/shared/README.md](../packages/shared/README.md)              |
 
 It all starts with game design:
 
