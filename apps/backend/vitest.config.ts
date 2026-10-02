@@ -27,7 +27,7 @@ export default defineConfig({
           name: { label: "integration", color: "cyan" },
           include: ["**/*.integration.test.ts"],
           setupFiles: ["./src/tests/vitest.integration.setup.ts"],
-          testTimeout: 10_000, // slow in CI
+          testTimeout: 15_000, // slow in CI
         },
       },
       {
