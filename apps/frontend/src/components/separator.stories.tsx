@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect } from "storybook/test"
-import { Separator } from "@/components/separator"
+import { Separator } from "./separator.tsx"
 
 const meta = {
   title: "Design System/Separator",
