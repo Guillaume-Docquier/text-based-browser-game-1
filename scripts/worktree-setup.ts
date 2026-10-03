@@ -2,6 +2,8 @@ import child_process from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 
+console.log("\nSetting up this worktree\n")
+
 // Example output for "git worktree list --porcelain"
 //
 // worktree C:/Users/Guillaume/Dev/text-based-browser-game-1
@@ -22,4 +24,10 @@ const mainCheckoutPath = child_process
   .split("\n")[0]
   .split(" ")[1]
 
-fs.copyFileSync(path.join(mainCheckoutPath, ".env"), ".env")
+try {
+  console.log(`🔧 Copying .env from ${mainCheckoutPath} into this worktree`)
+  fs.copyFileSync(path.join(mainCheckoutPath, ".env"), ".env")
+  console.log("✅ .env copied")
+} catch {
+  console.log("❌ No .env file in the main checkout")
+}
