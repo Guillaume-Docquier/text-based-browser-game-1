@@ -46,11 +46,17 @@ export async function getPGLiteInstanceWithSchemas(): Promise<PGlite> {
   const resources = testDatabases.getStore()
   Assert.isDefined(template)
   Assert.isDefined(resources)
+  Assert.isTrue(!resources.disposed)
+
+  const allocation = template.clone()
+  resources.defer(async () => {
+    // Allocation failures are reported to the caller; teardown has no database to close.
+    const pg = await allocation.catch(() => undefined)
+    if (pg !== undefined) {
+      await pg.close()
+    }
+  })
 
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- clone returns the same PGlite implementation, but the library's clone type omits part of the public instance type
-  const pg = (await template.clone()) as PGlite
-  resources.defer(async () => {
-    await pg.close()
-  })
-  return pg
+  return (await allocation) as PGlite
 }

@@ -1,4 +1,5 @@
 import { AssertionError } from "node:assert"
+import { AsyncLocalStorage } from "node:async_hooks"
 import { PGlite } from "@electric-sql/pglite"
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { afterAll, beforeEach, describe, expect, it } from "vitest"
@@ -22,6 +23,43 @@ describe("PGlite resource ownership", () => {
 
     // Assert
     expect(databases.map((pg) => pg.closed)).toStrictEqual([true, true])
+  })
+
+  it("should close a pending allocation before its owning scope finishes", async () => {
+    // Arrange
+    const allocateWithoutWaiting = async (): Promise<{ database: ReturnType<typeof createDbMock> }> => ({ database: createDbMock() })
+
+    // Act
+    const { database } = await withTestDatabases(allocateWithoutWaiting)
+    const db = await database
+
+    // Assert
+    Assert.isTrue(db.$client instanceof PGlite)
+    expect(db.$client.closed).toBe(true)
+  })
+
+  it("should reject allocation from an already finished scope", async () => {
+    // Arrange
+    const resumeFinishedScope = await withTestDatabases(async () => AsyncLocalStorage.snapshot())
+
+    // Act & Assert
+    await expect(resumeFinishedScope(createDbMock)).rejects.toMatchObject({ name: "AssertionError" })
+  })
+
+  it("should preserve allocation errors without adding a teardown failure", async () => {
+    // Arrange
+    let resumeClosedTemplate: ReturnType<typeof AsyncLocalStorage.snapshot> | undefined
+    await withPGLiteTemplate(async (template) => {
+      await template.query("SELECT 1")
+      resumeClosedTemplate = AsyncLocalStorage.snapshot()
+    })
+    Assert.isDefined(resumeClosedTemplate)
+
+    // Act
+    const result = await Result.tryCatch(resumeClosedTemplate(async () => await withTestDatabases(getPGLiteInstanceWithSchemas)))
+
+    // Assert
+    expect(result).toStrictEqual(Result.Failure(expect.objectContaining({ name: "Error", message: "PGlite is closed" })))
   })
 
   it("should keep concurrent tests' database owners separate", async () => {
