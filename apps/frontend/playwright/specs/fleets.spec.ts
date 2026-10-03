@@ -6,6 +6,9 @@ import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
 test("the fleets view shows built fleets and supports filtering, sorting, and planet navigation", async ({ alice, bob }) => {
+  // This full workflow includes both players and a turn-processing refresh before checking the map and Fleets table.
+  test.setTimeout(60_000)
+
   const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () =>
     await CreateGamePage.createGame({
       creator: alice,
