@@ -1,3 +1,4 @@
+import { once } from "node:events"
 import { createServer } from "node:http"
 import type { AddressInfo } from "node:net"
 import { describe, expect, it } from "vitest"
@@ -7,26 +8,21 @@ describe("health.router", () => {
   it("should return an empty successful health check", async () => {
     // Arrange
     const { api } = await createApiStub()
-    const server = createServer(api)
-    server.listen(0)
+    await using server = createServer(api).listen(0, "127.0.0.1")
+    await once(server, "listening")
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: The listening TCP server has an assigned address.
+    const address = server.address() as AddressInfo
 
-    try {
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
-      const address = server.address() as AddressInfo
+    // Act
+    const response = await fetch(`http://127.0.0.1:${address.port}/health`)
 
-      // Act
-      const response = await fetch(`http://127.0.0.1:${address.port}/health`)
-
-      // Assert
-      expect({
-        status: response.status,
-        body: await response.text(),
-      }).toStrictEqual({
-        status: 200,
-        body: "",
-      })
-    } finally {
-      server.closeAllConnections()
-    }
+    // Assert
+    expect({
+      status: response.status,
+      body: await response.text(),
+    }).toStrictEqual({
+      status: 200,
+      body: "",
+    })
   })
 })

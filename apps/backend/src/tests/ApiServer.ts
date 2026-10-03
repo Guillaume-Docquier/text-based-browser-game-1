@@ -1,3 +1,4 @@
+import { once } from "node:events"
 import { createServer, type Server } from "node:http"
 import type { AddressInfo } from "node:net"
 import type { Express } from "express"
@@ -30,13 +31,12 @@ const ANY_UNUSED_PORT = 0
 export class ApiServer {
   private readonly accountsRepository: AccountsRepository
   private readonly server: Server
-  private readonly port: number
+  private readonly listening: Promise<unknown[]>
 
   public constructor({ api, accountsRepository }: { api: Express; accountsRepository: AccountsRepository }) {
     this.accountsRepository = accountsRepository
-    this.server = createServer(api).listen(ANY_UNUSED_PORT)
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
-    this.port = (this.server.address() as AddressInfo).port
+    this.server = createServer(api).listen(ANY_UNUSED_PORT, "127.0.0.1")
+    this.listening = once(this.server, "listening")
   }
 
   public async createClient(args: { authenticated: true; id?: string }): Promise<AuthenticatedApiClient>
@@ -48,7 +48,10 @@ export class ApiServer {
     authenticated: boolean
     id?: string | undefined
   }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
-    return await createApiClient({ port: this.port, accountsRepository: this.accountsRepository, authenticated, id })
+    await this.listening
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
+    const { port } = this.server.address() as AddressInfo
+    return await createApiClient({ port, accountsRepository: this.accountsRepository, authenticated, id })
   }
 
   public [Symbol.dispose](): void {
