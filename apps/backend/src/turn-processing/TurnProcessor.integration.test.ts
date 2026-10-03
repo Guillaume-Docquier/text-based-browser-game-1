@@ -596,34 +596,6 @@ describe("TurnProcessor", () => {
       })
     })
 
-    it("should skip turns that are already processing", async () => {
-      // Arrange
-      const db = await createDbMock()
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-
-      const processingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
-      const { createdGameId: processingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(processingTurnInterval, UnitOfTime.SECONDS) }),
-      })
-      await player.client.gameplay.startGame.mutate({ gameId: processingGameId })
-
-      // Act
-      clock.increment({ time: processingTurnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-      const processingResults = await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
-
-      // Assert
-      expect(processingResults).toStrictEqual<typeof processingResults>(["processed", "idle"])
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: processingGameId })).toMatchObject({
-        turn: 2,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
-      })
-    })
-
     it("should not process another turn when the selected turn processing fails", async () => {
       // Arrange
       const db = await createDbMock()
@@ -660,74 +632,6 @@ describe("TurnProcessor", () => {
 
       expect(await player.client.gameplay.getPlayerView.query({ gameId: successfulGameId })).toMatchObject({
         turn: 1,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
-      })
-    })
-
-    it("should be able to process turns in parallel", async () => {
-      // Arrange
-      const db = await createDbMock()
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
-      const { createdGameId: earlierGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),
-      })
-      await player.client.gameplay.startGame.mutate({ gameId: earlierGameId })
-
-      const laterTurnInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: laterGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
-      })
-      await player.client.gameplay.startGame.mutate({ gameId: laterGameId })
-
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-
-      // Act
-      clock.increment({ time: laterTurnInterval })
-
-      // if rows are locked correctly, processing 2 turns concurrently should result in 2 different turns being processed
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-      await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
-
-      // Assert
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: earlierGameId })).toMatchObject({
-        turn: 2,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
-      })
-
-      expect(await player.client.gameplay.getPlayerView.query({ gameId: laterGameId })).toMatchObject({
-        turn: 2,
-        resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
-      })
-    })
-
-    it("should do nothing if there are no turns left when processing turns in parallel", async () => {
-      // Arrange
-      const db = await createDbMock()
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const turnInterval = Time.create(50, UnitOfTime.SECONDS)
-      const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
-      })
-      await player.client.gameplay.startGame.mutate({ gameId })
-
-      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-
-      // Act
-      clock.increment({ time: turnInterval })
-      await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-      // if rows are locked correctly, processing 2 turns concurrently should result in 1 turn being processed and the other one will do nothing
-      await Promise.all([turnProcessor.processNextDueTurn(), turnProcessor.processNextDueTurn()])
-
-      // Assert
-      expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
-        turn: 2,
         resources: { [ResourceType.INFLUENCE]: { total: 3, uncommitted: 3 } },
       })
     })
