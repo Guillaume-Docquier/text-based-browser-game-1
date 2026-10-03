@@ -9,7 +9,7 @@
     "e2e": "playwright test",
     "e2e:install": "playwright install --with-deps chromium",
     "e2e:ui": "playwright test --ui",
-    "storybook": "node --env-file-if-exists=../../.env node_modules/storybook/dist/bin/dispatcher.js dev --exact-port",
+    "storybook": "storybook dev",
     "storybook:build": "storybook build",
     "storybook:test": "vitest run --project storybook --project storybook-native",
     "storybook:test:watch": "vitest --project storybook --project storybook-native",
