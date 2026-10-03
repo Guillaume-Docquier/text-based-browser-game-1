@@ -7,6 +7,7 @@ import {
   type ConsoleMessage,
   type Page,
   type TestInfo,
+  type Video,
   type WebError,
 } from "@playwright/test"
 import { users } from "./auth.ts"
@@ -17,7 +18,7 @@ const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development 
 
 type BrowserDiagnostics = {
   registerContext: (context: BrowserContext, player: string) => void
-  unexpectedDiagnostics: readonly string[]
+  registerVideo: (video: Video, name: string) => void
 }
 
 type Fixtures = {
@@ -76,9 +77,10 @@ type Fixtures = {
 
 export const test = base.extend<Fixtures>({
   browserDiagnostics: [
-    async ({ context }, use): Promise<void> => {
+    async ({ context }, use, testInfo): Promise<void> => {
       const unexpectedDiagnostics: string[] = []
       const removeListeners: Array<() => void> = []
+      const videos: Array<{ video: Video; name: string }> = []
       const registerContext = (context: BrowserContext, player: string): void => {
         const pageNumbers = new Map<Page, number>()
         const registerPage = (page: Page): void => {
@@ -121,11 +123,26 @@ export const test = base.extend<Fixtures>({
 
       registerContext(context, "default")
       try {
-        await use({ registerContext, unexpectedDiagnostics })
+        await use({
+          registerContext,
+          registerVideo: (video, name) => {
+            videos.push({ video, name })
+          },
+        })
       } finally {
         removeListeners.forEach((remove) => {
           remove()
         })
+
+        // All authenticated fixtures have closed. A late diagnostic from one context must retain every player's videos.
+        const retainVideos = testInfo.status !== testInfo.expectedStatus || unexpectedDiagnostics.length > 0
+        for (const { video, name } of videos) {
+          if (retainVideos) {
+            await testInfo.attach(name, { path: await video.path(), contentType: "video/webm" })
+          } else {
+            await video.delete()
+          }
+        }
         expect(unexpectedDiagnostics, "Unexpected browser diagnostics").toEqual([])
       }
     },
@@ -177,17 +194,11 @@ async function useAuthenticatedUser(
     await context.close()
     context.off("page", recordPage)
 
-    // Playwright traces manual contexts automatically, but videos need explicit attachment.
-    // Diagnostics are asserted after these fixtures close, so also retain videos for diagnostics-only failures.
-    const retainVideos = testInfo.status !== testInfo.expectedStatus || browserDiagnostics.unexpectedDiagnostics.length > 0
+    // Playwright traces manual contexts automatically, but their videos need explicit registration for final retention.
     for (const [index, page] of pages.entries()) {
       const video = page.video()
       Assert.isDefined(video)
-      if (retainVideos) {
-        await testInfo.attach(`${user.alias} page ${index + 1}`, { path: await video.path(), contentType: "video/webm" })
-      } else {
-        await video.delete()
-      }
+      browserDiagnostics.registerVideo(video, `${user.alias} page ${index + 1}`)
     }
   }
 }
