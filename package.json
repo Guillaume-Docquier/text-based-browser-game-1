@@ -20,7 +20,7 @@
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
     "typecheck": "tsc -p tsconfig.json",
-    "wts": "cp \"$(git worktree list --porcelain | sed -n '1s/^worktree //p')/.env\" .env"
+    "wts": "node scripts/worktree-setup.ts"
   },
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.14",
