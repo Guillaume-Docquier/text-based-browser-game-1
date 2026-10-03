@@ -74,6 +74,8 @@ Always use pnpm, never use npm.
 
 When formatting the code, always run oxfmt with write. oxfmt is deterministic, there's no point in checking before applying formatting.
 
+If the database container is not running, call `pnpm db:up`
+
 ## Commits And PRs
 
 - Never commit, push, or open a pull request unless the human explicitly asks for it. A request to change code or tests does not imply permission to commit, push, or open a PR.
