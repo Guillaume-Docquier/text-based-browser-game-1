@@ -8,6 +8,7 @@
     "btc": "pnpm --filter backend test --project concurrency",
     "bti": "pnpm --filter backend test --project integration",
     "btu": "pnpm --filter backend test --project unit",
+    "containers:prune": "docker container prune -f --filter label=dev.cleanup=true --filter until=168h",
     "db:clean": "pnpm db:remove && pnpm db:up && pnpm --filter backend db:migrate && pnpm --filter backend db:seed",
     "db:compose": "docker compose --env-file .env -f infra/docker-compose.yaml",
     "db:nuke": "rm -rf apps/backend/drizzle && pnpm --filter backend db:generate --name init && pnpm db:clean",
