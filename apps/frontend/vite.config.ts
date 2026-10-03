@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => {
       tsconfigPaths: true,
     },
     server: {
+      host: "127.0.0.1",
       port: env.VITE_DEV_PORT,
       strictPort: true,
       watch: {
