@@ -6,6 +6,9 @@ import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
 test("the fleets view shows built fleets and supports filtering, sorting, and planet navigation", async ({ alice, bob }) => {
+  // This full workflow includes both players and a turn-processing refresh before checking the map and Fleets table.
+  test.setTimeout(60_000)
+
   const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () =>
     await CreateGamePage.createGame({
       creator: alice,
@@ -42,8 +45,8 @@ test("the fleets view shows built fleets and supports filtering, sorting, and pl
     const bobPlayersPage = await bobActionsPage.openPlayers()
     await bobPlayersPage.toggleReady()
 
-    await expect(alicePlayersPage.turn).toHaveText("Turn 1", { timeout: 15000 })
-    await expect(bobPlayersPage.turn).toHaveText("Turn 1", { timeout: 15000 })
+    await expect(alicePlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
+    await expect(bobPlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
   })
 
   await test.step("Search and select a Move Fleet destination from one combobox", async () => {
