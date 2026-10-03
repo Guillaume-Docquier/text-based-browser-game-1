@@ -210,8 +210,19 @@ export class TransactionPause {
 
 function createSession(databaseUrl: string, resources: AsyncDisposableStack, max = 10): Database {
   const pool = new Pool({ connectionString: databaseUrl, max, statement_timeout: SYNCHRONIZATION_TIMEOUT_MS })
+  const clientEnds: Array<Promise<undefined>> = []
+  pool.on("connect", (client): void => {
+    const ended = Promise.withResolvers<undefined>()
+    client.once("end", (): void => {
+      ended.resolve(undefined)
+    })
+    clientEnds.push(ended.promise)
+  })
   resources.defer(async () => {
     await pool.end()
+    // pg-pool removes idle clients from its bookkeeping before their sockets close.
+    // Wait for every client's end event before allowing PostgreSQL to shut down.
+    await within(Promise.all(clientEnds), "PostgreSQL clients did not disconnect")
   })
   return drizzle({ client: pool })
 }
