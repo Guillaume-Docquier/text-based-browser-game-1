@@ -49,7 +49,7 @@ export class ApiServer {
     id?: string | undefined
   }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
     await this.listening
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: The listening TCP server has an assigned address.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
     const { port } = this.server.address() as AddressInfo
     return await createApiClient({ port, accountsRepository: this.accountsRepository, authenticated, id })
   }
