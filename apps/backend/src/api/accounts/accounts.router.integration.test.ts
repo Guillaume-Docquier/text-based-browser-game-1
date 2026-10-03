@@ -6,7 +6,7 @@ describe("accounts.router", () => {
   describe("isOnboarded", () => {
     it("should reject anonymous accounts", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -18,7 +18,7 @@ describe("accounts.router", () => {
 
     it("should return false for a new authenticated account", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const account = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -32,7 +32,7 @@ describe("accounts.router", () => {
   describe("finishOnboarding", () => {
     it("should safely set a trimmed alias containing symbols and spaces", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const account = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -44,7 +44,7 @@ describe("accounts.router", () => {
 
     it.each(["a", "a".repeat(36)])("should accept the boundary-length alias %j", async (alias) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const account = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -56,7 +56,7 @@ describe("accounts.router", () => {
 
     it.each([" ", "a".repeat(37), "Null\0Alias"])("should reject the invalid alias %j", async (alias) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const account = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -69,7 +69,7 @@ describe("accounts.router", () => {
 
     it("should reject an alias already used with different casing", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const firstAccount = await apiServer.createClient({ authenticated: true })
       const secondAccount = await apiServer.createClient({ authenticated: true })
       await firstAccount.client.accounts.finishOnboarding.mutate({ alias: "Nova" })
@@ -84,7 +84,7 @@ describe("accounts.router", () => {
 
     it("should reject replacing an existing alias", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const account = await apiServer.createClient({ authenticated: true })
       await account.client.accounts.finishOnboarding.mutate({ alias: "Nova" })
 
