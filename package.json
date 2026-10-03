@@ -19,7 +19,8 @@
     "map-gen:all": "pnpm map-gen galaxy cluster --grid --seed 1234 && pnpm map-gen galaxy spiral --grid --seed 1234 && pnpm map-gen spiral --seed 1234 && pnpm map-gen cluster --seed 1234",
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "wts": "cp \"$(git worktree list --porcelain | sed -n '1s/^worktree //p')/.env\" .env"
   },
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.14",
