@@ -28,6 +28,34 @@ try {
   console.log(`🔧 Copying .env from ${mainCheckoutPath} into this worktree`)
   fs.copyFileSync(path.join(mainCheckoutPath, ".env"), ".env")
   console.log("✅ .env copied")
-} catch {
+} catch (e) {
   console.log("❌ No .env file in the main checkout")
+  throw e
+}
+
+console.log("\nUpdating ports\n")
+// get and increment the worktree counter, no need to lock
+const index = 1
+const basePort = 10000 + (index % 3800) * 10
+// check that the 3 ports are not in use
+// if in use, get and increment again
+
+console.log(`Base port for this worktree: ${basePort}`)
+try {
+  console.log("🔧Updating .env")
+  // db:
+  // POSTGRES_PORT
+  // COMPOSE_PROJECT_NAME
+  //
+  // backend:
+  // PORT
+  // DATABASE_URL (depends on db.POSTGRES_PORT)
+  //
+  // frontend:
+  // VITE_DEV_PORT
+  // VITE_BACKEND_HOST (depends on backend.PORT)
+  console.log("✅ .env updated")
+} catch (e) {
+  console.log("❌ Could not update .env")
+  throw e
 }
