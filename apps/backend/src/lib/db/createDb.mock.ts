@@ -5,6 +5,7 @@ import { getPGLiteInstanceWithSchemas } from "#tests/pglite.ts"
 /**
  * Creates an in-memory Postgres database using PGLite.
  * The db will have all the tables ready, but no data.
+ * The integration fixture owns and closes it after the test and its consumers finish.
  */
 export async function createDbMock(): Promise<Database> {
   const pg = await getPGLiteInstanceWithSchemas()

@@ -1,16 +1,24 @@
+import type { PGlite } from "@electric-sql/pglite"
 import { Logger } from "@guillaume-docquier/tools-ts"
 import { pushSchema } from "drizzle-kit/api"
 import { drizzle } from "drizzle-orm/pglite"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
-import { beforeAll } from "vitest"
+import { aroundAll, aroundEach } from "vitest"
 import { configureLogger } from "#lib/configureLogger.ts"
 import type { Database } from "#lib/db/createDb.ts"
 import * as schema from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
-import { pglite } from "#tests/pglite.ts"
+import { withPGLiteTemplate, withTestDatabases } from "#tests/pglite.ts"
 
-beforeAll(async () => {
-  await Promise.all([setupLogging(), setupPg()])
+aroundAll(async (runSuite) => {
+  await withPGLiteTemplate(async (template) => {
+    await Promise.all([setupLogging(), setupPg(template)])
+    await runSuite()
+  })
+})
+
+aroundEach(async (runTest) => {
+  await withTestDatabases(runTest)
 })
 
 async function setupLogging(): Promise<void> {
@@ -23,7 +31,7 @@ async function setupLogging(): Promise<void> {
  * Setup that allows us to leverage {@link getPGLiteInstanceWithSchemas} to quickly create an isolated db for each test.
  * Pushing the schemas takes ~900ms, cloning is ~200ms.
  */
-async function setupPg(): Promise<void> {
+async function setupPg(template: PGlite): Promise<void> {
   // TS2375: Type
   // PgliteDatabase<Record<string, never>> & {
   //   $client: PGlite;
@@ -32,7 +40,7 @@ async function setupPg(): Promise<void> {
   // Consider adding undefined to the types of the target's properties.
   //
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- In reality the types work, and this is for testing, so if it doesn't work, it should be obvious.
-  const db = drizzle(pglite) as unknown as Database
+  const db = drizzle(template) as unknown as Database
 
   const push = await pushSchema(schema, db)
   await push.apply()

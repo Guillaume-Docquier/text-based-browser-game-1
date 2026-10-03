@@ -31,7 +31,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(100, UnitOfTime.SECONDS)
@@ -73,7 +73,7 @@ describe("TurnProcessor", () => {
       const db = await createDbMock()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, accountsRepository })
+      await using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(100, UnitOfTime.SECONDS)
@@ -119,7 +119,7 @@ describe("TurnProcessor", () => {
       const db = await createDbMock()
       const clock = new ControlledClock()
       const { api, accountsRepository } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, accountsRepository })
+      await using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
@@ -165,7 +165,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
@@ -204,7 +204,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       // Create the game
@@ -257,7 +257,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
       const turnInterval = Time.create(10, UnitOfTime.SECONDS)
       const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
@@ -354,7 +354,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
       const turnInterval = Time.create(10, UnitOfTime.SECONDS)
       const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
@@ -463,7 +463,7 @@ describe("TurnProcessor", () => {
         // Arrange
         const db = await createDbMock()
         const clock = new ControlledClock()
-        using apiServer = new ApiServer(await createApiStub({ db, clock }))
+        await using apiServer = new ApiServer(await createApiStub({ db, clock }))
         const player = await apiServer.createClient({ authenticated: true })
 
         const { createdGameId } = await player.client.lobbies.create.mutate({
@@ -491,7 +491,7 @@ describe("TurnProcessor", () => {
       const db = await createDbMock()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, accountsRepository })
+      await using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({
         configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
@@ -529,7 +529,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       // later game
@@ -569,7 +569,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(50, UnitOfTime.SECONDS)
@@ -600,7 +600,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
@@ -629,7 +629,7 @@ describe("TurnProcessor", () => {
       const db = await createDbMock()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, accountsRepository })
+      await using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const failingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
@@ -668,7 +668,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
@@ -708,7 +708,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const db = await createDbMock()
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(50, UnitOfTime.SECONDS)
@@ -737,7 +737,7 @@ describe("TurnProcessor", () => {
       const db = await createDbMock()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, accountsRepository })
+      await using apiServer = new ApiServer({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -816,7 +816,7 @@ describe("TurnProcessor", () => {
       const db = await createDbMock()
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      using apiServer = new ApiServer({ api, accountsRepository })
+      await using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({

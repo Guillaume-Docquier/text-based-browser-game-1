@@ -20,7 +20,7 @@ describe("lobbies.router", () => {
   describe("getCreationSettings", () => {
     it("should return backend-driven defaults and limits", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const player = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -37,7 +37,7 @@ describe("lobbies.router", () => {
   describe("create", () => {
     it.each([0, UInt32.max])("should accept the UInt32 seed %i", async (mapGenerationSeed) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -51,7 +51,7 @@ describe("lobbies.router", () => {
 
     it.each([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (mapGenerationSeed) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -63,7 +63,7 @@ describe("lobbies.router", () => {
 
     it("should reject an unknown Ruleset", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -77,7 +77,7 @@ describe("lobbies.router", () => {
 
     it("should create a game for the authenticated player", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
       const newGameSettings = createLobbyConfigurationDtoStub()
@@ -119,7 +119,7 @@ describe("lobbies.router", () => {
 
     it("should create a one-seat game ready to start", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -134,7 +134,7 @@ describe("lobbies.router", () => {
 
     it("should create a game with MAX_NB_SEATS seats", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -149,7 +149,7 @@ describe("lobbies.router", () => {
 
     it("should reject a game with MAX_NB_SEATS + 1 seats", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -163,7 +163,7 @@ describe("lobbies.router", () => {
 
     it("should reject anonymous game creation", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -179,7 +179,7 @@ describe("lobbies.router", () => {
   describe("getById", () => {
     it("should get a lobby by id when authenticated", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
 
@@ -219,7 +219,7 @@ describe("lobbies.router", () => {
 
     it("should get a lobby by id anonymously", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -259,7 +259,7 @@ describe("lobbies.router", () => {
 
     it("should only allow joined players to open a started game", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
@@ -286,7 +286,7 @@ describe("lobbies.router", () => {
 
     it("should return not found when getting a missing lobby by id", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -300,7 +300,7 @@ describe("lobbies.router", () => {
   describe("join", () => {
     it("should allocate high-contrast colors first in a small lobby", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const firstJoiner = await apiServer.createClient({ authenticated: true })
       const secondJoiner = await apiServer.createClient({ authenticated: true })
@@ -325,7 +325,7 @@ describe("lobbies.router", () => {
 
     it("should assign every player color in a maximum sized lobby", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const joiners = await Promise.all(
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
@@ -344,7 +344,7 @@ describe("lobbies.router", () => {
 
     it("should assign every player color in a maximum sized lobby as players leave and rejoin", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const joiners = await Promise.all(
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
@@ -369,7 +369,7 @@ describe("lobbies.router", () => {
 
     it("should join a game", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -419,7 +419,7 @@ describe("lobbies.router", () => {
     it("should reject joining a game that is full", async () => {
       // Arrange
       const { api, accountsRepository } = await createApiStub()
-      using apiServer = new ApiServer({ api, accountsRepository })
+      await using apiServer = new ApiServer({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
@@ -442,7 +442,7 @@ describe("lobbies.router", () => {
 
     it("should reject joining a game that has started", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -461,7 +461,7 @@ describe("lobbies.router", () => {
 
     it("should successfully join a game the player is already in without joining twice", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -482,7 +482,7 @@ describe("lobbies.router", () => {
 
     it("should reject anonymous game join", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -496,7 +496,7 @@ describe("lobbies.router", () => {
   describe("leave", () => {
     it("should leave a game", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
@@ -542,7 +542,7 @@ describe("lobbies.router", () => {
 
     it("should reject leaving a game that has started", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
@@ -559,7 +559,7 @@ describe("lobbies.router", () => {
 
     it("should reject leaving a game as its creator", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
@@ -573,7 +573,7 @@ describe("lobbies.router", () => {
 
     it("should successfully leave a game the player has not joined", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const creator = await apiServer.createClient({ authenticated: true })
       const nonPlayer = await apiServer.createClient({ authenticated: true })
 
@@ -590,7 +590,7 @@ describe("lobbies.router", () => {
 
     it("should reject anonymous game leave", async () => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub())
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
