@@ -14,7 +14,7 @@ import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
-import { envSchema, parseEnv } from "#lib/parseEnv.ts"
+import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { startTurnProcessing } from "#turn-processing/entry.turn-processing.ts"
@@ -32,7 +32,7 @@ async function main(): Promise<void> {
   const logger = await configureLogger({ scope: "api" })
 
   logger.info("Parsing environment", { nodeVersion: process.version })
-  const env = parseEnv({ logger, schema: envSchema })
+  const env = parseEnv({ schema: BackendEnvSchema })
 
   logger.info("Connecting to the database")
   const db = createDb({ databaseUrl: env.DATABASE_URL })

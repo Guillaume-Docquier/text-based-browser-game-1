@@ -8,8 +8,12 @@
     "btc": "pnpm --filter backend test --project concurrency",
     "bti": "pnpm --filter backend test --project integration",
     "btu": "pnpm --filter backend test --project unit",
-    "db:clean": "docker compose -f infra/docker-compose.yaml down --volumes && docker compose -f infra/docker-compose.yaml up --wait db && pnpm --filter backend db:migrate && pnpm --filter backend db:seed",
+    "containers:prune": "docker container prune -f --filter label=dev.cleanup=true --filter until=168h",
+    "db:clean": "pnpm db:remove && pnpm db:up && pnpm --filter backend db:migrate && pnpm --filter backend db:seed",
+    "db:compose": "docker compose --env-file .env -f infra/docker-compose.yaml",
     "db:nuke": "rm -rf apps/backend/drizzle && pnpm --filter backend db:generate --name init && pnpm db:clean",
+    "db:remove": "pnpm db:compose down --volumes",
+    "db:up": "pnpm db:compose up --wait db",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
     "fte": "pnpm --filter frontend e2e",
@@ -20,7 +24,7 @@
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
     "typecheck": "tsc -p tsconfig.json",
-    "wts": "pnpm ci && cp ../text-based-browser-game-1/apps/backend/.env apps/backend/.env && cp ../text-based-browser-game-1/apps/frontend/.env apps/frontend/.env"
+    "wts": "node scripts/worktree-setup.ts && pnpm db:clean"
   },
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.14",

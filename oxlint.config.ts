@@ -13,5 +13,11 @@ export default defineConfig({
       ...vitest,
       files: ["**/*.test.ts"],
     },
+    {
+      files: ["scripts/**/*"],
+      rules: {
+        "no-console": "off",
+      },
+    },
   ],
 } satisfies OxlintConfig)

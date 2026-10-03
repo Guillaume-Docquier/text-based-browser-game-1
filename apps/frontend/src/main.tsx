@@ -23,7 +23,7 @@ const logger = await Logger.configure({
   },
 })
 
-const env = parseEnv({ logger })
+const env = parseEnv()
 
 // oxlint-disable-next-line typescript/no-non-null-assertion -- root will always exist
 const rootElement = document.getElementById("root")!

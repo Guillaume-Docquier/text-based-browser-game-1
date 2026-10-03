@@ -1,19 +1,9 @@
-import * as fs from "node:fs"
 import { defineConfig } from "drizzle-kit"
-import { envSchema, parseEnv } from "#lib/parseEnv.ts"
+import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 
-const envFromFile = fs
-  .readFileSync(".env", "utf-8")
-  .split("\n")
-  .map((line) => line.split("="))
+process.loadEnvFile(new URL("../../.env", import.meta.url))
 
-for (const [key, value] of envFromFile) {
-  if (key !== undefined && value !== undefined) {
-    process.env[key.trim()] = value.trim()
-  }
-}
-
-const env = parseEnv({ schema: envSchema })
+const env = parseEnv({ schema: BackendEnvSchema })
 
 export default defineConfig({
   out: "./drizzle",

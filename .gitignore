@@ -71,6 +71,9 @@ web_modules/
 .env.*
 !.env.example
 
+# Shared port allocation counter in the main checkout
+/.worktree-counter
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

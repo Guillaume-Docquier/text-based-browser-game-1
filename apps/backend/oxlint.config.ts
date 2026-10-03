@@ -15,11 +15,5 @@ export default defineConfig({
         "no-restricted-globals": ["error", { name: "Date", message: "Use an injected clock instead." }],
       },
     },
-    {
-      files: ["scripts/**/*"],
-      rules: {
-        "no-console": "off",
-      },
-    },
   ],
 } satisfies OxlintConfig)

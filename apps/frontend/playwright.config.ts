@@ -1,15 +1,15 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { defineConfig, devices } from "@playwright/test"
-import { loadEnv } from "./playwright/loadEnv.ts"
+import { parseEnv } from "./playwright/parseEnv.ts"
 
 const frontendDirectory = path.dirname(fileURLToPath(import.meta.url))
 const backendDirectory = path.resolve(frontendDirectory, "../backend")
 const isCI = process.env.CI === "true"
 
-const env = loadEnv({ envFilePath: isCI ? undefined : path.resolve(frontendDirectory, ".env") })
-const backendUrl = `http://127.0.0.1:${env.E2E_BACKEND_PORT}`
-const frontendUrl = `http://127.0.0.1:${env.E2E_FRONTEND_PORT}`
+const env = parseEnv({ envFilePath: isCI ? undefined : path.resolve(frontendDirectory, "../../.env") })
+const backendUrl = `http://127.0.0.1:${env.PORT}`
+const frontendUrl = `http://127.0.0.1:${env.VITE_DEV_PORT}`
 
 const isUiMode = process.argv.includes("--ui")
 
@@ -32,13 +32,13 @@ export default defineConfig({
         CLERK_PUBLISHABLE_KEY: env.VITE_CLERK_PUBLISHABLE_KEY,
         CLERK_SECRET_KEY: env.CLERK_SECRET_KEY,
         DATABASE_URL: env.DATABASE_URL,
-        PORT: env.E2E_BACKEND_PORT.toString(),
+        PORT: env.PORT.toString(),
       },
       url: `${backendUrl}/health`,
       reuseExistingServer: !isCI,
     },
     {
-      command: `pnpm dev --host 127.0.0.1 --port ${env.E2E_FRONTEND_PORT}`,
+      command: `pnpm dev --host 127.0.0.1 --port ${env.VITE_DEV_PORT}`,
       env: {
         VITE_BACKEND_HOST: backendUrl,
         VITE_CLERK_PUBLISHABLE_KEY: env.VITE_CLERK_PUBLISHABLE_KEY,
