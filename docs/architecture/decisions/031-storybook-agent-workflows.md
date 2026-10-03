@@ -4,6 +4,10 @@
 
 Accepted
 
+### Amendment history
+
+- 2026-10-03: Route operating instructions and repository overrides through a discoverable repository skill, keeping frontend AGENTS.md focused on standing conventions.
+
 ## Context
 
 [ADR-023](./023-storybook-for-design-system-inspection.md) establishes Storybook for isolated component inspection and browser component tests. Agents need access to component APIs and focused feedback to reuse existing components and develop meaningful states without starting application services.
@@ -22,7 +26,7 @@ Preserve ADR-023's selective story scope and existing browser-test coverage. Beh
 
 Use the TypeScript 6 compiler API for component metadata extraction while retaining native TypeScript 7 as the project's compiler. This compatibility dependency is temporary, pending native compiler API support.
 
-Keep operating instructions and repository overrides in [frontend AGENTS.md](../../../apps/frontend/AGENTS.md).
+Keep operating instructions and repository overrides in the [storybook-agent-workflow skill](../../../.agents/skills/storybook-agent-workflow/SKILL.md), discovered and selected through its task description.
 
 ## Consequences
 
