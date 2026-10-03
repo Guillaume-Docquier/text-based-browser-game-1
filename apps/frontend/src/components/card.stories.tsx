@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect } from "storybook/test"
-import { Badge } from "@/components/badge"
-import { Button } from "@/components/button"
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/card"
+import { Badge } from "./badge.tsx"
+import { Button } from "./button.tsx"
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card.tsx"
 
 const meta = {
   title: "Design System/Card",
