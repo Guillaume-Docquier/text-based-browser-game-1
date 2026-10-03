@@ -19,7 +19,7 @@ import { StandardRuleset } from "#lib/rulesets/standard/StandardRuleset.ts"
 
 const YES_I_KNOW = "yes i know"
 
-const envSchema = z.object({
+const SeedEnvSchema = z.object({
   /**
    * See the infra docker-compose file for the dev db url.
    * postgres://<user>:<pwd>@localhost:<port>/<db>
@@ -42,7 +42,7 @@ const envSchema = z.object({
   USER_ALIAS: z.string().optional(),
 })
 
-const env = parseEnv({ schema: envSchema })
+const env = parseEnv({ schema: SeedEnvSchema })
 void main({
   connectionString: env.DATABASE_URL,
   user:

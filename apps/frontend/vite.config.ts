@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url"
 import babel from "@rolldown/plugin-babel"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
@@ -7,10 +8,12 @@ import { parseEnv } from "./src/parseEnv.ts"
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = parseEnv({ env: loadEnv(mode, process.cwd()) })
+  const envDir = fileURLToPath(new URL("../../", import.meta.url))
+  const env = parseEnv({ env: loadEnv(mode, envDir) })
   const proxyRewriteRegex = new RegExp(`^${env.VITE_BACKEND_BASE_URL}`)
 
   return {
+    envDir,
     plugins: [
       tailwindcss(),
       tanstackRouter({
@@ -25,6 +28,8 @@ export default defineConfig(({ mode }) => {
       tsconfigPaths: true,
     },
     server: {
+      port: env.VITE_DEV_PORT,
+      strictPort: true,
       watch: {
         ignored: ["**/storybook-static/**", "**/playwright/**", "**/playwright-report/**", "**/playwright.config.ts"],
       },

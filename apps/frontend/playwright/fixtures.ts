@@ -2,7 +2,7 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import { expect, test as base, type Browser, type ConsoleMessage, type TestInfo } from "@playwright/test"
 import { users } from "./auth.ts"
 import type { AuthenticatedUser } from "./AuthenticatedUser.ts"
-import { PlaywrightEnvSchema, type PlaywrightEnv } from "./loadEnv.ts"
+import { PlaywrightEnvSchema, type PlaywrightEnv } from "./parseEnv.ts"
 
 const allowedConsoleWarnings = [/^Clerk: Clerk has been loaded with development keys\./]
 

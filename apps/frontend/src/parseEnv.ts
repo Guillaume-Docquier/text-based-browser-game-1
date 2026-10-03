@@ -1,5 +1,6 @@
-import type { Logger } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
+
+type FrontendEnv = z.infer<typeof FrontendEnvSchema>
 
 /**
  * The schema for the environment variables.
@@ -8,7 +9,7 @@ import { z } from "zod"
  * Default values are coherent across all services for dev.
  * Only keys that are 3rd party secret don't have default values, for safety.
  */
-const envSchema = z.object({
+const FrontendEnvSchema = z.object({
   /**
    * Matches the reverse proxy path for the backend.
    */
@@ -17,7 +18,12 @@ const envSchema = z.object({
   /**
    * Used to configure the dev proxy, not used in prod (the reverse proxy does this).
    */
-  VITE_BACKEND_HOST: z.string().default("http://localhost:3000"),
+  VITE_BACKEND_HOST: z.string().default("http://localhost"),
+
+  /**
+   * Port used by the Vite development server.
+   */
+  VITE_DEV_PORT: z.coerce.number().int().min(1).max(65535).default(5173),
 
   /**
    * Fetch the dev key from clerk and keep put it in your .env file.
@@ -31,14 +37,6 @@ const envSchema = z.object({
  *
  * This should be the only consumer of `import.meta.env`.
  */
-export function parseEnv({ logger, env = import.meta.env }: { logger?: Logger; env?: Record<string, unknown> } = {}): z.infer<
-  typeof envSchema
-> {
-  const envResult = envSchema.safeParse(env)
-  if (!envResult.success) {
-    ;(logger ?? console).error("Some environment variables are missing or incorrect.")
-    throw new Error(z.prettifyError(envResult.error))
-  }
-
-  return envResult.data
+export function parseEnv({ env = import.meta.env }: { env?: Record<string, unknown> } = {}): FrontendEnv {
+  return FrontendEnvSchema.parse(env)
 }

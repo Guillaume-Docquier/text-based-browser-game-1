@@ -24,12 +24,12 @@ export const PlaywrightEnvSchema = z.object({
   /**
    * Port used by the backend started for Playwright.
    */
-  E2E_BACKEND_PORT: z.coerce.number().default(3000),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
 
   /**
    * Port used by the frontend started for Playwright.
    */
-  E2E_FRONTEND_PORT: z.coerce.number().default(5173),
+  VITE_DEV_PORT: z.coerce.number().int().min(1).max(65535).default(5173),
 
   /**
    * True when on the CI, this is automatic.
@@ -44,17 +44,10 @@ export const PlaywrightEnvSchema = z.object({
  * Optionally loads an env file, then validates the variables required by Playwright.
  * Returns a type safe PlaywrightEnv object for further use.
  */
-export function loadEnv({ envFilePath }: { envFilePath?: string } = {}): PlaywrightEnv {
+export function parseEnv({ envFilePath }: { envFilePath?: string } = {}): PlaywrightEnv {
   if (envFilePath !== undefined) {
     process.loadEnvFile(envFilePath)
   }
 
-  const envResult = PlaywrightEnvSchema.safeParse(process.env)
-  if (!envResult.success) {
-    // oxlint-disable-next-line no-console -- This is fine
-    console.error("Incorrect env supplied to playwright, tests cannot run.")
-    throw new Error(z.prettifyError(envResult.error))
-  }
-
-  return envResult.data
+  return PlaywrightEnvSchema.parse(process.env)
 }

@@ -4,7 +4,7 @@ import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb } from "#lib/db/createDb.ts"
 import { monitorMemoryUsage } from "#lib/monitorMemoryUsage.ts"
-import { envSchema, parseEnv } from "#lib/parseEnv.ts"
+import { BackendEnvSchema, parseEnv } from "#lib/parseEnv.ts"
 import { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
@@ -36,7 +36,7 @@ if (!isMainThread) {
   const logger = await configureLogger({ scope: "turn-processing" })
 
   logger.info("Parsing environment")
-  const env = parseEnv({ logger, schema: envSchema })
+  const env = parseEnv({ schema: BackendEnvSchema })
 
   logger.info("Connecting to the database")
   const db = createDb({ databaseUrl: env.DATABASE_URL })
