@@ -18,7 +18,7 @@ const FrontendEnvSchema = z.object({
   /**
    * Used to configure the dev proxy, not used in prod (the reverse proxy does this).
    */
-  VITE_BACKEND_HOST: z.string().default("http://localhost"),
+  VITE_BACKEND_HOST: z.string().default("http://localhost:3000"),
 
   /**
    * Port used by the Vite development server.
