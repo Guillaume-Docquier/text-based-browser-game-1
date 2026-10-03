@@ -102,6 +102,8 @@ function updateEnv(ports: AssignedPorts): void {
       DATABASE_URL: createUrlString(env, "DATABASE_URL", ports.DATABASE),
       VITE_DEV_PORT: ports.FRONTEND.toString(),
       VITE_BACKEND_HOST: createUrlString(env, "VITE_BACKEND_HOST", ports.BACKEND),
+      AUTO_CLEANUP: "true",
+      RESTART_POLICY: "no",
     }
     console.log(JSON.stringify(updates, null, 2))
 
