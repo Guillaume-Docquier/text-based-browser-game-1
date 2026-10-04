@@ -14,9 +14,6 @@ const frontendUrl = `http://127.0.0.1:${env.VITE_DEV_PORT}`
 const isUiMode = process.argv.includes("--ui")
 
 export default defineConfig({
-  metadata: {
-    env,
-  },
   testDir: "./playwright",
   fullyParallel: true,
   reporter: "html",
