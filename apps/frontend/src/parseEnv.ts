@@ -17,8 +17,9 @@ const FrontendEnvSchema = z.object({
 
   /**
    * Used to configure the dev proxy, not used in prod (the reverse proxy does this).
+   * Defaults to IPv4 loopback to match the local backend listener (ADR-032).
    */
-  VITE_BACKEND_HOST: z.string().default("http://localhost:3000"),
+  VITE_BACKEND_HOST: z.string().default("http://127.0.0.1:3000"),
 
   /**
    * Port used by the Vite development server.
