@@ -20,7 +20,7 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          REGEX='^(project|frontend|backend|shared|ci|adr|infra|docs)(\([a-z0-9][a-z0-9._/-]*\))?: .+'
+          REGEX='^[a-zA-Z0-9-]+: .+$'
 
           if [[ ! "$PR_TITLE" =~ $REGEX ]]; then
             echo "is_valid=false" >> "$GITHUB_OUTPUT"
@@ -37,11 +37,16 @@ jobs:
           message: |
             ### ❌ The PR title is invalid ❌
 
-            Expected format: `<project|frontend|backend|shared|ci|adr|infra|docs>(<scope>)?: <description>`
+            Expected format: `<scope>: <description>`
+            - `<scope>` — the subsystem, area, or module that the PR touches
+            - `<description>` — a short description of the changes made
+
+            Choose a single scope that describes the area being changed, using only letters, numbers, and dashes. The description can contain any characters.
 
             Examples:
-            - `shared(action-costs): some work`
-            - `project(deps): some work`
+            - `action-costs: correct resource calculations`
+            - `deps: update frontend dev dependencies`
+            - `ci: typecheck the root project`
 
       - name: Comment on valid title
         if: steps.validate.outputs.is_valid == 'true'
