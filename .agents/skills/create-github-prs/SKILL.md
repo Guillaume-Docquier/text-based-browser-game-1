@@ -9,9 +9,9 @@ Always respect the repository's [PR template](../../../.github/pull_request_temp
 
 ## Title
 
-- Always title PRs as `<prefix>(<scope>): <description>`, with both a prefix and a scope.
-- Use `project` as the prefix when the change spans multiple areas. For focused work, use the project being changed: `backend`, `frontend`, or `shared`.
-- Use the scope to name the concept being worked on, such as `project(pr-title-validation): ...` or `shared(action-costs): ...`.
+- Follow the [PR title convention](../../../CONTRIBUTING.md#pull-request-titles): `<scope>: <description>`.
+- Choose any scope that describes the area being changed, such as `pr-title-validation: simplify title checks` or `action-costs: correct resource calculations`. There is no scope allowlist or required project prefix.
+- This format applies only to PR titles. Using it for commits is optional.
 
 ## Description
 
