@@ -1,13 +1,14 @@
 import { once } from "node:events"
 import { createServer } from "node:http"
 import type { AddressInfo } from "node:net"
-import { describe, expect, it } from "vitest"
+import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
+import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 
 describe("compression middleware", () => {
-  it("should return Brotli-compressed responses that preserve the body", async () => {
+  integrationTest("should return Brotli-compressed responses that preserve the body", async ({ db }) => {
     // Arrange
-    const { api } = await createApiStub()
+    const { api } = await createApiStub({ db })
     const responseBody = "Cosmic empires is a persistent turn-based space strategy game. ".repeat(64)
     api.get("/__test__/compression", (_request, response) => {
       response.type("text/plain").send(responseBody)

@@ -6,13 +6,12 @@ import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
-import { describe, expect, it } from "vitest"
+import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
-import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -21,12 +20,13 @@ import { GainMetal } from "#lib/rulesets/standard/action-definitions/gain-metal.
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#lib/rulesets/standard/action-definitions/move-fleet.ts"
 import { WinTheGame } from "#lib/rulesets/standard/action-definitions/win-the-game.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
+import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
 describe("gameplay.router", () => {
-  it("should reject all gameplay routes when the authenticated player has not joined the game", async () => {
+  integrationTest("should reject all gameplay routes when the authenticated player has not joined the game", async ({ db }) => {
     // Arrange
-    using apiServer = new ApiServer(await createApiStub())
+    using apiServer = new ApiServer(await createApiStub({ db }))
     const creator = await apiServer.createClient({ authenticated: true })
     const nonPlayer = await apiServer.createClient({ authenticated: true })
 
@@ -46,9 +46,9 @@ describe("gameplay.router", () => {
   })
 
   describe("start", () => {
-    it("should generate a deterministic galaxy from the game's seed", async () => {
+    integrationTest("should generate a deterministic galaxy from the game's seed", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true, id: "7f80447c-442a-4229-8d52-39b675b3e80c" })
       const { createdGameId } = await player.client.lobbies.create.mutate({
         configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
@@ -92,9 +92,9 @@ describe("gameplay.router", () => {
       expect(playerView.galaxy).toMatchSnapshot()
     })
 
-    it("should start a game", async () => {
+    integrationTest("should start a game", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const newGameSettings = createLobbyConfigurationDtoStub()
@@ -108,9 +108,9 @@ describe("gameplay.router", () => {
       expect(new Date(startGameResult.turnEndsAt).toString()).not.toBe("Invalid Date")
     })
 
-    it("should assign one unique Home Planet to every player", async () => {
+    integrationTest("should assign one unique Home Planet to every player", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
 
       const creator = await apiServer.createClient({ authenticated: true })
       const firstOpponent = await apiServer.createClient({ authenticated: true })
@@ -138,9 +138,9 @@ describe("gameplay.router", () => {
       )
     })
 
-    it("should reject starting a game as a non-creator", async () => {
+    integrationTest("should reject starting a game as a non-creator", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -154,9 +154,9 @@ describe("gameplay.router", () => {
       await expect(startGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject starting a game that has already started", async () => {
+    integrationTest("should reject starting a game that has already started", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
@@ -169,9 +169,9 @@ describe("gameplay.router", () => {
       await expect(startGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject anonymous game start", async () => {
+    integrationTest("should reject anonymous game start", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -183,10 +183,10 @@ describe("gameplay.router", () => {
   })
 
   describe("getPlayerView", () => {
-    it("should get the authenticated player's state for a started game", async () => {
+    integrationTest("should get the authenticated player's state for a started game", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const gameConfiguration = createLobbyConfigurationDtoStub()
@@ -291,9 +291,9 @@ describe("gameplay.router", () => {
       expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
     })
 
-    it("should expose uncommitted resources and use them to determine Action affordability", async () => {
+    integrationTest("should expose uncommitted resources and use them to determine Action affordability", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
@@ -327,9 +327,9 @@ describe("gameplay.router", () => {
       expect(extractMetal.canAfford).toBe(false)
     })
 
-    it("should expose the current player and every opponent with their colors", async () => {
+    integrationTest("should expose the current player and every opponent with their colors", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const firstOpponent = await apiServer.createClient({ authenticated: true })
       const secondOpponent = await apiServer.createClient({ authenticated: true })
@@ -353,9 +353,9 @@ describe("gameplay.router", () => {
       })
     })
 
-    it("should reject invalid game ids", async () => {
+    integrationTest("should reject invalid game ids", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -366,9 +366,9 @@ describe("gameplay.router", () => {
       await expect(getPlayerView).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject anonymous game state reads", async () => {
+    integrationTest("should reject anonymous game state reads", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -380,9 +380,9 @@ describe("gameplay.router", () => {
   })
 
   describe("updateActionSubmission", () => {
-    it("should submit an action with valid planet targets", async () => {
+    integrationTest("should submit an action with valid planet targets", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
 
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
@@ -413,9 +413,9 @@ describe("gameplay.router", () => {
       expect(playerView.actions.find(({ id }) => id === buildFleet.id)?.selectedTargets).toStrictEqual({ planet: homePlanet.id })
     })
 
-    it("should update only the submitting player's Action when players share stable Action IDs", async () => {
+    integrationTest("should update only the submitting player's Action when players share stable Action IDs", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const opponent = await apiServer.createClient({ authenticated: true })
 
@@ -448,9 +448,9 @@ describe("gameplay.router", () => {
       ).toMatchObject({ selectedTargets: null })
     })
 
-    it("should submit and deselect multiple actions", async () => {
+    integrationTest("should submit and deselect multiple actions", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
@@ -624,9 +624,9 @@ describe("gameplay.router", () => {
       expect(deselectedPlayerView.actions).toHaveLength(expectedDeselectedActions.length)
     })
 
-    it("should reject an action with invalid planet targets", async () => {
+    integrationTest("should reject an action with invalid planet targets", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
 
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
@@ -651,9 +651,9 @@ describe("gameplay.router", () => {
       await expect(invalidSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject setting an action for a stale turn", async () => {
+    integrationTest("should reject setting an action for a stale turn", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
@@ -673,10 +673,10 @@ describe("gameplay.router", () => {
       await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject setting an action after the turn deadline", async () => {
+    integrationTest("should reject setting an action after the turn deadline", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({
@@ -701,9 +701,9 @@ describe("gameplay.router", () => {
       })
     })
 
-    it("should reject an action the player cannot afford", async () => {
+    integrationTest("should reject an action the player cannot afford", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
@@ -722,9 +722,9 @@ describe("gameplay.router", () => {
       await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject an action that is not available to the player", async () => {
+    integrationTest("should reject an action that is not available to the player", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
       await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
@@ -747,9 +747,9 @@ describe("gameplay.router", () => {
   // This test suite is often failing, but only in the CI. Not sure if it is hanging or just taking longer.
   // If we get timeouts on a 20s budget, this is definitely hanging and there's an issue running on the CI that we should address.
   describe("updateReadiness", { timeout: 20_000 }, () => {
-    it.each([true, false])("should set the player readiness to %s", async (isReady) => {
+    integrationTest.for([true, false])("should set the player readiness to %s", async (isReady, { db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
 
@@ -776,11 +776,10 @@ describe("gameplay.router", () => {
       })
     })
 
-    it("should close the turn and submit for processing when all players are ready", async () => {
+    integrationTest("should close the turn and submit for processing when all players are ready", async ({ db }) => {
       // Arrange
       const logger = Logger.get()
       const clock = new ControlledClock()
-      const db = await createDbMock()
       const turnsRepository = new TurnsRepository({ db, logger })
 
       const apiServices = await createApiStub({ db, clock })
@@ -838,9 +837,9 @@ describe("gameplay.router", () => {
       expect(turnForProcessing).toStrictEqual<typeof turnForProcessing>(Result.Success(branded({ gameId: createdGameId, turn: 1 })))
     })
 
-    it("should reject readiness for the wrong turn", async () => {
+    integrationTest("should reject readiness for the wrong turn", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub())
+      using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.lobbies.create.mutate({
@@ -859,10 +858,10 @@ describe("gameplay.router", () => {
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
 
-    it("should reject readiness past the deadline", async () => {
+    integrationTest("should reject readiness past the deadline", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(10, UnitOfTime.SECONDS)
@@ -886,10 +885,10 @@ describe("gameplay.router", () => {
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
 
-    it("should reject readiness for players not in the game", async () => {
+    integrationTest("should reject readiness for players not in the game", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true }) // not in the game
 
