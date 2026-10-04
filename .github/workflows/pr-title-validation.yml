@@ -20,7 +20,7 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          REGEX='^[^:[:space:]][^:]*: [^[:space:]].*$'
+          REGEX='^[a-zA-Z0-9-]+: .+$'
 
           if [[ ! "$PR_TITLE" =~ $REGEX ]]; then
             echo "is_valid=false" >> "$GITHUB_OUTPUT"
@@ -39,7 +39,7 @@ jobs:
 
             Expected format: `<scope>: <description>`
 
-            Choose a single scope that describes the area being changed. Both the scope and description must be non-empty.
+            Choose a single scope that describes the area being changed, using only letters, numbers, and dashes. The description can contain any characters.
 
             Examples:
             - `action-costs: correct resource calculations`

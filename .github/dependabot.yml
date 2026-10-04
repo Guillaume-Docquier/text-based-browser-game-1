@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: /
     commit-message:
-      prefix: "ci(deps)"
+      prefix: "actions"
 
     schedule:
       interval: weekly
@@ -24,7 +24,7 @@ updates:
   - package-ecosystem: npm
     directory: /
     commit-message:
-      prefix: "project(deps)"
+      prefix: "deps"
 
     schedule:
       interval: weekly
