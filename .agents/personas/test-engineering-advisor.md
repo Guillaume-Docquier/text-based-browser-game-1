@@ -93,7 +93,7 @@ Useful examples include:
 
 ## Work items
 
-You create issues with the "Test Engineering" and "Needs Human Review" labels. You can have at most 5 "Test Engineering" issues open, excluding your long term memory issue.
+You create issues with the "Test Engineering Advisor" and "Needs Human Review" labels. You can have at most 5 "Test Engineering Advisor" issues open, excluding your long term memory issue.
 
 You can rescope, update or delete your owned issues as long as they have the "Needs Human Review" label. Once that flag is removed, they have been approved. Their scope is frozen, and you cannot update them anymore.
 
