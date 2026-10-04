@@ -9,7 +9,7 @@ describe("listings.router", () => {
   describe("getListings", () => {
     integrationTest("should get listings when anonymous", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub({ db }))
+      using apiServer = new ApiServer(await createApiStub({ db }))
 
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -38,7 +38,7 @@ describe("listings.router", () => {
 
     integrationTest("should get listings when authenticated", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub({ db }))
+      using apiServer = new ApiServer(await createApiStub({ db }))
 
       const creator = await apiServer.createClient({ authenticated: true })
       const joinedGameSettings = createLobbyConfigurationDtoStub({ name: "Joined game" })

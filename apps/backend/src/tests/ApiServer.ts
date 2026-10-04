@@ -13,11 +13,11 @@ const ANY_UNUSED_PORT = 0
 
 /**
  * An api server that lets you create trpc clients for testing.
- * Awaits HTTP shutdown via `await using` before the integration fixture closes its databases.
+ * Handles cleanups via `using`
  *
  * @example
  * ```ts
- * await using apiServer = new ApiServer(await createApiStub({db}))
+ * using apiServer = new ApiServer(await createApiStub({ db }))
  *
  * const player = await apiServer.createClient({ authenticated: true })
  * // player.account -> defined
@@ -54,8 +54,8 @@ export class ApiServer {
     return await createApiClient({ port, accountsRepository: this.accountsRepository, authenticated, id })
   }
 
-  public async [Symbol.asyncDispose](): Promise<void> {
+  public [Symbol.dispose](): void {
     this.server.closeAllConnections()
-    await this.server[Symbol.asyncDispose]()
+    this.server.close()
   }
 }

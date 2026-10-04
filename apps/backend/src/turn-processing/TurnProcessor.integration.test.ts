@@ -30,7 +30,7 @@ describe("TurnProcessor", () => {
     integrationTest("should process all currently due turns before waiting", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(100, UnitOfTime.SECONDS)
@@ -71,7 +71,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      await using apiServer = new ApiServer({ api, accountsRepository })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(100, UnitOfTime.SECONDS)
@@ -116,7 +116,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const clock = new ControlledClock()
       const { api, accountsRepository } = await createApiStub({ db, clock })
-      await using apiServer = new ApiServer({ api, accountsRepository })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
@@ -161,7 +161,7 @@ describe("TurnProcessor", () => {
     integrationTest("should process multiple submitted actions", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
@@ -199,7 +199,7 @@ describe("TurnProcessor", () => {
     integrationTest("should process actions that build fleets", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       // Create the game
@@ -251,7 +251,7 @@ describe("TurnProcessor", () => {
     integrationTest("should persist a fleet in transit and land it after another turn", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
       const turnInterval = Time.create(10, UnitOfTime.SECONDS)
       const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
@@ -353,7 +353,7 @@ describe("TurnProcessor", () => {
     integrationTest("should merge an arriving fleet with the player's fleet at the destination in one turn", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
       const turnInterval = Time.create(10, UnitOfTime.SECONDS)
       const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
@@ -467,7 +467,7 @@ describe("TurnProcessor", () => {
       async ({ turnInterval, timeIncrement }, { db }) => {
         // Arrange
         const clock = new ControlledClock()
-        await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+        using apiServer = new ApiServer(await createApiStub({ db, clock }))
         const player = await apiServer.createClient({ authenticated: true })
 
         const { createdGameId } = await player.client.lobbies.create.mutate({
@@ -494,7 +494,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      await using apiServer = new ApiServer({ api, accountsRepository })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await player.client.lobbies.create.mutate({
         configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
@@ -531,7 +531,7 @@ describe("TurnProcessor", () => {
     integrationTest("should process only the earliest scheduled turn in one invocation", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       // later game
@@ -570,7 +570,7 @@ describe("TurnProcessor", () => {
     integrationTest("should be able to process the same turn over time", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(50, UnitOfTime.SECONDS)
@@ -600,7 +600,7 @@ describe("TurnProcessor", () => {
     integrationTest("should skip turns that are already processing", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
@@ -628,7 +628,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      await using apiServer = new ApiServer({ api, accountsRepository })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const failingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
@@ -666,7 +666,7 @@ describe("TurnProcessor", () => {
     integrationTest("should be able to process turns in parallel", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
@@ -705,7 +705,7 @@ describe("TurnProcessor", () => {
     integrationTest("should do nothing if there are no turns left when processing turns in parallel", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
-      await using apiServer = new ApiServer(await createApiStub({ db, clock }))
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(50, UnitOfTime.SECONDS)
@@ -733,7 +733,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      await using apiServer = new ApiServer({ api, accountsRepository })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -811,7 +811,7 @@ describe("TurnProcessor", () => {
       // Arrange
       const clock = new ControlledClock()
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
-      await using apiServer = new ApiServer({ api, accountsRepository })
+      using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({
