@@ -6,6 +6,20 @@ import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
 
 test("the fleets view shows built fleets and supports filtering, sorting, and planet navigation", async ({ alice, bob }) => {
+  for (const user of [alice, bob]) {
+    user.page.on("response", (response) => {
+      const pathname = new URL(response.url()).pathname
+      if (pathname.startsWith("/api/") && response.status() >= 400) {
+        // oxlint-disable-next-line no-console -- Temporary CI diagnostics for issue #556; never logs credentials.
+        console.log("Rejected API request", {
+          user: user.alias,
+          pathname,
+          status: response.status(),
+          reason: response.headers()["x-clerk-auth-reason"],
+        })
+      }
+    })
+  }
   const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () =>
     await CreateGamePage.createGame({
       creator: alice,
