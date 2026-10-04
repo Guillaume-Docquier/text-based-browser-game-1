@@ -184,7 +184,7 @@ Use branded/refined types for meaningful primitives and validated data, avoid pa
 - constrained numbers: `PositiveInt`, `Cents`, `Percentage`
 - units: `Milliseconds`, `Bytes`, `UsdCents`
 
-Use `Brand<>` and `branded()` from `@guillaume-docquier/tools-ts` for this. Parse untrusted input with the relevant Zod schema. When constructing a constrained branded or refined value from already typed input, use `typedParse` or `safeTypedParse` from `@guillaume-docquier/tools-ts/schemas` so TypeScript checks the input while Zod enforces runtime constraints. Use `branded<T>(value)` only for brands whose underlying type already carries all required runtime guarantees.
+Use `Branded<TBrand, TType>` and `branded()` from `@guillaume-docquier/tools-ts` for this. Parse untrusted input with the relevant Zod schema. When constructing a constrained branded or refined value from already typed input, use `typedParse` or `safeTypedParse` from `@guillaume-docquier/tools-ts/schemas` so TypeScript checks the input while Zod enforces runtime constraints. Use `branded<T>(value)` only for brands whose underlying type already carries all required runtime guarantees.
 
 Avoid optional/null/undefined values in functions that require a value. Push optionality outward. Branch or parse before calling.
 
@@ -255,10 +255,12 @@ Example:
 ```ts
 // email-address.ts
 
+import type { Branded } from "@guillaume-docquier/tools-ts"
+
 /**
  * A parsed, normalized email address.
  */
-export type EmailAddress = Brand<string, "EmailAddress">
+export type EmailAddress = Branded<"EmailAddress", string>
 
 export const EmailAddress = {
   /**
@@ -320,7 +322,11 @@ type UsersForPasswordReset = {
 }
 
 export class PasswordReset {
-  constructor(private readonly users: UsersForPasswordReset) {}
+  private readonly users: UsersForPasswordReset
+
+  constructor(users: UsersForPasswordReset) {
+    this.users = users
+  }
 }
 ```
 
