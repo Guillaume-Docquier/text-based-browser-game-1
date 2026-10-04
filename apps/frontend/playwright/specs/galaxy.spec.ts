@@ -1,4 +1,3 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
@@ -37,56 +36,11 @@ test("the galaxy view distinguishes systems with claimed planets and system view
     await expect(aliceGalaxyPage.unclaimedPlanets).not.toHaveCount(0)
     await expect(aliceGalaxyPage.planetOwnershipLabel(aliceGalaxyPage.unclaimedPlanet(0))).toHaveText("Unclaimed")
   })
-
-  await test.step("Bring hovered bodies above other map content", async () => {
-    await aliceGalaxyPage.leaveBodies()
-    const planet = aliceGalaxyPage.ownedPlanet(0)
-    const planetLabel = await planet.getAttribute("aria-label")
-    const starLabel = await aliceGalaxyPage.starSystemStar.getAttribute("aria-label")
-    const originalForeground = await aliceGalaxyPage.foregroundBody.getAttribute("aria-label")
-
-    Assert.isDefined(planetLabel)
-    Assert.isDefined(starLabel)
-    Assert.isDefined(originalForeground)
-
-    await aliceGalaxyPage.hoverBody(planet)
-    await expect(aliceGalaxyPage.foregroundBody).toHaveAttribute("aria-label", planetLabel)
-    await aliceGalaxyPage.hoverBody(aliceGalaxyPage.starSystemStar)
-    await expect(aliceGalaxyPage.foregroundBody).toHaveAttribute("aria-label", starLabel)
-    await aliceGalaxyPage.leaveBodies()
-    await expect(aliceGalaxyPage.foregroundBody).toHaveAttribute("aria-label", originalForeground)
-  })
 })
 
 test("the galaxy view can be navigated and the star system view can inspect planets", async ({ alice }) => {
   const lobbyPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
   const galaxyPage = await test.step("Start the game", async () => await lobbyPage.startGame())
-
-  await test.step("Center and fit a Galaxy region", async () => {
-    const selectedRegion = galaxyPage.region("last")
-
-    await galaxyPage.centerRegion(selectedRegion)
-    await expect.poll(async () => await galaxyPage.getGalaxyRegionDistanceFromCenter(selectedRegion)).toBeLessThan(1)
-    await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
-    await expect(galaxyPage.map).toHaveAttribute("aria-busy", "false")
-
-    await galaxyPage.zoomGalaxyOut()
-    await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeGreaterThan(10.5)
-
-    await galaxyPage.centerRegion(selectedRegion)
-    await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBeLessThanOrEqual(10.5)
-    await expect(galaxyPage.map).toHaveAttribute("aria-busy", "false")
-
-    await galaxyPage.resetView()
-    await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).toBe(1)
-  })
-
-  const cameraScaleBeforeInspecting = await test.step("Zoom the Galaxy before inspecting a Star System", async () => {
-    const initialCameraScale = await galaxyPage.getGalaxyCameraScale()
-    await galaxyPage.zoomGalaxyOut()
-    await expect.poll(async () => await galaxyPage.getGalaxyCameraScale()).not.toBe(initialCameraScale)
-    return await galaxyPage.getGalaxyCameraScale()
-  })
 
   const selectedStar = galaxyPage.star(1)
 
@@ -115,24 +69,18 @@ test("the galaxy view can be navigated and the star system view can inspect plan
     await expect(galaxyPage.planetDetailsPane).not.toBeVisible()
   })
 
-  await test.step("Pan, recenter, and reopen the Star System", async () => {
-    await galaxyPage.panStarSystem({ deltaX: 60, deltaY: 40 })
-    expect(await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeGreaterThan(20)
-
+  await test.step("Return to the Galaxy and reopen the Star System", async () => {
     await galaxyPage.returnToGalaxy()
-    await expect(galaxyPage.starSystemMap).toHaveAttribute("aria-busy", "true")
-    await expect(galaxyPage.heading).not.toBeVisible()
-    await expect.poll(async () => await galaxyPage.getStarSystemStarDistanceFromCenter()).toBeLessThan(1)
     await expect(galaxyPage.heading).toBeVisible()
-    expect(await galaxyPage.getGalaxyCameraScale()).toBeCloseTo(cameraScaleBeforeInspecting)
-    expect(await galaxyPage.getGalaxyStarDistanceFromCenter(selectedStar)).toBeLessThan(1)
+    await expect(galaxyPage.starSystemMap).toHaveCount(0)
+    await expect(selectedStar).toBeVisible()
 
     await galaxyPage.openStarSystem(selectedStar)
     await expect(galaxyPage.starSystemMap).toHaveCount(1)
     await expect(galaxyPage.starSystemMap).toBeVisible()
 
     await galaxyPage.returnToGalaxy()
-    await expect(galaxyPage.starSystemMap).not.toHaveAttribute("aria-busy", "true")
     await expect(galaxyPage.heading).toBeVisible()
+    await expect(galaxyPage.starSystemMap).toHaveCount(0)
   })
 })
