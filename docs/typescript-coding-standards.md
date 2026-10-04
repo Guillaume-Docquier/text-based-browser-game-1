@@ -458,8 +458,6 @@ For persistence behavior, prefer PGLite/local DB-backed tests over hand-rolled i
 
 ## TypeScript style and safety
 
-Backend/shared code and examples must use erasable TypeScript syntax to run natively in Node. Use explicit fields and constructor assignments instead of constructor parameter properties; see the [backend](../apps/backend/AGENTS.md#architecture) and [shared package](../packages/shared/AGENTS.md#architecture) guidance.
-
 Use strict TypeScript settings where practical:
 
 - `strict: true`
