@@ -79,7 +79,6 @@ If the database container is not running, call `pnpm db:up`
 ## Commits And PRs
 
 - Never commit, push, or open a pull request unless the human explicitly asks for it. A request to change code or tests does not imply permission to commit, push, or open a PR.
-- Whenever opening a PR, use the [create-github-prs skill](.agents/skills/create-github-prs/SKILL.md).
 - Pre-commit runs `pnpm lint-staged`, for linting and formatting
 
 ## Env Vars
