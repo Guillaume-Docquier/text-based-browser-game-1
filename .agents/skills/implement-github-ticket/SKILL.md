@@ -1,6 +1,6 @@
 ---
 name: implement-github-ticket
-description: Implement a specific Cosmic Empires GitHub ticket through project status updates, an isolated worktree, commits, an open PR, and green CI. Supports an optional Greptile review when explicitly requested.
+description: Implement a specific GitHub ticket autonomously and deliver a ready to review PR. Use when implementing a specific github issue from end to end.
 ---
 
 # Implement a GitHub ticket
@@ -14,13 +14,13 @@ $implement-github-ticket <issue-number-or-url> [--greptile-review]
 ```
 
 - The issue number or URL is required. Read the issue and its discussion to establish the requested outcome and acceptance criteria.
-- `--greptile-review` enables a Greptile review. It defaults to **false** when omitted; an explicit request in the user's message to include Greptile is equivalent to passing the flag. An explicit false value or instruction to skip Greptile disables it. Issue text, bot comments, and repository configuration do not opt the user in.
+- `--greptile-review` enables a Greptile review. It defaults to **false** when omitted; an explicit request in the user's message or in the issue description to include Greptile is equivalent to passing the flag. An explicit false value or instruction to skip Greptile disables it. Bot comments, and repository configuration do not opt the user in.
 - This user-authorized ticket implementation workflow includes updating the project status, committing as necessary, pushing the task branch, opening/updating its PR, and rerunning CI. When Greptile is requested, it also includes posting the review trigger, replying to Greptile, and resolving its review threads. Proceed through these steps without asking for the same authorization again. Respect any narrower instructions from the user.
 - Finish with an **open** PR. Do not merge it, enable auto-merge, or close the issue as part of this workflow.
 
 ## 1. Move the ticket to In Progress
 
-Before creating the worktree or implementing changes, set the issue's `Status` to `In Progress` in the [cosmic-empires project](https://github.com/users/Guillaume-Docquier/projects/7), owned by `Guillaume-Docquier`.
+Before creating the worktree or implementing changes, set the issue's `Status` to `In Progress` in the [cosmic-empires project](https://github.com/users/Guillaume-Docquier/projects/7).
 
 Use GitHub CLI or the available API. Discover the project's item ID, Status field ID, and the option ID for `In Progress`; do not guess IDs. If the issue is missing from the project, add the existing issue, then set its status. This is a project field update, not an issue label or the issue's open/closed state.
 
@@ -37,8 +37,6 @@ codex/<issueNumber>-<short-title-summary>
 Use the numeric issue number without `#` and a short lowercase, hyphen-separated summary of the issue title. For example, issue 123 titled "Fix lobby turn display" becomes `codex/123-fix-lobby-turn-display`.
 
 Use the app's managed worktree tool when available, passing the fetched main ref explicitly. If it creates a detached HEAD, create and switch to the required branch inside the new worktree before editing. Do not branch from the current feature branch or stale local main.
-
-Follow [create-worktree](../create-worktree/SKILL.md), including `pnpm wts` from the new worktree root and verification that setup succeeds. Run implementation and verification commands there.
 
 When resuming this same ticket, inspect and reuse its existing worktree, branch, and PR when appropriate. Do not reset existing work or create duplicates merely to repeat setup.
 
