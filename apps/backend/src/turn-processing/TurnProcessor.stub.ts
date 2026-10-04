@@ -1,6 +1,5 @@
 import { Logger } from "@guillaume-docquier/tools-ts"
 import { Clock } from "#lib/Clock.ts"
-import { createDbMock } from "#lib/db/createDb.mock.ts"
 import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
 import { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
@@ -11,13 +10,16 @@ export async function createTurnProcessorStub({
   db,
   clock = Clock,
   turnsRepository,
-}: { db?: Database; clock?: Clock; turnsRepository?: TurnsRepository } = {}): Promise<
+}: {
+  db: Database
+  clock?: Clock
+  turnsRepository?: TurnsRepository
+}): Promise<
   TurnProcessorServices & {
     turnProcessor: TurnProcessor
   }
 > {
   const logger = Logger.get()
-  db ??= await createDbMock()
 
   const turnProcessorServices = {
     logger,

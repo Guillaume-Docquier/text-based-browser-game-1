@@ -3,12 +3,13 @@ import { GameStatus } from "shared/domain/game/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
-import { describe, expect, it } from "vitest"
+import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { type LobbyPlayerDto, MAX_NB_SEATS, type RulesetSummaryDto } from "#api/lobbies/lobbies.controller.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
+import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 
 const TEST_RULESET_SUMMARY: RulesetSummaryDto = {
   id: TestRuleset.id,
@@ -18,9 +19,9 @@ const TEST_RULESET_SUMMARY: RulesetSummaryDto = {
 
 describe("lobbies.router", () => {
   describe("getCreationSettings", () => {
-    it("should return backend-driven defaults and limits", async () => {
+    integrationTest("should return backend-driven defaults and limits", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -35,9 +36,9 @@ describe("lobbies.router", () => {
   })
 
   describe("create", () => {
-    it.each([0, UInt32.max])("should accept the UInt32 seed %i", async (mapGenerationSeed) => {
+    integrationTest.for([0, UInt32.max])("should accept the UInt32 seed %i", async (mapGenerationSeed, { db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -49,9 +50,9 @@ describe("lobbies.router", () => {
       expect(createLobbyResult).toStrictEqual<typeof createLobbyResult>({ createdGameId: expect.any(Number) })
     })
 
-    it.each([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (mapGenerationSeed) => {
+    integrationTest.for([-1, UInt32.max + 1, 1.5])("should reject the invalid seed %i", async (mapGenerationSeed, { db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -61,9 +62,9 @@ describe("lobbies.router", () => {
       await expect(createLobby).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject an unknown Ruleset", async () => {
+    integrationTest("should reject an unknown Ruleset", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -75,9 +76,9 @@ describe("lobbies.router", () => {
       await expect(createLobby).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should create a game for the authenticated player", async () => {
+    integrationTest("should create a game for the authenticated player", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       const newGameSettings = createLobbyConfigurationDtoStub()
@@ -117,9 +118,9 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should create a one-seat game ready to start", async () => {
+    integrationTest("should create a one-seat game ready to start", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -132,9 +133,9 @@ describe("lobbies.router", () => {
       expect(lobby.status).toBe(GameStatus.READY_TO_START)
     })
 
-    it("should create a game with MAX_NB_SEATS seats", async () => {
+    integrationTest("should create a game with MAX_NB_SEATS seats", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -147,9 +148,9 @@ describe("lobbies.router", () => {
       expect(lobby.configuration.nbSeats).toBe(MAX_NB_SEATS)
     })
 
-    it("should reject a game with MAX_NB_SEATS + 1 seats", async () => {
+    integrationTest("should reject a game with MAX_NB_SEATS + 1 seats", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
@@ -161,9 +162,9 @@ describe("lobbies.router", () => {
       await expect(createLobby).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject anonymous game creation", async () => {
+    integrationTest("should reject anonymous game creation", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -177,9 +178,9 @@ describe("lobbies.router", () => {
   })
 
   describe("getById", () => {
-    it("should get a lobby by id when authenticated", async () => {
+    integrationTest("should get a lobby by id when authenticated", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
 
@@ -217,9 +218,9 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should get a lobby by id anonymously", async () => {
+    integrationTest("should get a lobby by id anonymously", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -257,9 +258,9 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should only allow joined players to open a started game", async () => {
+    integrationTest("should only allow joined players to open a started game", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
@@ -284,9 +285,9 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should return not found when getting a missing lobby by id", async () => {
+    integrationTest("should return not found when getting a missing lobby by id", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -298,9 +299,9 @@ describe("lobbies.router", () => {
   })
 
   describe("join", () => {
-    it("should allocate high-contrast colors first in a small lobby", async () => {
+    integrationTest("should allocate high-contrast colors first in a small lobby", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const firstJoiner = await apiServer.createClient({ authenticated: true })
       const secondJoiner = await apiServer.createClient({ authenticated: true })
@@ -323,9 +324,9 @@ describe("lobbies.router", () => {
       expect(colorsByPlayerId.get(branded<PlayerId>(thirdJoiner.account.id))).toBe(PlayerColor.ORANGE)
     })
 
-    it("should assign every player color in a maximum sized lobby", async () => {
+    integrationTest("should assign every player color in a maximum sized lobby", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiners = await Promise.all(
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
@@ -342,9 +343,9 @@ describe("lobbies.router", () => {
       expect(new Set(lobby.players.map(({ color }) => color))).toStrictEqual(new Set(Object.values(PlayerColor)))
     })
 
-    it("should assign every player color in a maximum sized lobby as players leave and rejoin", async () => {
+    integrationTest("should assign every player color in a maximum sized lobby as players leave and rejoin", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiners = await Promise.all(
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
@@ -367,9 +368,9 @@ describe("lobbies.router", () => {
       expect(new Set(lobby.players.map(({ color }) => color))).toStrictEqual(new Set(Object.values(PlayerColor)))
     })
 
-    it("should join a game", async () => {
+    integrationTest("should join a game", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -416,9 +417,9 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should reject joining a game that is full", async () => {
+    integrationTest("should reject joining a game that is full", async ({ db }) => {
       // Arrange
-      const { api, accountsRepository } = await createApiStub()
+      const { api, accountsRepository } = await createApiStub({ db })
       await using apiServer = new ApiServer({ api, accountsRepository })
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
@@ -440,9 +441,9 @@ describe("lobbies.router", () => {
       expect(lobby.players).toHaveLength(2)
     })
 
-    it("should reject joining a game that has started", async () => {
+    integrationTest("should reject joining a game that has started", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -459,9 +460,9 @@ describe("lobbies.router", () => {
       expect(lobby.players).toHaveLength(1)
     })
 
-    it("should successfully join a game the player is already in without joining twice", async () => {
+    integrationTest("should successfully join a game the player is already in without joining twice", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
@@ -480,9 +481,9 @@ describe("lobbies.router", () => {
       expect(lobby.status).toBe(GameStatus.WAITING_FOR_PLAYERS)
     })
 
-    it("should reject anonymous game join", async () => {
+    integrationTest("should reject anonymous game join", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act
@@ -494,9 +495,9 @@ describe("lobbies.router", () => {
   })
 
   describe("leave", () => {
-    it("should leave a game", async () => {
+    integrationTest("should leave a game", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
@@ -540,9 +541,9 @@ describe("lobbies.router", () => {
       })
     })
 
-    it("should reject leaving a game that has started", async () => {
+    integrationTest("should reject leaving a game that has started", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
@@ -557,9 +558,9 @@ describe("lobbies.router", () => {
       await expect(leaveGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should reject leaving a game as its creator", async () => {
+    integrationTest("should reject leaving a game as its creator", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
@@ -571,9 +572,9 @@ describe("lobbies.router", () => {
       await expect(leaveGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
     })
 
-    it("should successfully leave a game the player has not joined", async () => {
+    integrationTest("should successfully leave a game the player has not joined", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const nonPlayer = await apiServer.createClient({ authenticated: true })
 
@@ -588,9 +589,9 @@ describe("lobbies.router", () => {
       expect(lobby.players).toHaveLength(1)
     })
 
-    it("should reject anonymous game leave", async () => {
+    integrationTest("should reject anonymous game leave", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       // Act

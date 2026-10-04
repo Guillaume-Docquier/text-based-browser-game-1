@@ -1,14 +1,15 @@
 import { GameStatus } from "shared/domain/game/GameStatus.ts"
-import { describe, expect, it } from "vitest"
+import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
+import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 
 describe("listings.router", () => {
   describe("getListings", () => {
-    it("should get listings when anonymous", async () => {
+    integrationTest("should get listings when anonymous", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
 
       const anonymous = await apiServer.createClient({ authenticated: false })
 
@@ -35,9 +36,9 @@ describe("listings.router", () => {
       ])
     })
 
-    it("should get listings when authenticated", async () => {
+    integrationTest("should get listings when authenticated", async ({ db }) => {
       // Arrange
-      await using apiServer = new ApiServer(await createApiStub())
+      await using apiServer = new ApiServer(await createApiStub({ db }))
 
       const creator = await apiServer.createClient({ authenticated: true })
       const joinedGameSettings = createLobbyConfigurationDtoStub({ name: "Joined game" })

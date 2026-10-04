@@ -17,7 +17,7 @@ const ANY_UNUSED_PORT = 0
  *
  * @example
  * ```ts
- * await using apiServer = new ApiServer(await createApiStub())
+ * await using apiServer = new ApiServer(await createApiStub({db}))
  *
  * const player = await apiServer.createClient({ authenticated: true })
  * // player.account -> defined
