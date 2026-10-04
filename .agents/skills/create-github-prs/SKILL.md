@@ -1,6 +1,6 @@
 ---
 name: create-github-prs
-description: Create GitHub pull requests for Cosmic Empires. Use whenever an agent opens a PR in this repository, including PRs opened during other workflows.
+description: Create GitHub pull requests. Use when you want to open a PR.
 ---
 
 # Create GitHub pull requests
