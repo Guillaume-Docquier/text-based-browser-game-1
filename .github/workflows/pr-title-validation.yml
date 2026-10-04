@@ -38,6 +38,8 @@ jobs:
             ### ❌ The PR title is invalid ❌
 
             Expected format: `<scope>: <description>`
+            - `<scope>` — the subsystem, area, or module that the PR touches
+            - `<description>` — a short description of the changes made
 
             Choose a single scope that describes the area being changed, using only letters, numbers, and dashes. The description can contain any characters.
 
