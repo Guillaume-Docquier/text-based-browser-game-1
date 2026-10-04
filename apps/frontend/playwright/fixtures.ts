@@ -1,3 +1,4 @@
+import { setupClerkTestingToken } from "@clerk/testing/playwright"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { expect, test as base, type Browser, type ConsoleMessage, type TestInfo } from "@playwright/test"
 import { users } from "./auth.ts"
@@ -118,6 +119,9 @@ async function useAuthenticatedUser(
     storageState: user.authFilePath,
     recordVideo: { dir: testInfo.outputPath("videos") },
   })
+  // Storage state restores cookies, but not the Clerk request handler installed during sign-in.
+  // Reinstall it so session refreshes in this context also bypass bot protection.
+  await setupClerkTestingToken({ context })
   const page = await context.newPage()
 
   await use({ alias: user.alias, email: user.email, page })
