@@ -99,7 +99,7 @@ jobs:
         run: pnpm --filter frontend e2e:install
 
       - name: End-to-end tests
-        run: pnpm --filter frontend e2e playwright/specs/fleets.spec.ts --repeat-each=12 --workers=2 --reporter=list
+        run: pnpm --filter frontend e2e --repeat-each=3 --workers=2 --reporter=list
         env:
           DATABASE_URL: "postgres://user:pwd@127.0.0.1:5432/cosmic-empires"
           VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
