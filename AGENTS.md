@@ -76,11 +76,6 @@ When formatting the code, always run oxfmt with write. oxfmt is deterministic, t
 
 If the database container is not running, call `pnpm db:up`
 
-## Commits And PRs
-
-- Never commit, push, or open a pull request unless the human explicitly asks for it. A request to change code or tests does not imply permission to commit, push, or open a PR.
-- Pre-commit runs `pnpm lint-staged`, for linting and formatting
-
 ## Env Vars
 
 Every service parses env vars via a zod schema very early at boot. This serves as documentation for the required env vars and as validation that the application has all the configuration needed.
