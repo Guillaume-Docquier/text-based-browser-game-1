@@ -1,11 +1,11 @@
 ---
 name: implement-github-ticket
-description: Implement a specific GitHub ticket autonomously and deliver a ready to review PR. Use when implementing a specific github issue from end to end.
+description: Implement a specific GitHub ticket autonomously and deliver a ready to review PR. Use when implementing an entire github issue from end to end.
 ---
 
 # Implement a GitHub ticket
 
-Complete the requested issue in `Guillaume-Docquier/text-based-browser-game-1` and leave an open PR ready for human review.
+Complete the requested issue and leave an open PR ready for human review.
 
 ## Arguments and authorization
 
@@ -42,15 +42,13 @@ When resuming this same ticket, inspect and reuse its existing worktree, branch,
 
 ## 3. Implement and commit
 
-Read the root and applicable scoped `AGENTS.md` files. Follow their requirements for coding standards, design documents, relevant skills, tests, formatting, and documentation.
-
-Implement the ticket's acceptance criteria and keep changes within its scope. Verify behavior with the relevant local checks; use the repository's E2E skill if running E2E tests. Make commits as necessary, including subsequent CI and accepted review fixes. Honor commit hooks and inspect the staged diff so commits contain only the task's changes.
+Read the issue and related materials to understand the task. Implement the task, committing as necessary.
 
 ## 4. Push and open the PR
 
-Push the implementation branch and open a PR against `main`, or update the existing PR for this task.
+Once the implementation is done and validated locally, push the branch and open a **draft** PR against `main`, or update the existing PR for this task.
 
-Follow `.github/pull_request_template.md` and the PR title rules in `AGENTS.md`. Link the issue using its full URL in the template's bullet list with the appropriate keyword, such as `fixes`. Describe the final behavior and relevant tradeoffs, and explicitly call out schema, environment usage, or deployment changes when applicable. Keep the description current as fixes change the implementation.
+Keep the description current as fixes change the implementation.
 
 Use structured API arguments or a UTF-8 body file with `--body-file` for multiline PR bodies and comments. Attach the PR to the current task with `attach_artifact` when the app tool is available.
 
@@ -108,4 +106,4 @@ Before declaring completion, verify that:
 - CI is green for the current PR head and any unrelated flakes are documented in the PR.
 - If requested, Greptile's review has completed and every actionable finding has a reasoned response; all resolvable threads have been resolved.
 
-Return the open PR link and a very short summary of the changes. If a required step is blocked, return the PR link when available and the specific unfinished step instead of claiming completion.
+Mark the PR as ready for review. Return the open PR link and a very short summary of the changes. If a required step is blocked, return the PR link when available and the specific unfinished step instead of claiming completion.
