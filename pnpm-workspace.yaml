@@ -3,7 +3,7 @@ packages:
   - packages/*
 
 catalog:
-  "@guillaume-docquier/tools-ts": ^10.1.0
+  "@guillaume-docquier/tools-ts": ^10.1.2
   "@vitest/coverage-v8": ^5.0.0
   "type-fest": ^5.10.0
   "typescript": ~7.0.2
