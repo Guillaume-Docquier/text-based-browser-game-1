@@ -130,9 +130,17 @@ jobs:
       - name: Tests with coverage
         run: pnpm --filter backend test:coverage
 
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: backend-coverage
+          path: apps/backend/coverage/lcov.info
+          if-no-files-found: error
+
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v7
         with:
+          fail_ci_if_error: true
           files: ./apps/backend/coverage/lcov.info
           disable_search: true
           flags: backend
@@ -155,9 +163,17 @@ jobs:
       - name: Tests with coverage
         run: pnpm --filter shared test:coverage
 
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: shared-coverage
+          path: packages/shared/coverage/lcov.info
+          if-no-files-found: error
+
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v7
         with:
+          fail_ci_if_error: true
           files: ./packages/shared/coverage/lcov.info
           disable_search: true
           flags: shared
