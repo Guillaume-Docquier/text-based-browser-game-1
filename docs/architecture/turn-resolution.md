@@ -1,20 +1,22 @@
-# Rules Engine
+# Turn Resolution
 
-The Rules Engine resolves game turns in `packages/shared/src/turn-resolution`, using the shared domain definitions and action-submission validators. The backend owns the Standard Ruleset; the shared package owns an independent Test Ruleset under `packages/shared/src/testing/test-ruleset`.
+Game turns are resolved in `packages/shared/src/turn-resolution`, using the shared domain definitions and action-submission validators.
+
+Turn Resolution is data driven via a Ruleset. The mechanics of the game, called Effects, and the resolution Phases are baked in the turn-resolution code, but the set of available actions and the target constraints are decided by the Ruleset, which is subject to validation before persistence. The backend owns the Standard Ruleset and any other official Rulesets. The shared package owns an independent and stable Test Ruleset under `packages/shared/src/testing/test-ruleset`.
 
 The Rules Engine works by converting Actions Submissions into their corresponding Effects that are resolved in Phases.
 
 Actions compose Effect Definitions stored in the Ruleset. During Turn Resolution, each Effect Definition creates an Effect. This allows Actions to reuse supported behavior.
 
-Because the Rules Engine is data driven and persistence agnostic, we could play games entirely offline, in the terminal, for example. We had a version of this, but it was cumbersome to maintain, and we're very well-equipped to test this easily via unit tests, router tests and playwright tests.
+Because Turn Resolution is data driven and persistence agnostic, we could play games entirely offline, in the terminal, for example. We had a version of this, but it was cumbersome to maintain, and we're very well-equipped to test this easily via unit tests, integration tests and end-to-end tests.
 
 ![Rules Engine Turn Resolution pipeline](../../.github/images/rules-engine-turn-resolution.png)
 
 ## Ruleset
 
-The Rules Engine defines clear models to define Actions. The Ruleset and its Actions are entirely data driven.
+The Turn Resolution defines clear models to define Actions. The Ruleset and its Actions are entirely data driven, building on the game's supported Effects.
 
-The Rules Engine owns the Ruleset model, the supported Effect Definitions and the Phase ordering and Effect resolution.
+The Turn Resolution owns the Ruleset model, the supported Effect Definitions and the Phase ordering and Effect resolution.
 
 This means that creating Actions and balancing the game is nearly free, and multiple concurrent games can use different Rulesets. Adding effect definitions is also quite easy.
 
