@@ -14,8 +14,9 @@ Partially Implemented
 - [x] Resource stockpile and affordability presentation
 - [x] Available Actions
 - [x] Ruleset-defined Action Pool with stable Action IDs
-- [x] Frontend target selection for Build Fleet's owned Planet target
+- [x] Frontend target selection for Build Fleet's owned Planet and Move Fleet's owned Fleet and destination Planet targets
 - [x] Fleet Build Effect and resolution Phase
+- [x] Move Fleet Effect and per-submission movement
 - [ ] Frontend target selection for all target types
 - [x] Multiple Actions
 
@@ -96,22 +97,24 @@ The engine can host games using different developer-authored Rulesets. A single 
 
 Turn Resolution creates one Effect Pool from locked Action Submissions and automatic game rules. The Rules Engine resolves that pool through this fixed, engine-owned Phase order:
 
-| Phase          | Responsibility                                                                                                        |
-| -------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Pay Costs      | Validate and apply the costs committed by locked Action Submissions.                                                  |
-| Fleet Movement | Resolve Fleet Movement and chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md). |
-| Fleet Build    | Create or reinforce a player's Fleet at the submitted Planet target with a deterministic identity.                    |
-| Fleet Combat   | Resolve hostile Fleet encounters after Fleet Movement and Fleet Build.                                                |
-| Planet         | Resolve Planet activities.                                                                                            |
-| Colonization   | Resolve attempts to claim Unclaimed Planets after Fleet Movement and Fleet Combat.                                    |
-| Income         | Resolve Resource production and other recurring gains.                                                                |
-| Victory        | Resolve the winning player, if any.                                                                                   |
+| Phase          | Responsibility                                                                                                                    |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Pay Costs      | Validate and apply the costs committed by locked Action Submissions.                                                              |
+| Fleet Movement | Resolve Fleet Movement; chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md) remain planned. |
+| Fleet Build    | Create or reinforce a player's Fleet at the submitted Planet target with a deterministic identity.                                |
+| Fleet Combat   | Resolve hostile Fleet encounters after Fleet Movement and Fleet Build.                                                            |
+| Planet         | Resolve Planet activities.                                                                                                        |
+| Colonization   | Resolve attempts to claim Unclaimed Planets after Fleet Movement and Fleet Combat.                                                |
+| Income         | Resolve Resource production and other recurring gains.                                                                            |
+| Victory        | Resolve the winning player, if any.                                                                                               |
 
 The Phase sequence belongs to the Rules Engine and is the same for every Ruleset. Each Phase is free to collect, order, coordinate, and resolve its Effects in the way that Phase requires.
 
-Pay Costs, Fleet Build, Income, and Victory currently resolve Effects. Fleet Movement, Fleet Combat, Planet, and Colonization have Phase boundaries but no gameplay behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
+Pay Costs, Fleet Movement, Fleet Build, Income, and Victory currently resolve Effects. Fleet Combat, Planet, and Colonization have Phase boundaries but no gameplay behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
 
-Phases are coarse ordering boundaries. Ticks are finer ordering steps used inside the Fleet Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
+The Move Fleet Effect advances the submitted owned Fleet toward its destination by up to the configured speed. Remaining distance persists for another submission on a later Turn; on arrival, the Fleet lands or merges into the same player's stationed Fleet. [System 012-movement](./012-movement.md) records the remaining work, including automatic continuation, Action binding during transit, Range limits, partial-Strength movement, and coordinated Tick-based arrivals.
+
+Phases are coarse ordering boundaries. Planned Tick-based resolution provides finer ordering inside the Fleet Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
 
 Each Effect belongs to a Phase that orchestrates its resolution. An Effect may create, modify, cancel, or make a later Effect invalid.
 
