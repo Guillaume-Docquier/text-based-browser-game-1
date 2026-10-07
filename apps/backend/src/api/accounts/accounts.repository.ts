@@ -3,7 +3,6 @@ import { and, eq } from "drizzle-orm"
 import type { Account } from "shared/domain/identity/Account.ts"
 import type { AccountId } from "shared/domain/identity/AccountId.ts"
 import type { Alias } from "shared/domain/identity/Alias.ts"
-import type { NewAccountModel } from "#api/accounts/NewAccountModel.ts"
 import { Postgres } from "#lib/db/drizzle/Postgres.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable } from "#lib/db/schema.ts"
@@ -30,9 +29,9 @@ export class AccountsRepository extends PostgresRepository {
    * Creates a new account and returns the created account with its generated id.
    * If the creation fails, a Failure is returned with a reason.
    */
-  public async createAccount(newAccountModel: NewAccountModel, db: PostgresRepository["db"] = this.db): Promise<Result<Account, string>> {
+  public async createAccount(newAccount: Account, db: PostgresRepository["db"] = this.db): Promise<Result<Account, string>> {
     const createAccountResult = await Result.tryCatch(async () => {
-      const accounts = await db.insert(accountsTable).values(toNewAccountRow(newAccountModel)).returning()
+      const accounts = await db.insert(accountsTable).values(toNewAccountRow(newAccount)).returning()
       Assert.isTrue(accounts.length === 1)
       Assert.isDefined(accounts[0])
 
@@ -40,7 +39,7 @@ export class AccountsRepository extends PostgresRepository {
     })
 
     if (Result.isFailure(createAccountResult)) {
-      this.logger.error("Could not create account", { newAccount: newAccountModel, error: createAccountResult.error })
+      this.logger.error("Could not create account", { newAccount, error: createAccountResult.error })
       return Result.Failure(couldNot("create account"))
     }
 
@@ -109,12 +108,12 @@ export class AccountsRepository extends PostgresRepository {
   }
 }
 
-function toNewAccountRow(newAccountModel: NewAccountModel): NewAccountRow {
+function toNewAccountRow(newAccount: Account): NewAccountRow {
   return {
-    id: newAccountModel.id,
-    authId: newAccountModel.authId,
-    alias: newAccountModel.alias,
-    onboarded: newAccountModel.onboarded,
-    email: newAccountModel.email?.toLowerCase(),
+    id: newAccount.id,
+    authId: newAccount.authId,
+    alias: newAccount.alias,
+    onboarded: newAccount.onboarded,
+    email: newAccount.email?.toLowerCase(),
   }
 }

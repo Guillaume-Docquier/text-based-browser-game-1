@@ -1,9 +1,8 @@
-import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client"
+import { createAccountStub } from "shared/domain/identity/Account.stub.ts"
 import type { Account } from "shared/domain/identity/Account.ts"
-import { AccountIdSchema } from "shared/domain/identity/AccountId.ts"
+import { v4 } from "uuid"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { AUTH_ID_HEADER } from "#api/auth/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
@@ -42,11 +41,7 @@ export async function createApiClient({
     }
   }
 
-  const account = extractSuccess(
-    await accountsRepository.createAccount(
-      createNewAccountModelStub({ id: id === undefined ? undefined : typedParse(AccountIdSchema, id) }),
-    ),
-  )
+  const account = extractSuccess(await accountsRepository.createAccount(createAccountStub({ id: id ?? v4() })))
 
   return {
     client: createTrpcClient({ port, authId: account.authId }),

@@ -2,6 +2,7 @@ import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { RequestHandler } from "express"
 import type { Account } from "shared/domain/identity/Account.ts"
+import { AccountIdSchema } from "shared/domain/identity/AccountId.ts"
 import { AliasSchema } from "shared/domain/identity/Alias.ts"
 import { v4 } from "uuid"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
@@ -78,8 +79,9 @@ export class AuthService {
         }
 
         const createAccountResult = await this.accountsRepository.createAccount({
-          ...userResult.value,
+          id: typedParse(AccountIdSchema, v4()),
           authId,
+          email: userResult.value.email ?? null,
           alias: typedParse(AliasSchema, v4()),
           onboarded: false,
         })
