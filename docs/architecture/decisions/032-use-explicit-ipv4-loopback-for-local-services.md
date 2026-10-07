@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted
+Rejected
+
+### Amendment history
+
+- 2026-10-06: Rejected after confirming that Vite 8.3.2 probes wildcard addresses during startup even when configured to bind to `127.0.0.1`. The decision does not prevent the Windows Firewall prompts it was intended to eliminate. The prompt in itself is also annoying, but doesn't prevent the app from working.
 
 ## Context
 
@@ -14,20 +18,16 @@ Our local application servers and test clients communicate on the same computer.
 
 `localhost` is a hostname that can resolve to IPv4 loopback (`127.0.0.1`) or IPv6 loopback (`::1`). Using the IPv4 literal for both listeners and clients keeps them on the same address family without relying on name resolution or client fallback behavior.
 
+Investigation of Vite 8.3.2 showed that its port availability check temporarily listens on wildcard addresses before starting the configured HTTP listener. This occurs even with `host: "127.0.0.1"` and `strictPort: true`, without any plugins. These temporary listeners can trigger Windows Firewall even though Vite reports a loopback URL once startup completes.
+
 ## Decision
 
-Hardcode `127.0.0.1` for application-owned local development and test HTTP server bindings, and use the same address for their direct local HTTP clients. This covers the local backend, integration test servers, Vite development server, Storybook, and browser test servers.
+Reject the project-wide requirement to hardcode `127.0.0.1` for local servers and their clients as a solution to repeated Windows Firewall prompts.
 
-Keep the loopback address fixed across worktrees. Continue assigning distinct ports through the worktree setup workflow. The address does not need a per-worktree environment variable or firewall allowance.
-
-Deployed services retain the network bindings their hosting environment requires. The Railway backend continues to listen on `::` so the reverse proxy can reach it through Railway's IPv6 internal network, consistent with [ADR-005](./005-reverse-proxy.md). The mechanism for selecting a deployment binding is a separate configuration decision.
+The original decision applied this requirement to the local backend, integration test servers, Vite, Storybook, and browser test servers, while retaining Railway's `::` binding. Configuring those listeners does not control temporary listeners opened internally by development tools.
 
 ## Consequences
 
-Local servers remain accessible to browsers, proxies, and tests on the same computer while avoiding the need to grant inbound network access for each worktree's Node executable. This supports autonomous agent runs without a human accepting firewall prompts.
+This ADR no longer mandates explicit IPv4 loopback literals for local services. Loopback binding still limits access to the configured listener, but it does not guarantee that the process avoids Windows Firewall prompts.
 
-Local services are accessible only from this computer. Testing from another device or from a separate container or virtual machine requires an explicit binding change and review of the resulting network access. IPv6-specific local testing also requires a deliberate alternative binding.
-
-The repeated literal is intentional: it records a stable local networking convention at each listener and client. New local servers and test tooling must follow it, while deployment bindings must remain appropriate for the hosting environment.
-
-Socket and connectivity checks can verify the configured bindings. Whether Windows stops prompting must be confirmed during normal worktree use; additional prompts should trigger inspection of the tool's actual listeners.
+Resolving the remaining prompts requires addressing the development tool's startup listeners. Inspecting only the final listening address or printed URL can miss the temporary wildcard probes.

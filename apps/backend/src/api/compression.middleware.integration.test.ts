@@ -1,4 +1,3 @@
-import { once } from "node:events"
 import { createServer } from "node:http"
 import type { AddressInfo } from "node:net"
 import { describe, expect } from "vitest"
@@ -13,13 +12,12 @@ describe("compression middleware", () => {
     api.get("/__test__/compression", (_request, response) => {
       response.type("text/plain").send(responseBody)
     })
-    await using server = createServer(api).listen(0, "127.0.0.1")
-    await once(server, "listening")
+    await using server = createServer(api).listen()
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- A listener on port 0 has an assigned TCP address.
     const address = server.address() as AddressInfo
 
     // Act
-    const response = await fetch(`http://127.0.0.1:${address.port}/__test__/compression`, {
+    const response = await fetch(`http://localhost:${address.port}/__test__/compression`, {
       headers: { "Accept-Encoding": "br" },
     })
 
