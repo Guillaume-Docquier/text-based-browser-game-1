@@ -1,4 +1,4 @@
-import type { ResolvedAction } from "#shared/domain/actions/ResolvedAction.ts"
+import type { ResolvedAction } from "#shared/domain/turns/actions/ResolvedAction.ts"
 import type { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
 /**

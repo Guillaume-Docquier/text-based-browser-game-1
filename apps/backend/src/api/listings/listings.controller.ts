@@ -1,7 +1,7 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { GameIdSchema } from "shared/domain/game/GameId.ts"
-import { GameStatus } from "shared/domain/game/GameStatus.ts"
-import type { AccountId } from "shared/domain/identity/AccountId.ts"
+import type { AccountId } from "shared/domain/accounts/AccountId.ts"
+import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { z } from "zod"
 import type { ListingsRepository } from "./listings.repository.ts"
 

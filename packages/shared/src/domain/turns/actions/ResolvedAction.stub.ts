@@ -1,5 +1,5 @@
-import { createSubmittedActionStub } from "#shared/domain/actions/Action.stub.ts"
-import type { ResolvedAction } from "#shared/domain/actions/ResolvedAction.ts"
+import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
+import type { ResolvedAction } from "#shared/domain/turns/actions/ResolvedAction.ts"
 
 export function createResolvedActionStub({
   submittedAction = createSubmittedActionStub(),

@@ -1,8 +1,8 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
 import { SubmittedActionIssue } from "#shared/action-submission/validation/SubmittedActionIssue.ts"
-import type { SubmittedAction } from "#shared/domain/actions/Action.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import type { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
 /**

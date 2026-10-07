@@ -6,11 +6,14 @@ import express, { type Express } from "express"
 import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createAccountsRouter } from "#api/accounts/accounts.router.ts"
-import type { AuthService } from "#api/accounts/auth.service.ts"
-import { GameplayController } from "#api/gameplay/gameplay.controller.ts"
+import type { AuthService } from "#api/auth/auth.service.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
+import { GetPlayerIdUseCase } from "#api/gameplay/GetPlayerIdUseCase.ts"
+import { GetPlayerViewUseCase } from "#api/gameplay/GetPlayerViewUseCase.ts"
+import { StartGameUseCase } from "#api/gameplay/StartGameUseCase.ts"
 import { UpdateActionSubmissionUseCase } from "#api/gameplay/UpdateActionSubmissionUseCase.ts"
+import { UpdateReadinessUseCase } from "#api/gameplay/UpdateReadinessUseCase.ts"
 import { createHealthRouter } from "#api/health/health.router.ts"
 import { ListingsController } from "#api/listings/listings.controller.ts"
 import type { ListingsRepository } from "#api/listings/listings.repository.ts"
@@ -50,19 +53,22 @@ export async function createApi({
 }): Promise<Express> {
   const applicationServices = { ...services, createTransaction }
   const controllers = {
-    gameplayController: new GameplayController(applicationServices),
     listingsController: new ListingsController(applicationServices),
     lobbiesController: new LobbiesController(applicationServices),
     accountsController: new AccountsController(applicationServices),
   }
   const useCases = {
+    getPlayerIdUseCase: new GetPlayerIdUseCase(applicationServices),
+    getPlayerViewUseCase: new GetPlayerViewUseCase(applicationServices),
+    startGameUseCase: new StartGameUseCase(applicationServices),
     updateActionSubmissionUseCase: new UpdateActionSubmissionUseCase(applicationServices),
+    updateReadinessUseCase: new UpdateReadinessUseCase(applicationServices),
   }
 
   const app = express()
   app.use(compression())
   app.use(requestLoggerMiddleware(services))
-  app.use(...authService.authenticationMiddlewares(controllers))
+  app.use(...authService.authenticationMiddlewares())
 
   app.use(
     "/trpc",
@@ -82,8 +88,11 @@ export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: {
   accountsController: AccountsController
-  gameplayController: GameplayController
+  getPlayerIdUseCase: GetPlayerIdUseCase
+  getPlayerViewUseCase: GetPlayerViewUseCase
+  startGameUseCase: StartGameUseCase
   updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
+  updateReadinessUseCase: UpdateReadinessUseCase
   listingsController: ListingsController
   lobbiesController: LobbiesController
   logger: Logger

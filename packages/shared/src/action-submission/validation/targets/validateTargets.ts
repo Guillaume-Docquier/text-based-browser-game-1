@@ -2,10 +2,10 @@ import { branded, Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
 import { SubmittedActionIssue } from "#shared/action-submission/validation/SubmittedActionIssue.ts"
 import { validateTarget } from "#shared/action-submission/validation/targets/validateTarget.ts"
-import type { SubmittedAction } from "#shared/domain/actions/Action.ts"
 import type { ActionDefinition } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
 /**

@@ -1,10 +1,12 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { RequestHandler } from "express"
-import { AliasSchema } from "shared/domain/identity/Alias.ts"
+import type { Account } from "shared/domain/accounts/Account.ts"
+import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
+import { AliasSchema } from "shared/domain/accounts/Alias.ts"
 import { v4 } from "uuid"
-import type { AccountDto, AccountsController } from "#api/accounts/accounts.controller.ts"
-import type { AuthProvider } from "#api/accounts/AuthProvider.ts"
+import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import type { AuthProvider } from "#api/auth/AuthProvider.ts"
 
 // If we hooked this into trpc, we'd have better guarantees.
 // I just don't really know how to adapt clerk to trpc yet. For now this does the job.
@@ -12,32 +14,39 @@ declare global {
   // oxlint-disable-next-line typescript/no-namespace -- This is the way with Express
   namespace Express {
     interface Request {
-      account?: AccountDto | undefined
+      account?: Account | undefined
     }
   }
 }
 
 /**
- * Encapsulates Clerk.
- * This should be the only place we use Clerk directly.
- *
- * It'll make tests easier, and if Clerk turns out to be a problem, we can change it.
+ * Resolves authenticated users to local accounts through an auth provider and accounts repository.
  */
 export class AuthService {
   private readonly logger: Logger
   private readonly authProvider: AuthProvider
+  private readonly accountsRepository: AccountsRepository
 
-  public constructor({ logger, authProvider }: { logger: Logger; authProvider: AuthProvider }) {
+  public constructor({
+    logger,
+    authProvider,
+    accountsRepository,
+  }: {
+    logger: Logger
+    authProvider: AuthProvider
+    accountsRepository: AccountsRepository
+  }) {
     this.logger = logger.child({ scope: "auth-service" })
     this.authProvider = authProvider
+    this.accountsRepository = accountsRepository
   }
 
   /**
    * Express middleware that parses the authentication token for further usage.
    * The trpc procedures will consume this information.
    */
-  public authenticationMiddlewares({ accountsController }: { accountsController: AccountsController }): RequestHandler[] {
-    return [this.authProvider.parseTokenMiddleware(), this.recordAccountMiddleware({ accountsController })]
+  public authenticationMiddlewares(): RequestHandler[] {
+    return [this.authProvider.parseTokenMiddleware(), this.recordAccountMiddleware()]
   }
 
   /**
@@ -45,7 +54,7 @@ export class AuthService {
    *
    * This is an abstraction over Clerk, because we can't full rely on their webhooks to sync data (and we haven't set up one yet anyway).
    */
-  private recordAccountMiddleware({ accountsController }: { accountsController: AccountsController }): RequestHandler {
+  private recordAccountMiddleware(): RequestHandler {
     return async (req, res, next) => {
       const authStatus = this.authProvider.parseAuthStatus({ req })
       if (!authStatus.isAuthenticated) {
@@ -54,7 +63,7 @@ export class AuthService {
       }
 
       const authId = authStatus.authId
-      const getAccountResult = await accountsController.getAccountByAuthId({ authId })
+      const getAccountResult = await this.accountsRepository.getAccountByAuthId({ authId })
       if (Result.isFailure(getAccountResult)) {
         this.logger.error("Could not get account from the clerk id", { authId, error: getAccountResult.error })
         next()
@@ -69,9 +78,10 @@ export class AuthService {
           return
         }
 
-        const createAccountResult = await accountsController.createAccount({
-          ...userResult.value,
+        const createAccountResult = await this.accountsRepository.createAccount({
+          id: typedParse(AccountIdSchema, v4()),
           authId,
+          email: userResult.value.email ?? null,
           alias: typedParse(AliasSchema, v4()),
           onboarded: false,
         })

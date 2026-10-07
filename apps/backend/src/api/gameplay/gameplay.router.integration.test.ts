@@ -36,6 +36,9 @@ describe("gameplay.router", () => {
     const expectedError = { data: { code: "FORBIDDEN" } }
     await expect(nonPlayer.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(nonPlayer.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
+    await expect(nonPlayer.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })).rejects.toMatchObject(
+      expectedError,
+    )
     await expect(
       nonPlayer.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,

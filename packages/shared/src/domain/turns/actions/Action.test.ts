@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { createAvailableActionStub, createSubmittedActionStub } from "#shared/domain/actions/Action.stub.ts"
-import { ActionSchema } from "#shared/domain/actions/Action.ts"
-import { ActionIdSchema } from "#shared/domain/actions/ActionId.ts"
 import { QuantityOfResourceSchema } from "#shared/domain/resources/QuantityOfResource.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
+import { createAvailableActionStub, createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
+import { ActionSchema } from "#shared/domain/turns/actions/Action.ts"
+import { ActionIdSchema } from "#shared/domain/turns/actions/ActionId.ts"
 
 describe("ActionSchema", () => {
   it("should preserve an available action", () => {

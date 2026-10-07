@@ -1,6 +1,6 @@
-import type { AvailableAction } from "#shared/domain/actions/Action.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import type { AvailableAction } from "#shared/domain/turns/actions/Action.ts"
 
 /**
  * Computes each player's available Actions from the Ruleset's current Action Pool.

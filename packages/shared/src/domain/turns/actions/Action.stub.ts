@@ -1,7 +1,12 @@
 import type { DeepUnbranded, UnbrandedProperties } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { v4 } from "uuid"
-import { AvailableActionSchema, type AvailableAction, SubmittedActionSchema, type SubmittedAction } from "#shared/domain/actions/Action.ts"
+import {
+  AvailableActionSchema,
+  type AvailableAction,
+  SubmittedActionSchema,
+  type SubmittedAction,
+} from "#shared/domain/turns/actions/Action.ts"
 
 export function createAvailableActionStub({
   id = v4(),

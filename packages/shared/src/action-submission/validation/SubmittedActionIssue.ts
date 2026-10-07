@@ -1,5 +1,5 @@
-import type { SubmittedAction } from "#shared/domain/actions/Action.ts"
 import type { ActionDefinitionId } from "#shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 
 export type SubmittedActionIssue = Readonly<{
   issue: string

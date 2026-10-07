@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { validateSubmittedActions } from "#shared/action-submission/validation/validateSubmittedActions.ts"
-import { createSubmittedActionStub } from "#shared/domain/actions/Action.stub.ts"
 import { createRulesetStub } from "#shared/domain/ruleset/Ruleset.stub.ts"
+import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 
 describe("validateSubmittedActions", () => {

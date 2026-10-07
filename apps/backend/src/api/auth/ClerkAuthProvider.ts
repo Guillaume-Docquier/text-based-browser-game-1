@@ -1,7 +1,7 @@
 import { clerkClient, clerkMiddleware, getAuth } from "@clerk/express"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler, Request } from "express"
-import type { AuthProvider, AuthStatus, User } from "#api/accounts/AuthProvider.ts"
+import type { AuthProvider, AuthStatus, User } from "#api/auth/AuthProvider.ts"
 import { couldNot } from "#lib/errors.ts"
 
 export class ClerkAuthProvider implements AuthProvider {

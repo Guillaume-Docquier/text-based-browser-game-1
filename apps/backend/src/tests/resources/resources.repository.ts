@@ -1,6 +1,6 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq, sql } from "drizzle-orm"
-import type { GameId } from "shared/domain/game/GameId.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import type { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"

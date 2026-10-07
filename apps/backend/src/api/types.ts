@@ -10,10 +10,10 @@ type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 
 export type { TrpcRouter }
 
-export type { GameId } from "shared/domain/game/GameId.ts"
+export type { GameId } from "shared/domain/games/GameId.ts"
 export type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 export type { PlayerId } from "shared/domain/players/PlayerId.ts"
-export type { AccountId } from "shared/domain/identity/AccountId.ts"
+export type { AccountId } from "shared/domain/accounts/AccountId.ts"
 export type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 export type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
 export type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"

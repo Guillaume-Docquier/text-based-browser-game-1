@@ -17,11 +17,11 @@ import {
   unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core"
-import type { SelectedTargets } from "shared/domain/actions/SelectedTargets.ts"
-import { GameStatus } from "shared/domain/game/GameStatus.ts"
-import type { Alias } from "shared/domain/identity/Alias.ts"
+import type { Alias } from "shared/domain/accounts/Alias.ts"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { SelectedTargets } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"

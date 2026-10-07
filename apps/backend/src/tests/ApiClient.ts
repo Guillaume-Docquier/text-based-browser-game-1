@@ -1,15 +1,15 @@
-import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client"
-import { AccountIdSchema } from "shared/domain/identity/AccountId.ts"
-import type { AccountModel, AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
-import { AUTH_ID_HEADER } from "#api/accounts/TestHeaderAuthProvider.ts"
+import { createAccountStub } from "shared/domain/accounts/Account.stub.ts"
+import type { Account } from "shared/domain/accounts/Account.ts"
+import { v4 } from "uuid"
+import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import { AUTH_ID_HEADER } from "#api/auth/TestHeaderAuthProvider.ts"
 import type { TrpcRouter } from "#api/createApi.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
 
 export type AuthenticatedApiClient = {
   readonly client: TRPCClient<TrpcRouter>
-  readonly account: AccountModel
+  readonly account: Account
 }
 
 export type AnonymousApiClient = {
@@ -41,11 +41,7 @@ export async function createApiClient({
     }
   }
 
-  const account = extractSuccess(
-    await accountsRepository.createAccount(
-      createNewAccountModelStub({ id: id === undefined ? undefined : typedParse(AccountIdSchema, id) }),
-    ),
-  )
+  const account = extractSuccess(await accountsRepository.createAccount(createAccountStub({ id: id ?? v4() })))
 
   return {
     client: createTrpcClient({ port, authId: account.authId }),

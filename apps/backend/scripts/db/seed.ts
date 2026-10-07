@@ -3,10 +3,12 @@ import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import type { Table } from "drizzle-orm/table"
-import { AliasSchema } from "shared/domain/identity/Alias.ts"
+import type { Account } from "shared/domain/accounts/Account.ts"
+import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
+import { AliasSchema } from "shared/domain/accounts/Alias.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
-import { type AccountModel, AccountsRepository, type NewAccountModel } from "#api/accounts/accounts.repository.ts"
+import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { LobbiesController, MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
@@ -57,7 +59,7 @@ void main({
 
 type User = {
   clerkId: string
-  email: string | undefined
+  email?: string | undefined
   alias: string | undefined
 }
 
@@ -148,32 +150,23 @@ async function seedAccounts({
   user: User | undefined
   accountsRepository: AccountsRepository
   logger: Logger
-}): Promise<AccountModel[]> {
+}): Promise<Account[]> {
   logger.info("Accounts")
   logger.info("├ Cleaning up the accounts")
   await resetTable(db, accountsTable)
   logger.info("├ Adding sample accounts")
-  const newAccounts: NewAccountModel[] = [
-    ...(user !== undefined
-      ? [
-          {
-            authId: user.clerkId,
-            email: user.email,
-            alias: typedParse(AliasSchema, user.alias ?? v4()),
-            onboarded: false,
-          },
-        ]
-      : []),
-    { authId: "fake1", email: "fake1@email.com", alias: typedParse(AliasSchema, "pro"), onboarded: true },
-    { authId: "fake2", email: "fake2@email.com", alias: typedParse(AliasSchema, "smurf"), onboarded: true },
-    { authId: "fake3", alias: typedParse(AliasSchema, "xXPlanetSupaDestroyazXx"), onboarded: true },
+  const newAccounts: Account[] = [
+    ...(user !== undefined ? [createAccount(user, { onboarded: false })] : []),
+    createAccount({ clerkId: "fake1", email: "fake1@email.com", alias: "pro" }, { onboarded: true }),
+    createAccount({ clerkId: "fake2", email: "fake2@email.com", alias: "smurf" }, { onboarded: true }),
+    createAccount({ clerkId: "fake3", alias: "xXPlanetSupaDestroyazXx" }, { onboarded: true }),
     ...Array.from({ length: MAX_NB_SEATS - 3 }, (_, index) => {
       const number = index + 4
-      return { authId: `fake${number}`, alias: typedParse(AliasSchema, `player${number}`), onboarded: true }
+      return createAccount({ clerkId: `fake${number}`, alias: `player${number}` }, { onboarded: true })
     }),
   ]
 
-  const accounts: AccountModel[] = []
+  const accounts: Account[] = []
   for (const newAccount of newAccounts) {
     accounts.push(assertSuccess(await accountsRepository.createAccount(newAccount)))
   }
@@ -202,7 +195,7 @@ async function seedGames({
   logger,
 }: {
   db: Database
-  accounts: AccountModel[]
+  accounts: Account[]
   lobbiesController: LobbiesController
   logger: Logger
 }): Promise<void> {
@@ -288,4 +281,14 @@ async function seedGames({
 function assertSuccess<TSuccess>(result: Result<TSuccess, string>): TSuccess {
   Assert.isSuccess(result)
   return result.value
+}
+
+function createAccount(user: User, { onboarded }: { onboarded: boolean }): Account {
+  return {
+    id: typedParse(AccountIdSchema, v4()),
+    authId: user.clerkId,
+    email: user.email ?? null,
+    alias: typedParse(AliasSchema, user.alias ?? v4()),
+    onboarded,
+  }
 }

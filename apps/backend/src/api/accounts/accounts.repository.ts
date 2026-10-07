@@ -1,28 +1,14 @@
-import { Assert, type Logger, Result, type Enumify } from "@guillaume-docquier/tools-ts"
+import { Assert, type Enumify, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
-import type { AccountId } from "shared/domain/identity/AccountId.ts"
-import type { Alias } from "shared/domain/identity/Alias.ts"
+import type { Account } from "shared/domain/accounts/Account.ts"
+import type { AccountId } from "shared/domain/accounts/AccountId.ts"
+import type { Alias } from "shared/domain/accounts/Alias.ts"
 import { Postgres } from "#lib/db/drizzle/Postgres.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type NewAccountRow = typeof accountsTable.$inferInsert
-
-export type NewAccountModel = {
-  id?: AccountId | undefined
-  authId: string
-  email?: string | null | undefined
-  alias: Alias
-  onboarded: boolean
-}
-export type AccountModel = {
-  id: AccountId
-  authId: string
-  email: string | null
-  alias: Alias
-  onboarded: boolean
-}
 
 export type FinishOnboardingError = Enumify<typeof FinishOnboardingError>
 export const FinishOnboardingError = {
@@ -43,12 +29,9 @@ export class AccountsRepository extends PostgresRepository {
    * Creates a new account and returns the created account with its generated id.
    * If the creation fails, a Failure is returned with a reason.
    */
-  public async createAccount(
-    newAccountModel: NewAccountModel,
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<AccountModel, string>> {
+  public async createAccount(newAccount: Account, db: PostgresRepository["db"] = this.db): Promise<Result<Account, string>> {
     const createAccountResult = await Result.tryCatch(async () => {
-      const accounts = await db.insert(accountsTable).values(toNewAccountRow(newAccountModel)).returning()
+      const accounts = await db.insert(accountsTable).values(toNewAccountRow(newAccount)).returning()
       Assert.isTrue(accounts.length === 1)
       Assert.isDefined(accounts[0])
 
@@ -56,7 +39,7 @@ export class AccountsRepository extends PostgresRepository {
     })
 
     if (Result.isFailure(createAccountResult)) {
-      this.logger.error("Could not create account", { newAccount: newAccountModel, error: createAccountResult.error })
+      this.logger.error("Could not create account", { newAccount, error: createAccountResult.error })
       return Result.Failure(couldNot("create account"))
     }
 
@@ -71,7 +54,7 @@ export class AccountsRepository extends PostgresRepository {
   public async getAccountByAuthId(
     { authId }: { authId: string },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<AccountModel | undefined, string>> {
+  ): Promise<Result<Account | undefined, string>> {
     const findByAuthIdResult = await Result.tryCatch(async () => {
       const accounts = await db.select().from(accountsTable).where(eq(accountsTable.authId, authId))
       Assert.isTrue(accounts.length <= 1)
@@ -96,7 +79,7 @@ export class AccountsRepository extends PostgresRepository {
   }: {
     accountId: AccountId
     alias: Alias
-  }): Promise<Result<AccountModel, FinishOnboardingError>> {
+  }): Promise<Result<Account, FinishOnboardingError>> {
     const finishOnboardingResult = await Result.tryCatch(async () => {
       const accounts = await this.db
         .update(accountsTable)
@@ -125,12 +108,12 @@ export class AccountsRepository extends PostgresRepository {
   }
 }
 
-function toNewAccountRow(newAccountModel: NewAccountModel): NewAccountRow {
+function toNewAccountRow(newAccount: Account): NewAccountRow {
   return {
-    id: newAccountModel.id,
-    authId: newAccountModel.authId,
-    alias: newAccountModel.alias,
-    onboarded: newAccountModel.onboarded,
-    email: newAccountModel.email?.toLowerCase(),
+    id: newAccount.id,
+    authId: newAccount.authId,
+    alias: newAccount.alias,
+    onboarded: newAccount.onboarded,
+    email: newAccount.email?.toLowerCase(),
   }
 }
