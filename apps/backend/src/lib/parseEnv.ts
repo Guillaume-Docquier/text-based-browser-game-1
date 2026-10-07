@@ -6,11 +6,6 @@ import { z } from "zod"
  */
 export const BackendEnvSchema = z.object({
   /**
-   * Railpack supplies production on Railway; local commands default to development.
-   */
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-
-  /**
    * PORT is injected by Railway and is not configurable, you can't rename this.
    */
   PORT: z.coerce.number(),

@@ -8,8 +8,8 @@ const backendDirectory = path.resolve(frontendDirectory, "../backend")
 const isCI = process.env.CI === "true"
 
 const env = parseEnv({ envFilePath: isCI ? undefined : path.resolve(frontendDirectory, "../../.env") })
-const backendUrl = `http://127.0.0.1:${env.PORT}`
-const frontendUrl = `http://127.0.0.1:${env.VITE_DEV_PORT}`
+const backendUrl = `http://localhost:${env.PORT}`
+const frontendUrl = `http://localhost:${env.VITE_DEV_PORT}`
 
 const isUiMode = process.argv.includes("--ui")
 
@@ -38,7 +38,7 @@ export default defineConfig({
       reuseExistingServer: !isCI,
     },
     {
-      command: `pnpm dev --host 127.0.0.1 --port ${env.VITE_DEV_PORT}`,
+      command: `pnpm dev --port ${env.VITE_DEV_PORT}`,
       env: {
         VITE_BACKEND_HOST: backendUrl,
         VITE_CLERK_PUBLISHABLE_KEY: env.VITE_CLERK_PUBLISHABLE_KEY,

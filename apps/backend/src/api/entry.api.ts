@@ -65,9 +65,8 @@ async function main(): Promise<void> {
     ...repositories,
   })
 
-  // Railway's IPv6 internal network needs all interfaces; local servers only need loopback.
-  const host = env.NODE_ENV === "production" ? "::" : "127.0.0.1"
-  const server = app.listen(env.PORT, host, () => {
+  // Listen to all interfaces (::) for railway's IPv6 internal network
+  const server = app.listen(env.PORT, "::", () => {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- I don't know when it's not actually an AddressInfo
     const serverAddress = server.address() as AddressInfo
 
