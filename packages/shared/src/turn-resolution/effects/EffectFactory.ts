@@ -1,5 +1,4 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import type { SubmittedAction } from "#shared/domain/actions/Action.ts"
 import type { EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
 import { FleetBuildEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetBuildEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
@@ -7,6 +6,7 @@ import { ResourceGainEffectDefinition } from "#shared/domain/ruleset/effect-defi
 import { ResourceLossEffectDefinition } from "#shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
 import { VictoryEffectDefinition } from "#shared/domain/ruleset/effect-definitions/VictoryEffectDefinition.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import type { Effect } from "#shared/turn-resolution/effects/Effect.ts"
 import { FleetBuildEffect } from "#shared/turn-resolution/effects/implementations/FleetBuildEffect.ts"
 import { FleetMoveEffect } from "#shared/turn-resolution/effects/implementations/FleetMoveEffect.ts"

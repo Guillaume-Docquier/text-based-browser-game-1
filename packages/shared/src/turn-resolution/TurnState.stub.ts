@@ -1,5 +1,5 @@
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
-import { GameIdSchema } from "#shared/domain/game/GameId.ts"
+import { GameIdSchema } from "#shared/domain/games/GameId.ts"
 import type { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
 export function createTurnStateStub(overrides?: Partial<TurnState>): TurnState {

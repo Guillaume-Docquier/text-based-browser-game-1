@@ -1,6 +1,6 @@
 import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client"
-import { createAccountStub } from "shared/domain/identity/Account.stub.ts"
-import type { Account } from "shared/domain/identity/Account.ts"
+import { createAccountStub } from "shared/domain/accounts/Account.stub.ts"
+import type { Account } from "shared/domain/accounts/Account.ts"
 import { v4 } from "uuid"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { AUTH_ID_HEADER } from "#api/auth/TestHeaderAuthProvider.ts"

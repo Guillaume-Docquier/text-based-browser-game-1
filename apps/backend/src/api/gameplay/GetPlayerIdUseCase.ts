@@ -1,6 +1,6 @@
 import type { Result } from "@guillaume-docquier/tools-ts"
-import type { GameId } from "shared/domain/game/GameId.ts"
-import type { AccountId } from "shared/domain/identity/AccountId.ts"
+import type { AccountId } from "shared/domain/accounts/AccountId.ts"
+import type { GameId } from "shared/domain/games/GameId.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import type { GameplayRepository } from "./gameplay.repository.ts"
 

@@ -1,5 +1,5 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
-import { GameIdSchema } from "shared/domain/game/GameId.ts"
+import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import { z } from "zod"
 import type { Clock } from "#lib/Clock.ts"

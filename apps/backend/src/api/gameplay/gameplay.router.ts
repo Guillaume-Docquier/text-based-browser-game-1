@@ -1,6 +1,6 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
-import { GameIdSchema } from "shared/domain/game/GameId.ts"
+import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
 import type { GetPlayerIdUseCase } from "./GetPlayerIdUseCase.ts"

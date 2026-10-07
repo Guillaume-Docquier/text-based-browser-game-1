@@ -5,8 +5,8 @@ import { validateCosts } from "#shared/action-submission/validation/costs/valida
 import type { SubmittedActionIssue } from "#shared/action-submission/validation/SubmittedActionIssue.ts"
 import type { SubmittedActionValidator } from "#shared/action-submission/validation/SubmittedActionValidator.ts"
 import { validateTargets } from "#shared/action-submission/validation/targets/validateTargets.ts"
-import type { SubmittedAction } from "#shared/domain/actions/Action.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import type { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
 const validators: SubmittedActionValidator[] = [validateActionDefinition, validateTargets, validateCosts]

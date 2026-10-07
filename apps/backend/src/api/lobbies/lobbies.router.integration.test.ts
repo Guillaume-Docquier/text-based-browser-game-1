@@ -1,5 +1,5 @@
 import { branded } from "@guillaume-docquier/tools-ts"
-import { GameStatus } from "shared/domain/game/GameStatus.ts"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"

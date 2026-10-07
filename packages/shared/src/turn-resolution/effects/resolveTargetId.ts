@@ -1,8 +1,8 @@
 import { Assert, branded } from "@guillaume-docquier/tools-ts"
-import type { SelectedTargets } from "#shared/domain/actions/SelectedTargets.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { EffectDefinitionTargetDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
 import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
+import type { SelectedTargets } from "#shared/domain/turns/actions/SelectedTargets.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 

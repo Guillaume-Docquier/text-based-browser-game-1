@@ -1,7 +1,7 @@
 import { z } from "zod"
-import type { SubmittedAction } from "#shared/domain/actions/Action.ts"
-import { SubmittedActionSchema } from "#shared/domain/actions/Action.ts"
-import { EffectOutcomeSchema, type EffectOutcome } from "#shared/domain/actions/EffectOutcome.ts"
+import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
+import { SubmittedActionSchema } from "#shared/domain/turns/actions/Action.ts"
+import { EffectOutcomeSchema, type EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 
 /**
  * The resolved action payload after turn resolution.

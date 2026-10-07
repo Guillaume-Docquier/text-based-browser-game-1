@@ -1,7 +1,7 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
-import type { Action } from "#shared/domain/actions/Action.ts"
 import type { Resources } from "#shared/domain/resources/Resources.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import type { Action } from "#shared/domain/turns/actions/Action.ts"
 
 /**
  * I don't like the shape of this, but it belongs with action submission rules.

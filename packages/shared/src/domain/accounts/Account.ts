@@ -1,6 +1,6 @@
 import { z } from "zod"
-import { AccountIdSchema, type AccountId } from "#shared/domain/identity/AccountId.ts"
-import { AliasSchema, type Alias } from "#shared/domain/identity/Alias.ts"
+import { AccountIdSchema, type AccountId } from "#shared/domain/accounts/AccountId.ts"
+import { AliasSchema, type Alias } from "#shared/domain/accounts/Alias.ts"
 
 export type Account = {
   id: AccountId

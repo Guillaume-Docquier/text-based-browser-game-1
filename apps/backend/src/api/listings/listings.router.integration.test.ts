@@ -1,4 +1,4 @@
-import { GameStatus } from "shared/domain/game/GameStatus.ts"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"

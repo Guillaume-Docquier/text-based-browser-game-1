@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import type { AccountId } from "shared/domain/identity/AccountId.ts"
-import { type Alias, AliasSchema } from "shared/domain/identity/Alias.ts"
+import type { AccountId } from "shared/domain/accounts/AccountId.ts"
+import { type Alias, AliasSchema } from "shared/domain/accounts/Alias.ts"
 import { z } from "zod"
 import type { AccountsRepository, FinishOnboardingError } from "#api/accounts/accounts.repository.ts"
 

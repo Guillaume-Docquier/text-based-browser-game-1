@@ -1,6 +1,6 @@
-import type { SubmittedAction } from "#shared/domain/actions/Action.ts"
-import type { EffectOutcome } from "#shared/domain/actions/EffectOutcome.ts"
 import type { EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
+import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
+import type { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import type { Effect } from "#shared/turn-resolution/effects/Effect.ts"
 
 /**

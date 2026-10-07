@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { ActionIdSchema, type ActionId } from "#shared/domain/actions/ActionId.ts"
-import { SelectedTargetsSchema, type SelectedTargets } from "#shared/domain/actions/SelectedTargets.ts"
 import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import { ActionIdSchema, type ActionId } from "#shared/domain/turns/actions/ActionId.ts"
+import { SelectedTargetsSchema, type SelectedTargets } from "#shared/domain/turns/actions/SelectedTargets.ts"
 
 export type Action = AvailableAction | SubmittedAction
 

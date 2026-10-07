@@ -1,12 +1,12 @@
 import { branded, type Branded, type DeepUnbranded, Result } from "@guillaume-docquier/tools-ts"
 import { safeTypedParse, typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { z } from "zod"
-import type { ActionId } from "#shared/domain/actions/ActionId.ts"
 import { ResourcesSchema, type Resources } from "#shared/domain/resources/Resources.ts"
 import { type ActionDefinition, ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
 import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import { type PooledAction, PooledActionSchema } from "#shared/domain/ruleset/PooledAction.ts"
 import { RulesetIdSchema, type RulesetId } from "#shared/domain/ruleset/RulesetId.ts"
+import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
 
 /**
  * The complete data-driven rules for a game.
