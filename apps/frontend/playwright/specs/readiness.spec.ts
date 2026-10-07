@@ -69,8 +69,8 @@ test("being ready locks selected actions and the turn resolves when all players 
   })
 
   await test.step("Both players advance with readiness reset", async () => {
-    await expect(bobPlayersPage.turn).toHaveText("Turn 1", { timeout: 15000 })
-    await expect(alicePlayersPage.turn).toHaveText("Turn 1", { timeout: 15000 })
+    await expect(bobPlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
+    await expect(alicePlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
     await expect(alicePlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
     await expect(bobPlayersPage.readyButton).toHaveAttribute("aria-pressed", "false")
     await expect(alicePlayersPage.opponentNotReady).toBeVisible()
