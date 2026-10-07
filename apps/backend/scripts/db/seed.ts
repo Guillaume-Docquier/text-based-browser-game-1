@@ -3,10 +3,10 @@ import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { input } from "@inquirer/prompts"
 import { sql } from "drizzle-orm"
 import type { Table } from "drizzle-orm/table"
+import type { Account } from "shared/domain/identity/Account.ts"
 import { AliasSchema } from "shared/domain/identity/Alias.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
-import type { AccountModel } from "#api/accounts/AccountModel.ts"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import type { NewAccountModel } from "#api/accounts/NewAccountModel.ts"
 import { LobbiesController, MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
@@ -150,7 +150,7 @@ async function seedAccounts({
   user: User | undefined
   accountsRepository: AccountsRepository
   logger: Logger
-}): Promise<AccountModel[]> {
+}): Promise<Account[]> {
   logger.info("Accounts")
   logger.info("├ Cleaning up the accounts")
   await resetTable(db, accountsTable)
@@ -175,7 +175,7 @@ async function seedAccounts({
     }),
   ]
 
-  const accounts: AccountModel[] = []
+  const accounts: Account[] = []
   for (const newAccount of newAccounts) {
     accounts.push(assertSuccess(await accountsRepository.createAccount(newAccount)))
   }
@@ -204,7 +204,7 @@ async function seedGames({
   logger,
 }: {
   db: Database
-  accounts: AccountModel[]
+  accounts: Account[]
   lobbiesController: LobbiesController
   logger: Logger
 }): Promise<void> {

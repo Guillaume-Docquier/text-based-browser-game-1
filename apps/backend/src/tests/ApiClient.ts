@@ -1,7 +1,7 @@
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { createTRPCClient, httpBatchLink, type TRPCClient } from "@trpc/client"
+import type { Account } from "shared/domain/identity/Account.ts"
 import { AccountIdSchema } from "shared/domain/identity/AccountId.ts"
-import type { AccountModel } from "#api/accounts/AccountModel.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createNewAccountModelStub } from "#api/accounts/NewAccountModel.stub.ts"
 import { AUTH_ID_HEADER } from "#api/auth/TestHeaderAuthProvider.ts"
@@ -10,7 +10,7 @@ import { extractSuccess } from "#tests/extractSuccess.ts"
 
 export type AuthenticatedApiClient = {
   readonly client: TRPCClient<TrpcRouter>
-  readonly account: AccountModel
+  readonly account: Account
 }
 
 export type AnonymousApiClient = {

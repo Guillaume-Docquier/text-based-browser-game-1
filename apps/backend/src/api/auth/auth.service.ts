@@ -1,13 +1,11 @@
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { RequestHandler } from "express"
+import type { Account } from "shared/domain/identity/Account.ts"
 import { AliasSchema } from "shared/domain/identity/Alias.ts"
 import { v4 } from "uuid"
-import type { AccountModel } from "#api/accounts/AccountModel.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import type { AuthProvider } from "#api/auth/AuthProvider.ts"
-
-type AuthAccountsRepository = Pick<AccountsRepository, "getAccountByAuthId" | "createAccount">
 
 // If we hooked this into trpc, we'd have better guarantees.
 // I just don't really know how to adapt clerk to trpc yet. For now this does the job.
@@ -15,7 +13,7 @@ declare global {
   // oxlint-disable-next-line typescript/no-namespace -- This is the way with Express
   namespace Express {
     interface Request {
-      account?: AccountModel | undefined
+      account?: Account | undefined
     }
   }
 }
@@ -26,7 +24,7 @@ declare global {
 export class AuthService {
   private readonly logger: Logger
   private readonly authProvider: AuthProvider
-  private readonly accountsRepository: AuthAccountsRepository
+  private readonly accountsRepository: AccountsRepository
 
   public constructor({
     logger,
@@ -35,7 +33,7 @@ export class AuthService {
   }: {
     logger: Logger
     authProvider: AuthProvider
-    accountsRepository: AuthAccountsRepository
+    accountsRepository: AccountsRepository
   }) {
     this.logger = logger.child({ scope: "auth-service" })
     this.authProvider = authProvider

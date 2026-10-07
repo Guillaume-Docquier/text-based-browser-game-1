@@ -1,8 +1,8 @@
 import { Assert, type Enumify, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
+import type { Account } from "shared/domain/identity/Account.ts"
 import type { AccountId } from "shared/domain/identity/AccountId.ts"
 import type { Alias } from "shared/domain/identity/Alias.ts"
-import type { AccountModel } from "#api/accounts/AccountModel.ts"
 import type { NewAccountModel } from "#api/accounts/NewAccountModel.ts"
 import { Postgres } from "#lib/db/drizzle/Postgres.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
@@ -30,10 +30,7 @@ export class AccountsRepository extends PostgresRepository {
    * Creates a new account and returns the created account with its generated id.
    * If the creation fails, a Failure is returned with a reason.
    */
-  public async createAccount(
-    newAccountModel: NewAccountModel,
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<AccountModel, string>> {
+  public async createAccount(newAccountModel: NewAccountModel, db: PostgresRepository["db"] = this.db): Promise<Result<Account, string>> {
     const createAccountResult = await Result.tryCatch(async () => {
       const accounts = await db.insert(accountsTable).values(toNewAccountRow(newAccountModel)).returning()
       Assert.isTrue(accounts.length === 1)
@@ -58,7 +55,7 @@ export class AccountsRepository extends PostgresRepository {
   public async getAccountByAuthId(
     { authId }: { authId: string },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<AccountModel | undefined, string>> {
+  ): Promise<Result<Account | undefined, string>> {
     const findByAuthIdResult = await Result.tryCatch(async () => {
       const accounts = await db.select().from(accountsTable).where(eq(accountsTable.authId, authId))
       Assert.isTrue(accounts.length <= 1)
@@ -83,7 +80,7 @@ export class AccountsRepository extends PostgresRepository {
   }: {
     accountId: AccountId
     alias: Alias
-  }): Promise<Result<AccountModel, FinishOnboardingError>> {
+  }): Promise<Result<Account, FinishOnboardingError>> {
     const finishOnboardingResult = await Result.tryCatch(async () => {
       const accounts = await this.db
         .update(accountsTable)
