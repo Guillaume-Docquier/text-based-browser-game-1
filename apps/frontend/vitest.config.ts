@@ -33,6 +33,8 @@ export default mergeConfig(
         {
           extends: true,
           plugins: [react()],
+          // Prebundle the page's icons before native tests start, avoiding a Vite reload mid-test.
+          optimizeDeps: { include: ["lucide-react"] },
           test: {
             name: "storybook-native",
             include: ["src/**/*.browser.test.{ts,tsx}"],
