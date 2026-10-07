@@ -1,28 +1,15 @@
-import { Assert, type Logger, Result, type Enumify } from "@guillaume-docquier/tools-ts"
+import { Assert, type Enumify, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { AccountId } from "shared/domain/identity/AccountId.ts"
 import type { Alias } from "shared/domain/identity/Alias.ts"
+import type { AccountModel } from "#api/accounts/AccountModel.ts"
+import type { NewAccountModel } from "#api/accounts/NewAccountModel.ts"
 import { Postgres } from "#lib/db/drizzle/Postgres.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
 type NewAccountRow = typeof accountsTable.$inferInsert
-
-export type NewAccountModel = {
-  id?: AccountId | undefined
-  authId: string
-  email?: string | null | undefined
-  alias: Alias
-  onboarded: boolean
-}
-export type AccountModel = {
-  id: AccountId
-  authId: string
-  email: string | null
-  alias: Alias
-  onboarded: boolean
-}
 
 export type FinishOnboardingError = Enumify<typeof FinishOnboardingError>
 export const FinishOnboardingError = {

@@ -3,9 +3,10 @@ import { Assert, Logger } from "@guillaume-docquier/tools-ts"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import pRetry from "p-retry"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { AuthService } from "#api/accounts/auth.service.ts"
-import { ClerkAuthProvider } from "#api/accounts/ClerkAuthProvider.ts"
-import { TestHeaderAuthProvider } from "#api/accounts/TestHeaderAuthProvider.ts"
+import { AuthService } from "#api/auth/auth.service.ts"
+import type { AuthProvider } from "#api/auth/AuthProvider.ts"
+import { ClerkAuthProvider } from "#api/auth/ClerkAuthProvider.ts"
+import { TestHeaderAuthProvider } from "#api/auth/TestHeaderAuthProvider.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
@@ -54,7 +55,11 @@ async function main(): Promise<void> {
   logger.info("Performing database seeding")
   await seedDatabase({ rulesetsRepository: repositories.rulesetsRepository, logger })
 
-  const authService = createAuthService({ authService: env.AUTH_SERVICE, logger })
+  const authService = new AuthService({
+    logger,
+    authProvider: createAuthProvider({ provider: env.AUTH_SERVICE, logger }),
+    accountsRepository: repositories.accountsRepository,
+  })
 
   logger.info("Creating the API")
   const app = await createApi({
@@ -118,11 +123,11 @@ async function seedDatabase({ rulesetsRepository, logger }: { rulesetsRepository
   logger.debug("└ Done")
 }
 
-function createAuthService({ authService, logger }: { authService: "clerk" | "test-header"; logger: Logger }): AuthService {
-  switch (authService) {
+function createAuthProvider({ provider, logger }: { provider: "clerk" | "test-header"; logger: Logger }): AuthProvider {
+  switch (provider) {
     case "clerk":
-      return new AuthService({ logger, authProvider: new ClerkAuthProvider({ logger }) })
+      return new ClerkAuthProvider({ logger })
     case "test-header":
-      return new AuthService({ logger, authProvider: new TestHeaderAuthProvider() })
+      return new TestHeaderAuthProvider()
   }
 }

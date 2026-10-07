@@ -1,8 +1,8 @@
 import { Logger } from "@guillaume-docquier/tools-ts"
 import type { Express } from "express"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { AuthService } from "#api/accounts/auth.service.ts"
-import { TestHeaderAuthProvider } from "#api/accounts/TestHeaderAuthProvider.ts"
+import { AuthService } from "#api/auth/auth.service.ts"
+import { TestHeaderAuthProvider } from "#api/auth/TestHeaderAuthProvider.ts"
 import { createApi } from "#api/createApi.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { ListingsRepository } from "#api/listings/listings.repository.ts"
@@ -20,13 +20,14 @@ type AllServices = Omit<Parameters<typeof createApi>[0], "authService">
  */
 export async function createApiStub({ db, clock = Clock }: { db: Database; clock?: Clock }): Promise<AllServices & { api: Express }> {
   const logger = Logger.get()
+  const accountsRepository = new AccountsRepository({ db, logger })
 
   const apiServices = {
     logger,
     clock,
-    authService: new AuthService({ logger, authProvider: new TestHeaderAuthProvider() }),
+    authService: new AuthService({ logger, authProvider: new TestHeaderAuthProvider(), accountsRepository }),
     createTransaction: createCreateTransaction(db),
-    accountsRepository: new AccountsRepository({ db, logger }),
+    accountsRepository,
     listingsRepository: new ListingsRepository({ db, logger }),
     lobbiesRepository: new LobbiesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger, clock }),

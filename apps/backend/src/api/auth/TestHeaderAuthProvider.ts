@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler, Request } from "express"
-import type { AuthProvider, AuthStatus, User } from "#api/accounts/AuthProvider.ts"
+import type { AuthProvider, AuthStatus, User } from "#api/auth/AuthProvider.ts"
 
 export const AUTH_ID_HEADER = "x-test-auth-id"
 

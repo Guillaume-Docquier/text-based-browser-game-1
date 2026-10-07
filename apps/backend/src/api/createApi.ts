@@ -6,7 +6,7 @@ import express, { type Express } from "express"
 import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createAccountsRouter } from "#api/accounts/accounts.router.ts"
-import type { AuthService } from "#api/accounts/auth.service.ts"
+import type { AuthService } from "#api/auth/auth.service.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
 import { GetPlayerIdUseCase } from "#api/gameplay/GetPlayerIdUseCase.ts"
@@ -68,7 +68,7 @@ export async function createApi({
   const app = express()
   app.use(compression())
   app.use(requestLoggerMiddleware(services))
-  app.use(...authService.authenticationMiddlewares(controllers))
+  app.use(...authService.authenticationMiddlewares())
 
   app.use(
     "/trpc",
