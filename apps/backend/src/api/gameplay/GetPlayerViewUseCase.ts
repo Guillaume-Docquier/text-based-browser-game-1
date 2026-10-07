@@ -1,17 +1,14 @@
-import { Assert, Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
+import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { NonNegativeNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
-import { computeAvailableActions } from "shared/action-submission/computeAvailableActions.ts"
 import { getUncommittedResources } from "shared/action-submission/getUncommittedResources.ts"
 import { validateCosts } from "shared/action-submission/validation/costs/validateCosts.ts"
 import { ActionIdSchema } from "shared/domain/actions/ActionId.ts"
 import { SelectedTargetsSchema } from "shared/domain/actions/SelectedTargets.ts"
-import { type GameId, GameIdSchema } from "shared/domain/game/GameId.ts"
-import { GameStatus } from "shared/domain/game/GameStatus.ts"
-import { type AccountId, AccountIdSchema } from "shared/domain/identity/AccountId.ts"
+import { GameIdSchema } from "shared/domain/game/GameId.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
-import { type PlayerId, PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
+import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import type { Resources } from "shared/domain/resources/Resources.ts"
-import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { ActionDefinitionIdSchema } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import { RulesetSchema } from "shared/domain/ruleset/Ruleset.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
@@ -24,103 +21,25 @@ import { PlanetNameSchema } from "shared/domain/world/planets/PlanetName.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { StarCoordinatesSchema } from "shared/domain/world/stars/StarCoordinates.ts"
 import { StarIdSchema } from "shared/domain/world/stars/StarId.ts"
-import { createGalaxy } from "shared/galaxy-creation/createGalaxy.ts"
-import { GalaxyCreationSettings } from "shared/galaxy-creation/GalaxyCreationSettings.ts"
 import { z } from "zod"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
-import type { Clock } from "#lib/Clock.ts"
-import type { CreateTransaction } from "#lib/db/createDb.ts"
-import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
-import { couldNot } from "#lib/errors.ts"
-import { UInt32 } from "#lib/UInt32.ts"
 import { createTurnState } from "./createTurnState.ts"
 import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
 
-export class GameplayController {
-  private readonly logger: Logger
-  private readonly clock: Clock
+/**
+ * Reads a player's gameplay view, including resource commitments and Action affordability.
+ */
+export class GetPlayerViewUseCase {
   private readonly gameplayRepository: GameplayRepository
-  private readonly createTransaction: CreateTransaction
 
-  public constructor({
-    logger,
-    clock,
-    gameplayRepository,
-    createTransaction,
-  }: {
-    logger: Logger
-    clock: Clock
-    gameplayRepository: GameplayRepository
-    createTransaction: CreateTransaction
-  }) {
-    this.logger = logger.child({ scope: "gameplay-controller" })
-    this.clock = clock
+  public constructor({ gameplayRepository }: { gameplayRepository: GameplayRepository }) {
     this.gameplayRepository = gameplayRepository
-    this.createTransaction = createTransaction
   }
 
-  public async startGame({ gameId, requesterAccountId }: StartGameDto): Promise<Result<StartedGameDto, string>> {
-    const startGameResult = await this.createTransaction(async (tx) => {
-      const gameForStart = await this.gameplayRepository.getGameForStart({ gameId }, tx)
-
-      if (gameForStart.createdByAccountId !== requesterAccountId) {
-        throw new TransactionRollbackError("Only the game creator can start it.")
-      }
-
-      if (gameForStart.status !== GameStatus.WAITING_FOR_PLAYERS && gameForStart.status !== GameStatus.READY_TO_START) {
-        throw new TransactionRollbackError("The game cannot start in its current status.", {
-          cause: { status: gameForStart.status, expected: [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START] },
-        })
-      }
-
-      const startedAt = this.clock.now()
-      const turnEndsAt = Datetime.increment({ date: startedAt, time: gameForStart.turnInterval })
-
-      const startingResources = Object.values(ResourceType).map((resourceType) => ({
-        resourceType,
-        amount: gameForStart.ruleset.startingResources[resourceType],
-      }))
-      const playerResources = gameForStart.playerIds.flatMap((playerId) => startingResources.map((resource) => ({ playerId, ...resource })))
-
-      const startTime = Timer.start()
-      const rng = Rng.create(mulberry32Prng(gameForStart.mapGenerationSeed))
-      const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: gameForStart.playerIds, rng })
-      this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
-
-      await this.gameplayRepository.startGame(
-        {
-          context: gameForStart,
-          status: GameStatus.IN_PROGRESS,
-          startedAt,
-          turnEndsAt,
-          // Do not reuse the map generation seed, use a "secret" one, otherwise the game can be controlled by the creator
-          rngState: { generatorState: UInt32.random(), spareNormal: null },
-          playerResources,
-          availableActions: computeAvailableActions({
-            playerIds: gameForStart.playerIds,
-            ruleset: gameForStart.ruleset,
-          }),
-          galaxy,
-        },
-        tx,
-      )
-
-      return { turnEndsAt }
-    })
-
-    if (Result.isFailure(startGameResult)) {
-      this.logger.error("Could not start game", { gameId, requesterAccountId, error: startGameResult.error })
-      return Result.Failure(couldNot("start game"))
-    }
-
-    return startGameResult
-  }
-
-  public async getPlayerId({ gameId, accountId }: { gameId: GameId; accountId: AccountId }): Promise<Result<PlayerId | undefined, string>> {
-    return await this.gameplayRepository.getPlayerId({ gameId, accountId })
-  }
-
-  public async getPlayerView({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto | undefined, string>> {
+  /**
+   * Returns the player's view, or undefined when no view exists for the requested player.
+   */
+  public async execute({ gameId, playerId }: GetPlayerViewDto): Promise<Result<PlayerViewDto | undefined, string>> {
     const playerViewResult = await this.gameplayRepository.getPlayerView({ gameId, playerId })
     if (Result.isFailure(playerViewResult)) {
       return playerViewResult
@@ -133,26 +52,6 @@ export class GameplayController {
     }
 
     return Result.Success(toPlayerViewDto(playerViewResult.value))
-  }
-
-  public async updateReadiness({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, string>> {
-    const result = await this.createTransaction(async (tx) => {
-      const context = await this.gameplayRepository.getReadinessForUpdate({ gameId, playerId, turn }, tx)
-
-      await this.gameplayRepository.updateReadiness({ context, isReady }, tx)
-
-      const allPlayersAreReady = context.players.every((player) => (player.id === playerId ? isReady : player.isReady))
-      if (allPlayersAreReady) {
-        await this.gameplayRepository.closeTurn({ context, closedAt: this.clock.now() }, tx)
-      }
-    })
-
-    if (Result.isFailure(result)) {
-      this.logger.error("Could not update readiness", { gameId, turn, playerId, error: result.error })
-      return Result.Failure(result.error.message)
-    }
-
-    return Result.Success(undefined)
   }
 }
 
@@ -191,7 +90,7 @@ function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResource
   return Object.entries(totalResources).reduce<Record<string, ResourceAmountsDto>>((resourcesDto, [resourceType, total]) => {
     resourcesDto[resourceType] = {
       total,
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.entries widens the key type.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: Object.entries widens keys from the Resources record, which are ResourceType values.
       uncommitted: uncommittedResources[resourceType as ResourceType] ?? 0,
     }
     return resourcesDto
@@ -237,17 +136,6 @@ function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Re
     }
   })
 }
-
-export type StartGameDto = z.infer<typeof StartGameDtoSchema>
-export const StartGameDtoSchema = z.object({
-  gameId: z.coerce.number().pipe(GameIdSchema),
-  requesterAccountId: AccountIdSchema,
-})
-
-export type StartedGameDto = z.infer<typeof StartedGameDtoSchema>
-export const StartedGameDtoSchema = z.object({
-  turnEndsAt: z.date(),
-})
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDtoSchema>
 export const GetPlayerViewDtoSchema = z.object({
@@ -327,12 +215,4 @@ export const PlayerViewDtoSchema = z.object({
   resources: ResourcesDtoSchema,
   ruleset: RulesetSchema,
   actions: z.array(ActionDtoSchema),
-})
-
-export type UpdateReadinessDto = z.infer<typeof UpdateReadinessDtoSchema>
-export const UpdateReadinessDtoSchema = z.object({
-  gameId: z.coerce.number().pipe(GameIdSchema),
-  turn: z.coerce.number(),
-  playerId: PlayerIdSchema,
-  isReady: z.boolean(),
 })

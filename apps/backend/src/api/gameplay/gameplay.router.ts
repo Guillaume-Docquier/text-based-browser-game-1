@@ -3,26 +3,35 @@ import { TRPCError } from "@trpc/server"
 import { GameIdSchema } from "shared/domain/game/GameId.ts"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import { PlayerViewDtoSchema, type GameplayController, StartedGameDtoSchema, UpdateReadinessDtoSchema } from "./gameplay.controller.ts"
+import type { GetPlayerIdUseCase } from "./GetPlayerIdUseCase.ts"
+import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./GetPlayerViewUseCase.ts"
+import { type StartGameUseCase, StartedGameDtoSchema } from "./StartGameUseCase.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./UpdateActionSubmissionUseCase.ts"
+import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./UpdateReadinessUseCase.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGameplayRouter({
   trpc,
-  gameplayController,
+  getPlayerIdUseCase,
+  getPlayerViewUseCase,
+  startGameUseCase,
   updateActionSubmissionUseCase,
+  updateReadinessUseCase,
   ...others
 }: {
   trpc: Trpc
   logger: Logger
-  gameplayController: GameplayController
+  getPlayerIdUseCase: GetPlayerIdUseCase
+  getPlayerViewUseCase: GetPlayerViewUseCase
+  startGameUseCase: StartGameUseCase
   updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
+  updateReadinessUseCase: UpdateReadinessUseCase
 }) {
   const logger = others.logger.child({ scope: "gameplay-router" })
   const inGameProcedure = trpc.privateProcedure
     .input(z.object({ gameId: GameIdSchema }))
     .use(async ({ input: { gameId }, ctx: { account }, next }) => {
-      const playerIdResult = await gameplayController.getPlayerId({ gameId, accountId: account.id })
+      const playerIdResult = await getPlayerIdUseCase.execute({ gameId, accountId: account.id })
       if (Result.isFailure(playerIdResult)) {
         logger.error("Failed to determine if player has joined the game.", {
           gameId,
@@ -53,13 +62,13 @@ export function createGameplayRouter({
     updateReadiness: inGameProcedure
       .input(UpdateReadinessDtoSchema.omit({ playerId: true }))
       .mutation(async ({ input, ctx: { playerId } }) => {
-        const result = await gameplayController.updateReadiness({ ...input, playerId })
+        const result = await updateReadinessUseCase.execute({ ...input, playerId })
         if (Result.isFailure(result)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
         }
       }),
     startGame: inGameProcedure.output(StartedGameDtoSchema).mutation(async ({ input, ctx: { account } }) => {
-      const startResult = await gameplayController.startGame({ ...input, requesterAccountId: account.id })
+      const startResult = await startGameUseCase.execute({ ...input, requesterAccountId: account.id })
       if (Result.isFailure(startResult)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -71,7 +80,7 @@ export function createGameplayRouter({
     }),
 
     getPlayerView: inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {
-      const getPlayerViewResult = await gameplayController.getPlayerView({ ...input, playerId })
+      const getPlayerViewResult = await getPlayerViewUseCase.execute({ ...input, playerId })
       if (Result.isFailure(getPlayerViewResult)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
