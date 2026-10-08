@@ -28,9 +28,9 @@
   },
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.15",
-    "@guillaume-docquier/oxlint": "^1.8.8",
+    "@guillaume-docquier/oxlint": "^1.9.0",
     "@guillaume-docquier/show-me": "^1.7.1",
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-boundaries": "^7.2.0",
     "husky": "^9.1.7",
