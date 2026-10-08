@@ -38,7 +38,6 @@ test("fleet origin and destination links open their planets in the galaxy view",
   const originPlanetName = await test.step("Open the fleet's origin planet and return to Fleets", async () => {
     const row = aliceFleetsPage.row(0)
     const name = await aliceFleetsPage.getOriginPlanet(row)
-    expect(name).toMatch(/^planet (919309|991659)$/)
     const coordinates = await aliceFleetsPage.getCoordinate(row)
     const aliceOriginGalaxyPage = await aliceFleetsPage.openOriginPlanet(row)
     expect(GalaxyPage.urlPattern.test(alice.page.url())).toBe(true)
@@ -51,9 +50,16 @@ test("fleet origin and destination links open their planets in the galaxy view",
     return name
   })
 
-  // The map seed fixes the home planets, but generated account IDs determine their owners.
-  // Moving to the other home planet keeps the fleet in transit after one turn.
-  const destinationPlanetName = originPlanetName === "planet 991659" ? "planet 919309" : "planet 991659"
+  const destinationPlanetName = await test.step("Choose a planet owned by Bob as the destination", async () => {
+    const bobPlanetsPage = await bobPlayersPage.openPlanets()
+    await bobPlanetsPage.selectOwner(bob.alias)
+    const bobPlanetRow = bobPlanetsPage.row(0)
+    await expect(bobPlanetsPage.ownerName(bobPlanetRow)).toHaveText(bob.alias)
+    const name = await bobPlanetsPage.getPlanetName(bobPlanetRow)
+    expect(name).not.toBe(originPlanetName)
+    await bobPlanetsPage.openPlayers()
+    return name
+  })
 
   await test.step("Send the fleet toward a destination and finish the turn", async () => {
     const aliceActionsPage = await aliceFleetsPage.openActions()
