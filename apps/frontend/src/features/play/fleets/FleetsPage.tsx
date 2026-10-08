@@ -14,8 +14,13 @@ type FleetRow = {
   readonly owner: LobbyPlayer
   readonly ownerLabel: string
   readonly originPlanet: Planet
+  readonly destination: FleetDestination | undefined
 }
-type SortColumn = "fleet" | "owner" | "strength" | "originPlanet"
+type FleetDestination = {
+  readonly planet: Planet
+  readonly distanceLeft: number
+}
+type SortColumn = "fleet" | "owner" | "strength" | "originPlanet" | "destinationPlanet" | "journeyLeft"
 type SortDirection = "ascending" | "descending"
 type FleetSort = {
   readonly column: SortColumn
@@ -30,6 +35,8 @@ const SORT_COMPARATORS = {
   owner: (first, second) => TEXT_COLLATOR.compare(first.ownerLabel, second.ownerLabel),
   originPlanet: (first, second) => TEXT_COLLATOR.compare(first.originPlanet.name, second.originPlanet.name),
   strength: (first, second) => first.fleet.strength - second.fleet.strength,
+  destinationPlanet: (first, second) => TEXT_COLLATOR.compare(first.destination?.planet.name ?? "", second.destination?.planet.name ?? ""),
+  journeyLeft: (first, second) => (first.destination?.distanceLeft ?? -1) - (second.destination?.distanceLeft ?? -1),
 } as const satisfies Record<SortColumn, FleetRowComparator>
 
 /**
@@ -39,14 +46,34 @@ const SORT_COMPARATORS = {
  */
 export function FleetsPage(): ReactElement {
   const { game, playerView } = usePlayGameContext()
+  return (
+    <FleetsPageView
+      gameId={game.id}
+      fleets={playerView.fleets}
+      players={game.players}
+      planets={playerView.galaxy.systems.flatMap(({ planets }) => planets)}
+    />
+  )
+}
+
+/**
+ * Renders the Fleets page from its visible game state.
+ */
+export function FleetsPageView({
+  gameId,
+  fleets,
+  players,
+  planets,
+}: {
+  gameId: GameId
+  fleets: readonly Fleet[]
+  players: readonly LobbyPlayer[]
+  planets: readonly Planet[]
+}): ReactElement {
   const [search, setSearch] = useState("")
   const [ownerFilter, setOwnerFilter] = useState<PlayerId | typeof ALL_PLAYERS>(ALL_PLAYERS)
   const [sort, setSort] = useState<FleetSort>({ column: "owner", direction: "ascending" })
-  const rows = createFleetRows(
-    playerView.fleets,
-    game.players,
-    playerView.galaxy.systems.flatMap(({ planets }) => planets),
-  )
+  const rows = createFleetRows(fleets, players, planets)
   const normalizedSearch = search.trim().toLocaleLowerCase()
   const filteredRows = rows.filter(
     ({ fleet, owner }) =>
@@ -67,7 +94,7 @@ export function FleetsPage(): ReactElement {
       return
     }
 
-    const owner = game.players.find(({ id }) => id === value)
+    const owner = players.find(({ id }) => id === value)
     Assert.isDefined(owner)
     setOwnerFilter(owner.id)
   }
@@ -80,12 +107,12 @@ export function FleetsPage(): ReactElement {
       <FleetsFilters
         search={search}
         ownerFilter={ownerFilter}
-        owners={game.players}
+        owners={players}
         onSearchChange={setSearch}
         onOwnerFilterChange={changeOwnerFilter}
       />
       <FleetsTable
-        gameId={game.id}
+        gameId={gameId}
         rows={sortedRows}
         sort={sort}
         emptyMessage={rows.length === 0 ? "No fleets" : "No matching fleets"}
@@ -161,19 +188,21 @@ function FleetsTable({
       className="min-h-0 min-w-0 flex-1 rounded-xl border border-border/70 bg-card/30"
       scrollbarStyle={{ top: "2.75rem", height: "auto" }}
     >
-      <table aria-label="Fleets" className="w-full min-w-[44rem] border-collapse text-sm">
+      <table aria-label="Fleets" className="w-full min-w-[64rem] border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_var(--border)]">
           <tr>
             <SortHeader label="Fleet" column="fleet" sort={sort} onSort={onSort} />
             <SortHeader label="Owner" column="owner" sort={sort} onSort={onSort} />
             <SortHeader label="Strength" column="strength" sort={sort} onSort={onSort} align="right" />
             <SortHeader label="Origin planet" column="originPlanet" sort={sort} onSort={onSort} />
+            <SortHeader label="Destination planet" column="destinationPlanet" sort={sort} onSort={onSort} />
+            <SortHeader label="Journey left" column="journeyLeft" sort={sort} onSort={onSort} align="right" />
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+              <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
                 {emptyMessage}
               </td>
             </tr>
@@ -188,7 +217,7 @@ function FleetsTable({
 }
 
 function FleetTableRow({ gameId, row }: { gameId: GameId; row: FleetRow }): ReactElement {
-  const { fleet, owner, ownerLabel, originPlanet } = row
+  const { fleet, owner, ownerLabel, originPlanet, destination } = row
 
   return (
     <tr className="border-t border-border/50">
@@ -205,16 +234,28 @@ function FleetTableRow({ gameId, row }: { gameId: GameId; row: FleetRow }): Reac
       </td>
       <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{fleet.strength.toLocaleString()}</td>
       <td className="whitespace-nowrap px-4 py-3">
-        <Link
-          to="/games/$gameId/play/galaxy"
-          params={{ gameId }}
-          search={{ planetId: originPlanet.id }}
-          className="font-medium text-sky-400 underline decoration-sky-400/60 underline-offset-4 hover:text-sky-300"
-        >
-          <span>{originPlanet.name}</span> <span>({originPlanet.coordinates})</span>
-        </Link>
+        <FleetPlanetLink gameId={gameId} planet={originPlanet} />
+      </td>
+      <td className="whitespace-nowrap px-4 py-3">
+        {destination === undefined ? "-" : <FleetPlanetLink gameId={gameId} planet={destination.planet} />}
+      </td>
+      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+        {destination === undefined ? "-" : `${destination.distanceLeft.toLocaleString(undefined, { maximumFractionDigits: 2 })} ly`}
       </td>
     </tr>
+  )
+}
+
+function FleetPlanetLink({ gameId, planet }: { gameId: GameId; planet: Planet }): ReactElement {
+  return (
+    <Link
+      to="/games/$gameId/play/galaxy"
+      params={{ gameId }}
+      search={{ planetId: planet.id }}
+      className="font-medium text-sky-400 underline decoration-sky-400/60 underline-offset-4 hover:text-sky-300"
+    >
+      <span>{planet.name}</span> <span>({planet.coordinates})</span>
+    </Link>
   )
 }
 
@@ -264,7 +305,15 @@ function createFleetRows(fleets: readonly Fleet[], players: readonly LobbyPlayer
     Assert.isDefined(owner)
     Assert.isDefined(originPlanet)
 
-    return { fleet, owner, ownerLabel: owner.alias ?? `Player ${owner.id}`, originPlanet }
+    let destination: FleetDestination | undefined
+    if (fleet.destinationPlanetId !== undefined) {
+      const destinationPlanet = planetsById.get(fleet.destinationPlanetId)
+      Assert.isDefined(destinationPlanet)
+      Assert.isDefined(fleet.distanceToEnd)
+      destination = { planet: destinationPlanet, distanceLeft: fleet.distanceToEnd }
+    }
+
+    return { fleet, owner, ownerLabel: owner.alias ?? `Player ${owner.id}`, originPlanet, destination }
   })
 }
 
