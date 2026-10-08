@@ -249,67 +249,59 @@ type SeedGameInput = {
   logger: Logger
 }
 
-async function seedSoloGame(input: SeedGameInput): Promise<void> {
-  await createSeededGame(input, {
-    name: "solo game",
-    nbSeats: 1,
-    turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+const seedSoloGame = createGameSeeder({
+  name: "solo game",
+  nbSeats: 1,
+  turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+  rulesetId: StandardRuleset.id,
+})
+
+const seedInsanelyFastGame = createGameSeeder({
+  name: "insanely fast game",
+  nbSeats: 5,
+  turnIntervalSeconds: 60,
+  rulesetId: StandardRuleset.id,
+})
+
+const seedFastGame = createGameSeeder({
+  name: "fast game",
+  nbSeats: 10,
+  turnIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+  rulesetId: StandardRuleset.id,
+})
+
+const seedMaximumPlayersGame = createGameSeeder(
+  {
+    name: "maximum players game",
+    nbSeats: MAX_NB_SEATS,
+    turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.DAYS), UnitOfTime.SECONDS),
     rulesetId: StandardRuleset.id,
-  })
-}
+  },
+  "last",
+)
 
-async function seedInsanelyFastGame(input: SeedGameInput): Promise<void> {
-  await createSeededGame(input, {
-    name: "insanely fast game",
-    nbSeats: 5,
-    turnIntervalSeconds: 60,
-    rulesetId: StandardRuleset.id,
-  })
-}
-
-async function seedFastGame(input: SeedGameInput): Promise<void> {
-  await createSeededGame(input, {
-    name: "fast game",
-    nbSeats: 10,
-    turnIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
-    rulesetId: StandardRuleset.id,
-  })
-}
-
-async function seedMaximumPlayersGame(input: SeedGameInput): Promise<void> {
-  await createSeededGame(
-    input,
-    {
-      name: "maximum players game",
-      nbSeats: MAX_NB_SEATS,
-      turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.DAYS), UnitOfTime.SECONDS),
-      rulesetId: StandardRuleset.id,
-    },
-    "last",
-  )
-}
-
-async function createSeededGame(
-  { creator, participants, createLobbyUseCase, joinLobbyUseCase, logger }: SeedGameInput,
+function createGameSeeder(
   configuration: CreateLobbyConfigurationDto,
   treePosition: "branch" | "last" = "branch",
-): Promise<void> {
-  const gameBranch = treePosition === "last" ? "│  └─" : "│  ├─"
-  const operationPrefix = treePosition === "last" ? "│     " : "│  │  "
-  const creationBranch = participants.length === 0 ? "└─" : "├─"
-  logger.info(`${gameBranch} ${configuration.name}`)
-  logger.info(`${operationPrefix}${creationBranch} Creating lobby with ${creator.alias}`)
-  const game = assertSuccess(await createLobbyUseCase.execute({ createdByAccountId: creator.id, configuration }))
+): (input: SeedGameInput) => Promise<void> {
+  return async ({ creator, participants, createLobbyUseCase, joinLobbyUseCase, logger }) => {
+    const gameBranch = treePosition === "last" ? "│  └─" : "│  ├─"
+    const operationPrefix = treePosition === "last" ? "│     " : "│  │  "
+    const creationBranch = participants.length === 0 ? "└─" : "├─"
+    logger.info(`${gameBranch} ${configuration.name}`)
+    logger.info(`${operationPrefix}${creationBranch} Creating lobby with ${creator.alias}`)
+    const game = assertSuccess(await createLobbyUseCase.execute({ createdByAccountId: creator.id, configuration }))
 
-  if (participants.length === 0) {
-    return
-  }
+    if (participants.length === 0) {
+      return
+    }
 
-  logger.info(`${operationPrefix}└─ Adding players`)
-  for (const [index, participant] of participants.entries()) {
-    const branch = index === participants.length - 1 ? "└─" : "├─"
-    logger.info(`${operationPrefix}   ${branch} ${participant.alias}`)
-    assertSuccess(await joinLobbyUseCase.execute({ gameId: game.createdGameId, accountId: participant.id }))
+    logger.info(`${operationPrefix}└─ Adding players`)
+    for (const [index, participant] of participants.entries()) {
+      const branch = index === participants.length - 1 ? "└─" : "├─"
+      logger.info(`${operationPrefix}   ${branch} ${participant.alias}`)
+      assertSuccess(await joinLobbyUseCase.execute({ gameId: game.createdGameId, accountId: participant.id }))
+    }
   }
 }
 
