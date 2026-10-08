@@ -3,11 +3,11 @@ import { TRPCError } from "@trpc/server"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import type { GetPlayerIdUseCase } from "./GetPlayerIdUseCase.ts"
-import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./GetPlayerViewUseCase.ts"
-import type { StartGameUseCase } from "./StartGameUseCase.ts"
-import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./UpdateActionSubmissionUseCase.ts"
-import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./UpdateReadinessUseCase.ts"
+import type { GetPlayerIdUseCase } from "./getPlayerId.useCase.ts"
+import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./getPlayerView.useCase.ts"
+import type { StartGameUseCase } from "./startGame.useCase.ts"
+import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./updateActionSubmission.useCase.ts"
+import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./updateReadiness.useCase.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGameplayRouter({

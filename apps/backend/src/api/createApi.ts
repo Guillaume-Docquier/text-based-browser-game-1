@@ -3,22 +3,26 @@ import type { TRPCError } from "@trpc/server"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import compression from "compression"
 import express, { type Express } from "express"
-import { AccountsController } from "#api/accounts/accounts.controller.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createAccountsRouter } from "#api/accounts/accounts.router.ts"
+import { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
 import type { AuthService } from "#api/auth/auth.service.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
-import { GetPlayerIdUseCase } from "#api/gameplay/GetPlayerIdUseCase.ts"
-import { GetPlayerViewUseCase } from "#api/gameplay/GetPlayerViewUseCase.ts"
-import { StartGameUseCase } from "#api/gameplay/StartGameUseCase.ts"
-import { UpdateActionSubmissionUseCase } from "#api/gameplay/UpdateActionSubmissionUseCase.ts"
-import { UpdateReadinessUseCase } from "#api/gameplay/UpdateReadinessUseCase.ts"
+import { GetPlayerIdUseCase } from "#api/gameplay/getPlayerId.useCase.ts"
+import { GetPlayerViewUseCase } from "#api/gameplay/getPlayerView.useCase.ts"
+import { StartGameUseCase } from "#api/gameplay/startGame.useCase.ts"
+import { UpdateActionSubmissionUseCase } from "#api/gameplay/updateActionSubmission.useCase.ts"
+import { UpdateReadinessUseCase } from "#api/gameplay/updateReadiness.useCase.ts"
 import { createHealthRouter } from "#api/health/health.router.ts"
-import { ListingsController } from "#api/listings/listings.controller.ts"
+import { GetListingsUseCase } from "#api/listings/getListings.useCase.ts"
 import type { ListingsRepository } from "#api/listings/listings.repository.ts"
 import { createListingsRouter } from "#api/listings/listings.router.ts"
-import { LobbiesController } from "#api/lobbies/lobbies.controller.ts"
+import { CreateLobbyUseCase } from "#api/lobbies/createLobby.useCase.ts"
+import { GetLobbyByIdUseCase } from "#api/lobbies/getLobbyById.useCase.ts"
+import { GetLobbyCreationSettingsUseCase } from "#api/lobbies/getLobbyCreationSettings.useCase.ts"
+import { JoinLobbyUseCase } from "#api/lobbies/joinLobby.useCase.ts"
+import { LeaveLobbyUseCase } from "#api/lobbies/leaveLobby.useCase.ts"
 import type { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { createLobbiesRouter } from "#api/lobbies/lobbies.router.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -39,7 +43,7 @@ export async function createApi({
 }: {
   /**
    * Creates a database transaction.
-   * Only controllers and use cases should use `createTransaction`.
+   * Only use cases should use `createTransaction`.
    */
   createTransaction: CreateTransaction
   authService: AuthService
@@ -52,12 +56,14 @@ export async function createApi({
   rulesetsRepository: RulesetsRepository
 }): Promise<Express> {
   const applicationServices = { ...services, createTransaction }
-  const controllers = {
-    listingsController: new ListingsController(applicationServices),
-    lobbiesController: new LobbiesController(applicationServices),
-    accountsController: new AccountsController(applicationServices),
-  }
   const useCases = {
+    finishOnboardingUseCase: new FinishOnboardingUseCase(applicationServices),
+    getListingsUseCase: new GetListingsUseCase(applicationServices),
+    createLobbyUseCase: new CreateLobbyUseCase(applicationServices),
+    getLobbyByIdUseCase: new GetLobbyByIdUseCase(applicationServices),
+    getLobbyCreationSettingsUseCase: new GetLobbyCreationSettingsUseCase(applicationServices),
+    joinLobbyUseCase: new JoinLobbyUseCase(applicationServices),
+    leaveLobbyUseCase: new LeaveLobbyUseCase(applicationServices),
     getPlayerIdUseCase: new GetPlayerIdUseCase(applicationServices),
     getPlayerViewUseCase: new GetPlayerViewUseCase(applicationServices),
     startGameUseCase: new StartGameUseCase(applicationServices),
@@ -73,7 +79,7 @@ export async function createApi({
   app.use(
     "/trpc",
     createExpressMiddleware({
-      router: createTrpcRouter({ ...controllers, ...useCases, ...services }),
+      router: createTrpcRouter({ ...useCases, ...services }),
       createContext: createTrpcContext,
       onError: createErrorHandler({ logger: services.logger }),
     }),
@@ -87,14 +93,18 @@ export async function createApi({
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter(services: {
-  accountsController: AccountsController
+  finishOnboardingUseCase: FinishOnboardingUseCase
+  getListingsUseCase: GetListingsUseCase
+  createLobbyUseCase: CreateLobbyUseCase
+  getLobbyByIdUseCase: GetLobbyByIdUseCase
+  getLobbyCreationSettingsUseCase: GetLobbyCreationSettingsUseCase
+  joinLobbyUseCase: JoinLobbyUseCase
+  leaveLobbyUseCase: LeaveLobbyUseCase
   getPlayerIdUseCase: GetPlayerIdUseCase
   getPlayerViewUseCase: GetPlayerViewUseCase
   startGameUseCase: StartGameUseCase
   updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
-  listingsController: ListingsController
-  lobbiesController: LobbiesController
   logger: Logger
 }) {
   const trpc = createTrpc()

@@ -1,7 +1,6 @@
-import type { Logger } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import { type ListingsController, ListingDtoSchema } from "./listings.controller.ts"
+import { type GetListingsUseCase, ListingDtoSchema } from "./getListings.useCase.ts"
 
 /**
  * Import side effect free express router creator.
@@ -9,13 +8,13 @@ import { type ListingsController, ListingDtoSchema } from "./listings.controller
  * It also decouples the router from those dependencies, if done well.
  */
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
-export function createListingsRouter({ trpc, listingsController }: { trpc: Trpc; listingsController: ListingsController; logger: Logger }) {
+export function createListingsRouter({ trpc, getListingsUseCase }: { trpc: Trpc; getListingsUseCase: GetListingsUseCase }) {
   return trpc.router({
     /**
      * Gets all game listings, and eventually will support queries (by name, by state, etc) and pagination
      */
     getListings: trpc.publicProcedure.output(z.array(ListingDtoSchema)).query(async ({ ctx: { account } }) => {
-      return await listingsController.getListings({ playerId: account?.id })
+      return await getListingsUseCase.execute({ playerId: account?.id })
     }),
   })
 }

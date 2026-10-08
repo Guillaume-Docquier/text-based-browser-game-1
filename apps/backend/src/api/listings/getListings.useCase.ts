@@ -5,19 +5,22 @@ import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { z } from "zod"
 import type { ListingsRepository } from "./listings.repository.ts"
 
-export class ListingsController {
+/**
+ * Gets all game listings, including whether the requesting account has joined.
+ */
+export class GetListingsUseCase {
   private readonly logger: Logger
   private readonly listingsRepository: ListingsRepository
 
   public constructor({ logger, listingsRepository }: { logger: Logger; listingsRepository: ListingsRepository }) {
-    this.logger = logger.child({ scope: "listings-controller" })
+    this.logger = logger.child({ scope: "get-listings-use-case" })
     this.listingsRepository = listingsRepository
   }
 
   /**
-   * Gets ALL the game listings. This only makes sense until we have real traffic.
+   * Returns an empty list when listings cannot be loaded.
    */
-  public async getListings({ playerId }: { playerId: AccountId | undefined }): Promise<ListingDto[]> {
+  public async execute({ playerId }: { playerId: AccountId | undefined }): Promise<ListingDto[]> {
     const getListingsResults = await this.listingsRepository.getListings({ playerId })
     if (Result.isFailure(getListingsResults)) {
       this.logger.error("Could not get game listings, returning empty array", { error: getListingsResults.error })

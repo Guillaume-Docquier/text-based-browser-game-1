@@ -9,8 +9,10 @@ import { AliasSchema } from "shared/domain/accounts/Alias.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { LobbiesController, MAX_NB_SEATS } from "#api/lobbies/lobbies.controller.ts"
+import { CreateLobbyUseCase } from "#api/lobbies/createLobby.useCase.ts"
+import { JoinLobbyUseCase } from "#api/lobbies/joinLobby.useCase.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import { MAX_NB_SEATS } from "#api/lobbies/LobbyLimits.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { accountsTable, gamesTable } from "#lib/db/schema.ts"
@@ -80,12 +82,16 @@ async function main({ connectionString, user }: { connectionString: string; user
 
   logger.info(`Creating services`)
   const db = createDb({ databaseUrl: connectionString })
+
   const accountsRepository = new AccountsRepository({ db, logger })
   const rulesetsRepository = new RulesetsRepository({ db, logger })
-  const lobbiesController = new LobbiesController({
+  const lobbiesRepository = new LobbiesRepository({ db, logger })
+
+  const createLobbyUseCase = new CreateLobbyUseCase({ lobbiesRepository })
+  const joinLobbyUseCase = new JoinLobbyUseCase({
     logger,
     createTransaction: createCreateTransaction(db),
-    lobbiesRepository: new LobbiesRepository({ db, logger }),
+    lobbiesRepository,
   })
 
   logger.info(`Seeding the '${host}' database with default values`)
@@ -97,7 +103,7 @@ async function main({ connectionString, user }: { connectionString: string; user
     await seedRulesets({ rulesetsRepository, logger })
 
     logger.info("")
-    await seedGames({ db, accounts, logger, lobbiesController })
+    await seedGames({ db, accounts, logger, createLobbyUseCase, joinLobbyUseCase })
 
     logger.info("")
     logger.info("Seeding completed")
@@ -191,12 +197,14 @@ async function seedRulesets({ rulesetsRepository, logger }: { rulesetsRepository
 async function seedGames({
   db,
   accounts,
-  lobbiesController,
+  createLobbyUseCase,
+  joinLobbyUseCase,
   logger,
 }: {
   db: Database
   accounts: Account[]
-  lobbiesController: LobbiesController
+  createLobbyUseCase: CreateLobbyUseCase
+  joinLobbyUseCase: JoinLobbyUseCase
   logger: Logger
 }): Promise<void> {
   const [firstAccount, secondAccount, thirdAccount] = accounts
@@ -211,7 +219,7 @@ async function seedGames({
 
   logger.info("├— solo game")
   assertSuccess(
-    await lobbiesController.createLobby({
+    await createLobbyUseCase.execute({
       createdByAccountId: firstAccount.id,
       configuration: {
         name: "solo game",
@@ -224,7 +232,7 @@ async function seedGames({
 
   logger.info("├— insanely fast game")
   const insanelyFastGame = assertSuccess(
-    await lobbiesController.createLobby({
+    await createLobbyUseCase.execute({
       createdByAccountId: firstAccount.id,
       configuration: {
         name: "insanely fast game",
@@ -237,7 +245,7 @@ async function seedGames({
 
   logger.info("├— fast game")
   assertSuccess(
-    await lobbiesController.createLobby({
+    await createLobbyUseCase.execute({
       createdByAccountId: secondAccount.id,
       configuration: {
         name: "fast game",
@@ -250,7 +258,7 @@ async function seedGames({
 
   logger.info("├— maximum players game")
   const maximumPlayersGame = assertSuccess(
-    await lobbiesController.createLobby({
+    await createLobbyUseCase.execute({
       createdByAccountId: firstAccount.id,
       configuration: {
         name: "maximum players game",
@@ -263,14 +271,14 @@ async function seedGames({
   logger.info("├ Adding accounts to games")
 
   logger.info(`├— ${secondAccount.alias} to insanely fast game`)
-  assertSuccess(await lobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
+  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
 
   logger.info(`├— ${thirdAccount.alias} to insanely fast game`)
-  assertSuccess(await lobbiesController.joinLobby({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
+  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
 
   for (const account of accounts.slice(1, MAX_NB_SEATS)) {
     logger.info(`├— ${account.alias} to maximum players game`)
-    assertSuccess(await lobbiesController.joinLobby({ gameId: maximumPlayersGame.createdGameId, accountId: account.id }))
+    assertSuccess(await joinLobbyUseCase.execute({ gameId: maximumPlayersGame.createdGameId, accountId: account.id }))
   }
   logger.info("└ Done")
 }
