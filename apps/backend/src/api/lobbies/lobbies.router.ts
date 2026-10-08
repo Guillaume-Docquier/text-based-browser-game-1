@@ -3,11 +3,11 @@ import { TRPCError } from "@trpc/server"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import { CreatedLobbyDtoSchema, CreateLobbyDtoSchema, type CreateLobbyUseCase } from "./CreateLobbyUseCase.ts"
-import { type GetLobbyByIdUseCase, LobbyDtoSchema } from "./GetLobbyByIdUseCase.ts"
-import { type GetLobbyCreationSettingsUseCase, LobbyCreationSettingsDtoSchema } from "./GetLobbyCreationSettingsUseCase.ts"
-import { JoinLobbyDtoSchema, type JoinLobbyUseCase } from "./JoinLobbyUseCase.ts"
-import { LeaveLobbyDtoSchema, type LeaveLobbyUseCase } from "./LeaveLobbyUseCase.ts"
+import { CreatedLobbyDtoSchema, CreateLobbyDtoSchema, type CreateLobbyUseCase } from "./createLobby.useCase.ts"
+import { type GetLobbyByIdUseCase, LobbyDtoSchema } from "./getLobbyById.useCase.ts"
+import { type GetLobbyCreationSettingsUseCase, LobbyCreationSettingsDtoSchema } from "./getLobbyCreationSettings.useCase.ts"
+import { JoinLobbyDtoSchema, type JoinLobbyUseCase } from "./joinLobby.useCase.ts"
+import { LeaveLobbyDtoSchema, type LeaveLobbyUseCase } from "./leaveLobby.useCase.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createLobbiesRouter({

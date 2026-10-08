@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
 import { FinishOnboardingError } from "./accounts.repository.ts"
-import { FinishOnboardingDtoSchema, type FinishOnboardingUseCase } from "./FinishOnboardingUseCase.ts"
+import { FinishOnboardingDtoSchema, type FinishOnboardingUseCase } from "./finishOnboarding.useCase.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC inference do the work
 export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: Trpc; finishOnboardingUseCase: FinishOnboardingUseCase }) {

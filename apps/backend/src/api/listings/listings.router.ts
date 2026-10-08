@@ -1,6 +1,6 @@
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import { type GetListingsUseCase, ListingDtoSchema } from "./GetListingsUseCase.ts"
+import { type GetListingsUseCase, ListingDtoSchema } from "./getListings.useCase.ts"
 
 /**
  * Import side effect free express router creator.
