@@ -3,31 +3,35 @@ import { TRPCError } from "@trpc/server"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import {
-  CreatedLobbyDtoSchema,
-  CreateLobbyDtoSchema,
-  type LobbiesController,
-  LobbyCreationSettingsDtoSchema,
-  LobbyDtoSchema,
-  JoinLobbyDtoSchema,
-  LeaveLobbyDtoSchema,
-} from "./lobbies.controller.ts"
+import { CreatedLobbyDtoSchema, CreateLobbyDtoSchema, type CreateLobbyUseCase } from "./CreateLobbyUseCase.ts"
+import { type GetLobbyByIdUseCase, LobbyDtoSchema } from "./GetLobbyByIdUseCase.ts"
+import { type GetLobbyCreationSettingsUseCase, LobbyCreationSettingsDtoSchema } from "./GetLobbyCreationSettingsUseCase.ts"
+import { JoinLobbyDtoSchema, type JoinLobbyUseCase } from "./JoinLobbyUseCase.ts"
+import { LeaveLobbyDtoSchema, type LeaveLobbyUseCase } from "./LeaveLobbyUseCase.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createLobbiesRouter({
   trpc,
-  lobbiesController,
+  createLobbyUseCase,
+  getLobbyByIdUseCase,
+  getLobbyCreationSettingsUseCase,
+  joinLobbyUseCase,
+  leaveLobbyUseCase,
   ...others
 }: {
   trpc: Trpc
-  lobbiesController: LobbiesController
+  createLobbyUseCase: CreateLobbyUseCase
+  getLobbyByIdUseCase: GetLobbyByIdUseCase
+  getLobbyCreationSettingsUseCase: GetLobbyCreationSettingsUseCase
+  joinLobbyUseCase: JoinLobbyUseCase
+  leaveLobbyUseCase: LeaveLobbyUseCase
   logger: Logger
 }) {
   const lobbiesRouterLogger = others.logger.child({ scope: "lobbies-router" })
 
   return trpc.router({
     getCreationSettings: trpc.privateProcedure.output(LobbyCreationSettingsDtoSchema).query(async () => {
-      const creationSettingsResult = await lobbiesController.getCreationSettings()
+      const creationSettingsResult = await getLobbyCreationSettingsUseCase.execute()
       if (Result.isFailure(creationSettingsResult)) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -42,7 +46,7 @@ export function createLobbiesRouter({
       .input(CreateLobbyDtoSchema.omit({ createdByAccountId: true }))
       .output(CreatedLobbyDtoSchema)
       .mutation(async ({ input: newGame, ctx: { account } }) => {
-        const createResult = await lobbiesController.createLobby({ ...newGame, createdByAccountId: account.id })
+        const createResult = await createLobbyUseCase.execute({ ...newGame, createdByAccountId: account.id })
         if (Result.isFailure(createResult)) {
           lobbiesRouterLogger.error("Could not create game.", { newGame, playerId: account.id, error: createResult.error })
           throw new TRPCError({
@@ -58,7 +62,7 @@ export function createLobbiesRouter({
       .input(z.object({ gameId: z.coerce.number().pipe(GameIdSchema) }))
       .output(LobbyDtoSchema)
       .query(async ({ input: { gameId }, ctx: { account } }) => {
-        const game = await lobbiesController.getLobbyById({
+        const game = await getLobbyByIdUseCase.execute({
           gameId,
           playerId: account === undefined ? undefined : branded(account.id),
         })
@@ -77,7 +81,7 @@ export function createLobbiesRouter({
     join: trpc.privateProcedure
       .input(JoinLobbyDtoSchema.pick({ gameId: true }))
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const joinGameResult = await lobbiesController.joinLobby({ gameId, accountId: account.id })
+        const joinGameResult = await joinLobbyUseCase.execute({ gameId, accountId: account.id })
         if (Result.isFailure(joinGameResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -89,7 +93,7 @@ export function createLobbiesRouter({
     leave: trpc.privateProcedure
       .input(LeaveLobbyDtoSchema.pick({ gameId: true }))
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        const leaveGameResult = await lobbiesController.leaveLobby({ gameId, accountId: account.id })
+        const leaveGameResult = await leaveLobbyUseCase.execute({ gameId, accountId: account.id })
         if (Result.isFailure(leaveGameResult)) {
           throw new TRPCError({
             code: "BAD_REQUEST",

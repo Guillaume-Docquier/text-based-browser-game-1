@@ -1,4 +1,4 @@
-# Router - Controller - Repository
+# Router - Use Case - Repository
 
 ## Status
 
@@ -10,6 +10,7 @@ Accepted
 - 2026-06-04: Updated naming conventions for repository/database types.
 - 2026-06-13: Updated controller/repository responsibilities
 - 2026-09-26: Incrementally migrating towards operation-specific use cases instead of controllers.
+- 2026-10-07: Completed the controller migration to operation-specific use cases while retaining shared repositories.
 
 ## Context
 
@@ -23,20 +24,19 @@ We'll make sure to decouple each layer, with:
 
 - Routers: api layer, the only place that knows about express/trpc.
 - Repositories: persistence layer, the only place that knows about drizzle/postgres.
-- Controllers (old): business logic that bridge routers and repositories.
-- Use cases (new): operation-specific business logic that bridge routers and repositories.
+- Use cases: operation-specific business logic that bridge routers and repositories.
 
 Repositories represent data access patterns (aka queries) and are not restricted to accessing single tables (think, joins).
-Controllers and use cases decide what to store, Repositories know how to store.
-Use cases are more granular than controllers and allow for a better separation of concerns when controller methods became complex. They should be preferred over controllers.
+Use cases decide what to store, Repositories know how to store.
+Each use case is a class with constructor-injected dependencies and an `execute` method. Routers call use cases directly. Use cases can share the current repository instances; splitting use cases does not require splitting repositories.
 
-Controllers and use cases can have access to a `tx` object through `createTransaction` but should only pass it to repositories, never use it to query/write to db. This abstraction leakage is because of how Drizzle deals with transactions, we can't hide them.
+Use cases can have access to a `tx` object through `createTransaction` but should only pass it to repositories, never use it to query/write to db. This abstraction leakage is because of how Drizzle deals with transactions, we can't hide them.
 
 ### Schema ownership and naming
 
 - Repositories never own Zod schemas. Repositories do not validate user input and should focus on persistence concerns.
-- At the architecture boundary, routers could own request validation schemas. In practice for this codebase, the controller or use case that handles the operation owns its Zod schemas because it is more practical while keeping responsibilities clear.
-- Controller and use-case owned Zod schemas and related types should be named with the `Dto` suffix (for example: `StarSystemDto`).
+- At the architecture boundary, routers could own request validation schemas. In practice for this codebase, the use case that handles the operation owns its Zod schemas because it is more practical while keeping responsibilities clear. DTOs reused by multiple use cases live in dedicated DTO modules.
+- Use-case owned Zod schemas and related types should be named with the `Dto` suffix (for example: `StarSystemDto`).
 
 Repository and database types should follow these naming conventions:
 
@@ -46,7 +46,7 @@ Repository and database types should follow these naming conventions:
 
 ## Consequences
 
-When the business logic is low, controllers might look like unnecessary boilerplate.
+When the business logic is low, use cases might look like unnecessary boilerplate.
 
 Many use cases is more boilerplate than a single controller, but it makes the use case implementation more manageable for complex operations.
 

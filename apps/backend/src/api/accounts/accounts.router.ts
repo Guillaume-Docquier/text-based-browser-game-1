@@ -1,16 +1,17 @@
 import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
+import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import { FinishOnboardingDtoSchema, IsOnboardedDtoSchema, type AccountsController } from "./accounts.controller.ts"
 import { FinishOnboardingError } from "./accounts.repository.ts"
+import { FinishOnboardingDtoSchema, type FinishOnboardingUseCase } from "./FinishOnboardingUseCase.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC inference do the work
-export function createAccountsRouter({ trpc, accountsController }: { trpc: Trpc; accountsController: AccountsController }) {
+export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: Trpc; finishOnboardingUseCase: FinishOnboardingUseCase }) {
   return trpc.router({
-    isOnboarded: trpc.privateProcedure.output(IsOnboardedDtoSchema).query(({ ctx: { account } }) => account.onboarded),
+    isOnboarded: trpc.privateProcedure.output(z.boolean()).query(({ ctx: { account } }) => account.onboarded),
 
     finishOnboarding: trpc.privateProcedure.input(FinishOnboardingDtoSchema).mutation(async ({ input: { alias }, ctx: { account } }) => {
-      const finishOnboardingResult = await accountsController.finishOnboarding({ accountId: account.id, alias })
+      const finishOnboardingResult = await finishOnboardingUseCase.execute({ accountId: account.id, alias })
       if (Result.isSuccess(finishOnboardingResult)) {
         return
       }
