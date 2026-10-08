@@ -9,7 +9,7 @@ import { AliasSchema } from "shared/domain/accounts/Alias.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { type CreatedLobbyDto, type CreateLobbyConfigurationDto, CreateLobbyUseCase } from "#api/lobbies/createLobby.useCase.ts"
+import { type CreateLobbyConfigurationDto, CreateLobbyUseCase } from "#api/lobbies/createLobby.useCase.ts"
 import { JoinLobbyUseCase } from "#api/lobbies/joinLobby.useCase.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { MAX_NB_SEATS } from "#api/lobbies/LobbyLimits.ts"
@@ -208,31 +208,49 @@ async function seedGames({
   joinLobbyUseCase: JoinLobbyUseCase
   logger: Logger
 }): Promise<void> {
-  const [firstAccount, secondAccount] = accounts
+  const [firstAccount, secondAccount, thirdAccount] = accounts
   Assert.isDefined(firstAccount)
   Assert.isDefined(secondAccount)
+  Assert.isDefined(thirdAccount)
 
   logger.info("Games")
   logger.info("├─ Cleaning up the games")
   await resetTable(db, gamesTable)
   logger.info("├─ Creating default games")
 
-  await seedSoloGame({ creator: firstAccount, createLobbyUseCase, logger })
-  await seedInsanelyFastGame({ accounts, createLobbyUseCase, joinLobbyUseCase, logger })
-  await seedFastGame({ creator: secondAccount, createLobbyUseCase, logger })
-  await seedMaximumPlayersGame({ accounts, createLobbyUseCase, joinLobbyUseCase, logger })
+  await seedSoloGame({ creator: firstAccount, participants: [], createLobbyUseCase, joinLobbyUseCase, logger })
+  await seedInsanelyFastGame({
+    creator: firstAccount,
+    participants: [secondAccount, thirdAccount],
+    createLobbyUseCase,
+    joinLobbyUseCase,
+    logger,
+  })
+  await seedFastGame({ creator: secondAccount, participants: [], createLobbyUseCase, joinLobbyUseCase, logger })
+  await seedMaximumPlayersGame({
+    creator: firstAccount,
+    participants: accounts.slice(1, MAX_NB_SEATS),
+    createLobbyUseCase,
+    joinLobbyUseCase,
+    logger,
+  })
 
   logger.info("└─ Done")
 }
 
-type SeedGameCreation = {
+type SeedGameInput = {
   creator: Account
+  /**
+   * Additional participants; lobby creation already adds the creator.
+   */
+  participants: readonly Account[]
   createLobbyUseCase: CreateLobbyUseCase
+  joinLobbyUseCase: JoinLobbyUseCase
   logger: Logger
 }
 
-async function seedSoloGame(creation: SeedGameCreation): Promise<void> {
-  await createSeededLobby(creation, {
+async function seedSoloGame(input: SeedGameInput): Promise<void> {
+  await createSeededGame(input, {
     name: "solo game",
     nbSeats: 1,
     turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.HOURS), UnitOfTime.SECONDS),
@@ -240,43 +258,17 @@ async function seedSoloGame(creation: SeedGameCreation): Promise<void> {
   })
 }
 
-async function seedInsanelyFastGame({
-  accounts,
-  createLobbyUseCase,
-  joinLobbyUseCase,
-  logger,
-}: {
-  accounts: Account[]
-  createLobbyUseCase: CreateLobbyUseCase
-  joinLobbyUseCase: JoinLobbyUseCase
-  logger: Logger
-}): Promise<void> {
-  const [creator, secondAccount, thirdAccount] = accounts
-  Assert.isDefined(creator)
-  Assert.isDefined(secondAccount)
-  Assert.isDefined(thirdAccount)
-
-  const insanelyFastGame = await createSeededLobby(
-    { creator, createLobbyUseCase, logger },
-    {
-      name: "insanely fast game",
-      nbSeats: 5,
-      turnIntervalSeconds: 60,
-      rulesetId: StandardRuleset.id,
-    },
-    { gameBranch: "│  ├─", creationBranch: "│  │  ├─" },
-  )
-
-  logger.info("│  │  └─ Adding players")
-  logger.info(`│  │     ├─ ${secondAccount.alias}`)
-  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
-
-  logger.info(`│  │     └─ ${thirdAccount.alias}`)
-  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
+async function seedInsanelyFastGame(input: SeedGameInput): Promise<void> {
+  await createSeededGame(input, {
+    name: "insanely fast game",
+    nbSeats: 5,
+    turnIntervalSeconds: 60,
+    rulesetId: StandardRuleset.id,
+  })
 }
 
-async function seedFastGame(creation: SeedGameCreation): Promise<void> {
-  await createSeededLobby(creation, {
+async function seedFastGame(input: SeedGameInput): Promise<void> {
+  await createSeededGame(input, {
     name: "fast game",
     nbSeats: 10,
     turnIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
@@ -284,48 +276,41 @@ async function seedFastGame(creation: SeedGameCreation): Promise<void> {
   })
 }
 
-async function seedMaximumPlayersGame({
-  accounts,
-  createLobbyUseCase,
-  joinLobbyUseCase,
-  logger,
-}: {
-  accounts: Account[]
-  createLobbyUseCase: CreateLobbyUseCase
-  joinLobbyUseCase: JoinLobbyUseCase
-  logger: Logger
-}): Promise<void> {
-  const [creator] = accounts
-  Assert.isDefined(creator)
-
-  const maximumPlayersGame = await createSeededLobby(
-    { creator, createLobbyUseCase, logger },
+async function seedMaximumPlayersGame(input: SeedGameInput): Promise<void> {
+  await createSeededGame(
+    input,
     {
       name: "maximum players game",
       nbSeats: MAX_NB_SEATS,
       turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.DAYS), UnitOfTime.SECONDS),
       rulesetId: StandardRuleset.id,
     },
-    { gameBranch: "│  └─", creationBranch: "│     ├─" },
+    "last",
   )
-
-  logger.info("│     └─ Adding players")
-  const players = accounts.slice(1, MAX_NB_SEATS)
-  for (const [index, account] of players.entries()) {
-    const branch = index === players.length - 1 ? "└─" : "├─"
-    logger.info(`│        ${branch} ${account.alias}`)
-    assertSuccess(await joinLobbyUseCase.execute({ gameId: maximumPlayersGame.createdGameId, accountId: account.id }))
-  }
 }
 
-async function createSeededLobby(
-  { creator, createLobbyUseCase, logger }: SeedGameCreation,
+async function createSeededGame(
+  { creator, participants, createLobbyUseCase, joinLobbyUseCase, logger }: SeedGameInput,
   configuration: CreateLobbyConfigurationDto,
-  tree: { gameBranch: string; creationBranch: string } = { gameBranch: "│  ├─", creationBranch: "│  │  └─" },
-): Promise<CreatedLobbyDto> {
-  logger.info(`${tree.gameBranch} ${configuration.name}`)
-  logger.info(`${tree.creationBranch} Creating lobby with ${creator.alias}`)
-  return assertSuccess(await createLobbyUseCase.execute({ createdByAccountId: creator.id, configuration }))
+  treePosition: "branch" | "last" = "branch",
+): Promise<void> {
+  const gameBranch = treePosition === "last" ? "│  └─" : "│  ├─"
+  const operationPrefix = treePosition === "last" ? "│     " : "│  │  "
+  const creationBranch = participants.length === 0 ? "└─" : "├─"
+  logger.info(`${gameBranch} ${configuration.name}`)
+  logger.info(`${operationPrefix}${creationBranch} Creating lobby with ${creator.alias}`)
+  const game = assertSuccess(await createLobbyUseCase.execute({ createdByAccountId: creator.id, configuration }))
+
+  if (participants.length === 0) {
+    return
+  }
+
+  logger.info(`${operationPrefix}└─ Adding players`)
+  for (const [index, participant] of participants.entries()) {
+    const branch = index === participants.length - 1 ? "└─" : "├─"
+    logger.info(`${operationPrefix}   ${branch} ${participant.alias}`)
+    assertSuccess(await joinLobbyUseCase.execute({ gameId: game.createdGameId, accountId: participant.id }))
+  }
 }
 
 /**
