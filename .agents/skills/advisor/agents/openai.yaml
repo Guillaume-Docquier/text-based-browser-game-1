@@ -1,0 +1,6 @@
+interface:
+  display_name: "Advisor"
+  short_description: "Maintain advisory issues and persistent working memory"
+
+policy:
+  allow_implicit_invocation: false
