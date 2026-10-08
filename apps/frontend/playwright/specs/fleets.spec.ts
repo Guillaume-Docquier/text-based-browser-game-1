@@ -35,9 +35,10 @@ test("fleet origin and destination links open their planets in the galaxy view",
     return await playersPage.openFleets()
   })
 
-  await test.step("Open the fleet's origin planet and return to Fleets", async () => {
+  const originPlanetName = await test.step("Open the fleet's origin planet and return to Fleets", async () => {
     const row = fleetsPage.row(0)
     const name = await fleetsPage.getOriginPlanet(row)
+    expect(name).toMatch(/^planet (919309|991659)$/)
     const coordinates = await fleetsPage.getCoordinate(row)
     const originGalaxyPage = await fleetsPage.openOriginPlanet(row)
     expect(GalaxyPage.urlPattern.test(alice.page.url())).toBe(true)
@@ -47,13 +48,19 @@ test("fleet origin and destination links open their planets in the galaxy view",
     await originGalaxyPage.goBack()
     expect(FleetsPage.urlPattern.test(alice.page.url())).toBe(true)
     await expect(fleetsPage.heading).toBeVisible()
+    return name
   })
+
+  // The map seed fixes the home planets, but generated account IDs determine their owners.
+  // Moving to the other home planet keeps the fleet in transit after one turn.
+  const destinationPlanetName = originPlanetName === "planet 991659" ? "planet 919309" : "planet 991659"
 
   await test.step("Send the fleet toward a destination and finish the turn", async () => {
     const actionsPage = await fleetsPage.openActions()
-    await actionsPage.searchTarget("Move Fleet", "Standard Directive", "Planet", "991659")
-    await actionsPage.chooseTarget("Planet", "planet 991659")
+    await actionsPage.searchTarget("Move Fleet", "Standard Directive", "Planet", destinationPlanetName)
+    await actionsPage.chooseTarget("Planet", destinationPlanetName)
     await actionsPage.toggleActionSelection("Move Fleet", "Standard Directive")
+    await expect(actionsPage.selectActionButton("Move Fleet", "Standard Directive")).toHaveAttribute("aria-pressed", "true")
     const playersPage = await actionsPage.openPlayers()
     await playersPage.toggleReady()
     await bobPlayersPage.toggleReady()
@@ -65,12 +72,12 @@ test("fleet origin and destination links open their planets in the galaxy view",
   await test.step("Open the destination planet in the galaxy view", async () => {
     const row = fleetsPage.row(0)
     const destinationLink = fleetsPage.destinationPlanetLink(row)
-    await expect(destinationLink).toContainText("planet 991659")
+    await expect(destinationLink).toContainText(destinationPlanetName)
     const destinationUrl = await destinationLink.getAttribute("href")
     const destinationGalaxyPage = await fleetsPage.openDestinationPlanet(row)
     expect(GalaxyPage.urlPattern.test(alice.page.url())).toBe(true)
     expect(new URL(alice.page.url()).pathname + new URL(alice.page.url()).search).toBe(destinationUrl)
     await expect(destinationGalaxyPage.starSystemMap).toBeVisible()
-    await expect(destinationGalaxyPage.planetDetailsPane).toContainText("planet 991659")
+    await expect(destinationGalaxyPage.planetDetailsPane).toContainText(destinationPlanetName)
   })
 })
