@@ -9,7 +9,7 @@ import { AliasSchema } from "shared/domain/accounts/Alias.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { CreateLobbyUseCase } from "#api/lobbies/createLobby.useCase.ts"
+import { type CreateLobbyConfigurationDto, CreateLobbyUseCase } from "#api/lobbies/createLobby.useCase.ts"
 import { JoinLobbyUseCase } from "#api/lobbies/joinLobby.useCase.ts"
 import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
 import { MAX_NB_SEATS } from "#api/lobbies/LobbyLimits.ts"
@@ -158,9 +158,9 @@ async function seedAccounts({
   logger: Logger
 }): Promise<Account[]> {
   logger.info("Accounts")
-  logger.info("├ Cleaning up the accounts")
+  logger.info("├─ Cleaning up the accounts")
   await resetTable(db, accountsTable)
-  logger.info("├ Adding sample accounts")
+  logger.info("├─ Adding sample accounts")
   const newAccounts: Account[] = [
     ...(user !== undefined ? [createAccount(user, { onboarded: false })] : []),
     createAccount({ clerkId: "fake1", email: "fake1@email.com", alias: "pro" }, { onboarded: true }),
@@ -177,21 +177,22 @@ async function seedAccounts({
     accounts.push(assertSuccess(await accountsRepository.createAccount(newAccount)))
   }
 
-  logger.info("└ Done")
+  logger.info("└─ Done")
 
   return accounts
 }
 
 async function seedRulesets({ rulesetsRepository, logger }: { rulesetsRepository: RulesetsRepository; logger: Logger }): Promise<void> {
   logger.info("Rulesets")
-  logger.info("├ Upserting core rulesets")
+  logger.info("├─ Upserting core rulesets")
 
-  for (const ruleset of CoreRulesets) {
-    logger.info(`├— ${ruleset.name}`)
+  for (const [index, ruleset] of CoreRulesets.entries()) {
+    const branch = index === CoreRulesets.length - 1 ? "└─" : "├─"
+    logger.info(`│  ${branch} ${ruleset.name}`)
     Assert.isSuccess(await rulesetsRepository.upsertRuleset(ruleset))
   }
 
-  logger.info("└ Done")
+  logger.info("└─ Done")
 }
 
 async function seedGames({
@@ -207,80 +208,97 @@ async function seedGames({
   joinLobbyUseCase: JoinLobbyUseCase
   logger: Logger
 }): Promise<void> {
-  const [firstAccount, secondAccount, thirdAccount] = accounts
-  Assert.isDefined(firstAccount)
+  const [myAccount, secondAccount, thirdAccount] = accounts
+  Assert.isDefined(myAccount)
   Assert.isDefined(secondAccount)
   Assert.isDefined(thirdAccount)
 
   logger.info("Games")
-  logger.info("├ Cleaning up the games")
+  logger.info("├─ Cleaning up the games")
   await resetTable(db, gamesTable)
-  logger.info("├ Creating default games")
+  logger.info("├─ Creating default games")
 
-  logger.info("├— solo game")
-  assertSuccess(
-    await createLobbyUseCase.execute({
-      createdByAccountId: firstAccount.id,
-      configuration: {
-        name: "solo game",
-        nbSeats: 1,
-        turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.HOURS), UnitOfTime.SECONDS),
-        rulesetId: StandardRuleset.id,
-      },
-    }),
-  )
+  const services = { createLobbyUseCase, joinLobbyUseCase, logger }
+  await seedSoloGame({ creator: myAccount, participants: [], ...services })
+  await seedInsanelyFastGame({ creator: myAccount, participants: [secondAccount, thirdAccount], ...services })
+  await seedCommunityGame({ creator: secondAccount, participants: [thirdAccount], ...services })
+  await seedMaximumPlayersGame({ creator: myAccount, participants: accounts.slice(1, MAX_NB_SEATS), ...services, treePosition: "last" })
 
-  logger.info("├— insanely fast game")
-  const insanelyFastGame = assertSuccess(
-    await createLobbyUseCase.execute({
-      createdByAccountId: firstAccount.id,
-      configuration: {
-        name: "insanely fast game",
-        nbSeats: 5,
-        turnIntervalSeconds: 60,
-        rulesetId: StandardRuleset.id,
-      },
-    }),
-  )
+  logger.info("└─ Done")
+}
 
-  logger.info("├— fast game")
-  assertSuccess(
-    await createLobbyUseCase.execute({
-      createdByAccountId: secondAccount.id,
-      configuration: {
-        name: "fast game",
-        nbSeats: 10,
-        turnIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
-        rulesetId: StandardRuleset.id,
-      },
-    }),
-  )
+type SeedGameInput = {
+  creator: Account
+  /**
+   * Additional participants; lobby creation already adds the creator.
+   */
+  participants: readonly Account[]
+  createLobbyUseCase: CreateLobbyUseCase
+  joinLobbyUseCase: JoinLobbyUseCase
+  logger: Logger
+  treePosition?: "branch" | "last"
+}
 
-  logger.info("├— maximum players game")
-  const maximumPlayersGame = assertSuccess(
-    await createLobbyUseCase.execute({
-      createdByAccountId: firstAccount.id,
-      configuration: {
-        name: "maximum players game",
-        nbSeats: MAX_NB_SEATS,
-        turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.DAYS), UnitOfTime.SECONDS),
-        rulesetId: StandardRuleset.id,
-      },
-    }),
-  )
-  logger.info("├ Adding accounts to games")
+/**
+ * A solo game so we can move turns via Ready
+ */
+const seedSoloGame = createGameSeeder({
+  name: "solo game",
+  nbSeats: 1,
+  turnIntervalSeconds: inSeconds(Time.create(1, UnitOfTime.HOURS)),
+  rulesetId: StandardRuleset.id,
+})
 
-  logger.info(`├— ${secondAccount.alias} to insanely fast game`)
-  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
+/**
+ * A game with multiple players that moves fast so we can see turns progressing by themselves
+ */
+const seedInsanelyFastGame = createGameSeeder({
+  name: "insanely fast game",
+  nbSeats: 5,
+  turnIntervalSeconds: inSeconds(Time.create(10, UnitOfTime.SECONDS)),
+  rulesetId: StandardRuleset.id,
+})
 
-  logger.info(`├— ${thirdAccount.alias} to insanely fast game`)
-  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
+/**
+ * A game where we are not the creator so we can join and leave
+ */
+const seedCommunityGame = createGameSeeder({
+  name: "community game",
+  nbSeats: 10,
+  turnIntervalSeconds: inSeconds(Time.create(2, UnitOfTime.HOURS)),
+  rulesetId: StandardRuleset.id,
+})
 
-  for (const account of accounts.slice(1, MAX_NB_SEATS)) {
-    logger.info(`├— ${account.alias} to maximum players game`)
-    assertSuccess(await joinLobbyUseCase.execute({ gameId: maximumPlayersGame.createdGameId, accountId: account.id }))
+/**
+ * A game with max players to see all the player colors and starting planet spread
+ */
+const seedMaximumPlayersGame = createGameSeeder({
+  name: "maximum players game",
+  nbSeats: MAX_NB_SEATS,
+  turnIntervalSeconds: inSeconds(Time.create(1, UnitOfTime.DAYS)),
+  rulesetId: StandardRuleset.id,
+})
+
+function createGameSeeder(configuration: CreateLobbyConfigurationDto): (input: SeedGameInput) => Promise<void> {
+  return async ({ creator, participants, createLobbyUseCase, joinLobbyUseCase, logger, treePosition = "branch" }) => {
+    const gameBranch = treePosition === "last" ? "│  └─" : "│  ├─"
+    const operationPrefix = treePosition === "last" ? "│     " : "│  │  "
+    const creationBranch = participants.length === 0 ? "└─" : "├─"
+    logger.info(`${gameBranch} ${configuration.name}`)
+    logger.info(`${operationPrefix}${creationBranch} Creating lobby with ${creator.alias}`)
+    const game = assertSuccess(await createLobbyUseCase.execute({ createdByAccountId: creator.id, configuration }))
+
+    if (participants.length === 0) {
+      return
+    }
+
+    logger.info(`${operationPrefix}└─ Adding players`)
+    for (const [index, participant] of participants.entries()) {
+      const branch = index === participants.length - 1 ? "└─" : "├─"
+      logger.info(`${operationPrefix}   ${branch} ${participant.alias}`)
+      assertSuccess(await joinLobbyUseCase.execute({ gameId: game.createdGameId, accountId: participant.id }))
+    }
   }
-  logger.info("└ Done")
 }
 
 /**
@@ -299,4 +317,8 @@ function createAccount(user: User, { onboarded }: { onboarded: boolean }): Accou
     alias: typedParse(AliasSchema, user.alias ?? v4()),
     onboarded,
   }
+}
+
+function inSeconds(time: Time): number {
+  return Time.in(time, UnitOfTime.SECONDS)
 }
