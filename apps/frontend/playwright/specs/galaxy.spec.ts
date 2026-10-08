@@ -1,7 +1,70 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Assert, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { LobbyPage } from "../pages/LobbyPage.ts"
+
+test("stationed fleet markers show each player's strength and color in the system view", async ({ alice, bob }) => {
+  const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () =>
+    await CreateGamePage.createGame({
+      creator: alice,
+      participants: [bob],
+      settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
+    }))
+  const bobLobbyPage = new LobbyPage(bob.page)
+
+  const aliceGalaxyPage = await test.step("Start the game", async () => {
+    await aliceLobbyPage.reload()
+    return await aliceLobbyPage.startGame()
+  })
+
+  await test.step("Both players build a Fleet and finish the turn", async () => {
+    const aliceActionsPage = await aliceGalaxyPage.openActions()
+    await aliceActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
+    await aliceActionsPage.toggleActionSelection("Political Campaign")
+    const alicePlayersPage = await aliceActionsPage.openPlayers()
+    await alicePlayersPage.toggleReady()
+
+    await bobLobbyPage.reload()
+    const bobGalaxyPage = await bobLobbyPage.openGame()
+    const bobActionsPage = await bobGalaxyPage.openActions()
+    await bobActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
+    await bobActionsPage.toggleActionSelection("Political Campaign")
+    const bobPlayersPage = await bobActionsPage.openPlayers()
+    await bobPlayersPage.toggleReady()
+
+    await expect(alicePlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
+    await expect(bobPlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
+  })
+
+  await test.step("Show each player's Fleet beneath its Planet in the system view", async () => {
+    const galaxyPage = await aliceGalaxyPage.openGalaxy()
+    await expect(galaxyPage.galaxyFleetMarkers).toHaveCount(0)
+
+    await galaxyPage.openStarSystem(galaxyPage.ownStar(0))
+    const ownPlanet = galaxyPage.ownedPlanet(0)
+    const ownFleet = galaxyPage.fleetMarkersOnPlanet(ownPlanet)
+    await expect(ownFleet).toHaveCount(1)
+    await expect(galaxyPage.fleetIcon(ownFleet)).toBeVisible()
+    await expect(galaxyPage.fleetIcon(ownFleet)).toHaveAttribute("data-fleet-color", /^#[0-9A-Fa-f]{6}$/)
+    await expect(galaxyPage.fleetStrength(ownFleet)).toHaveText("10")
+    await galaxyPage.hoverFleet(ownFleet)
+    await expect(galaxyPage.fleetMarkersOnPlanet(galaxyPage.foregroundPlanet)).toHaveCount(1)
+    await expect(galaxyPage.planetOwnershipLabel(galaxyPage.foregroundPlanet)).toHaveText(alice.alias)
+    const ownColor = await galaxyPage.fleetIcon(ownFleet).getAttribute("data-fleet-color")
+
+    await galaxyPage.returnToGalaxy()
+    await expect(galaxyPage.heading).toBeVisible()
+    await galaxyPage.openStarSystem(galaxyPage.opponentStar(0))
+    const opponentFleet = galaxyPage.fleetMarkersOnPlanet(galaxyPage.ownedPlanet(0))
+    await expect(opponentFleet).toHaveCount(1)
+    await expect(galaxyPage.fleetIcon(opponentFleet)).toBeVisible()
+    await expect(galaxyPage.fleetIcon(opponentFleet)).toHaveAttribute("data-fleet-color", /^#[0-9A-Fa-f]{6}$/)
+    await expect(galaxyPage.fleetStrength(opponentFleet)).toHaveText("10")
+    expect(await galaxyPage.fleetIcon(opponentFleet).getAttribute("data-fleet-color")).not.toBe(ownColor)
+
+    await galaxyPage.openFleets()
+  })
+})
 
 test("the galaxy view distinguishes systems with claimed planets and system view labels claimed planets", async ({ alice, bob }) => {
   const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () => {
