@@ -1,9 +1,6 @@
-import { type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
-import { GameIdSchema } from "shared/domain/games/GameId.ts"
-import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
-import type { GetPlayerIdUseCase } from "./getPlayerId.useCase.ts"
 import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./getPlayerView.useCase.ts"
 import type { StartGameUseCase } from "./startGame.useCase.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./updateActionSubmission.useCase.ts"
@@ -12,54 +9,19 @@ import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./updateR
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 export function createGameplayRouter({
   trpc,
-  getPlayerIdUseCase,
   getPlayerViewUseCase,
   startGameUseCase,
   updateActionSubmissionUseCase,
   updateReadinessUseCase,
-  ...others
 }: {
   trpc: Trpc
-  logger: Logger
-  getPlayerIdUseCase: GetPlayerIdUseCase
   getPlayerViewUseCase: GetPlayerViewUseCase
   startGameUseCase: StartGameUseCase
   updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
 }) {
-  const logger = others.logger.child({ scope: "gameplay-router" })
-  const inGameProcedure = trpc.privateProcedure
-    .input(z.object({ gameId: GameIdSchema }))
-    .use(async ({ input: { gameId }, ctx: { account }, next }) => {
-      const playerIdResult = await getPlayerIdUseCase.execute({ gameId, accountId: account.id })
-      if (Result.isFailure(playerIdResult)) {
-        logger.error("Failed to determine if player has joined the game.", {
-          gameId,
-          accountId: account.id,
-          error: playerIdResult.error,
-        })
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You are not allowed to participate in this game.",
-        })
-      }
-
-      if (playerIdResult.value === undefined) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You must join a game before you can participate in it.",
-        })
-      }
-
-      return await next({
-        ctx: {
-          playerId: playerIdResult.value,
-        },
-      })
-    })
-
   return trpc.router({
-    updateReadiness: inGameProcedure
+    updateReadiness: trpc.inGameProcedure
       .input(UpdateReadinessDtoSchema.omit({ playerId: true }))
       .mutation(async ({ input, ctx: { playerId } }) => {
         const result = await updateReadinessUseCase.execute({ ...input, playerId })
@@ -67,7 +29,7 @@ export function createGameplayRouter({
           throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
         }
       }),
-    startGame: inGameProcedure.mutation(async ({ input, ctx: { account } }) => {
+    startGame: trpc.inGameProcedure.mutation(async ({ input, ctx: { account } }) => {
       const startResult = await startGameUseCase.execute({ ...input, requesterAccountId: account.id })
       if (Result.isFailure(startResult)) {
         throw new TRPCError({
@@ -77,7 +39,7 @@ export function createGameplayRouter({
       }
     }),
 
-    getPlayerView: inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {
+    getPlayerView: trpc.inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {
       const getPlayerViewResult = await getPlayerViewUseCase.execute({ ...input, playerId })
       if (Result.isFailure(getPlayerViewResult)) {
         throw new TRPCError({
@@ -96,7 +58,7 @@ export function createGameplayRouter({
       return getPlayerViewResult.value
     }),
 
-    updateActionSubmission: inGameProcedure
+    updateActionSubmission: trpc.inGameProcedure
       .input(UpdateActionSubmissionDtoSchema.omit({ playerId: true }))
       .mutation(async ({ input, ctx: { playerId } }) => {
         const updateActionSubmissionResult = await updateActionSubmissionUseCase.execute({ ...input, playerId })

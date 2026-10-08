@@ -9,7 +9,6 @@ import { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.
 import type { AuthService } from "#api/auth/auth.service.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
-import { GetPlayerIdUseCase } from "#api/gameplay/getPlayerId.useCase.ts"
 import { GetPlayerViewUseCase } from "#api/gameplay/getPlayerView.useCase.ts"
 import { StartGameUseCase } from "#api/gameplay/startGame.useCase.ts"
 import { UpdateActionSubmissionUseCase } from "#api/gameplay/updateActionSubmission.useCase.ts"
@@ -64,7 +63,6 @@ export async function createApi({
     getLobbyCreationSettingsUseCase: new GetLobbyCreationSettingsUseCase(applicationServices),
     joinLobbyUseCase: new JoinLobbyUseCase(applicationServices),
     leaveLobbyUseCase: new LeaveLobbyUseCase(applicationServices),
-    getPlayerIdUseCase: new GetPlayerIdUseCase(applicationServices),
     getPlayerViewUseCase: new GetPlayerViewUseCase(applicationServices),
     startGameUseCase: new StartGameUseCase(applicationServices),
     updateActionSubmissionUseCase: new UpdateActionSubmissionUseCase(applicationServices),
@@ -100,14 +98,14 @@ function createTrpcRouter(services: {
   getLobbyCreationSettingsUseCase: GetLobbyCreationSettingsUseCase
   joinLobbyUseCase: JoinLobbyUseCase
   leaveLobbyUseCase: LeaveLobbyUseCase
-  getPlayerIdUseCase: GetPlayerIdUseCase
+  gameplayRepository: GameplayRepository
   getPlayerViewUseCase: GetPlayerViewUseCase
   startGameUseCase: StartGameUseCase
   updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
   logger: Logger
 }) {
-  const trpc = createTrpc()
+  const trpc = createTrpc(services)
   const routerServices = { trpc, ...services }
 
   return trpc.router({
