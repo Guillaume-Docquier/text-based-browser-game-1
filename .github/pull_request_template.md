@@ -16,9 +16,11 @@
 ## Screenshots
 
 <!-- Add relevant screenshots when UI is involved -->
+<!-- Write N/A if there is nothing to mention -->
 
 ## Deployment
 
 <!-- Are there deployment steps to follow? -->
 <!-- Is a DB wipe necessary? -->
 <!-- Do we need to set up new infra? -->
+<!-- Write N/A if there is nothing to mention -->
