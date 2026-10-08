@@ -158,9 +158,9 @@ async function seedAccounts({
   logger: Logger
 }): Promise<Account[]> {
   logger.info("Accounts")
-  logger.info("├ Cleaning up the accounts")
+  logger.info("├─ Cleaning up the accounts")
   await resetTable(db, accountsTable)
-  logger.info("├ Adding sample accounts")
+  logger.info("├─ Adding sample accounts")
   const newAccounts: Account[] = [
     ...(user !== undefined ? [createAccount(user, { onboarded: false })] : []),
     createAccount({ clerkId: "fake1", email: "fake1@email.com", alias: "pro" }, { onboarded: true }),
@@ -177,21 +177,22 @@ async function seedAccounts({
     accounts.push(assertSuccess(await accountsRepository.createAccount(newAccount)))
   }
 
-  logger.info("└ Done")
+  logger.info("└─ Done")
 
   return accounts
 }
 
 async function seedRulesets({ rulesetsRepository, logger }: { rulesetsRepository: RulesetsRepository; logger: Logger }): Promise<void> {
   logger.info("Rulesets")
-  logger.info("├ Upserting core rulesets")
+  logger.info("├─ Upserting core rulesets")
 
-  for (const ruleset of CoreRulesets) {
-    logger.info(`├— ${ruleset.name}`)
+  for (const [index, ruleset] of CoreRulesets.entries()) {
+    const branch = index === CoreRulesets.length - 1 ? "└─" : "├─"
+    logger.info(`│  ${branch} ${ruleset.name}`)
     Assert.isSuccess(await rulesetsRepository.upsertRuleset(ruleset))
   }
 
-  logger.info("└ Done")
+  logger.info("└─ Done")
 }
 
 async function seedGames({
@@ -207,20 +208,36 @@ async function seedGames({
   joinLobbyUseCase: JoinLobbyUseCase
   logger: Logger
 }): Promise<void> {
-  const [firstAccount, secondAccount, thirdAccount] = accounts
-  Assert.isDefined(firstAccount)
-  Assert.isDefined(secondAccount)
-  Assert.isDefined(thirdAccount)
-
   logger.info("Games")
-  logger.info("├ Cleaning up the games")
+  logger.info("├─ Cleaning up the games")
   await resetTable(db, gamesTable)
-  logger.info("├ Creating default games")
+  logger.info("├─ Creating default games")
 
-  logger.info("├— solo game")
+  await seedSoloGame({ accounts, createLobbyUseCase, logger })
+  await seedInsanelyFastGame({ accounts, createLobbyUseCase, joinLobbyUseCase, logger })
+  await seedFastGame({ accounts, createLobbyUseCase, logger })
+  await seedMaximumPlayersGame({ accounts, createLobbyUseCase, joinLobbyUseCase, logger })
+
+  logger.info("└─ Done")
+}
+
+async function seedSoloGame({
+  accounts,
+  createLobbyUseCase,
+  logger,
+}: {
+  accounts: Account[]
+  createLobbyUseCase: CreateLobbyUseCase
+  logger: Logger
+}): Promise<void> {
+  const [creator] = accounts
+  Assert.isDefined(creator)
+
+  logger.info("│  ├─ solo game")
+  logger.info(`│  │  └─ Creating lobby with ${creator.alias}`)
   assertSuccess(
     await createLobbyUseCase.execute({
-      createdByAccountId: firstAccount.id,
+      createdByAccountId: creator.id,
       configuration: {
         name: "solo game",
         nbSeats: 1,
@@ -229,11 +246,29 @@ async function seedGames({
       },
     }),
   )
+}
 
-  logger.info("├— insanely fast game")
+async function seedInsanelyFastGame({
+  accounts,
+  createLobbyUseCase,
+  joinLobbyUseCase,
+  logger,
+}: {
+  accounts: Account[]
+  createLobbyUseCase: CreateLobbyUseCase
+  joinLobbyUseCase: JoinLobbyUseCase
+  logger: Logger
+}): Promise<void> {
+  const [creator, secondAccount, thirdAccount] = accounts
+  Assert.isDefined(creator)
+  Assert.isDefined(secondAccount)
+  Assert.isDefined(thirdAccount)
+
+  logger.info("│  ├─ insanely fast game")
+  logger.info(`│  │  ├─ Creating lobby with ${creator.alias}`)
   const insanelyFastGame = assertSuccess(
     await createLobbyUseCase.execute({
-      createdByAccountId: firstAccount.id,
+      createdByAccountId: creator.id,
       configuration: {
         name: "insanely fast game",
         nbSeats: 5,
@@ -243,10 +278,31 @@ async function seedGames({
     }),
   )
 
-  logger.info("├— fast game")
+  logger.info("│  │  └─ Adding players")
+  logger.info(`│  │     ├─ ${secondAccount.alias}`)
+  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
+
+  logger.info(`│  │     └─ ${thirdAccount.alias}`)
+  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
+}
+
+async function seedFastGame({
+  accounts,
+  createLobbyUseCase,
+  logger,
+}: {
+  accounts: Account[]
+  createLobbyUseCase: CreateLobbyUseCase
+  logger: Logger
+}): Promise<void> {
+  const [_, creator] = accounts
+  Assert.isDefined(creator)
+
+  logger.info("│  ├─ fast game")
+  logger.info(`│  │  └─ Creating lobby with ${creator.alias}`)
   assertSuccess(
     await createLobbyUseCase.execute({
-      createdByAccountId: secondAccount.id,
+      createdByAccountId: creator.id,
       configuration: {
         name: "fast game",
         nbSeats: 10,
@@ -255,11 +311,27 @@ async function seedGames({
       },
     }),
   )
+}
 
-  logger.info("├— maximum players game")
+async function seedMaximumPlayersGame({
+  accounts,
+  createLobbyUseCase,
+  joinLobbyUseCase,
+  logger,
+}: {
+  accounts: Account[]
+  createLobbyUseCase: CreateLobbyUseCase
+  joinLobbyUseCase: JoinLobbyUseCase
+  logger: Logger
+}): Promise<void> {
+  const [creator] = accounts
+  Assert.isDefined(creator)
+
+  logger.info("│  └─ maximum players game")
+  logger.info(`│     ├─ Creating lobby with ${creator.alias}`)
   const maximumPlayersGame = assertSuccess(
     await createLobbyUseCase.execute({
-      createdByAccountId: firstAccount.id,
+      createdByAccountId: creator.id,
       configuration: {
         name: "maximum players game",
         nbSeats: MAX_NB_SEATS,
@@ -268,19 +340,14 @@ async function seedGames({
       },
     }),
   )
-  logger.info("├ Adding accounts to games")
 
-  logger.info(`├— ${secondAccount.alias} to insanely fast game`)
-  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: secondAccount.id }))
-
-  logger.info(`├— ${thirdAccount.alias} to insanely fast game`)
-  assertSuccess(await joinLobbyUseCase.execute({ gameId: insanelyFastGame.createdGameId, accountId: thirdAccount.id }))
-
-  for (const account of accounts.slice(1, MAX_NB_SEATS)) {
-    logger.info(`├— ${account.alias} to maximum players game`)
+  logger.info("│     └─ Adding players")
+  const players = accounts.slice(1, MAX_NB_SEATS)
+  for (const [index, account] of players.entries()) {
+    const branch = index === players.length - 1 ? "└─" : "├─"
+    logger.info(`│        ${branch} ${account.alias}`)
     assertSuccess(await joinLobbyUseCase.execute({ gameId: maximumPlayersGame.createdGameId, accountId: account.id }))
   }
-  logger.info("└ Done")
 }
 
 /**
