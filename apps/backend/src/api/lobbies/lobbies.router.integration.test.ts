@@ -378,11 +378,9 @@ describe("lobbies.router", () => {
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const joinGameResult = await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(joinGameResult).toStrictEqual<typeof joinGameResult>({ playerId: branded(joiner.account.id) })
-
       const joinedLobby = await joiner.client.lobbies.getById.query({ gameId: createdGameId })
       const expectedCreator: LobbyPlayerDto = {
         id: branded(creator.account.id),
@@ -472,10 +470,9 @@ describe("lobbies.router", () => {
       await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Act
-      const joinResult = await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
+      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(joinResult).toStrictEqual({ playerId: branded(joiner.account.id) })
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(2)
       expect(lobby.status).toBe(GameStatus.WAITING_FOR_PLAYERS)
@@ -507,11 +504,9 @@ describe("lobbies.router", () => {
       await leaver.client.lobbies.join.mutate({ gameId: createdGameId })
 
       // Act
-      const leaveGameResult = await leaver.client.lobbies.leave.mutate({ gameId: createdGameId })
+      await leaver.client.lobbies.leave.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(leaveGameResult).toBe<typeof leaveGameResult>(true)
-
       const leftLobby = await leaver.client.lobbies.getById.query({ gameId: createdGameId })
       const expectedCreator: LobbyPlayerDto = {
         id: branded(creator.account.id),
@@ -581,10 +576,9 @@ describe("lobbies.router", () => {
       const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
 
       // Act
-      const leaveResult = await nonPlayer.client.lobbies.leave.mutate({ gameId: createdGameId })
+      await nonPlayer.client.lobbies.leave.mutate({ gameId: createdGameId })
 
       // Assert
-      expect(leaveResult).toBe(true)
       const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(1)
     })

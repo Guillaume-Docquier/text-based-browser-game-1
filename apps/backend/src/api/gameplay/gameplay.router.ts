@@ -5,7 +5,7 @@ import { z } from "zod"
 import type { Trpc } from "#api/trpc.ts"
 import type { GetPlayerIdUseCase } from "./GetPlayerIdUseCase.ts"
 import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./GetPlayerViewUseCase.ts"
-import { type StartGameUseCase, StartedGameDtoSchema } from "./StartGameUseCase.ts"
+import type { StartGameUseCase } from "./StartGameUseCase.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./UpdateActionSubmissionUseCase.ts"
 import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./UpdateReadinessUseCase.ts"
 
@@ -67,7 +67,7 @@ export function createGameplayRouter({
           throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
         }
       }),
-    startGame: inGameProcedure.output(StartedGameDtoSchema).mutation(async ({ input, ctx: { account } }) => {
+    startGame: inGameProcedure.mutation(async ({ input, ctx: { account } }) => {
       const startResult = await startGameUseCase.execute({ ...input, requesterAccountId: account.id })
       if (Result.isFailure(startResult)) {
         throw new TRPCError({
@@ -75,8 +75,6 @@ export function createGameplayRouter({
           message: startResult.error,
         })
       }
-
-      return startResult.value
     }),
 
     getPlayerView: inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {

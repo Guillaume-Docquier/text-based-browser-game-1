@@ -11,7 +11,7 @@ export function useStartGameMutation() {
 
   return useMutation(
     backendApiClient.gameplay.startGame.mutationOptions({
-      onSuccess: async (_startedGame, { gameId }) => {
+      onSuccess: async (_, { gameId }) => {
         await navigate({ to: "/games/$gameId/play", params: { gameId: branded<GameId>(gameId) } })
       },
     }),

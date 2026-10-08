@@ -1,4 +1,5 @@
 import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
@@ -97,18 +98,28 @@ describe("gameplay.router", () => {
 
     integrationTest("should start a game", async ({ db }) => {
       // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
+      const clock = new ControlledClock()
+      using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createLobbyConfigurationDtoStub()
+      const newGameSettings = createLobbyConfigurationDtoStub({ turnIntervalSeconds: 60 })
       const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: newGameSettings })
 
       // Act
       const startGameResult = await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const lobby = await player.client.lobbies.getById.query({ gameId: createdGameId })
+      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Assert
-      expect(startGameResult).toStrictEqual<typeof startGameResult>({ turnEndsAt: expect.any(String) }) // trpc serializes the date to string
-      expect(new Date(startGameResult.turnEndsAt).toString()).not.toBe("Invalid Date")
+      expect(startGameResult).toBeUndefined()
+      expect(lobby.status).toBe(GameStatus.IN_PROGRESS)
+      expect(lobby.startedAt).toBe(clock.now().toISOString())
+      expect(playerView.turnEndsAt).toBe(
+        Datetime.increment({
+          date: clock.now(),
+          time: Time.create(newGameSettings.turnIntervalSeconds, UnitOfTime.SECONDS),
+        }).toISOString(),
+      )
     })
 
     integrationTest("should assign one unique Home Planet to every player", async ({ db }) => {

@@ -88,7 +88,7 @@ export class LobbiesController {
   /**
    * This method is idempotent, joining an already joined game will return a success.
    */
-  public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<JoinedLobbyDto, string>> {
+  public async joinLobby({ gameId, accountId }: JoinLobbyDto): Promise<Result<void, string>> {
     const playerId = branded<PlayerId>(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
       const lobbyForJoin = await this.lobbiesRepository.getLobbyForJoin({ gameId }, tx)
@@ -96,7 +96,7 @@ export class LobbiesController {
 
       if (lobbyForJoin.value.players.find((player) => player.id === playerId) !== undefined) {
         // Already part of the game, return a success for idempotency
-        return { playerId }
+        return
       }
 
       if (lobbyForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
@@ -110,7 +110,7 @@ export class LobbiesController {
       const color = PLAYER_COLOR_PRIORITY.find((candidateColor) => !usedColors.has(candidateColor))
       Assert.isDefined(color)
 
-      return await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, playerId, color, status }, tx)
+      await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, playerId, color, status }, tx)
     })
 
     if (Result.isFailure(joinGameResult)) {
@@ -124,7 +124,7 @@ export class LobbiesController {
   /**
    * This method is idempotent, leaving an already left game will return a success.
    */
-  public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<LeftLobbyDto, string>> {
+  public async leaveLobby({ gameId, accountId }: LeaveLobbyDto): Promise<Result<void, string>> {
     const playerId = branded<PlayerId>(accountId)
     const leaveGameResult = await this.createTransaction(async (tx) => {
       const lobbyForLeave = await this.lobbiesRepository.getLobbyForLeave({ gameId }, tx)
@@ -151,7 +151,7 @@ export class LobbiesController {
       return Result.Failure(couldNot("leave game lobby"))
     }
 
-    return Result.Success(true)
+    return Result.Success(undefined)
   }
 }
 
@@ -210,19 +210,11 @@ export const JoinLobbyDtoSchema = z.object({
   accountId: AccountIdSchema,
 })
 
-export type JoinedLobbyDto = z.infer<typeof JoinedLobbyDtoSchema>
-export const JoinedLobbyDtoSchema = z.object({
-  playerId: PlayerIdSchema,
-})
-
 export type LeaveLobbyDto = z.infer<typeof LeaveLobbyDtoSchema>
 export const LeaveLobbyDtoSchema = z.object({
   gameId: GameIdSchema,
   accountId: AccountIdSchema,
 })
-
-export type LeftLobbyDto = z.infer<typeof LeftLobbyDtoSchema>
-export const LeftLobbyDtoSchema = z.literal(true)
 
 export type RulesetSummaryDto = z.infer<typeof RulesetSummaryDtoSchema>
 const RulesetSummaryDtoSchema = z.object({

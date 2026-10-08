@@ -9,10 +9,8 @@ import {
   type LobbiesController,
   LobbyCreationSettingsDtoSchema,
   LobbyDtoSchema,
-  JoinedLobbyDtoSchema,
   JoinLobbyDtoSchema,
   LeaveLobbyDtoSchema,
-  LeftLobbyDtoSchema,
 } from "./lobbies.controller.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
@@ -78,7 +76,6 @@ export function createLobbiesRouter({
 
     join: trpc.privateProcedure
       .input(JoinLobbyDtoSchema.pick({ gameId: true }))
-      .output(JoinedLobbyDtoSchema)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
         const joinGameResult = await lobbiesController.joinLobby({ gameId, accountId: account.id })
         if (Result.isFailure(joinGameResult)) {
@@ -87,13 +84,10 @@ export function createLobbiesRouter({
             message: joinGameResult.error,
           })
         }
-
-        return joinGameResult.value
       }),
 
     leave: trpc.privateProcedure
       .input(LeaveLobbyDtoSchema.pick({ gameId: true }))
-      .output(LeftLobbyDtoSchema)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
         const leaveGameResult = await lobbiesController.leaveLobby({ gameId, accountId: account.id })
         if (Result.isFailure(leaveGameResult)) {
@@ -102,8 +96,6 @@ export function createLobbiesRouter({
             message: leaveGameResult.error,
           })
         }
-
-        return leaveGameResult.value
       }),
   })
 }
