@@ -208,8 +208,8 @@ async function seedGames({
   joinLobbyUseCase: JoinLobbyUseCase
   logger: Logger
 }): Promise<void> {
-  const [firstAccount, secondAccount, thirdAccount] = accounts
-  Assert.isDefined(firstAccount)
+  const [myAccount, secondAccount, thirdAccount] = accounts
+  Assert.isDefined(myAccount)
   Assert.isDefined(secondAccount)
   Assert.isDefined(thirdAccount)
 
@@ -218,22 +218,11 @@ async function seedGames({
   await resetTable(db, gamesTable)
   logger.info("├─ Creating default games")
 
-  await seedSoloGame({ creator: firstAccount, participants: [], createLobbyUseCase, joinLobbyUseCase, logger })
-  await seedInsanelyFastGame({
-    creator: firstAccount,
-    participants: [secondAccount, thirdAccount],
-    createLobbyUseCase,
-    joinLobbyUseCase,
-    logger,
-  })
-  await seedFastGame({ creator: secondAccount, participants: [], createLobbyUseCase, joinLobbyUseCase, logger })
-  await seedMaximumPlayersGame({
-    creator: firstAccount,
-    participants: accounts.slice(1, MAX_NB_SEATS),
-    createLobbyUseCase,
-    joinLobbyUseCase,
-    logger,
-  })
+  const services = { createLobbyUseCase, joinLobbyUseCase, logger }
+  await seedSoloGame({ creator: myAccount, participants: [], ...services })
+  await seedInsanelyFastGame({ creator: myAccount, participants: [secondAccount, thirdAccount], ...services })
+  await seedCommunityGame({ creator: secondAccount, participants: [thirdAccount], ...services })
+  await seedMaximumPlayersGame({ creator: myAccount, participants: accounts.slice(1, MAX_NB_SEATS), ...services, treePosition: "last" })
 
   logger.info("└─ Done")
 }
@@ -247,44 +236,51 @@ type SeedGameInput = {
   createLobbyUseCase: CreateLobbyUseCase
   joinLobbyUseCase: JoinLobbyUseCase
   logger: Logger
+  treePosition?: "branch" | "last"
 }
 
+/**
+ * A solo game so we can move turns via Ready
+ */
 const seedSoloGame = createGameSeeder({
   name: "solo game",
   nbSeats: 1,
-  turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+  turnIntervalSeconds: inSeconds(Time.create(1, UnitOfTime.HOURS)),
   rulesetId: StandardRuleset.id,
 })
 
+/**
+ * A game with multiple players that moves fast so we can see turns progressing by themselves
+ */
 const seedInsanelyFastGame = createGameSeeder({
   name: "insanely fast game",
   nbSeats: 5,
-  turnIntervalSeconds: 60,
+  turnIntervalSeconds: inSeconds(Time.create(10, UnitOfTime.SECONDS)),
   rulesetId: StandardRuleset.id,
 })
 
-const seedFastGame = createGameSeeder({
-  name: "fast game",
+/**
+ * A game where we are not the creator so we can join and leave
+ */
+const seedCommunityGame = createGameSeeder({
+  name: "community game",
   nbSeats: 10,
-  turnIntervalSeconds: Time.in(Time.create(2, UnitOfTime.HOURS), UnitOfTime.SECONDS),
+  turnIntervalSeconds: inSeconds(Time.create(2, UnitOfTime.HOURS)),
   rulesetId: StandardRuleset.id,
 })
 
-const seedMaximumPlayersGame = createGameSeeder(
-  {
-    name: "maximum players game",
-    nbSeats: MAX_NB_SEATS,
-    turnIntervalSeconds: Time.in(Time.create(1, UnitOfTime.DAYS), UnitOfTime.SECONDS),
-    rulesetId: StandardRuleset.id,
-  },
-  "last",
-)
+/**
+ * A game with max players to see all the player colors and starting planet spread
+ */
+const seedMaximumPlayersGame = createGameSeeder({
+  name: "maximum players game",
+  nbSeats: MAX_NB_SEATS,
+  turnIntervalSeconds: inSeconds(Time.create(1, UnitOfTime.DAYS)),
+  rulesetId: StandardRuleset.id,
+})
 
-function createGameSeeder(
-  configuration: CreateLobbyConfigurationDto,
-  treePosition: "branch" | "last" = "branch",
-): (input: SeedGameInput) => Promise<void> {
-  return async ({ creator, participants, createLobbyUseCase, joinLobbyUseCase, logger }) => {
+function createGameSeeder(configuration: CreateLobbyConfigurationDto): (input: SeedGameInput) => Promise<void> {
+  return async ({ creator, participants, createLobbyUseCase, joinLobbyUseCase, logger, treePosition = "branch" }) => {
     const gameBranch = treePosition === "last" ? "│  └─" : "│  ├─"
     const operationPrefix = treePosition === "last" ? "│     " : "│  │  "
     const creationBranch = participants.length === 0 ? "└─" : "├─"
@@ -321,4 +317,8 @@ function createAccount(user: User, { onboarded }: { onboarded: boolean }): Accou
     alias: typedParse(AliasSchema, user.alias ?? v4()),
     onboarded,
   }
+}
+
+function inSeconds(time: Time): number {
+  return Time.in(time, UnitOfTime.SECONDS)
 }
