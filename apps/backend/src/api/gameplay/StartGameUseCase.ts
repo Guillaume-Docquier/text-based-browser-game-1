@@ -40,7 +40,7 @@ export class StartGameUseCase {
     this.createTransaction = createTransaction
   }
 
-  public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<StartedGameDto, string>> {
+  public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<void, string>> {
     const startGameResult = await this.createTransaction(async (tx) => {
       const gameForStart = await this.gameplayRepository.getGameForStart({ gameId }, tx)
 
@@ -85,8 +85,6 @@ export class StartGameUseCase {
         },
         tx,
       )
-
-      return { turnEndsAt }
     })
 
     if (Result.isFailure(startGameResult)) {
@@ -102,9 +100,4 @@ export type StartGameDto = z.infer<typeof StartGameDtoSchema>
 export const StartGameDtoSchema = z.object({
   gameId: z.coerce.number().pipe(GameIdSchema),
   requesterAccountId: AccountIdSchema,
-})
-
-export type StartedGameDto = z.infer<typeof StartedGameDtoSchema>
-export const StartedGameDtoSchema = z.object({
-  turnEndsAt: z.date(),
 })

@@ -251,17 +251,14 @@ export class LobbiesRepository extends PostgresRepository {
   /**
    * The only failure mode for this method is throwing to rollback the transaction.
    */
-  public async joinLobby({ context, playerId, color, status }: JoinLobbyModel, tx: Transaction): Promise<{ playerId: PlayerId }> {
+  public async joinLobby({ context, playerId, color, status }: JoinLobbyModel, tx: Transaction): Promise<void> {
     const gamePlayers = await tx.insert(playersTable).values({ gameId: context.gameId, playerId, color }).returning()
     Assert.isTrue(gamePlayers.length === 1)
-    Assert.isDefined(gamePlayers[0])
 
     if (status !== context.status) {
       const updatedGames = await tx.update(gamesTable).set({ status }).where(eq(gamesTable.id, context.gameId)).returning()
       Assert.isTrue(updatedGames.length === 1)
     }
-
-    return { playerId: gamePlayers[0].playerId }
   }
 
   public async getLobbyForLeave({ gameId }: { gameId: GameId }, tx: Transaction): Promise<Result<LobbyForLeave, string>> {
