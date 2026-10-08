@@ -90,7 +90,11 @@ export async function createApi({
 
 export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
-function createTrpcRouter(services: {
+function createTrpcRouter({
+  logger,
+  gameplayRepository,
+  ...services
+}: {
   finishOnboardingUseCase: FinishOnboardingUseCase
   getListingsUseCase: GetListingsUseCase
   createLobbyUseCase: CreateLobbyUseCase
@@ -105,8 +109,8 @@ function createTrpcRouter(services: {
   updateReadinessUseCase: UpdateReadinessUseCase
   logger: Logger
 }) {
-  const trpc = createTrpc(services)
-  const routerServices = { trpc, ...services }
+  const trpc = createTrpc({ logger, gameplayRepository })
+  const routerServices = { trpc, logger, ...services }
 
   return trpc.router({
     accounts: createAccountsRouter(routerServices),
