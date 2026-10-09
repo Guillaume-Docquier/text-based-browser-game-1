@@ -4,11 +4,11 @@ import { useState } from "react"
 import { Button } from "@/components/button.tsx"
 import type { Filter } from "@/features/games/Filter.ts"
 
-export function useMyGamesFilter(): Filter<ApiTypes.Listing> {
+export function useMyGamesFilter(): Filter<ApiTypes.GameSummary> {
   const [showOnlyMyGames, setShowOnlyMyGames] = useState(false)
 
   return {
-    predicate: showOnlyMyGames ? (listing) => listing.hasJoined : undefined,
+    predicate: showOnlyMyGames ? (summary) => summary.hasJoined : undefined,
     element: (
       <Button
         key="my-games"

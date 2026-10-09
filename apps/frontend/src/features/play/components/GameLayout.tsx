@@ -1,10 +1,18 @@
-import type { Lobby, PlayerView } from "@api-types"
+import type { GameDetails, PlayerView } from "@api-types"
 import type { ReactElement, ReactNode } from "react"
 import { Skeleton } from "@/components/skeleton.tsx"
 import { GameSideNav } from "@/features/play/components/GameSideNav.tsx"
 import { GameTopBar } from "@/features/play/components/GameTopBar.tsx"
 
-export function GameLayout({ game, playerView, children }: { game: Lobby; playerView: PlayerView; children: ReactNode }): ReactElement {
+export function GameLayout({
+  game,
+  playerView,
+  children,
+}: {
+  game: GameDetails
+  playerView: PlayerView
+  children: ReactNode
+}): ReactElement {
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden border border-border/70 bg-background/65 lg:flex-row">
       <GameSideNav gameId={game.id} />

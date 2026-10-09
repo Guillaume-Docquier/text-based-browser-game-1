@@ -10,7 +10,7 @@ export function useStartGameMutation() {
   const navigate = useNavigate()
 
   return useMutation(
-    backendApiClient.gameplay.startGame.mutationOptions({
+    backendApiClient.games.startGame.mutationOptions({
       onSuccess: async (_, { gameId }) => {
         await navigate({ to: "/games/$gameId/play", params: { gameId: branded<GameId>(gameId) } })
       },

@@ -12,7 +12,7 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { couldNot } from "#lib/errors.ts"
 import { UInt32 } from "#lib/UInt32.ts"
-import type { GameplayRepository } from "./gameplay.repository.ts"
+import type { GamesRepository } from "./games.repository.ts"
 
 /**
  * Starts a game and initializes its galaxy, resources, and first Turn atomically.
@@ -20,29 +20,29 @@ import type { GameplayRepository } from "./gameplay.repository.ts"
 export class StartGameUseCase {
   private readonly logger: Logger
   private readonly clock: Clock
-  private readonly gameplayRepository: GameplayRepository
+  private readonly gamesRepository: GamesRepository
   private readonly createTransaction: CreateTransaction
 
   public constructor({
     logger,
     clock,
-    gameplayRepository,
+    gamesRepository,
     createTransaction,
   }: {
     logger: Logger
     clock: Clock
-    gameplayRepository: GameplayRepository
+    gamesRepository: GamesRepository
     createTransaction: CreateTransaction
   }) {
     this.logger = logger.child({ scope: "start-game-use-case" })
     this.clock = clock
-    this.gameplayRepository = gameplayRepository
+    this.gamesRepository = gamesRepository
     this.createTransaction = createTransaction
   }
 
   public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<void, string>> {
     const startGameResult = await this.createTransaction(async (tx) => {
-      const gameForStart = await this.gameplayRepository.getGameForStart({ gameId }, tx)
+      const gameForStart = await this.gamesRepository.getGameForStart({ gameId }, tx)
 
       if (gameForStart.createdByAccountId !== requesterAccountId) {
         throw new TransactionRollbackError("Only the game creator can start it.")
@@ -68,7 +68,7 @@ export class StartGameUseCase {
       const galaxy = createGalaxy({ galaxyCreationSettings: GalaxyCreationSettings, playerIds: gameForStart.playerIds, rng })
       this.logger.debug("Generated galaxy", { elapsedTime: Timer.since(startTime) })
 
-      await this.gameplayRepository.startGame(
+      await this.gamesRepository.startGame(
         {
           context: gameForStart,
           status: GameStatus.IN_PROGRESS,

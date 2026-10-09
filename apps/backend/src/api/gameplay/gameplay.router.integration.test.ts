@@ -1,17 +1,14 @@
 import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
-import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
-import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
+import { createTestGameConfigurationStub } from "shared/testing/GameConfiguration.stub.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
-import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
@@ -31,11 +28,10 @@ describe("gameplay.router", () => {
     const creator = await apiServer.createClient({ authenticated: true })
     const nonPlayer = await apiServer.createClient({ authenticated: true })
 
-    const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
+    const { createdGameId } = await creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
 
     // Act & Assert
     const expectedError = { data: { code: "FORBIDDEN" } }
-    await expect(nonPlayer.client.gameplay.startGame.mutate({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(nonPlayer.client.gameplay.getPlayerView.query({ gameId: createdGameId })).rejects.toMatchObject(expectedError)
     await expect(nonPlayer.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })).rejects.toMatchObject(
       expectedError,
@@ -49,153 +45,6 @@ describe("gameplay.router", () => {
     ).rejects.toMatchObject(expectedError)
   })
 
-  describe("start", () => {
-    integrationTest("should generate a deterministic galaxy from the game's seed", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const player = await apiServer.createClient({ authenticated: true, id: "7f80447c-442a-4229-8d52-39b675b3e80c" })
-      const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
-      })
-
-      // Act
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Assert
-      // quick sanity checks
-      expect(playerView.galaxy.systems.length).toBeGreaterThan(500) // enough systems are generated
-      expect(playerView.galaxy.systems.flatMap(({ planets }) => planets).length).toBeGreaterThan(1500) // enough planets are generated
-      expect(
-        playerView.galaxy.systems.flatMap((system) => system.planets).find(({ id }) => id === "cd2c40c4-0233-5b79-9d85-2ad751dff9e9"),
-      ).toStrictEqual({
-        coordinates: "44:76:35", // coordinates make sense
-        x: 46.42101792976603,
-        y: 47.21423492967076,
-        id: "cd2c40c4-0233-5b79-9d85-2ad751dff9e9",
-        ownerPlayerId: null,
-        name: "planet 685256",
-        biome: PlanetBiome.VOLCANIC,
-        size: PlanetSize.MEDIUM,
-        fertility: 2,
-        metal: 1,
-        fuel: 2,
-        energy: 3,
-        maxPopulation: 15,
-        area: 5,
-      })
-
-      const allStars = playerView.galaxy.systems.map(({ star }) => star)
-      expect(new Set(allStars.map((star) => star.coordinates)).size).toStrictEqual(allStars.length) // unique coordinates
-      expect(new Set(allStars.map((star) => star.id)).size).toStrictEqual(allStars.length) // unique ids
-
-      const allPlanets = playerView.galaxy.systems.flatMap(({ planets }) => planets)
-      expect(new Set(allPlanets.map((planet) => planet.coordinates)).size).toStrictEqual(allPlanets.length) // unique coordinates
-      expect(new Set(allPlanets.map((planet) => planet.id)).size).toStrictEqual(allPlanets.length) // unique ids
-
-      expect(playerView.galaxy).toMatchSnapshot()
-    })
-
-    integrationTest("should start a game", async ({ db }) => {
-      // Arrange
-      const clock = new ControlledClock()
-      using apiServer = new ApiServer(await createApiStub({ db, clock }))
-      const player = await apiServer.createClient({ authenticated: true })
-
-      const newGameSettings = createLobbyConfigurationDtoStub({ turnIntervalSeconds: 60 })
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: newGameSettings })
-
-      // Act
-      const startGameResult = await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      const lobby = await player.client.lobbies.getById.query({ gameId: createdGameId })
-      const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Assert
-      expect(startGameResult).toBeUndefined()
-      expect(lobby.status).toBe(GameStatus.IN_PROGRESS)
-      expect(lobby.startedAt).toBe(clock.now().toISOString())
-      expect(playerView.turnEndsAt).toBe(
-        Datetime.increment({
-          date: clock.now(),
-          time: Time.create(newGameSettings.turnIntervalSeconds, UnitOfTime.SECONDS),
-        }).toISOString(),
-      )
-    })
-
-    integrationTest("should assign one unique Home Planet to every player", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-
-      const creator = await apiServer.createClient({ authenticated: true })
-      const firstOpponent = await apiServer.createClient({ authenticated: true })
-      const secondOpponent = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ nbSeats: 3, mapGenerationSeed: 1234 }),
-      })
-      await firstOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
-      await secondOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
-
-      // Act
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
-      const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-
-      // Assert
-      const homePlanetsOwnerIds = playerView.galaxy.systems
-        .flatMap(({ planets }) => planets)
-        .filter(({ ownerPlayerId }) => ownerPlayerId !== null)
-        .map(({ ownerPlayerId }) => ownerPlayerId)
-
-      expect(homePlanetsOwnerIds).toHaveLength(3)
-      expect(homePlanetsOwnerIds).toStrictEqual(
-        expect.arrayContaining([creator.account.id, firstOpponent.account.id, secondOpponent.account.id]),
-      )
-    })
-
-    integrationTest("should reject starting a game as a non-creator", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const creator = await apiServer.createClient({ authenticated: true })
-      const joiner = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
-
-      // Act
-      const startGame = joiner.client.gameplay.startGame.mutate({ gameId: createdGameId })
-
-      // Assert
-      await expect(startGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-    })
-
-    integrationTest("should reject starting a game that has already started", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const creator = await apiServer.createClient({ authenticated: true })
-
-      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
-
-      // Act
-      const startGame = creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
-
-      // Assert
-      await expect(startGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-    })
-
-    integrationTest("should reject anonymous game start", async ({ db }) => {
-      // Arrange
-      using apiServer = new ApiServer(await createApiStub({ db }))
-      const anonymous = await apiServer.createClient({ authenticated: false })
-
-      // Act
-      const startGame = anonymous.client.gameplay.startGame.mutate({ gameId: 1 })
-
-      // Assert
-      await expect(startGame).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
-    })
-  })
-
   describe("getPlayerView", () => {
     integrationTest("should get the authenticated player's state for a started game", async ({ db }) => {
       // Arrange
@@ -203,10 +52,10 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const gameConfiguration = createLobbyConfigurationDtoStub()
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: gameConfiguration })
+      const gameConfiguration = createTestGameConfigurationStub()
+      const { createdGameId } = await player.client.games.create.mutate({ configuration: gameConfiguration })
 
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Act
       const getPlayerViewResult = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -309,8 +158,8 @@ describe("gameplay.router", () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await player.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
 
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const generatePower = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainEnergy.id)
@@ -348,13 +197,13 @@ describe("gameplay.router", () => {
       const firstOpponent = await apiServer.createClient({ authenticated: true })
       const secondOpponent = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ nbSeats: 3 }),
+      const { createdGameId } = await creator.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ nbSeats: 3 }),
       })
-      await firstOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
-      await secondOpponent.client.lobbies.join.mutate({ gameId: createdGameId })
+      await firstOpponent.client.games.join.mutate({ gameId: createdGameId })
+      await secondOpponent.client.games.join.mutate({ gameId: createdGameId })
 
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await creator.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Act
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
@@ -399,8 +248,8 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
 
       const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await player.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
 
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
@@ -433,9 +282,9 @@ describe("gameplay.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const opponent = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await opponent.client.lobbies.join.mutate({ gameId: createdGameId })
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      await opponent.client.games.join.mutate({ gameId: createdGameId })
+      await creator.client.games.startGame.mutate({ gameId: createdGameId })
 
       const creatorView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const creatorAction = creatorView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
@@ -466,8 +315,8 @@ describe("gameplay.router", () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await player.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
 
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const gainFuel = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainFuel.id)
@@ -643,8 +492,8 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
 
       const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await player.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
 
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
@@ -670,8 +519,8 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await player.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
       Assert.isDefined(makeMoreMoney)
@@ -693,10 +542,10 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: 10 }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
       Assert.isDefined(makeMoreMoney)
@@ -719,8 +568,8 @@ describe("gameplay.router", () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await player.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const winTheGame = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === WinTheGame.id)
       Assert.isDefined(winTheGame)
@@ -740,8 +589,8 @@ describe("gameplay.router", () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.lobbies.create.mutate({ configuration: createLobbyConfigurationDtoStub() })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      const { createdGameId } = await player.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       const makeMoreMoney = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
       Assert.isDefined(makeMoreMoney)
@@ -767,12 +616,12 @@ describe("gameplay.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
+      const { createdGameId } = await creator.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
-      await player.client.lobbies.join.mutate({ gameId: createdGameId }) // 2nd player to avoid turn processing on ready
+      await player.client.games.join.mutate({ gameId: createdGameId }) // 2nd player to avoid turn processing on ready
 
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await creator.client.games.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act
@@ -801,12 +650,12 @@ describe("gameplay.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
+      const { createdGameId } = await creator.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
-      await player.client.lobbies.join.mutate({ gameId: createdGameId })
+      await player.client.games.join.mutate({ gameId: createdGameId })
 
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await creator.client.games.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act
@@ -856,11 +705,11 @@ describe("gameplay.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
+      const { createdGameId } = await creator.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
 
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await creator.client.games.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act
@@ -879,14 +728,14 @@ describe("gameplay.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(10, UnitOfTime.SECONDS)
-      const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({
+      const { createdGameId } = await creator.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({
           mapGenerationSeed: 1234,
           turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
         }),
       })
 
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await creator.client.games.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act
@@ -906,11 +755,11 @@ describe("gameplay.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const player = await apiServer.createClient({ authenticated: true }) // not in the game
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ mapGenerationSeed: 1234 }),
+      const { createdGameId } = await creator.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
 
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await creator.client.games.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       // Act

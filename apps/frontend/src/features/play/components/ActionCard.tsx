@@ -1,4 +1,4 @@
-import type { Action, ActionDefinition, LobbyPlayers, PlayerView, SelectedTargets, TargetTag } from "@api-types"
+import type { Action, ActionDefinition, GamePlayers, PlayerView, SelectedTargets, TargetTag } from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
 import { Check, Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
@@ -55,7 +55,7 @@ export function ActionCard({
   actionDefinition: ActionDefinition
   action: Action
   playerView: PlayerView
-  players: LobbyPlayers
+  players: GamePlayers
   resources: PlayerView["resources"]
   canAfford: boolean
   isSelected: boolean

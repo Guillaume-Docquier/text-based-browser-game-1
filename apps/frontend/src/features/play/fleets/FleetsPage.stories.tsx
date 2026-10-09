@@ -5,11 +5,11 @@ import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { expect, within } from "storybook/test"
-import { createLobbyPlayerStub } from "@/lib/api/LobbyPlayer.stub.ts"
+import { createGamePlayerStub } from "@/lib/api/GamePlayer.stub.ts"
 import { FleetsPageView } from "./FleetsPage.tsx"
 
-const alice = createLobbyPlayerStub()
-const bob = createLobbyPlayerStub({ id: "00000000-0000-4000-8000-000000000002", alias: "Bob", color: "PINK" })
+const alice = createGamePlayerStub()
+const bob = createGamePlayerStub({ id: "00000000-0000-4000-8000-000000000002", alias: "Bob", color: "PINK" })
 const origin = createPlanetStub({ id: "planet-earth", name: "Earth", coordinates: "1:2:3" })
 const destination = createPlanetStub({ id: "planet-mars", name: "Mars", coordinates: "4:5:6" })
 const distantPlanet = createPlanetStub({ id: "planet-venus", name: "Venus", coordinates: "7:8:9" })

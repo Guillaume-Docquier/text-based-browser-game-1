@@ -1,4 +1,4 @@
-import type { Fleet, GameId, LobbyPlayer, Planet, PlayerId } from "@api-types"
+import type { Fleet, GameId, GamePlayer, Planet, PlayerId } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { Link } from "@tanstack/react-router"
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react"
@@ -11,7 +11,7 @@ import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 type FleetRow = {
   readonly fleet: Fleet
-  readonly owner: LobbyPlayer
+  readonly owner: GamePlayer
   readonly ownerLabel: string
   readonly originPlanet: Planet
   readonly destination: FleetDestination | undefined
@@ -67,7 +67,7 @@ export function FleetsPageView({
 }: {
   gameId: GameId
   fleets: readonly Fleet[]
-  players: readonly LobbyPlayer[]
+  players: readonly GamePlayer[]
   planets: readonly Planet[]
 }): ReactElement {
   const [search, setSearch] = useState("")
@@ -131,7 +131,7 @@ function FleetsFilters({
 }: {
   search: string
   ownerFilter: PlayerId | typeof ALL_PLAYERS
-  owners: readonly LobbyPlayer[]
+  owners: readonly GamePlayer[]
   onSearchChange: (value: string) => void
   onOwnerFilterChange: (value: string) => void
 }): ReactElement {
@@ -295,7 +295,7 @@ function SortHeader({
   )
 }
 
-function createFleetRows(fleets: readonly Fleet[], players: readonly LobbyPlayer[], planets: readonly Planet[]): FleetRow[] {
+function createFleetRows(fleets: readonly Fleet[], players: readonly GamePlayer[], planets: readonly Planet[]): FleetRow[] {
   const ownersById = new Map(players.map((player) => [player.id, player]))
   const planetsById = new Map(planets.map((planet) => [planet.id, planet]))
 

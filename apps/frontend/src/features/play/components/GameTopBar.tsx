@@ -1,4 +1,4 @@
-import type { Lobby, PlayerId, PlayerView } from "@api-types"
+import type { GameDetails, PlayerId, PlayerView } from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
 import { Crown, RefreshCw } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
@@ -12,7 +12,7 @@ import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
-export function GameTopBar({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
+export function GameTopBar({ game, playerView }: { game: GameDetails; playerView: PlayerView }): ReactElement {
   return (
     <header className="shrink-0 border-b border-border/70 bg-background/80 px-4 sm:px-6">
       <div className="grid min-w-0 grid-cols-1 items-center gap-x-4 sm:h-[calc(6rem-1px)] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
@@ -93,7 +93,7 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
   )
 }
 
-function TurnControl({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
+function TurnControl({ game, playerView }: { game: GameDetails; playerView: PlayerView }): ReactElement {
   const logger = useLogger()
   const updateReadiness = useUpdateReadiness()
   const refreshClientData = useRefreshClientData()
@@ -195,7 +195,7 @@ function NextTurnRefreshButton({
   )
 }
 
-function getWinnerLabel(winnerPlayerId: PlayerId, game: Lobby): string {
+function getWinnerLabel(winnerPlayerId: PlayerId, game: GameDetails): string {
   const winner = [game.creator, ...game.players].find((player) => player.id === winnerPlayerId)
   if (winner === undefined) {
     return `Player ${winnerPlayerId}`

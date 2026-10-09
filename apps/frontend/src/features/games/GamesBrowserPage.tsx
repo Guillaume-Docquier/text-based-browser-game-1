@@ -10,21 +10,21 @@ import { useGameNameFilter } from "@/features/games/useGameNameFilter.tsx"
 import { useMyGamesFilter } from "@/features/games/useMyGamesFilter.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
-import { useListingsQuery } from "@/lib/api/useListingsQuery.ts"
+import { useGameSummariesQuery } from "@/lib/api/useGameSummariesQuery.ts"
 import { timeAgo } from "@/lib/timeAgo.ts"
 
 export function GamesBrowserPage(): ReactElement {
   const gameNameFilter = useGameNameFilter()
   const myGamesFilter = useMyGamesFilter()
-  const listingsQuery = useListingsQuery()
+  const summariesQuery = useGameSummariesQuery()
   const { isSignedIn } = useAuth()
   const filters = isSignedIn === true ? [gameNameFilter, myGamesFilter] : [gameNameFilter]
 
-  if (listingsQuery.isPending) {
+  if (summariesQuery.isPending) {
     return <GamesLoadingState />
   }
 
-  if (listingsQuery.isError) {
+  if (summariesQuery.isError) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <PageHeader
@@ -38,14 +38,14 @@ export function GamesBrowserPage(): ReactElement {
         />
         <Alert variant="destructive">
           <AlertTitle>Could not load games</AlertTitle>
-          <AlertDescription>{listingsQuery.error.message}</AlertDescription>
+          <AlertDescription>{summariesQuery.error.message}</AlertDescription>
         </Alert>
       </div>
     )
   }
 
-  const listings = listingsQuery.data
-    .filter((listing) => filters.every(({ predicate }) => predicate?.(listing) ?? true))
+  const summaries = summariesQuery.data
+    .filter((summary) => filters.every(({ predicate }) => predicate?.(summary) ?? true))
     .toSorted((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt))
   const hasFilter = filters.some(({ predicate }) => predicate !== undefined)
 
@@ -63,10 +63,10 @@ export function GamesBrowserPage(): ReactElement {
         <CardContent className="flex flex-col gap-4">
           <div className="flex max-w-xl flex-col gap-2 sm:flex-row">{filters.map(({ element }) => element)}</div>
           <div className="grid gap-3">
-            {listings.length === 0 ? (
+            {summaries.length === 0 ? (
               <GamesEmptyState hasFilter={hasFilter} />
             ) : (
-              listings.map((listing) => <GameSummary key={listing.id} listing={listing} />)
+              summaries.map((summary) => <GameSummary key={summary.id} summary={summary} />)
             )}
           </div>
         </CardContent>
@@ -75,23 +75,23 @@ export function GamesBrowserPage(): ReactElement {
   )
 }
 
-function GameSummary({ listing }: { listing: ApiTypes.Listing }): ReactElement {
+function GameSummary({ summary }: { summary: ApiTypes.GameSummary }): ReactElement {
   return (
-    <Link to="/games/$gameId" params={{ gameId: listing.id }} className="block">
+    <Link to="/games/$gameId" params={{ gameId: summary.id }} className="block">
       <Card size="sm" className="border border-border/60 transition-colors hover:bg-muted/40">
         <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">#{listing.id}</span>
-              <GameStatusBadge status={listing.status} />
+              <span className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">#{summary.id}</span>
+              <GameStatusBadge status={summary.status} />
             </div>
-            <div className="font-heading text-lg font-medium text-foreground">{listing.name}</div>
+            <div className="font-heading text-lg font-medium text-foreground">{summary.name}</div>
           </div>
           <div className="flex flex-col gap-1 text-sm text-muted-foreground md:items-end">
             <div>
-              {listing.nbPlayers}/{listing.nbSeats} players
+              {summary.nbPlayers}/{summary.nbSeats} players
             </div>
-            <div>Created {timeAgo(listing.createdAt)}</div>
+            <div>Created {timeAgo(summary.createdAt)}</div>
           </div>
         </CardContent>
       </Card>

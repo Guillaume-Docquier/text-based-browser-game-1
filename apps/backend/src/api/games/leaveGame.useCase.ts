@@ -8,53 +8,53 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { rollbackOnFailure } from "#lib/db/drizzle/rollbackOnFailure.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { LobbiesRepository } from "./lobbies.repository.ts"
+import type { GamesRepository } from "./games.repository.ts"
 
 /**
  * Leaves an unstarted lobby atomically and reopens its available seats.
  */
-export class LeaveLobbyUseCase {
+export class LeaveGameUseCase {
   private readonly logger: Logger
   private readonly createTransaction: CreateTransaction
-  private readonly lobbiesRepository: LobbiesRepository
+  private readonly gamesRepository: GamesRepository
 
   public constructor({
     logger,
     createTransaction,
-    lobbiesRepository,
+    gamesRepository,
   }: {
     logger: Logger
     createTransaction: CreateTransaction
-    lobbiesRepository: LobbiesRepository
+    gamesRepository: GamesRepository
   }) {
-    this.logger = logger.child({ scope: "leave-lobby-use-case" })
+    this.logger = logger.child({ scope: "leave-game-use-case" })
     this.createTransaction = createTransaction
-    this.lobbiesRepository = lobbiesRepository
+    this.gamesRepository = gamesRepository
   }
 
   /**
    * Leaving an already left lobby returns a success for idempotency.
    */
-  public async execute({ gameId, accountId }: LeaveLobbyDto): Promise<Result<void, string>> {
+  public async execute({ gameId, accountId }: LeaveGameDto): Promise<Result<void, string>> {
     const playerId = branded<PlayerId>(accountId)
     const leaveGameResult = await this.createTransaction(async (tx) => {
-      const lobbyForLeave = await this.lobbiesRepository.getLobbyForLeave({ gameId }, tx)
-      rollbackOnFailure(lobbyForLeave, "Failed to get lobby.")
+      const gameForLeave = await this.gamesRepository.getGameForLeave({ gameId }, tx)
+      rollbackOnFailure(gameForLeave, "Failed to get lobby.")
 
-      if (!lobbyForLeave.value.playerIds.includes(playerId)) {
+      if (!gameForLeave.value.playerIds.includes(playerId)) {
         // Already not in the game, return a success for idempotency
         return
       }
 
-      if (lobbyForLeave.value.status !== GameStatus.WAITING_FOR_PLAYERS && lobbyForLeave.value.status !== GameStatus.READY_TO_START) {
+      if (gameForLeave.value.status !== GameStatus.WAITING_FOR_PLAYERS && gameForLeave.value.status !== GameStatus.READY_TO_START) {
         throw new TransactionRollbackError("Cannot leave a lobby that has started.")
       }
 
-      if (lobbyForLeave.value.createdByAccountId === accountId) {
+      if (gameForLeave.value.createdByAccountId === accountId) {
         throw new TransactionRollbackError("Cannot leave a lobby as its creator.")
       }
 
-      await this.lobbiesRepository.leaveLobby({ context: lobbyForLeave.value, playerId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
+      await this.gamesRepository.leaveGame({ context: gameForLeave.value, playerId, status: GameStatus.WAITING_FOR_PLAYERS }, tx)
     })
 
     if (Result.isFailure(leaveGameResult)) {
@@ -66,8 +66,8 @@ export class LeaveLobbyUseCase {
   }
 }
 
-export type LeaveLobbyDto = z.infer<typeof LeaveLobbyDtoSchema>
-export const LeaveLobbyDtoSchema = z.object({
+export type LeaveGameDto = z.infer<typeof LeaveGameDtoSchema>
+export const LeaveGameDtoSchema = z.object({
   gameId: GameIdSchema,
   accountId: AccountIdSchema,
 })

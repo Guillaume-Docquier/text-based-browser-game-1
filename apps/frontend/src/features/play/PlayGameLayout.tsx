@@ -6,13 +6,13 @@ import { Button } from "@/components/button.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { GameLayout, GameLayoutSkeleton } from "@/features/play/components/GameLayout.tsx"
 import { PlayGameContextProvider, type PlayGameContextValue } from "@/features/play/PlayContext.tsx"
-import { useLobbyQuery } from "@/lib/api/useLobbyQuery.ts"
+import { useGameDetailsQuery } from "@/lib/api/useGameDetailsQuery.ts"
 import { usePlayerViewQuery } from "@/lib/api/usePlayerViewQuery.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
-  const gameQuery = useLobbyQuery(gameId)
+  const gameQuery = useGameDetailsQuery(gameId)
   const playerViewQuery = usePlayerViewQuery(gameId)
 
   if (gameQuery.isPending || playerViewQuery.isPending) {

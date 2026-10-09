@@ -1,4 +1,4 @@
-import type { LobbyPlayer, PlayerView } from "@api-types"
+import type { GamePlayer, PlayerView } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { Check, CircleDashed } from "lucide-react"
 import type { ReactElement } from "react"
@@ -56,7 +56,7 @@ function PlayerRow({
   isReadinessPending,
   onUpdateReadiness,
 }: {
-  player: LobbyPlayer
+  player: GamePlayer
   playerView: PlayerView
   isReadinessPending: boolean
   onUpdateReadiness: (isReady: boolean) => void

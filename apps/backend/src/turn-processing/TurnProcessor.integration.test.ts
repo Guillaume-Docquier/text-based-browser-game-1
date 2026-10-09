@@ -1,6 +1,7 @@
 import { Assert, branded, Datetime, type DeepUnbranded, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
+import { createTestGameConfigurationStub } from "shared/testing/GameConfiguration.stub.ts"
 import { BuildFleetStandard } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
 import { GainFuel } from "shared/testing/test-ruleset/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "shared/testing/test-ruleset/action-definitions/gain-influence.ts"
@@ -11,7 +12,6 @@ import { afterEach, describe, expect, vi } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
-import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
 import type { PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
@@ -34,15 +34,15 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: firstGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) / 2 }),
+      const { createdGameId: firstGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) / 2 }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: firstGameId })
+      await player.client.games.startGame.mutate({ gameId: firstGameId })
 
-      const { createdGameId: secondGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: secondGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: secondGameId })
+      await player.client.games.startGame.mutate({ gameId: secondGameId })
 
       const { turnProcessor } = await createTurnProcessorStub({ db, clock })
 
@@ -75,15 +75,15 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: failingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: failingGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: failingGameId })
+      await player.client.games.startGame.mutate({ gameId: failingGameId })
 
-      const { createdGameId: successfulGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: successfulGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: successfulGameId })
+      await player.client.games.startGame.mutate({ gameId: successfulGameId })
 
       const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
@@ -120,11 +120,11 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
-      const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
 
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
@@ -165,10 +165,10 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
-      const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       for (const actionDefinitionId of [GainFuel.id, GainMetal.id]) {
@@ -204,12 +204,12 @@ describe("TurnProcessor", () => {
 
       // Create the game
       const turnInterval = Time.create(1000, UnitOfTime.SECONDS)
-      const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
 
       // Start the game
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
       const initialPlayerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       const buildFleet = initialPlayerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
@@ -254,13 +254,13 @@ describe("TurnProcessor", () => {
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
       const turnInterval = Time.create(10, UnitOfTime.SECONDS)
-      const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({
           turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
           mapGenerationSeed: 1234,
         }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId })
+      await player.client.games.startGame.mutate({ gameId })
       const initialView = await player.client.gameplay.getPlayerView.query({ gameId })
       const planets = initialView.galaxy.systems.flatMap(({ planets }) => planets)
       const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
@@ -356,13 +356,13 @@ describe("TurnProcessor", () => {
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
       const turnInterval = Time.create(10, UnitOfTime.SECONDS)
-      const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({
           turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS),
           mapGenerationSeed: 1234,
         }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId })
+      await player.client.games.startGame.mutate({ gameId })
       const initialView = await player.client.gameplay.getPlayerView.query({ gameId })
       const planets = initialView.galaxy.systems.flatMap(({ planets }) => planets)
       const homePlanet = planets.find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
@@ -470,10 +470,10 @@ describe("TurnProcessor", () => {
         using apiServer = new ApiServer(await createApiStub({ db, clock }))
         const player = await apiServer.createClient({ authenticated: true })
 
-        const { createdGameId } = await player.client.lobbies.create.mutate({
-          configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+        const { createdGameId } = await player.client.games.create.mutate({
+          configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
         })
-        await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+        await player.client.games.startGame.mutate({ gameId: createdGameId })
 
         const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
@@ -496,10 +496,10 @@ describe("TurnProcessor", () => {
       const { api, accountsRepository, logger } = await createApiStub({ db, clock })
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: 10 }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
       const resourcesRepository = new ResourcesRepository({ db, logger })
@@ -536,17 +536,17 @@ describe("TurnProcessor", () => {
 
       // later game
       const laterTurnInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: laterGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: laterGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: laterGameId })
+      await player.client.games.startGame.mutate({ gameId: laterGameId })
 
       // earlier game
       const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
-      const { createdGameId: earlierGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: earlierGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: earlierGameId })
+      await player.client.games.startGame.mutate({ gameId: earlierGameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
@@ -574,10 +574,10 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(50, UnitOfTime.SECONDS)
-      const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId })
+      await player.client.games.startGame.mutate({ gameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
@@ -606,10 +606,10 @@ describe("TurnProcessor", () => {
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
       const processingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
-      const { createdGameId: processingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(processingTurnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: processingGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(processingTurnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: processingGameId })
+      await player.client.games.startGame.mutate({ gameId: processingGameId })
 
       // Act
       clock.increment({ time: processingTurnInterval })
@@ -632,16 +632,16 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const failingTurnInterval = Time.create(50, UnitOfTime.SECONDS)
-      const { createdGameId: failingGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(failingTurnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: failingGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(failingTurnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: failingGameId })
+      await player.client.games.startGame.mutate({ gameId: failingGameId })
 
       const successfulTurnInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: successfulGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(successfulTurnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: successfulGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(successfulTurnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: successfulGameId })
+      await player.client.games.startGame.mutate({ gameId: successfulGameId })
 
       const turnsRepository = new FailingTurnsRepository({ db, logger, failingGameId })
       const { turnProcessor } = await createTurnProcessorStub({ db, clock, turnsRepository })
@@ -670,16 +670,16 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const earlierTurnInterval = Time.create(50, UnitOfTime.SECONDS)
-      const { createdGameId: earlierGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: earlierGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(earlierTurnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: earlierGameId })
+      await player.client.games.startGame.mutate({ gameId: earlierGameId })
 
       const laterTurnInterval = Time.create(100, UnitOfTime.SECONDS)
-      const { createdGameId: laterGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: laterGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(laterTurnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: laterGameId })
+      await player.client.games.startGame.mutate({ gameId: laterGameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
@@ -709,10 +709,10 @@ describe("TurnProcessor", () => {
       const player = await apiServer.createClient({ authenticated: true })
 
       const turnInterval = Time.create(50, UnitOfTime.SECONDS)
-      const { createdGameId: gameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
+      const { createdGameId: gameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: Time.in(turnInterval, UnitOfTime.SECONDS) }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId })
+      await player.client.games.startGame.mutate({ gameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
 
@@ -737,11 +737,11 @@ describe("TurnProcessor", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
+      const { createdGameId } = await creator.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: 10 }),
       })
-      await joiner.client.lobbies.join.mutate({ gameId: createdGameId })
-      await creator.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await joiner.client.games.join.mutate({ gameId: createdGameId })
+      await creator.client.games.startGame.mutate({ gameId: createdGameId })
 
       const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
       const resourcesRepository = new ResourcesRepository({ db, logger })
@@ -780,7 +780,7 @@ describe("TurnProcessor", () => {
       // Eventually we'll have a turn order that will change during the game, for now the players are sorted by their id
       const expectedWinnerId = [creator.account.id, joiner.account.id].sort()[0]
 
-      const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+      const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
       expect(lobby).toMatchObject({
         winnerAccountId: expectedWinnerId,
         endedAt: expect.any(String),
@@ -814,10 +814,10 @@ describe("TurnProcessor", () => {
       using apiServer = new ApiServer({ api, accountsRepository })
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await player.client.lobbies.create.mutate({
-        configuration: createLobbyConfigurationDtoStub({ turnIntervalSeconds: 10 }),
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createTestGameConfigurationStub({ turnIntervalSeconds: 10 }),
       })
-      await player.client.gameplay.startGame.mutate({ gameId: createdGameId })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
       const playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
 
       await player.client.gameplay.updateActionSubmission.mutate({

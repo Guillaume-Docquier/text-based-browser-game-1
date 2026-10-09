@@ -19,16 +19,16 @@ export type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 export type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
 export type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
 
-// Lobbies
-export type Lobby = TrpcRouterOutput["lobbies"]["getById"]
-export type LobbyStatus = Lobby["status"]
-export type LobbyPlayer = Lobby["creator"]
-export type LobbyPlayers = Lobby["players"]
-export type LobbyCreationSettings = TrpcRouterOutput["lobbies"]["getCreationSettings"]
-export type RulesetSummary = LobbyCreationSettings["rulesets"][number]
+// Games
+export type GameDetails = TrpcRouterOutput["games"]["getById"]
+export type GameStatus = GameDetails["status"]
+export type GamePlayer = GameDetails["creator"]
+export type GamePlayers = GameDetails["players"]
+export type GameCreationSettings = TrpcRouterOutput["games"]["getCreationSettings"]
+export type RulesetSummary = GameCreationSettings["rulesets"][number]
 
-// Listings
-export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
+export type GameConfigurationDetails = GameDetails["configuration"]
+export type GameSummary = TrpcRouterOutput["games"]["getSummaries"][number]
 
 // Gameplay router
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]

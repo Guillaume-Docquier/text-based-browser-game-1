@@ -3,7 +3,7 @@ import type { PlayerView } from "@api-types"
 import { createContext, type FC, type PropsWithChildren, useContext } from "react"
 
 export type PlayGameContextValue = {
-  game: ApiTypes.Lobby
+  game: ApiTypes.GameDetails
   playerView: PlayerView
 }
 

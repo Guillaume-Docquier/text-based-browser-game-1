@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`gameplay.router > start > should generate a deterministic galaxy from the game's seed 1`] = `
+exports[`games.router > startGame > should generate a deterministic galaxy from the game's seed 1`] = `
 {
   "systems": [
     {

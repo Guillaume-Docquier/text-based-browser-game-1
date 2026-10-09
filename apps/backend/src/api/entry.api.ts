@@ -8,8 +8,7 @@ import type { AuthProvider } from "#api/auth/AuthProvider.ts"
 import { ClerkAuthProvider } from "#api/auth/ClerkAuthProvider.ts"
 import { TestHeaderAuthProvider } from "#api/auth/TestHeaderAuthProvider.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
-import { ListingsRepository } from "#api/listings/listings.repository.ts"
-import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import { GamesRepository } from "#api/games/games.repository.ts"
 import type { PortListeningMessage } from "#api/PortListeningMessage.ts"
 import { Clock } from "#lib/Clock.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
@@ -46,8 +45,7 @@ async function main(): Promise<void> {
   const clock = Clock
   const repositories = {
     accountsRepository: new AccountsRepository({ db, logger }),
-    listingsRepository: new ListingsRepository({ db, logger }),
-    lobbiesRepository: new LobbiesRepository({ db, logger }),
+    gamesRepository: new GamesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger, clock }),
     rulesetsRepository: new RulesetsRepository({ db, logger }),
   }

@@ -2,7 +2,6 @@ import { Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import type { Trpc } from "#api/trpc.ts"
 import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./getPlayerView.useCase.ts"
-import type { StartGameUseCase } from "./startGame.useCase.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./updateActionSubmission.useCase.ts"
 import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./updateReadiness.useCase.ts"
 
@@ -10,13 +9,11 @@ import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./updateR
 export function createGameplayRouter({
   trpc,
   getPlayerViewUseCase,
-  startGameUseCase,
   updateActionSubmissionUseCase,
   updateReadinessUseCase,
 }: {
   trpc: Trpc
   getPlayerViewUseCase: GetPlayerViewUseCase
-  startGameUseCase: StartGameUseCase
   updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
 }) {
@@ -29,16 +26,6 @@ export function createGameplayRouter({
           throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
         }
       }),
-    startGame: trpc.inGameProcedure.mutation(async ({ input, ctx: { account } }) => {
-      const startResult = await startGameUseCase.execute({ ...input, requesterAccountId: account.id })
-      if (Result.isFailure(startResult)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: startResult.error,
-        })
-      }
-    }),
-
     getPlayerView: trpc.inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {
       const getPlayerViewResult = await getPlayerViewUseCase.execute({ ...input, playerId })
       if (Result.isFailure(getPlayerViewResult)) {

@@ -8,9 +8,9 @@ import { Separator } from "@/components/separator.tsx"
 import { Skeleton } from "@/components/skeleton.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
+import { useGameDetailsQuery } from "@/lib/api/useGameDetailsQuery.ts"
 import { useJoinGameMutation } from "@/lib/api/useJoinGameMutation.ts"
 import { useLeaveGameMutation } from "@/lib/api/useLeaveGameMutation.ts"
-import { useLobbyQuery } from "@/lib/api/useLobbyQuery.ts"
 import { useStartGameMutation } from "@/lib/api/useStartGameMutation.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
@@ -18,7 +18,7 @@ import { timeAgo } from "@/lib/timeAgo.ts"
 
 export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
-  const gameQuery = useLobbyQuery(gameId)
+  const gameQuery = useGameDetailsQuery(gameId)
 
   if (gameQuery.isPending) {
     return <LobbyLoadingState />
@@ -36,7 +36,7 @@ export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement
   )
 }
 
-function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
+function Game({ game }: { game: ApiTypes.GameDetails }): ReactElement {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={game.configuration.name} />
@@ -69,7 +69,7 @@ function Game({ game }: { game: ApiTypes.Lobby }): ReactElement {
   )
 }
 
-function LobbyActions({ game }: { game: ApiTypes.Lobby }): ReactElement {
+function LobbyActions({ game }: { game: ApiTypes.GameDetails }): ReactElement {
   const navigate = useNavigate()
   const joinGame = useJoinGameMutation()
   const leaveGame = useLeaveGameMutation()
@@ -122,7 +122,7 @@ function LobbyActions({ game }: { game: ApiTypes.Lobby }): ReactElement {
   )
 }
 
-function GameConfiguration({ configuration }: { configuration: ApiTypes.Lobby["configuration"] }): ReactElement {
+function GameConfiguration({ configuration }: { configuration: ApiTypes.GameConfigurationDetails }): ReactElement {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
@@ -143,7 +143,7 @@ function DetailBlock({ label, value }: { label: string; value: ReactNode }): Rea
   )
 }
 
-function Player({ player }: { player: ApiTypes.LobbyPlayer }): ReactElement {
+function Player({ player }: { player: ApiTypes.GamePlayer }): ReactElement {
   const colorLabel = formatPlayerColor(player.color)
 
   return (
@@ -185,7 +185,7 @@ function LobbyLoadingState(): ReactElement {
   )
 }
 
-function getWinnerLabel(winnerPlayerId: ApiTypes.PlayerId, game: ApiTypes.Lobby): string {
+function getWinnerLabel(winnerPlayerId: ApiTypes.PlayerId, game: ApiTypes.GameDetails): string {
   const winner = [game.creator, ...game.players].find((player) => player.id === winnerPlayerId)
   if (winner === undefined) {
     return `Player ${winnerPlayerId}`

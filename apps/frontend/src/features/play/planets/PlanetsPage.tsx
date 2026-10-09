@@ -1,4 +1,4 @@
-import type { GameId, LobbyPlayer, Planet, PlayerId } from "@api-types"
+import type { GameId, GamePlayer, Planet, PlayerId } from "@api-types"
 import { Assert, Sort } from "@guillaume-docquier/tools-ts"
 import { Link } from "@tanstack/react-router"
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react"
@@ -10,7 +10,7 @@ import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 type OwnedPlanet = Planet & { readonly ownerPlayerId: PlayerId }
-type PlanetRow = { readonly planet: OwnedPlanet; readonly owner: LobbyPlayer; readonly ownerLabel: string }
+type PlanetRow = { readonly planet: OwnedPlanet; readonly owner: GamePlayer; readonly ownerLabel: string }
 type SortColumn = "planet" | "owner" | "coordinates" | "fertility" | "metal" | "fuel" | "energy" | "maxPopulation" | "area"
 type SortDirection = "ascending" | "descending"
 type PlanetSort = { readonly column: SortColumn; readonly direction: SortDirection }
@@ -100,7 +100,7 @@ function PlanetsFilters({
 }: {
   search: string
   ownerFilter: PlayerId | typeof ALL_PLAYERS
-  owners: readonly LobbyPlayer[]
+  owners: readonly GamePlayer[]
   onSearchChange: (value: string) => void
   onOwnerFilterChange: (value: string) => void
 }): ReactElement {
@@ -290,7 +290,7 @@ function NumericCell({ value }: { value: number | string }): ReactElement {
   return <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{value}</td>
 }
 
-function createPlanetRows(planets: readonly Planet[], players: readonly LobbyPlayer[]): PlanetRow[] {
+function createPlanetRows(planets: readonly Planet[], players: readonly GamePlayer[]): PlanetRow[] {
   const ownersById = new Map(players.map((player) => [player.id, player]))
 
   return planets.filter(isOwnedPlanet).map((planet) => {
