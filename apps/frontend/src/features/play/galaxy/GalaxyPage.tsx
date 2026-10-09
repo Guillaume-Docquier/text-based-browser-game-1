@@ -18,7 +18,7 @@ type PlanetTarget = { readonly system: StarSystem; readonly planet: Planet }
  * @returns The interactive Galaxy page.
  */
 export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | undefined }): ReactElement {
-  const { game, playerView } = usePlayGameContext()
+  const { gameDetails, playerView } = usePlayGameContext()
   const initialPlanetTarget = findPlanetTarget(playerView.galaxy.systems, initialPlanetId)
   const [view, setView] = useState<GalaxyView>(() =>
     initialPlanetTarget === undefined
@@ -102,7 +102,7 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
             <GalaxyMap
               galaxy={playerView.galaxy}
               fleets={playerView.fleets}
-              players={game.players}
+              players={gameDetails.players}
               currentPlayerId={playerView.player.id}
               resetSignal={galaxyResetSignal}
               onSelectSystem={showStarSystem}
@@ -124,7 +124,7 @@ export function GalaxyPage({ initialPlanetId }: { initialPlanetId: PlanetId | un
                   system={selectedSystem}
                   systems={playerView.galaxy.systems}
                   fleets={playerView.fleets}
-                  players={game.players}
+                  players={gameDetails.players}
                   resetSignal={starSystemResetSignal}
                   onSelectGalaxy={showGalaxy}
                   onSelectPlanet={showPlanetDetails}

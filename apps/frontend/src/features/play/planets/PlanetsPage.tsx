@@ -1,4 +1,4 @@
-import type { GameId, GamePlayer, Planet, PlayerId } from "@api-types"
+import type { GameId, Player, Planet, PlayerId } from "@api-types"
 import { Assert, Sort } from "@guillaume-docquier/tools-ts"
 import { Link } from "@tanstack/react-router"
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react"
@@ -10,7 +10,7 @@ import { usePlayGameContext } from "@/features/play/PlayContext.tsx"
 import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 type OwnedPlanet = Planet & { readonly ownerPlayerId: PlayerId }
-type PlanetRow = { readonly planet: OwnedPlanet; readonly owner: GamePlayer; readonly ownerLabel: string }
+type PlanetRow = { readonly planet: OwnedPlanet; readonly owner: Player; readonly ownerLabel: string }
 type SortColumn = "planet" | "owner" | "coordinates" | "fertility" | "metal" | "fuel" | "energy" | "maxPopulation" | "area"
 type SortDirection = "ascending" | "descending"
 type PlanetSort = { readonly column: SortColumn; readonly direction: SortDirection }
@@ -37,13 +37,13 @@ const SORT_COMPARATORS = {
  * @returns The filterable and sortable Planets page.
  */
 export function PlanetsPage(): ReactElement {
-  const { game, playerView } = usePlayGameContext()
+  const { gameDetails, playerView } = usePlayGameContext()
   const [search, setSearch] = useState("")
   const [ownerFilter, setOwnerFilter] = useState<PlayerId | typeof ALL_PLAYERS>(ALL_PLAYERS)
   const [sort, setSort] = useState<PlanetSort>({ column: "owner", direction: "ascending" })
   const rows = createPlanetRows(
     playerView.galaxy.systems.flatMap(({ planets }) => planets),
-    game.players,
+    gameDetails.players,
   )
   const normalizedSearch = search.trim().toLocaleLowerCase()
   const ownerFilteredRows = rows.filter(({ owner }) => ownerFilter === ALL_PLAYERS || owner.id === ownerFilter)
@@ -63,7 +63,7 @@ export function PlanetsPage(): ReactElement {
       return
     }
 
-    const owner = game.players.find(({ id }) => id === value)
+    const owner = gameDetails.players.find(({ id }) => id === value)
     Assert.isDefined(owner)
     setOwnerFilter(owner.id)
   }
@@ -74,11 +74,11 @@ export function PlanetsPage(): ReactElement {
       <PlanetsFilters
         search={search}
         ownerFilter={ownerFilter}
-        owners={game.players}
+        owners={gameDetails.players}
         onSearchChange={setSearch}
         onOwnerFilterChange={changeOwnerFilter}
       />
-      <PlanetsTable gameId={game.id} rows={sortedRows} sort={sort} emptyMessage={"No matching planets"} onSort={changeSort} />
+      <PlanetsTable gameId={gameDetails.id} rows={sortedRows} sort={sort} emptyMessage={"No matching planets"} onSort={changeSort} />
     </section>
   )
 }
@@ -100,7 +100,7 @@ function PlanetsFilters({
 }: {
   search: string
   ownerFilter: PlayerId | typeof ALL_PLAYERS
-  owners: readonly GamePlayer[]
+  owners: readonly Player[]
   onSearchChange: (value: string) => void
   onOwnerFilterChange: (value: string) => void
 }): ReactElement {
@@ -290,7 +290,7 @@ function NumericCell({ value }: { value: number | string }): ReactElement {
   return <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">{value}</td>
 }
 
-function createPlanetRows(planets: readonly Planet[], players: readonly GamePlayer[]): PlanetRow[] {
+function createPlanetRows(planets: readonly Planet[], players: readonly Player[]): PlanetRow[] {
   const ownersById = new Map(players.map((player) => [player.id, player]))
 
   return planets.filter(isOwnedPlanet).map((planet) => {

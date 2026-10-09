@@ -22,8 +22,8 @@ export type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetT
 // Games
 export type GameDetails = TrpcRouterOutput["games"]["getById"]
 export type GameStatus = GameDetails["status"]
-export type GamePlayer = GameDetails["creator"]
-export type GamePlayers = GameDetails["players"]
+export type Player = GameDetails["creator"]
+export type Players = GameDetails["players"]
 export type GameCreationSettings = TrpcRouterOutput["games"]["getCreationSettings"]
 export type RulesetSummary = GameCreationSettings["rulesets"][number]
 

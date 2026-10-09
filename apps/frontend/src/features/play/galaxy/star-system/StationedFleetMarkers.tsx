@@ -1,4 +1,4 @@
-import type { Fleet, GamePlayer } from "@api-types"
+import type { Fleet, Player } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { ReactElement } from "react"
 import { FleetIcon } from "@/features/play/fleets/markers/FleetIcon.tsx"
@@ -16,7 +16,7 @@ export function StationedFleetMarkers({
   x: number
   y: number
   fleets: readonly Fleet[]
-  players: readonly GamePlayer[]
+  players: readonly Player[]
 }): ReactElement | null {
   if (fleets.length === 0) {
     return null

@@ -1,4 +1,4 @@
-import type { Fleet, GamePlayer, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
+import type { Fleet, Player, Planet as PlanetModel, PlanetSize, StarSystem } from "@api-types"
 import { Distance, UnitOfDistance } from "@guillaume-docquier/tools-ts"
 import type { KeyboardEvent, MouseEvent, ReactElement } from "react"
 import { useState } from "react"
@@ -55,7 +55,7 @@ export function StarSystemMap({
   system: StarSystem
   systems: readonly StarSystem[]
   fleets: readonly Fleet[]
-  players: readonly GamePlayer[]
+  players: readonly Player[]
   resetSignal: number
   onSelectGalaxy: () => void
   onSelectPlanet: (planet: PlanetModel) => void
@@ -208,7 +208,7 @@ function Planet({
 }: {
   planet: PlanetViewModel
   fleets: readonly Fleet[]
-  players: readonly GamePlayer[]
+  players: readonly Player[]
   ownerName: string | undefined
   onSelect: (planet: PlanetModel) => void
 }): ReactElement {
@@ -318,7 +318,7 @@ function StarLabel({ x, y, text }: { x: number; y: number; text: string }): Reac
   )
 }
 
-function getPlanetOwnerName(planet: PlanetModel, players: readonly GamePlayer[]): string | undefined {
+function getPlanetOwnerName(planet: PlanetModel, players: readonly Player[]): string | undefined {
   if (planet.ownerPlayerId === null) {
     return undefined
   }

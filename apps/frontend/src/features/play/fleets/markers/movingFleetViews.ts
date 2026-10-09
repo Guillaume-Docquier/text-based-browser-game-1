@@ -1,4 +1,4 @@
-import type { Fleet, GamePlayer, Planet, StarSystem } from "@api-types"
+import type { Fleet, Player, Planet, StarSystem } from "@api-types"
 import { Assert, Scalar } from "@guillaume-docquier/tools-ts"
 
 /**
@@ -11,7 +11,7 @@ export type MapPoint = { readonly x: number; readonly y: number }
  */
 export type MovingFleetView = {
   readonly fleet: Fleet
-  readonly owner: GamePlayer
+  readonly owner: Player
   readonly origin: Planet
   readonly destination: Planet
   readonly start: MapPoint
@@ -28,7 +28,7 @@ export type MovingFleetView = {
 type PlanetLocation = { readonly planet: Planet; readonly system: StarSystem }
 type MovingFleetJourney = {
   readonly fleet: Fleet
-  readonly owner: GamePlayer
+  readonly owner: Player
   readonly origin: PlanetLocation
   readonly destination: PlanetLocation
   readonly traveledFraction: number
@@ -40,7 +40,7 @@ type MovingFleetJourney = {
 export function getMovingFleetJourneys(
   systems: readonly StarSystem[],
   fleets: readonly Fleet[],
-  players: readonly GamePlayer[],
+  players: readonly Player[],
 ): MovingFleetJourney[] {
   const planetsById = new Map(systems.flatMap((system) => system.planets.map((planet) => [planet.id, { planet, system }] as const)))
   const ownersById = new Map(players.map((player) => [player.id, player]))

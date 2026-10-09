@@ -16,49 +16,49 @@ import { useLogger } from "@/lib/LoggerContext.tsx"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 import { timeAgo } from "@/lib/timeAgo.ts"
 
-export function LobbyPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
+export function GameDetailsPage({ gameId }: { gameId: ApiTypes.GameId }): ReactElement {
   const logger = useLogger()
-  const gameQuery = useGameDetailsQuery(gameId)
+  const gameDetailsQuery = useGameDetailsQuery(gameId)
 
-  if (gameQuery.isPending) {
-    return <LobbyLoadingState />
+  if (gameDetailsQuery.isPending) {
+    return <GameDetailsLoadingState />
   }
 
-  if (gameQuery.isError) {
-    logger.error("Could not fetch game", { gameId, error: gameQuery.error.message })
+  if (gameDetailsQuery.isError) {
+    logger.error("Could not fetch game", { gameId, error: gameDetailsQuery.error.message })
     return <Navigate to="/games" />
   }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <Game game={gameQuery.data} />
+      <GameDetails gameDetails={gameDetailsQuery.data} />
     </div>
   )
 }
 
-function Game({ game }: { game: ApiTypes.GameDetails }): ReactElement {
+function GameDetails({ gameDetails }: { gameDetails: ApiTypes.GameDetails }): ReactElement {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={game.configuration.name} />
+      <PageHeader title={gameDetails.configuration.name} />
       <Card className="border border-border/60">
         <CardContent className="flex flex-col gap-6">
           <div className="grid gap-4 md:grid-cols-3">
-            <DetailBlock label="Creator" value={game.creator.alias} />
-            <DetailBlock label="Created at" value={timeAgo(game.createdAt)} />
-            <DetailBlock label="Status" value={<GameStatusBadge status={game.status} />} />
+            <DetailBlock label="Creator" value={gameDetails.creator.alias} />
+            <DetailBlock label="Created at" value={timeAgo(gameDetails.createdAt)} />
+            <DetailBlock label="Status" value={<GameStatusBadge status={gameDetails.status} />} />
           </div>
-          <GameConfiguration configuration={game.configuration} />
-          {game.winnerAccountId !== null ? (
-            <DetailBlock label="Winner" value={getWinnerLabel(branded(game.winnerAccountId), game)} />
+          <GameConfigurationDetails gameConfigurationDetails={gameDetails.configuration} />
+          {gameDetails.winnerAccountId !== null ? (
+            <DetailBlock label="Winner" value={getWinnerLabel(branded(gameDetails.winnerAccountId), gameDetails)} />
           ) : null}
-          <LobbyActions game={game} />
+          <GameDetailsActions gameDetails={gameDetails} />
           <Separator />
           <div className="space-y-3">
             <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-              Players ({game.players.length}/{game.configuration.nbSeats})
+              Players ({gameDetails.players.length}/{gameDetails.configuration.nbSeats})
             </div>
             <div className="grid gap-2">
-              {game.players.map((player) => (
+              {gameDetails.players.map((player) => (
                 <Player player={player} key={player.id} />
               ))}
             </div>
@@ -69,7 +69,7 @@ function Game({ game }: { game: ApiTypes.GameDetails }): ReactElement {
   )
 }
 
-function LobbyActions({ game }: { game: ApiTypes.GameDetails }): ReactElement {
+function GameDetailsActions({ gameDetails }: { gameDetails: ApiTypes.GameDetails }): ReactElement {
   const navigate = useNavigate()
   const joinGame = useJoinGameMutation()
   const leaveGame = useLeaveGameMutation()
@@ -77,42 +77,42 @@ function LobbyActions({ game }: { game: ApiTypes.GameDetails }): ReactElement {
 
   return (
     <div className="flex flex-wrap gap-3">
-      {game.canJoin && (
+      {gameDetails.canJoin && (
         <Button
           disabled={joinGame.isPending}
           onClick={() => {
-            joinGame.mutate({ gameId: game.id })
+            joinGame.mutate({ gameId: gameDetails.id })
           }}
         >
           Join game
         </Button>
       )}
-      {game.canLeave && (
+      {gameDetails.canLeave && (
         <Button
           variant="outline"
           disabled={leaveGame.isPending}
           onClick={() => {
-            leaveGame.mutate({ gameId: game.id })
+            leaveGame.mutate({ gameId: gameDetails.id })
           }}
         >
           Leave game
         </Button>
       )}
-      {game.canStart && (
+      {gameDetails.canStart && (
         <Button
           disabled={startGame.isPending}
           onClick={() => {
-            startGame.mutate({ gameId: game.id })
+            startGame.mutate({ gameId: gameDetails.id })
           }}
         >
           Start game
         </Button>
       )}
-      {game.canOpen && (
+      {gameDetails.canOpen && (
         <Button
           disabled={startGame.isPending}
           onClick={() => {
-            void navigate({ to: "/games/$gameId/play", params: { gameId: game.id } })
+            void navigate({ to: "/games/$gameId/play", params: { gameId: gameDetails.id } })
           }}
         >
           Open game
@@ -122,12 +122,16 @@ function LobbyActions({ game }: { game: ApiTypes.GameDetails }): ReactElement {
   )
 }
 
-function GameConfiguration({ configuration }: { configuration: ApiTypes.GameConfigurationDetails }): ReactElement {
+function GameConfigurationDetails({
+  gameConfigurationDetails,
+}: {
+  gameConfigurationDetails: ApiTypes.GameConfigurationDetails
+}): ReactElement {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <DetailBlock label="Number of seats" value={`${configuration.nbSeats} players`} />
-      <DetailBlock label="Time per turn" value={formatTurnInterval(configuration.turnIntervalSeconds)} />
-      <DetailBlock label="Ruleset" value={configuration.ruleset.name} />
+      <DetailBlock label="Number of seats" value={`${gameConfigurationDetails.nbSeats} players`} />
+      <DetailBlock label="Time per turn" value={formatTurnInterval(gameConfigurationDetails.turnIntervalSeconds)} />
+      <DetailBlock label="Ruleset" value={gameConfigurationDetails.ruleset.name} />
     </div>
   )
 }
@@ -143,7 +147,7 @@ function DetailBlock({ label, value }: { label: string; value: ReactNode }): Rea
   )
 }
 
-function Player({ player }: { player: ApiTypes.GamePlayer }): ReactElement {
+function Player({ player }: { player: ApiTypes.Player }): ReactElement {
   const colorLabel = formatPlayerColor(player.color)
 
   return (
@@ -159,7 +163,7 @@ function Player({ player }: { player: ApiTypes.GamePlayer }): ReactElement {
   )
 }
 
-function LobbyLoadingState(): ReactElement {
+function GameDetailsLoadingState(): ReactElement {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <PageHeader title="Loading game" description="Fetching lobby details and available actions." />
@@ -185,8 +189,8 @@ function LobbyLoadingState(): ReactElement {
   )
 }
 
-function getWinnerLabel(winnerPlayerId: ApiTypes.PlayerId, game: ApiTypes.GameDetails): string {
-  const winner = [game.creator, ...game.players].find((player) => player.id === winnerPlayerId)
+function getWinnerLabel(winnerPlayerId: ApiTypes.PlayerId, gameDetails: ApiTypes.GameDetails): string {
+  const winner = [gameDetails.creator, ...gameDetails.players].find((player) => player.id === winnerPlayerId)
   if (winner === undefined) {
     return `Player ${winnerPlayerId}`
   }

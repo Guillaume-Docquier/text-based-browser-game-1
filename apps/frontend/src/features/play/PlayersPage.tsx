@@ -1,4 +1,4 @@
-import type { GamePlayer, PlayerView } from "@api-types"
+import type { Player, PlayerView } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { Check, CircleDashed } from "lucide-react"
 import type { ReactElement } from "react"
@@ -10,21 +10,21 @@ import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { formatPlayerColor, PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 export function PlayersPage(): ReactElement {
-  const { game, playerView } = usePlayGameContext()
+  const { gameDetails, playerView } = usePlayGameContext()
   const updateReadiness = useUpdateReadiness()
 
   return (
     <section className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
       <Header />
       <PlayersTable>
-        {game.players.map((player) => (
+        {gameDetails.players.map((player) => (
           <PlayerRow
             key={player.id}
             player={player}
             playerView={playerView}
             isReadinessPending={updateReadiness.isPending}
             onUpdateReadiness={(isReady) => {
-              updateReadiness.mutate({ gameId: game.id, turn: playerView.turn, isReady })
+              updateReadiness.mutate({ gameId: gameDetails.id, turn: playerView.turn, isReady })
             }}
           />
         ))}
@@ -56,7 +56,7 @@ function PlayerRow({
   isReadinessPending,
   onUpdateReadiness,
 }: {
-  player: GamePlayer
+  player: Player
   playerView: PlayerView
   isReadinessPending: boolean
   onUpdateReadiness: (isReady: boolean) => void

@@ -2,7 +2,7 @@ import type { Locator, Page } from "@playwright/test"
 import { CreateGamePage } from "./CreateGamePage.ts"
 import { WebsitePage } from "./WebsitePage.ts"
 
-export class GamesBrowserPage extends WebsitePage {
+export class GameSummariesPage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games" })
 
   private readonly createGameLink: Locator
@@ -19,16 +19,16 @@ export class GamesBrowserPage extends WebsitePage {
     this.myGamesButton = page.getByRole("button", { name: "My games" })
   }
 
-  public static async goto(page: Page): Promise<GamesBrowserPage> {
-    return await new GamesBrowserPage(page).goto()
+  public static async goto(page: Page): Promise<GameSummariesPage> {
+    return await new GameSummariesPage(page).goto()
   }
 
-  public async goto(): Promise<GamesBrowserPage> {
-    await this.page.goto(GamesBrowserPage.urlPattern.pathname)
+  public async goto(): Promise<GameSummariesPage> {
+    await this.page.goto(GameSummariesPage.urlPattern.pathname)
     return this
   }
 
-  public game(name: string): Locator {
+  public gameSummary(name: string): Locator {
     return this.page.getByRole("link").filter({ has: this.page.getByText(name, { exact: true }) })
   }
 

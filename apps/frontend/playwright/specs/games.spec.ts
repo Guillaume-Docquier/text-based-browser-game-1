@@ -3,7 +3,7 @@ import { TEST_RULESET_NAME } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
-import { GamesBrowserPage } from "../pages/GamesBrowserPage.ts"
+import { GameSummariesPage } from "../pages/GameSummariesPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
 test("the game creation page redirects signed-out visitors to sign in", async ({ page }) => {
@@ -31,7 +31,7 @@ test("the game creation page can create a game and opens the galaxy view when st
   const createGamePage = await CreateGamePage.goto(alice.page)
   const gameName = `Playwright game ${Date.now()}`
 
-  const lobbyPage = await test.step("Configure and create the game", async () => {
+  const gameDetailsPage = await test.step("Configure and create the game", async () => {
     await createGamePage.setGameName(gameName)
     await createGamePage.setMaxPlayers(3)
     await createGamePage.setTurnLength(Time.create(2, UnitOfTime.HOURS))
@@ -39,15 +39,15 @@ test("the game creation page can create a game and opens the galaxy view when st
     return await createGamePage.submit()
   })
 
-  await test.step("Verify the lobby configuration", async () => {
-    await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
-    await expect(lobbyPage.configurationValue("Number of seats")).toHaveText("3 players")
-    await expect(lobbyPage.configurationValue("Time per turn")).toHaveText("2 hr")
-    await expect(lobbyPage.configurationValue("Ruleset")).toContainText(TEST_RULESET_NAME)
+  await test.step("Verify the game configuration", async () => {
+    await expect(gameDetailsPage.gameNameHeading).toHaveText(gameName)
+    await expect(gameDetailsPage.configurationValue("Number of seats")).toHaveText("3 players")
+    await expect(gameDetailsPage.configurationValue("Time per turn")).toHaveText("2 hr")
+    await expect(gameDetailsPage.configurationValue("Ruleset")).toContainText(TEST_RULESET_NAME)
   })
 
   const galaxyPage = await test.step("Start the game", async () => {
-    return await lobbyPage.startGame()
+    return await gameDetailsPage.startGame()
   })
 
   await test.step("Verify the Galaxy opens", async () => {
@@ -57,58 +57,58 @@ test("the game creation page can create a game and opens the galaxy view when st
   })
 })
 
-test("the games browser filters game summaries by name and by player membership for signed in users", async ({ page, alice, bob }) => {
+test("the game summaries page filters by name and by player membership for signed in users", async ({ page, alice, bob }) => {
   const aliceGameName = `Playwright game ${Date.now()}-alice`
   const bobGameName = `Playwright game ${Date.now()}-bob`
 
-  const aliceLobbyPage = await test.step("Create a game as Alice", async () => {
+  const aliceGameDetailsPage = await test.step("Create a game as Alice", async () => {
     return await CreateGamePage.createGame({ creator: alice, settings: { gameName: aliceGameName } })
   })
 
   await test.step("Verify Alice's game", async () => {
-    await expect(aliceLobbyPage.gameNameHeading).toHaveText(aliceGameName)
+    await expect(aliceGameDetailsPage.gameNameHeading).toHaveText(aliceGameName)
   })
 
-  const bobLobbyPage = await test.step("Create a game as Bob", async () => {
+  const bobGameDetailsPage = await test.step("Create a game as Bob", async () => {
     return await CreateGamePage.createGame({ creator: bob, settings: { gameName: bobGameName } })
   })
 
   await test.step("Verify Bob's game", async () => {
-    await expect(bobLobbyPage.gameNameHeading).toHaveText(bobGameName)
+    await expect(bobGameDetailsPage.gameNameHeading).toHaveText(bobGameName)
   })
 
   await test.step("Load the games anonymously", async () => {
-    const gamesBrowserPage = await GamesBrowserPage.goto(page)
-    await expect(gamesBrowserPage.game(aliceGameName)).toBeVisible()
-    await expect(gamesBrowserPage.game(bobGameName)).toBeVisible()
-    await expect(gamesBrowserPage.myGamesButton).not.toBeVisible()
+    const gameSummariesPage = await GameSummariesPage.goto(page)
+    await expect(gameSummariesPage.gameSummary(aliceGameName)).toBeVisible()
+    await expect(gameSummariesPage.gameSummary(bobGameName)).toBeVisible()
+    await expect(gameSummariesPage.myGamesButton).not.toBeVisible()
   })
 
-  const aliceGamesBrowserPage = await GamesBrowserPage.goto(alice.page)
+  const aliceGameSummariesPage = await GameSummariesPage.goto(alice.page)
   await test.step("Filter Alice's games by name", async () => {
-    await aliceGamesBrowserPage.filterByName(bobGameName)
-    await expect(aliceGamesBrowserPage.game(aliceGameName)).not.toBeVisible()
-    await expect(aliceGamesBrowserPage.game(bobGameName)).toBeVisible()
+    await aliceGameSummariesPage.filterByName(bobGameName)
+    await expect(aliceGameSummariesPage.gameSummary(aliceGameName)).not.toBeVisible()
+    await expect(aliceGameSummariesPage.gameSummary(bobGameName)).toBeVisible()
   })
 
   await test.step("... and by my games", async () => {
-    await aliceGamesBrowserPage.filterToMyGames()
-    await expect(aliceGamesBrowserPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
-    await expect(aliceGamesBrowserPage.game(aliceGameName)).not.toBeVisible()
-    await expect(aliceGamesBrowserPage.game(bobGameName)).not.toBeVisible()
+    await aliceGameSummariesPage.filterToMyGames()
+    await expect(aliceGameSummariesPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
+    await expect(aliceGameSummariesPage.gameSummary(aliceGameName)).not.toBeVisible()
+    await expect(aliceGameSummariesPage.gameSummary(bobGameName)).not.toBeVisible()
   })
 
   await test.step("... by my games only", async () => {
-    await aliceGamesBrowserPage.filterByName("")
-    await expect(aliceGamesBrowserPage.game(aliceGameName)).toBeVisible()
-    await expect(aliceGamesBrowserPage.game(bobGameName)).not.toBeVisible()
+    await aliceGameSummariesPage.filterByName("")
+    await expect(aliceGameSummariesPage.gameSummary(aliceGameName)).toBeVisible()
+    await expect(aliceGameSummariesPage.gameSummary(bobGameName)).not.toBeVisible()
   })
 
   await test.step("Filter Bob's games", async () => {
-    const gamesBrowserPage = await GamesBrowserPage.goto(bob.page)
-    await gamesBrowserPage.filterToMyGames()
-    await expect(gamesBrowserPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
-    await expect(gamesBrowserPage.game(aliceGameName)).not.toBeVisible()
-    await expect(gamesBrowserPage.game(bobGameName)).toBeVisible()
+    const gameSummariesPage = await GameSummariesPage.goto(bob.page)
+    await gameSummariesPage.filterToMyGames()
+    await expect(gameSummariesPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
+    await expect(gameSummariesPage.gameSummary(aliceGameName)).not.toBeVisible()
+    await expect(gameSummariesPage.gameSummary(bobGameName)).toBeVisible()
   })
 })

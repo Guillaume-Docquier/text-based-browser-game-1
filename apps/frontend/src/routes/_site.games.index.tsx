@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { GamesBrowserPage } from "@/features/games/GamesBrowserPage.tsx"
+import { GameSummariesPage } from "@/features/games/GameSummariesPage.tsx"
 
 export const Route = createFileRoute("/_site/games/")({
-  component: GamesBrowserPage,
+  component: GameSummariesPage,
 })

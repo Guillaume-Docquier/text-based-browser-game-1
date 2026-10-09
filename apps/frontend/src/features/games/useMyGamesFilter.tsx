@@ -8,7 +8,7 @@ export function useMyGamesFilter(): Filter<ApiTypes.GameSummary> {
   const [showOnlyMyGames, setShowOnlyMyGames] = useState(false)
 
   return {
-    predicate: showOnlyMyGames ? (summary) => summary.hasJoined : undefined,
+    predicate: showOnlyMyGames ? (gameSummary) => gameSummary.hasJoined : undefined,
     element: (
       <Button
         key="my-games"
