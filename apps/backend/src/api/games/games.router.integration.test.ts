@@ -1,10 +1,10 @@
 import { Datetime, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
+import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
-import { createTestGameConfigurationStub } from "shared/testing/GameConfiguration.stub.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
@@ -31,7 +31,7 @@ describe("games.router", () => {
       const anonymous = await apiServer.createClient({ authenticated: false })
 
       const creator = await apiServer.createClient({ authenticated: true })
-      const newGameSettings = createTestGameConfigurationStub()
+      const newGameSettings = createGameConfigurationStub()
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -58,11 +58,11 @@ describe("games.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
 
       const creator = await apiServer.createClient({ authenticated: true })
-      const joinedGameSettings = createTestGameConfigurationStub({ name: "Joined game" })
+      const joinedGameSettings = createGameConfigurationStub({ name: "Joined game" })
       const { createdGameId: joinedGameId } = await creator.client.games.create.mutate({ configuration: joinedGameSettings })
 
       const otherCreator = await apiServer.createClient({ authenticated: true })
-      const notJoinedGameSettings = createTestGameConfigurationStub({ name: "Not joined game" })
+      const notJoinedGameSettings = createGameConfigurationStub({ name: "Not joined game" })
       const { createdGameId: notJoinedGameId } = await otherCreator.client.games.create.mutate({ configuration: notJoinedGameSettings })
 
       // Act
@@ -101,7 +101,7 @@ describe("games.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
       const nonPlayer = await apiServer.createClient({ authenticated: true })
-      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
 
       // Act
       const startGame = nonPlayer.client.games.startGame.mutate({ gameId: createdGameId })
@@ -115,7 +115,7 @@ describe("games.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true, id: "7f80447c-442a-4229-8d52-39b675b3e80c" })
       const { createdGameId } = await player.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ mapGenerationSeed: 1234 }),
+        configuration: createGameConfigurationStub({ mapGenerationSeed: 1234 }),
       })
 
       // Act
@@ -162,7 +162,7 @@ describe("games.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db, clock }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createTestGameConfigurationStub({ turnIntervalSeconds: 60 })
+      const newGameSettings = createGameConfigurationStub({ turnIntervalSeconds: 60 })
       const { createdGameId } = await player.client.games.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -191,7 +191,7 @@ describe("games.router", () => {
       const secondOpponent = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ nbSeats: 3, mapGenerationSeed: 1234 }),
+        configuration: createGameConfigurationStub({ nbSeats: 3, mapGenerationSeed: 1234 }),
       })
       await firstOpponent.client.games.join.mutate({ gameId: createdGameId })
       await secondOpponent.client.games.join.mutate({ gameId: createdGameId })
@@ -218,7 +218,7 @@ describe("games.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
       await joiner.client.games.join.mutate({ gameId: createdGameId })
 
       // Act
@@ -233,7 +233,7 @@ describe("games.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Act
@@ -281,7 +281,7 @@ describe("games.router", () => {
 
       // Act
       const createGameResult = await creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ mapGenerationSeed }),
+        configuration: createGameConfigurationStub({ mapGenerationSeed }),
       })
 
       // Assert
@@ -294,7 +294,7 @@ describe("games.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
 
       // Act
-      const createGame = creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub({ mapGenerationSeed }) })
+      const createGame = creator.client.games.create.mutate({ configuration: createGameConfigurationStub({ mapGenerationSeed }) })
 
       // Assert
       await expect(createGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
@@ -307,7 +307,7 @@ describe("games.router", () => {
 
       // Act
       const createGame = creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ rulesetId: "unknown" }),
+        configuration: createGameConfigurationStub({ rulesetId: "unknown" }),
       })
 
       // Assert
@@ -319,7 +319,7 @@ describe("games.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
       const creator = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createTestGameConfigurationStub()
+      const newGameSettings = createGameConfigurationStub()
 
       // Act
       const createGameResult = await creator.client.games.create.mutate({ configuration: newGameSettings })
@@ -363,7 +363,7 @@ describe("games.router", () => {
 
       // Act
       const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ nbSeats: 1 }),
+        configuration: createGameConfigurationStub({ nbSeats: 1 }),
       })
 
       // Assert
@@ -378,7 +378,7 @@ describe("games.router", () => {
 
       // Act
       const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ nbSeats: MAX_NB_SEATS }),
+        configuration: createGameConfigurationStub({ nbSeats: MAX_NB_SEATS }),
       })
 
       // Assert
@@ -393,7 +393,7 @@ describe("games.router", () => {
 
       // Act
       const createGame = creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ nbSeats: MAX_NB_SEATS + 1 }),
+        configuration: createGameConfigurationStub({ nbSeats: MAX_NB_SEATS + 1 }),
       })
 
       // Assert
@@ -407,7 +407,7 @@ describe("games.router", () => {
 
       // Act
       const createGame = anonymous.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub(),
+        configuration: createGameConfigurationStub(),
       })
 
       // Assert
@@ -422,7 +422,7 @@ describe("games.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const viewer = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createTestGameConfigurationStub()
+      const newGameSettings = createGameConfigurationStub()
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -462,7 +462,7 @@ describe("games.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      const newGameSettings = createTestGameConfigurationStub()
+      const newGameSettings = createGameConfigurationStub()
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -503,7 +503,7 @@ describe("games.router", () => {
       const viewer = await apiServer.createClient({ authenticated: true })
       const anonymous = await apiServer.createClient({ authenticated: false })
 
-      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Act
@@ -545,7 +545,7 @@ describe("games.router", () => {
       const secondJoiner = await apiServer.createClient({ authenticated: true })
       const thirdJoiner = await apiServer.createClient({ authenticated: true })
       const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ nbSeats: 4 }),
+        configuration: createGameConfigurationStub({ nbSeats: 4 }),
       })
 
       // Act
@@ -570,7 +570,7 @@ describe("games.router", () => {
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
       )
       const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ nbSeats: MAX_NB_SEATS }),
+        configuration: createGameConfigurationStub({ nbSeats: MAX_NB_SEATS }),
       })
 
       // Act
@@ -589,7 +589,7 @@ describe("games.router", () => {
         Array.from({ length: MAX_NB_SEATS - 1 }, async () => await apiServer.createClient({ authenticated: true })),
       )
       const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ nbSeats: MAX_NB_SEATS }),
+        configuration: createGameConfigurationStub({ nbSeats: MAX_NB_SEATS }),
       })
 
       await Promise.all(joiners.map(async (joiner) => await joiner.client.games.join.mutate({ gameId: createdGameId })))
@@ -612,7 +612,7 @@ describe("games.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createTestGameConfigurationStub({ nbSeats: 2 })
+      const newGameSettings = createGameConfigurationStub({ nbSeats: 2 })
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: newGameSettings })
 
       // Act
@@ -662,7 +662,7 @@ describe("games.router", () => {
       const joiner = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ nbSeats: 2 }),
+        configuration: createGameConfigurationStub({ nbSeats: 2 }),
       })
 
       await player.client.games.join.mutate({ gameId: createdGameId })
@@ -683,7 +683,7 @@ describe("games.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const joiner = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Act
@@ -703,7 +703,7 @@ describe("games.router", () => {
       const joiner = await apiServer.createClient({ authenticated: true })
 
       const { createdGameId } = await creator.client.games.create.mutate({
-        configuration: createTestGameConfigurationStub({ nbSeats: 3 }),
+        configuration: createGameConfigurationStub({ nbSeats: 3 }),
       })
       await joiner.client.games.join.mutate({ gameId: createdGameId })
 
@@ -736,7 +736,7 @@ describe("games.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
-      const newGameSettings = createTestGameConfigurationStub({ nbSeats: 2 })
+      const newGameSettings = createGameConfigurationStub({ nbSeats: 2 })
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: newGameSettings })
 
       await leaver.client.games.join.mutate({ gameId: createdGameId })
@@ -780,7 +780,7 @@ describe("games.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const leaver = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
       await leaver.client.games.join.mutate({ gameId: createdGameId })
       await creator.client.games.startGame.mutate({ gameId: createdGameId })
 
@@ -796,7 +796,7 @@ describe("games.router", () => {
       using apiServer = new ApiServer(await createApiStub({ db }))
       const player = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await player.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
 
       // Act
       const leaveGame = player.client.games.leave.mutate({ gameId: createdGameId })
@@ -811,7 +811,7 @@ describe("games.router", () => {
       const creator = await apiServer.createClient({ authenticated: true })
       const nonPlayer = await apiServer.createClient({ authenticated: true })
 
-      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createTestGameConfigurationStub() })
+      const { createdGameId } = await creator.client.games.create.mutate({ configuration: createGameConfigurationStub() })
 
       // Act
       await nonPlayer.client.games.leave.mutate({ gameId: createdGameId })

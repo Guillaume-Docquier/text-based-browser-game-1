@@ -1,7 +1,7 @@
 import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
+import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
-import { createTestGameConfigurationStub } from "shared/testing/GameConfiguration.stub.ts"
 import { describe, expect, it } from "vitest"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
 import { MAX_NB_SEATS } from "#api/games/GameLimits.ts"
@@ -22,7 +22,7 @@ describe("lobby concurrency", () => {
     Assert.isDefined(creator)
 
     const { createdGameId } = await creator.client.games.create.mutate({
-      configuration: createTestGameConfigurationStub({ nbSeats: 4 }),
+      configuration: createGameConfigurationStub({ nbSeats: 4 }),
     })
 
     // Act
@@ -49,7 +49,7 @@ describe("lobby concurrency", () => {
     Assert.isDefined(creator)
 
     const { createdGameId } = await creator.client.games.create.mutate({
-      configuration: createTestGameConfigurationStub({ nbSeats: NB_CONCURRENCY_TEST_ACCOUNTS }),
+      configuration: createGameConfigurationStub({ nbSeats: NB_CONCURRENCY_TEST_ACCOUNTS }),
     })
 
     // Act
