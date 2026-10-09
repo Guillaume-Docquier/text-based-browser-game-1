@@ -176,11 +176,11 @@ export type StartGameModel = {
   readonly galaxy: Galaxy
 }
 
-export type GameSummaryModel = {
+export type GameListingModel = {
   id: GameId
   name: string
   /**
-   * True if the account requesting the summary has joined the game.
+   * True if the account requesting the listing has joined the game.
    * Always false for anonymous users.
    */
   hasJoined: boolean
@@ -337,13 +337,13 @@ export class GamesRepository extends PostgresRepository {
   }
 
   /**
-   * Gets all game summaries; filtering and pagination can be added when needed.
+   * Gets all game listings; filtering and pagination can be added when needed.
    */
-  public async getGameSummaries(
+  public async getGameListings(
     { accountId }: { accountId: AccountId | undefined },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<GameSummaryModel[], string>> {
-    const summariesResult: Result<GameSummaryModel[], Error> = await Result.tryCatch(
+  ): Promise<Result<GameListingModel[], string>> {
+    const listingsResult: Result<GameListingModel[], Error> = await Result.tryCatch(
       db
         .select({
           id: gamesTable.id,
@@ -363,12 +363,12 @@ export class GamesRepository extends PostgresRepository {
         .leftJoin(playersTable, eq(playersTable.gameId, gamesTable.id))
         .groupBy(gamesTable.id),
     )
-    if (Result.isFailure(summariesResult)) {
-      this.logger.error("Failed to get game summaries", { error: summariesResult.error })
-      return Result.Failure(couldNot("get game summaries"))
+    if (Result.isFailure(listingsResult)) {
+      this.logger.error("Failed to get game listings", { error: listingsResult.error })
+      return Result.Failure(couldNot("get game listings"))
     }
 
-    return summariesResult
+    return listingsResult
   }
 
   public async getGameCreationSettings(db: PostgresRepository["db"] = this.db): Promise<Result<GameCreationSettingsModel, string>> {

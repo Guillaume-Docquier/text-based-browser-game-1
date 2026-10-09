@@ -3,7 +3,7 @@ import { TEST_RULESET_NAME } from "../constants.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
-import { GameSummariesPage } from "../pages/GameSummariesPage.ts"
+import { GameListingsPage } from "../pages/GameListingsPage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
 test("the game creation page redirects signed-out visitors to sign in", async ({ page }) => {
@@ -57,7 +57,7 @@ test("the game creation page can create a game and opens the galaxy view when st
   })
 })
 
-test("the game summaries page filters by name and by player membership for signed in users", async ({ page, alice, bob }) => {
+test("the game listings page filters by name and by player membership for signed in users", async ({ page, alice, bob }) => {
   const aliceGameName = `Playwright game ${Date.now()}-alice`
   const bobGameName = `Playwright game ${Date.now()}-bob`
 
@@ -78,37 +78,37 @@ test("the game summaries page filters by name and by player membership for signe
   })
 
   await test.step("Load the games anonymously", async () => {
-    const gameSummariesPage = await GameSummariesPage.goto(page)
-    await expect(gameSummariesPage.gameSummary(aliceGameName)).toBeVisible()
-    await expect(gameSummariesPage.gameSummary(bobGameName)).toBeVisible()
-    await expect(gameSummariesPage.myGamesButton).not.toBeVisible()
+    const gameListingsPage = await GameListingsPage.goto(page)
+    await expect(gameListingsPage.gameListing(aliceGameName)).toBeVisible()
+    await expect(gameListingsPage.gameListing(bobGameName)).toBeVisible()
+    await expect(gameListingsPage.myGamesButton).not.toBeVisible()
   })
 
-  const aliceGameSummariesPage = await GameSummariesPage.goto(alice.page)
+  const aliceGameListingsPage = await GameListingsPage.goto(alice.page)
   await test.step("Filter Alice's games by name", async () => {
-    await aliceGameSummariesPage.filterByName(bobGameName)
-    await expect(aliceGameSummariesPage.gameSummary(aliceGameName)).not.toBeVisible()
-    await expect(aliceGameSummariesPage.gameSummary(bobGameName)).toBeVisible()
+    await aliceGameListingsPage.filterByName(bobGameName)
+    await expect(aliceGameListingsPage.gameListing(aliceGameName)).not.toBeVisible()
+    await expect(aliceGameListingsPage.gameListing(bobGameName)).toBeVisible()
   })
 
   await test.step("... and by my games", async () => {
-    await aliceGameSummariesPage.filterToMyGames()
-    await expect(aliceGameSummariesPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
-    await expect(aliceGameSummariesPage.gameSummary(aliceGameName)).not.toBeVisible()
-    await expect(aliceGameSummariesPage.gameSummary(bobGameName)).not.toBeVisible()
+    await aliceGameListingsPage.filterToMyGames()
+    await expect(aliceGameListingsPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
+    await expect(aliceGameListingsPage.gameListing(aliceGameName)).not.toBeVisible()
+    await expect(aliceGameListingsPage.gameListing(bobGameName)).not.toBeVisible()
   })
 
   await test.step("... by my games only", async () => {
-    await aliceGameSummariesPage.filterByName("")
-    await expect(aliceGameSummariesPage.gameSummary(aliceGameName)).toBeVisible()
-    await expect(aliceGameSummariesPage.gameSummary(bobGameName)).not.toBeVisible()
+    await aliceGameListingsPage.filterByName("")
+    await expect(aliceGameListingsPage.gameListing(aliceGameName)).toBeVisible()
+    await expect(aliceGameListingsPage.gameListing(bobGameName)).not.toBeVisible()
   })
 
   await test.step("Filter Bob's games", async () => {
-    const gameSummariesPage = await GameSummariesPage.goto(bob.page)
-    await gameSummariesPage.filterToMyGames()
-    await expect(gameSummariesPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
-    await expect(gameSummariesPage.gameSummary(aliceGameName)).not.toBeVisible()
-    await expect(gameSummariesPage.gameSummary(bobGameName)).toBeVisible()
+    const gameListingsPage = await GameListingsPage.goto(bob.page)
+    await gameListingsPage.filterToMyGames()
+    await expect(gameListingsPage.myGamesButton).toHaveAttribute("aria-pressed", "true")
+    await expect(gameListingsPage.gameListing(aliceGameName)).not.toBeVisible()
+    await expect(gameListingsPage.gameListing(bobGameName)).toBeVisible()
   })
 })
