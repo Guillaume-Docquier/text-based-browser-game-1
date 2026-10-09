@@ -28,7 +28,7 @@ export type GameCreationSettings = TrpcRouterOutput["games"]["getCreationSetting
 export type RulesetSummary = GameCreationSettings["rulesets"][number]
 
 export type GameConfigurationDetails = GameDetails["configuration"]
-export type GameSummary = TrpcRouterOutput["games"]["getSummaries"][number]
+export type GameListing = TrpcRouterOutput["games"]["getListings"][number]
 
 // Gameplay router
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]

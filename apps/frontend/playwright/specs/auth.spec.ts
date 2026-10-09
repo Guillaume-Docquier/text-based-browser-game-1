@@ -2,7 +2,7 @@ import { clerk, clerkSetup } from "@clerk/testing/playwright"
 import { users } from "../auth.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
-import { GameSummariesPage } from "../pages/GameSummariesPage.ts"
+import { GameListingsPage } from "../pages/GameListingsPage.ts"
 import { HomePage } from "../pages/HomePage.ts"
 import { SignInPage } from "../pages/SignInPage.ts"
 
@@ -31,10 +31,10 @@ test("the authentication returns players to their requested page after sign-in a
   })
 
   await test.step("Try to create a game while signed out and get redirected to login", async () => {
-    const gameSummariesPage = await homePage.playForFree()
-    await expect(page).toHaveURL(GameSummariesPage.urlPattern)
-    await expect(gameSummariesPage.heading).toBeVisible()
-    await gameSummariesPage.createGame()
+    const gameListingsPage = await homePage.playForFree()
+    await expect(page).toHaveURL(GameListingsPage.urlPattern)
+    await expect(gameListingsPage.heading).toBeVisible()
+    await gameListingsPage.createGame()
 
     await expect(page).toHaveURL(SignInPage.urlPattern)
     expect(new URL(page.url()).searchParams.get("redirect")).toBe(CreateGamePage.urlPattern.pathname)

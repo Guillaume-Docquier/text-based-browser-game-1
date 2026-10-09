@@ -10,21 +10,21 @@ import { useGameNameFilter } from "@/features/games/useGameNameFilter.tsx"
 import { useMyGamesFilter } from "@/features/games/useMyGamesFilter.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { GameStatusBadge } from "@/features/play/components/GameStatusBadge.tsx"
-import { useGameSummariesQuery } from "@/lib/api/useGameSummariesQuery.ts"
+import { useGameListingsQuery } from "@/lib/api/useGameListingsQuery.ts"
 import { timeAgo } from "@/lib/timeAgo.ts"
 
-export function GameSummariesPage(): ReactElement {
+export function GameListingsPage(): ReactElement {
   const gameNameFilter = useGameNameFilter()
   const myGamesFilter = useMyGamesFilter()
-  const gameSummariesQuery = useGameSummariesQuery()
+  const gameListingsQuery = useGameListingsQuery()
   const { isSignedIn } = useAuth()
   const filters = isSignedIn === true ? [gameNameFilter, myGamesFilter] : [gameNameFilter]
 
-  if (gameSummariesQuery.isPending) {
-    return <GameSummariesLoadingState />
+  if (gameListingsQuery.isPending) {
+    return <GameListingsLoadingState />
   }
 
-  if (gameSummariesQuery.isError) {
+  if (gameListingsQuery.isError) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <PageHeader
@@ -38,14 +38,14 @@ export function GameSummariesPage(): ReactElement {
         />
         <Alert variant="destructive">
           <AlertTitle>Could not load games</AlertTitle>
-          <AlertDescription>{gameSummariesQuery.error.message}</AlertDescription>
+          <AlertDescription>{gameListingsQuery.error.message}</AlertDescription>
         </Alert>
       </div>
     )
   }
 
-  const gameSummaries = gameSummariesQuery.data
-    .filter((gameSummary) => filters.every(({ predicate }) => predicate?.(gameSummary) ?? true))
+  const gameListings = gameListingsQuery.data
+    .filter((gameListing) => filters.every(({ predicate }) => predicate?.(gameListing) ?? true))
     .toSorted((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt))
   const hasFilter = filters.some(({ predicate }) => predicate !== undefined)
 
@@ -63,10 +63,10 @@ export function GameSummariesPage(): ReactElement {
         <CardContent className="flex flex-col gap-4">
           <div className="flex max-w-xl flex-col gap-2 sm:flex-row">{filters.map(({ element }) => element)}</div>
           <div className="grid gap-3">
-            {gameSummaries.length === 0 ? (
-              <GameSummariesEmptyState hasFilter={hasFilter} />
+            {gameListings.length === 0 ? (
+              <GameListingsEmptyState hasFilter={hasFilter} />
             ) : (
-              gameSummaries.map((gameSummary) => <GameSummary key={gameSummary.id} gameSummary={gameSummary} />)
+              gameListings.map((gameListing) => <GameListing key={gameListing.id} gameListing={gameListing} />)
             )}
           </div>
         </CardContent>
@@ -75,23 +75,23 @@ export function GameSummariesPage(): ReactElement {
   )
 }
 
-function GameSummary({ gameSummary }: { gameSummary: ApiTypes.GameSummary }): ReactElement {
+function GameListing({ gameListing }: { gameListing: ApiTypes.GameListing }): ReactElement {
   return (
-    <Link to="/games/$gameId" params={{ gameId: gameSummary.id }} className="block">
+    <Link to="/games/$gameId" params={{ gameId: gameListing.id }} className="block">
       <Card size="sm" className="border border-border/60 transition-colors hover:bg-muted/40">
         <CardContent className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">#{gameSummary.id}</span>
-              <GameStatusBadge status={gameSummary.status} />
+              <span className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">#{gameListing.id}</span>
+              <GameStatusBadge status={gameListing.status} />
             </div>
-            <div className="font-heading text-lg font-medium text-foreground">{gameSummary.name}</div>
+            <div className="font-heading text-lg font-medium text-foreground">{gameListing.name}</div>
           </div>
           <div className="flex flex-col gap-1 text-sm text-muted-foreground md:items-end">
             <div>
-              {gameSummary.nbPlayers}/{gameSummary.nbSeats} players
+              {gameListing.nbPlayers}/{gameListing.nbSeats} players
             </div>
-            <div>Created {timeAgo(gameSummary.createdAt)}</div>
+            <div>Created {timeAgo(gameListing.createdAt)}</div>
           </div>
         </CardContent>
       </Card>
@@ -99,7 +99,7 @@ function GameSummary({ gameSummary }: { gameSummary: ApiTypes.GameSummary }): Re
   )
 }
 
-function GameSummariesLoadingState(): ReactElement {
+function GameListingsLoadingState(): ReactElement {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <PageHeader title="Games" actions={<Skeleton className="h-9 w-28 rounded-4xl" />} />
@@ -119,7 +119,7 @@ function GameSummariesLoadingState(): ReactElement {
   )
 }
 
-function GameSummariesEmptyState({ hasFilter }: { hasFilter: boolean }): ReactElement {
+function GameListingsEmptyState({ hasFilter }: { hasFilter: boolean }): ReactElement {
   return (
     <Card size="sm" className="border border-dashed border-border/70 bg-muted/20">
       <CardContent className="space-y-2">

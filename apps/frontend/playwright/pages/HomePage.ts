@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test"
-import { GameSummariesPage } from "./GameSummariesPage.ts"
+import { GameListingsPage } from "./GameListingsPage.ts"
 import { WebsitePage } from "./WebsitePage.ts"
 
 export class HomePage extends WebsitePage {
@@ -25,8 +25,8 @@ export class HomePage extends WebsitePage {
     return this
   }
 
-  public async playForFree(): Promise<GameSummariesPage> {
+  public async playForFree(): Promise<GameListingsPage> {
     await this.playForFreeLink.click()
-    return new GameSummariesPage(this.page)
+    return new GameListingsPage(this.page)
   }
 }

@@ -3,10 +3,10 @@ import { GameStatusSchema } from "shared/domain/games/GameStatus.ts"
 import { z } from "zod"
 
 /**
- * Public game summary, including the requesting account's membership.
+ * Public game listing, including the requesting account's membership.
  */
-export type GameSummaryDto = z.infer<typeof GameSummaryDtoSchema>
-export const GameSummaryDtoSchema = z.object({
+export type GameListingDto = z.infer<typeof GameListingDtoSchema>
+export const GameListingDtoSchema = z.object({
   id: GameIdSchema,
   name: z.string(),
   hasJoined: z.boolean(),

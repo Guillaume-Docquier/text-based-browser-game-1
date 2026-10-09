@@ -23,8 +23,8 @@ const TEST_RULESET_SUMMARY: RulesetSummaryDto = {
 }
 
 describe("games.router", () => {
-  describe("getSummaries", () => {
-    integrationTest("should get game summaries when anonymous", async ({ db }) => {
+  describe("getListings", () => {
+    integrationTest("should get game listings when anonymous", async ({ db }) => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub({ db }))
 
@@ -35,10 +35,10 @@ describe("games.router", () => {
       const { createdGameId } = await creator.client.games.create.mutate({ configuration: newGameSettings })
 
       // Act
-      const getGameSummariesResult = await anonymous.client.games.getSummaries.query()
+      const getGameListingsResult = await anonymous.client.games.getListings.query()
 
       // Assert
-      expect(getGameSummariesResult).toStrictEqual<typeof getGameSummariesResult>([
+      expect(getGameListingsResult).toStrictEqual<typeof getGameListingsResult>([
         {
           id: createdGameId,
           createdAt: expect.any(String),
@@ -53,7 +53,7 @@ describe("games.router", () => {
       ])
     })
 
-    integrationTest("should get game summaries when authenticated", async ({ db }) => {
+    integrationTest("should get game listings when authenticated", async ({ db }) => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub({ db }))
 
@@ -66,10 +66,10 @@ describe("games.router", () => {
       const { createdGameId: notJoinedGameId } = await otherCreator.client.games.create.mutate({ configuration: notJoinedGameSettings })
 
       // Act
-      const getGameSummariesResult = await creator.client.games.getSummaries.query()
+      const getGameListingsResult = await creator.client.games.getListings.query()
 
       // Assert
-      expect(getGameSummariesResult).toStrictEqual<typeof getGameSummariesResult>([
+      expect(getGameListingsResult).toStrictEqual<typeof getGameListingsResult>([
         {
           id: notJoinedGameId,
           createdAt: expect.any(String),

@@ -4,11 +4,11 @@ import { useState } from "react"
 import { Input } from "@/components/input.tsx"
 import type { Filter } from "@/features/games/Filter.ts"
 
-export function useGameNameFilter(): Filter<ApiTypes.GameSummary> {
+export function useGameNameFilter(): Filter<ApiTypes.GameListing> {
   const [gameName, setGameName] = useState("")
 
   return {
-    predicate: gameName === "" ? undefined : (gameSummary) => gameSummary.name.includes(gameName),
+    predicate: gameName === "" ? undefined : (gameListing) => gameListing.name.includes(gameName),
     element: (
       <div key="game-name" className="relative flex-1">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
