@@ -1,20 +1,20 @@
 import { Assert, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
-import { LobbyPage } from "../pages/LobbyPage.ts"
+import { GameDetailsPage } from "../pages/GameDetailsPage.ts"
 
 test("stationed fleet markers show each player's strength and color in the system view", async ({ alice, bob }) => {
-  const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () =>
+  const aliceGameDetailsPage = await test.step("Create a game for Alice and Bob", async () =>
     await CreateGamePage.createGame({
       creator: alice,
       participants: [bob],
       settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
     }))
-  const bobLobbyPage = new LobbyPage(bob.page)
+  const bobGameDetailsPage = new GameDetailsPage(bob.page)
 
   const aliceGalaxyPage = await test.step("Start the game", async () => {
-    await aliceLobbyPage.reload()
-    return await aliceLobbyPage.startGame()
+    await aliceGameDetailsPage.reload()
+    return await aliceGameDetailsPage.startGame()
   })
 
   await test.step("Both players build a Fleet and finish the turn", async () => {
@@ -24,8 +24,8 @@ test("stationed fleet markers show each player's strength and color in the syste
     const alicePlayersPage = await aliceActionsPage.openPlayers()
     await alicePlayersPage.toggleReady()
 
-    await bobLobbyPage.reload()
-    const bobGalaxyPage = await bobLobbyPage.openGame()
+    await bobGameDetailsPage.reload()
+    const bobGalaxyPage = await bobGameDetailsPage.openGame()
     const bobActionsPage = await bobGalaxyPage.openActions()
     await bobActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
     await bobActionsPage.toggleActionSelection("Political Campaign")
@@ -67,7 +67,7 @@ test("stationed fleet markers show each player's strength and color in the syste
 })
 
 test("the galaxy view distinguishes systems with claimed planets and system view labels claimed planets", async ({ alice, bob }) => {
-  const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () => {
+  const aliceGameDetailsPage = await test.step("Create a game for Alice and Bob", async () => {
     return await CreateGamePage.createGame({
       creator: alice,
       participants: [bob],
@@ -75,12 +75,12 @@ test("the galaxy view distinguishes systems with claimed planets and system view
     })
   })
 
-  const aliceGalaxyPage = await test.step("Start the game", async () => await aliceLobbyPage.startGame())
+  const aliceGalaxyPage = await test.step("Start the game", async () => await aliceGameDetailsPage.startGame())
 
-  const bobGalaxyPage = await test.step("Open the game from the participant lobby", async () => {
-    const bobLobbyPage = new LobbyPage(bob.page)
-    await bobLobbyPage.reload()
-    return await bobLobbyPage.openGame()
+  const bobGalaxyPage = await test.step("Open the game from the participant's game details page", async () => {
+    const bobGameDetailsPage = new GameDetailsPage(bob.page)
+    await bobGameDetailsPage.reload()
+    return await bobGameDetailsPage.openGame()
   })
 
   await test.step("Distinguish each player's own and opponent-owned systems", async () => {
@@ -122,8 +122,8 @@ test("the galaxy view distinguishes systems with claimed planets and system view
 })
 
 test("the galaxy view can be navigated and the star system view can inspect planets", async ({ alice }) => {
-  const lobbyPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
-  const galaxyPage = await test.step("Start the game", async () => await lobbyPage.startGame())
+  const gameDetailsPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
+  const galaxyPage = await test.step("Start the game", async () => await gameDetailsPage.startGame())
 
   await test.step("Center and fit a Galaxy region", async () => {
     const selectedRegion = galaxyPage.region("last")

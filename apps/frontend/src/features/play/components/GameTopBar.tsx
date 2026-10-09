@@ -1,4 +1,4 @@
-import type { Lobby, PlayerId, PlayerView } from "@api-types"
+import type { GameDetails, PlayerId, PlayerView } from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
 import { Crown, RefreshCw } from "lucide-react"
 import { type ReactElement, useEffect, useState } from "react"
@@ -12,28 +12,30 @@ import { useRefreshClientData } from "@/lib/api/useRefreshClientData.ts"
 import { useUpdateReadiness } from "@/lib/api/useUpdateReadiness.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
-export function GameTopBar({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
+export function GameTopBar({ gameDetails, playerView }: { gameDetails: GameDetails; playerView: PlayerView }): ReactElement {
   return (
     <header className="shrink-0 border-b border-border/70 bg-background/80 px-4 sm:px-6">
       <div className="grid min-w-0 grid-cols-1 items-center gap-x-4 sm:h-[calc(6rem-1px)] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         <div className="min-w-0 space-y-1 py-3 sm:py-0">
-          <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Game #{game.id}</div>
+          <div className="text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">Game #{gameDetails.id}</div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">{game.configuration.name}</h1>
+            <h1 className="min-w-0 truncate font-heading text-xl font-semibold text-foreground sm:text-2xl">
+              {gameDetails.configuration.name}
+            </h1>
             <TurnStatusBadge status={playerView.turnStatus} />
           </div>
         </div>
         <div className="min-w-0 justify-self-center self-stretch">
-          <TurnControl game={game} playerView={playerView} />
+          <TurnControl gameDetails={gameDetails} playerView={playerView} />
         </div>
         <div className="min-w-0 justify-self-end py-3 sm:py-0">
           <ResourcesFact resources={playerView.resources} />
         </div>
       </div>
-      {game.winnerAccountId === null ? null : (
+      {gameDetails.winnerAccountId === null ? null : (
         <div className="mb-3 flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
           <Crown className="size-4" />
-          <span>{getWinnerLabel(branded(game.winnerAccountId), game)} has won the game.</span>
+          <span>{getWinnerLabel(branded(gameDetails.winnerAccountId), gameDetails)} has won the game.</span>
         </div>
       )}
     </header>
@@ -93,7 +95,7 @@ function ResourcesFact({ resources }: { resources: PlayerView["resources"] }): R
   )
 }
 
-function TurnControl({ game, playerView }: { game: Lobby; playerView: PlayerView }): ReactElement {
+function TurnControl({ gameDetails, playerView }: { gameDetails: GameDetails; playerView: PlayerView }): ReactElement {
   const logger = useLogger()
   const updateReadiness = useUpdateReadiness()
   const refreshClientData = useRefreshClientData()
@@ -150,9 +152,9 @@ function TurnControl({ game, playerView }: { game: Lobby; playerView: PlayerView
         deadline={turnEndsAtLabel}
         isLockedIn={playerView.player.isReady}
         isPending={updateReadiness.isPending}
-        disabled={updateReadiness.isPending || playerView.turnStatus !== "COLLECTING_ACTIONS" || game.winnerAccountId !== null}
+        disabled={updateReadiness.isPending || playerView.turnStatus !== "COLLECTING_ACTIONS" || gameDetails.winnerAccountId !== null}
         onToggle={() => {
-          updateReadiness.mutate({ gameId: game.id, turn: playerView.turn, isReady: !playerView.player.isReady })
+          updateReadiness.mutate({ gameId: gameDetails.id, turn: playerView.turn, isReady: !playerView.player.isReady })
         }}
       />
       {updateReadiness.error === null ? null : (
@@ -195,8 +197,8 @@ function NextTurnRefreshButton({
   )
 }
 
-function getWinnerLabel(winnerPlayerId: PlayerId, game: Lobby): string {
-  const winner = [game.creator, ...game.players].find((player) => player.id === winnerPlayerId)
+function getWinnerLabel(winnerPlayerId: PlayerId, gameDetails: GameDetails): string {
+  const winner = [gameDetails.creator, ...gameDetails.players].find((player) => player.id === winnerPlayerId)
   if (winner === undefined) {
     return `Player ${winnerPlayerId}`
   }

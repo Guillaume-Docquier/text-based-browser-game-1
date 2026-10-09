@@ -1,3 +1,4 @@
+import type { FinishOnboardingRequest } from "@api-types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 import { protectAgainstInvalidationMeta } from "@/lib/api/queryInvalidation.ts"
@@ -34,7 +35,7 @@ export function useOnboarding({ enabled }: { enabled: boolean }) {
 
   return {
     isOnboarded: isOnboardedQuery.data,
-    finishOnboarding: ({ alias }: { alias: string }): void => {
+    finishOnboarding: ({ alias }: FinishOnboardingRequest): void => {
       finishOnboardingMutation.mutate({ alias })
     },
     isFinishingOnboarding: finishOnboardingMutation.isPending,

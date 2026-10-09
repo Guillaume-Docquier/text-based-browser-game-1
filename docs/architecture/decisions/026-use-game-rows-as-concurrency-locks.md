@@ -27,8 +27,8 @@ When a lobby operation also locks other rows, lock the game row first. Active ga
 Application and repository code should use a `getForOperation` and `operation` method pair when the controller or use case needs to make the decision. For example:
 
 - `getGameForStart` and `startGame`
-- `getLobbyForJoin` and `joinLobby`
-- `getLobbyForLeave` and `leaveLobby`
+- `getGameForJoin` and `joinGame`
+- `getGameForLeave` and `leaveGame`
 
 Gameplay repository methods use the same transaction while locking the current Turn row.
 
@@ -37,7 +37,7 @@ The `getForOperation` method:
 - receives the transaction;
 - locks the owning game or Turn row;
 - reads the state needed by the controller or use case;
-- returns a branded model such as `GameForStart` or `LobbyForJoin`.
+- returns a branded model such as `GameForStart` or `GameForJoin`.
 
 The controller or use case checks the rules and decides what to store. It then calls the paired repository method with a model that includes the branded value and passes the same transaction.
 

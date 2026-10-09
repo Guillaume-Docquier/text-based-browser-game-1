@@ -48,7 +48,7 @@ export const Boundaries = {
           ...policy({
             element: Elements.DOMAIN,
             disallow: DisallowEverything,
-            allow: elements([Elements.DOMAIN]),
+            allow: elements([Elements.DOMAIN, Elements.TESTING]),
           }),
           ...policy({
             element: Elements.TESTING,

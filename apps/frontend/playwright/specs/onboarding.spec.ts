@@ -56,8 +56,8 @@ test("the onboarding modal is not visible while fetching the onboarding status",
   await test.step("Do not retry after a successful mutation", async () => {
     const gameName = `Onboarding invalidation ${Date.now()}`
     await createGamePage.setGameName(gameName)
-    const lobbyPage = await createGamePage.submit()
-    await expect(lobbyPage.gameNameHeading).toHaveText(gameName)
+    const gameDetailsPage = await createGamePage.submit()
+    await expect(gameDetailsPage.gameNameHeading).toHaveText(gameName)
     await expect.poll(() => statusRequestCount).toBe(4)
   })
 })

@@ -2,8 +2,8 @@ import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 
 test("the game page displays resources in canonical order and shows availability details", async ({ alice }) => {
-  const lobbyPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
-  const galaxyPage = await test.step("Start the game", async () => await lobbyPage.startGame())
+  const gameDetailsPage = await test.step("Create a game", async () => await CreateGamePage.createGame({ creator: alice }))
+  const galaxyPage = await test.step("Start the game", async () => await gameDetailsPage.startGame())
 
   await test.step("Display resources in their canonical order", async () => {
     await expect(galaxyPage.resources).toHaveCount(5)

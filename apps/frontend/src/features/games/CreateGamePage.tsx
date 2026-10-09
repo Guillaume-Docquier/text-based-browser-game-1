@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/skeleton.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { useCreateGameMutation } from "@/lib/api/useCreateGameMutation.ts"
-import { useLobbyCreationSettingsQuery } from "@/lib/api/useLobbyCreationSettingsQuery.ts"
+import { useGameCreationSettingsQuery } from "@/lib/api/useGameCreationSettingsQuery.ts"
 
 type TurnIntervalUnit = Enumify<typeof TurnIntervalUnit>
 const TurnIntervalUnit = {
@@ -20,7 +20,7 @@ const TurnIntervalUnit = {
 } as const
 
 export function CreateGamePage({ mapGenerationSeed }: { mapGenerationSeed: number | undefined }): ReactElement {
-  const creationSettingsQuery = useLobbyCreationSettingsQuery()
+  const creationSettingsQuery = useGameCreationSettingsQuery()
 
   if (creationSettingsQuery.isPending || creationSettingsQuery.isFetching) {
     return <CreateGameLoadingState />
@@ -41,7 +41,7 @@ function CreateGameForm({
   creationSettings,
   mapGenerationSeed,
 }: {
-  creationSettings: ApiTypes.LobbyCreationSettings
+  creationSettings: ApiTypes.GameCreationSettings
   mapGenerationSeed: number | undefined
 }): ReactElement {
   const [name, setName] = useState("")

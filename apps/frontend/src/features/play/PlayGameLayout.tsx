@@ -6,26 +6,26 @@ import { Button } from "@/components/button.tsx"
 import { PageHeader } from "@/features/PageHeader.tsx"
 import { GameLayout, GameLayoutSkeleton } from "@/features/play/components/GameLayout.tsx"
 import { PlayGameContextProvider, type PlayGameContextValue } from "@/features/play/PlayContext.tsx"
-import { useLobbyQuery } from "@/lib/api/useLobbyQuery.ts"
+import { useGameDetailsQuery } from "@/lib/api/useGameDetailsQuery.ts"
 import { usePlayerViewQuery } from "@/lib/api/usePlayerViewQuery.ts"
 import { useLogger } from "@/lib/LoggerContext.tsx"
 
 export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
   const logger = useLogger()
-  const gameQuery = useLobbyQuery(gameId)
+  const gameDetailsQuery = useGameDetailsQuery(gameId)
   const playerViewQuery = usePlayerViewQuery(gameId)
 
-  if (gameQuery.isPending || playerViewQuery.isPending) {
+  if (gameDetailsQuery.isPending || playerViewQuery.isPending) {
     return <GameLayoutSkeleton />
   }
 
-  if (gameQuery.isError) {
-    logger.error("Could not fetch game", { gameId, error: gameQuery.error.message })
+  if (gameDetailsQuery.isError) {
+    logger.error("Could not fetch game", { gameId, error: gameDetailsQuery.error.message })
     return (
       <GameLoadError
-        message={gameQuery.error.message ?? "Please try again."}
+        message={gameDetailsQuery.error.message ?? "Please try again."}
         onRetry={() => {
-          void gameQuery.refetch()
+          void gameDetailsQuery.refetch()
         }}
       />
     )
@@ -43,11 +43,11 @@ export function PlayGameLayout({ gameId }: { gameId: GameId }): ReactElement {
     )
   }
 
-  const context: PlayGameContextValue = { game: gameQuery.data, playerView: playerViewQuery.data }
+  const context: PlayGameContextValue = { gameDetails: gameDetailsQuery.data, playerView: playerViewQuery.data }
 
   return (
     <PlayGameContextProvider value={context}>
-      <GameLayout game={context.game} playerView={context.playerView}>
+      <GameLayout gameDetails={context.gameDetails} playerView={context.playerView}>
         <Outlet />
       </GameLayout>
     </PlayGameContextProvider>

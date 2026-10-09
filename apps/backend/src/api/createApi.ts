@@ -10,20 +10,18 @@ import type { AuthService } from "#api/auth/auth.service.ts"
 import type { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
 import { createGameplayRouter } from "#api/gameplay/gameplay.router.ts"
 import { GetPlayerViewUseCase } from "#api/gameplay/getPlayerView.useCase.ts"
-import { StartGameUseCase } from "#api/gameplay/startGame.useCase.ts"
 import { UpdateActionSubmissionUseCase } from "#api/gameplay/updateActionSubmission.useCase.ts"
 import { UpdateReadinessUseCase } from "#api/gameplay/updateReadiness.useCase.ts"
+import { CreateGameUseCase } from "#api/games/createGame.useCase.ts"
+import type { GamesRepository } from "#api/games/games.repository.ts"
+import { createGamesRouter } from "#api/games/games.router.ts"
+import { GetGameByIdUseCase } from "#api/games/getGameById.useCase.ts"
+import { GetGameCreationSettingsUseCase } from "#api/games/getGameCreationSettings.useCase.ts"
+import { GetGameSummariesUseCase } from "#api/games/getGameSummaries.useCase.ts"
+import { JoinGameUseCase } from "#api/games/joinGame.useCase.ts"
+import { LeaveGameUseCase } from "#api/games/leaveGame.useCase.ts"
+import { StartGameUseCase } from "#api/games/startGame.useCase.ts"
 import { createHealthRouter } from "#api/health/health.router.ts"
-import { GetListingsUseCase } from "#api/listings/getListings.useCase.ts"
-import type { ListingsRepository } from "#api/listings/listings.repository.ts"
-import { createListingsRouter } from "#api/listings/listings.router.ts"
-import { CreateLobbyUseCase } from "#api/lobbies/createLobby.useCase.ts"
-import { GetLobbyByIdUseCase } from "#api/lobbies/getLobbyById.useCase.ts"
-import { GetLobbyCreationSettingsUseCase } from "#api/lobbies/getLobbyCreationSettings.useCase.ts"
-import { JoinLobbyUseCase } from "#api/lobbies/joinLobby.useCase.ts"
-import { LeaveLobbyUseCase } from "#api/lobbies/leaveLobby.useCase.ts"
-import type { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
-import { createLobbiesRouter } from "#api/lobbies/lobbies.router.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
@@ -49,20 +47,19 @@ export async function createApi({
   logger: Logger
   clock: Clock
   accountsRepository: AccountsRepository
-  listingsRepository: ListingsRepository
-  lobbiesRepository: LobbiesRepository
+  gamesRepository: GamesRepository
   gameplayRepository: GameplayRepository
   rulesetsRepository: RulesetsRepository
 }): Promise<Express> {
   const applicationServices = { ...services, createTransaction }
   const useCases = {
     finishOnboardingUseCase: new FinishOnboardingUseCase(applicationServices),
-    getListingsUseCase: new GetListingsUseCase(applicationServices),
-    createLobbyUseCase: new CreateLobbyUseCase(applicationServices),
-    getLobbyByIdUseCase: new GetLobbyByIdUseCase(applicationServices),
-    getLobbyCreationSettingsUseCase: new GetLobbyCreationSettingsUseCase(applicationServices),
-    joinLobbyUseCase: new JoinLobbyUseCase(applicationServices),
-    leaveLobbyUseCase: new LeaveLobbyUseCase(applicationServices),
+    getGameSummariesUseCase: new GetGameSummariesUseCase(applicationServices),
+    createGameUseCase: new CreateGameUseCase(applicationServices),
+    getGameByIdUseCase: new GetGameByIdUseCase(applicationServices),
+    getGameCreationSettingsUseCase: new GetGameCreationSettingsUseCase(applicationServices),
+    joinGameUseCase: new JoinGameUseCase(applicationServices),
+    leaveGameUseCase: new LeaveGameUseCase(applicationServices),
     getPlayerViewUseCase: new GetPlayerViewUseCase(applicationServices),
     startGameUseCase: new StartGameUseCase(applicationServices),
     updateActionSubmissionUseCase: new UpdateActionSubmissionUseCase(applicationServices),
@@ -92,31 +89,30 @@ export type TrpcRouter = ReturnType<typeof createTrpcRouter>
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
 function createTrpcRouter({
   logger,
-  gameplayRepository,
+  gamesRepository,
   ...services
 }: {
   finishOnboardingUseCase: FinishOnboardingUseCase
-  getListingsUseCase: GetListingsUseCase
-  createLobbyUseCase: CreateLobbyUseCase
-  getLobbyByIdUseCase: GetLobbyByIdUseCase
-  getLobbyCreationSettingsUseCase: GetLobbyCreationSettingsUseCase
-  joinLobbyUseCase: JoinLobbyUseCase
-  leaveLobbyUseCase: LeaveLobbyUseCase
-  gameplayRepository: GameplayRepository
+  getGameSummariesUseCase: GetGameSummariesUseCase
+  createGameUseCase: CreateGameUseCase
+  getGameByIdUseCase: GetGameByIdUseCase
+  getGameCreationSettingsUseCase: GetGameCreationSettingsUseCase
+  joinGameUseCase: JoinGameUseCase
+  leaveGameUseCase: LeaveGameUseCase
+  gamesRepository: GamesRepository
   getPlayerViewUseCase: GetPlayerViewUseCase
   startGameUseCase: StartGameUseCase
   updateActionSubmissionUseCase: UpdateActionSubmissionUseCase
   updateReadinessUseCase: UpdateReadinessUseCase
   logger: Logger
 }) {
-  const trpc = createTrpc({ logger, gameplayRepository })
+  const trpc = createTrpc({ logger, gamesRepository })
   const routerServices = { trpc, logger, ...services }
 
   return trpc.router({
     accounts: createAccountsRouter(routerServices),
     gameplay: createGameplayRouter(routerServices),
-    listings: createListingsRouter(routerServices),
-    lobbies: createLobbiesRouter(routerServices),
+    games: createGamesRouter(routerServices),
   })
 }
 

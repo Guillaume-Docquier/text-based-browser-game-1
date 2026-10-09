@@ -9,56 +9,56 @@ import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { rollbackOnFailure } from "#lib/db/drizzle/rollbackOnFailure.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { couldNot } from "#lib/errors.ts"
-import type { LobbiesRepository } from "./lobbies.repository.ts"
+import type { GamesRepository } from "./games.repository.ts"
 
 /**
  * Joins a lobby atomically, assigning an unused player color and updating its status.
  */
-export class JoinLobbyUseCase {
+export class JoinGameUseCase {
   private readonly logger: Logger
   private readonly createTransaction: CreateTransaction
-  private readonly lobbiesRepository: LobbiesRepository
+  private readonly gamesRepository: GamesRepository
 
   public constructor({
     logger,
     createTransaction,
-    lobbiesRepository,
+    gamesRepository,
   }: {
     logger: Logger
     createTransaction: CreateTransaction
-    lobbiesRepository: LobbiesRepository
+    gamesRepository: GamesRepository
   }) {
-    this.logger = logger.child({ scope: "join-lobby-use-case" })
+    this.logger = logger.child({ scope: "join-game-use-case" })
     this.createTransaction = createTransaction
-    this.lobbiesRepository = lobbiesRepository
+    this.gamesRepository = gamesRepository
   }
 
   /**
    * Joining an already joined lobby returns a success for idempotency.
    */
-  public async execute({ gameId, accountId }: JoinLobbyDto): Promise<Result<void, string>> {
+  public async execute({ gameId, accountId }: JoinGameDto): Promise<Result<void, string>> {
     const playerId = branded<PlayerId>(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
-      const lobbyForJoin = await this.lobbiesRepository.getLobbyForJoin({ gameId }, tx)
-      rollbackOnFailure(lobbyForJoin, "Failed to get lobby.")
+      const gameForJoin = await this.gamesRepository.getGameForJoin({ gameId }, tx)
+      rollbackOnFailure(gameForJoin, "Failed to get lobby.")
 
-      if (lobbyForJoin.value.players.find((player) => player.id === playerId) !== undefined) {
+      if (gameForJoin.value.players.find((player) => player.id === playerId) !== undefined) {
         // Already part of the game, return a success for idempotency
         return
       }
 
-      if (lobbyForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
+      if (gameForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
         throw new TransactionRollbackError("Cannot join lobby, it is full.")
       }
 
       const status =
-        lobbyForJoin.value.players.length + 1 >= lobbyForJoin.value.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
+        gameForJoin.value.players.length + 1 >= gameForJoin.value.nbSeats ? GameStatus.READY_TO_START : GameStatus.WAITING_FOR_PLAYERS
 
-      const usedColors = new Set(lobbyForJoin.value.players.map((player) => player.color))
+      const usedColors = new Set(gameForJoin.value.players.map((player) => player.color))
       const color = PLAYER_COLOR_PRIORITY.find((candidateColor) => !usedColors.has(candidateColor))
       Assert.isDefined(color)
 
-      await this.lobbiesRepository.joinLobby({ context: lobbyForJoin.value, playerId, color, status }, tx)
+      await this.gamesRepository.joinGame({ context: gameForJoin.value, playerId, color, status }, tx)
     })
 
     if (Result.isFailure(joinGameResult)) {
@@ -70,8 +70,8 @@ export class JoinLobbyUseCase {
   }
 }
 
-export type JoinLobbyDto = z.infer<typeof JoinLobbyDtoSchema>
-export const JoinLobbyDtoSchema = z.object({
+export type JoinGameDto = z.infer<typeof JoinGameDtoSchema>
+export const JoinGameDtoSchema = z.object({
   gameId: GameIdSchema,
   accountId: AccountIdSchema,
 })

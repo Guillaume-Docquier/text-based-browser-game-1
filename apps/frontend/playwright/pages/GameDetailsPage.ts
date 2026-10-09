@@ -2,7 +2,7 @@ import type { Locator, Page } from "@playwright/test"
 import { GalaxyPage } from "./GalaxyPage.ts"
 import { WebsitePage } from "./WebsitePage.ts"
 
-export class LobbyPage extends WebsitePage {
+export class GameDetailsPage extends WebsitePage {
   public static readonly urlPattern = new URLPattern({ pathname: "/games/:gameId(\\d+)" })
 
   private readonly startGameButton: Locator
@@ -17,11 +17,11 @@ export class LobbyPage extends WebsitePage {
     this.openGameButton = page.getByRole("button", { name: "Open game" })
   }
 
-  public static async goto(page: Page, gameId: number): Promise<LobbyPage> {
-    return await new LobbyPage(page).goto(gameId)
+  public static async goto(page: Page, gameId: number): Promise<GameDetailsPage> {
+    return await new GameDetailsPage(page).goto(gameId)
   }
 
-  public async goto(gameId: number): Promise<LobbyPage> {
+  public async goto(gameId: number): Promise<GameDetailsPage> {
     await this.page.goto(`/games/${gameId}`)
     return this
   }
@@ -37,8 +37,8 @@ export class LobbyPage extends WebsitePage {
   }
 
   public async getGameId(): Promise<number> {
-    await this.page.waitForURL(LobbyPage.urlPattern)
-    return Number(LobbyPage.urlPattern.exec(this.page.url())?.pathname.groups.gameId)
+    await this.page.waitForURL(GameDetailsPage.urlPattern)
+    return Number(GameDetailsPage.urlPattern.exec(this.page.url())?.pathname.groups.gameId)
   }
 
   public async reload(): Promise<void> {

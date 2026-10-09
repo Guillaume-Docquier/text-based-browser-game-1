@@ -5,8 +5,7 @@ import { AuthService } from "#api/auth/auth.service.ts"
 import { TestHeaderAuthProvider } from "#api/auth/TestHeaderAuthProvider.ts"
 import { createApi } from "#api/createApi.ts"
 import { GameplayRepository } from "#api/gameplay/gameplay.repository.ts"
-import { ListingsRepository } from "#api/listings/listings.repository.ts"
-import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
+import { GamesRepository } from "#api/games/games.repository.ts"
 import { Clock } from "#lib/Clock.ts"
 import { createCreateTransaction, type Database } from "#lib/db/createDb.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
@@ -28,8 +27,7 @@ export async function createApiStub({ db, clock = Clock }: { db: Database; clock
     authService: new AuthService({ logger, authProvider: new TestHeaderAuthProvider(), accountsRepository }),
     createTransaction: createCreateTransaction(db),
     accountsRepository,
-    listingsRepository: new ListingsRepository({ db, logger }),
-    lobbiesRepository: new LobbiesRepository({ db, logger }),
+    gamesRepository: new GamesRepository({ db, logger }),
     gameplayRepository: new GameplayRepository({ db, logger, clock }),
     rulesetsRepository: new RulesetsRepository({ db, logger }),
   } as const satisfies Parameters<typeof createApi>[0]

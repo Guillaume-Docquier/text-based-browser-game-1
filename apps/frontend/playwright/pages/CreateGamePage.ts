@@ -2,7 +2,7 @@ import { Assert, type Time, type UnitOfTime } from "@guillaume-docquier/tools-ts
 import type { Locator, Page } from "@playwright/test"
 import type { AuthenticatedUser } from "../AuthenticatedUser.ts"
 import { DETERMINISTIC_GALAXY_SEED, TEST_RULESET_NAME } from "../constants.ts"
-import { LobbyPage } from "./LobbyPage.ts"
+import { GameDetailsPage } from "./GameDetailsPage.ts"
 import { WebsitePage } from "./WebsitePage.ts"
 
 type TurnLength = Time<UnitOfTime.DAYS | UnitOfTime.HOURS | UnitOfTime.MINUTES>
@@ -47,9 +47,9 @@ export class CreateGamePage extends WebsitePage {
   }
 
   /**
-   * Create a game, join any additional participants, and return the creator's lobby.
+   * Create a game, join any additional participants, and return the creator's game details page.
    */
-  public static async createGame({ creator, participants = [], settings = {} }: CreateGameInput): Promise<LobbyPage> {
+  public static async createGame({ creator, participants = [], settings = {} }: CreateGameInput): Promise<GameDetailsPage> {
     const createGamePage = await CreateGamePage.goto(creator.page)
 
     await createGamePage.setGameName(settings.gameName ?? `E2E-${crypto.randomUUID()}`)
@@ -63,15 +63,15 @@ export class CreateGamePage extends WebsitePage {
       await createGamePage.setTurnLength(settings.turnLength)
     }
 
-    const creatorLobbyPage = await createGamePage.submit()
-    const gameId = await creatorLobbyPage.getGameId()
+    const creatorGameDetailsPage = await createGamePage.submit()
+    const gameId = await creatorGameDetailsPage.getGameId()
 
     for (const participant of participants) {
-      const participantLobbyPage = await LobbyPage.goto(participant.page, gameId)
-      await participantLobbyPage.joinGame()
+      const participantGameDetailsPage = await GameDetailsPage.goto(participant.page, gameId)
+      await participantGameDetailsPage.joinGame()
     }
 
-    return creatorLobbyPage
+    return creatorGameDetailsPage
   }
 
   public async goto(): Promise<CreateGamePage> {
@@ -112,9 +112,9 @@ export class CreateGamePage extends WebsitePage {
     }
   }
 
-  public async submit(): Promise<LobbyPage> {
+  public async submit(): Promise<GameDetailsPage> {
     await this.createButton.click()
-    return new LobbyPage(this.page)
+    return new GameDetailsPage(this.page)
   }
 
   private async getSliderValue(slider: Locator): Promise<number> {

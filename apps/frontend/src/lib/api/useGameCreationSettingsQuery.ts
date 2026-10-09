@@ -2,9 +2,13 @@ import { useQuery } from "@tanstack/react-query"
 import { useBackendApiClient } from "@/lib/api/BackendApiClientContext.tsx"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC and TanStack Query inference do the work
-export function useListingsQuery() {
+export function useGameCreationSettingsQuery() {
   const backendApiClient = useBackendApiClient()
-  const queryOptions = backendApiClient.listings.getListings.queryOptions()
 
-  return useQuery(queryOptions)
+  return useQuery({
+    ...backendApiClient.games.getCreationSettings.queryOptions(),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnMount: "always",
+  })
 }

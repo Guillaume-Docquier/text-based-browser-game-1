@@ -1,8 +1,6 @@
-import { type Branded, Assert, type Logger, Result, type RngState, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
+import { type Branded, Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, desc, eq, gt, inArray } from "drizzle-orm"
-import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
-import type { GameStatus } from "shared/domain/games/GameStatus.ts"
 import type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import type { Resources } from "shared/domain/resources/Resources.ts"
@@ -10,7 +8,7 @@ import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
 import type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
-import type { Action, AvailableAction } from "shared/domain/turns/actions/Action.ts"
+import type { Action } from "shared/domain/turns/actions/Action.ts"
 import type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
 import type { SelectedTargets } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
@@ -40,18 +38,7 @@ import {
 import { couldNot } from "#lib/errors.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 
-type NewActionRow = typeof actionsTable.$inferInsert
-type NewResourceRow = typeof resourcesTable.$inferInsert
 type ResourceRow = typeof resourcesTable.$inferSelect
-type NewTurnRow = typeof turnsTable.$inferInsert
-type NewTurnProcessingRow = typeof turnsProcessingTable.$inferInsert
-
-/**
- * postgress has a limit of 32767 (int16) bind parameters for a query. Some sources say 65536 (int32), it's not clear.
- * However, pglite has 32767 for sure as tests break when we bust it.
- * We'll batch insert planets to avoid the limit, as we can easily insert 3000+ planets with 15+ attributes each, leading to 45k+ bind paremeters.
- */
-const PLANET_INSERT_BATCH_SIZE = 1_000 // ~15k/32k bind parameters (15 per planet)
 
 export type ActionSubmissionsForUpdate = Branded<
   "ActionsForSubmission",
@@ -115,50 +102,6 @@ export type PlayerViewModel = Readonly<{
   ruleset: Ruleset
 }>
 
-/**
- * Owning a GameForStart within a transaction guarantees that the game is locked and exists at this time.
- * It does not mean it can be started, you have to check the state and decide.
- */
-export type GameForStart = Branded<
-  "GameForStart",
-  {
-    readonly gameId: GameId
-    readonly createdByAccountId: AccountId
-    readonly mapGenerationSeed: number
-    readonly status: GameStatus
-    readonly turnInterval: Time
-    readonly playerIds: readonly PlayerId[]
-    readonly ruleset: Ruleset
-  }
->
-
-export type StartGameModel = {
-  /**
-   * The GameForStart must be acquired in the same transaction
-   */
-  readonly context: GameForStart
-  readonly status: GameStatus
-  readonly startedAt: Date
-  /**
-   * When the first turn should end
-   */
-  readonly turnEndsAt: Date
-  /**
-   * The rng state to use for the first turn's processing
-   */
-  readonly rngState: RngState<number>
-  readonly playerResources: ReadonlyArray<{
-    readonly playerId: PlayerId
-    readonly resourceType: ResourceType
-    readonly amount: number
-  }>
-  /**
-   * Eventually will probably be per player, might not all have the same starting conditions
-   */
-  readonly availableActions: readonly AvailableAction[]
-  readonly galaxy: Galaxy
-}
-
 export class GameplayRepository extends PostgresRepository {
   private readonly logger: Logger
   private readonly clock: Clock
@@ -167,135 +110,6 @@ export class GameplayRepository extends PostgresRepository {
     super({ db })
     this.logger = logger.child({ scope: "gameplay-repository" })
     this.clock = clock
-  }
-
-  public async getPlayerId(
-    { gameId, accountId }: { gameId: GameId; accountId: AccountId },
-    db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerId | undefined, string>> {
-    const playerIdResult = await Result.tryCatch(async () => {
-      const rows = await db
-        .select({ playerId: playersTable.playerId })
-        .from(playersTable)
-        .where(and(eq(playersTable.gameId, gameId), eq(playersTable.playerId, branded(accountId))))
-      Assert.isTrue(rows.length <= 1)
-
-      return rows[0]?.playerId
-    })
-
-    if (Result.isFailure(playerIdResult)) {
-      this.logger.error("Could not check if player joined game", { gameId, accountId, error: playerIdResult.error })
-      return Result.Failure(couldNot("check if player joined game"))
-    }
-
-    return playerIdResult
-  }
-
-  public async getGameForStart({ gameId }: { gameId: GameId }, tx: Transaction): Promise<GameForStart> {
-    const gamesForStart = await tx
-      .select({
-        id: gamesTable.id,
-        createdByAccountId: gamesTable.createdByAccountId,
-        mapGenerationSeed: gamesTable.mapGenerationSeed,
-        status: gamesTable.status,
-        turnIntervalSeconds: gamesTable.turnIntervalSeconds,
-        rulesetId: gamesTable.rulesetId,
-      })
-      .from(gamesTable)
-      .where(eq(gamesTable.id, gameId))
-      .for("no key update")
-    Assert.isTrue(gamesForStart.length <= 1)
-
-    const gameForStart = gamesForStart[0]
-    if (gameForStart === undefined) {
-      throw new TransactionRollbackError("The game does not exist.")
-    }
-
-    const playerIdRows = await tx
-      .select({ playerId: playersTable.playerId })
-      .from(playersTable)
-      .where(eq(playersTable.gameId, gameForStart.id))
-    Assert.isTrue(playerIdRows.length > 0)
-
-    const playerIds: readonly PlayerId[] = playerIdRows.map(({ playerId }) => playerId)
-
-    const ruleset = await this.getRuleset({ rulesetId: gameForStart.rulesetId }, tx)
-    if (ruleset === undefined) {
-      throw new TransactionRollbackError("No ruleset found for this game")
-    }
-
-    return branded({
-      gameId: gameForStart.id,
-      createdByAccountId: gameForStart.createdByAccountId,
-      mapGenerationSeed: gameForStart.mapGenerationSeed,
-      status: gameForStart.status,
-      turnInterval: Time.create(gameForStart.turnIntervalSeconds, UnitOfTime.SECONDS),
-      playerIds,
-      ruleset,
-    })
-  }
-
-  /**
-   * The only failure mode for this method is throwing to rollback the transaction.
-   */
-  public async startGame(startGameModel: StartGameModel, tx: Transaction): Promise<void> {
-    // Prepare data
-    const gameTurn: NewTurnRow = {
-      gameId: startGameModel.context.gameId,
-      turn: 1,
-      status: TurnStatus.COLLECTING_ACTIONS,
-      startedAt: startGameModel.startedAt,
-      endsAt: startGameModel.turnEndsAt,
-      rngGeneratorState: startGameModel.rngState.generatorState,
-      rngSpareNormal: startGameModel.rngState.spareNormal,
-    }
-
-    const turnProcessing: NewTurnProcessingRow = {
-      gameId: startGameModel.context.gameId,
-      turn: gameTurn.turn,
-      scheduledFor: gameTurn.endsAt,
-    }
-
-    const resources: NewResourceRow[] = startGameModel.playerResources.map((playerResource) => ({
-      ...playerResource,
-      gameId: startGameModel.context.gameId,
-    }))
-    const availableActions: NewActionRow[] = startGameModel.availableActions.map((availableAction) => ({
-      ...availableAction,
-      gameId: startGameModel.context.gameId,
-      turn: gameTurn.turn,
-      selectedTargets: null,
-    }))
-    const stars = startGameModel.galaxy.systems.map(({ star }) => ({
-      gameId: startGameModel.context.gameId,
-      ...star,
-    }))
-    const planets = startGameModel.galaxy.systems.flatMap(({ star, planets: systemPlanets }) =>
-      systemPlanets.map((planet) => ({
-        gameId: startGameModel.context.gameId,
-        starId: star.id,
-        ...planet,
-      })),
-    )
-
-    // Update db
-    const updatedGames = await tx
-      .update(gamesTable)
-      .set({ startedAt: startGameModel.startedAt, status: startGameModel.status })
-      .where(and(eq(gamesTable.id, startGameModel.context.gameId)))
-      .returning({ id: gamesTable.id })
-    Assert.isTrue(updatedGames.length === 1)
-
-    await tx.insert(turnsTable).values(gameTurn)
-    await tx.insert(turnsProcessingTable).values(turnProcessing)
-    await tx.insert(resourcesTable).values(resources)
-    if (availableActions.length > 0) {
-      await tx.insert(actionsTable).values(availableActions)
-    }
-    await tx.insert(starsTable).values(stars)
-    for (let index = 0; index < planets.length; index += PLANET_INSERT_BATCH_SIZE) {
-      await tx.insert(planetsTable).values(planets.slice(index, index + PLANET_INSERT_BATCH_SIZE))
-    }
   }
 
   public async getPlayerView(

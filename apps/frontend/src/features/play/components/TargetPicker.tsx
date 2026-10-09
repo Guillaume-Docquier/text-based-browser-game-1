@@ -1,4 +1,4 @@
-import type { LobbyPlayers, PlayerView, TargetDefinition, TargetId } from "@api-types"
+import type { Players, PlayerView, TargetDefinition, TargetId } from "@api-types"
 import type { Comparator } from "@guillaume-docquier/tools-ts"
 import type { ReactElement } from "react"
 import type { TargetForValidation } from "shared/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts"
@@ -57,7 +57,7 @@ export function TargetPicker({
 /**
  * Resolves target choices from the player-visible game state and the slot constraints.
  */
-export function getTargetOptions(targetDefinition: TargetDefinition, playerView: PlayerView, players: LobbyPlayers): TargetOption[] {
+export function getTargetOptions(targetDefinition: TargetDefinition, playerView: PlayerView, players: Players): TargetOption[] {
   return getTargetCandidates(targetDefinition, playerView, players)
     .filter(
       (candidate) => validateTarget({ target: candidate.target, submittingPlayerId: playerView.player.id, targetDefinition }) === null,
@@ -65,7 +65,7 @@ export function getTargetOptions(targetDefinition: TargetDefinition, playerView:
     .sort(sortByLabel)
 }
 
-function getTargetCandidates(targetDefinition: TargetDefinition, playerView: PlayerView, players: LobbyPlayers): TargetCandidate[] {
+function getTargetCandidates(targetDefinition: TargetDefinition, playerView: PlayerView, players: Players): TargetCandidate[] {
   switch (targetDefinition.targetType) {
     case TargetType.PLANET:
       return playerView.galaxy.systems.flatMap(({ planets }) =>

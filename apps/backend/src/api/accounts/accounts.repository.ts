@@ -1,21 +1,13 @@
-import { Assert, type Enumify, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { and, eq } from "drizzle-orm"
 import type { Account } from "shared/domain/accounts/Account.ts"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import type { Alias } from "shared/domain/accounts/Alias.ts"
+import { FinishOnboardingError } from "#api/accounts/finishOnboarding.error.ts"
 import { Postgres } from "#lib/db/drizzle/Postgres.ts"
 import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
-
-type NewAccountRow = typeof accountsTable.$inferInsert
-
-export type FinishOnboardingError = Enumify<typeof FinishOnboardingError>
-export const FinishOnboardingError = {
-  ALREADY_ONBOARDED: "ALREADY_ONBOARDED",
-  ALIAS_ALREADY_TAKEN: "ALIAS_ALREADY_TAKEN",
-  COULD_NOT_FINISH: "COULD_NOT_FINISH",
-} as const
 
 export class AccountsRepository extends PostgresRepository {
   private readonly logger: Logger
@@ -31,7 +23,16 @@ export class AccountsRepository extends PostgresRepository {
    */
   public async createAccount(newAccount: Account, db: PostgresRepository["db"] = this.db): Promise<Result<Account, string>> {
     const createAccountResult = await Result.tryCatch(async () => {
-      const accounts = await db.insert(accountsTable).values(toNewAccountRow(newAccount)).returning()
+      const accounts = await db
+        .insert(accountsTable)
+        .values({
+          id: newAccount.id,
+          authId: newAccount.authId,
+          alias: newAccount.alias,
+          onboarded: newAccount.onboarded,
+          email: newAccount.email?.toLowerCase(),
+        })
+        .returning()
       Assert.isTrue(accounts.length === 1)
       Assert.isDefined(accounts[0])
 
@@ -79,7 +80,7 @@ export class AccountsRepository extends PostgresRepository {
   }: {
     accountId: AccountId
     alias: Alias
-  }): Promise<Result<Account, FinishOnboardingError>> {
+  }): Promise<Result<void, FinishOnboardingError>> {
     const finishOnboardingResult = await Result.tryCatch(async () => {
       const accounts = await this.db
         .update(accountsTable)
@@ -97,23 +98,13 @@ export class AccountsRepository extends PostgresRepository {
       }
 
       this.logger.error("Could not finish account onboarding", { accountId, error: finishOnboardingResult.error })
-      return Result.Failure(FinishOnboardingError.COULD_NOT_FINISH)
+      return Result.Failure(FinishOnboardingError.UNKNOWN)
     }
 
     if (finishOnboardingResult.value === undefined) {
       return Result.Failure(FinishOnboardingError.ALREADY_ONBOARDED)
     }
 
-    return Result.Success(finishOnboardingResult.value)
-  }
-}
-
-function toNewAccountRow(newAccount: Account): NewAccountRow {
-  return {
-    id: newAccount.id,
-    authId: newAccount.authId,
-    alias: newAccount.alias,
-    onboarded: newAccount.onboarded,
-    email: newAccount.email?.toLowerCase(),
+    return Result.Success(undefined)
   }
 }

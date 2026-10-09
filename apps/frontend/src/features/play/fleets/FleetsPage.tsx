@@ -1,4 +1,4 @@
-import type { Fleet, GameId, LobbyPlayer, Planet, PlayerId } from "@api-types"
+import type { Fleet, GameId, Player, Planet, PlayerId } from "@api-types"
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { Link } from "@tanstack/react-router"
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react"
@@ -11,7 +11,7 @@ import { PLAYER_COLOR_HEX } from "@/lib/playerColorHex.ts"
 
 type FleetRow = {
   readonly fleet: Fleet
-  readonly owner: LobbyPlayer
+  readonly owner: Player
   readonly ownerLabel: string
   readonly originPlanet: Planet
   readonly destination: FleetDestination | undefined
@@ -45,12 +45,12 @@ const SORT_COMPARATORS = {
  * @returns The filterable and sortable Fleets page.
  */
 export function FleetsPage(): ReactElement {
-  const { game, playerView } = usePlayGameContext()
+  const { gameDetails, playerView } = usePlayGameContext()
   return (
     <FleetsPageView
-      gameId={game.id}
+      gameId={gameDetails.id}
       fleets={playerView.fleets}
-      players={game.players}
+      players={gameDetails.players}
       planets={playerView.galaxy.systems.flatMap(({ planets }) => planets)}
     />
   )
@@ -67,7 +67,7 @@ export function FleetsPageView({
 }: {
   gameId: GameId
   fleets: readonly Fleet[]
-  players: readonly LobbyPlayer[]
+  players: readonly Player[]
   planets: readonly Planet[]
 }): ReactElement {
   const [search, setSearch] = useState("")
@@ -131,7 +131,7 @@ function FleetsFilters({
 }: {
   search: string
   ownerFilter: PlayerId | typeof ALL_PLAYERS
-  owners: readonly LobbyPlayer[]
+  owners: readonly Player[]
   onSearchChange: (value: string) => void
   onOwnerFilterChange: (value: string) => void
 }): ReactElement {
@@ -295,7 +295,7 @@ function SortHeader({
   )
 }
 
-function createFleetRows(fleets: readonly Fleet[], players: readonly LobbyPlayer[], planets: readonly Planet[]): FleetRow[] {
+function createFleetRows(fleets: readonly Fleet[], players: readonly Player[], planets: readonly Planet[]): FleetRow[] {
   const ownersById = new Map(players.map((player) => [player.id, player]))
   const planetsById = new Map(planets.map((planet) => [planet.id, planet]))
 

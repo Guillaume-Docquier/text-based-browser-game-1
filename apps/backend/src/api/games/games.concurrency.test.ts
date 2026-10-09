@@ -1,10 +1,10 @@
 import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
+import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { describe, expect, it } from "vitest"
 import { createResourcesDtoStub } from "#api/gameplay/ResourcesDto.stub.ts"
-import { createLobbyConfigurationDtoStub } from "#api/lobbies/CreateLobbyConfigurationDto.stub.ts"
-import { MAX_NB_SEATS } from "#api/lobbies/LobbyLimits.ts"
+import { MAX_NB_SEATS } from "#api/games/GameLimits.ts"
 import { ConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 
 const NB_CONCURRENCY_TEST_ACCOUNTS = MAX_NB_SEATS
@@ -21,19 +21,19 @@ describe("lobby concurrency", () => {
     )
     Assert.isDefined(creator)
 
-    const { createdGameId } = await creator.client.lobbies.create.mutate({
-      configuration: createLobbyConfigurationDtoStub({ nbSeats: 4 }),
+    const { createdGameId } = await creator.client.games.create.mutate({
+      configuration: createGameConfigurationStub({ nbSeats: 4 }),
     })
 
     // Act
     await Promise.allSettled(
       participants.map(async (participant) => {
-        await participant.client.lobbies.join.mutate({ gameId: createdGameId })
+        await participant.client.games.join.mutate({ gameId: createdGameId })
       }),
     )
 
     // Assert
-    const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+    const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
     expect(lobby.players).toHaveLength(4)
   })
 
@@ -48,21 +48,21 @@ describe("lobby concurrency", () => {
     )
     Assert.isDefined(creator)
 
-    const { createdGameId } = await creator.client.lobbies.create.mutate({
-      configuration: createLobbyConfigurationDtoStub({ nbSeats: NB_CONCURRENCY_TEST_ACCOUNTS }),
+    const { createdGameId } = await creator.client.games.create.mutate({
+      configuration: createGameConfigurationStub({ nbSeats: NB_CONCURRENCY_TEST_ACCOUNTS }),
     })
 
     // Act
     await Promise.all([
       ...participants.map(async (participant) => {
-        await Result.tryCatch(participant.client.lobbies.join.mutate({ gameId: createdGameId }))
-        await Result.tryCatch(participant.client.lobbies.leave.mutate({ gameId: createdGameId }))
+        await Result.tryCatch(participant.client.games.join.mutate({ gameId: createdGameId }))
+        await Result.tryCatch(participant.client.games.leave.mutate({ gameId: createdGameId }))
       }),
-      creator.client.gameplay.startGame.mutate({ gameId: createdGameId }),
+      creator.client.games.startGame.mutate({ gameId: createdGameId }),
     ])
 
     // Assert
-    const lobby = await creator.client.lobbies.getById.query({ gameId: createdGameId })
+    const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
     const participantsMap = new Map(
       [creator, ...participants].map((participant) => [branded<PlayerId>(participant.account.id), participant]),
     )

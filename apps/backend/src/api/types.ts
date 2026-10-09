@@ -2,10 +2,11 @@
  * Exports API types for the frontend
  */
 
-import type { inferRouterOutputs } from "@trpc/server"
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { TrpcRouter } from "./createApi.ts"
 
+type TrpcRouterInput = inferRouterInputs<TrpcRouter>
 type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 
 export type { TrpcRouter }
@@ -18,16 +19,16 @@ export type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 export type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
 export type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
 
-// Lobbies
-export type Lobby = TrpcRouterOutput["lobbies"]["getById"]
-export type LobbyStatus = Lobby["status"]
-export type LobbyPlayer = Lobby["creator"]
-export type LobbyPlayers = Lobby["players"]
-export type LobbyCreationSettings = TrpcRouterOutput["lobbies"]["getCreationSettings"]
-export type RulesetSummary = LobbyCreationSettings["rulesets"][number]
+// Games
+export type GameDetails = TrpcRouterOutput["games"]["getById"]
+export type GameStatus = GameDetails["status"]
+export type Player = GameDetails["creator"]
+export type Players = GameDetails["players"]
+export type GameCreationSettings = TrpcRouterOutput["games"]["getCreationSettings"]
+export type RulesetSummary = GameCreationSettings["rulesets"][number]
 
-// Listings
-export type Listing = TrpcRouterOutput["listings"]["getListings"][number]
+export type GameConfigurationDetails = GameDetails["configuration"]
+export type GameSummary = TrpcRouterOutput["games"]["getSummaries"][number]
 
 // Gameplay router
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
@@ -50,3 +51,6 @@ export type Planet = StarSystem["planets"][number]
 export type Fleet = PlayerView["fleets"][number]
 export type PlanetBiome = Planet["biome"]
 export type PlanetSize = Planet["size"]
+
+// Account
+export type FinishOnboardingRequest = TrpcRouterInput["accounts"]["finishOnboarding"]

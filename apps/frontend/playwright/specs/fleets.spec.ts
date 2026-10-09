@@ -3,23 +3,23 @@ import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { FleetsPage } from "../pages/FleetsPage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
-import { LobbyPage } from "../pages/LobbyPage.ts"
+import { GameDetailsPage } from "../pages/GameDetailsPage.ts"
 
 test("fleet origin and destination links open their planets in the galaxy view", async ({ alice, bob }) => {
-  const aliceLobbyPage = await test.step("Create a game", async () =>
+  const aliceGameDetailsPage = await test.step("Create a game", async () =>
     await CreateGamePage.createGame({
       creator: alice,
       participants: [bob],
       settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
     }))
   const aliceGalaxyPage = await test.step("Start the game", async () => {
-    await aliceLobbyPage.reload()
-    return await aliceLobbyPage.startGame()
+    await aliceGameDetailsPage.reload()
+    return await aliceGameDetailsPage.startGame()
   })
   const bobPlayersPage = await test.step("Open the game for Bob", async () => {
-    const bobLobbyPage = new LobbyPage(bob.page)
-    await bobLobbyPage.reload()
-    const bobGalaxyPage = await bobLobbyPage.openGame()
+    const bobGameDetailsPage = new GameDetailsPage(bob.page)
+    await bobGameDetailsPage.reload()
+    const bobGalaxyPage = await bobGameDetailsPage.openGame()
     return await bobGalaxyPage.openPlayers()
   })
 

@@ -6,13 +6,14 @@ import type { Table } from "drizzle-orm/table"
 import type { Account } from "shared/domain/accounts/Account.ts"
 import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
 import { AliasSchema } from "shared/domain/accounts/Alias.ts"
+import type { GameConfiguration } from "shared/domain/games/GameConfiguration.ts"
 import { v4 } from "uuid"
 import { z } from "zod"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { type CreateLobbyConfigurationDto, CreateLobbyUseCase } from "#api/lobbies/createLobby.useCase.ts"
-import { JoinLobbyUseCase } from "#api/lobbies/joinLobby.useCase.ts"
-import { LobbiesRepository } from "#api/lobbies/lobbies.repository.ts"
-import { MAX_NB_SEATS } from "#api/lobbies/LobbyLimits.ts"
+import { CreateGameUseCase } from "#api/games/createGame.useCase.ts"
+import { MAX_NB_SEATS } from "#api/games/GameLimits.ts"
+import { GamesRepository } from "#api/games/games.repository.ts"
+import { JoinGameUseCase } from "#api/games/joinGame.useCase.ts"
 import { configureLogger } from "#lib/configureLogger.ts"
 import { createCreateTransaction, createDb, type Database } from "#lib/db/createDb.ts"
 import { accountsTable, gamesTable } from "#lib/db/schema.ts"
@@ -85,13 +86,13 @@ async function main({ connectionString, user }: { connectionString: string; user
 
   const accountsRepository = new AccountsRepository({ db, logger })
   const rulesetsRepository = new RulesetsRepository({ db, logger })
-  const lobbiesRepository = new LobbiesRepository({ db, logger })
+  const gamesRepository = new GamesRepository({ db, logger })
 
-  const createLobbyUseCase = new CreateLobbyUseCase({ lobbiesRepository })
-  const joinLobbyUseCase = new JoinLobbyUseCase({
+  const createGameUseCase = new CreateGameUseCase({ gamesRepository })
+  const joinGameUseCase = new JoinGameUseCase({
     logger,
     createTransaction: createCreateTransaction(db),
-    lobbiesRepository,
+    gamesRepository,
   })
 
   logger.info(`Seeding the '${host}' database with default values`)
@@ -103,7 +104,7 @@ async function main({ connectionString, user }: { connectionString: string; user
     await seedRulesets({ rulesetsRepository, logger })
 
     logger.info("")
-    await seedGames({ db, accounts, logger, createLobbyUseCase, joinLobbyUseCase })
+    await seedGames({ db, accounts, logger, createGameUseCase, joinGameUseCase })
 
     logger.info("")
     logger.info("Seeding completed")
@@ -198,14 +199,14 @@ async function seedRulesets({ rulesetsRepository, logger }: { rulesetsRepository
 async function seedGames({
   db,
   accounts,
-  createLobbyUseCase,
-  joinLobbyUseCase,
+  createGameUseCase,
+  joinGameUseCase,
   logger,
 }: {
   db: Database
   accounts: Account[]
-  createLobbyUseCase: CreateLobbyUseCase
-  joinLobbyUseCase: JoinLobbyUseCase
+  createGameUseCase: CreateGameUseCase
+  joinGameUseCase: JoinGameUseCase
   logger: Logger
 }): Promise<void> {
   const [myAccount, secondAccount, thirdAccount] = accounts
@@ -218,7 +219,7 @@ async function seedGames({
   await resetTable(db, gamesTable)
   logger.info("├─ Creating default games")
 
-  const services = { createLobbyUseCase, joinLobbyUseCase, logger }
+  const services = { createGameUseCase, joinGameUseCase, logger }
   await seedSoloGame({ creator: myAccount, participants: [], ...services })
   await seedInsanelyFastGame({ creator: myAccount, participants: [secondAccount, thirdAccount], ...services })
   await seedCommunityGame({ creator: secondAccount, participants: [thirdAccount], ...services })
@@ -233,8 +234,8 @@ type SeedGameInput = {
    * Additional participants; lobby creation already adds the creator.
    */
   participants: readonly Account[]
-  createLobbyUseCase: CreateLobbyUseCase
-  joinLobbyUseCase: JoinLobbyUseCase
+  createGameUseCase: CreateGameUseCase
+  joinGameUseCase: JoinGameUseCase
   logger: Logger
   treePosition?: "branch" | "last"
 }
@@ -279,14 +280,14 @@ const seedMaximumPlayersGame = createGameSeeder({
   rulesetId: StandardRuleset.id,
 })
 
-function createGameSeeder(configuration: CreateLobbyConfigurationDto): (input: SeedGameInput) => Promise<void> {
-  return async ({ creator, participants, createLobbyUseCase, joinLobbyUseCase, logger, treePosition = "branch" }) => {
+function createGameSeeder(configuration: GameConfiguration): (input: SeedGameInput) => Promise<void> {
+  return async ({ creator, participants, createGameUseCase, joinGameUseCase, logger, treePosition = "branch" }) => {
     const gameBranch = treePosition === "last" ? "│  └─" : "│  ├─"
     const operationPrefix = treePosition === "last" ? "│     " : "│  │  "
     const creationBranch = participants.length === 0 ? "└─" : "├─"
     logger.info(`${gameBranch} ${configuration.name}`)
     logger.info(`${operationPrefix}${creationBranch} Creating lobby with ${creator.alias}`)
-    const game = assertSuccess(await createLobbyUseCase.execute({ createdByAccountId: creator.id, configuration }))
+    const game = assertSuccess(await createGameUseCase.execute({ createdByAccountId: creator.id, configuration }))
 
     if (participants.length === 0) {
       return
@@ -296,7 +297,7 @@ function createGameSeeder(configuration: CreateLobbyConfigurationDto): (input: S
     for (const [index, participant] of participants.entries()) {
       const branch = index === participants.length - 1 ? "└─" : "├─"
       logger.info(`${operationPrefix}   ${branch} ${participant.alias}`)
-      assertSuccess(await joinLobbyUseCase.execute({ gameId: game.createdGameId, accountId: participant.id }))
+      assertSuccess(await joinGameUseCase.execute({ gameId: game.createdGameId, accountId: participant.id }))
     }
   }
 }

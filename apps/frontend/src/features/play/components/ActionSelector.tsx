@@ -1,4 +1,4 @@
-import type { Action, ActionDefinition, ActionTier, GameId, Lobby, PlayerView, Ruleset, SelectedTargets } from "@api-types"
+import type { Action, ActionDefinition, ActionTier, GameId, Players, PlayerView, Ruleset, SelectedTargets } from "@api-types"
 import { Sort } from "@guillaume-docquier/tools-ts"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
@@ -24,7 +24,7 @@ export function ActionSelector({
 }: {
   gameId: GameId
   playerView: PlayerView
-  players: Lobby["players"]
+  players: Players
 }): ReactElement {
   const updateActionSubmission = useUpdateActionSubmission()
   const isTurnLocked = playerView.turnStatus !== "COLLECTING_ACTIONS" || playerView.player.isReady

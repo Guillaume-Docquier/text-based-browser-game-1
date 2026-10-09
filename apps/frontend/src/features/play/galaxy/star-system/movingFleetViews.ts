@@ -1,4 +1,4 @@
-import type { Fleet, LobbyPlayer, Planet, StarSystem } from "@api-types"
+import type { Fleet, Player, Planet, StarSystem } from "@api-types"
 import { Assert, Scalar } from "@guillaume-docquier/tools-ts"
 import { getMovingFleetJourneys, type MapPoint, type MovingFleetView } from "@/features/play/fleets/markers/movingFleetViews.ts"
 
@@ -22,7 +22,7 @@ export function getMovingFleetViews({
   systems: readonly StarSystem[]
   planets: ReadonlyArray<MapPoint & Pick<Planet, "id">>
   fleets: readonly Fleet[]
-  players: readonly LobbyPlayer[]
+  players: readonly Player[]
   boundaryRadius: number
   boundaryDistance: number
   center: number

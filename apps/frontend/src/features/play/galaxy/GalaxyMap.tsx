@@ -1,4 +1,4 @@
-import type { Fleet, Galaxy, LobbyPlayer, PlayerId, StarSystem } from "@api-types"
+import type { Fleet, Galaxy, Player, PlayerId, StarSystem } from "@api-types"
 import type { KeyboardEvent, ReactElement } from "react"
 import { MovingFleetMarkers, MovingFleetRoutes } from "@/features/play/fleets/markers/MovingFleetMarkers.tsx"
 import { getMovingFleetJourneys, type MovingFleetView } from "@/features/play/fleets/markers/movingFleetViews.ts"
@@ -45,7 +45,7 @@ export function GalaxyMap({
 }: {
   galaxy: Galaxy
   fleets: readonly Fleet[]
-  players: readonly LobbyPlayer[]
+  players: readonly Player[]
   currentPlayerId: PlayerId
   resetSignal: number
   onSelectSystem: (system: StarSystem) => void
@@ -212,7 +212,7 @@ function GalaxyGridLine({
   )
 }
 
-function getMovingFleetViews(galaxy: Galaxy, fleets: readonly Fleet[], players: readonly LobbyPlayer[]): MovingFleetView[] {
+function getMovingFleetViews(galaxy: Galaxy, fleets: readonly Fleet[], players: readonly Player[]): MovingFleetView[] {
   return getMovingFleetJourneys(galaxy.systems, fleets, players).map(({ fleet, owner, origin, destination, traveledFraction }) => {
     const start = { x: origin.system.star.x * LIGHT_YEAR_SIZE, y: origin.system.star.y * LIGHT_YEAR_SIZE }
     const end = { x: destination.system.star.x * LIGHT_YEAR_SIZE, y: destination.system.star.y * LIGHT_YEAR_SIZE }

@@ -1,10 +1,10 @@
 import { Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
-import { LobbyPage } from "../pages/LobbyPage.ts"
+import { GameDetailsPage } from "../pages/GameDetailsPage.ts"
 
 test("being ready locks selected actions and the turn resolves when all players are ready", async ({ alice, bob }) => {
-  const aliceLobbyPage = await test.step("Create a game for Alice and Bob", async () => {
+  const aliceGameDetailsPage = await test.step("Create a game for Alice and Bob", async () => {
     return await CreateGamePage.createGame({
       creator: alice,
       participants: [bob],
@@ -12,11 +12,11 @@ test("being ready locks selected actions and the turn resolves when all players 
       settings: { maxPlayers: 2, turnLength: Time.create(1, UnitOfTime.DAYS) },
     })
   })
-  const bobLobbyPage = new LobbyPage(bob.page)
+  const bobGameDetailsPage = new GameDetailsPage(bob.page)
 
   const alicePlayersPage = await test.step("Alice starts the game and selects an action", async () => {
-    await aliceLobbyPage.reload()
-    const galaxyPage = await aliceLobbyPage.startGame()
+    await aliceGameDetailsPage.reload()
+    const galaxyPage = await aliceGameDetailsPage.startGame()
     const actionsPage = await galaxyPage.openActions()
     await actionsPage.toggleActionSelection("Extract Metal")
     await expect(actionsPage.selectActionButton("Extract Metal")).toHaveAttribute("aria-pressed", "true")
@@ -24,8 +24,8 @@ test("being ready locks selected actions and the turn resolves when all players 
   })
 
   const bobPlayersPage = await test.step("Bob opens the Players tab", async () => {
-    await bobLobbyPage.reload()
-    const galaxyPage = await bobLobbyPage.openGame()
+    await bobGameDetailsPage.reload()
+    const galaxyPage = await bobGameDetailsPage.openGame()
     const playersPage = await galaxyPage.openPlayers()
     await expect(playersPage.readyButton).toHaveAttribute("aria-pressed", "false")
     await expect(playersPage.opponentNotReady).toBeVisible()
