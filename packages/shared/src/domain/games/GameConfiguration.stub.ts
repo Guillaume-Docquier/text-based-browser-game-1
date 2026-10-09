@@ -4,7 +4,7 @@ import { GameConfigurationSchema, type GameConfiguration } from "#shared/domain/
 import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
 
 /**
- * Creates game settings with a fresh ruleset ID unless one is supplied.
+ * rulesetId defaults to the TestRuleset, which should always be used in tests because it is stable.
  */
 export function createGameConfigurationStub({
   rulesetId = TestRuleset.id,

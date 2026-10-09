@@ -1,9 +1,6 @@
 import { z } from "zod"
 import { RulesetIdSchema, type RulesetId } from "#shared/domain/ruleset/RulesetId.ts"
 
-/**
- * Settings chosen when creating a game, before its lobby opens to players.
- */
 export type GameConfiguration = Readonly<{
   name: string
   nbSeats: number
