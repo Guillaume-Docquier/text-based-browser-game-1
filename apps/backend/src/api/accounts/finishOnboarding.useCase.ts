@@ -24,4 +24,4 @@ export class FinishOnboardingUseCase {
   }
 }
 
-export const FinishOnboardingDtoSchema = z.object({ alias: AliasSchema })
+export const FinishOnboardingRequestSchema = z.object({ alias: AliasSchema })

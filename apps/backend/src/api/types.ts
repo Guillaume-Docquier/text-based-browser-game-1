@@ -2,10 +2,11 @@
  * Exports API types for the frontend
  */
 
-import type { inferRouterOutputs } from "@trpc/server"
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { TrpcRouter } from "./createApi.ts"
 
+type TrpcRouterInput = inferRouterInputs<TrpcRouter>
 type TrpcRouterOutput = inferRouterOutputs<TrpcRouter>
 
 export type { TrpcRouter }
@@ -50,3 +51,6 @@ export type Planet = StarSystem["planets"][number]
 export type Fleet = PlayerView["fleets"][number]
 export type PlanetBiome = Planet["biome"]
 export type PlanetSize = Planet["size"]
+
+// Account
+export type FinishOnboardingRequest = TrpcRouterInput["accounts"]["finishOnboarding"]

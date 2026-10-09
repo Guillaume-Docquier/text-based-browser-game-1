@@ -64,5 +64,10 @@ export function createTrpc({ gameplayRepository, logger: baseLogger }: { gamepla
       })
     })
 
-  return { router: t.router, publicProcedure, privateProcedure, inGameProcedure }
+  return {
+    router: t.router,
+    publicProcedure,
+    privateProcedure,
+    inGameProcedure,
+  }
 }

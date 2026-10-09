@@ -8,8 +8,6 @@ import { PostgresRepository } from "#lib/db/PostgresRepository.ts"
 import { accountsTable } from "#lib/db/schema.ts"
 import { couldNot } from "#lib/errors.ts"
 
-type NewAccountRow = typeof accountsTable.$inferInsert
-
 export type FinishOnboardingError = Enumify<typeof FinishOnboardingError>
 export const FinishOnboardingError = {
   ALREADY_ONBOARDED: "ALREADY_ONBOARDED",
@@ -31,7 +29,16 @@ export class AccountsRepository extends PostgresRepository {
    */
   public async createAccount(newAccount: Account, db: PostgresRepository["db"] = this.db): Promise<Result<Account, string>> {
     const createAccountResult = await Result.tryCatch(async () => {
-      const accounts = await db.insert(accountsTable).values(toNewAccountRow(newAccount)).returning()
+      const accounts = await db
+        .insert(accountsTable)
+        .values({
+          id: newAccount.id,
+          authId: newAccount.authId,
+          alias: newAccount.alias,
+          onboarded: newAccount.onboarded,
+          email: newAccount.email?.toLowerCase(),
+        })
+        .returning()
       Assert.isTrue(accounts.length === 1)
       Assert.isDefined(accounts[0])
 
@@ -105,15 +112,5 @@ export class AccountsRepository extends PostgresRepository {
     }
 
     return Result.Success(finishOnboardingResult.value)
-  }
-}
-
-function toNewAccountRow(newAccount: Account): NewAccountRow {
-  return {
-    id: newAccount.id,
-    authId: newAccount.authId,
-    alias: newAccount.alias,
-    onboarded: newAccount.onboarded,
-    email: newAccount.email?.toLowerCase(),
   }
 }
