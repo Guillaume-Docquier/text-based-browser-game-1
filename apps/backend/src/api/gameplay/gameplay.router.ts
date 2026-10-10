@@ -18,6 +18,10 @@ export function createGameplayRouter({
   updateReadinessUseCase: UpdateReadinessUseCase
 }) {
   return trpc.router({
+    /**
+     * Sets the requesting player's Readiness and closes the Turn early when all players are Ready.
+     * Use to lock in Actions or cancel Readiness while the current Turn is still collecting Actions.
+     */
     updateReadiness: trpc.inGameProcedure
       .input(UpdateReadinessDtoSchema.omit({ playerId: true }))
       .output(NO_OUTPUT)
@@ -27,6 +31,11 @@ export function createGameplayRouter({
           throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
         }
       }),
+
+    /**
+     * Returns the requesting player's gameplay view, including the galaxy, resources, Actions, and Turn state.
+     * Use to load or refresh the gameplay screen for a game the account has joined.
+     */
     getPlayerView: trpc.inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {
       const getPlayerViewResult = await getPlayerViewUseCase.execute({ ...input, playerId })
       if (Result.isFailure(getPlayerViewResult)) {
@@ -46,6 +55,10 @@ export function createGameplayRouter({
       return getPlayerViewResult.value
     }),
 
+    /**
+     * Submits or changes one of the requesting player's Actions for the current Turn.
+     * Use while the player is not Ready to select targets, or pass null selectedTargets to cancel the submission.
+     */
     updateActionSubmission: trpc.inGameProcedure
       .input(UpdateActionSubmissionDtoSchema.omit({ playerId: true }))
       .output(NO_OUTPUT)
