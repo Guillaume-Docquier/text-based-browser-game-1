@@ -24,6 +24,7 @@
     "prepare": "husky",
     "storybook": "pnpm --filter frontend storybook",
     "typecheck": "tsc -p tsconfig.json",
+    "wtd": "pnpm db:remove",
     "wts": "node scripts/worktree-setup.ts && pnpm db:clean"
   },
   "devDependencies": {
