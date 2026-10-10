@@ -3,6 +3,7 @@ import type { DependenciesPolicy, Rules, Settings } from "eslint-plugin-boundari
 import type { OxlintConfig } from "oxlint"
 
 type Element = (typeof Elements)[keyof typeof Elements]
+type Policy = Required<Pick<DependenciesPolicy, "from" | "allow" | "disallow">>
 const Elements = {
   DOMAIN: { type: "domain", pattern: "src/domain" },
   TESTING: { type: "testing", pattern: "src/testing" },
@@ -10,31 +11,18 @@ const Elements = {
   ACTION_SUBMISSION: { type: "action-submission", pattern: "src/action-submission" },
   TURN_RESOLUTION: { type: "turn-resolution", pattern: "src/turn-resolution" },
 } as const
-
-const DisallowEverything = { to: { module: { origin: "local" } } } as const
+const TestFiles = { category: "stubs-and-tests", pattern: ["**/*.stub.ts", "**/*.test.ts"] } as const
 
 /**
- * Boundaries settings and rules
+ * Boundaries settings and rules.
  */
 export const Boundaries = {
   settings: {
     "boundaries/root-path": import.meta.dirname,
-    "boundaries/flag-as-external": {
-      unresolvableAlias: false,
-      inNodeModules: true,
-    },
-    "import/resolver": {
-      typescript: {
-        project: path.resolve(import.meta.dirname, "tsconfig.package.json"),
-      },
-    },
-    "boundaries/elements": [
-      { ...Elements.DOMAIN, partialMatch: false },
-      { ...Elements.TESTING, partialMatch: false },
-      { ...Elements.GALAXY_CREATION, partialMatch: false },
-      { ...Elements.ACTION_SUBMISSION, partialMatch: false },
-      { ...Elements.TURN_RESOLUTION, partialMatch: false },
-    ],
+    "boundaries/flag-as-external": { unresolvableAlias: false, inNodeModules: true },
+    "import/resolver": { typescript: { project: path.resolve(import.meta.dirname, "tsconfig.package.json") } },
+    "boundaries/elements": Object.values(Elements).map((definition) => ({ ...definition, partialMatch: false })),
+    "boundaries/files": [{ ...TestFiles, pattern: [...TestFiles.pattern] }],
   } satisfies Settings & Pick<NonNullable<OxlintConfig["settings"]>, "import/resolver">,
   rules: {
     "boundaries/dependencies": [
@@ -44,67 +32,43 @@ export const Boundaries = {
         checkAllOrigins: false,
         checkUnknownLocals: true,
         checkInternals: true,
-        policies: [
-          ...policy({
-            element: Elements.DOMAIN,
-            disallow: DisallowEverything,
-            allow: elements([Elements.DOMAIN, Elements.TESTING]),
+        policies: additivePolicies([
+          policy({ from: fileCategory(TestFiles), onlyAllow: [Elements.TESTING] }),
+          policy({ from: element(Elements.DOMAIN), onlyAllow: [Elements.DOMAIN] }),
+          policy({ from: element(Elements.TESTING), onlyAllow: [Elements.TESTING, Elements.DOMAIN] }),
+          policy({ from: element(Elements.GALAXY_CREATION), onlyAllow: [Elements.GALAXY_CREATION, Elements.DOMAIN] }),
+          policy({
+            from: element(Elements.ACTION_SUBMISSION),
+            onlyAllow: [Elements.ACTION_SUBMISSION, Elements.TURN_RESOLUTION, Elements.DOMAIN],
           }),
-          ...policy({
-            element: Elements.TESTING,
-            disallow: DisallowEverything,
-            allow: elements([Elements.TESTING, Elements.DOMAIN]),
+          policy({
+            from: element(Elements.TURN_RESOLUTION),
+            onlyAllow: [Elements.TURN_RESOLUTION, Elements.ACTION_SUBMISSION, Elements.DOMAIN],
           }),
-          ...policy({
-            element: Elements.GALAXY_CREATION,
-            disallow: DisallowEverything,
-            allow: elements([Elements.GALAXY_CREATION, Elements.DOMAIN, Elements.TESTING]),
-          }),
-          ...policy({
-            element: Elements.ACTION_SUBMISSION,
-            disallow: DisallowEverything,
-            allow: elements([Elements.ACTION_SUBMISSION, Elements.TURN_RESOLUTION, Elements.DOMAIN, Elements.TESTING]),
-          }),
-          ...policy({
-            element: Elements.TURN_RESOLUTION,
-            disallow: DisallowEverything,
-            allow: elements([Elements.TURN_RESOLUTION, Elements.ACTION_SUBMISSION, Elements.DOMAIN, Elements.TESTING]),
-          }),
-        ],
+        ]),
       },
     ],
   } satisfies Pick<Rules, "boundaries/dependencies">,
 }
 
-/**
- * When disallow and allow overlap, allow wins.
- */
-function policy({
-  element,
-  allow,
-  disallow,
-}: {
-  element: Element
-  allow?: DependenciesPolicy["allow"]
-  disallow?: DependenciesPolicy["disallow"]
-}): DependenciesPolicy[] {
-  const policies: DependenciesPolicy[] = []
-
-  if (disallow !== undefined) {
-    policies.push({ from: { element }, disallow })
-  }
-
-  if (allow !== undefined) {
-    policies.push({ from: { element }, allow })
-  }
-
-  return policies
+function element(definition: Element): { element: { type: Element["type"] } } {
+  return { element: { type: definition.type } }
 }
 
-function elements(definitions: readonly Element[]): NonNullable<DependenciesPolicy["allow"]> {
-  return {
-    to: definitions.map((definition) => ({
-      element: { type: definition.type },
-    })),
-  }
+function fileCategory(definition: { readonly category: string }): NonNullable<DependenciesPolicy["from"]> {
+  return { file: { categories: definition.category } }
+}
+
+/**
+ * Restrict local imports to these elements. Matching policies contribute additive permissions.
+ */
+function policy({ from, onlyAllow }: { from: NonNullable<DependenciesPolicy["from"]>; onlyAllow: readonly Element[] }): Policy {
+  return { from, disallow: { to: { module: { origin: "local" } } }, allow: { to: onlyAllow.map(element) } }
+}
+
+/**
+ * Evaluate all local denials before all allowances so overlapping policies add permissions.
+ */
+function additivePolicies(policies: readonly Policy[]): DependenciesPolicy[] {
+  return [...policies.map(({ from, disallow }) => ({ from, disallow })), ...policies.map(({ from, allow }) => ({ from, allow }))]
 }
