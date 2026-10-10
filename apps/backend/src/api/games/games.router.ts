@@ -38,6 +38,10 @@ export function createGamesRouter({
   const gamesRouterLogger = others.logger.child({ scope: "games-router" })
 
   return trpc.router({
+    /**
+     * Lists public game overviews, including the requesting account's membership when signed in.
+     * Use to browse games or find games the account has joined.
+     */
     getListings: trpc.publicProcedure
       .input(NO_INPUT)
       .output(z.array(GameListingDtoSchema))
@@ -45,12 +49,21 @@ export function createGamesRouter({
         return await getGameListingsUseCase.execute({ accountId: account?.id })
       }),
 
+    /**
+     * Starts a lobby and initializes its galaxy, player resources, and first Turn.
+     * Use when the game creator chooses to start play from the lobby.
+     */
     startGame: trpc.inGameProcedure.output(NO_OUTPUT).mutation(async ({ input, ctx: { account } }) => {
       const startResult = await startGameUseCase.execute({ ...input, requesterAccountId: account.id })
       if (Result.isFailure(startResult)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: startResult.error })
       }
     }),
+
+    /**
+     * Returns the available rulesets and maximum seat count for an authenticated account.
+     * Use to populate the game creation form before submitting a new lobby.
+     */
     getCreationSettings: trpc.privateProcedure
       .input(NO_INPUT)
       .output(GameCreationSettingsDtoSchema)
@@ -66,6 +79,10 @@ export function createGamesRouter({
         return creationSettingsResult.value
       }),
 
+    /**
+     * Creates a lobby with the supplied configuration and joins the authenticated account as its creator.
+     * Use when submitting the game creation form; the response contains the new game id.
+     */
     create: trpc.privateProcedure
       .input(CreateGameDtoSchema.omit({ createdByAccountId: true }))
       .output(CreatedGameDtoSchema)
@@ -82,6 +99,10 @@ export function createGamesRouter({
         return createResult.value
       }),
 
+    /**
+     * Returns public game details and the operations available to the requesting account.
+     * Use to display a game's lobby or details, including for visitors who are not signed in.
+     */
     getById: trpc.publicProcedure
       .input(z.object({ gameId: z.coerce.number().pipe(GameIdSchema) }))
       .output(GameDetailsDtoSchema)
@@ -102,6 +123,10 @@ export function createGamesRouter({
         return game
       }),
 
+    /**
+     * Joins an available lobby as the authenticated account; repeated joins succeed without changes.
+     * Use when the account chooses to participate in a game before it starts.
+     */
     join: trpc.privateProcedure
       .input(JoinGameDtoSchema.pick({ gameId: true }))
       .output(NO_OUTPUT)
@@ -115,6 +140,10 @@ export function createGamesRouter({
         }
       }),
 
+    /**
+     * Removes the authenticated account from a lobby and frees its seat.
+     * Use to withdraw before the game starts; the game creator cannot leave.
+     */
     leave: trpc.privateProcedure
       .input(LeaveGameDtoSchema.pick({ gameId: true }))
       .output(NO_OUTPUT)
