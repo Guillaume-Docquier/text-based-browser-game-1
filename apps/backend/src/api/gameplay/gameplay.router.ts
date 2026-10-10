@@ -1,6 +1,6 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
-import type { Trpc } from "#api/trpc.ts"
+import { NO_OUTPUT, type Trpc } from "#api/trpc.ts"
 import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./getPlayerView.useCase.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./updateActionSubmission.useCase.ts"
 import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./updateReadiness.useCase.ts"
@@ -20,6 +20,7 @@ export function createGameplayRouter({
   return trpc.router({
     updateReadiness: trpc.inGameProcedure
       .input(UpdateReadinessDtoSchema.omit({ playerId: true }))
+      .output(NO_OUTPUT)
       .mutation(async ({ input, ctx: { playerId } }) => {
         const result = await updateReadinessUseCase.execute({ ...input, playerId })
         if (Result.isFailure(result)) {
@@ -47,6 +48,7 @@ export function createGameplayRouter({
 
     updateActionSubmission: trpc.inGameProcedure
       .input(UpdateActionSubmissionDtoSchema.omit({ playerId: true }))
+      .output(NO_OUTPUT)
       .mutation(async ({ input, ctx: { playerId } }) => {
         const updateActionSubmissionResult = await updateActionSubmissionUseCase.execute({ ...input, playerId })
         if (Result.isFailure(updateActionSubmissionResult)) {
