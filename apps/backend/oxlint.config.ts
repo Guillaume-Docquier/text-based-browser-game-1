@@ -10,6 +10,13 @@ export default defineConfig({
   plugins: ["vitest"],
   overrides: [
     {
+      files: ["src/**/*.test-d.ts"],
+      rules: {
+        // Rejected type expressions are asserted with @ts-expect-error, without an expectation call.
+        "vitest/expect-expect": "off",
+      },
+    },
+    {
       files: ["src/**/*.ts"],
       excludeFiles: ["src/**/*.test.ts"],
       rules: {

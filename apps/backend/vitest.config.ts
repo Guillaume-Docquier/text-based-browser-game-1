@@ -4,7 +4,15 @@ import { defineConfig } from "vitest/config"
 export default defineConfig({
   test: {
     coverage: {
-      exclude: ["src/**/*.test.ts", "src/tests/**", "**entry.*.ts", "src/lib/parseEnv.ts", "src/lib/db/createDb.ts"],
+      exclude: [
+        "src/**/*.test.ts",
+        "src/**/*.test-d.ts",
+        "src/**/*.d.ts",
+        "src/tests/**",
+        "**entry.*.ts",
+        "src/lib/parseEnv.ts",
+        "src/lib/db/createDb.ts",
+      ],
       include: ["src/**/*.ts"],
       provider: "v8",
       reporter: ["text", ["lcov", { projectRoot: fileURLToPath(new URL("../..", import.meta.url)) }]],
@@ -14,6 +22,17 @@ export default defineConfig({
     globals: false,
     slowTestThreshold: 1_000, // Tailored for local
     projects: [
+      {
+        // type tests are statically analyzed and included in normal backend test runs
+        test: {
+          name: { label: "types", color: "blue" },
+          typecheck: {
+            enabled: true,
+            only: true,
+            include: ["**/*.test-d.ts"],
+          },
+        },
+      },
       {
         // unit tests are lightweight and fast
         test: {

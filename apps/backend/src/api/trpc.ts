@@ -4,6 +4,17 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { z } from "zod"
 import type { GamesRepository } from "#api/games/games.repository.ts"
+import type { RequireProcedureSchemas } from "#api/trpc.d.ts"
+
+/**
+ * Explicitly declare that a procedure accepts no input.
+ */
+export const NO_INPUT = z.void()
+
+/**
+ * Explicitly declare that a procedure returns no value.
+ */
+export const NO_OUTPUT = z.void()
 
 type ExpressContextOptions = Pick<CreateExpressContextOptions, "req" | "res">
 
@@ -66,8 +77,14 @@ export function createTrpc({ gamesRepository, logger: baseLogger }: { gamesRepos
 
   return {
     router: t.router,
-    publicProcedure,
-    privateProcedure,
-    inGameProcedure,
+    // SAFETY: Only exposed method types change; the native builder and inferred context are preserved.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: The schema-stage narrowing is verified by compile-time regression checks.
+    publicProcedure: publicProcedure as RequireProcedureSchemas<typeof publicProcedure>,
+    // SAFETY: Only exposed method types change; the native builder and authenticated context are preserved.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: The schema-stage narrowing is verified by compile-time regression checks.
+    privateProcedure: privateProcedure as RequireProcedureSchemas<typeof privateProcedure>,
+    // SAFETY: Only exposed method types change; the native builder, inherited game input, and player context are preserved.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: The schema-stage narrowing is verified by compile-time regression checks.
+    inGameProcedure: inGameProcedure as RequireProcedureSchemas<typeof inGameProcedure>,
   }
 }

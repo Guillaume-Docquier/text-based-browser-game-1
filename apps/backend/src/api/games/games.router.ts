@@ -2,7 +2,7 @@ import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { z } from "zod"
-import type { Trpc } from "#api/trpc.ts"
+import { NO_INPUT, NO_OUTPUT, type Trpc } from "#api/trpc.ts"
 import { CreatedGameDtoSchema, CreateGameDtoSchema, type CreateGameUseCase } from "./createGame.useCase.ts"
 import { GameDetailsDtoSchema } from "./GameDetailsDto.ts"
 import { GameListingDtoSchema } from "./GameListingDto.ts"
@@ -38,27 +38,33 @@ export function createGamesRouter({
   const gamesRouterLogger = others.logger.child({ scope: "games-router" })
 
   return trpc.router({
-    getListings: trpc.publicProcedure.output(z.array(GameListingDtoSchema)).query(async ({ ctx: { account } }) => {
-      return await getGameListingsUseCase.execute({ accountId: account?.id })
-    }),
+    getListings: trpc.publicProcedure
+      .input(NO_INPUT)
+      .output(z.array(GameListingDtoSchema))
+      .query(async ({ ctx: { account } }) => {
+        return await getGameListingsUseCase.execute({ accountId: account?.id })
+      }),
 
-    startGame: trpc.inGameProcedure.mutation(async ({ input, ctx: { account } }) => {
+    startGame: trpc.inGameProcedure.output(NO_OUTPUT).mutation(async ({ input, ctx: { account } }) => {
       const startResult = await startGameUseCase.execute({ ...input, requesterAccountId: account.id })
       if (Result.isFailure(startResult)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: startResult.error })
       }
     }),
-    getCreationSettings: trpc.privateProcedure.output(GameCreationSettingsDtoSchema).query(async () => {
-      const creationSettingsResult = await getGameCreationSettingsUseCase.execute()
-      if (Result.isFailure(creationSettingsResult)) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Game creation settings could not be loaded.",
-        })
-      }
+    getCreationSettings: trpc.privateProcedure
+      .input(NO_INPUT)
+      .output(GameCreationSettingsDtoSchema)
+      .query(async () => {
+        const creationSettingsResult = await getGameCreationSettingsUseCase.execute()
+        if (Result.isFailure(creationSettingsResult)) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Game creation settings could not be loaded.",
+          })
+        }
 
-      return creationSettingsResult.value
-    }),
+        return creationSettingsResult.value
+      }),
 
     create: trpc.privateProcedure
       .input(CreateGameDtoSchema.omit({ createdByAccountId: true }))
@@ -98,6 +104,7 @@ export function createGamesRouter({
 
     join: trpc.privateProcedure
       .input(JoinGameDtoSchema.pick({ gameId: true }))
+      .output(NO_OUTPUT)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
         const joinGameResult = await joinGameUseCase.execute({ gameId, accountId: account.id })
         if (Result.isFailure(joinGameResult)) {
@@ -110,6 +117,7 @@ export function createGamesRouter({
 
     leave: trpc.privateProcedure
       .input(LeaveGameDtoSchema.pick({ gameId: true }))
+      .output(NO_OUTPUT)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
         const leaveGameResult = await leaveGameUseCase.execute({ gameId, accountId: account.id })
         if (Result.isFailure(leaveGameResult)) {

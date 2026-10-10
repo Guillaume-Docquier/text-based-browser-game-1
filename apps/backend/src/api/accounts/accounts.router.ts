@@ -4,15 +4,19 @@ import { z } from "zod"
 import { FinishOnboardingError } from "#api/accounts/finishOnboarding.error.ts"
 import { FinishOnboardingRequestSchema } from "#api/accounts/finishOnboarding.request.ts"
 import type { FinishOnboardingUseCase } from "#api/accounts/finishOnboarding.useCase.ts"
-import type { Trpc } from "#api/trpc.ts"
+import { NO_INPUT, NO_OUTPUT, type Trpc } from "#api/trpc.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let tRPC inference do the work
 export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: Trpc; finishOnboardingUseCase: FinishOnboardingUseCase }) {
   return trpc.router({
-    isOnboarded: trpc.privateProcedure.output(z.boolean()).query(({ ctx: { account } }) => account.onboarded),
+    isOnboarded: trpc.privateProcedure
+      .input(NO_INPUT)
+      .output(z.boolean())
+      .query(({ ctx: { account } }) => account.onboarded),
 
     finishOnboarding: trpc.privateProcedure
       .input(FinishOnboardingRequestSchema)
+      .output(NO_OUTPUT)
       .mutation(async ({ input: { alias }, ctx: { account } }) => {
         const finishOnboardingResult = await finishOnboardingUseCase.execute({ accountId: account.id, alias })
         if (Result.isSuccess(finishOnboardingResult)) {
