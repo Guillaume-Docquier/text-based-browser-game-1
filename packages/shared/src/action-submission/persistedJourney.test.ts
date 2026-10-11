@@ -143,6 +143,47 @@ const corruptions: Array<{ name: string; corrupt: (fixture: JourneyFixture) => R
     },
   },
   {
+    name: "fractional fleet strength",
+    corrupt: ({ scenario, journey }) => {
+      journey.strength = 1.5
+      return scenario.ruleset
+    },
+  },
+  {
+    name: "negative fleet strength",
+    corrupt: ({ scenario, journey }) => {
+      journey.strength = -1
+      return scenario.ruleset
+    },
+  },
+  {
+    name: "forged departure child",
+    corrupt: ({ scenario, state, journey }) => {
+      Reflect.deleteProperty(state.fleets, journey.id)
+      const id = branded<typeof journey.id>("forged")
+      state.fleets[id] = { ...journey, id }
+      return scenario.ruleset
+    },
+  },
+  {
+    name: "mismatched fleet owner",
+    corrupt: ({ scenario, state, journey }) => {
+      const alternateId = branded<typeof journey.ownerPlayerId>("another-owner")
+      const player = state.players[scenario.playerId]
+      Assert.isDefined(player)
+      Reflect.set(state.players, alternateId, { ...player, id: alternateId })
+      journey.ownerPlayerId = alternateId
+      return scenario.ruleset
+    },
+  },
+  {
+    name: "missing destination planet",
+    corrupt: ({ scenario, state }) => {
+      Reflect.deleteProperty(state.planets, scenario.destination.id)
+      return scenario.ruleset
+    },
+  },
+  {
     name: "future initiating Turn",
     corrupt: ({ scenario, movement }) => {
       movement.initiatingTurn = 3
@@ -195,13 +236,13 @@ describe("persisted journey binding integrity", () => {
     // Arrange
     const fixture = createJourneyFixture()
     const ruleset = corrupt(fixture)
-    const before = structuredClone(fixture.state)
+    const state = { ...fixture.state, turn: 2, submittedActions: [fixture.scenario.order("Y", 10)] }
+    const before = structuredClone(state)
     // Act
-    const result = resolveTurn({ ...fixture.state, turn: 2, submittedActions: [] }, ruleset, createSeededRng())
+    const result = resolveTurn(state, ruleset, createSeededRng())
     // Assert
     expect(result).toStrictEqual(Result.Failure(expect.objectContaining({ type: "FAILED_TO_RESOLVE_PHASES" })))
-    expect(fixture.state.fleets).toStrictEqual(before.fleets)
-    expect(fixture.state.players).toStrictEqual(before.players)
+    expect(state).toStrictEqual(before)
   })
 
   it("should continue full allocation with saved speed despite changed current speed/range without paying again", () => {

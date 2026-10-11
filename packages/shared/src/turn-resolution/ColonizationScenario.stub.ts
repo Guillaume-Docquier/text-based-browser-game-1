@@ -135,9 +135,6 @@ const colonizationJourneyCorruptions = {
   index: ({ pending }): void => {
     Reflect.set(pending, "effectIndex", 0)
   },
-  strength: ({ fleet }): void => {
-    fleet.strength = 1.5
-  },
   requirement: ({ pending }): void => {
     Reflect.set(pending.definition.parameters, "requiredStrength", 25)
   },
@@ -149,19 +146,6 @@ const colonizationJourneyCorruptions = {
   },
   variant: ({ pending }): void => {
     Reflect.set(pending, "type", "ASSAULT")
-  },
-  "missing-player": ({ state, fleet }): void => {
-    Reflect.deleteProperty(state.players, fleet.ownerPlayerId)
-  },
-  "missing-planet": ({ state, fleet }): void => {
-    Reflect.deleteProperty(state.planets, fleet.destinationPlanetId ?? "missing")
-  },
-  "forged-child": ({ state, fleet }): void => {
-    Reflect.deleteProperty(state.fleets, fleet.id)
-    Reflect.set(state.fleets, "forged", { ...fleet, id: "forged" })
-  },
-  "impossible-progress": ({ fleet }): void => {
-    Reflect.set(fleet, "distanceToEnd", 4)
   },
 } satisfies Record<string, (context: CorruptColonizationJourney) => void>
 

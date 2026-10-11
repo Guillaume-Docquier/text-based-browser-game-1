@@ -440,41 +440,31 @@ describe("Colonization commitments and deferred integrity", () => {
     expect(idle.resolvedActions).toStrictEqual([])
   })
 
-  it.each([
-    "missing",
-    "duplicate",
-    "index",
-    "strength",
-    "requirement",
-    "mapping",
-    "extra",
-    "variant",
-    "missing-player",
-    "missing-planet",
-    "forged-child",
-    "impossible-progress",
-  ])("should rejects saved%s corruption before mutations with valid control", (corruption) => {
-    // Arrange
-    const fixture = createColonizationScenario({ orders: [{ owner: 1, strength: 35, distance: 5, assault: false }], defenders: [] })
-    extractSuccess(resolveTurn(fixture.state, fixture.ruleset, createSeededRng()))
-    const control = nextColonizationTurn(fixture)
-    const corrupt = structuredClone(control)
-    corruptColonizationJourney(corrupt, corruption)
-    const before = structuredClone(corrupt)
-    // Act
-    const valid = resolveTurn(control, fixture.ruleset, createSeededRng())
-    const invalid = resolveTurn(corrupt, fixture.ruleset, createSeededRng())
-    // Assert
-    expect(valid).toStrictEqual(Result.Success(expect.objectContaining({ fleets: expect.any(Object) })))
-    expect(invalid).toStrictEqual(
-      Result.Failure(
-        ResolveTurnError.FailedToResolvePhases({
-          error: ResolvePhaseError.FailedEffect({ error: EffectError.Failed({ error: expect.any(String) }) }),
-        }),
-      ),
-    )
-    expect(corrupt).toStrictEqual(before)
-  })
+  it.each(["missing", "duplicate", "index", "requirement", "mapping", "extra", "variant"])(
+    "should rejects saved%s corruption before mutations with valid control",
+    (corruption) => {
+      // Arrange
+      const fixture = createColonizationScenario({ orders: [{ owner: 1, strength: 35, distance: 5, assault: false }], defenders: [] })
+      extractSuccess(resolveTurn(fixture.state, fixture.ruleset, createSeededRng()))
+      const control = nextColonizationTurn(fixture)
+      const corrupt = structuredClone(control)
+      corruptColonizationJourney(corrupt, corruption)
+      const before = structuredClone(corrupt)
+      // Act
+      const valid = resolveTurn(control, fixture.ruleset, createSeededRng())
+      const invalid = resolveTurn(corrupt, fixture.ruleset, createSeededRng())
+      // Assert
+      expect(valid).toStrictEqual(Result.Success(expect.objectContaining({ fleets: expect.any(Object) })))
+      expect(invalid).toStrictEqual(
+        Result.Failure(
+          ResolveTurnError.FailedToResolvePhases({
+            error: ResolvePhaseError.FailedEffect({ error: EffectError.Failed({ error: expect.any(String) }) }),
+          }),
+        ),
+      )
+      expect(corrupt).toStrictEqual(before)
+    },
+  )
 
   it.each([0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
     "should rejects invalid configured requirement%s",

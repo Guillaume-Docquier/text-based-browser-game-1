@@ -14,7 +14,6 @@ import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
-import { FleetIdSchema } from "#shared/domain/world/fleets/FleetId.ts"
 import type { PendingArrivalEffect } from "#shared/domain/world/fleets/PendingArrivalEffect.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
@@ -206,34 +205,6 @@ const fleetJourneyCorruptions = {
   "duplicate-index": ({ journey }): void => {
     Assert.isDefined(journey.movement)
     journey.movement.pendingArrivalEffects?.push(...journey.movement.pendingArrivalEffects)
-  },
-  "fractional-strength": ({ journey }): void => {
-    journey.strength = 1.5
-  },
-  "forged-child": ({ state, journey }): void => {
-    Reflect.deleteProperty(state.fleets, journey.id)
-    const id = typedParse(FleetIdSchema, "forged")
-    state.fleets[id] = { ...journey, id }
-  },
-  "negative-strength": ({ journey }): void => {
-    journey.strength = -1
-  },
-  "missing-player": ({ state, journey }): void => {
-    Reflect.deleteProperty(state.players, journey.ownerPlayerId)
-  },
-  "missing-planet": ({ state, journey }): void => {
-    Reflect.deleteProperty(state.planets, journey.destinationPlanetId ?? "missing")
-  },
-  "owner-mismatch": ({ fixture, journey }): void => {
-    journey.ownerPlayerId = fixture.owners[1] ?? journey.ownerPlayerId
-  },
-  "impossible-progress": ({ journey }): void => {
-    Reflect.set(journey, "distanceToEnd", 4)
-  },
-  "duplicate-occupancy": ({ state, journey }): void => {
-    const duplicate = structuredClone(journey)
-    duplicate.id = typedParse(FleetIdSchema, "duplicate-journey")
-    state.fleets[duplicate.id] = duplicate
   },
   "wrong-type": ({ journey }): void => {
     Reflect.set(requirePendingAssault(journey), "type", "SURPRISE")
