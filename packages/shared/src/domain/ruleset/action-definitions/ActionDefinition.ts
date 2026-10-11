@@ -7,11 +7,13 @@ import { ActionTypeSchema, type ActionType } from "#shared/domain/ruleset/action
 import { InputTagSchema, type InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import { type TargetTag, TargetTagSchema } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { EffectDefinitionSchema, type EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
+import { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import {
   ResourceLossEffectDefinitionSchema,
   type ResourceLossEffectDefinition,
 } from "#shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
+import { AtFleetPlanetConstraint } from "#shared/domain/ruleset/target-definitions/AtFleetPlanetTargetConstraint.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
 import { type TargetDefinition, TargetDefinitionSchema } from "#shared/domain/ruleset/target-definitions/TargetDefinition.ts"
@@ -49,7 +51,7 @@ export const ActionDefinitionSchema = z
     effects: z.array(EffectDefinitionSchema),
   })
   .superRefine(validateEffectDefinitionTargets)
-  .superRefine(validateMovementMappings) satisfies z.ZodType<ActionDefinition>
+  .superRefine(validateFleetEffectMappings) satisfies z.ZodType<ActionDefinition>
 
 /**
  * Requires an action definition target slot with a compatible type for every effect definition target.
@@ -76,17 +78,25 @@ function validateEffectDefinitionTargets(actionDefinition: ActionDefinition, con
 /**
  * Checks cross-slot and input mappings required for configured Fleet Movement.
  */
-function validateMovementMappings(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
+function validateFleetEffectMappings(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
   const movementEffects = actionDefinition.effects.filter((effect) => effect.type === FleetMoveEffectDefinition.type)
+  const assaultEffects = actionDefinition.effects.filter((effect) => effect.type === FleetAssaultEffectDefinition.type)
   if (movementEffects.length > 1) {
     context.addIssue({ code: "custom", message: `Action Definition "${actionDefinition.name}" may contain only one FLEET_MOVE effect` })
+  }
+  if (assaultEffects.length > 1) {
+    context.addIssue({ code: "custom", message: `Action Definition "${actionDefinition.name}" may contain only one FLEET_ASSAULT effect` })
   }
 
   const referencedInputTags = new Set<InputTag>()
 
   for (const [targetTag, targetDefinition] of Object.entries(actionDefinition.targets)) {
     for (const [constraintIndex, constraint] of targetDefinition.constraints.entries()) {
-      if (constraint.type !== "WITHIN_FLEET_RANGE" && constraint.type !== "DIFFERENT_FROM_FLEET_ORIGIN") {
+      if (
+        constraint.type !== "WITHIN_FLEET_RANGE" &&
+        constraint.type !== "DIFFERENT_FROM_FLEET_ORIGIN" &&
+        constraint.type !== AtFleetPlanetConstraint.type
+      ) {
         continue
       }
 
@@ -165,6 +175,51 @@ function validateMovementMappings(actionDefinition: ActionDefinition, context: z
         code: "custom",
         path: ["effects", effectIndex, "inputs", "strength"],
         message: `Action Definition "${actionDefinition.name}" input slot "${strengthInputTag}" must use type "${String(effect.inputs.strength.inputType)}"`,
+      })
+    }
+  }
+
+  const movementEffect = movementEffects[0]
+  for (const [effectIndex, effect] of assaultEffects.entries()) {
+    const fleetTag = effect.targets.fleet.actionTargetTag
+    const planetTag = effect.targets.planet.actionTargetTag
+    const fleetDefinition = actionDefinition.targets[fleetTag]
+    const planetDefinition = actionDefinition.targets[planetTag]
+    const fleetConstraints = fleetDefinition?.constraints ?? []
+    const planetConstraints = planetDefinition?.constraints ?? []
+
+    if (!fleetConstraints.some((constraint) => constraint.type === OwnedBySubmittingPlayerConstraint.type)) {
+      context.addIssue({
+        code: "custom",
+        path: ["effects", effectIndex, "targets", "fleet"],
+        message: `Action Definition "${actionDefinition.name}" Assault source slot "${fleetTag}" must require ownership by the submitting player`,
+      })
+    }
+    if (!fleetConstraints.some((constraint) => constraint.type === StationaryFleetConstraint.type)) {
+      context.addIssue({
+        code: "custom",
+        path: ["effects", effectIndex, "targets", "fleet"],
+        message: `Action Definition "${actionDefinition.name}" Assault source slot "${fleetTag}" must require a stationary Fleet`,
+      })
+    }
+
+    if (movementEffect !== undefined) {
+      if (movementEffect.targets.fleet.actionTargetTag !== fleetTag || movementEffect.targets.planet.actionTargetTag !== planetTag) {
+        context.addIssue({
+          code: "custom",
+          path: ["effects", effectIndex, "targets"],
+          message: `Action Definition "${actionDefinition.name}" FLEET_ASSAULT must use the same source and destination target tags as FLEET_MOVE`,
+        })
+      }
+    } else if (
+      !planetConstraints.some(
+        (constraint) => constraint.type === AtFleetPlanetConstraint.type && constraint.references.sourceFleetTag === fleetTag,
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["targets", planetTag],
+        message: `Action Definition "${actionDefinition.name}" standalone Assault target slot "${planetTag}" must require the selected Fleet's stationary Planet`,
       })
     }
   }

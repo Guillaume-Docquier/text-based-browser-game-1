@@ -1,10 +1,12 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import { NonNegativeNumberSchema, typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { NonNegativeNumberSchema, safeTypedParse, typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { v5 } from "uuid"
+import { NonNegativeSafeIntegerSchema } from "#shared/domain/NonNegativeSafeInteger.ts"
 import { PositiveIntegerSchema } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
+import type { PendingArrivalAssault } from "#shared/domain/world/fleets/Fleet.ts"
 import { FleetIdSchema, type FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { Effect } from "#shared/turn-resolution/effects/Effect.ts"
@@ -20,12 +22,20 @@ export class FleetMoveEffect extends Effect {
   private readonly effectDefinition: FleetMoveEffectDefinition
   private readonly targetFleetId: FleetId
   private readonly targetPlanetId: PlanetId
+  private readonly pendingArrivalEffects: readonly PendingArrivalAssault[]
 
-  public constructor(id: number, effectDefinition: FleetMoveEffectDefinition, submittedAction: SubmittedAction) {
-    super(id, effectDefinition.type, submittedAction)
+  public constructor(
+    id: number,
+    effectDefinition: FleetMoveEffectDefinition,
+    submittedAction: SubmittedAction,
+    pendingArrivalEffects: readonly PendingArrivalAssault[] = [],
+    definitionOrdinal: number = id,
+  ) {
+    super(id, effectDefinition.type, submittedAction, definitionOrdinal)
     this.effectDefinition = effectDefinition
     this.targetFleetId = resolveTargetId(this.submittedAction.selectedTargets, this.effectDefinition.targets.fleet)
     this.targetPlanetId = resolveTargetId(this.submittedAction.selectedTargets, this.effectDefinition.targets.planet)
+    this.pendingArrivalEffects = pendingArrivalEffects
   }
 
   protected override doResolve(context: TurnContext): Result<EffectOutcome[], EffectError> {
@@ -42,10 +52,15 @@ export class FleetMoveEffect extends Effect {
       return Result.Failure(EffectError.Failed({ error: `Destination Planet "${this.targetPlanetId}" could not be found` }))
     }
 
-    const strength = this.submittedAction.selectedInputs[this.effectDefinition.inputs.strength.actionInputTag]
-    if (strength === undefined || strength > fleet.strength) {
+    const selectedStrengthInput = this.submittedAction.selectedInputs[this.effectDefinition.inputs.strength.actionInputTag]
+    if (selectedStrengthInput === undefined) {
       return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" cannot supply the selected movement Strength` }))
     }
+    const selectedStrength = safeTypedParse(PositiveIntegerSchema, selectedStrengthInput)
+    if (!selectedStrength.success || selectedStrength.data > Number(fleet.strength)) {
+      return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" cannot supply the selected movement Strength` }))
+    }
+    const strength = typedParse(NonNegativeSafeIntegerSchema, selectedStrength.data)
     if (
       fleet.ownerPlayerId !== this.submittedAction.playerId ||
       fleet.movement !== undefined ||
@@ -71,7 +86,7 @@ export class FleetMoveEffect extends Effect {
       return Result.Failure(EffectError.Failed({ error: `Deterministic departure Fleet "${departureId}" already exists` }))
     }
 
-    const remainingStrength = fleet.strength - strength
+    const remainingStrength = typedParse(NonNegativeSafeIntegerSchema, fleet.strength - strength)
     if (remainingStrength === 0) {
       TurnState.removeFleet(context.turnState, fleet.id)
       context.removedFleetIds.add(fleet.id)
@@ -95,6 +110,7 @@ export class FleetMoveEffect extends Effect {
         speed: this.effectDefinition.parameters.speed,
         departureTurn: typedParse(PositiveIntegerSchema, context.turnState.turn),
         submission: this.submittedAction,
+        pendingArrivalEffects: this.pendingArrivalEffects,
       },
     }
     context.turnState.fleets[departureId] = departureFleet

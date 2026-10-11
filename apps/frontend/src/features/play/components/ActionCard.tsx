@@ -214,7 +214,7 @@ export function ActionCard({
       </CardHeader>
       <CardContent className="relative z-10 flex min-h-36 flex-1 flex-col gap-4 border-t border-border/70 px-5 py-5">
         <p className={cn("leading-relaxed", canAfford ? "text-card-foreground" : "text-zinc-500")}>
-          {effectDefinitionsToRulesText(actionDefinition.effects)}
+          {effectDefinitionsToRulesText(actionDefinition)}
         </p>
         {action.isInProgress ? (
           <p

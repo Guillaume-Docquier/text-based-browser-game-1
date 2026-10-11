@@ -12,6 +12,7 @@ These Systems have live mechanics, but some documented rules remain planned.
 | [003-actions](./003-actions.md)           | How players use card-like Agendas, Directives, and Programs to affect the game each Turn. |
 | [008-planets](./008-planets.md)           | How Planets, their Attributes, and Colonization shape expansion.                          |
 | [010-fleets](./010-fleets.md)             | How players build, move, merge, and view Fleets, and which Fleet rules remain planned.    |
+| [011-combat](./011-combat.md)             | How normal Fleet Assaults resolve and which combat rules remain planned.                  |
 | [012-movement](./012-movement.md)         | How range-limited partial Fleet departures advance, continue, and arrive.                 |
 | [014-resources](./014-resources.md)       | How distinct thematic resources are acquired, held, spent, and made scarce.               |
 | [015-rules-engine](./015-rules-engine.md) | How shared Action eligibility and Ruleset Effects resolve through engine-owned Phases.    |
@@ -28,4 +29,3 @@ These Systems describe intended rules that are not yet implemented in the game.
 | [006-trade](./006-trade.md)                                 | How Sellers and Buyers exchange resources through private bids.                  |
 | [007-contracts](./007-contracts.md)                         | How Clients hire Contractors to perform Actions on their behalf.                 |
 | [009-infrastructure](./009-infrastructure.md)               | How empires improve their owned Planets.                                         |
-| [011-combat](./011-combat.md)                               | How Fleet assaults and Surprise Assaults resolve.                                |

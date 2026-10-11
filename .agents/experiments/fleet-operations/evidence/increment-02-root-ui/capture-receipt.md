@@ -1,0 +1,9 @@
+# Root actual browser captures — Increment02
+
+Captured on2026-10-11 through the existing Codex in-app browser3/tab1 against the assigned worktree Storybook6006. These JPEGs are direct screenshots of rendered deterministic component fixtures. They provide UI review evidence; they do not claim a new authenticated API/browser runtime test. The separately executed root authenticated Assault scenario remains attributed to its actual command/log/exit. No production, test, service environment or Git configuration was changed by these captures.
+
+- [Selected partial Assault](assault-selected.jpg): actual UI selected Home Guard50, force30 and Inner Reach. After Select action the controlled card shows Update action/Cancel and20 of50 available; displayed costs5Influence/1Fuel, speed1/range5 and one simultaneous enemy exchange. JPEG75811B SHA256F88F1F7272A723AE96AFFB02EE0A5C3EA1F047BF01AD064FDDA27A9A7F06C61A. Story application-action-card--attack-move-assault.
+- [Occupied journey](assault-journey.jpg): actual rendered status Home Guard30, toWaypoint,2lyremaining; edit/cancel controls absent. JPEG68136B SHA256F68A4873E53E393B843908940B1F12C3024DF2C567BB7DCC2D22CCE114122BAE. Story application-action-card--attack-move-journey-in-progress.
+- [After Assault](after-assault.jpg): actual fleet table has only Aegis/Alice/strength10 atMars(4:5:6), with no destination/journey and no defeated enemy row. JPEG57662B SHA25637FA5DD2BE5AE88E7F64598B41D1A42AEB5555346360F9581259006FF5D2C52A. Story application-fleets-page--after-assault.
+
+Frontend/runtime inputs remain unchanged from the completed gameplay gates while the fresh tester makes an API-test-only improvement. Source/test canonical manifest will be reverified at its handoff. Browser tab marked for handoff; root-owned6006 service preserved. Actual images will be explicitly staged for the final PR's screenshot section if accepted.

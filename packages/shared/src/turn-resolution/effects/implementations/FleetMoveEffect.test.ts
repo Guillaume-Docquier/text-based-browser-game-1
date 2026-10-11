@@ -6,6 +6,7 @@ import { PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
+import { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { FleetNameSchema } from "#shared/domain/world/fleets/FleetName.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
@@ -46,12 +47,14 @@ describe("FleetMoveEffect", () => {
           { id: originPlanetId, name: typedParse(PlanetNameSchema, "Origin"), ownerPlayerId: playerId, x: 0, y: 0 },
           { id: destinationPlanetId, name: destinationPlanetName, ownerPlayerId: playerId, x: 5, y: 0 },
         ]),
-        fleets: indexBy("id", [{ id: fleetId, name: fleetName, ownerPlayerId: playerId, originPlanetId, strength: 5 }]),
+        fleets: indexBy("id", [createFleetStub({ id: fleetId, name: fleetName, ownerPlayerId: playerId, originPlanetId, strength: 5 })]),
       }),
       previousJourneyFleetIds: [],
       newDepartureFleetIds: new Set(),
       removedFleetIds: new Set(),
       resolvedContinuations: [],
+      pendingArrivalAssaults: [],
+      fleetIdRebindings: new Map(),
     }
     const expectedOutcomes = [
       EffectOutcome.Resolved({
@@ -77,7 +80,7 @@ describe("FleetMoveEffect", () => {
       originPlanetId,
       destinationPlanetId,
       distanceToEnd: 5,
-      movement: { speed: 10, departureTurn: 1, submission: submittedAction },
+      movement: { speed: 10, departureTurn: 1, submission: submittedAction, pendingArrivalEffects: [] },
     })
   })
 })

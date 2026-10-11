@@ -18,6 +18,7 @@ import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { RulesetSchema, type Ruleset as SharedRuleset } from "shared/domain/ruleset/Ruleset.ts"
 import { AvailableActionSchema, SubmittedActionSchema } from "shared/domain/turns/actions/Action.ts"
 import type { Action as SharedAction } from "shared/domain/turns/actions/Action.ts"
+import { FleetSchema } from "shared/domain/world/fleets/Fleet.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/alert.tsx"
 import { ActionCard } from "@/features/play/components/ActionCard.tsx"
 import { useUpdateActionSubmission } from "@/lib/api/useUpdateActionSubmission.ts"
@@ -156,6 +157,11 @@ export function createEligibilityState(
     return { success: false, message: invalidAction.message }
   }
 
+  const fleetsResult = safeTypedParse(FleetSchema.array(), [...playerView.fleets])
+  if (!fleetsResult.success) {
+    return { success: false, message: fleetsResult.error.message }
+  }
+
   const playerIds = [playerView.player, ...Object.values(playerView.opponents)].map(({ id }) => ({ id, ownerPlayerId: id }))
   const planets = playerView.galaxy.systems.flatMap(({ planets: systemPlanets }) =>
     systemPlanets.map(({ id, ownerPlayerId, x, y }) => ({ id, ownerPlayerId, x, y })),
@@ -177,7 +183,7 @@ export function createEligibilityState(
       },
       players: indexBy("id", playerIds),
       planets: indexBy("id", planets),
-      fleets: indexBy("id", playerView.fleets),
+      fleets: indexBy("id", fleetsResult.data),
       actions: actions.flatMap((result) => (result.success ? [result.action] : [])),
     },
   }

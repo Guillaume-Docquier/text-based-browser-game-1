@@ -5,8 +5,11 @@ import {
   type PositiveNumber,
 } from "@guillaume-docquier/tools-ts/schemas"
 import { z } from "zod"
+import { NonNegativeSafeIntegerSchema, type NonNegativeSafeInteger } from "#shared/domain/NonNegativeSafeInteger.ts"
 import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { PositiveIntegerSchema, type PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
+import type { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
+import { FleetAssaultEffectDefinitionSchema } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { SubmittedActionSchema } from "#shared/domain/turns/actions/Action.ts"
 import { FleetIdSchema, type FleetId } from "#shared/domain/world/fleets/FleetId.ts"
@@ -20,19 +23,33 @@ export type FleetMovement = Readonly<{
   speed: PositiveNumber
   departureTurn: PositiveInteger
   submission: SubmittedAction
+  pendingArrivalEffects: readonly PendingArrivalAssault[]
 }>
+
+export type PendingArrivalAssault = Readonly<{
+  effectDefinition: FleetAssaultEffectDefinition
+  definitionOrdinal: NonNegativeSafeInteger
+}>
+
+export const PendingArrivalAssaultSchema = z
+  .object({
+    effectDefinition: FleetAssaultEffectDefinitionSchema,
+    definitionOrdinal: NonNegativeSafeIntegerSchema,
+  })
+  .strict() satisfies z.ZodType<PendingArrivalAssault>
 
 export const FleetMovementSchema = z.object({
   speed: z.number().finite().pipe(PositiveNumberSchema),
   departureTurn: PositiveIntegerSchema,
   submission: SubmittedActionSchema,
+  pendingArrivalEffects: z.array(PendingArrivalAssaultSchema).readonly(),
 }) satisfies z.ZodType<FleetMovement>
 
 export type Fleet = {
   id: FleetId
   ownerPlayerId: PlayerId
   name: FleetName
-  strength: number
+  strength: NonNegativeSafeInteger
   originPlanetId: PlanetId
   /**
    * Defined only when moving.
@@ -55,7 +72,7 @@ export const FleetSchema = z
     id: FleetIdSchema,
     ownerPlayerId: PlayerIdSchema,
     name: FleetNameSchema,
-    strength: z.number(),
+    strength: NonNegativeSafeIntegerSchema,
     originPlanetId: PlanetIdSchema,
     destinationPlanetId: PlanetIdSchema.optional(),
     distanceToEnd: NonNegativeNumberSchema.optional(),

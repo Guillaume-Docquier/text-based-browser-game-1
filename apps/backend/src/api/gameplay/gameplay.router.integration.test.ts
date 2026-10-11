@@ -1,11 +1,30 @@
-import { Assert, branded, Datetime, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, Datetime, indexBy, Logger, Result, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
+import {
+  evaluateSubmittedActions,
+  evaluateTargetCandidate,
+  type EligibilityState,
+} from "shared/action-submission/evaluateActionSelection.ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
+import { createResourcesStub } from "shared/domain/resources/Resources.stub.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import { ActionDefinitionSchema } from "shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
+import { FleetAssaultEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
+import { FleetMoveEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
 import { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
+import { DifferentFromFleetOriginConstraint } from "shared/domain/ruleset/target-definitions/DifferentFromFleetOriginTargetConstraint.ts"
+import { OwnedBySubmittingPlayerConstraint } from "shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { StationaryFleetConstraint } from "shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
+import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
+import { WithinFleetRangeConstraint } from "shared/domain/ruleset/target-definitions/WithinFleetRangeTargetConstraint.ts"
+import { createAvailableActionStub, createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { FleetActionSelectionParity } from "shared/testing/FleetActionSelectionParity.ts"
+import { AttackMoveTest, FlexibleAssaultTest, StationaryAssaultTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { describe, expect } from "vitest"
 import { createApiStub } from "#api/createApi.stub.ts"
@@ -137,6 +156,24 @@ describe("gameplay.router", () => {
           actionDefinitionId: MoveFleetExceptional.id,
           selectedTargets: null,
           canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: AttackMoveTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: FlexibleAssaultTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: StationaryAssaultTest.id,
+          selectedTargets: null,
+          canAfford: true,
         },
       ]
       expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
@@ -560,6 +597,402 @@ describe("gameplay.router", () => {
       expect(selectedView.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(FleetActionSelectionParity.sourceStrength)
     })
 
+    integrationTest("should preserve the composed Move and Attack Move parity through the public API and worker", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      const apiServices = await createApiStub({ db, clock })
+      Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(ComposedReservationRuleset))
+      using apiServer = new ApiServer(apiServices)
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({
+          rulesetId: ComposedReservationRuleset.id,
+          mapGenerationSeed: 1234,
+          turnIntervalSeconds: 10,
+        }),
+      })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+      let playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const planets = playerView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+      const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerView.player.id)
+      const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
+      Assert.isDefined(origin)
+      Assert.isDefined(destination)
+      expect({ x: origin.x, y: origin.y }).toStrictEqual(FleetActionSelectionParity.origin)
+      expect({ x: destination.x, y: destination.y }).toStrictEqual(FleetActionSelectionParity.destination)
+
+      // Act
+      for (let buildCount = 0; buildCount < 5; buildCount += 1) {
+        const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+        Assert.isDefined(buildAction)
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: playerView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({
+            actionId: buildAction.id,
+            selectedTargets: { planet: origin.id },
+            selectedInputs: {},
+          }),
+        })
+        await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+        playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      }
+
+      const sourceFleet = playerView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
+      const moveAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
+      const attackAction = playerView.actions.find(({ id }) => id === AttackMoveTest.id + "_1")
+      const extraMoveAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_2")
+      const extraAttackAction = playerView.actions.find(({ id }) => id === AttackMoveTest.id + "_2")
+      const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+      Assert.isDefined(sourceFleet)
+      Assert.isDefined(moveAction)
+      Assert.isDefined(attackAction)
+      Assert.isDefined(extraMoveAction)
+      Assert.isDefined(extraAttackAction)
+      Assert.isDefined(buildAction)
+      expect(sourceFleet.strength).toBe(50)
+      expect(playerView.resources[ResourceType.INFLUENCE].total).toBe(8)
+      expect(playerView.resources[ResourceType.METAL].total).toBe(5)
+      expect(playerView.resources[ResourceType.FUEL].total).toBe(2)
+
+      const evaluatePublicView = (
+        view: typeof playerView,
+      ): {
+        state: EligibilityState
+        submissions: Array<ReturnType<typeof createSubmittedActionStub>>
+        evaluation: ReturnType<typeof evaluateSubmittedActions>
+      } => {
+        const actions = view.actions.map((action) =>
+          action.selectedTargets === null
+            ? createAvailableActionStub({
+                id: action.id,
+                playerId: view.player.id,
+                actionDefinitionId: action.actionDefinitionId,
+              })
+            : createSubmittedActionStub({
+                id: action.id,
+                playerId: view.player.id,
+                actionDefinitionId: action.actionDefinitionId,
+                selectedTargets: action.selectedTargets,
+                selectedInputs: action.selectedInputs ?? {},
+              }),
+        )
+        const state: EligibilityState = {
+          gameId: view.gameId,
+          turn: view.turn,
+          submittingPlayerId: view.player.id,
+          resources: createResourcesStub({
+            [ResourceType.INFLUENCE]: view.resources[ResourceType.INFLUENCE].total,
+            [ResourceType.METAL]: view.resources[ResourceType.METAL].total,
+            [ResourceType.FUEL]: view.resources[ResourceType.FUEL].total,
+            [ResourceType.ENERGY]: view.resources[ResourceType.ENERGY].total,
+            [ResourceType.COLONY]: view.resources[ResourceType.COLONY].total,
+          }),
+          players: indexBy("id", [{ id: view.player.id, ownerPlayerId: view.player.id }]),
+          planets: indexBy(
+            "id",
+            view.galaxy.systems.flatMap(({ planets: systemPlanets }) =>
+              systemPlanets.map(({ id, ownerPlayerId, x, y }) => ({ id, ownerPlayerId, x, y })),
+            ),
+          ),
+          fleets: indexBy(
+            "id",
+            view.fleets.map(({ id, name, ownerPlayerId, originPlanetId, strength }) =>
+              createFleetStub({ id, name, ownerPlayerId, originPlanetId, strength }),
+            ),
+          ),
+          actions,
+        }
+        const submissions = actions.flatMap((action) => (action.selectedTargets === null ? [] : [action]))
+        return {
+          state,
+          submissions,
+          evaluation: evaluateSubmittedActions({ state, ruleset: ComposedReservationRuleset, submissions }),
+        }
+      }
+
+      const submitSelection = async (actionId: string, strength: number): Promise<void> => {
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: playerView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({
+            actionId,
+            selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+            selectedInputs: { strength },
+          }),
+        })
+      }
+      await submitSelection(moveAction.id, 20)
+      await submitSelection(attackAction.id, 30)
+      const selectedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(selectedView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
+        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedInputs: { strength: 20 },
+      })
+      expect(selectedView.actions.find(({ id }) => id === attackAction.id)).toMatchObject({
+        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedInputs: { strength: 30 },
+      })
+      expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 8, uncommitted: 0 })
+      expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 0 })
+      const selectedEvaluation = evaluatePublicView(selectedView)
+      expect({
+        status: selectedEvaluation.evaluation.status,
+        issues: selectedEvaluation.evaluation.issues,
+        strengthCommitment: selectedEvaluation.evaluation.strengthCommitments[sourceFleet.id],
+        remainingStrength: selectedEvaluation.evaluation.remainingStrength[sourceFleet.id],
+        resourceCommitments: selectedEvaluation.evaluation.resourceCommitments,
+      }).toStrictEqual({
+        status: "ELIGIBLE",
+        issues: [],
+        strengthCommitment: 50,
+        remainingStrength: 0,
+        resourceCommitments: {
+          [ResourceType.INFLUENCE]: 8,
+          [ResourceType.METAL]: 0,
+          [ResourceType.FUEL]: 2,
+          [ResourceType.ENERGY]: 0,
+          [ResourceType.COLONY]: 0,
+        },
+      })
+
+      const partialCandidate = evaluateTargetCandidate({
+        state: selectedEvaluation.state,
+        ruleset: ComposedReservationRuleset,
+        draft: { actionId: extraAttackAction.id, selectedTargets: {}, selectedInputs: {} },
+        targetTag: branded<TargetTag>("fleet"),
+        targetId: sourceFleet.id,
+      })
+      expect({
+        status: partialCandidate.status,
+        candidateStatus: partialCandidate.candidateStatus,
+        candidateIssues: partialCandidate.candidateIssues.map(({ code }) => code),
+        missingTargets: partialCandidate.missingTargets,
+        missingInputs: partialCandidate.missingInputs,
+        strengthCommitment: partialCandidate.strengthCommitments[sourceFleet.id],
+        remainingStrength: partialCandidate.remainingStrength[sourceFleet.id],
+        resourceCommitments: partialCandidate.resourceCommitments,
+      }).toStrictEqual({
+        status: "INELIGIBLE",
+        candidateStatus: "INELIGIBLE",
+        candidateIssues: ["INSUFFICIENT_STRENGTH"],
+        missingTargets: [branded<TargetTag>("planet")],
+        missingInputs: [branded("strength")],
+        strengthCommitment: 50,
+        remainingStrength: 0,
+        resourceCommitments: {
+          [ResourceType.INFLUENCE]: 13,
+          [ResourceType.METAL]: 0,
+          [ResourceType.FUEL]: 3,
+          [ResourceType.ENERGY]: 0,
+          [ResourceType.COLONY]: 0,
+        },
+      })
+
+      const beforeRejectedDrafts = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      await expect(
+        player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: selectedView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({
+            actionId: attackAction.id,
+            selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+            selectedInputs: { strength: 31 },
+          }),
+        }),
+      ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(
+        player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: selectedView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({
+            actionId: buildAction.id,
+            selectedTargets: { planet: origin.id },
+            selectedInputs: {},
+          }),
+        }),
+      ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeRejectedDrafts)
+
+      await submitSelection(moveAction.id, 19)
+      const editedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const editedEvaluation = evaluatePublicView(editedView).evaluation
+      expect(editedEvaluation.status).toBe("ELIGIBLE")
+      expect(editedEvaluation.strengthCommitments[sourceFleet.id]).toBe(49)
+      expect(editedEvaluation.remainingStrength[sourceFleet.id]).toBe(1)
+      expect(editedEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
+      expect(editedEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(2)
+
+      const resourceAttempt = createSubmittedActionStub({
+        id: extraMoveAction.id,
+        playerId: editedView.player.id,
+        actionDefinitionId: MoveFleetStandard.id,
+        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedInputs: { strength: 1 },
+      })
+      const editedProjection = evaluatePublicView(editedView)
+      const resourceAttemptEvaluation = evaluateSubmittedActions({
+        state: editedProjection.state,
+        ruleset: ComposedReservationRuleset,
+        submissions: [...editedProjection.submissions, resourceAttempt],
+      })
+      expect(resourceAttemptEvaluation.status).toBe("INELIGIBLE")
+      expect(resourceAttemptEvaluation.strengthCommitments[sourceFleet.id]).toBe(50)
+      expect(resourceAttemptEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(11)
+      expect(resourceAttemptEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(3)
+      expect(resourceAttemptEvaluation.issues).toStrictEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
+          expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
+        ]),
+      )
+      const beforeResourceRejection = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const exhaustedResourcesSubmission = player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: editedView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: extraMoveAction.id,
+          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedInputs: { strength: 1 },
+        }),
+      })
+      await expect(exhaustedResourcesSubmission).rejects.toThrow("Missing 3 INFLUENCE\nMissing 1 FUEL")
+      await expect(exhaustedResourcesSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeResourceRejection)
+
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: editedView.turn,
+        submittedActionTargets: { actionId: moveAction.id, selectedTargets: null, selectedInputs: null },
+      })
+      const canceledView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const canceledEvaluation = evaluatePublicView(canceledView).evaluation
+      expect(canceledView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({ selectedTargets: null, selectedInputs: null })
+      expect(canceledView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 8, uncommitted: 3 })
+      expect(canceledView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 1 })
+      expect(canceledEvaluation.status).toBe("ELIGIBLE")
+      expect(canceledEvaluation.strengthCommitments[sourceFleet.id]).toBe(30)
+      expect(canceledEvaluation.remainingStrength[sourceFleet.id]).toBe(20)
+      expect(canceledEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(5)
+      expect(canceledEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(1)
+
+      await submitSelection(moveAction.id, 20)
+      const restoredPair = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(restoredPair.resources[ResourceType.INFLUENCE].uncommitted).toBe(0)
+      expect(restoredPair.resources[ResourceType.FUEL].uncommitted).toBe(0)
+
+      // Assert
+      await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+      const afterWorkerDeparture = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(afterWorkerDeparture.fleets.map(({ strength }) => strength).toSorted((first, second) => first - second)).toStrictEqual([
+        20, 30,
+      ])
+      expect(afterWorkerDeparture.fleets.some(({ id }) => id === sourceFleet.id)).toBe(false)
+      expect(afterWorkerDeparture.fleets.every(({ movement }) => movement !== undefined)).toBe(true)
+      expect(afterWorkerDeparture.resources[ResourceType.INFLUENCE].total).toBe(0)
+      expect(afterWorkerDeparture.resources[ResourceType.FUEL].total).toBe(0)
+      expect(afterWorkerDeparture.actions.find(({ id }) => id === moveAction.id)?.isInProgress).toBe(true)
+      expect(afterWorkerDeparture.actions.find(({ id }) => id === attackAction.id)?.isInProgress).toBe(true)
+    })
+
+    integrationTest("should not count a selected same-turn Influence gain toward an Attack Move", async ({ db }) => {
+      // Arrange
+      const clock = new ControlledClock()
+      const apiServices = await createApiStub({ db, clock })
+      Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(ComposedGainReservationRuleset))
+      using apiServer = new ApiServer(apiServices)
+      const player = await apiServer.createClient({ authenticated: true })
+      const { createdGameId } = await player.client.games.create.mutate({
+        configuration: createGameConfigurationStub({
+          rulesetId: ComposedGainReservationRuleset.id,
+          mapGenerationSeed: 1234,
+          turnIntervalSeconds: 10,
+        }),
+      })
+      await player.client.games.startGame.mutate({ gameId: createdGameId })
+      const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+      let playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      const planets = playerView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+      const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerView.player.id)
+      const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
+      Assert.isDefined(origin)
+      Assert.isDefined(destination)
+      expect({ x: origin.x, y: origin.y }).toStrictEqual(FleetActionSelectionParity.origin)
+      expect({ x: destination.x, y: destination.y }).toStrictEqual(FleetActionSelectionParity.destination)
+
+      // Act
+      for (let buildCount = 0; buildCount < 5; buildCount += 1) {
+        const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+        Assert.isDefined(buildAction)
+        await player.client.gameplay.updateActionSubmission.mutate({
+          gameId: createdGameId,
+          turn: playerView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({
+            actionId: buildAction.id,
+            selectedTargets: { planet: origin.id },
+            selectedInputs: {},
+          }),
+        })
+        await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+        playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      }
+
+      const sourceFleet = playerView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
+      const gainAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+      const moveAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetStandard.id)
+      const attackAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === AttackMoveTest.id)
+      Assert.isDefined(sourceFleet)
+      Assert.isDefined(gainAction)
+      Assert.isDefined(moveAction)
+      Assert.isDefined(attackAction)
+      expect(sourceFleet.strength).toBe(50)
+      expect(playerView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 7, uncommitted: 7 })
+      expect(playerView.resources[ResourceType.METAL].total).toBe(5)
+      expect(playerView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 2 })
+
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: playerView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: gainAction.id,
+          selectedTargets: {},
+          selectedInputs: {},
+        }),
+      })
+      await player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: playerView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: moveAction.id,
+          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedInputs: { strength: 20 },
+        }),
+      })
+      const gainAndMoveView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+      expect(gainAndMoveView.actions.find(({ id }) => id === gainAction.id)).toMatchObject({ selectedTargets: {}, selectedInputs: {} })
+      expect(gainAndMoveView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
+        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedInputs: { strength: 20 },
+      })
+      expect(gainAndMoveView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 7, uncommitted: 4 })
+      expect(gainAndMoveView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 1 })
+
+      // Assert
+      const attackAfterGainAndMove = player.client.gameplay.updateActionSubmission.mutate({
+        gameId: createdGameId,
+        turn: gainAndMoveView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: attackAction.id,
+          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedInputs: { strength: 30 },
+        }),
+      })
+      await expect(attackAfterGainAndMove).rejects.toThrow("Missing 1 INFLUENCE")
+      await expect(attackAfterGainAndMove).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(gainAndMoveView)
+    })
+
     integrationTest("should enforce Exceptional range and resolve configured movement speeds", async ({ db }) => {
       // Arrange
       const clock = new ControlledClock()
@@ -674,6 +1107,7 @@ describe("gameplay.router", () => {
           movement: {
             speed,
             departureTurn: submittedView.turn,
+            pendingArrivalEffects: [],
             submission: {
               id: action.id,
               actionDefinitionId: action.actionDefinitionId,
@@ -892,6 +1326,24 @@ describe("gameplay.router", () => {
           selectedTargets: null,
           canAfford: false,
         },
+        {
+          id: expect.any(String),
+          actionDefinitionId: AttackMoveTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: FlexibleAssaultTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: StationaryAssaultTest.id,
+          selectedTargets: null,
+          canAfford: true,
+        },
       ]
       expect(selectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedSelectedActions.map(withDefaultActionViewFields)))
       expect(selectedPlayerView.actions).toHaveLength(expectedSelectedActions.length)
@@ -968,6 +1420,24 @@ describe("gameplay.router", () => {
           actionDefinitionId: MoveFleetExceptional.id,
           selectedTargets: null,
           canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: AttackMoveTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: FlexibleAssaultTest.id,
+          selectedTargets: null,
+          canAfford: false,
+        },
+        {
+          id: expect.any(String),
+          actionDefinitionId: StationaryAssaultTest.id,
+          selectedTargets: null,
+          canAfford: true,
         },
       ]
       expect(deselectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedDeselectedActions.map(withDefaultActionViewFields)))
@@ -1099,6 +1569,418 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+    })
+
+    integrationTest("should honor renamed Assault tags and reject invalid public Fleet selections", async ({ db }) => {
+      // Arrange: create the foreign-game Fleet through public actions and the production worker.
+      const clock = new ControlledClock()
+      const apiServices = await createApiStub({ db, clock })
+      Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(RenamedComposedAssaultRuleset))
+      using apiServer = new ApiServer(apiServices)
+      const alice = await apiServer.createClient({ authenticated: true })
+      const bob = await apiServer.createClient({ authenticated: true })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const processReadyTurn = async (gameId: number, turn: number, clients: ReadonlyArray<typeof alice>): Promise<void> => {
+        await Promise.all(clients.map(async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId, turn, isReady: true })))
+        expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+      }
+
+      const { createdGameId: foreignGameId } = await alice.client.games.create.mutate({
+        configuration: createGameConfigurationStub({ rulesetId: RenamedComposedAssaultRuleset.id, nbSeats: 1, mapGenerationSeed: 147 }),
+      })
+      await alice.client.games.startGame.mutate({ gameId: foreignGameId })
+      const foreignView = await alice.client.gameplay.getPlayerView.query({ gameId: foreignGameId })
+      const foreignHome = foreignView.galaxy.systems
+        .flatMap(({ planets }) => planets)
+        .find(({ ownerPlayerId }) => ownerPlayerId === foreignView.player.id)
+      const foreignBuild = foreignView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+      Assert.isDefined(foreignHome)
+      Assert.isDefined(foreignBuild)
+      await alice.client.gameplay.updateActionSubmission.mutate({
+        gameId: foreignGameId,
+        turn: foreignView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: foreignBuild.id,
+          selectedTargets: { planet: foreignHome.id },
+          selectedInputs: {},
+        }),
+      })
+      await processReadyTurn(foreignGameId, foreignView.turn, [alice])
+      const foreignBuiltView = await alice.client.gameplay.getPlayerView.query({ gameId: foreignGameId })
+      const foreignFleet = foreignBuiltView.fleets.find(({ originPlanetId }) => originPlanetId === foreignHome.id)
+      Assert.isDefined(foreignFleet)
+      expect(foreignFleet.strength).toBe(10)
+
+      // Arrange: create the fixed seed-147 two-owner route and build the 50/20 fleets publicly.
+      const { createdGameId: gameId } = await alice.client.games.create.mutate({
+        configuration: createGameConfigurationStub({
+          rulesetId: RenamedComposedAssaultRuleset.id,
+          nbSeats: 2,
+          mapGenerationSeed: 147,
+        }),
+      })
+      await bob.client.games.join.mutate({ gameId })
+      await alice.client.games.startGame.mutate({ gameId })
+      let aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
+      let bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+      const planets = aliceView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+      const aliceHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === aliceView.player.id)
+      const bobHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === bobView.player.id)
+      Assert.isDefined(aliceHome)
+      Assert.isDefined(bobHome)
+      expect([aliceHome.coordinates, bobHome.coordinates].toSorted()).toStrictEqual(["44:98:05", "45:83:40"])
+      expect(Math.hypot(bobHome.x - aliceHome.x, bobHome.y - aliceHome.y)).toBe(4.418312565270031)
+
+      for (let buildRound = 1; buildRound <= 5; buildRound += 1) {
+        aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
+        const aliceBuild = aliceView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+        Assert.isDefined(aliceBuild)
+        await alice.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: aliceView.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({
+            actionId: aliceBuild.id,
+            selectedTargets: { planet: aliceHome.id },
+            selectedInputs: {},
+          }),
+        })
+        if (buildRound <= 2) {
+          bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+          const bobBuild = bobView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+          Assert.isDefined(bobBuild)
+          await bob.client.gameplay.updateActionSubmission.mutate({
+            gameId,
+            turn: bobView.turn,
+            submittedActionTargets: createSubmittedActionTargetsDtoStub({
+              actionId: bobBuild.id,
+              selectedTargets: { planet: bobHome.id },
+              selectedInputs: {},
+            }),
+          })
+        } else {
+          bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+        }
+        await processReadyTurn(gameId, aliceView.turn, [alice, bob])
+      }
+
+      aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
+      bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+      const source = aliceView.fleets.find(
+        ({ ownerPlayerId, originPlanetId, movement }) =>
+          ownerPlayerId === aliceView.player.id && originPlanetId === aliceHome.id && movement === undefined,
+      )
+      const defender = bobView.fleets.find(
+        ({ ownerPlayerId, originPlanetId, movement }) =>
+          ownerPlayerId === bobView.player.id && originPlanetId === bobHome.id && movement === undefined,
+      )
+      Assert.isDefined(source)
+      Assert.isDefined(defender)
+      expect(source.strength).toBe(50)
+      expect(defender.strength).toBe(20)
+
+      // Act & Assert: the standalone definition is a legal no-op at its own source when no enemy is present.
+      const stationaryAssault = aliceView.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
+      Assert.isDefined(stationaryAssault)
+      await alice.client.gameplay.updateActionSubmission.mutate({
+        gameId,
+        turn: aliceView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: stationaryAssault.id,
+          selectedTargets: { station: source.id, battlePlanet: aliceHome.id },
+          selectedInputs: {},
+        }),
+      })
+      await processReadyTurn(gameId, aliceView.turn, [alice, bob])
+      aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
+      expect(
+        aliceView.fleets
+          .map(({ id, name, ownerPlayerId, originPlanetId, strength, movement }) => ({
+            id,
+            name,
+            ownerPlayerId,
+            originPlanetId,
+            strength,
+            movement,
+          }))
+          .toSorted((left, right) => left.id.localeCompare(right.id)),
+      ).toStrictEqual(
+        [source, defender]
+          .map(({ id, name, ownerPlayerId, originPlanetId, strength, movement }) => ({
+            id,
+            name,
+            ownerPlayerId,
+            originPlanetId,
+            strength,
+            movement,
+          }))
+          .toSorted((left, right) => left.id.localeCompare(right.id)),
+      )
+
+      // Arrange: create a genuinely moving source with an ordinary public Move and worker turn.
+      const movingView = await alice.client.gameplay.getPlayerView.query({ gameId })
+      const movingDestination = planets
+        .filter(({ ownerPlayerId, id }) => ownerPlayerId === null && id !== aliceHome.id)
+        .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
+        .filter(({ distance }) => distance > 4 && distance <= 10)
+        .toSorted((left, right) => left.distance - right.distance)[0]
+      const moveAction = movingView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetImproved.id)
+      Assert.isDefined(movingDestination)
+      Assert.isDefined(moveAction)
+      await alice.client.gameplay.updateActionSubmission.mutate({
+        gameId,
+        turn: movingView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: moveAction.id,
+          selectedTargets: { fleet: source.id, planet: movingDestination.planet.id },
+          selectedInputs: { strength: 1 },
+        }),
+      })
+      await processReadyTurn(gameId, movingView.turn, [alice, bob])
+      aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
+      const movingSource = aliceView.fleets.find(({ movement }) => movement?.submission.id === moveAction.id)
+      const currentSource = aliceView.fleets.find(({ id }) => id === source.id)
+      Assert.isDefined(movingSource)
+      Assert.isDefined(currentSource)
+      expect(movingSource).toMatchObject({
+        strength: 1,
+        distanceToEnd: movingDestination.distance - 1,
+        destinationPlanetId: movingDestination.planet.id,
+        movement: { speed: 1 },
+      })
+      expect(currentSource.strength).toBe(49)
+
+      const customAction = aliceView.actions.find(({ id }) => id === `${RenamedComposedAssault.id}_1`)
+      Assert.isDefined(customAction)
+      const rejectDraftWithoutMutation = async (
+        selectedTargets: Record<string, string>,
+        selectedInputs: Record<string, number>,
+      ): Promise<void> => {
+        const beforeRejectedDraft = await alice.client.gameplay.getPlayerView.query({ gameId })
+        const submittedActionTargets = createSubmittedActionTargetsDtoStub({
+          actionId: customAction.id,
+          selectedTargets,
+          selectedInputs: { units: 1 },
+        })
+        Object.defineProperty(submittedActionTargets, "selectedInputs", { value: selectedInputs, enumerable: true })
+        await expect(
+          alice.client.gameplay.updateActionSubmission.mutate({
+            gameId,
+            turn: beforeRejectedDraft.turn,
+            submittedActionTargets,
+          }),
+        ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+        expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeRejectedDraft)
+      }
+      const validTargets = { originForce: source.id, landingSite: bobHome.id }
+      await rejectDraftWithoutMutation(validTargets, {})
+      await rejectDraftWithoutMutation(validTargets, { units: 0 })
+      await rejectDraftWithoutMutation(validTargets, { units: 1.5 })
+      await rejectDraftWithoutMutation({ originForce: defender.id, landingSite: aliceHome.id }, { units: 1 })
+      await rejectDraftWithoutMutation({ originForce: movingSource.id, landingSite: bobHome.id }, { units: 1 })
+      await rejectDraftWithoutMutation({ originForce: foreignFleet.id, landingSite: bobHome.id }, { units: 1 })
+      const distantPlanet = planets
+        .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
+        .filter(({ distance }) => distance > 5)
+        .toSorted((left, right) => right.distance - left.distance)[0]
+      Assert.isDefined(distantPlanet)
+      await rejectDraftWithoutMutation({ originForce: source.id, landingSite: distantPlanet.planet.id }, { units: 1 })
+
+      // Act: submit the renamed, two-instance action through the public API and resolve it with the real worker.
+      await alice.client.gameplay.updateActionSubmission.mutate({
+        gameId,
+        turn: aliceView.turn,
+        submittedActionTargets: createSubmittedActionTargetsDtoStub({
+          actionId: customAction.id,
+          selectedTargets: validTargets,
+          selectedInputs: { units: 30 },
+        }),
+      })
+      const selectedView = await alice.client.gameplay.getPlayerView.query({ gameId })
+      expect(selectedView.actions.find(({ id }) => id === customAction.id)).toMatchObject({
+        actionDefinitionId: RenamedComposedAssault.id,
+        selectedTargets: validTargets,
+        selectedInputs: { units: 30 },
+      })
+      expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 87, uncommitted: 80 })
+      expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 97, uncommitted: 95 })
+
+      await processReadyTurn(gameId, selectedView.turn, [alice, bob])
+      const firstReload = await alice.client.gameplay.getPlayerView.query({ gameId })
+      const journey = firstReload.fleets.find(({ movement }) => movement?.submission.id === customAction.id)
+      const remainder = firstReload.fleets.find(({ id }) => id === source.id)
+      Assert.isDefined(journey)
+      Assert.isDefined(remainder)
+      expect(journey).toMatchObject({
+        strength: 30,
+        distanceToEnd: 2.418312565270031,
+        destinationPlanetId: bobHome.id,
+        movement: {
+          speed: 2,
+          submission: {
+            id: customAction.id,
+            actionDefinitionId: RenamedComposedAssault.id,
+            selectedTargets: validTargets,
+            selectedInputs: { units: 30 },
+          },
+          pendingArrivalEffects: [
+            {
+              definitionOrdinal: 3,
+              effectDefinition: {
+                type: "FLEET_ASSAULT",
+                targets: {
+                  fleet: { actionTargetTag: "originForce" },
+                  planet: { actionTargetTag: "landingSite" },
+                },
+              },
+            },
+          ],
+        },
+      })
+      expect(remainder).toMatchObject({ id: source.id, name: source.name, strength: 19, originPlanetId: aliceHome.id })
+      expect(firstReload.fleets.find(({ id }) => id === defender.id)?.strength).toBe(20)
+      expect(firstReload.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 80, uncommitted: 80 })
+      expect(firstReload.resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
+
+      // The composed action remains locked while its captured selection travels. Verify the same edits
+      // would be valid through the free second instance, then prove each rejected API attempt preserves
+      // the exact public view, saved journey, selections, and resources.
+      const freeComposedAction = firstReload.actions.find(({ id }) => id === `${RenamedComposedAssault.id}_2`)
+      const occupiedComposedAction = firstReload.actions.find(({ id }) => id === customAction.id)
+      const occupiedJourney = firstReload.fleets.find(({ id }) => id === journey.id)
+      Assert.isDefined(freeComposedAction)
+      Assert.isDefined(occupiedComposedAction)
+      Assert.isDefined(occupiedJourney)
+      expect(freeComposedAction.isInProgress).toBe(false)
+      expect(occupiedComposedAction.isInProgress).toBe(true)
+      expect(occupiedJourney.movement?.submission).toStrictEqual({
+        id: customAction.id,
+        playerId: aliceView.player.id,
+        actionDefinitionId: RenamedComposedAssault.id,
+        selectedTargets: validTargets,
+        selectedInputs: { units: 30 },
+      })
+
+      const redirectPlanet = planets
+        .filter(({ id }) => id !== aliceHome.id && id !== bobHome.id)
+        .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
+        .filter(({ distance }) => distance <= 5)
+        .toSorted((left, right) => left.distance - right.distance)[0]
+      Assert.isDefined(redirectPlanet)
+      const redirectedTargets = { originForce: source.id, landingSite: redirectPlanet.planet.id }
+
+      const proveFreeInstanceSelectionAndCancel = async (selectedTargets: Record<string, string>, units: number): Promise<void> => {
+        expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(firstReload)
+        await alice.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: firstReload.turn,
+          submittedActionTargets: createSubmittedActionTargetsDtoStub({
+            actionId: freeComposedAction.id,
+            selectedTargets,
+            selectedInputs: { units },
+          }),
+        })
+        const freeSelectionView = await alice.client.gameplay.getPlayerView.query({ gameId })
+        expect(freeSelectionView.actions.find(({ id }) => id === freeComposedAction.id)).toMatchObject({
+          selectedTargets,
+          selectedInputs: { units },
+          isInProgress: false,
+        })
+        expect(freeSelectionView.actions.find(({ id }) => id === customAction.id)).toStrictEqual(occupiedComposedAction)
+        expect(freeSelectionView.fleets.find(({ id }) => id === journey.id)).toStrictEqual(occupiedJourney)
+        expect(freeSelectionView.resources[ResourceType.INFLUENCE]).toStrictEqual({
+          total: firstReload.resources[ResourceType.INFLUENCE].total,
+          uncommitted: firstReload.resources[ResourceType.INFLUENCE].uncommitted - 7,
+        })
+        expect(freeSelectionView.resources[ResourceType.FUEL]).toStrictEqual({
+          total: firstReload.resources[ResourceType.FUEL].total,
+          uncommitted: firstReload.resources[ResourceType.FUEL].uncommitted - 2,
+        })
+        await alice.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: firstReload.turn,
+          submittedActionTargets: { actionId: freeComposedAction.id, selectedTargets: null, selectedInputs: null },
+        })
+        expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(firstReload)
+      }
+
+      await proveFreeInstanceSelectionAndCancel(validTargets, 1)
+      await proveFreeInstanceSelectionAndCancel(redirectedTargets, 1)
+      await proveFreeInstanceSelectionAndCancel(validTargets, 19)
+
+      const rejectOccupiedAttemptWithoutMutation = async (
+        submittedActionTargets: ReturnType<typeof createSubmittedActionTargetsDtoStub>,
+        expectedMessage: string,
+      ): Promise<void> => {
+        expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(firstReload)
+        const updatePromise = alice.client.gameplay.updateActionSubmission.mutate({
+          gameId,
+          turn: firstReload.turn,
+          submittedActionTargets,
+        })
+        await expect(updatePromise).rejects.toThrow(expectedMessage)
+        await expect(updatePromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+        const unchangedView = await alice.client.gameplay.getPlayerView.query({ gameId })
+        expect(unchangedView).toStrictEqual(firstReload)
+        expect(unchangedView.actions.find(({ id }) => id === customAction.id)).toStrictEqual(occupiedComposedAction)
+        expect(unchangedView.resources).toStrictEqual(firstReload.resources)
+        expect(unchangedView.fleets.find(({ id }) => id === journey.id)).toStrictEqual(occupiedJourney)
+      }
+      const occupiedMessage = `Action instance "${customAction.id}" is still in progress with Fleet "${journey.id}"`
+      await rejectOccupiedAttemptWithoutMutation(
+        createSubmittedActionTargetsDtoStub({
+          actionId: customAction.id,
+          selectedTargets: validTargets,
+          selectedInputs: { units: 1 },
+        }),
+        occupiedMessage,
+      )
+      await rejectOccupiedAttemptWithoutMutation(
+        createSubmittedActionTargetsDtoStub({
+          actionId: customAction.id,
+          selectedTargets: validTargets,
+          selectedInputs: { units: 19 },
+        }),
+        occupiedMessage,
+      )
+      await rejectOccupiedAttemptWithoutMutation(
+        createSubmittedActionTargetsDtoStub({
+          actionId: customAction.id,
+          selectedTargets: redirectedTargets,
+          selectedInputs: { units: 1 },
+        }),
+        occupiedMessage,
+      )
+      await rejectOccupiedAttemptWithoutMutation(
+        { actionId: customAction.id, selectedTargets: null, selectedInputs: null },
+        "Cannot cancel an Action while it is in progress",
+      )
+
+      await processReadyTurn(gameId, firstReload.turn, [alice, bob])
+      const secondReload = await alice.client.gameplay.getPlayerView.query({ gameId })
+      expect(secondReload.fleets.find(({ id }) => id === journey.id)?.distanceToEnd).toBe(0.418312565270031)
+      expect(secondReload.fleets.find(({ id }) => id === defender.id)?.strength).toBe(20)
+      expect(secondReload.resources[ResourceType.INFLUENCE].total).toBe(80)
+      expect(secondReload.resources[ResourceType.FUEL].total).toBe(95)
+
+      await processReadyTurn(gameId, secondReload.turn, [alice, bob])
+      const arrivalView = await alice.client.gameplay.getPlayerView.query({ gameId })
+      expect(arrivalView.fleets.find(({ id }) => id === defender.id)).toBeUndefined()
+      expect(arrivalView.fleets.find(({ id }) => id === journey.id)).toStrictEqual({
+        id: journey.id,
+        name: journey.name,
+        ownerPlayerId: aliceView.player.id,
+        strength: 10,
+        originPlanetId: bobHome.id,
+      })
+      expect(arrivalView.fleets.find(({ id }) => id === source.id)).toMatchObject({
+        id: source.id,
+        name: source.name,
+        strength: 19,
+        originPlanetId: aliceHome.id,
+      })
+      expect(arrivalView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 80, uncommitted: 80 })
+      expect(arrivalView.resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
+      expect(arrivalView.actions.find(({ id }) => id === customAction.id)?.isInProgress).toBe(false)
     })
 
     integrationTest("should reject an action that is not available to the player", async ({ db }) => {
@@ -1289,6 +2171,33 @@ describe("gameplay.router", () => {
   })
 })
 
+const ComposedReservationRuleset = Ruleset.create({
+  ...TestRuleset,
+  id: "test_composed_reservation_parity",
+  actionPool: [
+    ...TestRuleset.actionPool,
+    { id: "MOVE_FLEET_STANDARD_2", actionDefinitionId: MoveFleetStandard.id },
+    { id: AttackMoveTest.id + "_2", actionDefinitionId: AttackMoveTest.id },
+  ],
+  startingResources: {
+    ...TestRuleset.startingResources,
+    [ResourceType.INFLUENCE]: 18,
+    [ResourceType.METAL]: 10,
+    [ResourceType.FUEL]: 2,
+  },
+})
+
+const ComposedGainReservationRuleset = Ruleset.create({
+  ...TestRuleset,
+  id: "test_composed_gain_reservation",
+  startingResources: {
+    ...TestRuleset.startingResources,
+    [ResourceType.INFLUENCE]: 17,
+    [ResourceType.METAL]: 10,
+    [ResourceType.FUEL]: 2,
+  },
+})
+
 const FleetActionParityRuleset = Ruleset.create({
   ...TestRuleset,
   id: "test_fleet_action_selection_parity",
@@ -1305,6 +2214,52 @@ const TestMovementVerificationRuleset = Ruleset.create({
   ...TestRuleset,
   id: "test_movement_ranges_and_speeds",
   name: "Test Movement Range and Speed Verification",
+  startingResources: {
+    ...TestRuleset.startingResources,
+    [ResourceType.INFLUENCE]: 100,
+    [ResourceType.METAL]: 100,
+    [ResourceType.FUEL]: 100,
+  },
+})
+
+const RenamedComposedAssault = ActionDefinitionSchema.parse({
+  ...AttackMoveTest,
+  id: "TEST_RENAMED_COMPOSED_ASSAULT",
+  name: "Flexible Landing Assault",
+  tier: "EXCEPTIONAL",
+  inputs: { units: { type: "POSITIVE_INTEGER", label: "Units" } },
+  targets: {
+    originForce: {
+      targetType: TargetType.FLEET,
+      constraints: [OwnedBySubmittingPlayerConstraint.create(), StationaryFleetConstraint.create()],
+    },
+    landingSite: {
+      targetType: TargetType.PLANET,
+      constraints: [
+        WithinFleetRangeConstraint.create({ sourceFleetTag: "originForce", maxDistance: 5 }),
+        DifferentFromFleetOriginConstraint.create({ sourceFleetTag: "originForce" }),
+      ],
+    },
+  },
+  costs: [
+    ResourceLossEffectDefinition.create({ quantity: 7, resourceType: ResourceType.INFLUENCE }),
+    ResourceLossEffectDefinition.create({ quantity: 2, resourceType: ResourceType.FUEL }),
+  ],
+  effects: [
+    FleetMoveEffectDefinition.create({ fleetTag: "originForce", planetTag: "landingSite", strengthTag: "units", speed: 2 }),
+    FleetAssaultEffectDefinition.create({ fleetTag: "originForce", planetTag: "landingSite" }),
+  ],
+})
+
+const RenamedComposedAssaultRuleset = Ruleset.create({
+  ...TestRuleset,
+  id: "test_renamed_composed_assault_api",
+  actionDefinitions: { ...TestRuleset.actionDefinitions, [RenamedComposedAssault.id]: RenamedComposedAssault },
+  actionPool: [
+    ...TestRuleset.actionPool,
+    { id: `${RenamedComposedAssault.id}_1`, actionDefinitionId: RenamedComposedAssault.id },
+    { id: `${RenamedComposedAssault.id}_2`, actionDefinitionId: RenamedComposedAssault.id },
+  ],
   startingResources: {
     ...TestRuleset.startingResources,
     [ResourceType.INFLUENCE]: 100,

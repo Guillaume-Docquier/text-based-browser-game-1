@@ -3,6 +3,7 @@ import type { ReadonlyDeep } from "type-fest"
 import { computeAvailableActions } from "#shared/action-submission/computeAvailableActions.ts"
 import { evaluateSubmittedActions, type EligibilityState } from "#shared/action-submission/evaluateActionSelection.ts"
 import { SubmittedActionIssue } from "#shared/action-submission/validation/SubmittedActionIssue.ts"
+import { compareOrdinalStrings } from "#shared/domain/compareOrdinalStrings.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { Resources } from "#shared/domain/resources/Resources.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
@@ -58,7 +59,7 @@ export function validateSubmittedActions(
         return [fleet.ownerPlayerId, ...(fleet.movement === undefined ? [] : [fleet.movement.submission.playerId])]
       }),
     ]),
-  ].toSorted((first, second) => first.localeCompare(second))
+  ].toSorted((first, second) => compareOrdinalStrings(first, second))
 
   for (const playerId of playerIds) {
     // Object.keys widens branded record keys. Include submitted player ids so data from an unknown player is rejected too.
@@ -116,7 +117,7 @@ export function validateSubmittedActions(
         knownSubmittedAction ??
         playerSubmissions[0] ??
         playerMovementSubmissions[0] ??
-        [...knownActions.values()].toSorted((first, second) => first.id.localeCompare(second.id))[0] ??
+        [...knownActions.values()].toSorted((first, second) => compareOrdinalStrings(first.id, second.id))[0] ??
         createUnassociatedSubmittedAction(turnState.turn, brandedPlayerId)
       const actionDefinition = Object.hasOwn(ruleset.actionDefinitions, submittedAction.actionDefinitionId)
         ? ruleset.actionDefinitions[submittedAction.actionDefinitionId]
@@ -134,7 +135,7 @@ export function validateSubmittedActions(
     }
   }
 
-  return [...issues.values()].toSorted((first, second) => first.submittedActionId.localeCompare(second.submittedActionId))
+  return [...issues.values()].toSorted((first, second) => compareOrdinalStrings(first.submittedActionId, second.submittedActionId))
 }
 
 function createEligibilityState({

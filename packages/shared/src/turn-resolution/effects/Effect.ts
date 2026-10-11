@@ -9,15 +9,17 @@ import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 export abstract class Effect {
   public readonly id: number
   public readonly type: EffectDefinition["type"]
+  public readonly definitionOrdinal: number
 
   /**
    * The action submission this effect is for
    */
   public readonly submittedAction: SubmittedAction
 
-  protected constructor(id: number, type: EffectDefinition["type"], submittedAction: SubmittedAction) {
+  protected constructor(id: number, type: EffectDefinition["type"], submittedAction: SubmittedAction, definitionOrdinal: number = id) {
     this.id = id
     this.type = type
+    this.definitionOrdinal = definitionOrdinal
     this.submittedAction = submittedAction
   }
 

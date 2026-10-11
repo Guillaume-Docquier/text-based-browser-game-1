@@ -3,6 +3,7 @@ import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { describe, expect, it } from "vitest"
 import { computeAvailableActions } from "#shared/action-submission/computeAvailableActions.ts"
 import { evaluateActionSelection, type EligibilityState } from "#shared/action-submission/evaluateActionSelection.ts"
+import { compareOrdinalStrings } from "#shared/domain/compareOrdinalStrings.ts"
 import { GameIdSchema } from "#shared/domain/games/GameId.ts"
 import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
@@ -51,8 +52,8 @@ describe("fleet movement turn resolution", () => {
     const first = resolve(fixture, submissions)
     const replayed = resolve(fixture, submissions)
     const reversed = resolve(fixture, [secondSubmission, firstSubmission])
-    const firstFleets = Object.values(first.fleets).toSorted((a, b) => a.id.localeCompare(b.id))
-    const reversedFleets = Object.values(reversed.fleets).toSorted((a, b) => a.id.localeCompare(b.id))
+    const firstFleets = Object.values(first.fleets).toSorted((a, b) => compareOrdinalStrings(a.id, b.id))
+    const reversedFleets = Object.values(reversed.fleets).toSorted((a, b) => compareOrdinalStrings(a.id, b.id))
 
     // Assert
     expect(firstFleets).toHaveLength(3)
@@ -439,7 +440,6 @@ describe("fleet movement turn resolution", () => {
         const corruptedJourney = structuredClone(validJourney)
         Assert.isDefined(corruptedJourney.movement)
         Assert.isTrue(Reflect.set(corruptedJourney.movement.submission.selectedInputs, "strength", 1.5))
-        Assert.isTrue(Reflect.set(corruptedJourney, "strength", 1.5))
         return corruptedJourney
       },
     },
@@ -818,7 +818,7 @@ function createMovementJourney(
     strength: 20,
     destinationPlanetId: fixture.destinationId,
     distanceToEnd: 3,
-    movement: FleetMovementSchema.parse({ speed: 2, departureTurn, submission }),
+    movement: FleetMovementSchema.parse({ speed: 2, departureTurn, submission, pendingArrivalEffects: [] }),
   })
 }
 

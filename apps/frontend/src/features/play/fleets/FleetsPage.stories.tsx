@@ -33,6 +33,7 @@ const moving = createFleetStub({
   movement: typedParse(FleetMovementSchema, {
     speed: 0.1,
     departureTurn: 1,
+    pendingArrivalEffects: [],
     submission: createSubmittedActionStub({
       id: "MOVE_FLEET_STANDARD_1",
       playerId: bob.id,
@@ -55,6 +56,7 @@ const mixedFleets = [
     movement: typedParse(FleetMovementSchema, {
       speed: 0.1,
       departureTurn: 1,
+      pendingArrivalEffects: [],
       submission: createSubmittedActionStub({
         id: "MOVE_FLEET_STANDARD_1",
         playerId: alice.id,
@@ -217,6 +219,30 @@ export const FilterByOwner: Story = {
     await userEvent.click(owner)
     await userEvent.click(body.getByRole("option", { name: "All players" }))
     await expect(canvas.getAllByRole("row")).toHaveLength(5)
+  },
+}
+
+/**
+ * A resolved Assault leaves the surviving fleet at its updated strength and removes the destroyed defender row.
+ */
+export const AfterAssault: Story = {
+  args: {
+    fleets: [
+      createFleetStub({
+        id: "fleet-assault-survivor",
+        name: "Aegis",
+        ownerPlayerId: alice.id,
+        originPlanetId: destination.id,
+        strength: 10,
+      }),
+    ],
+  },
+  play: async ({ canvas }) => {
+    const table = within(await canvas.findByRole("table", { name: "Fleets" }))
+    await expect(table.getByRole("row", { name: /Aegis/ })).toBeVisible()
+    await expect(within(table.getByRole("row", { name: /Aegis/ })).getByRole("cell", { name: "10" })).toHaveTextContent("10")
+    await expect(table.queryByRole("row", { name: /Vanguard/ })).not.toBeInTheDocument()
+    await expect(table.getAllByRole("row")).toHaveLength(2)
   },
 }
 

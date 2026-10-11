@@ -1,13 +1,18 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { NonNegativeNumberSchema, typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { compareOrdinalStrings } from "#shared/domain/compareOrdinalStrings.ts"
+import { NonNegativeSafeIntegerSchema } from "#shared/domain/NonNegativeSafeInteger.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import type { FleetMovement } from "#shared/domain/world/fleets/Fleet.ts"
+import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
+import { isFleetPresentAtPlanet } from "#shared/domain/world/fleets/isFleetPresentAtPlanet.ts"
 import type { Effect } from "#shared/turn-resolution/effects/Effect.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
+import { resolveTargetId } from "#shared/turn-resolution/effects/resolveTargetId.ts"
 import { ResolvePhaseError } from "#shared/turn-resolution/phases/ResolvePhaseError.ts"
 import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
-import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
+import type { PendingArrivalAssaultIntent, TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 import { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
 const MOVEMENT_TICKS = 20
@@ -34,7 +39,7 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
 
   const previousJourneys = new Set(context.previousJourneyFleetIds)
   const journeyIds = [...new Set([...context.previousJourneyFleetIds, ...context.newDepartureFleetIds])].toSorted((first, second) =>
-    first.localeCompare(second),
+    compareOrdinalStrings(first, second),
   )
   const advances: JourneyAdvance[] = []
   const arrivals: JourneyAdvance[] = []
@@ -88,7 +93,7 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
     if (tickOrder !== 0) {
       return tickOrder
     }
-    return first.fleet.id.localeCompare(second.fleet.id)
+    return compareOrdinalStrings(first.fleet.id, second.fleet.id)
   })
   for (const arrival of arrivals) {
     const settleResult = settleArrival(context, arrival)
@@ -96,6 +101,10 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
       return Result.Failure(ResolvePhaseError.FailedEffect({ error: settleResult.error }))
     }
     arrival.outcomes.push(settleResult.value)
+    const queueResult = queueArrivalAssaults(context, arrival)
+    if (Result.isFailure(queueResult)) {
+      return Result.Failure(ResolvePhaseError.FailedEffect({ error: queueResult.error }))
+    }
   }
 
   for (const advance of advances) {
@@ -103,9 +112,13 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
   }
 
   context.resolvedContinuations.sort((first, second) => {
-    const submissionOrder = first.originatingSubmission.id.localeCompare(second.originatingSubmission.id)
-    if (submissionOrder !== 0) {
-      return submissionOrder
+    const playerOrder = compareOrdinalStrings(first.originatingSubmission.playerId, second.originatingSubmission.playerId)
+    if (playerOrder !== 0) {
+      return playerOrder
+    }
+    const actionOrder = compareOrdinalStrings(first.originatingSubmission.id, second.originatingSubmission.id)
+    if (actionOrder !== 0) {
+      return actionOrder
     }
     return first.departureTurn - second.departureTurn
   })
@@ -128,12 +141,9 @@ function settleArrival(context: TurnContext, arrival: JourneyAdvance): Result<Ef
       (candidate) =>
         candidate.id !== fleet.id &&
         candidate.ownerPlayerId === fleet.ownerPlayerId &&
-        candidate.originPlanetId === destinationPlanetId &&
-        candidate.movement === undefined &&
-        candidate.destinationPlanetId === undefined &&
-        candidate.distanceToEnd === undefined,
+        isFleetPresentAtPlanet(candidate, destinationPlanetId),
     )
-    .toSorted((first, second) => first.id.localeCompare(second.id))
+    .toSorted((first, second) => compareOrdinalStrings(first.id, second.id))
   if (stationaryFleets.length > 1) {
     return Result.Failure(EffectError.Failed({ error: `Multiple stationary friendly Fleets exist at Planet "${destinationPlanetId}"` }))
   }
@@ -147,8 +157,20 @@ function settleArrival(context: TurnContext, arrival: JourneyAdvance): Result<Ef
     return Result.Success(EffectOutcome.Resolved({ result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}"` }))
   }
 
+  if (
+    !Number.isSafeInteger(fleet.strength) ||
+    fleet.strength < 0 ||
+    !Number.isSafeInteger(targetFleet.strength) ||
+    targetFleet.strength < 0
+  ) {
+    return Result.Failure(EffectError.Failed({ error: `Fleet merge at Planet "${destinationPlanetId}" has an unsafe Strength value` }))
+  }
+  const mergedStrengthBigInt = BigInt(targetFleet.strength) + BigInt(fleet.strength)
+  if (mergedStrengthBigInt > BigInt(Number.MAX_SAFE_INTEGER)) {
+    return Result.Failure(EffectError.Failed({ error: `Fleet merge at Planet "${destinationPlanetId}" exceeds the safe Strength range` }))
+  }
   const mergedStrength = fleet.strength
-  targetFleet.strength += mergedStrength
+  targetFleet.strength = typedParse(NonNegativeSafeIntegerSchema, Number(mergedStrengthBigInt))
   if (fleet.arrivedAtTick !== undefined) {
     targetFleet.arrivedAtTick = typedParse(
       NonNegativeNumberSchema,
@@ -157,11 +179,51 @@ function settleArrival(context: TurnContext, arrival: JourneyAdvance): Result<Ef
   }
   TurnState.removeFleet(context.turnState, fleet.id)
   context.removedFleetIds.add(fleet.id)
+  context.fleetIdRebindings.set(fleet.id, targetFleet.id)
+  for (const [removedFleetId, survivingFleetId] of context.fleetIdRebindings) {
+    if (survivingFleetId === fleet.id) {
+      context.fleetIdRebindings.set(removedFleetId, targetFleet.id)
+    }
+  }
+  for (const assault of context.pendingArrivalAssaults) {
+    if (assault.actualFleetId === fleet.id) {
+      assault.actualFleetId = targetFleet.id
+    }
+  }
   return Result.Success(
     EffectOutcome.Resolved({
       result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}" and merged ${mergedStrength} Strength into Fleet "${targetFleet.name}"`,
     }),
   )
+}
+
+function queueArrivalAssaults(context: TurnContext, arrival: JourneyAdvance): Result<void, ReturnType<typeof EffectError.Failed>> {
+  for (const pending of arrival.movement.pendingArrivalEffects) {
+    const targetPlanetId = resolveTargetId(arrival.movement.submission.selectedTargets, pending.effectDefinition.targets.planet)
+    const intent: PendingArrivalAssaultIntent = {
+      effectDefinition: pending.effectDefinition,
+      definitionOrdinal: pending.definitionOrdinal,
+      submittedAction: arrival.movement.submission,
+      departureTurn: arrival.movement.departureTurn,
+      initiatingJourneyId: arrival.fleet.id,
+      actualFleetId: resolveFleetRebinding(context, arrival.fleet.id),
+      planetId: targetPlanetId,
+      tick: arrival.fleet.arrivedAtTick ?? 0,
+      actionOutcomes: arrival.outcomes,
+    }
+    context.pendingArrivalAssaults.push(intent)
+  }
+  return Result.Success(undefined)
+}
+
+function resolveFleetRebinding(context: TurnContext, fleetId: FleetId): FleetId {
+  let resolvedFleetId = fleetId
+  let nextFleetId = context.fleetIdRebindings.get(resolvedFleetId)
+  while (nextFleetId !== undefined) {
+    resolvedFleetId = nextFleetId
+    nextFleetId = context.fleetIdRebindings.get(resolvedFleetId)
+  }
+  return resolvedFleetId
 }
 
 function recordAdvance(context: TurnContext, advance: JourneyAdvance, movement: FleetMovement): void {
@@ -177,11 +239,15 @@ function recordAdvance(context: TurnContext, advance: JourneyAdvance, movement: 
 }
 
 function compareEffects(first: Effect, second: Effect): number {
-  const submissionOrder = first.submittedAction.id.localeCompare(second.submittedAction.id)
-  if (submissionOrder !== 0) {
-    return submissionOrder
+  const playerOrder = compareOrdinalStrings(first.submittedAction.playerId, second.submittedAction.playerId)
+  if (playerOrder !== 0) {
+    return playerOrder
   }
-  return first.id - second.id
+  const actionOrder = compareOrdinalStrings(first.submittedAction.id, second.submittedAction.id)
+  if (actionOrder !== 0) {
+    return actionOrder
+  }
+  return first.definitionOrdinal - second.definitionOrdinal
 }
 
 function movementFailure(error: string): Result<never, ResolvePhaseError> {

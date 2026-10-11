@@ -63,7 +63,7 @@ Relates to:
 
 ## Current Implementation
 
-The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, three Build Fleet Directives, and three Move Fleet Directives. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders target pickers and typed inputs from the definition, and uses the shared eligibility evaluator to apply dependent constraints and show remaining resources and Fleet Strength. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
+The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, three Build Fleet Directives, three Move Fleet Directives, and one Standard Attack Move Directive. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders target pickers and typed inputs from the definition, and uses the shared eligibility evaluator to apply dependent constraints and show remaining resources and Fleet Strength. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
 
 The live Build Fleet values are temporary balance and differ from the planned Directive catalogue below. These are the current Standard Ruleset values:
 
@@ -84,6 +84,8 @@ Each Move Fleet submission chooses an owned Fleet and a destination Planet. The 
 | Exceptional (T1) |              3 |         5 |                            5 |                            25 |
 
 A Move Fleet submission selects a positive whole-number Strength from an owned, stationary Fleet and a different destination Planet within the definition's range. The shared evaluator aggregates Strength and resource reservations across Action Instances; replacement removes the edited instance's old selection before evaluating its new one. A departure transfers only the selected Strength, leaving any remainder stationed at the source. Its speed, departure Turn, and originating Action Submission persist with the moving Fleet, so it advances automatically in later Turns without another payment. The bound Action Instance remains In Progress until arrival.
+
+Standard Attack Move costs 5 Influence and 1 Fuel and moves selected Strength at speed 1 within range 5. Its Move and normal Assault definitions share the same Fleet and Planet target mappings. The pending Assault definition is captured in movement state and activates only after the Fleet arrives; all arrivals and Fleet Builds settle before combat. The existing three Move Directives retain their separate values above.
 
 ## Rules
 

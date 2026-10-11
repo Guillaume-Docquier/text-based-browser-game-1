@@ -1,5 +1,6 @@
 import { branded } from "@guillaume-docquier/tools-ts"
 import { safeTypedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { compareOrdinalStrings } from "#shared/domain/compareOrdinalStrings.ts"
 import type { GameId } from "#shared/domain/games/GameId.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { Resources } from "#shared/domain/resources/Resources.ts"
@@ -8,8 +9,10 @@ import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTa
 import { PositiveIntegerSchema } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import type { EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
+import { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import { AtFleetPlanetConstraint } from "#shared/domain/ruleset/target-definitions/AtFleetPlanetTargetConstraint.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
 import type { TargetDefinition } from "#shared/domain/ruleset/target-definitions/TargetDefinition.ts"
@@ -19,6 +22,7 @@ import type { Action, SubmittedAction } from "#shared/domain/turns/actions/Actio
 import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
 import type { Fleet } from "#shared/domain/world/fleets/Fleet.ts"
 import { FleetIdSchema, type FleetId } from "#shared/domain/world/fleets/FleetId.ts"
+import { isFleetPresentAtPlanet } from "#shared/domain/world/fleets/isFleetPresentAtPlanet.ts"
 import { PlanetIdSchema, type PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 
 function isFleetMoveEffectDefinition(effectDefinition: EffectDefinition): effectDefinition is FleetMoveEffectDefinition {
@@ -291,7 +295,7 @@ function evaluateProposals({
 
   validateMovementOccupancy({ state, ruleset, evaluation })
 
-  const sortedProposals = proposals.toSorted((first, second) => first.actionId.localeCompare(second.actionId))
+  const sortedProposals = proposals.toSorted((first, second) => compareOrdinalStrings(first.actionId, second.actionId))
   for (const proposal of sortedProposals) {
     evaluateProposal({ state, ruleset, proposal, authorizedActions, evaluation })
   }
@@ -575,6 +579,36 @@ function evaluateTarget({
         }
         break
       }
+      case AtFleetPlanetConstraint.type: {
+        const sourceFleetTag = constraint.references.sourceFleetTag
+        const sourceFleetId = getOwnRecordValue(selectedTargets, sourceFleetTag)
+        if (sourceFleetId === undefined) {
+          addIssue(evaluation, {
+            code: "DEPENDENCY_INCOMPLETE",
+            actionId,
+            targetTag,
+            message: `Choose source Fleet "${sourceFleetTag}" before choosing this Planet`,
+          })
+          break
+        }
+        const sourceFleet = getOwnRecordValue(state.fleets, branded<FleetId>(sourceFleetId))
+        if (sourceFleet === undefined) {
+          addIssue(evaluation, {
+            code: "DEPENDENCY_INVALID",
+            actionId,
+            targetTag,
+            message: `Source Fleet "${sourceFleetId}" is unavailable for this Planet`,
+          })
+        } else if (!isFleetPresentAtPlanet(sourceFleet, branded<PlanetId>(targetId))) {
+          addIssue(evaluation, {
+            code: "DEPENDENCY_INVALID",
+            actionId,
+            targetTag,
+            message: `Planet "${targetId}" must be the selected Fleet's current stationary location`,
+          })
+        }
+        break
+      }
       case "DIFFERENT_FROM_FLEET_ORIGIN": {
         const sourceFleetTag = constraint.references.sourceFleetTag
         const sourceFleetId = getOwnRecordValue(selectedTargets, sourceFleetTag)
@@ -722,7 +756,7 @@ function validateMovementOccupancy({
   evaluation: MutableEvaluation
 }): void {
   const occupancy = new Map<ActionId, Fleet[]>()
-  for (const fleet of Object.values(state.fleets).toSorted((first, second) => first.id.localeCompare(second.id))) {
+  for (const fleet of Object.values(state.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id))) {
     const movement = fleet.movement
     const hasJourneyData = fleet.destinationPlanetId !== undefined || fleet.distanceToEnd !== undefined || movement !== undefined
     if (!hasJourneyData) {
@@ -741,6 +775,12 @@ function validateMovementOccupancy({
     const definition = poolEntry === undefined ? undefined : getOwnRecordValue(ruleset.actionDefinitions, poolEntry.actionDefinitionId)
     const moveEffects = definition?.effects.filter(isFleetMoveEffectDefinition) ?? []
     const moveEffect = moveEffects.length === 1 ? moveEffects[0] : undefined
+    const expectedPendingArrivalEffects =
+      definition === undefined
+        ? []
+        : [...definition.costs, ...definition.effects].flatMap((effectDefinition, definitionOrdinal) =>
+            effectDefinition.type === FleetAssaultEffectDefinition.type ? [{ effectDefinition, definitionOrdinal }] : [],
+          )
     const fleetTargetTag = moveEffect?.targets.fleet.actionTargetTag
     const planetTargetTag = moveEffect?.targets.planet.actionTargetTag
     const strengthInputTag = moveEffect?.inputs.strength.actionInputTag
@@ -765,7 +805,23 @@ function validateMovementOccupancy({
       Object.keys(movement.submission.selectedInputs).every((tag) => Object.hasOwn(definition.inputs, tag)) &&
       Object.values(movement.submission.selectedTargets).every((value) => value !== undefined) &&
       Object.values(movement.submission.selectedInputs).every((value) => value !== undefined)
+    const pendingArrivalBindingMatches =
+      movement.pendingArrivalEffects.length === expectedPendingArrivalEffects.length &&
+      movement.pendingArrivalEffects.every((pending, index) => {
+        const expected = expectedPendingArrivalEffects[index]
+        return (
+          expected !== undefined &&
+          pending.definitionOrdinal === expected.definitionOrdinal &&
+          pending.effectDefinition.targets.fleet.actionTargetTag === expected.effectDefinition.targets.fleet.actionTargetTag &&
+          pending.effectDefinition.targets.planet.actionTargetTag === expected.effectDefinition.targets.planet.actionTargetTag &&
+          selectedFleetId ===
+            getOwnRecordValue(movement.submission.selectedTargets, pending.effectDefinition.targets.fleet.actionTargetTag) &&
+          selectedPlanetId ===
+            getOwnRecordValue(movement.submission.selectedTargets, pending.effectDefinition.targets.planet.actionTargetTag)
+        )
+      })
     const hasValidJourneyBinding =
+      pendingArrivalBindingMatches &&
       fleet.ownerPlayerId === movement.submission.playerId &&
       poolEntry !== undefined &&
       poolEntry.actionDefinitionId === movement.submission.actionDefinitionId &&
@@ -779,7 +835,8 @@ function validateMovementOccupancy({
       parsedPlanetId.data === fleet.destinationPlanetId &&
       getOwnRecordValue(state.planets, parsedPlanetId.data) !== undefined &&
       parsedStrength?.success === true &&
-      selectedStrength === fleet.strength &&
+      selectedStrength !== undefined &&
+      Number(selectedStrength) === Number(fleet.strength) &&
       movement.departureTurn <= state.turn
 
     if (!hasValidJourneyBinding) {
@@ -809,7 +866,7 @@ function validateMovementOccupancy({
 function findOccupyingFleet(state: EligibilityState, playerId: PlayerId, actionId: ActionId): Fleet | undefined {
   return Object.values(state.fleets)
     .filter((fleet) => fleet.ownerPlayerId === playerId && fleet.movement?.submission.id === actionId)
-    .toSorted((first, second) => first.id.localeCompare(second.id))[0]
+    .toSorted((first, second) => compareOrdinalStrings(first.id, second.id))[0]
 }
 
 function getTargetEntity(
@@ -849,7 +906,7 @@ function getTargetType(state: EligibilityState, targetId: TargetId): TargetType 
 
 function computeRemainingStrength(state: EligibilityState, commitments: Readonly<Record<FleetId, number>>): Record<FleetId, number> {
   const remaining: Record<FleetId, number> = {}
-  for (const fleet of Object.values(state.fleets).toSorted((first, second) => first.id.localeCompare(second.id))) {
+  for (const fleet of Object.values(state.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id))) {
     remaining[fleet.id] =
       fleet.ownerPlayerId !== state.submittingPlayerId || fleet.movement !== undefined
         ? 0
@@ -901,7 +958,7 @@ function findDuplicates(values: readonly ActionId[]): ActionId[] {
     }
     seen.add(value)
   }
-  return [...duplicates].toSorted((first, second) => first.localeCompare(second))
+  return [...duplicates].toSorted((first, second) => compareOrdinalStrings(first, second))
 }
 
 function addIssue(evaluation: MutableEvaluation, issue: EligibilityIssue): void {
@@ -916,28 +973,28 @@ function getStatus(issues: readonly EligibilityIssue[]): SelectionEvaluation["st
 }
 
 function compareIssues(first: EligibilityIssue, second: EligibilityIssue): number {
-  const actionOrder = (first.actionId ?? "").localeCompare(second.actionId ?? "")
+  const actionOrder = compareOrdinalStrings(first.actionId ?? "", second.actionId ?? "")
   if (actionOrder !== 0) {
     return actionOrder
   }
-  const codeOrder = first.code.localeCompare(second.code)
+  const codeOrder = compareOrdinalStrings(first.code, second.code)
   if (codeOrder !== 0) {
     return codeOrder
   }
-  const targetTagOrder = (first.targetTag ?? "").localeCompare(second.targetTag ?? "")
+  const targetTagOrder = compareOrdinalStrings(first.targetTag ?? "", second.targetTag ?? "")
   if (targetTagOrder !== 0) {
     return targetTagOrder
   }
-  const inputTagOrder = (first.inputTag ?? "").localeCompare(second.inputTag ?? "")
+  const inputTagOrder = compareOrdinalStrings(first.inputTag ?? "", second.inputTag ?? "")
   if (inputTagOrder !== 0) {
     return inputTagOrder
   }
   const resourceOrder =
     (first.resourceType === undefined ? -1 : Object.values(ResourceType).indexOf(first.resourceType)) -
     (second.resourceType === undefined ? -1 : Object.values(ResourceType).indexOf(second.resourceType))
-  return resourceOrder !== 0 ? resourceOrder : first.message.localeCompare(second.message)
+  return resourceOrder !== 0 ? resourceOrder : compareOrdinalStrings(first.message, second.message)
 }
 
 function uniqueSorted<T extends string>(values: readonly T[]): T[] {
-  return [...new Set(values)].toSorted((first, second) => first.localeCompare(second))
+  return [...new Set(values)].toSorted((first, second) => compareOrdinalStrings(first, second))
 }

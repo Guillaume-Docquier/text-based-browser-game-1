@@ -166,7 +166,12 @@ describe("validateSubmittedActions", () => {
       originPlanetId: origin.id,
       destinationPlanetId: destination.id,
       distanceToEnd: 5,
-      movement: typedParse(FleetMovementSchema, { speed: 0.1, departureTurn: 2, submission: movementSubmission }),
+      movement: typedParse(FleetMovementSchema, {
+        speed: 0.1,
+        departureTurn: 2,
+        submission: movementSubmission,
+        pendingArrivalEffects: [],
+      }),
       strength: 5,
     })
     const turnState = createTurnStateStub({

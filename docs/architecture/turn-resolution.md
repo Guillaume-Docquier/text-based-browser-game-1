@@ -40,6 +40,8 @@ flowchart LR
 
 The rules engine is deterministic. Given the same Rng state, Turn State and Ruleset, the results will always be identical. This is important for testing and reproducibility.
 
+Locked submissions are constructed in ordinal `(playerId, actionId)` order. Fleet Build effects run in ordinal `(playerId, actionId, definitionOrdinal)` order. Assault candidates run by ascending movement Tick, then by the canonical global `(playerId, actionId, departureTurn, initiatingJourneyId, definitionOrdinal)` key; string components use ordinal comparison. For each equal-Tick group, the canonical list is passed to the persisted tools-ts RNG's descending Fisher-Yates shuffle. A singleton bypasses the shuffle and consumes no draw. The full tied group remains queued: if an earlier Assault destroys a later attacker, its queued candidate is still resolved as Prevented, without reshuffling. These keys, draw rules, and saved RNG state define replay order; [System 011 Combat](../game-design/systems/011-combat.md) describes the player-facing order.
+
 ## Failure modes
 
 The Rules Engine never throws, even for failed invariant checks. It always returns Results. This is because the Rules Engine will be used on a worker, and the Rules Engine state is confined to its inputs. Fatally throwing then crashing here would cause the worker to fully restart, which costs an unnecessary downtime and higher memory usage. Aborting the process this way will not clear any corrupted data, as the Rules Engine will not rely on process wide data to clean up.
@@ -113,5 +115,7 @@ The phases pipeline handles Effect resolution:
 - Victory
 
 Effects can be added to the Effect pool through other Effects during the Phases.
+
+The Fleet Movement Phase advances all new departures and existing journeys once, settles every arrival by its calculated Tick and stable Fleet ID, and preserves pending Assault intent for each initiating arrival. Fleet Build then creates or reinforces Fleets. Fleet Combat applies normal Assaults after all arrivals and Builds; intents retain their initiating order through friendly merges, while a Fleet in transit is not present at its recorded origin. Colonization remains a later, separate phase.
 
 After all phases are done, we expect all effects to have been resolved.

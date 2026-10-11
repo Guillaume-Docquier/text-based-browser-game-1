@@ -1,0 +1,26 @@
+{
+  "report": ".agents/experiments/fleet-operations/reports/increment-02-reviewer-r5.md",
+  "reportSha256": "0F65B9070341E844E5EE64BB6B2D5A5644105A8546D87F2873E70BB3F19E1622",
+  "verdict": "NO_ACTIONABLE_FINDINGS",
+  "all18Reviewed": true,
+  "sourceCount": 61,
+  "canonical61": "E8741A320C101B44929758F84485BCCB4E1389F8A81B2EB1E0B667FEC47291FA",
+  "sourceEntryDifferences": 0,
+  "hookSha256": "C0508811ED3AC34DFCEB4CBD1DF365217F9554E904DC4CF070368EBC248E1637",
+  "stagedCount": 104,
+  "stagedPathDifferences": 0,
+  "untrackedSourceCount": 0,
+  "ownChecks": {
+    "diffCheckExit": 0,
+    "focusedFiles": 4,
+    "chunkProbeExit": 0,
+    "focusedTests": 44,
+    "focusedExit": 0,
+    "ownWriteFormatExit": 0
+  },
+  "ownLiveProcessCount": 0,
+  "sourceStageEnvServicesEdited": false,
+  "allowedOwnWritesOnly": true,
+  "allOwnCommandsCompleted": true,
+  "stopAllWritesAtHandoff": true
+}

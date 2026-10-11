@@ -32,6 +32,10 @@ export class FleetsPage extends GamePage {
     return branded(index === "last" ? this.rows.last() : this.rows.nth(index))
   }
 
+  public rowByFleetName(name: string): FleetRowLocator {
+    return branded(this.rows.filter({ hasText: name }))
+  }
+
   public async rowsByJourneyStatus(): Promise<{ moving: FleetRowLocator[]; stationary: FleetRowLocator[] }> {
     const moving: FleetRowLocator[] = []
     const stationary: FleetRowLocator[] = []

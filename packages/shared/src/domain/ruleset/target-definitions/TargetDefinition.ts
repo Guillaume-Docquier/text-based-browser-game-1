@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { AtFleetPlanetConstraint } from "#shared/domain/ruleset/target-definitions/AtFleetPlanetTargetConstraint.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
 import { TargetConstraintSchema, type TargetConstraint } from "#shared/domain/ruleset/target-definitions/TargetConstraint.ts"
@@ -21,6 +22,7 @@ const supportedTargetTypes: Record<TargetConstraint["type"], ReadonlySet<TargetT
   [StationaryFleetConstraint.type]: StationaryFleetConstraint.supportedTargetTypes,
   WITHIN_FLEET_RANGE: new Set([TargetType.PLANET]),
   DIFFERENT_FROM_FLEET_ORIGIN: new Set([TargetType.PLANET]),
+  [AtFleetPlanetConstraint.type]: AtFleetPlanetConstraint.supportedTargetTypes,
 }
 
 function validateConstraintsSupportTargetType({ targetType, constraints }: TargetDefinition, context: z.RefinementCtx): void {

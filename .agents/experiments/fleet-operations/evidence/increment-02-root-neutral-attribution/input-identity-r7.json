@@ -1,0 +1,26 @@
+{
+  "acceptedBase": "06954d1a35759a5fa5bd4271f0585ba3ef71c6e4",
+  "approvedV4": "E4118FEA9BACB30A5233B92D5D15D790FB2337F0D3E3315A35B2AE65F34FAF97",
+  "previousCanonical": {
+    "count": 61,
+    "aggregate": "6D1F3C2C01406252D31B46ABCFF8AF71905DCF789336426A88CB7A2AD96EDB2C"
+  },
+  "currentCanonical": {
+    "count": 61,
+    "aggregate": "E8741A320C101B44929758F84485BCCB4E1389F8A81B2EB1E0B667FEC47291FA"
+  },
+  "samePathSet": true,
+  "unchangedPathCount": 60,
+  "delta": [
+    {
+      "path": "apps/backend/src/api/gameplay/gameplay.router.integration.test.ts",
+      "before": "0DE2880EAA84CF796DFECC7570B7C99AF45169D9CAAE39C03196F55173F22C46",
+      "after": "BF7800F4FA46EF500D230BEED41C138352CFE7BA4CF94B88F1C0BB31F1BB4EA4"
+    }
+  ],
+  "additionalHook": {
+    "path": ".husky/pre-commit",
+    "sha256": "C0508811ED3AC34DFCEB4CBD1DF365217F9554E904DC4CF070368EBC248E1637"
+  },
+  "scope": "Source/test/docs apps/packages/docs unique changed tracked+untracked paths relative accepted base; additional hook separately inspected and hashed. Current independent role gates still pending."
+}

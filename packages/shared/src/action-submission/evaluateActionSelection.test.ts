@@ -32,6 +32,7 @@ import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { FleetActionSelectionParity } from "#shared/testing/FleetActionSelectionParity.ts"
+import { StationaryAssaultTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { GainInfluence } from "#shared/testing/test-ruleset/action-definitions/gain-influence.ts"
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 
@@ -343,6 +344,55 @@ describe("evaluateActionSelection", () => {
     expect(missingOriginCandidate.candidateIssues.map(({ code }) => code)).toContain("MISSING_ORIGIN")
   })
 
+  it("should order equivalent invalid stationary Assault selections independently of property insertion order", () => {
+    // Arrange
+    const fixture = createFixture()
+    const enemyPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000012")
+    const enemyFleet = createFleetStub({
+      id: branded<FleetId>("fleet-order-enemy"),
+      ownerPlayerId: enemyPlayerId,
+      originPlanetId: fixture.originId,
+      strength: 30,
+    })
+    const ruleset = createRulesetStub({
+      actionDefinitions: indexBy("id", [StationaryAssaultTest]),
+      actionPool: [{ id: fixture.firstActionId, actionDefinitionId: StationaryAssaultTest.id }],
+    })
+    const state: EligibilityState = {
+      ...fixture.state,
+      players: indexBy("id", [
+        { id: fixture.playerId, ownerPlayerId: fixture.playerId },
+        { id: enemyPlayerId, ownerPlayerId: enemyPlayerId },
+      ]),
+      fleets: indexBy("id", [enemyFleet]),
+      actions: computeAvailableActions({ playerIds: [fixture.playerId], ruleset }),
+    }
+    const stationTag = branded<TargetTag>("station")
+    const battlePlanetTag = branded<TargetTag>("battlePlanet")
+    const firstTargets = { [stationTag]: enemyFleet.id, [battlePlanetTag]: fixture.destinationId }
+    const reversedTargets = { [battlePlanetTag]: fixture.destinationId, [stationTag]: enemyFleet.id }
+
+    // Act
+    const first = evaluateActionSelection({
+      state,
+      ruleset,
+      draft: { actionId: fixture.firstActionId, selectedTargets: firstTargets, selectedInputs: {} },
+    })
+    const reversed = evaluateActionSelection({
+      state,
+      ruleset,
+      draft: { actionId: fixture.firstActionId, selectedTargets: reversedTargets, selectedInputs: {} },
+    })
+
+    // Assert
+    expect(first.status).toBe("INELIGIBLE")
+    expect(first.issues.map(({ code, targetTag }) => ({ code, targetTag }))).toStrictEqual([
+      { code: "DEPENDENCY_INVALID", targetTag: battlePlanetTag },
+      { code: "TARGET_NOT_OWNED", targetTag: stationTag },
+    ])
+    expect(reversed).toStrictEqual(first)
+  })
+
   it("should reject enemy, moving, exhausted, and unknown source Fleets", () => {
     // Arrange
     const fixture = createFixture()
@@ -376,6 +426,7 @@ describe("evaluateActionSelection", () => {
         speed: typedParse(PositiveNumberSchema, 1),
         departureTurn: typedParse(PositiveIntegerSchema, 1),
         submission: movingSubmission,
+        pendingArrivalEffects: [],
       },
     })
     const movingState = { ...fixture.state, fleets: { ...fixture.state.fleets, [movingFleet.id]: movingFleet } }
@@ -846,6 +897,7 @@ describe("evaluateActionSelection", () => {
         speed: typedParse(PositiveNumberSchema, 1),
         departureTurn: typedParse(PositiveIntegerSchema, 1),
         submission: continuation,
+        pendingArrivalEffects: [],
       },
     })
     const state = { ...fixture.state, fleets: indexBy("id", [movingFleet]) }
@@ -1065,7 +1117,7 @@ describe("evaluateActionSelection", () => {
       strength: 20,
       destinationPlanetId: fixture.destinationId,
       distanceToEnd: 3,
-      movement: FleetMovementSchema.parse({ speed: 2, departureTurn: fixture.state.turn, submission }),
+      movement: FleetMovementSchema.parse({ speed: 2, departureTurn: fixture.state.turn, submission, pendingArrivalEffects: [] }),
     })
     const completedViewState: EligibilityState = {
       ...fixture.state,

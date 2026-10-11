@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { AtFleetPlanetConstraintSchema } from "#shared/domain/ruleset/target-definitions/AtFleetPlanetTargetConstraint.ts"
 import { DifferentFromFleetOriginConstraintSchema } from "#shared/domain/ruleset/target-definitions/DifferentFromFleetOriginTargetConstraint.ts"
 import { OwnedBySubmittingPlayerConstraintSchema } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { StationaryFleetConstraintSchema } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
@@ -11,4 +12,5 @@ export const TargetConstraintSchema = z.discriminatedUnion("type", [
   StationaryFleetConstraintSchema,
   WithinFleetRangeConstraintSchema,
   DifferentFromFleetOriginConstraintSchema,
+  AtFleetPlanetConstraintSchema,
 ])

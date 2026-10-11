@@ -1,6 +1,7 @@
 import { indexBy } from "@guillaume-docquier/tools-ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import { AttackMoveTest, FlexibleAssaultTest, StationaryAssaultTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import {
   BuildFleetExceptional,
   BuildFleetImproved,
@@ -25,6 +26,9 @@ const ACTION_DEFINITIONS = [
   MoveFleetStandard,
   MoveFleetImproved,
   MoveFleetExceptional,
+  AttackMoveTest,
+  FlexibleAssaultTest,
+  StationaryAssaultTest,
 ]
 
 export const TestRuleset = Ruleset.create({

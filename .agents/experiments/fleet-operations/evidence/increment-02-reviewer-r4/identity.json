@@ -1,0 +1,13 @@
+{
+  "root": "C:\\Users\\Guillaume\\.codex\\worktrees\\fleet-operations-experiment\\text-based-browser-game-1",
+  "branch": "codex/fleet-operations-experiment",
+  "head": "06954d1a35759a5fa5bd4271f0585ba3ef71c6e4",
+  "base": "06954d1a35759a5fa5bd4271f0585ba3ef71c6e4",
+  "paths": 61,
+  "startAggregate": "6D1F3C2C01406252D31B46ABCFF8AF71905DCF789336426A88CB7A2AD96EDB2C",
+  "finishAggregate": "6D1F3C2C01406252D31B46ABCFF8AF71905DCF789336426A88CB7A2AD96EDB2C",
+  "exactPathHashComparison": "equal",
+  "correctedConcurrencyHash": "7CB7A372874D82379CC4FF3A80F998F6CF85264AE780B3AC5D041D145029B3B8",
+  "dispatchHash": "94DEC01DD34C6982DAFB54969484AB30020534EFAE3F367C1215A15C2B35AED3",
+  "packetHash": "E4118FEA9BACB30A5233B92D5D15D790FB2337F0D3E3315A35B2AE65F34FAF97"
+}

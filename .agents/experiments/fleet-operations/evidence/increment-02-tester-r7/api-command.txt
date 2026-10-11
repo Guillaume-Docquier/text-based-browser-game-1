@@ -1,0 +1,1 @@
+pnpm --filter backend exec vitest run --project integration --silent=true src/api/gameplay/gameplay.router.integration.test.ts -t 'should honor renamed Assault tags and reject invalid public Fleet selections'
