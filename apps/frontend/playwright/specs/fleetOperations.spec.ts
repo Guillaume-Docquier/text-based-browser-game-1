@@ -342,6 +342,7 @@ async function verifySavedDepartures({ right, left, advance }: UnifiedFleetJourn
   await expect(fleets.rowByStrength(25)).toHaveCount(1)
   await fleets.reload()
   await expect(fleets.rows).toHaveCount(6)
+  await expect(fleets.remainingDistance(fleets.rowByStrength(30))).toHaveText("7.08 ly")
   const actions = await fleets.openActions(),
     view = await actions.refreshPlayerView()
   for (const [name, tier, id] of [
@@ -402,7 +403,9 @@ async function verifyCombinedArrival({ right, left, testInfo }: UnifiedFleetJour
   Assert.isDefined(target)
   Assert.isDefined(opponent)
   expect(target.ownerPlayerId).not.toBeNull()
-  expect(opponent.ownerPlayerId).not.toBe(view.player.id)
+  const defender = Object.values(view.opponents)[0]
+  Assert.isDefined(defender)
+  expect(opponent.ownerPlayerId).toBe(defender.id)
   const ownerAlias = target.ownerPlayerId === view.player.id ? right.alias : left.alias
   const galaxy = await (await actions.openFleets()).openOriginPlanet((await actions.openFleets()).rowByStrength(15))
   await expect(galaxy.planet("planet 404958")).toHaveAttribute("aria-label", `View planet 404958 details, owned by ${ownerAlias}`)
