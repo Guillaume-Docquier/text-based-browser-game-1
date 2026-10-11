@@ -7,6 +7,7 @@ import { InputDefinitionSchema, type InputDefinition } from "#shared/domain/rule
 import { InputTagSchema, type InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import { type TargetTag, TargetTagSchema } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { EffectDefinitionSchema, type EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
+import type { EffectDefinitionTargetDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinitionTargetDefinition.ts"
 import {
   ResourceLossEffectDefinitionSchema,
   type ResourceLossEffectDefinition,
@@ -53,21 +54,38 @@ export const ActionDefinitionSchema = z
  */
 function validateEffectDefinitionTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
   for (const effectDefinition of [...actionDefinition.costs, ...actionDefinition.effects]) {
-    for (const effectDefinitionTarget of Object.values(effectDefinition.targets)) {
-      const slotTargetType = actionDefinition.targets[effectDefinitionTarget.actionTargetTag]?.targetType
-      if (slotTargetType === undefined) {
-        context.addIssue({
-          code: "custom",
-          message: `Action Definition "${actionDefinition.name}" is missing target slot tagged "${effectDefinitionTarget.actionTargetTag}" required by the "${effectDefinition.type}" effect definition`,
-        })
-      } else if (slotTargetType !== effectDefinitionTarget.targetType) {
-        context.addIssue({
-          code: "custom",
-          message: `Action Definition "${actionDefinition.name}" target slot tagged "${effectDefinitionTarget.actionTargetTag}" has type "${slotTargetType}", but the "${effectDefinition.type}" effect definition requires "${effectDefinitionTarget.targetType}"`,
-        })
-      }
+    for (const reference of Object.values(effectDefinition.targets)) {
+      const message = getEffectTargetCompatibilityIssue({
+        actionName: actionDefinition.name,
+        targets: actionDefinition.targets,
+        effectType: effectDefinition.type,
+        reference,
+      })
+      if (message !== undefined) context.addIssue({ code: "custom", message })
     }
   }
+}
+
+/**
+ * Classifies one mapped effect reference and describes its missing or incompatible slot.
+ */
+function getEffectTargetCompatibilityIssue({
+  actionName,
+  targets,
+  effectType,
+  reference,
+}: Readonly<{
+  actionName: ActionDefinition["name"]
+  targets: ActionDefinition["targets"]
+  effectType: EffectDefinition["type"]
+  reference: EffectDefinitionTargetDefinition
+}>): string | undefined {
+  const slotTargetType = targets[reference.actionTargetTag]?.targetType
+  if (slotTargetType === undefined)
+    return `Action Definition "${actionName}" is missing target slot tagged "${reference.actionTargetTag}" required by the "${effectType}" effect definition`
+  if (slotTargetType !== reference.targetType)
+    return `Action Definition "${actionName}" target slot tagged "${reference.actionTargetTag}" has type "${slotTargetType}", but the "${effectType}" effect definition requires "${reference.targetType}"`
+  return undefined
 }
 
 type CompositionIssue = (message: string) => void
