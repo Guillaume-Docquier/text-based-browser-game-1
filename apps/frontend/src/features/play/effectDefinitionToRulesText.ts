@@ -13,6 +13,8 @@ export function effectDefinitionToRulesText(effectDefinition: EffectDefinition):
       return "Win the game"
     case "FLEET_BUILD":
       return `Build a fleet with ${effectDefinition.parameters.strength} strength on target planet`
+    case "ASSAULT":
+      return "On arrival, assault all enemy fleets at the destination. Each side loses the opposing Strength, capped at its own Strength"
     case "FLEET_MOVE":
       return `Move a fleet to target planet at ${effectDefinition.parameters.speed} light years per turn`
   }

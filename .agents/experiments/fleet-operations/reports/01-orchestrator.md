@@ -191,3 +191,9 @@ Accepted unchanged approved packet v1/allA1-01..18 after reading completed fresh
 Root completed independent critical API/PG and exported shared/projection probes, consumer/persistence/schema/documentation inspection, current final format593files/diff EXIT0 and criterion mapping above. SHA256 comparison of106source/test/doc paths (13deleted) after reviewer4 exactly matches the frozen reviewed tree:0changed/0missing. All increment1 findings resolved; no accepted-ADR/design/permission blocker. Chronology, arrival intent, Assault, colonization and final PR CI remain required future scope.
 
 Root now stages only the explicitly enumerated130intended paths (implementation/test/config/migration/docs plus approved packet and durable experiment artifacts). Inspect staged diff and hook-generated changes before treating the commit as accepted delivery. Record the commit SHA in run-state after success. No merge/push/gameplay delivery claim yet.
+
+## Accepted increment1 commit receipt
+
+Commit e4c0710d46bb54e12946e568a7406fecf7c5ae30 (fleet: add shared eligibility and partial movement lifecycle), actual FLEET_INCREMENT1_COMMIT_EXIT=0/toolEXIT0. Explicit130intendedpaths staged and staged whitespace/scope/concrete schema/content/domain/compiler diff inspected, no unstaged/untracked residue before commit. Required lint-staged backup/tasks/cleanup all complete; oxlint--fix/oxfmt hooks passed without bypass. Posthook SHA256 comparison106source/test/docpaths/13deleted finds0changed. Initial postcommit checkout clean.
+
+All unchanged approved v1/A1-01..18 accepted; next planner base is this exact SHA. Run-state now records the SHA after committing, as required, so its following ledger edit will travel with the next increment. No gameplay push or whole-scope completion claim. Next planning may coherently combine remaining chronology/pending arrival intent with first normalAssault, subject to root packet approval and preservation of all original2/3criteria.

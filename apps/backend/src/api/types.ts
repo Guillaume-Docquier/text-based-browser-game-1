@@ -39,6 +39,7 @@ export type ActionSubmissionSelection = TrpcRouterInput["gameplay"]["updateActio
 export type SelectedTargets = Action["selectedTargets"]
 export type TargetId = NonNullable<SelectedTargets>[keyof NonNullable<SelectedTargets>]
 export type ResourceType = keyof PlayerView["resources"]
+export type ResourceStockpile = PlayerView["resources"][ResourceType]
 export type Ruleset = PlayerView["ruleset"]
 export type ActionDefinition = Ruleset["actionDefinitions"][ActionDefinitionId]
 export type TargetDefinition = ActionDefinition["targets"][keyof ActionDefinition["targets"]]

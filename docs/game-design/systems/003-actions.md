@@ -13,6 +13,7 @@ Partially Implemented
 - [x] Readiness locks Action submissions until the player clears Readiness or the next Turn starts
 - [x] Build Fleet Directives with owned-Planet targets and resource costs
 - [x] Move Fleet Directives with owned-Fleet and destination-Planet targets
+- [x] Attack Move Directive composing Move and normal Assault
 - [ ] Ideology-driven Action pools
 
 ## Purpose
@@ -61,7 +62,7 @@ Relates to:
 
 ## Current Implementation
 
-The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, three Build Fleet Directives, and three Move Fleet Directives. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns, except instances occupied by active journeys. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders target pickers for Build Fleet's owned Planet and Move Fleet's owned Fleet and destination Planet. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
+The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, three Build Fleet Directives, three Move Fleet Directives, and one normal Attack Move Directive. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns, except instances occupied by active journeys. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders Build Fleet's owned-Planet target picker and the owned stationary Fleet, destination Planet and numeric Strength controls for Move Fleet and Attack Move. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
 
 The live Build Fleet values are temporary balance and differ from the planned Directive catalogue below. These are the current Standard Ruleset values:
 
@@ -83,7 +84,11 @@ Each Move Fleet submission chooses an owned stationary Fleet, positive whole-num
 
 Resources and source Strength are reserved cumulatively across submitted Actions. Replacing an instance excludes its previous allocation; cancellation releases only that instance. Shared eligibility evaluates complete submissions at the frontend, locked API transaction and Turn Resolution boundaries. Numeric edits remain local until explicitly submitted; invalid edits preserve the saved order and still permit cancellation.
 
-Departure pays once. The selected Strength continues automatically at its saved speed, and the initiating instance is presented as In Progress until arrival or terminal removal. Transit cannot be cancelled, edited, redirected or refunded. See [Movement](./012-movement.md) for remaining chronological arrival work.
+Departure pays once. The selected Strength continues automatically at its saved speed, and the initiating instance is presented as In Progress until arrival or terminal removal. Transit cannot be cancelled, edited, redirected or refunded. See [Movement](./012-movement.md) for the implemented rules for chronological arrivals and journey bindings.
+
+### Current Attack Move content
+
+Standard Attack Move costs 5 Influence and 1 Fuel, with speed 1 LY/Turn and range 5 LY. It allocates positive Strength through the same owned stationary Fleet and source-dependent target constraints as Move, composing Move plus explicit normal Assault on arrival. The independent Test Ruleset uses speed 10 and range 25 with two independent instances for short persistence/browser scenarios. Existing ordinary Move variants are unchanged. Arrival/completion or terminal prevention releases the initiating instance for the next collecting Turn; continuation never repays departure costs.
 
 ## Rules
 

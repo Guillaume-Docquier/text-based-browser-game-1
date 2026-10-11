@@ -13,6 +13,7 @@ import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
+import { SaveTransactionFailure } from "#tests/SaveTransactionFailure.stub.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
@@ -178,6 +179,14 @@ export class ControlledConcurrencyTestApiServer {
     const api = new ApiServer(await createApiStub({ db, clock }))
     const { turnProcessor: processor, turnsRepository } = await createTurnProcessorStub({ db, clock })
     return new ControlledConcurrencyTestApiServer({ postgres, db, api, clock, processor, turnsRepository })
+  }
+  public async createSaveFailureProcessor(): Promise<{ processor: TurnProcessor; fault: SaveTransactionFailure }> {
+    const fault = new SaveTransactionFailure(this.db)
+    const { turnProcessor: processor } = await createTurnProcessorStub({ db: fault.db, clock: this.clock })
+    return { processor, fault }
+  }
+  public async recreateProcessor(): Promise<TurnProcessor> {
+    return (await createTurnProcessorStub({ db: this.db, clock: this.clock })).turnProcessor
   }
   public async createClient(): Promise<AuthenticatedApiClient> {
     return await this.api.createClient({ authenticated: true })

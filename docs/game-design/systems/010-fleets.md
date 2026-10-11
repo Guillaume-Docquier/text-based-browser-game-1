@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Build Fleet Actions create and reinforce stationed Fleets. Move Fleet Directives split explicitly allocated Strength, continue automatically, occupy their initiating Action instance, and land or merge. The Fleets view and map markers show the remainder and journey. Chronological arrivals, combat, cloaking, and colonization remain planned.
+Build Fleet Actions create and reinforce stationed Fleets. Move Fleet Directives split explicitly allocated Strength, continue automatically, occupy their initiating Action instance, and land or merge. The Fleets view and map markers show the remainder and journey. Chronological arrivals and normal Assault are implemented. Cloaking and colonization remain planned.
 
 ## Purpose
 

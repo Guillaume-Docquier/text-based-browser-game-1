@@ -115,14 +115,22 @@ describe("independent fleet allocation boundary regressions", () => {
   it.each([
     {
       name: "owner",
+      expectedFailureType: "INVALID_SUBMISSIONS",
       fleet: { ownerPlayerId: branded<PlayerId>("00000000-0000-4000-8000-000000000002") },
       resources: {},
       strength: 20,
       influence: 6,
     },
-    { name: "transit", fleet: { destinationPlanetId: branded<PlanetId>("destination") }, resources: {}, strength: 20, influence: 6 },
-    { name: "strength", fleet: { strength: 19 }, resources: {}, strength: 19, influence: 6 },
-    { name: "resources", fleet: {}, resources: { INFLUENCE: 2 }, strength: 20, influence: 2 },
+    {
+      name: "malformed transit",
+      expectedFailureType: "FAILED_TO_RESOLVE_PHASES",
+      fleet: { destinationPlanetId: branded<PlanetId>("destination") },
+      resources: {},
+      strength: 20,
+      influence: 6,
+    },
+    { name: "strength", expectedFailureType: "INVALID_SUBMISSIONS", fleet: { strength: 19 }, resources: {}, strength: 19, influence: 6 },
+    { name: "resources", expectedFailureType: "INVALID_SUBMISSIONS", fleet: {}, resources: { INFLUENCE: 2 }, strength: 20, influence: 2 },
   ])("should revalidate a previously valid selection after fresh $name changes", (change) => {
     // Arrange
     const fixture = createFleetEligibilityScenario({ strength: 20 })
@@ -142,7 +150,7 @@ describe("independent fleet allocation boundary regressions", () => {
       evaluateActionSelection({ state: fixture.state, ruleset: fixture.ruleset, action, selection: action, mode: "complete" }).eligible,
     ).toBe(true)
     expect(evaluation.eligible).toBe(false)
-    expect(resolution).toStrictEqual(Result.Failure(expect.objectContaining({ type: "INVALID_SUBMISSIONS" })))
+    expect(resolution).toStrictEqual(Result.Failure(expect.objectContaining({ type: change.expectedFailureType })))
     expect(state.fleets[fixture.source.id]?.strength).toBe(change.strength)
     expect(state.players[fixture.playerId]?.resources.INFLUENCE).toBe(change.influence)
   })

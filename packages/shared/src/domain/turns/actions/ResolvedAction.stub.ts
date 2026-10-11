@@ -7,6 +7,7 @@ export function createResolvedActionStub({
   ...overrides
 }: Partial<ResolvedAction> = {}): ResolvedAction {
   return {
+    initiatingTurn: 1,
     submittedAction,
     actionOutcomes,
     ...overrides,

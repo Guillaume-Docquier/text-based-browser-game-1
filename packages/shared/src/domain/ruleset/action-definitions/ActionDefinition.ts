@@ -73,6 +73,16 @@ function validateMovementComposition(action: ActionDefinition, context: z.Refine
     context.addIssue({ code: "custom", message })
   }
   const moves = action.effects.filter((effect) => effect.type === "FLEET_MOVE")
+  for (const assault of action.effects.filter((effect) => effect.type === "ASSAULT")) {
+    const move = moves[0]
+    if (
+      moves.length !== 1 ||
+      move === undefined ||
+      assault.targets.fleet.actionTargetTag !== move.targets.fleet.actionTargetTag ||
+      assault.targets.planet.actionTargetTag !== move.targets.planet.actionTargetTag
+    )
+      issue("Assault must share the source and destination of exactly one Move")
+  }
   if (moves.length > 1) issue("An Action supports at most one FLEET_MOVE")
   for (const [tag, slot] of Object.entries(action.targets)) {
     for (const constraint of slot.constraints) {

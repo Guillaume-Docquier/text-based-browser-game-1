@@ -2,6 +2,8 @@ import type { Action, PlayerView, Players, ActionDefinition } from "@api-types"
 import { createFleetEligibilityScenario, type FleetEligibilityScenario } from "shared/action-submission/actionEligibility.stub.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
+import { AttackMoveStandard } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
+import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { createPlayerStub } from "@/lib/api/Player.stub.ts"
 export function createFleetActionCardScenario(): {
   view: PlayerView
@@ -64,4 +66,48 @@ export function createFleetActionCardScenario(): {
     },
   }
   return { view, players: [player], definition: scenario.definition, scenario }
+}
+
+/** Test Attack composition with a sibling ordinary Move reservation. */
+export function createAttackActionCardScenario(): ReturnType<typeof createFleetActionCardScenario> {
+  const fixture = createFleetActionCardScenario()
+  const definition = AttackMoveStandard
+  const actions: Action[] = [
+    fixture.view.actions[0] ?? {
+      id: fixture.scenario.order("X", 20).id,
+      actionDefinitionId: fixture.scenario.definition.id,
+      status: "AVAILABLE",
+      selectedTargets: null,
+      selectedInputs: null,
+      canAffordResources: true,
+      isEligible: false,
+    },
+    ...TestRuleset.actionPool
+      .filter((entry) => entry.actionDefinitionId === definition.id)
+      .map((entry) => ({
+        ...entry,
+        status: "AVAILABLE" as const,
+        selectedTargets: null,
+        selectedInputs: null,
+        canAffordResources: true,
+        isEligible: false,
+      })),
+  ]
+  return {
+    ...fixture,
+    definition,
+    view: {
+      ...fixture.view,
+      actions,
+      ruleset: {
+        ...fixture.view.ruleset,
+        actionDefinitions: { ...fixture.view.ruleset.actionDefinitions, [definition.id]: definition },
+        actionPool: [
+          ...fixture.view.ruleset.actionPool,
+          ...TestRuleset.actionPool.filter((entry) => entry.actionDefinitionId === definition.id),
+        ],
+      },
+      resources: { ...fixture.view.resources, INFLUENCE: { total: 20, uncommitted: 17 } },
+    },
+  }
 }

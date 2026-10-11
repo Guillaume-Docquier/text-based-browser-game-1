@@ -1,9 +1,12 @@
 import { Result, type Rng } from "@guillaume-docquier/tools-ts"
 import { validateSubmittedActions } from "#shared/action-submission/validation/validateSubmittedActions.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import { compareOrigins, actionOriginKey } from "#shared/domain/turns/actions/ActionResolutionOrigin.ts"
 import { EffectFactory } from "#shared/turn-resolution/effects/EffectFactory.ts"
 import { EffectPool } from "#shared/turn-resolution/effects/EffectPool.ts"
 import { MonotonicIdFactory } from "#shared/turn-resolution/MonotonicIdFactory.ts"
+import { validateSavedFleets } from "#shared/turn-resolution/phases/implementations/resolveFleetMovementPhase.ts"
+import { ResolvePhaseError } from "#shared/turn-resolution/phases/ResolvePhaseError.ts"
 import { resolvePhases } from "#shared/turn-resolution/phases/resolvePhases.ts"
 import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import { ResolveTurnError } from "#shared/turn-resolution/ResolveTurnError.ts"
@@ -16,12 +19,18 @@ import type { TurnState } from "#shared/turn-resolution/TurnState.ts"
  */
 export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): Result<ResolvedTurnState, ResolveTurnError> {
   const context: TurnContext = {
+    arrivalIntents: [],
+    destroyedFleetIds: new Set(),
     rng,
     turnState,
     effectPool: new EffectPool([]),
     ruleset,
   }
   const submittedActions = turnState.submittedActions
+
+  // Eligibility reads saved journey bindings, so establish their integrity first.
+  const savedValidation = validateSavedFleets(context)
+  if (Result.isFailure(savedValidation)) return Result.Failure(ResolveTurnError.FailedToResolvePhases({ error: savedValidation.error }))
 
   // Validate submissions
   const submittedActionIssues = validateSubmittedActions(submittedActions, ruleset, turnState)
@@ -31,9 +40,13 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
 
   // Create effects
   const monotonicIdFactory = MonotonicIdFactory.create()
-  context.effectPool.addMany(
-    submittedActions.flatMap((submittedAction) => EffectFactory.fromSubmittedAction(submittedAction, ruleset, monotonicIdFactory)),
-  )
+  for (const submittedAction of submittedActions) {
+    const created = EffectFactory.fromSubmittedAction(submittedAction, ruleset, monotonicIdFactory)
+    if (Result.isFailure(created))
+      return Result.Failure(ResolveTurnError.FailedToResolvePhases({ error: ResolvePhaseError.FailedEffect({ error: created.error }) }))
+    for (const effect of created.value) effect.origin = { initiatingTurn: turnState.turn, submittedAction }
+    context.effectPool.addMany(created.value)
+  }
 
   // Resolve effects
   const phaseResolutionResult = resolvePhases(context)
@@ -46,13 +59,20 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
     return Result.Failure(ResolveTurnError.UnresolvedEffects({ effects: context.effectPool.getAll().map((effect) => effect.toJson()) }))
   }
 
+  const origins = new Map(context.effectPool.getOrigins().map((origin) => [actionOriginKey(origin), origin]))
+  for (const submittedAction of submittedActions) {
+    const origin = { initiatingTurn: turnState.turn, submittedAction }
+    origins.set(actionOriginKey(origin), origin)
+  }
   return Result.Success({
     gameId: context.turnState.gameId,
     turn: context.turnState.turn,
-    resolvedActions: context.turnState.submittedActions.map((submittedAction) => ({
-      submittedAction,
-      actionOutcomes: context.effectPool.getOutcomes(submittedAction),
-    })),
+    resolvedActions: Array.from(origins.values())
+      .toSorted(compareOrigins)
+      .map((origin) => ({
+        ...origin,
+        actionOutcomes: context.effectPool.getOutcomes(origin.submittedAction, origin.initiatingTurn),
+      })),
     players: context.turnState.players,
     planets: context.turnState.planets,
     fleets: context.turnState.fleets,

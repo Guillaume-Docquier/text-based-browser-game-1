@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { AssaultEffectDefinitionSchema } from "#shared/domain/ruleset/effect-definitions/AssaultEffectDefinition.ts"
 import { FleetBuildEffectDefinitionSchema } from "#shared/domain/ruleset/effect-definitions/FleetBuildEffectDefinition.ts"
 import { FleetMoveEffectDefinitionSchema } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { ResourceGainEffectDefinitionSchema } from "#shared/domain/ruleset/effect-definitions/ResourceGainEffectDefinition.ts"
@@ -13,4 +14,5 @@ export const EffectDefinitionSchema = z.discriminatedUnion("type", [
   VictoryEffectDefinitionSchema,
   FleetBuildEffectDefinitionSchema,
   FleetMoveEffectDefinitionSchema,
+  AssaultEffectDefinitionSchema,
 ])

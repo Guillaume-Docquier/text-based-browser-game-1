@@ -1,6 +1,7 @@
 import { indexBy } from "@guillaume-docquier/tools-ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
+import { AttackMoveStandard } from "#lib/rulesets/standard/action-definitions/attack-move.ts"
 import { BuildFleetExceptional, BuildFleetImproved, BuildFleetStandard } from "#lib/rulesets/standard/action-definitions/build-fleet.ts"
 import { GainEnergy } from "#lib/rulesets/standard/action-definitions/gain-energy.ts"
 import { GainFuel } from "#lib/rulesets/standard/action-definitions/gain-fuel.ts"
@@ -21,6 +22,7 @@ const ACTION_DEFINITIONS = [
   MoveFleetStandard,
   MoveFleetImproved,
   MoveFleetExceptional,
+  AttackMoveStandard,
 ]
 
 export const StandardRuleset = Ruleset.create({

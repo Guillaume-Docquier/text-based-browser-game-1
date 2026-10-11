@@ -42,6 +42,8 @@ describe("FleetMoveEffect", () => {
     )
     const effectPool = new EffectPool([effect])
     const context: TurnContext = {
+      arrivalIntents: [],
+      destroyedFleetIds: new Set(),
       rng: createSeededRng(),
       ruleset: TestRuleset,
       effectPool,
@@ -83,6 +85,8 @@ describe("later departure prevention", () => {
     const move = new FleetMoveEffect(3, definition, action)
     const costs = scenario.definition.costs.map((definition, index) => new ResourceLossEffect(index + 1, definition, action))
     const context: TurnContext = {
+      arrivalIntents: [],
+      destroyedFleetIds: new Set(),
       turnState: structuredClone({ ...scenario.state, submittedActions: [action] }),
       ruleset: scenario.ruleset,
       rng: createSeededRng(),

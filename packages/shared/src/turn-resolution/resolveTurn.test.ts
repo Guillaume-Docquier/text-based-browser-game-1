@@ -106,6 +106,7 @@ describe("resolveTurn", () => {
         turn: turnState.turn,
         resolvedActions: [
           {
+            initiatingTurn: turnState.turn,
             submittedAction,
             actionOutcomes: [EffectOutcome.Resolved({ result: `Player "${playerId}" gained 5 INFLUENCE` })],
           },
@@ -174,10 +175,12 @@ describe("resolveTurn", () => {
         turn: turnState.turn,
         resolvedActions: [
           {
+            initiatingTurn: turnState.turn,
             submittedAction: firstPlayerSubmittedAction,
             actionOutcomes: [EffectOutcome.Resolved({ result: `Player "${firstPlayerId}" gained 5 INFLUENCE` })],
           },
           {
+            initiatingTurn: turnState.turn,
             submittedAction: secondPlayerSubmittedAction,
             actionOutcomes: [
               EffectOutcome.Resolved({ result: `Player "${secondPlayerId}" spent 10 INFLUENCE` }),
@@ -237,6 +240,7 @@ describe("resolveTurn", () => {
         turn: turnState.turn,
         resolvedActions: [
           {
+            initiatingTurn: turnState.turn,
             submittedAction,
             actionOutcomes: [
               EffectOutcome.Resolved({ result: `Player "${playerId}" spent 10 INFLUENCE` }),
@@ -289,6 +293,7 @@ describe("resolveTurn", () => {
         expect.objectContaining({
           resolvedActions: [
             {
+              initiatingTurn: turnState.turn,
               submittedAction,
               actionOutcomes: expect.arrayContaining([
                 EffectOutcome.Resolved({
@@ -346,6 +351,7 @@ describe("resolveTurn", () => {
         expect.objectContaining({
           resolvedActions: [
             {
+              initiatingTurn: turnState.turn,
               submittedAction,
               actionOutcomes: expect.arrayContaining([
                 EffectOutcome.Resolved({
@@ -402,6 +408,7 @@ describe("resolveTurn", () => {
         expect.objectContaining({
           resolvedActions: [
             {
+              initiatingTurn: turnState.turn,
               submittedAction,
               actionOutcomes: expect.arrayContaining([
                 EffectOutcome.Resolved({

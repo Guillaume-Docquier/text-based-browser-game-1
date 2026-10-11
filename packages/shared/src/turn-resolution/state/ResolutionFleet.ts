@@ -1,5 +1,5 @@
-import type { NonNegativeNumber } from "@guillaume-docquier/tools-ts/schemas"
 import type { Fleet } from "#shared/domain/world/fleets/Fleet.ts"
+import type { ArrivalTick } from "#shared/turn-resolution/ArrivalIntent.ts"
 
 /**
  * The mutable turn-resolution view of a fleet's identity, ownership, and movement.
@@ -12,5 +12,5 @@ export type ResolutionFleet = Fleet & {
    * The internal turn tick at which the fleet arrived, for tie-breakers.
    * Tick 0 means the fleet was already on the destination planet at the start of the turn.
    */
-  arrivedAtTick?: NonNegativeNumber | undefined
+  arrivedAtTick?: ArrivalTick | undefined
 }

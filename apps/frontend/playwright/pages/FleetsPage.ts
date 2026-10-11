@@ -37,6 +37,10 @@ export class FleetsPage extends GamePage {
     return branded(this.rows.filter({ has: this.page.getByRole("cell", { name: String(value), exact: true }) }))
   }
 
+  public rowByOriginCoordinate(coordinate: string): FleetRowLocator {
+    return branded(this.rows.filter({ has: this.page.getByRole("link").filter({ hasText: `(${coordinate})` }) }))
+  }
+
   public strength(row: FleetRowLocator): Locator {
     return row.getByRole("cell").nth(2)
   }

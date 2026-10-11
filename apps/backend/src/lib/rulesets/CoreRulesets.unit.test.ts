@@ -40,9 +40,9 @@ describe.each(CoreRulesets)("persisted movement declarations in $name", (ruleset
     const saved = JSON.parse(JSON.stringify(ruleset))
     // Act
     const loaded = RulesetSchema.parse(saved)
-    const movement = Object.values(loaded.actionDefinitions).filter((definition) =>
-      definition.effects.some((effect) => effect.type === "FLEET_MOVE"),
-    )
+    const movement = Object.values(loaded.actionDefinitions)
+      .filter((definition) => !definition.effects.some((effect) => effect.type === "ASSAULT"))
+      .filter((definition) => definition.effects.some((effect) => effect.type === "FLEET_MOVE"))
     // Assert
     expect(
       movement.map((definition) => ({
@@ -140,5 +140,42 @@ describe.each(CoreRulesets)("persisted movement declarations in $name", (ruleset
     const loaded = RulesetSchema.safeParse(JSON.parse(JSON.stringify(corrupted)))
     // Assert
     expect(loaded.success).toBe(false)
+  })
+})
+
+describe.each([
+  { name: "Standard V1", speed: 1, range: 5, instances: 1 },
+  { name: "Test", speed: 10, range: 25, instances: 2 },
+])("persisted normal Assault content in $name", ({ name, speed, range, instances }) => {
+  it("should load explicit mapped Move and Assault with independent configured parameters", () => {
+    // Arrange
+    const ruleset = CoreRulesets.find((ruleset) => ruleset.name === name)
+    Assert.isDefined(ruleset)
+    // Act
+    const loaded = RulesetSchema.parse(JSON.parse(JSON.stringify(ruleset)))
+    const definition = Object.values(loaded.actionDefinitions).find((definition) => definition.name === "Attack Move")
+    Assert.isDefined(definition)
+    // Assert
+    expect(definition.effects).toStrictEqual([
+      {
+        type: "FLEET_MOVE",
+        targets: { fleet: { actionTargetTag: "fleet", targetType: "FLEET" }, planet: { actionTargetTag: "planet", targetType: "PLANET" } },
+        inputs: { strength: { actionInputTag: "strength" } },
+        parameters: { speed },
+      },
+      {
+        type: "ASSAULT",
+        targets: { fleet: { actionTargetTag: "fleet", targetType: "FLEET" }, planet: { actionTargetTag: "planet", targetType: "PLANET" } },
+        parameters: {},
+      },
+    ])
+    expect(definition.costs.map((cost) => cost.parameters)).toStrictEqual([
+      { quantity: 5, resourceType: "INFLUENCE" },
+      { quantity: 1, resourceType: "FUEL" },
+    ])
+    expect(Object.values(definition.targets).find((target) => target.targetType === "PLANET")?.constraints).toStrictEqual([
+      { type: "WITHIN_FLEET_RANGE", fleetTargetTag: "fleet", maximumDistance: range },
+    ])
+    expect(loaded.actionPool.filter((action) => action.actionDefinitionId === definition.id)).toHaveLength(instances)
   })
 })

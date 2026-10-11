@@ -83,17 +83,25 @@ export function ActionCard({
   const state = toActionEligibilityState(playerView)
   const identity = { ...action, playerId: playerView.player.id }
   const selection = { selectedTargets, selectedInputs }
-  const targetSlots = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => {
+  const targets = Object.entries(actionDefinition.targets)
+  // Settle independent singleton selections before evaluating source-dependent destinations.
+  for (const [tag, targetDefinition] of targets) {
     const targetTag = branded<TargetTag>(tag)
-    const options = getTargetOptions(targetDefinition, playerView, players, action, targetTag, selection, state)
     if (
-      !targetDefinition.constraints.some((constraint) => constraint.type === "WITHIN_FLEET_RANGE") &&
-      selectedTargets[targetTag] === undefined &&
-      options.length === 1 &&
-      options[0] !== undefined
+      selectedTargets[targetTag] !== undefined ||
+      targetDefinition.constraints.some((constraint) => constraint.type === "WITHIN_FLEET_RANGE")
     )
-      selectedTargets[targetTag] = options[0].id
-    return { tag: targetTag, targetDefinition, options }
+      continue
+    const options = getTargetOptions(targetDefinition, playerView, players, action, targetTag, selection, state)
+    if (options.length === 1 && options[0] !== undefined) selectedTargets[targetTag] = options[0].id
+  }
+  const targetSlots = targets.map(([tag, targetDefinition]) => {
+    const targetTag = branded<TargetTag>(tag)
+    return {
+      tag: targetTag,
+      targetDefinition,
+      options: getTargetOptions(targetDefinition, playerView, players, action, targetTag, selection, state),
+    }
   })
   const evaluation = evaluateActionSelection({ state, ruleset: playerView.ruleset, action: identity, selection, mode: "draft" })
   const others = state.submittedActions.filter((other) => other.id !== action.id || other.playerId !== playerView.player.id)

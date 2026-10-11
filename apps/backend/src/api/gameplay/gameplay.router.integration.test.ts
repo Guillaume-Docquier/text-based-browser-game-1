@@ -4,6 +4,7 @@ import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import { AttackMoveStandard } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import {
   BuildFleetExceptional,
   BuildFleetImproved,
@@ -67,6 +68,15 @@ describe("gameplay.router", () => {
 
       // Assert
       const expectedActions = [
+        ...Array.from({ length: 2 }, () => ({
+          id: expect.any(String),
+          actionDefinitionId: AttackMoveStandard.id,
+          selectedTargets: null,
+          selectedInputs: null,
+          status: "AVAILABLE",
+          isEligible: false,
+          canAffordResources: false,
+        })),
         {
           id: expect.any(String),
           actionDefinitionId: GainInfluence.id,
@@ -382,6 +392,15 @@ describe("gameplay.router", () => {
 
       // Assert
       const expectedSelectedActions = [
+        ...Array.from({ length: 2 }, () => ({
+          id: expect.any(String),
+          actionDefinitionId: AttackMoveStandard.id,
+          selectedTargets: null,
+          selectedInputs: null,
+          status: "AVAILABLE",
+          isEligible: false,
+          canAffordResources: false,
+        })),
         {
           id: expect.any(String),
           actionDefinitionId: GainInfluence.id,
@@ -486,6 +505,15 @@ describe("gameplay.router", () => {
       expect(selectedPlayerView.actions).toHaveLength(expectedSelectedActions.length + 1)
 
       const expectedDeselectedActions = [
+        ...Array.from({ length: 2 }, () => ({
+          id: expect.any(String),
+          actionDefinitionId: AttackMoveStandard.id,
+          selectedTargets: null,
+          selectedInputs: null,
+          status: "AVAILABLE",
+          isEligible: false,
+          canAffordResources: false,
+        })),
         {
           id: expect.any(String),
           actionDefinitionId: GainInfluence.id,

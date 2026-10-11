@@ -4,6 +4,7 @@ import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.t
 import { FleetIdSchema, type FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { FleetMovementSchema, type FleetMovement } from "#shared/domain/world/fleets/FleetMovement.ts"
 import { FleetNameSchema, type FleetName } from "#shared/domain/world/fleets/FleetName.ts"
+import { FleetStrengthSchema } from "#shared/domain/world/fleets/FleetStrength.ts"
 import { PlanetIdSchema, type PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 
 export type Fleet = {
@@ -31,7 +32,7 @@ export const FleetSchema = z
     id: FleetIdSchema,
     ownerPlayerId: PlayerIdSchema,
     name: FleetNameSchema,
-    strength: z.number(),
+    strength: FleetStrengthSchema,
     originPlanetId: PlanetIdSchema,
     destinationPlanetId: PlanetIdSchema.optional(),
     distanceToEnd: NonNegativeNumberSchema.optional(),

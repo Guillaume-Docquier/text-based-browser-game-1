@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Turn timing, lifecycle, Action locking, public reversible Readiness, and the Pay Costs, Fleet Build, Income, and Victory effect resolvers are implemented. Fleet Move Directives allocate partial Strength and start automatically continuing journeys, with persisted instance occupancy, arrival and merging. Chronological arrival ordering remains planned. The current Victory effect is a placeholder, not the planned bounded game length or Legacy win condition. Fleet Combat, Planet Development, and Colonization resolution remain planned.
+Turn timing, lifecycle, Action locking, public reversible Readiness, and the Pay Costs, Fleet Build, Income, and Victory effect resolvers are implemented. Fleet Move Directives allocate partial Strength and start automatically continuing journeys, with persisted instance occupancy, arrival and merging. Chronological arrival ordering and explicit normal Assault are implemented. The current Victory effect is a placeholder, not the planned bounded game length or Legacy win condition. Surprise Assault, Planet Development, and Colonization resolution remain planned.
 
 ## Purpose
 

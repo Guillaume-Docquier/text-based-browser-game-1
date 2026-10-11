@@ -98,26 +98,26 @@ The engine can host games using different developer-authored Rulesets. A single 
 
 Turn Resolution creates one Effect Pool from locked Action Submissions and automatic game rules. The Rules Engine resolves that pool through this fixed, engine-owned Phase order:
 
-| Phase          | Responsibility                                                                                                                    |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Pay Costs      | Validate and apply the costs committed by locked Action Submissions.                                                              |
-| Fleet Movement | Resolve Fleet Movement; chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md) remain planned. |
-| Fleet Build    | Create or reinforce a player's Fleet at the submitted Planet target with a deterministic identity.                                |
-| Fleet Combat   | Resolve hostile Fleet encounters after Fleet Movement and Fleet Build.                                                            |
-| Planet         | Resolve Planet activities.                                                                                                        |
-| Colonization   | Resolve attempts to claim Unclaimed Planets after Fleet Movement and Fleet Combat.                                                |
-| Income         | Resolve Resource production and other recurring gains.                                                                            |
-| Victory        | Resolve the winning player, if any.                                                                                               |
+| Phase          | Responsibility                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Pay Costs      | Validate and apply the costs committed by locked Action Submissions.                                               |
+| Fleet Movement | Resolve Fleet Movement; chronological arrivals through the 20 Ticks defined by [System 001-turns](./001-turns.md). |
+| Fleet Build    | Create or reinforce a player's Fleet at the submitted Planet target with a deterministic identity.                 |
+| Fleet Combat   | Resolve hostile Fleet encounters after Fleet Movement and Fleet Build.                                             |
+| Planet         | Resolve Planet activities.                                                                                         |
+| Colonization   | Resolve attempts to claim Unclaimed Planets after Fleet Movement and Fleet Combat.                                 |
+| Income         | Resolve Resource production and other recurring gains.                                                             |
+| Victory        | Resolve the winning player, if any.                                                                                |
 
 The Phase sequence belongs to the Rules Engine and is the same for every Ruleset. Each Phase is free to collect, order, coordinate, and resolve its Effects in the way that Phase requires.
 
-Pay Costs, Fleet Movement, Fleet Build, Income, and Victory currently resolve Effects. Fleet Combat, Planet, and Colonization have Phase boundaries but no gameplay behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
+Pay Costs, Fleet Movement, Fleet Build, Income, and Victory currently resolve Effects. Fleet Combat resolves explicit normal Assault after Movement and Build. Planet and Colonization have Phase boundaries but no gameplay behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
 
-The Move Fleet Effect creates a child journey from its mapped numeric Strength input. The Fleet Movement Phase materializes all departures before advancing each journey exactly once. Remaining distance, original submission and speed persist independently of later seeded content changes. Unfinished movement completes its current Effect and leaves an empty pool; automatic continuation needs no new submission or payment. [System 012-movement](./012-movement.md) records the remaining chronological arrival and provenance work.
+The Move Fleet Effect creates a child journey from its mapped numeric Strength input. The Fleet Movement Phase materializes all departures before advancing each journey exactly once. Remaining distance, original submission and speed persist independently of later seeded content changes. Unfinished movement completes its current Effect and leaves an empty pool; automatic continuation needs no new submission or payment. [System 012-movement](./012-movement.md) records live chronological arrivals, immutable order provenance and merge-safe actual Fleet binding.
 
 The supported input vocabulary is bounded: `FLEET_STRENGTH` references a Fleet target slot. Move maps its Strength role to that input. Targets support ownership, stationary Fleet and source-dependent finite range constraints. Schema validation rejects missing or incompatible references, unused inputs and more than one Move Effect per Action. No general expression language is introduced.
 
-Phases are coarse ordering boundaries. Planned Tick-based resolution provides finer ordering inside the Fleet Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
+Phases are coarse ordering boundaries. Tick-based resolution provides finer ordering inside the Fleet Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
 
 Each Effect belongs to a Phase that orchestrates its resolution. An Effect may create, modify, cancel, or make a later Effect invalid.
 
@@ -131,7 +131,9 @@ After the final Phase, the Effect Pool must be empty. Remaining Effects indicate
 
 Every Effect that resolves normally records an Effect Outcome. `Resolved` means the Effect was applied. `Prevented` is also a completed, expected game result, such as losing a competition with another Effect; it does not fail Turn Resolution. Outcomes are grouped under the corresponding Resolved Action.
 
-Effect Outcomes support both debugging and player-facing explanations of previous Turns. A player can inspect all outcomes produced by their own Actions for the entire game. A player can also inspect outcomes from other Effects when the global visibility rules determine that those outcomes affected them, such as being attacked. Outcome visibility is outside the Rules Engine: the engine resolves Effects and records outcomes without deciding who can see them.
+The shared engine returns this resolution's Effect Outcome deltas, including deferred Assault owned by the original initiating Turn/submission when that Player submits nothing now. Semantic identity is initiating Turn, Player ID and Action ID; JSON-reconstructed equal submissions coalesce and later reuse is independent. Departure/payment outcomes are not replayed. The backend currently discards outcomes when saving game state; persisted history and its player-facing browser remain planned.
+
+Planned Effect Outcome history supports both debugging and player-facing explanations of previous Turns. A player can inspect all outcomes produced by their own Actions for the entire game. A player can also inspect outcomes from other Effects when the global visibility rules determine that those outcomes affected them, such as being attacked. Outcome visibility is outside the Rules Engine: the engine resolves Effects and records outcomes without deciding who can see them.
 
 An Effect resolution failure or an invalid locked Action Submission indicates an engine or data defect. The Turn does not complete, remains locked, and must be retried from the same pre-resolution state with the same Action Submissions and deterministic random input. All partial state changes and Effect Outcomes from the failed attempt are discarded. Only a fully completed Turn contributes game state or player-visible outcome history.
 

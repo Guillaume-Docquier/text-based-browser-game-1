@@ -1,6 +1,7 @@
 import { indexBy } from "@guillaume-docquier/tools-ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import { AttackMoveStandard } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import {
   BuildFleetExceptional,
   BuildFleetImproved,
@@ -25,6 +26,7 @@ const ACTION_DEFINITIONS = [
   MoveFleetStandard,
   MoveFleetImproved,
   MoveFleetExceptional,
+  AttackMoveStandard,
 ]
 
 export const TestRuleset = Ruleset.create({
@@ -37,6 +39,7 @@ export const TestRuleset = Ruleset.create({
       id: `${actionDefinition.id}_1`,
       actionDefinitionId: actionDefinition.id,
     })),
+    { id: `${AttackMoveStandard.id}_2`, actionDefinitionId: AttackMoveStandard.id },
     { id: `${MoveFleetStandard.id}_2`, actionDefinitionId: MoveFleetStandard.id },
   ],
   startingResources: {

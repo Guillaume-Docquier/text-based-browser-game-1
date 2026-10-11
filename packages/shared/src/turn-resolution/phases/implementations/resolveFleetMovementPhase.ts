@@ -1,8 +1,10 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import { safeTypedParse, NonNegativeNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
 import { ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import { compareOrigins, compareCodePoints } from "#shared/domain/turns/actions/ActionResolutionOrigin.ts"
 import { FleetSchema } from "#shared/domain/world/fleets/Fleet.ts"
 import { getPlanetDistance } from "#shared/domain/world/planets/getPlanetDistance.ts"
+import { ArrivalTickSchema, type ArrivalTick } from "#shared/turn-resolution/ArrivalIntent.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
 import { getDepartureFleetId } from "#shared/turn-resolution/effects/implementations/FleetMoveEffect.ts"
 import { ResolvePhaseError } from "#shared/turn-resolution/phases/ResolvePhaseError.ts"
@@ -13,10 +15,9 @@ function fail(error: string): Result<TurnContext, ResolvePhaseError> {
 }
 
 function compareJourneys(a: ResolutionFleet, b: ResolutionFleet): number {
-  const owner = a.ownerPlayerId.localeCompare(b.ownerPlayerId)
-  if (owner !== 0) return owner
-  const action = (a.movement?.submittedAction.id ?? "").localeCompare(b.movement?.submittedAction.id ?? "")
-  return action !== 0 ? action : a.id.localeCompare(b.id)
+  if (a.movement === undefined || b.movement === undefined) return compareCodePoints(a.id, b.id)
+  const origin = compareOrigins(a.movement, b.movement)
+  return origin !== 0 ? origin : compareCodePoints(a.id, b.id)
 }
 
 function exactKeys(actual: object, declared: object): boolean {
@@ -75,34 +76,54 @@ function validateJourneyBinding(fleet: ResolutionFleet, context: TurnContext): s
     fleet.id !== getDepartureFleetId(context.turnState.gameId, movement.initiatingTurn, action, sourceId)
   )
     return "Invalid persisted journey departure identity"
+  const expectedPending = definition.effects.flatMap((effect, effectIndex) =>
+    effect.type === "ASSAULT" ? [{ type: "ASSAULT", effectIndex, definition: effect }] : [],
+  )
+  const pending = movement.pendingArrivalEffects ?? []
+  const indexes = new Set(pending.map((saved) => saved.effectIndex))
+  if (
+    pending.length !== expectedPending.length ||
+    indexes.size !== pending.length ||
+    pending.some((saved) => {
+      const expected = expectedPending.find((entry) => entry.effectIndex === saved.effectIndex)
+      return (
+        expected === undefined ||
+        saved.type !== expected.type ||
+        saved.definition.targets.fleet.actionTargetTag !== expected.definition.targets.fleet.actionTargetTag ||
+        saved.definition.targets.planet.actionTargetTag !== expected.definition.targets.planet.actionTargetTag
+      )
+    })
+  )
+    return "Invalid persisted pending arrival effects"
   return undefined
 }
 
 export function resolveFleetMovementPhase(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
-  // Validate saved routes before any departure; zero terminal fleets simply disappear.
-  const occupiedInstances = new Set<string>()
   for (const fleet of Object.values(context.turnState.fleets)) {
-    if (fleet.strength <= 0) {
-      Reflect.deleteProperty(context.turnState.fleets, fleet.id)
-      continue
+    if (fleet.strength !== 0) continue
+    context.destroyedFleetIds.add(fleet.id)
+    if (fleet.movement !== undefined && fleet.destinationPlanetId !== undefined) {
+      const tick = safeTypedParse(ArrivalTickSchema, 0)
+      if (!tick.success) return fail("Invalid terminal arrival tick")
+      for (const pending of fleet.movement.pendingArrivalEffects ?? [])
+        context.arrivalIntents.push({
+          origin: { initiatingTurn: fleet.movement.initiatingTurn, submittedAction: fleet.movement.submittedAction },
+          departureFleetId: fleet.id,
+          actualFleetId: fleet.id,
+          destinationPlanetId: fleet.destinationPlanetId,
+          arrivalTurn: context.turnState.turn,
+          tick: tick.data,
+          pending,
+        })
     }
-    if (!safeTypedParse(FleetSchema, fleet).success) return fail("Malformed persisted fleet journey")
-    const bindingError = validateJourneyBinding(fleet, context)
-    if (bindingError !== undefined) return fail(bindingError)
-    if (fleet.movement !== undefined) {
-      const instance = JSON.stringify([fleet.movement.submittedAction.playerId, fleet.movement.submittedAction.id])
-      if (occupiedInstances.has(instance)) return fail("Duplicate persisted journey Action instance")
-      occupiedInstances.add(instance)
-    }
-    const progressError = validateJourneyProgress(fleet, context)
-    if (progressError !== undefined) return fail(progressError)
+    Reflect.deleteProperty(context.turnState.fleets, fleet.id)
   }
   const effects = context.effectPool
     .getEffectsOfType("FLEET_MOVE")
     .toSorted((a, b) =>
-      a.submittedAction.playerId.localeCompare(b.submittedAction.playerId) !== 0
-        ? a.submittedAction.playerId.localeCompare(b.submittedAction.playerId)
-        : a.submittedAction.id.localeCompare(b.submittedAction.id),
+      compareCodePoints(a.submittedAction.playerId, b.submittedAction.playerId) !== 0
+        ? compareCodePoints(a.submittedAction.playerId, b.submittedAction.playerId)
+        : compareCodePoints(a.submittedAction.id, b.submittedAction.id),
     )
   for (const effect of effects) {
     const result = effect.resolve(context)
@@ -111,6 +132,7 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
   const journeys = Object.values(context.turnState.fleets)
     .filter((fleet) => fleet.movement !== undefined)
     .toSorted((a, b) => compareJourneys(a, b))
+  const arrivals: Array<{ fleet: ResolutionFleet; tick: ArrivalTick }> = []
   for (const fleet of journeys) {
     const movement = fleet.movement
     const destinationId = fleet.destinationPlanetId
@@ -119,18 +141,36 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
     const destination = context.turnState.planets[destinationId]
     if (origin === undefined || destination === undefined) return fail("Missing persisted journey planet")
     const completedTurns = context.turnState.turn - movement.initiatingTurn
-    if (!Number.isSafeInteger(completedTurns) || completedTurns < 0) return fail("Invalid journey initiating turn")
-    // Derive progress from the route and elapsed turns: repeated subtraction can strand a fleet for an extra turn.
     const routeDistance = getPlanetDistance(origin, destination)
     const distanceBeforeTurn = distanceAfterTurns(routeDistance, movement.speed, completedTurns)
-    const distanceMoved = Math.min(movement.speed, distanceBeforeTurn)
     const remaining = safeTypedParse(NonNegativeNumberSchema, distanceAfterTurns(routeDistance, movement.speed, completedTurns + 1))
     if (!remaining.success) return fail("Invalid journey progress")
     fleet.distanceToEnd = remaining.data
     if (fleet.distanceToEnd !== 0) continue
-    const tick = safeTypedParse(NonNegativeNumberSchema, Math.ceil((distanceMoved / movement.speed) * 20))
+    // A positive representable distance must never become tick zero through division underflow.
+    const tick = safeTypedParse(
+      ArrivalTickSchema,
+      distanceBeforeTurn === 0 ? 0 : Math.max(1, Math.min(20, Math.ceil((distanceBeforeTurn / movement.speed) * 20))),
+    )
     if (!tick.success) return fail("Invalid arrival tick")
-    fleet.arrivedAtTick = tick.data
+    arrivals.push({ fleet, tick: tick.data })
+  }
+  arrivals.sort((a, b) => (a.tick !== b.tick ? a.tick - b.tick : compareJourneys(a.fleet, b.fleet)))
+  for (const { fleet, tick } of arrivals) {
+    const movement = fleet.movement
+    const destinationId = fleet.destinationPlanetId
+    if (movement === undefined || destinationId === undefined) return fail("Incomplete arrival")
+    for (const pending of movement.pendingArrivalEffects ?? [])
+      context.arrivalIntents.push({
+        origin: { initiatingTurn: movement.initiatingTurn, submittedAction: movement.submittedAction },
+        departureFleetId: fleet.id,
+        actualFleetId: fleet.id,
+        destinationPlanetId: destinationId,
+        arrivalTurn: context.turnState.turn,
+        tick,
+        pending,
+      })
+    fleet.arrivedAtTick = tick
     fleet.originPlanetId = destinationId
     fleet.destinationPlanetId = undefined
     fleet.distanceToEnd = undefined
@@ -144,11 +184,32 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
           candidate.originPlanetId === destinationId &&
           candidate.destinationPlanetId === undefined,
       )
-      .toSorted((a, b) => a.id.localeCompare(b.id))[0]
+      .toSorted((a, b) => compareCodePoints(a.id, b.id))[0]
     if (stationed !== undefined) {
-      stationed.strength += fleet.strength
+      const strength = stationed.strength + fleet.strength
+      if (!Number.isSafeInteger(strength)) return fail("Unsafe merged fleet Strength")
+      stationed.strength = strength
+      for (const intent of context.arrivalIntents) if (intent.actualFleetId === fleet.id) intent.actualFleetId = stationed.id
       Reflect.deleteProperty(context.turnState.fleets, fleet.id)
     }
+  }
+  return Result.Success(context)
+}
+
+export function validateSavedFleets(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
+  // Validate saved routes before any departure; zero terminal fleets simply disappear.
+  const occupiedInstances = new Set<string>()
+  for (const fleet of Object.values(context.turnState.fleets)) {
+    if (!safeTypedParse(FleetSchema, fleet).success) return fail("Malformed persisted fleet journey")
+    const bindingError = validateJourneyBinding(fleet, context)
+    if (bindingError !== undefined) return fail(bindingError)
+    if (fleet.movement !== undefined) {
+      const instance = JSON.stringify([fleet.movement.submittedAction.playerId, fleet.movement.submittedAction.id])
+      if (occupiedInstances.has(instance)) return fail("Duplicate persisted journey Action instance")
+      occupiedInstances.add(instance)
+    }
+    const progressError = validateJourneyProgress(fleet, context)
+    if (progressError !== undefined) return fail(progressError)
   }
   return Result.Success(context)
 }

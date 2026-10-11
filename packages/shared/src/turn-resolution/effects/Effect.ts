@@ -1,12 +1,14 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
+import type { ActionResolutionOrigin } from "#shared/domain/turns/actions/ActionResolutionOrigin.ts"
 import type { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import type { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
 import type { EffectJson } from "#shared/turn-resolution/effects/EffectJson.ts"
 import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 
 export abstract class Effect {
+  public origin: ActionResolutionOrigin | undefined
   public readonly id: number
   public readonly type: EffectDefinition["type"]
 
@@ -25,9 +27,11 @@ export abstract class Effect {
    * Effect outcomes are recorded automatically, no need to handle them.
    */
   public resolve(context: TurnContext): Result<EffectOutcome[], EffectError> {
+    this.origin ??= { initiatingTurn: context.turnState.turn, submittedAction: this.submittedAction }
     const result = this.doResolve(context)
     if (Result.isSuccess(result)) {
-      context.effectPool.recordOutcomes(this, result.value)
+      const recorded = context.effectPool.recordOutcomes(this, result.value)
+      if (Result.isFailure(recorded)) return recorded
     }
 
     return result
