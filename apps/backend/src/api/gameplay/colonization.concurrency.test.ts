@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest"
 import { createColonizationActionsScenario, createStationaryColonizationActionsScenario } from "#tests/ColonizationActionsScenario.stub.ts"
 import { ControlledConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
+import { submitFleetOrder } from "#tests/submitFleetOrder.ts"
 
 describe("Colonization persistence", () => {
   it(
@@ -21,6 +22,8 @@ describe("Colonization persistence", () => {
         turnsRepository: api.turnsRepository,
       })
       const { attacker, defender, destination, before, gameId } = fixture
+      const source = before.fleets.find((fleet) => fleet.ownerPlayerId === before.player.id)
+      Assert.isDefined(source)
       const secondCreator = await api.createClient(),
         secondJoiner = await api.createClient()
       const { createdGameId: secondGameId } = await secondCreator.client.games.create.mutate({
@@ -30,7 +33,13 @@ describe("Colonization persistence", () => {
       await secondCreator.client.games.startGame.mutate({ gameId: secondGameId })
       const untouched = await secondCreator.client.gameplay.getPlayerView.query({ gameId: secondGameId })
       const secondPersistence = await api.observeWorkerPersistence(secondGameId)
-      await attacker.move("COLONIZE_PLANET_STANDARD_1", 35, destination.id)
+      await submitFleetOrder({
+        side: attacker,
+        actionId: "COLONIZE_PLANET_STANDARD_1",
+        source: source.id,
+        destination: destination.id,
+        amount: 35,
+      })
       expect(await attacker.endTurn()).toBe("processed")
       const departed = await attacker.view(),
         opposing = await defender.view()
@@ -119,7 +128,7 @@ describe("Colonization persistence", () => {
     // Act
     const results = await Promise.allSettled([
       attacker.submitDefinition(ColonizeStationedPlanetStandard.id, { fleet: source.id, planet: destination.id }),
-      attacker.move("MOVE_FLEET_STANDARD_1", amount, sibling.id),
+      submitFleetOrder({ side: attacker, actionId: "MOVE_FLEET_STANDARD_1", source: source.id, destination: sibling.id, amount }),
     ])
     const submitted = await attacker.view()
     // Assert
@@ -128,7 +137,9 @@ describe("Colonization persistence", () => {
     expect(rejected.map((result) => result.reason)).toStrictEqual([])
     expect([0]).toContain(submitted.fleets.find((fleet) => fleet.id === source.id)?.uncommittedStrength)
 
-    await expect(attacker.move("MOVE_FLEET_STANDARD_1", 31, sibling.id)).rejects.toMatchObject({
+    await expect(
+      submitFleetOrder({ side: attacker, actionId: "MOVE_FLEET_STANDARD_1", source: source.id, destination: sibling.id, amount: 31 }),
+    ).rejects.toMatchObject({
       data: { code: "BAD_REQUEST" },
       message: expect.stringContaining("shortfall 1"),
     })
@@ -164,7 +175,7 @@ describe("Colonization persistence", () => {
     // Act
     const results = await Promise.allSettled([
       attacker.submitDefinition(ColonizeStationedPlanetStandard.id, { fleet: source.id, planet: destination.id }),
-      attacker.move("MOVE_FLEET_STANDARD_1", amount, sibling.id),
+      submitFleetOrder({ side: attacker, actionId: "MOVE_FLEET_STANDARD_1", source: source.id, destination: sibling.id, amount }),
     ])
     const submitted = await attacker.view()
     // Assert

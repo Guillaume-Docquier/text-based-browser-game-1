@@ -1,8 +1,6 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import type { Fleet } from "shared/domain/world/fleets/Fleet.ts"
-import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
 import type { Planet } from "shared/domain/world/planets/Planet.ts"
-import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import { BuildFleetStandard } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
 import { GainFuel } from "shared/testing/test-ruleset/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "shared/testing/test-ruleset/action-definitions/gain-influence.ts"
@@ -51,38 +49,6 @@ export async function createFleetOperationsScenario(options: Parameters<typeof c
   Assert.isDefined(leftSource)
   Assert.isDefined(destination)
   return { ...fixture, right, left, before, opposing, rightHome, leftHome, rightSource, leftSource, destination, checkpoints }
-}
-
-/** Explicit source identity avoids selecting an incidental station after arrival. */
-type FleetOrder = Readonly<{
-  side: FleetActionsScenario
-  actionId: string
-  source: FleetId
-  destination: PlanetId
-  amount: number
-  mapping?: Readonly<{ source: string; destination: string; strength: string }>
-}>
-
-export const authoredFleetOrderMapping = { source: "craft", destination: "world", strength: "force" } as const
-
-export async function submitFleetOrder({
-  side,
-  actionId,
-  source,
-  destination,
-  amount,
-  mapping = { source: "fleet", destination: "planet", strength: "strength" },
-}: FleetOrder): Promise<void> {
-  const view = await side.view()
-  await side.player.client.gameplay.updateActionSubmission.mutate({
-    gameId: side.gameId,
-    turn: view.turn,
-    submittedActionTargets: {
-      actionId,
-      selectedTargets: { [mapping.source]: source, [mapping.destination]: destination },
-      selectedInputs: { [mapping.strength]: amount },
-    },
-  })
 }
 
 async function observedHome(side: FleetActionsScenario): Promise<Planet> {

@@ -10,6 +10,7 @@ import { GainFuel } from "shared/testing/test-ruleset/action-definitions/gain-fu
 import { GainInfluence } from "shared/testing/test-ruleset/action-definitions/gain-influence.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { createCombatActionsScenario } from "#tests/CombatActionsScenario.stub.ts"
+import { submitFleetOrder } from "#tests/submitFleetOrder.ts"
 
 /** Public P4-01 funding: two normal Campaigns after both sides have built40. */
 export async function createColonizationActionsScenario(options: Parameters<typeof createCombatActionsScenario>[0]): Promise<
@@ -56,7 +57,16 @@ export async function createStationaryColonizationActionsScenario(options: Param
     await attacker.submitDefinition(GainInfluence.id)
     Assert.isTrue((await attacker.endTurn()) === "processed")
   }
-  await attacker.move("ATTACK_MOVE_STANDARD_1", 50, destination.id)
+  const built = await attacker.view()
+  const departureSource = built.fleets.find((fleet) => fleet.ownerPlayerId === built.player.id && fleet.originPlanetId === home.id)
+  Assert.isDefined(departureSource)
+  await submitFleetOrder({
+    side: attacker,
+    actionId: "ATTACK_MOVE_STANDARD_1",
+    source: departureSource.id,
+    destination: destination.id,
+    amount: 50,
+  })
   Assert.isTrue((await attacker.endTurn()) === "processed")
   Assert.isTrue((await attacker.endTurn()) === "processed")
   await attacker.submitDefinition(GainInfluence.id)

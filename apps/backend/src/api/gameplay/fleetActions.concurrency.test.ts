@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest"
 import type { Action, PlayerView } from "#api/types.ts"
 import { ControlledConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import { FleetActionsScenario } from "#tests/FleetActionsScenario.stub.ts"
+import { submitFleetOrder } from "#tests/submitFleetOrder.ts"
 
 function strengths(action: Action): number[] {
   return Object.values(action.selectedInputs ?? {})
@@ -32,8 +33,16 @@ describe("fleet reservations with real PostgreSQL turn locks", () => {
       turnsRepository: api.turnsRepository,
     })
     const [x = "", y = ""] = await scenario.moveInstances()
+    const before = await scenario.view()
+    const source = before.fleets[0]
+    const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
+    Assert.isDefined(source)
+    Assert.isDefined(destination)
     // Act
-    const results = await Promise.allSettled([scenario.move(x, first), scenario.move(y, second)])
+    const results = await Promise.allSettled([
+      submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: first }),
+      submitFleetOrder({ side: scenario, actionId: y, source: source.id, destination: destination.id, amount: second }),
+    ])
     const reserved = await scenario.view()
     const processing = await scenario.endTurn()
     const resolved = await scenario.view()
@@ -63,6 +72,10 @@ describe("fleet reservations with real PostgreSQL turn locks", () => {
     })
     const [x = "", y = ""] = await scenario.moveInstances()
     const view = await scenario.view()
+    const source = view.fleets[0]
+    const destination = view.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
+    Assert.isDefined(source)
+    Assert.isDefined(destination)
     const origin = view.fleets[0]?.originPlanetId
     Assert.isDefined(origin)
     await scenario.submitDefinition(BuildFleetStandard.id, { planet: origin })
@@ -70,7 +83,10 @@ describe("fleet reservations with real PostgreSQL turn locks", () => {
     await scenario.submitDefinition(GainMetal.id)
     const committed = await scenario.view()
     // Act
-    const results = await Promise.allSettled([scenario.move(x, 1), scenario.move(y, 1)])
+    const results = await Promise.allSettled([
+      submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 1 }),
+      submitFleetOrder({ side: scenario, actionId: y, source: source.id, destination: destination.id, amount: 1 }),
+    ])
     const reserved = await scenario.view()
     // Assert
     expect(committed.resources.INFLUENCE.uncommitted).toBe(5)
@@ -91,10 +107,18 @@ describe("fleet reservations with real PostgreSQL turn locks", () => {
       turnsRepository: api.turnsRepository,
     })
     const [x = "", y = ""] = await scenario.moveInstances()
-    await scenario.move(x, 20)
-    await scenario.move(y, 30)
+    const before = await scenario.view()
+    const source = before.fleets[0]
+    const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
+    Assert.isDefined(source)
+    Assert.isDefined(destination)
+    await submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 20 })
+    await submitFleetOrder({ side: scenario, actionId: y, source: source.id, destination: destination.id, amount: 30 })
     // Act
-    const [replacement, cancellation] = await Promise.allSettled([scenario.move(x, 25), scenario.cancel(y)])
+    const [replacement, cancellation] = await Promise.allSettled([
+      submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 25 }),
+      scenario.cancel(y),
+    ])
     const view = await scenario.view()
     // Assert
     expect(cancellation.status).toBe("fulfilled")
@@ -119,9 +143,13 @@ describe("fleet reservations with real PostgreSQL turn locks", () => {
     })
     const [x = "", y = ""] = await scenario.moveInstances()
     const before = await scenario.view()
+    const source = before.fleets[0]
+    const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
+    Assert.isDefined(source)
+    Assert.isDefined(destination)
     // Act
     const [submission, closure] = await Promise.allSettled([
-      scenario.move(x, 20),
+      submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 20 }),
       scenario.player.client.gameplay.updateReadiness.mutate({ gameId: scenario.gameId, turn: before.turn, isReady: true }),
     ])
     const closed = await scenario.view()
@@ -129,7 +157,7 @@ describe("fleet reservations with real PostgreSQL turn locks", () => {
     const next = await scenario.view()
     api.clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
     const [afterDeadline, promotion] = await Promise.allSettled([
-      scenario.move(y, 1),
+      submitFleetOrder({ side: scenario, actionId: y, source: source.id, destination: destination.id, amount: 1 }),
       api.turnsRepository.markDueTurnsAwaitingProcessing({ since: api.clock.now() }),
     ])
     // Assert

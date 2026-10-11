@@ -11,6 +11,7 @@ import { createApiStub } from "#api/createApi.stub.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { FleetActionsScenario } from "#tests/FleetActionsScenario.stub.ts"
+import { submitFleetOrder } from "#tests/submitFleetOrder.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 
@@ -27,16 +28,22 @@ describe("fleet actions through production routers", () => {
       const scenario = await FleetActionsScenario.create({ player, clock, processor, turnsRepository })
       const [x = "", y = ""] = await scenario.moveInstances()
       const before = await scenario.view()
+      const source = before.fleets[0]
+      const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
+      Assert.isDefined(source)
+      Assert.isDefined(destination)
       expect(before.fleets.map((fleet) => fleet.strength)).toStrictEqual([50])
       // Act
-      await scenario.move(x, 20)
-      await scenario.move(y, 30)
-      await expect(scenario.move(y, 31)).rejects.toMatchObject({
+      await submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 20 })
+      await submitFleetOrder({ side: scenario, actionId: y, source: source.id, destination: destination.id, amount: 30 })
+      await expect(
+        submitFleetOrder({ side: scenario, actionId: y, source: source.id, destination: destination.id, amount: 31 }),
+      ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
         message: expect.stringContaining("shortfall 1"),
       })
       const failedEdit = await scenario.view()
-      await scenario.move(x, 15)
+      await submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 15 })
       const replaced = await scenario.view()
       await scenario.cancel(x)
       const cancelled = await scenario.view()
@@ -44,9 +51,7 @@ describe("fleet actions through production routers", () => {
       const released = await scenario.view()
       const improved = released.actions.find((action) => action.actionDefinitionId === MoveFleetImproved.id)
       Assert.isDefined(improved)
-      const destination = released.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
-      Assert.isDefined(destination)
-      await scenario.move(x, 20)
+      await submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 20 })
       await scenario.submitDefinition(MoveFleetImproved.id, { fleet: before.fleets[0]?.id ?? "", planet: destination.id }, { strength: 30 })
       const mixedDefinitions = await scenario.view()
       // Assert
@@ -77,7 +82,11 @@ describe("fleet actions through production routers", () => {
       const scenario = await FleetActionsScenario.create({ player, clock, processor, turnsRepository })
       const [x = "", y = ""] = await scenario.moveInstances()
       const before = await scenario.view()
-      await scenario.move(x, 20)
+      const source = before.fleets[0]
+      const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
+      Assert.isDefined(source)
+      Assert.isDefined(destination)
+      await submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 20 })
       // Act
       expect(await scenario.endTurn()).toBe("processed")
       const first = await scenario.view()
@@ -86,7 +95,9 @@ describe("fleet actions through production routers", () => {
         data: { code: "BAD_REQUEST" },
         message: expect.stringContaining("in progress"),
       })
-      await expect(scenario.move(x, 1)).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(
+        submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 1 }),
+      ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
       expect(await scenario.endTurn()).toBe("processed")
       const second = await scenario.view()
       for (let turn = 0; turn < 10; turn++) expect(await scenario.endTurn()).toBe("processed")
@@ -141,7 +152,7 @@ integrationTest(
     Assert.isDefined(source)
     const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
     Assert.isDefined(destination)
-    await scenario.move(x, 20)
+    await submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 20 })
     const invalid = [
       {},
       { strength: 0 },
@@ -218,7 +229,7 @@ integrationTest(
     const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
     Assert.isDefined(source)
     Assert.isDefined(destination)
-    await scenario.move(x, 20)
+    await submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 20 })
     const validTargets = { fleet: source.id, planet: destination.id }
     const raw = getUntypedClient(player.client)
     // Act
@@ -247,7 +258,7 @@ integrationTest(
         submittedActionTargets: { actionId: x, selectedTargets: null, selectedInputs: null },
       }),
     ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-    await scenario.move(y, 30)
+    await submitFleetOrder({ side: scenario, actionId: y, source: source.id, destination: destination.id, amount: 30 })
     const next = await scenario.view()
     // Assert
     expect(retained.actions.find((action) => action.id === x)?.selectedInputs).toStrictEqual({ strength: 20 })
@@ -275,15 +286,19 @@ integrationTest(
     const [x = "", y = ""] = await scenario.moveInstances()
     const before = await scenario.view()
     const source = before.fleets[0]
+    const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
     Assert.isDefined(source)
-    await scenario.move(x, 20)
+    Assert.isDefined(destination)
+    await submitFleetOrder({ side: scenario, actionId: x, source: source.id, destination: destination.id, amount: 20 })
     await scenario.submitDefinition(BuildFleetStandard.id, { planet: source.originPlanetId })
     await scenario.submitDefinition(GainFuel.id)
     await scenario.submitDefinition(GainMetal.id)
     const saved = await scenario.view()
 
     // Act
-    await expect(scenario.move(y, 30)).rejects.toMatchObject({
+    await expect(
+      submitFleetOrder({ side: scenario, actionId: y, source: source.id, destination: destination.id, amount: 30 }),
+    ).rejects.toMatchObject({
       data: { code: "BAD_REQUEST" },
       message: expect.stringContaining("Insufficient INFLUENCE: shortfall 1"),
     })

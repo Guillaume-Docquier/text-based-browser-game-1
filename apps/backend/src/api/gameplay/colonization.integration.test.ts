@@ -13,6 +13,7 @@ import {
   createColonizationActionsScenario,
   createConfiguredColonizationRuleset,
 } from "#tests/ColonizationActionsScenario.stub.ts"
+import { submitFleetOrder } from "#tests/submitFleetOrder.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 
@@ -30,13 +31,27 @@ for (const strength of [20, 21, 35])
     })
     const source = before.fleets.find((fleet) => fleet.ownerPlayerId === before.player.id)
     Assert.isDefined(source)
-    await expect(attacker.move("COLONIZE_PLANET_STANDARD_1", 19, destination.id)).rejects.toMatchObject({
+    await expect(
+      submitFleetOrder({
+        side: attacker,
+        actionId: "COLONIZE_PLANET_STANDARD_1",
+        source: source.id,
+        destination: destination.id,
+        amount: 19,
+      }),
+    ).rejects.toMatchObject({
       data: { code: "BAD_REQUEST" },
       message: expect.stringContaining("at least 20"),
     })
     expect((await attacker.view()).fleets).toStrictEqual(before.fleets)
     // Act
-    await attacker.move("COLONIZE_PLANET_STANDARD_1", strength, destination.id)
+    await submitFleetOrder({
+      side: attacker,
+      actionId: "COLONIZE_PLANET_STANDARD_1",
+      source: source.id,
+      destination: destination.id,
+      amount: strength,
+    })
     const departedStatus = await attacker.endTurn()
     const departed = await attacker.view()
     await expect(attacker.cancel("COLONIZE_PLANET_STANDARD_1")).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
@@ -96,10 +111,26 @@ integrationTest(
       processor,
       turnsRepository,
     })
+    const attackerSource = before.fleets.find((fleet) => fleet.ownerPlayerId === before.player.id)
+    const defenderSource = before.fleets.find((fleet) => fleet.ownerPlayerId !== before.player.id)
+    Assert.isDefined(attackerSource)
+    Assert.isDefined(defenderSource)
     // Act
-    await attacker.move("COLONIZE_PLANET_STANDARD_1", 35, destination.id)
+    await submitFleetOrder({
+      side: attacker,
+      actionId: "COLONIZE_PLANET_STANDARD_1",
+      source: attackerSource.id,
+      destination: destination.id,
+      amount: 35,
+    })
     expect(await attacker.endTurn()).toBe("processed")
-    await defender.move("COLONIZE_PLANET_STANDARD_1", 35, destination.id)
+    await submitFleetOrder({
+      side: defender,
+      actionId: "COLONIZE_PLANET_STANDARD_1",
+      source: defenderSource.id,
+      destination: destination.id,
+      amount: 35,
+    })
     expect(await attacker.endTurn()).toBe("processed")
     const claimed = await defender.view()
     const reload = (await createTurnProcessorStub({ db, clock })).turnProcessor
@@ -254,9 +285,23 @@ integrationTest("public two Colonize20 arrivals merge40 and consume20 once", { t
   }
   const funded = await attacker.view()
   expect(funded.resources.INFLUENCE.total).toBe(54)
+  const source = funded.fleets.find((fleet) => fleet.ownerPlayerId === funded.player.id)
+  Assert.isDefined(source)
   // Act
-  await attacker.move("COLONIZE_PLANET_STANDARD_1", 20, destination.id)
-  await attacker.move("COLONIZE_PLANET_STANDARD_2", 20, destination.id)
+  await submitFleetOrder({
+    side: attacker,
+    actionId: "COLONIZE_PLANET_STANDARD_1",
+    source: source.id,
+    destination: destination.id,
+    amount: 20,
+  })
+  await submitFleetOrder({
+    side: attacker,
+    actionId: "COLONIZE_PLANET_STANDARD_2",
+    source: source.id,
+    destination: destination.id,
+    amount: 20,
+  })
   expect(await attacker.endTurn()).toBe("processed")
   expect(await attacker.endTurn()).toBe("processed")
   const final = await attacker.view()
@@ -292,13 +337,21 @@ for (const amount of [25, 26])
     Assert.isDefined(stationaryDefinition)
     await attacker.submitDefinition(stationaryDefinition.id, { craft: source.id, world: destination.id })
     if (amount === 26) {
-      await expect(attacker.move("MOVE_FLEET_STANDARD_1", amount, sibling.id)).rejects.toMatchObject({
+      await expect(
+        submitFleetOrder({ side: attacker, actionId: "MOVE_FLEET_STANDARD_1", source: source.id, destination: sibling.id, amount }),
+      ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
         message: expect.stringContaining("shortfall 1"),
       })
       expect((await attacker.view()).fleets.find((fleet) => fleet.id === source.id)?.uncommittedStrength).toBe(25)
     } else {
-      await attacker.move("MOVE_FLEET_STANDARD_1", amount, sibling.id)
+      await submitFleetOrder({
+        side: attacker,
+        actionId: "MOVE_FLEET_STANDARD_1",
+        source: source.id,
+        destination: sibling.id,
+        amount,
+      })
       expect((await attacker.view()).fleets.find((fleet) => fleet.id === source.id)?.uncommittedStrength).toBe(0)
       expect(await attacker.endTurn()).toBe("processed")
       const final = await attacker.view()

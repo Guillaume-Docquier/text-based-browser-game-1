@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest"
 import type { PlayerView } from "#api/types.ts"
 import { ControlledConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { createFleetOperationsScenario, submitFleetOrder } from "#tests/FleetOperationsScenario.stub.ts"
+import { createFleetOperationsScenario } from "#tests/FleetOperationsScenario.stub.ts"
+import { submitFleetOrder } from "#tests/submitFleetOrder.ts"
 import type { TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 
 function stockpiles(view: PlayerView): number[] {
@@ -79,11 +80,20 @@ describe("Unified Fleet Operations public lifecycle", () => {
       turnsRepository: api.turnsRepository,
     })
     const { right, left, before, opposing, rightHome, leftHome, rightSource, leftSource, destination, gameId } = fixture
-    const order = async (id: string, amount: number, target = leftHome.id, source = rightSource.id): Promise<void> => {
-      await submitFleetOrder({ side: right, actionId: id, source, destination: target, amount })
-    }
-    await order("COLONIZE_PLANET_STANDARD_1", 35, destination.id)
-    await order("ATTACK_MOVE_STANDARD_1", 30)
+    await submitFleetOrder({
+      side: right,
+      actionId: "COLONIZE_PLANET_STANDARD_1",
+      source: rightSource.id,
+      destination: destination.id,
+      amount: 35,
+    })
+    await submitFleetOrder({
+      side: right,
+      actionId: "ATTACK_MOVE_STANDARD_1",
+      source: rightSource.id,
+      destination: leftHome.id,
+      amount: 30,
+    })
     await submitFleetOrder({
       side: right,
       actionId: "MOVE_FLEET_EXCEPTIONAL_1",
@@ -214,7 +224,7 @@ describe("Unified Fleet Operations public lifecycle", () => {
       rngSpareNormal: arrivedReplay.rng.spareNormal,
     })
     // Act: reuse the exact released original in immediately collecting T14.
-    await order("ATTACK_MOVE_STANDARD_1", 1)
+    await submitFleetOrder({ side: right, actionId: "ATTACK_MOVE_STANDARD_1", source: rightSource.id, destination: leftHome.id, amount: 1 })
     expect(await right.endTurn()).toBe("processed")
     const reused = await right.view()
     expect(reused.turn).toBe(15)

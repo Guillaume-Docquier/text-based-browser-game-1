@@ -93,24 +93,6 @@ export class FleetActionsScenario {
       submittedActionTargets: { actionId: action.id, selectedTargets, selectedInputs },
     })
   }
-  public async move(actionId: string, amount: number, destinationId?: string): Promise<void> {
-    const view = await this.view()
-    const source = view.fleets.find(
-      (fleet) => fleet.ownerPlayerId === branded<PlayerId>(this.player.account.id) && fleet.destinationPlanetId === undefined,
-    )
-    const destination = view.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
-    Assert.isDefined(source)
-    Assert.isDefined(destination)
-    await this.player.client.gameplay.updateActionSubmission.mutate({
-      gameId: this.gameId,
-      turn: view.turn,
-      submittedActionTargets: {
-        actionId,
-        selectedTargets: { fleet: source.id, planet: destinationId ?? destination.id },
-        selectedInputs: { strength: amount },
-      },
-    })
-  }
   public async cancel(actionId: string): Promise<void> {
     const view = await this.view()
     await this.player.client.gameplay.updateActionSubmission.mutate({

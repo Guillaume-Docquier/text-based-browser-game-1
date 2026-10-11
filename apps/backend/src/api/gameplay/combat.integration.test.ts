@@ -12,6 +12,7 @@ import { ControlledClock } from "#lib/ControlledClock.ts"
 import { ApiServer } from "#tests/ApiServer.ts"
 import { createCombatActionsScenario } from "#tests/CombatActionsScenario.stub.ts"
 import { FleetActionsScenario } from "#tests/FleetActionsScenario.stub.ts"
+import { submitFleetOrder } from "#tests/submitFleetOrder.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 integrationTest("should persists normal Assault then reloads without repeat payment or conquest", { timeout: 60000 }, async ({ db }) => {
@@ -34,7 +35,7 @@ integrationTest("should persists normal Assault then reloads without repeat paym
   const x = before.actions.find((action) => action.actionDefinitionId === AttackMoveStandard.id && action.id.endsWith("_1"))
   Assert.isDefined(x)
   // Act
-  await attacker.move(x.id, 30, destination.id)
+  await submitFleetOrder({ side: attacker, actionId: x.id, source: source.id, destination: destination.id, amount: 30 })
   const departureStatus = await attacker.endTurn()
   const departed = await attacker.view()
   const reload = await attacker.view()
@@ -106,15 +107,22 @@ integrationTest("should share Attack and ordinary Move reservations, replacement
   const attack = (await scenario.view()).actions.find((action) => action.actionDefinitionId === AttackMoveStandard.id)
   Assert.isDefined(move)
   Assert.isDefined(attack)
-  await scenario.move(move, 20)
+  const before = await scenario.view()
+  const source = before.fleets[0]
+  const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
+  Assert.isDefined(source)
+  Assert.isDefined(destination)
+  await submitFleetOrder({ side: scenario, actionId: move, source: source.id, destination: destination.id, amount: 20 })
   // Act
-  await scenario.move(attack.id, 30)
-  await expect(scenario.move(attack.id, 31)).rejects.toMatchObject({
+  await submitFleetOrder({ side: scenario, actionId: attack.id, source: source.id, destination: destination.id, amount: 30 })
+  await expect(
+    submitFleetOrder({ side: scenario, actionId: attack.id, source: source.id, destination: destination.id, amount: 31 }),
+  ).rejects.toMatchObject({
     data: { code: "BAD_REQUEST" },
     message: expect.stringContaining("shortfall 1"),
   })
   const retained = await scenario.view()
-  await scenario.move(attack.id, 25)
+  await submitFleetOrder({ side: scenario, actionId: attack.id, source: source.id, destination: destination.id, amount: 25 })
   const replaced = await scenario.view()
   await scenario.cancel(attack.id)
   const cancelled = await scenario.view()
@@ -234,7 +242,9 @@ integrationTest(
         expect(action.status).toBe("AVAILABLE")
         expect(view.resources.INFLUENCE.uncommitted).toBeGreaterThanOrEqual(3)
         expect(view.resources.FUEL.uncommitted).toBeGreaterThanOrEqual(5)
-        await scenario.move(action.id, strength, stop.id)
+        const source = own[0]
+        Assert.isDefined(source)
+        await submitFleetOrder({ side: scenario, actionId: action.id, source: source.id, destination: stop.id, amount: strength })
         await scenario.submitDefinition(GainInfluence.id)
         await attacker.endTurn()
         await scenario.submitDefinition(GainInfluence.id)
@@ -262,8 +272,10 @@ integrationTest(
     ).toStrictEqual([10, 20])
     const attack = staged.actions.find((action) => action.actionDefinitionId === AttackMoveStandard.id)
     Assert.isDefined(attack)
+    const attackSource = staged.fleets.find((fleet) => fleet.ownerPlayerId === staged.player.id)
+    Assert.isDefined(attackSource)
     // Act
-    await attacker.move(attack.id, 10, destination.id)
+    await submitFleetOrder({ side: attacker, actionId: attack.id, source: attackSource.id, destination: destination.id, amount: 10 })
     for (let travel = 0; travel < 3; travel++) await attacker.endTurn()
     const after = await attacker.view()
     // Assert: independent literal damage3/7, no conquest or remaining transit.
@@ -322,7 +334,7 @@ integrationTest(
     Assert.isDefined(destination)
     const ordinary = before.actions.find((action) => action.actionDefinitionId === MoveFleetExceptional.id)
     Assert.isDefined(ordinary)
-    await scenario.move(ordinary.id, 20, stage.id)
+    await submitFleetOrder({ side: scenario, actionId: ordinary.id, source: homeSource.id, destination: stage.id, amount: 20 })
     for (let turn = 0; turn < 2; turn++) {
       await scenario.submitDefinition(GainInfluence.id)
       await scenario.submitDefinition(GainMetal.id)
@@ -396,7 +408,9 @@ integrationTest("should includes a public same-turn defender Build before arrivi
   const attack = view.actions.find((action) => action.actionDefinitionId === AttackMoveStandard.id)
   Assert.isDefined(destination)
   Assert.isDefined(attack)
-  await attacker.move(attack.id, 30, destination.id)
+  const source = view.fleets.find((fleet) => fleet.ownerPlayerId === view.player.id)
+  Assert.isDefined(source)
+  await submitFleetOrder({ side: attacker, actionId: attack.id, source: source.id, destination: destination.id, amount: 30 })
   await attacker.endTurn()
   const beforeArrival = await defender.view()
   expect(beforeArrival.fleets.find((fleet) => fleet.ownerPlayerId === beforeArrival.player.id)?.strength).toBe(10)
@@ -441,11 +455,16 @@ integrationTest("should uses public merged station37 then leaves25 against defen
   )
   Assert.isDefined(remote)
   const ordinary = view.actions.find((action) => action.actionDefinitionId === MoveFleetExceptional.id)
-  const defenderMove = (await defender.view()).actions.find((action) => action.actionDefinitionId === MoveFleetExceptional.id)
+  const defenderView = await defender.view()
+  const defenderMove = defenderView.actions.find((action) => action.actionDefinitionId === MoveFleetExceptional.id)
+  const attackerSource = view.fleets.find((fleet) => fleet.ownerPlayerId === view.player.id)
+  const defenderSource = defenderView.fleets.find((fleet) => fleet.ownerPlayerId === defenderView.player.id)
+  Assert.isDefined(attackerSource)
+  Assert.isDefined(defenderSource)
   Assert.isDefined(ordinary)
   Assert.isDefined(defenderMove)
-  await attacker.move(ordinary.id, 7, destination.id)
-  await defender.move(defenderMove.id, 8, remote.id)
+  await submitFleetOrder({ side: attacker, actionId: ordinary.id, source: attackerSource.id, destination: destination.id, amount: 7 })
+  await submitFleetOrder({ side: defender, actionId: defenderMove.id, source: defenderSource.id, destination: remote.id, amount: 8 })
   for (let turn = 0; turn < 5; turn++) {
     await attacker.submitDefinition(GainInfluence.id)
     await attacker.submitDefinition(GainMetal.id)
@@ -519,7 +538,10 @@ integrationTest(
     Assert.isDefined(destination)
     const attacks = before.actions.filter((action) => action.actionDefinitionId === AttackMoveStandard.id)
     expect(attacks).toHaveLength(2)
-    for (const attack of attacks) await attacker.move(attack.id, 20, destination.id)
+    const source = before.fleets.find((fleet) => fleet.ownerPlayerId === before.player.id)
+    Assert.isDefined(source)
+    for (const attack of attacks)
+      await submitFleetOrder({ side: attacker, actionId: attack.id, source: source.id, destination: destination.id, amount: 20 })
     // Act
     await attacker.endTurn()
     const departure = await attacker.view()

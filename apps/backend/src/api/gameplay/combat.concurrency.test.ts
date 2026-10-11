@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest"
 import { createCombatActionsScenario } from "#tests/CombatActionsScenario.stub.ts"
 import { ControlledConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import { FleetActionsScenario } from "#tests/FleetActionsScenario.stub.ts"
+import { submitFleetOrder } from "#tests/submitFleetOrder.ts"
 
 function expectRejectedRequests(results: ReadonlyArray<PromiseSettledResult<unknown>>): void {
   for (const rejected of results.filter((result) => result.status === "rejected"))
@@ -22,9 +23,17 @@ describe("public Assault PostgreSQL", () => {
     })
     const { attacker, defender, gameId } = fixture
     const before = await attacker.view()
+    const source = before.fleets.find((fleet) => fleet.ownerPlayerId === before.player.id)
+    Assert.isDefined(source)
     const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "44:96:25")
     Assert.isDefined(destination)
-    await attacker.move("ATTACK_MOVE_STANDARD_1", 30, destination.id)
+    await submitFleetOrder({
+      side: attacker,
+      actionId: "ATTACK_MOVE_STANDARD_1",
+      source: source.id,
+      destination: destination.id,
+      amount: 30,
+    })
     const submitted = await attacker.view()
     const defenderBefore = await defender.view()
     const { processor, fault } = await api.createSaveFailureProcessor()
@@ -111,12 +120,19 @@ describe("public Assault PostgreSQL", () => {
       turnsRepository: api.turnsRepository,
     })
     const view = await scenario.view()
+    const source = view.fleets[0]
+    const destination = view.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "55:07:50")
+    Assert.isDefined(source)
+    Assert.isDefined(destination)
     const x = view.actions.find((action) => action.actionDefinitionId === AttackMoveStandard.id)
     const [y] = await scenario.moveInstances()
     Assert.isDefined(x)
     Assert.isDefined(y)
     // Act
-    const results = await Promise.allSettled([scenario.move(x.id, attack), scenario.move(y, move)])
+    const results = await Promise.allSettled([
+      submitFleetOrder({ side: scenario, actionId: x.id, source: source.id, destination: destination.id, amount: attack }),
+      submitFleetOrder({ side: scenario, actionId: y, source: source.id, destination: destination.id, amount: move }),
+    ])
     const reserved = await scenario.view()
     await scenario.endTurn()
     const resolved = await scenario.view()
@@ -152,10 +168,10 @@ describe("public Assault PostgreSQL", () => {
     Assert.isDefined(destination)
     const x = before.actions.find((action) => action.actionDefinitionId === AttackMoveStandard.id)
     Assert.isDefined(x)
-    await scenario.move(x.id, 20, destination.id)
+    await submitFleetOrder({ side: scenario, actionId: x.id, source: source.id, destination: destination.id, amount: 20 })
     // Act: original valid order always exists; only the committed preclosure edit can change it.
     const [edit, closure] = await Promise.allSettled([
-      scenario.move(x.id, 25, destination.id),
+      submitFleetOrder({ side: scenario, actionId: x.id, source: source.id, destination: destination.id, amount: 25 }),
       scenario.player.client.gameplay.updateReadiness.mutate({ gameId: scenario.gameId, turn: before.turn, isReady: true }),
     ])
     const closed = await scenario.view()
@@ -165,7 +181,9 @@ describe("public Assault PostgreSQL", () => {
       data: { code: "BAD_REQUEST" },
       message: expect.stringContaining("in progress"),
     })
-    await expect(scenario.move(x.id, 1, destination.id)).rejects.toMatchObject({
+    await expect(
+      submitFleetOrder({ side: scenario, actionId: x.id, source: source.id, destination: destination.id, amount: 1 }),
+    ).rejects.toMatchObject({
       data: { code: "BAD_REQUEST" },
       message: expect.stringContaining("in progress"),
     })
