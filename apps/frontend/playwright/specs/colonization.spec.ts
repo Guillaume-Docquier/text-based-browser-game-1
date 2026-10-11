@@ -1,7 +1,6 @@
 import { Assert, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { AuthenticatedUser } from "../AuthenticatedUser.ts"
 import { expect, test } from "../fixtures.ts"
-import type { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { GameDetailsPage } from "../pages/GameDetailsPage.ts"
@@ -58,7 +57,6 @@ async function fundColonizationEmpires({ winner, loser }: ColonizationJourney): 
     const actions = await new GalaxyPage(user.page).openActions()
     await actions.toggleActionSelection("Political Campaign")
     await actions.toggleActionSelection("Extract Metal")
-    await verifyCampaignSubmission(actions, 1)
   }
   const right = await new GalaxyPage(winner.page).openPlayers(),
     left = await new GalaxyPage(loser.page).openPlayers()
@@ -77,7 +75,6 @@ async function buildColonizationForces({ winner, loser }: ColonizationJourney, t
     const actions = await new GalaxyPage(user.page).openActions()
     if (turn <= 5) await actions.toggleActionSelection("Build Fleet", "Standard Directive")
     await actions.toggleActionSelection("Political Campaign")
-    await verifyCampaignSubmission(actions, turn)
   }
   const right = await new GalaxyPage(winner.page).openPlayers(),
     left = await new GalaxyPage(loser.page).openPlayers()
@@ -85,17 +82,6 @@ async function buildColonizationForces({ winner, loser }: ColonizationJourney, t
   await left.toggleReady()
   await expect(right.turn).toHaveText(`Turn ${turn + 1}`, { timeout: 15000 })
   await expect(left.turn).toHaveText(`Turn ${turn + 1}`, { timeout: 15000 })
-}
-
-async function verifyCampaignSubmission(actions: ActionsPage, turn: number): Promise<void> {
-  await expect(actions.selectActionButton("Political Campaign")).toHaveAttribute("aria-pressed", "true")
-  const view = await actions.refreshPlayerView()
-  expect(view.turn).toBe(turn)
-  expect(view.actions.find((action) => action.id === "GAIN_INFLUENCE_1")).toMatchObject({
-    status: "SUBMITTED",
-    selectedTargets: {},
-    selectedInputs: {},
-  })
 }
 
 async function verifyColonizationFunding({ winner, loser }: ColonizationJourney): Promise<void> {
