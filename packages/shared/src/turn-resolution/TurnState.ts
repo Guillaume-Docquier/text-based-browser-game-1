@@ -51,21 +51,28 @@ export const TurnState = {
    * Finds a player in the turn state by id.
    */
   getPlayer(turnState: TurnState, playerId: PlayerId): ResolutionPlayer | undefined {
-    return turnState.players[playerId]
+    return Object.hasOwn(turnState.players, playerId) ? turnState.players[playerId] : undefined
   },
 
   /**
    * Finds a fleet in the turn state by id.
    */
   getFleet(turnState: TurnState, fleetId: FleetId): ResolutionFleet | undefined {
-    return turnState.fleets[fleetId]
+    return Object.hasOwn(turnState.fleets, fleetId) ? turnState.fleets[fleetId] : undefined
+  },
+
+  /**
+   * Removes a Fleet while preserving the turn state's indexed record shape.
+   */
+  removeFleet(turnState: TurnState, fleetId: FleetId): void {
+    Reflect.deleteProperty(turnState.fleets, fleetId)
   },
 
   /**
    * Finds a planet in the turn state by id.
    */
   getPlanet(turnState: TurnState, planetId: PlanetId): ResolutionPlanet | undefined {
-    return turnState.planets[planetId]
+    return Object.hasOwn(turnState.planets, planetId) ? turnState.planets[planetId] : undefined
   },
 
   /**

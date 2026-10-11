@@ -20,6 +20,13 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
     turnState,
     effectPool: new EffectPool([]),
     ruleset,
+    previousJourneyFleetIds: Object.values(turnState.fleets)
+      .filter((fleet) => fleet.movement !== undefined)
+      .map(({ id }) => id)
+      .toSorted((first, second) => first.localeCompare(second)),
+    newDepartureFleetIds: new Set(),
+    removedFleetIds: new Set(),
+    resolvedContinuations: [],
   }
   const submittedActions = turnState.submittedActions
 
@@ -57,5 +64,7 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
     planets: context.turnState.planets,
     fleets: context.turnState.fleets,
     winnerPlayerId: context.turnState.winnerPlayerId,
+    resolvedContinuations: context.resolvedContinuations,
+    removedFleetIds: [...context.removedFleetIds].toSorted((first, second) => first.localeCompare(second)),
   })
 }

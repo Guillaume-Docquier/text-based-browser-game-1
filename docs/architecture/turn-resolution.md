@@ -32,7 +32,7 @@ flowchart LR
   end
   C --> Create[Create Effects]
   D --> Create
-  S[Action Submission with selected targets] --> Create
+  S[Action Submission with selected source, inputs, and targets] --> Create
   Create --> E[Effects] --> P[Effect Pool] --> R[Resolve in Phases] --> O[Effect Outcomes] --> A[Resolved Action]
 ```
 
@@ -48,7 +48,7 @@ Because of this, the use of the `Assert` module is not permitted there.
 
 ## Validation
 
-All action submissions are validated before any resolution starts. Any invalid action fails the turn. Every action is expected to have been validated already on submission using the same validators.
+The complete locked submission set and existing Fleet journeys are validated through the shared eligibility evaluator before resolution mutates state. A corrupt or invalid locked submission fails the Turn; expected Effect outcomes such as a prevented competition do not. Submission-time and resolution-time validation use the same authoritative rules.
 
 A failed turn state is expected to not be persisted, as the turn resolver stopped at the first error and the state is probably incomplete.
 
@@ -91,11 +91,13 @@ The turn pipeline is the highest level. It orchestrates the high level concepts 
 
 ### Validation Pipeline
 
-The validation pipeline handles validating action submissions for any data that could be corrupted or inconsistent:
+The validation pipeline checks the locked data that could be corrupted or inconsistent:
 
-- Action Definition Mappings
-- Action Target Mappings
-- Action Costs Eligibility
+- Available Action ID and its bound Action Definition
+- Submission player and Action Definition input/target mappings
+- Typed inputs, dependent target constraints, and movement composition
+- Aggregate resource costs and Fleet Strength across submitted instances
+- Existing journey bindings and Action Instance occupancy
 
 ### Phases Pipeline
 

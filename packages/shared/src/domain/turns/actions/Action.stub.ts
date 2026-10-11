@@ -14,17 +14,26 @@ export function createAvailableActionStub({
   actionDefinitionId = v4(),
   ...overrides
 }: Partial<UnbrandedProperties<AvailableAction>> = {}): AvailableAction {
-  return typedParse(AvailableActionSchema, { id, playerId, actionDefinitionId, selectedTargets: null, ...overrides })
+  return typedParse(AvailableActionSchema, { id, playerId, actionDefinitionId, selectedTargets: null, selectedInputs: null, ...overrides })
 }
 
 export function createSubmittedActionStub({
-  id = v4(),
+  id,
   playerId = v4(),
   actionDefinitionId = v4(),
   selectedTargets = {},
+  selectedInputs = {},
   ...overrides
 }: Partial<
-  UnbrandedProperties<Omit<SubmittedAction, "selectedTargets">> & DeepUnbranded<Pick<SubmittedAction, "selectedTargets">>
+  UnbrandedProperties<Omit<SubmittedAction, "selectedTargets" | "selectedInputs">> &
+    DeepUnbranded<Pick<SubmittedAction, "selectedTargets" | "selectedInputs">>
 > = {}): SubmittedAction {
-  return typedParse(SubmittedActionSchema, { id, playerId, actionDefinitionId, selectedTargets, ...overrides })
+  return typedParse(SubmittedActionSchema, {
+    id: id ?? (actionDefinitionId.length <= 34 ? `${actionDefinitionId}_1` : actionDefinitionId),
+    playerId,
+    actionDefinitionId,
+    selectedTargets,
+    selectedInputs,
+    ...overrides,
+  })
 }

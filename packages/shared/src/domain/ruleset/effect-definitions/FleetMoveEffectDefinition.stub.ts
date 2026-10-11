@@ -4,7 +4,8 @@ import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definit
 export function createFleetMoveEffectDefinitionStub({
   fleetTag = "fleet",
   planetTag = "planet",
+  strengthTag = "strength",
   speed = 1,
-}: Partial<EffectDefinitionFactoryParameters<FleetMoveEffectDefinition>> = {}): FleetMoveEffectDefinition {
-  return FleetMoveEffectDefinition.create({ fleetTag, planetTag, speed })
+}: Partial<EffectDefinitionFactoryParameters<FleetMoveEffectDefinition> & { strengthTag: string }> = {}): FleetMoveEffectDefinition {
+  return FleetMoveEffectDefinition.create({ fleetTag, planetTag, strengthTag, speed })
 }

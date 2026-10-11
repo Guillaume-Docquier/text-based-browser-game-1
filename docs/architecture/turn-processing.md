@@ -11,9 +11,9 @@ The turn processing pipeline doesn't know much about how turns are resolved. It 
 1. Through `TurnsRepository`, the worker claims a turnsProcessing row by locking the row, moves the Turns row to `PROCESSING`, and loads its locked submissions, game state, selected persisted Ruleset, and random-generator state.
 1. The worker then unlocks the turnsProcessing row after setting the processing startDate, which prevents other workers from processing it.
 1. The worker calls `resolveTurn` with those inputs. The Rules Engine revalidates submissions, creates their Effects, and resolves them through engine-owned Phases.
-1. On success, the worker saves the resulting game state and moves the Turn to `COMPLETED`. If the game continues, it creates the next Turn, its Available Action Instances, and its processing queue row; otherwise it records the game as ended.
+1. On success, the worker saves the resulting game state and moves the Turn to `COMPLETED`. Fleet persistence updates journey fields and deletes depleted source IDs explicitly, including full-allocation departures. If the game continues, it creates the next Turn, its Available Action Instances, and its processing queue row; otherwise it records the game as ended.
 
-The diagram shows the successful resolution path. See [System 001-turns](../game-design/systems/001-turns.md) for the Turn lifecycle. Failure-mode policy reconciliation remains tracked in [#433](https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/433).
+The diagram shows the successful resolution path. Continuation outcomes are transient parts of the current resolve result and do not become resolved-action history. See [System 001-turns](../game-design/systems/001-turns.md) for the Turn lifecycle. Failure-mode policy reconciliation remains tracked in [#433](https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/433).
 
 ```mermaid
 sequenceDiagram

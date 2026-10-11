@@ -13,7 +13,7 @@ export type AbstractTargetConstraint = Readonly<{
   /**
    * Parameters to customize a target constraint.
    */
-  parameters: Readonly<Record<string, string>>
+  parameters: Readonly<Record<string, string | number>>
 }>
 
 /**

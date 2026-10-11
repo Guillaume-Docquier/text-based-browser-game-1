@@ -1,9 +1,32 @@
-import type { Action, ActionDefinition, Players, PlayerView, SelectedTargets, TargetTag } from "@api-types"
+import type {
+  Action,
+  ActionDefinition,
+  InputTag,
+  Players,
+  PlayerView,
+  SelectedInputs,
+  SelectedTargets,
+  TargetId,
+  TargetTag,
+} from "@api-types"
 import { branded } from "@guillaume-docquier/tools-ts"
-import { Check, Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
+import { safeTypedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
+import {
+  evaluateActionSelection,
+  evaluateTargetCandidate,
+  type ActionSelectionDraft,
+  type EligibilityState,
+} from "shared/action-submission/evaluateActionSelection.ts"
+import { FleetMoveEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
+import type { Ruleset as SharedRuleset } from "shared/domain/ruleset/Ruleset.ts"
+import { SelectedInputsSchema } from "shared/domain/turns/actions/SelectedInputs.ts"
+import { SelectedTargetsSchema } from "shared/domain/turns/actions/SelectedTargets.ts"
+import { FleetIdSchema } from "shared/domain/world/fleets/FleetId.ts"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
+import { Input } from "@/components/input.tsx"
 import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
 import { getTargetOptions, TargetPicker } from "@/features/play/components/TargetPicker.tsx"
 import { formatRulesetTerm, effectDefinitionsToRulesText } from "@/features/play/effectDefinitionToRulesText.ts"
@@ -39,16 +62,15 @@ const ACTION_TYPE_ICONS = {
 } as const satisfies Record<ActionDefinition["type"], LucideIcon>
 
 /**
- * Displays a selectable Action Definition using its tier, costs, and effects.
+ * Displays a selectable Action Definition using the shared eligibility evaluator.
  */
 export function ActionCard({
   actionDefinition,
   action,
   playerView,
   players,
-  resources,
-  canAfford,
-  isSelected,
+  ruleset,
+  eligibilityState,
   disabled,
   onSelect,
 }: {
@@ -56,28 +78,111 @@ export function ActionCard({
   action: Action
   playerView: PlayerView
   players: Players
-  resources: PlayerView["resources"]
-  canAfford: boolean
-  isSelected: boolean
+  ruleset: SharedRuleset
+  eligibilityState: EligibilityState
   disabled: boolean
-  onSelect: (selectedTargets: SelectedTargets) => void
+  onSelect: (selectedTargets: SelectedTargets | null, selectedInputs: SelectedInputs | null) => void
 }): ReactElement {
   const tierStyle = ACTION_TIER_STYLES[actionDefinition.tier]
   const ActionIcon = ACTION_TYPE_ICONS[actionDefinition.type]
-  const [draftTargets, setDraftTargets] = useState<NonNullable<SelectedTargets>>({})
-  const targetSlots = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
+  const [draftTargets, setDraftTargets] = useState<Record<TargetTag, TargetId | undefined>>({})
+  const [draftInputs, setDraftInputs] = useState<Record<InputTag, number | undefined>>({})
+  const selectedTargets: Record<TargetTag, TargetId | undefined> = action.isInProgress ? {} : { ...action.selectedTargets, ...draftTargets }
+  const selectedInputs: Record<InputTag, number | undefined> = action.isInProgress ? {} : { ...action.selectedInputs, ...draftInputs }
+  const selectionDraft: ActionSelectionDraft = { actionId: action.id, selectedTargets, selectedInputs }
+  const targetDefinitions = Object.entries(actionDefinition.targets).map(([tag, targetDefinition]) => ({
     tag: branded<TargetTag>(tag),
     targetDefinition,
-    options: getTargetOptions(targetDefinition, playerView, players),
   }))
-  const selectedTargets = { ...action.selectedTargets, ...draftTargets }
-  for (const { tag, options } of targetSlots) {
-    const onlyOption = options.length === 1 ? options[0] : undefined
-    if (onlyOption !== undefined) {
-      selectedTargets[tag] = onlyOption.id
+
+  // Apply single-choice defaults to the same draft used for evaluation and submission.
+  for (let pass = 0; !action.isInProgress && pass < targetDefinitions.length; pass += 1) {
+    for (const { tag, targetDefinition } of targetDefinitions) {
+      if (getOwnRecordValue(selectedTargets, tag) !== undefined) {
+        continue
+      }
+      const options = getTargetOptions({
+        targetTag: tag,
+        targetDefinition,
+        playerView,
+        players,
+        state: eligibilityState,
+        ruleset,
+        draft: selectionDraft,
+      })
+      if (options.length === 1) {
+        const onlyOption = options[0]
+        if (onlyOption !== undefined) {
+          selectedTargets[tag] = onlyOption.id
+        }
+      }
     }
   }
-  const hasAllTargets = targetSlots.every(({ tag, options }) => options.some(({ id }) => id === selectedTargets[tag]))
+
+  const evaluation = action.isInProgress ? undefined : evaluateActionSelection({ state: eligibilityState, ruleset, draft: selectionDraft })
+  const canAfford = evaluation === undefined || !evaluation.issues.some(({ code }) => code === "INSUFFICIENT_RESOURCES")
+  const isSelected = !action.isInProgress && action.selectedTargets !== null
+  const targetSlots = action.isInProgress
+    ? []
+    : targetDefinitions.map(({ tag, targetDefinition }) => ({
+        tag,
+        targetDefinition,
+        options: getTargetOptions({
+          targetTag: tag,
+          targetDefinition,
+          playerView,
+          players,
+          state: eligibilityState,
+          ruleset,
+          draft: selectionDraft,
+        }),
+      }))
+  const inputSlots = action.isInProgress
+    ? []
+    : Object.entries(actionDefinition.inputs).map(([tag, inputDefinition]) => ({
+        tag: branded<InputTag>(tag),
+        inputDefinition,
+      }))
+  const fleetMoveEffect = actionDefinition.effects.find(
+    (effect): effect is FleetMoveEffectDefinition => effect.type === FleetMoveEffectDefinition.type,
+  )
+  const sourceFleetTargetId =
+    fleetMoveEffect === undefined ? undefined : getOwnRecordValue(selectedTargets, fleetMoveEffect.targets.fleet.actionTargetTag)
+  const sourceFleetId = sourceFleetTargetId === undefined ? undefined : safeTypedParse(FleetIdSchema, sourceFleetTargetId)
+  const sourceFleet = sourceFleetId?.success === true ? eligibilityState.fleets[sourceFleetId.data] : undefined
+  const remainingSourceStrength =
+    sourceFleet === undefined ? undefined : (evaluation?.remainingStrength[sourceFleet.id] ?? sourceFleet.strength)
+  const inProgressFleet = Object.values(eligibilityState.fleets).find(
+    (fleet) => fleet.ownerPlayerId === eligibilityState.submittingPlayerId && fleet.movement?.submission.id === action.id,
+  )
+  const inProgressDestination =
+    inProgressFleet?.destinationPlanetId !== undefined
+      ? playerView.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === inProgressFleet.destinationPlanetId)
+      : undefined
+  const actionIssues = evaluation?.issues.filter((issue) => issue.actionId === action.id || issue.actionId === undefined) ?? []
+  const inProgressSummary =
+    inProgressFleet === undefined
+      ? "Fleet journey in progress"
+      : [
+          inProgressFleet.name,
+          `${inProgressFleet.strength.toLocaleString()} strength`,
+          inProgressDestination === undefined ? undefined : `to ${inProgressDestination.name}`,
+          inProgressFleet.distanceToEnd === undefined
+            ? undefined
+            : `${inProgressFleet.distanceToEnd.toLocaleString(undefined, { maximumFractionDigits: 2 })} ly remaining`,
+        ]
+          .filter((part): part is string => part !== undefined)
+          .join(" · ")
+
+  function submitSelection(): void {
+    const targetEntries = Object.entries(selectedTargets).filter((entry): entry is [string, TargetId] => entry[1] !== undefined)
+    const inputEntries = Object.entries(selectedInputs).filter((entry): entry is [string, number] => entry[1] !== undefined)
+    const parsedTargets = safeTypedParse(SelectedTargetsSchema, Object.fromEntries(targetEntries))
+    const parsedInputs = safeTypedParse(SelectedInputsSchema, Object.fromEntries(inputEntries))
+    if (evaluation?.status === "ELIGIBLE" && parsedTargets.success && parsedInputs.success) {
+      onSelect(parsedTargets.data, parsedInputs.data)
+    }
+  }
 
   return (
     <Card
@@ -93,7 +198,7 @@ export function ActionCard({
       >
         <ActionIcon className="size-7" strokeWidth={1.8} />
       </div>
-      <UnaffordableOverlay canAfford={canAfford} />
+      {action.isInProgress ? null : <UnaffordableOverlay canAfford={canAfford} />}
       <CardHeader className="relative z-10 min-h-24 px-5 py-5 pl-14">
         <div className="flex items-start justify-between gap-3">
           <div className={cn("min-w-0 space-y-1", { "opacity-45": !canAfford })}>
@@ -102,41 +207,117 @@ export function ActionCard({
               {formatRulesetTerm(actionDefinition.tier)} {formatRulesetTerm(actionDefinition.type)}
             </CardDescription>
           </div>
-          <ActionCosts costs={actionDefinition.costs} resources={resources} canAfford={canAfford} />
+          {action.isInProgress ? null : (
+            <ActionCosts costs={actionDefinition.costs} resources={playerView.resources} canAfford={canAfford} />
+          )}
         </div>
       </CardHeader>
       <CardContent className="relative z-10 flex min-h-36 flex-1 flex-col gap-4 border-t border-border/70 px-5 py-5">
         <p className={cn("leading-relaxed", canAfford ? "text-card-foreground" : "text-zinc-500")}>
           {effectDefinitionsToRulesText(actionDefinition.effects)}
         </p>
-        {targetSlots.map(({ tag, targetDefinition, options }) => (
-          <TargetPicker
-            key={tag}
-            targetTag={tag}
-            targetDefinition={targetDefinition}
-            options={options}
-            value={selectedTargets[tag]}
+        {action.isInProgress ? (
+          <p
+            role="status"
+            aria-label="Fleet journey"
+            className="rounded-lg border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm text-sky-100"
+          >
+            {inProgressSummary}
+          </p>
+        ) : null}
+        {targetSlots.map(({ tag, targetDefinition, options }) => {
+          const issue = actionIssues.find(({ targetTag }) => targetTag === tag)
+          return (
+            <TargetPicker
+              key={tag}
+              targetTag={tag}
+              targetDefinition={targetDefinition}
+              options={options}
+              value={getOwnRecordValue(selectedTargets, tag)}
+              disabled={disabled}
+              issue={issue?.message}
+              onChange={(targetId) => {
+                const nextTargets: Record<TargetTag, TargetId | undefined> = { ...selectedTargets, [tag]: targetId }
+                for (const otherTag of Object.keys(actionDefinition.targets).map((value) => branded<TargetTag>(value))) {
+                  if (otherTag === tag) {
+                    continue
+                  }
+                  const otherTargetId = getOwnRecordValue(nextTargets, otherTag)
+                  if (otherTargetId === undefined) {
+                    continue
+                  }
+                  const candidateEvaluation = evaluateTargetCandidate({
+                    state: eligibilityState,
+                    ruleset,
+                    draft: { actionId: action.id, selectedTargets: nextTargets, selectedInputs },
+                    targetTag: otherTag,
+                    targetId: otherTargetId,
+                  })
+                  if (candidateEvaluation.candidateStatus === "INELIGIBLE") {
+                    nextTargets[otherTag] = undefined
+                  }
+                }
+                setDraftTargets(nextTargets)
+              }}
+            />
+          )
+        })}
+        {inputSlots.map(({ tag, inputDefinition }) => {
+          const issue = actionIssues.find(({ inputTag }) => inputTag === tag)
+          return (
+            <label key={tag} className="flex flex-col gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
+              {inputDefinition.label}
+              <Input
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                aria-label={inputDefinition.label}
+                aria-invalid={issue !== undefined}
+                disabled={disabled}
+                value={getOwnRecordValue(selectedInputs, tag) ?? ""}
+                onChange={(event) => {
+                  const rawValue = event.currentTarget.value
+                  setDraftInputs({ ...selectedInputs, [tag]: rawValue === "" ? undefined : Number(rawValue) })
+                }}
+              />
+              {issue === undefined ? null : (
+                <span role="alert" className="text-xs text-destructive">
+                  {issue.message}
+                </span>
+              )}
+            </label>
+          )
+        })}
+        {sourceFleet !== undefined && fleetMoveEffect !== undefined ? (
+          <p className="text-xs text-muted-foreground">
+            {remainingSourceStrength?.toLocaleString()} of {sourceFleet.strength.toLocaleString()} strength available after this allocation
+          </p>
+        ) : null}
+        {actionIssues.length === 0 ? null : (
+          <ul aria-live="polite" className="space-y-1 text-xs text-destructive">
+            {actionIssues.map((issue) => (
+              <li
+                key={`${issue.actionId ?? "global"}-${issue.code}-${issue.targetTag ?? issue.inputTag ?? ""}-${issue.resourceType ?? ""}-${issue.message}`}
+              >
+                {issue.message}
+              </li>
+            ))}
+          </ul>
+        )}
+        {action.isInProgress ? null : (
+          <ActionSelectionButton
+            isSelected={isSelected}
             disabled={disabled}
-            onChange={(targetId) => {
-              const nextTargets = { ...selectedTargets, [tag]: targetId }
-              setDraftTargets(nextTargets)
-              if (isSelected) {
-                onSelect(nextTargets)
-              }
+            isEligible={evaluation?.status === "ELIGIBLE"}
+            onSelect={submitSelection}
+            onClear={() => {
+              setDraftTargets({})
+              setDraftInputs({})
+              onSelect(null, null)
             }}
           />
-        ))}
-        <ActionSelectionButton
-          isSelected={isSelected}
-          disabled={disabled || (!isSelected && !hasAllTargets)}
-          onSelect={() => {
-            onSelect(selectedTargets)
-          }}
-          onClear={() => {
-            setDraftTargets({})
-            onSelect(null)
-          }}
-        />
+        )}
       </CardContent>
     </Card>
   )
@@ -156,36 +337,44 @@ function UnaffordableOverlay({ canAfford }: { canAfford: boolean }): ReactElemen
   )
 }
 
+function getOwnRecordValue<TKey extends string, TValue>(record: Readonly<Record<TKey, TValue>>, key: TKey): TValue | undefined {
+  return Object.hasOwn(record, key) ? record[key] : undefined
+}
+
 function ActionSelectionButton({
   isSelected,
   disabled,
+  isEligible,
   onSelect,
   onClear,
 }: {
   isSelected: boolean
   disabled: boolean
+  isEligible: boolean
   onSelect: () => void
   onClear: () => void
 }): ReactElement {
+  if (isSelected) {
+    return (
+      <div className="mt-auto flex gap-2">
+        <Button
+          type="button"
+          className="flex-1 bg-emerald-500 text-emerald-950 hover:bg-emerald-400 focus-visible:ring-emerald-400/40"
+          disabled={disabled || !isEligible}
+          onClick={onSelect}
+        >
+          Update action
+        </Button>
+        <Button type="button" variant="outline" disabled={disabled} onClick={onClear}>
+          Cancel
+        </Button>
+      </div>
+    )
+  }
+
   return (
-    <Button
-      type="button"
-      className={cn("mt-auto", {
-        "bg-emerald-500 text-emerald-950 hover:bg-emerald-400 focus-visible:ring-emerald-400/40": isSelected,
-      })}
-      aria-pressed={isSelected}
-      aria-disabled={disabled}
-      disabled={disabled}
-      onClick={isSelected ? onClear : onSelect}
-    >
-      {isSelected ? (
-        <>
-          <Check aria-hidden="true" />
-          Selected
-        </>
-      ) : (
-        "Select action"
-      )}
+    <Button type="button" className="mt-auto" disabled={disabled || !isEligible} onClick={onSelect}>
+      Select action
     </Button>
   )
 }

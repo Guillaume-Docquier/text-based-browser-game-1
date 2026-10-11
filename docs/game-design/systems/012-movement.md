@@ -4,9 +4,11 @@
 
 Partially Implemented
 
-The Standard and Test Rulesets offer three Move Fleet Directives with speeds of 0.1, 1, and 5 light-years per Turn. They require an owned Fleet and a destination Planet. Each submitted Directive advances the Fleet toward that Planet. Its remaining distance persists between Turns; on arrival, it lands or merges with the player's stationed Fleet there. Range limits, partial-Strength movement, automatic continuation, binding the Action during transit, and Tick-based coordination of movement and arrivals remain planned.
+The Standard and Test Rulesets offer Move Fleet Directives with speeds of 0.1, 1, and 5 light-years per Turn and inclusive ranges of 5, 10, and 25 light-years. A submission selects an owned, stationary Fleet, a positive whole-number Strength allocation, and a different destination Planet within the Action's range. The shared eligibility evaluator applies these constraints and aggregates resource and Strength commitments across all of the player's submissions.
 
-The Move Fleet Effect calculates an arrival Tick when a submitted move reaches its destination. The Fleet Movement Phase does not yet coordinate movement and arrivals through a Tick loop. An In-Transit Fleet still needs another submission to advance on a later Turn.
+A departure moves only its selected Strength. The source keeps any unallocated remainder, and the new moving Fleet persists its speed, departure Turn, and originating Action Submission. It advances once during its departure Turn and automatically once on every later resolved Turn; the costs are paid only for the new submission. The originating Action Instance remains In Progress until the Fleet arrives. A different Action Instance may use the source's remaining stationary Strength.
+
+The Fleet Movement Phase calculates arrival Ticks on a 20-Tick scale and settles ordinary arrivals by Tick, then stable Fleet ID. A Fleet lands at an empty Planet or merges into the same player's stationed Fleet, preserving the latter's ID and name. Enemy Fleets remain separate and unchanged. The current system does not resolve Assault or Colonize arrival effects. Continuation outcomes are returned transiently with the current resolved Turn and are not stored as resolved-action history.
 
 The galaxy map shows an In-Transit Fleet between its origin and destination stars according to its remaining distance. A solid route segment shows distance traveled, and a dashed segment shows distance remaining. The Fleet icon points toward its destination and displays its Strength. A movement between Planets in the same Star System appears at that star without a visible interstellar route.
 
@@ -26,21 +28,19 @@ Relates to:
 
 ## Core Concepts
 
-| Concept           | Definition                                                                             |
-| ----------------- | -------------------------------------------------------------------------------------- |
-| Speed             | The maximum number of light-years a Fleet moves per Turn.                              |
-| Range             | The maximum Movement Distance allowed between a Fleet and its target Planet.           |
-| Movement Distance | The distance in light-years between a Fleet's departure Planet and target Planet.      |
-| In Transit        | A Fleet that has departed but has not yet arrived.                                     |
-| Movement Tick     | A sub-step within the Fleet Movement Phase that orders movement progress and arrivals. |
+| Concept           | Definition                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| Speed             | The maximum number of light-years a Fleet moves per Turn.                               |
+| Range             | The inclusive maximum Movement Distance allowed between a Fleet and its target Planet.  |
+| Movement Distance | The distance in light-years between a Fleet's departure Planet and target Planet.       |
+| In Transit        | A Fleet that has departed but has not yet arrived.                                      |
+| Movement Tick     | A point on the 20-Tick scale used to order ordinary Fleet arrivals in a Movement Phase. |
 
 ## Rules
 
-A Fleet moves from one Planet to another; it cannot be stationed in empty space. A movement may only target a Planet whose Movement Distance is within its allowed Range.
+A Fleet moves between Planets; it cannot be stationed in empty space. A movement may only target a different Planet whose planar Movement Distance is within the Action's inclusive Range. The source must be owned by the submitting player, stationary, and have enough unallocated Strength for the positive amount selected.
 
-Movement resolves through the Ticks defined by [System 001-turns](./001-turns.md) during Turn Resolution. Each Turn, an In-Transit Fleet moves up to its Speed toward its target Planet. Fleets arrive in chronological order based on their arrival time. A Fleet that is closer relative to its Speed therefore arrives before a Fleet that reaches the same destination later in the Turn.
-
-Fleets that arrive on the same Movement Tick are simultaneous. A Fleet ceases to be In Transit when it reaches its target Planet.
+During Turn Resolution, each new departure and each existing In-Transit Fleet advances by up to its persisted Speed once. The Movement Phase calculates the arrival Tick using the 20-Tick scale, then settles arrivals in Tick order with Fleet ID as a stable tie-breaker. Fleets assigned to the same Tick are settled in stable ID order. Arrival removes the movement fields and releases the bound Action Instance. A friendly stationary Fleet at the destination receives the arriving Strength; an enemy Fleet remains separate because combat has no behavior yet.
 
 ## Potential Flaws
 

@@ -7,6 +7,9 @@ export class BasePage {
     this.page = page
   }
 
+  public async reload(): Promise<void> {
+    await this.page.reload()
+  }
   public async goBack(): Promise<void> {
     await this.page.goBack()
   }

@@ -1,5 +1,5 @@
 import { branded, indexBy, Result } from "@guillaume-docquier/tools-ts"
-import { NonNegativeNumberSchema, typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { v4 } from "uuid"
 import { describe, expect, it } from "vitest"
 import { PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
@@ -29,10 +29,11 @@ describe("FleetMoveEffect", () => {
     const submittedAction = createSubmittedActionStub({
       playerId,
       selectedTargets: { fleet: fleetId, planet: destinationPlanetId },
+      selectedInputs: { strength: 5 },
     })
     const effect = new FleetMoveEffect(
       1,
-      FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", speed: 10 }),
+      FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed: 10 }),
       submittedAction,
     )
     const effectPool = new EffectPool([effect])
@@ -45,21 +46,17 @@ describe("FleetMoveEffect", () => {
           { id: originPlanetId, name: typedParse(PlanetNameSchema, "Origin"), ownerPlayerId: playerId, x: 0, y: 0 },
           { id: destinationPlanetId, name: destinationPlanetName, ownerPlayerId: playerId, x: 5, y: 0 },
         ]),
-        fleets: indexBy("id", [
-          {
-            id: fleetId,
-            name: fleetName,
-            ownerPlayerId: playerId,
-            originPlanetId,
-            strength: 5,
-            distanceToEnd: typedParse(NonNegativeNumberSchema, 5),
-          },
-        ]),
+        fleets: indexBy("id", [{ id: fleetId, name: fleetName, ownerPlayerId: playerId, originPlanetId, strength: 5 }]),
       }),
+      previousJourneyFleetIds: [],
+      newDepartureFleetIds: new Set(),
+      removedFleetIds: new Set(),
+      resolvedContinuations: [],
     }
     const expectedOutcomes = [
-      EffectOutcome.Resolved({ result: `Fleet "${fleetName}" moved 5 light years towards Planet "${destinationPlanetName}"` }),
-      EffectOutcome.Resolved({ result: `Fleet "${fleetName}" arrived on Planet "${destinationPlanetName}"` }),
+      EffectOutcome.Resolved({
+        result: `Fleet "${fleetName}" sent 5 Strength from Planet "Origin" towards Planet "${destinationPlanetName}"`,
+      }),
     ]
 
     // Act
@@ -69,5 +66,18 @@ describe("FleetMoveEffect", () => {
     expect(result).toStrictEqual<typeof result>(Result.Success(expectedOutcomes))
     expect(effectPool.getOutcomes(submittedAction)).toStrictEqual(expectedOutcomes)
     expect(effectPool.isEmpty()).toBe(true)
+    expect(context.turnState.fleets[fleetId]).toBeUndefined()
+    expect(context.removedFleetIds).toStrictEqual(new Set([fleetId]))
+    const departureFleet = Object.values(context.turnState.fleets)[0]
+    expect(departureFleet?.id).not.toBe(fleetId)
+    expect(departureFleet).toMatchObject({
+      ownerPlayerId: playerId,
+      name: fleetName,
+      strength: 5,
+      originPlanetId,
+      destinationPlanetId,
+      distanceToEnd: 5,
+      movement: { speed: 10, departureTurn: 1, submission: submittedAction },
+    })
   })
 })

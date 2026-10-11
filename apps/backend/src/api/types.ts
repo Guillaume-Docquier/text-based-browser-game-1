@@ -18,6 +18,7 @@ export type { AccountId } from "shared/domain/accounts/AccountId.ts"
 export type { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 export type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
 export type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
+export type { InputTag } from "shared/domain/ruleset/action-definitions/InputTag.ts"
 
 // Games
 export type GameDetails = TrpcRouterOutput["games"]["getById"]
@@ -34,6 +35,7 @@ export type GameListing = TrpcRouterOutput["games"]["getListings"][number]
 export type PlayerView = TrpcRouterOutput["gameplay"]["getPlayerView"]
 export type Action = PlayerView["actions"][number]
 export type SelectedTargets = Action["selectedTargets"]
+export type SelectedInputs = Action["selectedInputs"]
 export type TargetId = NonNullable<SelectedTargets>[keyof NonNullable<SelectedTargets>]
 export type ResourceType = keyof PlayerView["resources"]
 export type Ruleset = PlayerView["ruleset"]

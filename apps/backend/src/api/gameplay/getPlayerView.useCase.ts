@@ -1,17 +1,24 @@
-import { Assert, Result } from "@guillaume-docquier/tools-ts"
+import { branded, Result } from "@guillaume-docquier/tools-ts"
 import { NonNegativeNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
-import { getUncommittedResources } from "shared/action-submission/getUncommittedResources.ts"
-import { validateCosts } from "shared/action-submission/validation/costs/validateCosts.ts"
+import { computeAvailableActions } from "shared/action-submission/computeAvailableActions.ts"
+import {
+  evaluateActionSelection,
+  evaluateSubmittedActions,
+  type EligibilityState,
+} from "shared/action-submission/evaluateActionSelection.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
-import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
+import { PlayerIdSchema, type PlayerId } from "shared/domain/players/PlayerId.ts"
 import type { Resources } from "shared/domain/resources/Resources.ts"
-import type { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { ActionDefinitionIdSchema } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import { RulesetSchema } from "shared/domain/ruleset/Ruleset.ts"
+import type { Action, SubmittedAction } from "shared/domain/turns/actions/Action.ts"
 import { ActionIdSchema } from "shared/domain/turns/actions/ActionId.ts"
+import { SelectedInputsSchema } from "shared/domain/turns/actions/SelectedInputs.ts"
 import { SelectedTargetsSchema } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import { FleetMovementSchema } from "shared/domain/world/fleets/Fleet.ts"
 import { FleetIdSchema } from "shared/domain/world/fleets/FleetId.ts"
 import { FleetNameSchema } from "shared/domain/world/fleets/FleetName.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
@@ -23,7 +30,6 @@ import { StarCoordinatesSchema } from "shared/domain/world/stars/StarCoordinates
 import { StarIdSchema } from "shared/domain/world/stars/StarId.ts"
 import { z } from "zod"
 import { type ResourceAmountsDto, ResourcesDtoSchema } from "#api/gameplay/ResourcesDto.ts"
-import { createTurnState } from "./createTurnState.ts"
 import type { GameplayRepository, PlayerViewModel } from "./gameplay.repository.ts"
 
 /**
@@ -56,14 +62,32 @@ export class GetPlayerViewUseCase {
 }
 
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
+  const eligibilityState = createEligibilityState(playerViewModel)
+  const submittedActions = eligibilityState.actions.filter(isSubmittedAction)
+  const evaluation = evaluateSubmittedActions({ state: eligibilityState, ruleset: playerViewModel.ruleset, submissions: submittedActions })
+  const actionAffordabilityState =
+    playerViewModel.turnStatus === TurnStatus.COMPLETED
+      ? {
+          ...eligibilityState,
+          actions: computeAvailableActions({ playerIds: [eligibilityState.submittingPlayerId], ruleset: playerViewModel.ruleset }),
+        }
+      : eligibilityState
   const uncommittedResources =
     playerViewModel.turnStatus === TurnStatus.COMPLETED
       ? playerViewModel.resources // When the turn is completed, at action costs have been spent already, so we don't need to compute commitments
-      : getUncommittedResources({
-          resources: playerViewModel.resources,
-          actions: playerViewModel.actions.filter((action) => action.selectedTargets !== null),
-          ruleset: playerViewModel.ruleset,
-        })
+      : Object.values(ResourceType).reduce<Resources>(
+          (uncommitted, resourceType) => {
+            uncommitted[resourceType] = Math.max(0, playerViewModel.resources[resourceType] - evaluation.resourceCommitments[resourceType])
+            return uncommitted
+          },
+          {
+            [ResourceType.INFLUENCE]: 0,
+            [ResourceType.METAL]: 0,
+            [ResourceType.FUEL]: 0,
+            [ResourceType.ENERGY]: 0,
+            [ResourceType.COLONY]: 0,
+          },
+        )
 
   return {
     gameId: playerViewModel.gameId,
@@ -81,60 +105,75 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
     turnEndsAt: playerViewModel.turnEndsAt,
     resources: toResourcesDto(playerViewModel.resources, uncommittedResources),
     ruleset: playerViewModel.ruleset,
-    actions: toActionDtos(playerViewModel, uncommittedResources),
+    actions: toActionDtos(playerViewModel, actionAffordabilityState),
   }
 }
 
 function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResources: Readonly<Resources>): PlayerViewDto["resources"] {
-  // string instead of ResourceType to satisfy TypeScript. Strange that it works, maybe even dangerous, but okay
-  return Object.entries(totalResources).reduce<Record<string, ResourceAmountsDto>>((resourcesDto, [resourceType, total]) => {
+  return Object.values(ResourceType).reduce<Record<string, ResourceAmountsDto>>((resourcesDto, resourceType) => {
+    const total = totalResources[resourceType]
     resourcesDto[resourceType] = {
       total,
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: Object.entries widens keys from the Resources record, which are ResourceType values.
-      uncommitted: uncommittedResources[resourceType as ResourceType] ?? 0,
+      uncommitted: uncommittedResources[resourceType],
     }
     return resourcesDto
   }, {})
 }
 
-function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Resources): ActionDto[] {
-  const turnState = createTurnState({
-    gameId: playerViewModel.gameId,
-    turn: playerViewModel.turn,
-    playerId: playerViewModel.player.id,
-    resources: uncommittedResources,
-    submittedActions: [],
-    planets: [], // doesn't matter for cost validation
-    fleets: [], // doesn't matter for cost validation
-  })
-
+function toActionDtos(playerViewModel: PlayerViewModel, eligibilityState: EligibilityState): ActionDto[] {
   return playerViewModel.actions.map((action) => {
-    if (action.selectedTargets !== null) {
-      // If the action is submitted already (selected targets are defined), then the action is affordable because it's been committed already
-      return {
-        ...action,
-        canAfford: true,
-      }
-    }
-
-    const affordabilityResult = validateCosts(
-      [
-        {
-          ...action,
-          playerId: playerViewModel.player.id,
-          selectedTargets: {},
-        },
-      ],
-      playerViewModel.ruleset,
-      turnState,
+    const isInProgress = playerViewModel.fleets.some(
+      (fleet) => fleet.ownerPlayerId === playerViewModel.player.id && fleet.movement?.submission.id === action.id,
     )
-    Assert.isSuccess(affordabilityResult)
+    const evaluation = evaluateActionSelection({
+      state: eligibilityState,
+      ruleset: playerViewModel.ruleset,
+      draft: {
+        actionId: action.id,
+        selectedTargets: action.selectedTargets ?? {},
+        selectedInputs: action.selectedInputs ?? {},
+      },
+    })
 
     return {
       ...action,
-      canAfford: affordabilityResult.value.length === 0,
+      canAfford: !isInProgress && !evaluation.issues.some(({ code }) => code === "INSUFFICIENT_RESOURCES"),
+      isInProgress,
     }
   })
+}
+
+function createEligibilityState(playerViewModel: PlayerViewModel): EligibilityState {
+  const playerId = playerViewModel.player.id
+  const playerIds = [playerId, ...Object.keys(playerViewModel.opponents).map((id) => branded<PlayerId>(id))]
+  const actions = computeAvailableActions({ playerIds: [playerId], ruleset: playerViewModel.ruleset }).map((availableAction) => {
+    const persistedAction = playerViewModel.actions.find(({ id }) => id === availableAction.id)
+    return persistedAction === undefined || persistedAction.selectedTargets === null || persistedAction.selectedInputs === null
+      ? availableAction
+      : {
+          ...availableAction,
+          selectedTargets: persistedAction.selectedTargets,
+          selectedInputs: persistedAction.selectedInputs,
+        }
+  })
+  const planets = playerViewModel.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+
+  return {
+    gameId: playerViewModel.gameId,
+    turn: playerViewModel.turn,
+    submittingPlayerId: playerId,
+    resources: playerViewModel.resources,
+    players: Object.fromEntries(playerIds.map((id) => [id, { id, ownerPlayerId: id }])),
+    planets: Object.fromEntries(
+      planets.map((planet) => [planet.id, { id: planet.id, ownerPlayerId: planet.ownerPlayerId, x: planet.x, y: planet.y }]),
+    ),
+    fleets: Object.fromEntries(playerViewModel.fleets.map((fleet) => [fleet.id, fleet])),
+    actions,
+  }
+}
+
+function isSubmittedAction(action: Action): action is SubmittedAction {
+  return action.selectedTargets !== null && action.selectedInputs !== null
 }
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDtoSchema>
@@ -192,6 +231,7 @@ export const FleetDtoSchema = z.object({
   originPlanetId: PlanetIdSchema,
   destinationPlanetId: PlanetIdSchema.optional(),
   distanceToEnd: NonNegativeNumberSchema.optional(),
+  movement: FleetMovementSchema.optional(),
 })
 
 type ActionDto = z.infer<typeof ActionDtoSchema>
@@ -199,7 +239,9 @@ const ActionDtoSchema = z.object({
   id: ActionIdSchema,
   actionDefinitionId: ActionDefinitionIdSchema,
   selectedTargets: SelectedTargetsSchema.nullable(),
+  selectedInputs: SelectedInputsSchema.nullable(),
   canAfford: z.boolean(),
+  isInProgress: z.boolean(),
 })
 
 export type PlayerViewDto = z.infer<typeof PlayerViewDtoSchema>

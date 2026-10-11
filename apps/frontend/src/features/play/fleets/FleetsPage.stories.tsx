@@ -1,8 +1,11 @@
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
+import { FleetMovementSchema } from "shared/domain/world/fleets/Fleet.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { expect, within } from "storybook/test"
 import { createPlayerStub } from "@/lib/api/Player.stub.ts"
@@ -27,6 +30,17 @@ const moving = createFleetStub({
   originPlanetId: origin.id,
   destinationPlanetId: destination.id,
   distanceToEnd: 12.345,
+  movement: typedParse(FleetMovementSchema, {
+    speed: 0.1,
+    departureTurn: 1,
+    submission: createSubmittedActionStub({
+      id: "MOVE_FLEET_STANDARD_1",
+      playerId: bob.id,
+      actionDefinitionId: "MOVE_FLEET_STANDARD",
+      selectedTargets: { fleet: "fleet-vanguard", planet: destination.id },
+      selectedInputs: { strength: 25 },
+    }),
+  }),
   strength: 25,
 })
 const mixedFleets = [
@@ -38,6 +52,17 @@ const mixedFleets = [
     originPlanetId: destination.id,
     destinationPlanetId: distantPlanet.id,
     distanceToEnd: 2.5,
+    movement: typedParse(FleetMovementSchema, {
+      speed: 0.1,
+      departureTurn: 1,
+      submission: createSubmittedActionStub({
+        id: "MOVE_FLEET_STANDARD_1",
+        playerId: alice.id,
+        actionDefinitionId: "MOVE_FLEET_STANDARD",
+        selectedTargets: { fleet: "fleet-scout", planet: distantPlanet.id },
+        selectedInputs: { strength: 5 },
+      }),
+    }),
     strength: 5,
   }),
   createFleetStub({ id: "fleet-reserve", name: "Reserve", ownerPlayerId: bob.id, originPlanetId: distantPlanet.id, strength: 10 }),

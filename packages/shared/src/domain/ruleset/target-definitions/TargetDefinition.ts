@@ -1,7 +1,8 @@
 import { z } from "zod"
 import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
 import { TargetConstraintSchema, type TargetConstraint } from "#shared/domain/ruleset/target-definitions/TargetConstraint.ts"
-import { TargetTypeSchema, type TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
+import { TargetType, TargetTypeSchema, type TargetType as TargetTypeValue } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
 
 export type TargetDefinition = Readonly<{
   targetType: TargetType
@@ -15,8 +16,11 @@ export const TargetDefinitionSchema = z
   })
   .superRefine(validateConstraintsSupportTargetType) satisfies z.ZodType<TargetDefinition>
 
-const supportedTargetTypes: Record<TargetConstraint["type"], ReadonlySet<TargetType>> = {
+const supportedTargetTypes: Record<TargetConstraint["type"], ReadonlySet<TargetTypeValue>> = {
   [OwnedBySubmittingPlayerConstraint.type]: OwnedBySubmittingPlayerConstraint.supportedTargetTypes,
+  [StationaryFleetConstraint.type]: StationaryFleetConstraint.supportedTargetTypes,
+  WITHIN_FLEET_RANGE: new Set([TargetType.PLANET]),
+  DIFFERENT_FROM_FLEET_ORIGIN: new Set([TargetType.PLANET]),
 }
 
 function validateConstraintsSupportTargetType({ targetType, constraints }: TargetDefinition, context: z.RefinementCtx): void {

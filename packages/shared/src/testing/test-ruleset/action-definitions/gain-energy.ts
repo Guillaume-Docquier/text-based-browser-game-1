@@ -11,6 +11,7 @@ export const GainEnergy: ActionDefinition = {
   name: "Generate Power",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.IMPROVED,
+  inputs: {},
   targets: {},
   costs: [
     ResourceLossEffectDefinition.create({

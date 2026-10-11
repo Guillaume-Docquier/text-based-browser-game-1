@@ -26,6 +26,7 @@ const API_START_TIMEOUT_MS = 30_000
 const ANY_UNUSED_PORT = 0
 
 export class ConcurrencyTestApiServer {
+  public readonly database: Database
   private readonly postgresContainer: StartedPostgreSqlContainer
   private readonly server: ForkedServer
   private readonly db: Database
@@ -49,6 +50,7 @@ export class ConcurrencyTestApiServer {
     server: ForkedServer
     db: Database
   }) {
+    this.database = db
     this.postgresContainer = postgresContainer
     this.server = server
     this.db = db

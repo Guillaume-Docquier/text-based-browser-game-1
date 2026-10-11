@@ -1,5 +1,5 @@
 import { indexBy, Assert, branded, type Branded, type Logger, Result, type RngState, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import type { NonNegativeNumber } from "@guillaume-docquier/tools-ts/schemas"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { and, asc, eq, inArray, isNull, lte, sql } from "drizzle-orm"
 import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
@@ -8,10 +8,10 @@ import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import type { Resources } from "shared/domain/resources/Resources.ts"
 import type { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
-import type { AvailableAction, SubmittedAction } from "shared/domain/turns/actions/Action.ts"
+import { SubmittedActionSchema, type AvailableAction, type SubmittedAction } from "shared/domain/turns/actions/Action.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import { FleetSchema, type Fleet, type FleetMovement } from "shared/domain/world/fleets/Fleet.ts"
 import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
-import type { FleetName } from "shared/domain/world/fleets/FleetName.ts"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import type { PlanetName } from "shared/domain/world/planets/PlanetName.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
@@ -82,15 +82,7 @@ type TurnToProcessPlanetModel = {
   readonly y: number
 }
 
-type TurnToProcessFleetModel = {
-  readonly id: FleetId
-  readonly ownerPlayerId: PlayerId
-  readonly name: FleetName
-  strength: number
-  readonly originPlanetId: PlanetId
-  destinationPlanetId?: PlanetId | undefined
-  distanceToEnd?: NonNegativeNumber | undefined
-}
+type TurnToProcessFleetModel = Fleet
 
 export type ProcessedTurnModel = {
   gameId: GameId
@@ -358,6 +350,7 @@ export class TurnsRepository extends PostgresRepository {
           gameId: processedTurnModel.gameId,
           destinationPlanetId: fleet.destinationPlanetId ?? null,
           distanceToEnd: fleet.distanceToEnd ?? null,
+          movement: fleet.movement ?? null,
         }))
         if (fleets.length > 0) {
           await tx
@@ -370,6 +363,7 @@ export class TurnsRepository extends PostgresRepository {
                 originPlanetId: sql`excluded.origin_planet_id`,
                 destinationPlanetId: sql`excluded.destination_planet_id`,
                 distanceToEnd: sql`excluded.distance_to_end`,
+                movement: sql`excluded.movement`,
               },
             })
         }
@@ -416,6 +410,7 @@ export class TurnsRepository extends PostgresRepository {
           gameId: processedTurnModel.gameId,
           turn: processedTurnModel.nextTurn,
           selectedTargets: null,
+          selectedInputs: null,
         }))
         if (availableActions.length > 0) {
           await tx.insert(actionsTable).values(availableActions)
@@ -474,9 +469,24 @@ function toTurnToProcessModel({
     closedAt,
     turnInterval,
     rngState,
-    submittedActions: submittedActions.flatMap(({ id, playerId, actionDefinitionId, selectedTargets }) =>
-      selectedTargets === null ? [] : [{ id, playerId, actionDefinitionId, selectedTargets }],
-    ),
+    submittedActions: submittedActions.flatMap((row) => {
+      const { selectedTargets, selectedInputs } = row
+      if (selectedTargets === null || selectedInputs === null) {
+        if (selectedTargets === null && selectedInputs === null) {
+          return []
+        }
+        throw new Error(`Action "${row.id}" has mismatched target and input selection state`)
+      }
+      return [
+        typedParse(SubmittedActionSchema, {
+          id: row.id,
+          playerId: row.playerId,
+          actionDefinitionId: row.actionDefinitionId,
+          selectedTargets,
+          selectedInputs,
+        }),
+      ]
+    }),
     players: indexBy("id", playerModels),
     planets: indexBy("id", planets),
     fleets: indexBy("id", fleets.map(toTurnToProcessFleetModel)),
@@ -484,10 +494,11 @@ function toTurnToProcessModel({
   }
 }
 
-function toTurnToProcessFleetModel({ destinationPlanetId, distanceToEnd, ...fleet }: FleetRow): TurnToProcessFleetModel {
-  return {
+function toTurnToProcessFleetModel({ destinationPlanetId, distanceToEnd, movement, ...fleet }: FleetRow): TurnToProcessFleetModel {
+  return typedParse(FleetSchema, {
     ...fleet,
     ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
     ...(distanceToEnd === null ? {} : { distanceToEnd }),
-  }
+    ...(movement === null ? {} : { movement: movement satisfies FleetMovement }),
+  })
 }

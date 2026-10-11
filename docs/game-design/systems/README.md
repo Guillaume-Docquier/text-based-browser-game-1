@@ -6,15 +6,15 @@ This index summarizes the game's systems. Read the related entries when a mechan
 
 These Systems have live mechanics, but some documented rules remain planned.
 
-| System                                    | Summary                                                                                               |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| [001-turns](./001-turns.md)               | How simultaneous turns are timed, played, ended, and resolved.                                        |
-| [003-actions](./003-actions.md)           | How players use card-like Agendas, Directives, and Programs to affect the game each Turn.             |
-| [008-planets](./008-planets.md)           | How Planets, their Attributes, and Colonization shape expansion.                                      |
-| [010-fleets](./010-fleets.md)             | How players build, move, merge, and view Fleets, and which Fleet rules remain planned.                |
-| [012-movement](./012-movement.md)         | How submitted Move Fleet Directives advance and land Fleets, and which movement rules remain planned. |
-| [014-resources](./014-resources.md)       | How distinct thematic resources are acquired, held, spent, and made scarce.                           |
-| [015-rules-engine](./015-rules-engine.md) | How Ruleset Actions resolve through engine-owned Phases, including current movement and planned gaps. |
+| System                                    | Summary                                                                                   |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [001-turns](./001-turns.md)               | How simultaneous turns are timed, played, ended, and resolved.                            |
+| [003-actions](./003-actions.md)           | How players use card-like Agendas, Directives, and Programs to affect the game each Turn. |
+| [008-planets](./008-planets.md)           | How Planets, their Attributes, and Colonization shape expansion.                          |
+| [010-fleets](./010-fleets.md)             | How players build, move, merge, and view Fleets, and which Fleet rules remain planned.    |
+| [012-movement](./012-movement.md)         | How range-limited partial Fleet departures advance, continue, and arrive.                 |
+| [014-resources](./014-resources.md)       | How distinct thematic resources are acquired, held, spent, and made scarce.               |
+| [015-rules-engine](./015-rules-engine.md) | How shared Action eligibility and Ruleset Effects resolve through engine-owned Phases.    |
 
 ## Not Implemented Systems
 

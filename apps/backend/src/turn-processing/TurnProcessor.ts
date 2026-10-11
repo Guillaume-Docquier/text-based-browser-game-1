@@ -137,10 +137,10 @@ export class TurnProcessor {
 
     const processedAt = this.clock.now()
     const fleetsToUpdate = []
-    const fleetIdsToDelete = []
+    const fleetIdsToDelete = new Set(resolvedTurnResult.value.removedFleetIds)
     for (const fleet of Object.values(resolvedTurnResult.value.fleets)) {
       if (fleet.strength === 0) {
-        fleetIdsToDelete.push(fleet.id)
+        fleetIdsToDelete.add(fleet.id)
       } else {
         fleetsToUpdate.push(fleet)
       }
@@ -164,7 +164,7 @@ export class TurnProcessor {
         })),
       ),
       fleetsToUpdate,
-      fleetIdsToDelete,
+      fleetIdsToDelete: [...fleetIdsToDelete].toSorted((first, second) => first.localeCompare(second)),
     }
 
     if (resolvedTurnResult.value.winnerPlayerId === undefined) {

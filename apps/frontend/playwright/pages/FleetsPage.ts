@@ -7,8 +7,11 @@ import type { LocatorIndex } from "./LocatorIndex.ts"
 type FleetRowLocator = Branded<"FleetRowLocator", Locator>
 
 const FleetColumnIndices = {
+  NAME: 0,
+  STRENGTH: 2,
   ORIGIN_PLANET: 3,
   DESTINATION_PLANET: 4,
+  JOURNEY_LEFT: 5,
 } as const
 
 export class FleetsPage extends GamePage {
@@ -29,6 +32,39 @@ export class FleetsPage extends GamePage {
     return branded(index === "last" ? this.rows.last() : this.rows.nth(index))
   }
 
+  public async rowsByJourneyStatus(): Promise<{ moving: FleetRowLocator[]; stationary: FleetRowLocator[] }> {
+    const moving: FleetRowLocator[] = []
+    const stationary: FleetRowLocator[] = []
+    const rowCount = await this.rows.count()
+
+    for (let index = 0; index < rowCount; index += 1) {
+      const row = this.row(index)
+      if ((await this.destinationPlanetLink(row).count()) > 0) {
+        moving.push(row)
+      } else {
+        stationary.push(row)
+      }
+    }
+
+    return { moving, stationary }
+  }
+
+  public fleetName(row: FleetRowLocator): Locator {
+    return row.getByRole("cell").nth(FleetColumnIndices.NAME)
+  }
+
+  public fleetStrength(row: FleetRowLocator): Locator {
+    return row.getByRole("cell").nth(FleetColumnIndices.STRENGTH)
+  }
+
+  public async getFleetStrength(row: FleetRowLocator): Promise<string> {
+    return (await this.fleetStrength(row).innerText()).trim()
+  }
+
+  public journeyLeft(row: FleetRowLocator): Locator {
+    return row.getByRole("cell").nth(FleetColumnIndices.JOURNEY_LEFT)
+  }
+
   public originPlanet(row: FleetRowLocator): Locator {
     return row.getByRole("cell").nth(FleetColumnIndices.ORIGIN_PLANET)
   }
@@ -44,7 +80,7 @@ export class FleetsPage extends GamePage {
   public async getOriginPlanet(row: FleetRowLocator): Promise<string> {
     const name = await this.originPlanetLink(row).locator("span").first().textContent()
     Assert.isDefined(name)
-    return name
+    return name.trim()
   }
 
   public async getCoordinate(row: FleetRowLocator): Promise<string> {

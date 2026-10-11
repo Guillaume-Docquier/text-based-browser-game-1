@@ -11,6 +11,7 @@ export const WinTheGame: ActionDefinition = {
   name: "Win The Game",
   type: ActionType.PROGRAM,
   tier: ActionTier.EXCEPTIONAL,
+  inputs: {},
   targets: {},
   costs: [
     ResourceLossEffectDefinition.create({

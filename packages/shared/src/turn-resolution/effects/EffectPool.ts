@@ -42,6 +42,11 @@ export class EffectPool {
     this.outcomes.getOrInsert(effect.submittedAction, []).push(...outcomes)
   }
 
+  /** Adds phase outcomes to an Action that already completed its Effect. */
+  public appendOutcomes(submittedAction: SubmittedAction, outcomes: readonly EffectOutcome[]): void {
+    this.outcomes.getOrInsert(submittedAction, []).push(...outcomes)
+  }
+
   public getOutcomes(submittedAction: SubmittedAction): readonly EffectOutcome[] {
     return this.outcomes.getOrInsert(submittedAction, [])
   }

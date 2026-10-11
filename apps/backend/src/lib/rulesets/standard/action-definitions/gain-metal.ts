@@ -11,6 +11,7 @@ export const GainMetal: ActionDefinition = {
   name: "Extract Metal",
   type: ActionType.DIRECTIVE,
   tier: ActionTier.STANDARD,
+  inputs: {},
   targets: {},
   costs: [
     ResourceLossEffectDefinition.create({
