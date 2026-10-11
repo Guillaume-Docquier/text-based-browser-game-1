@@ -20,6 +20,7 @@ import {
   createFleetActionCardScenario,
 } from "./ActionCard.stub.ts"
 import { ActionCard } from "./ActionCard.tsx"
+import { createFleetOperationsCardCheckpoint } from "./FleetOperationsCardCheckpoint.stub.ts"
 
 function projectStorySubmissions(view: PlayerView, actions: Action[]): PlayerView {
   const next = { ...view, actions }
@@ -635,5 +636,195 @@ export const ColonizeUnclaimedDestination: Story = {
     await expect(canvas.getByRole("combobox", { name: "Route target" })).toHaveValue("Unclaimed destination (0:0:0)")
     await expect(canvas.getByRole("status", { name: "Saved orders" })).toHaveTextContent('[{"id":"Y","inputs":{"force":35}}]')
     await expect(canvas.getByRole("status", { name: "Uncommitted fleet strength" })).toHaveTextContent(":15")
+  },
+}
+
+function FleetOperationsExample({
+  alternate = false,
+  maximumDistance = 18,
+}: {
+  alternate?: boolean
+  maximumDistance?: number
+}): ReactElement {
+  const checkpoint = createFleetOperationsCardCheckpoint(alternate, maximumDistance)
+  const [view, setView] = useState(checkpoint.view)
+  const ids = alternate
+    ? ["EXPAND_1", "ENGAGE_1", "ENGAGE_2", "MOVE_FLEET_EXCEPTIONAL_1"]
+    : ["COLONIZE_PLANET_STANDARD_1", "ATTACK_MOVE_STANDARD_1", "MOVE_FLEET_EXCEPTIONAL_1", "MOVE_FLEET_STANDARD_1"]
+  const allocations = computeActionCommitments({ ruleset: view.ruleset, actions: toActionEligibilityState(view).submittedActions })
+  return (
+    <>
+      {view.actions
+        .filter((action) => ids.includes(action.id))
+        .map((action) => (
+          <section key={action.id} aria-label={action.id}>
+            <ActionCard
+              action={action}
+              actionDefinition={view.ruleset.actionDefinitions[action.actionDefinitionId]}
+              playerView={view}
+              players={checkpoint.players}
+              resources={view.resources}
+              canAfford={action.canAffordResources}
+              isSelected={action.status === "SUBMITTED"}
+              disabled={false}
+              onSelect={(selectedTargets, selectedInputs) => {
+                setView(
+                  projectStorySubmissions(
+                    view,
+                    view.actions.map((candidate) =>
+                      candidate.id === action.id
+                        ? { ...candidate, selectedTargets, selectedInputs, status: selectedTargets === null ? "AVAILABLE" : "SUBMITTED" }
+                        : candidate,
+                    ),
+                  ),
+                )
+              }}
+            />
+          </section>
+        ))}
+      <output aria-label="Checkpoint budget">
+        {JSON.stringify({
+          allocated: Object.values(allocations.strength).reduce((total, value) => total + value, 0),
+          available: 80 - Object.values(allocations.strength).reduce((total, value) => total + value, 0),
+          influence: view.resources.INFLUENCE.uncommitted,
+          fuel: view.resources.FUEL.uncommitted,
+        })}
+      </output>
+      <output aria-label="Checkpoint orders">
+        {JSON.stringify(view.actions.filter((action) => action.status === "SUBMITTED").map((action) => [action.id, action.selectedInputs]))}
+      </output>
+    </>
+  )
+}
+
+/** The same literal T12 public checkpoint protects replacement and precise cancellation release. */
+export const PublicLifecycleCheckpoint: Story = {
+  render: () => <FleetOperationsExample />,
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const attack = within(canvas.getByRole("region", { name: "ATTACK_MOVE_STANDARD_1" }))
+    const input = attack.getByRole("spinbutton", { name: "Strength" })
+    const budget = canvas.getByRole("status", { name: "Checkpoint budget" })
+    await expect(budget).toHaveTextContent('{"allocated":70,"available":10,"influence":5,"fuel":0}')
+    await userEvent.clear(input)
+    await userEvent.type(input, "40")
+    await userEvent.click(attack.getByRole("button", { name: "Update action" }))
+    await expect(budget).toHaveTextContent('{"allocated":80,"available":0,"influence":5,"fuel":0}')
+    await userEvent.clear(input)
+    await userEvent.type(input, "41")
+    await expect(attack.getByRole("button", { name: "Update action" })).toBeDisabled()
+    await expect(attack.getByText(/shortfall 1|missing 1|Insufficient Fleet Strength/i)).toBeVisible()
+    await expect(canvas.getByRole("status", { name: "Checkpoint orders" })).toHaveTextContent('["ATTACK_MOVE_STANDARD_1",{"strength":40}]')
+    await userEvent.clear(input)
+    await userEvent.type(input, "30")
+    await userEvent.click(attack.getByRole("button", { name: "Update action" }))
+    await userEvent.click(attack.getByRole("button", { name: /^Selected$/ }))
+    await expect(budget).toHaveTextContent('{"allocated":40,"available":40,"influence":10,"fuel":1}')
+    await userEvent.type(attack.getByRole("combobox", { name: "Planet target" }), "Left home")
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: /Left home/ }))
+    await userEvent.type(attack.getByRole("spinbutton", { name: "Strength" }), "30")
+    await userEvent.click(attack.getByRole("button", { name: "Select action" }))
+    await expect(budget).toHaveTextContent('{"allocated":70,"available":10,"influence":5,"fuel":0}')
+    const projected = toActionEligibilityState(createFleetOperationsCardCheckpoint().view)
+    await expect(projected.players[projected.submittedActions[0]?.playerId ?? ""]?.resources).toStrictEqual({
+      INFLUENCE: 38,
+      METAL: 2,
+      FUEL: 6,
+      ENERGY: 0,
+      COLONY: 0,
+    })
+    const result = resolveTurn(
+      structuredClone({ ...projected, winnerPlayerId: undefined }),
+      typedParse(RulesetSchema, createFleetOperationsCardCheckpoint().view.ruleset),
+      createSeededRng(1234),
+    )
+    await expect(result).toMatchObject({ type: "Success" })
+    const invalid = structuredClone({ ...projected, winnerPlayerId: undefined })
+    const action = invalid.submittedActions.find((action) => action.id === "ATTACK_MOVE_STANDARD_1")
+    if (action === undefined) throw new Error("Missing reviewed Attack")
+    Reflect.set(action, "selectedInputs", { strength: 41 })
+    const resources = structuredClone(invalid.players)
+    await expect(
+      resolveTurn(invalid, typedParse(RulesetSchema, createFleetOperationsCardCheckpoint().view.ruleset), createSeededRng(1234)),
+    ).toMatchObject({ type: "Failure", error: { type: "INVALID_SUBMISSIONS" } })
+    await expect(invalid.players).toStrictEqual(resources)
+  },
+}
+
+/** Renamed configured content shares the real checkpoint and two independent instances. */
+export const AlternatePublicCheckpoint: Story = {
+  render: () => <FleetOperationsExample alternate />,
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const expand = within(canvas.getByRole("region", { name: "EXPAND_1" })),
+      x = within(canvas.getByRole("region", { name: "ENGAGE_1" })),
+      y = within(canvas.getByRole("region", { name: "ENGAGE_2" }))
+    const budget = canvas.getByRole("status", { name: "Checkpoint budget" })
+    await expect(expand.getByText(/consuming exactly 25 Strength/)).toBeVisible()
+    await expect(expand.getByText(/9 light years per turn/)).toBeVisible()
+    await expect(expand.getByText(/Range 18 light years/)).toBeVisible()
+    await expect(budget).toHaveTextContent('{"allocated":80,"available":0,"influence":3,"fuel":1}')
+    await userEvent.clear(expand.getByRole("spinbutton", { name: "Force" }))
+    await userEvent.type(expand.getByRole("spinbutton", { name: "Force" }), "24")
+    await expect(expand.getByRole("button", { name: "Update action" })).toBeDisabled()
+    await expect(expand.getByText("Colonization requires at least 25 Strength")).toBeVisible()
+    await userEvent.clear(expand.getByRole("spinbutton", { name: "Force" }))
+    await userEvent.type(expand.getByRole("spinbutton", { name: "Force" }), "25")
+    await expect(expand.getByRole("button", { name: "Update action" })).toBeEnabled()
+    await userEvent.clear(expand.getByRole("spinbutton", { name: "Force" }))
+    await userEvent.type(expand.getByRole("spinbutton", { name: "Force" }), "35")
+    await userEvent.clear(y.getByRole("spinbutton", { name: "Force" }))
+    await userEvent.type(y.getByRole("spinbutton", { name: "Force" }), "11")
+    await expect(y.getByRole("button", { name: "Update action" })).toBeDisabled()
+    await expect(budget).toHaveTextContent('{"allocated":80,"available":0,"influence":3,"fuel":1}')
+    await userEvent.clear(y.getByRole("spinbutton", { name: "Force" }))
+    await userEvent.type(y.getByRole("spinbutton", { name: "Force" }), "10")
+    await userEvent.clear(x.getByRole("spinbutton", { name: "Force" }))
+    await userEvent.type(x.getByRole("spinbutton", { name: "Force" }), "25")
+    await userEvent.click(x.getByRole("button", { name: "Update action" }))
+    await expect(budget).toHaveTextContent('{"allocated":75,"available":5,"influence":3,"fuel":1}')
+    await userEvent.clear(x.getByRole("spinbutton", { name: "Force" }))
+    await userEvent.type(x.getByRole("spinbutton", { name: "Force" }), "30")
+    await userEvent.click(x.getByRole("button", { name: "Update action" }))
+    await expect(budget).toHaveTextContent('{"allocated":80,"available":0,"influence":3,"fuel":1}')
+    await userEvent.click(y.getByRole("button", { name: /^Selected$/ }))
+    await expect(budget).toHaveTextContent('{"allocated":70,"available":10,"influence":7,"fuel":1}')
+    await userEvent.type(y.getByRole("combobox", { name: "World target" }), "Left home")
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: /Left home/ }))
+    await userEvent.type(y.getByRole("spinbutton", { name: "Force" }), "10")
+    await userEvent.click(y.getByRole("button", { name: "Select action" }))
+    await expect(budget).toHaveTextContent('{"allocated":80,"available":0,"influence":3,"fuel":1}')
+    const fixture = createFleetOperationsCardCheckpoint(true),
+      state = toActionEligibilityState(fixture.view)
+    await expect(
+      resolveTurn(
+        structuredClone({ ...state, winnerPlayerId: undefined }),
+        typedParse(RulesetSchema, fixture.view.ruleset),
+        createSeededRng(1234),
+      ),
+    ).toMatchObject({ type: "Success" })
+  },
+}
+
+/** Range17 excludes both generated long routes in the actual renamed TargetPicker. */
+export const AlternatePublicRange17: Story = {
+  render: () => <FleetOperationsExample alternate maximumDistance={17} />,
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const expand = within(canvas.getByRole("region", { name: "EXPAND_1" })),
+      attack = within(canvas.getByRole("region", { name: "ENGAGE_1" }))
+    for (const card of [expand, attack]) {
+      await userEvent.click(card.getByRole("combobox", { name: "World target" }))
+      const body = within(canvasElement.ownerDocument.body)
+      await expect(body.queryByRole("option", { name: /Unclaimed destination/ })).not.toBeInTheDocument()
+      await expect(body.queryByRole("option", { name: /Left home/ })).not.toBeInTheDocument()
+      await userEvent.keyboard("{Escape}")
+    }
+    const fixture = createFleetOperationsCardCheckpoint(true, 17),
+      state = toActionEligibilityState(fixture.view),
+      resources = structuredClone(state.players)
+    const working = { ...structuredClone(state), winnerPlayerId: undefined }
+    await expect(resolveTurn(working, typedParse(RulesetSchema, fixture.view.ruleset), createSeededRng(1234))).toMatchObject({
+      type: "Failure",
+      error: { type: "INVALID_SUBMISSIONS" },
+    })
+    await expect(working.players).toStrictEqual(resources)
   },
 }

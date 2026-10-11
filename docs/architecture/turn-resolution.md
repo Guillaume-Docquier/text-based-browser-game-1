@@ -52,7 +52,7 @@ All action submissions are validated before any resolution starts. Any invalid a
 
 A failed turn state is expected to not be persisted, as the turn resolver stopped at the first error and the state is probably incomplete.
 
-If any Effect fails to process at a later time, for any reason, then the turn will also be failed. Passing the validation should ensure that every Action will be able to resolve correctly, so if an Effect cannot properly resolve, it will be treated as fatal and fail the turn.
+Expected later gameplay changes, such as a destroyed attacker, insufficient surviving colonizing force or an earlier Planet claim, complete the Effect with a Prevented outcome. They do not fail the Turn or refund paid costs. Corrupt saved bindings, invalid locked submissions and engine failures return a typed Failure; their partial state must not be persisted. See [Turn processing](turn-processing.md) for the atomic save boundary and current failure-recovery policy.
 
 ![Rules Engine success and failure boundary](../../.github/images/rules-engine-failure-boundary.png)
 

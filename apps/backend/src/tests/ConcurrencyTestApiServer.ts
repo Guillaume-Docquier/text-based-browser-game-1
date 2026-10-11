@@ -5,6 +5,7 @@ import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
 import { eq } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
+import type { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
 import { createApiStub } from "#api/createApi.stub.ts"
 import { PortListeningMessageSchema } from "#api/PortListeningMessage.ts"
@@ -171,13 +172,13 @@ export class ControlledConcurrencyTestApiServer {
     this.processor = processor
     this.turnsRepository = turnsRepository
   }
-  public static async create(): Promise<ControlledConcurrencyTestApiServer> {
+  public static async create(authoredRulesets: readonly Ruleset[] = []): Promise<ControlledConcurrencyTestApiServer> {
     const postgres = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
     const db = createDb({ databaseUrl: postgres.getConnectionUri() })
     await migrate(db, { migrationsFolder: "./drizzle/" })
     const logger = Logger.get()
     const repository = new RulesetsRepository({ db, logger })
-    for (const ruleset of CoreRulesets) Assert.isSuccess(await repository.upsertRuleset(ruleset))
+    for (const ruleset of [...CoreRulesets, ...authoredRulesets]) Assert.isSuccess(await repository.upsertRuleset(ruleset))
     const clock = new ControlledClock()
     const api = new ApiServer(await createApiStub({ db, clock }))
     const { turnProcessor: processor, turnsRepository } = await createTurnProcessorStub({ db, clock })

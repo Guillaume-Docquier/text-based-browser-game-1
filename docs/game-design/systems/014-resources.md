@@ -43,13 +43,13 @@ Relates to:
 
 ## Resource Catalogue
 
-| Resource  | Role                                                                                                  |
-| --------- | ----------------------------------------------------------------------------------------------------- |
-| Influence | Planned as the resource required to play every Action, with a per-Turn reset set by Political Regime. |
-| Metal     | Supports construction, including Fleets and Infrastructure.                                           |
-| Fuel      | Supports Fleet movement.                                                                              |
-| Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.   |
-| Colony    | Supports colonizing additional Planets. It is fractional and produced in low amounts.                 |
+| Resource  | Role                                                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Influence | Planned as the resource required to play every Action, with a per-Turn reset set by Political Regime.                     |
+| Metal     | Supports construction, including Fleets and Infrastructure.                                                               |
+| Fuel      | Supports Fleet movement.                                                                                                  |
+| Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.                       |
+| Colony    | Planned fractional resource for expansion, produced in low amounts. Currently stored and displayed with no source or use. |
 
 ## Current Implementation
 

@@ -61,6 +61,12 @@ export class ActionsPage extends GamePage {
     await this.selectActionButton(name, identifyingText).click()
   }
 
+  public async updateAction(name: string, identifyingText?: string): Promise<void> {
+    await this.action(name, identifyingText).getByRole("button", { name: "Update action", exact: true }).click()
+  }
+  public updateActionButton(name: string, identifyingText?: string): Locator {
+    return this.action(name, identifyingText).getByRole("button", { name: "Update action", exact: true })
+  }
   public targetPicker(actionName: string, identifyingText: string, targetName: string): Locator {
     return this.action(actionName, identifyingText).getByRole("combobox", { name: `${targetName} target` })
   }

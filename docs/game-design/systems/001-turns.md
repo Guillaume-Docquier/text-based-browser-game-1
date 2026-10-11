@@ -55,7 +55,7 @@ The Fleet Movement Phase uses 20 Ticks to provide finer chronological ordering w
 
 After the Fleet Movement Phase, Fleet Build creates or reinforces a player's Fleet at its target Planet. The Fleet Combat Phase then resolves from the final Fleet positions. The Planet Phase occurs before Colonization. Colonization then uses the arrival order established by Movement Ticks. A Fleet that arrives during the Turn is present for the Fleet Combat Phase at its destination before it can colonize that Planet.
 
-If a locked Action Submission is invalid or an Effect fails to resolve, Turn Resolution does not complete. The Turn remains locked and is retried from the same pre-resolution state, Action Submissions, and deterministic random input. Partial state changes and Effect Outcomes from the failed attempt are discarded.
+Expected gameplay prevention completes an Effect with a Prevented outcome and allows the Turn to complete. An invalid locked Action Submission, corrupt saved journey or engine failure instead returns a typed Failure. Partial state changes and Effect Outcomes from that failed attempt are discarded; the Turn remains locked. A reset and retry must reload the same pre-resolution state, submissions and deterministic random input. Automatic recovery policy remains tracked in [#433](https://github.com/Guillaume-Docquier/text-based-browser-game-1/issues/433); see [Turn processing](../../architecture/turn-processing.md) for the current worker boundary.
 
 When Turn Resolution completes, the Turn becomes `COMPLETED`. If the game continues, the server creates the next `COLLECTING_ACTIONS` Turn with its own deadline, random-generator state, available Actions, and processing queue row. If the game ends, no next Turn or processing row is created.
 
