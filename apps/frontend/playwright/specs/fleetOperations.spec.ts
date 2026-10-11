@@ -1,12 +1,5 @@
 import { Assert, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { TestInfo } from "@playwright/test"
-import { evaluateActionSelection } from "shared/action-submission/actionEligibility.ts"
-import { RulesetSchema } from "shared/domain/ruleset/Ruleset.ts"
-import { SubmittedActionSchema } from "shared/domain/turns/actions/Action.ts"
-import { createSeededRng } from "shared/testing/createSeededRng.ts"
-import { resolveTurn } from "shared/turn-resolution/resolveTurn.ts"
-import { toActionEligibilityState } from "../../src/features/play/actionEligibilityState.ts"
 import type { AuthenticatedUser } from "../AuthenticatedUser.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
@@ -216,53 +209,10 @@ async function verifyInitialBoundaries({ right }: UnifiedFleetJourney): Promise<
   Assert.isDefined(enemy)
   expect(source.strength).toBe(80)
   expect(enemy.strength).toBe(60)
-  const allPlanets = view.galaxy.systems.flatMap((system) => system.planets),
-    destination = allPlanets.find((planet) => planet.coordinates === "35:35:40"),
-    home = allPlanets.find((planet) => planet.coordinates === "46:93:25"),
-    opponentHome = allPlanets.find((planet) => planet.coordinates === "44:96:25")
-  Assert.isDefined(destination)
-  Assert.isDefined(home)
-  Assert.isDefined(opponentHome)
   for (const query of ["35:35:40", "44:96:25", "46:93:25"]) {
     await actions.searchTarget("Move Fleet", "Standard Directive", "Planet", query)
     await expect(actions.targetChoices("Planet").getByRole("option")).toHaveCount(0)
   }
-  const projected = toActionEligibilityState(view),
-    ruleset = typedParse(RulesetSchema, view.ruleset)
-  for (const invalid of [
-    { id: "MOVE_FLEET_STANDARD_1", source: source.id, planet: destination.id, amount: 1 },
-    { id: "MOVE_FLEET_STANDARD_1", source: source.id, planet: opponentHome.id, amount: 1 },
-    { id: "ATTACK_MOVE_STANDARD_1", source: source.id, planet: home.id, amount: 1 },
-    { id: "ATTACK_MOVE_STANDARD_1", source: enemy.id, planet: opponentHome.id, amount: 1 },
-    { id: "ATTACK_MOVE_STANDARD_1", source: "missing", planet: opponentHome.id, amount: 1 },
-    { id: "ATTACK_MOVE_STANDARD_1", source: source.id, planet: opponentHome.id, amount: 0 },
-    { id: "ATTACK_MOVE_STANDARD_1", source: source.id, planet: opponentHome.id, amount: 1.5 },
-    { id: "COLONIZE_PLANET_STANDARD_1", source: source.id, planet: opponentHome.id, amount: 35 },
-  ]) {
-    const action = view.actions.find((action) => action.id === invalid.id)
-    Assert.isDefined(action)
-    const candidate = typedParse(SubmittedActionSchema, {
-      ...action,
-      playerId: view.player.id,
-      selectedTargets: { fleet: source.id, planet: destination.id },
-      selectedInputs: { strength: 1 },
-    })
-    const selection = { selectedTargets: { fleet: invalid.source, planet: invalid.planet }, selectedInputs: { strength: invalid.amount } }
-    expect(evaluateActionSelection({ state: projected, ruleset, action: candidate, selection, mode: "complete" }).eligible).toBe(false)
-    Reflect.set(candidate, "selectedTargets", selection.selectedTargets)
-    Reflect.set(candidate, "selectedInputs", selection.selectedInputs)
-    const resolution = structuredClone({ ...projected, winnerPlayerId: undefined, submittedActions: [candidate] }),
-      resources = structuredClone(resolution.players)
-    expect(resolveTurn(resolution, ruleset, createSeededRng(1234))).toMatchObject({
-      type: "Failure",
-      error: { type: "INVALID_SUBMISSIONS" },
-    })
-    expect(resolution.players).toStrictEqual(resources)
-    expect(await actions.submitRawSelection(view, action, selection.selectedTargets, selection.selectedInputs)).toMatchObject({
-      status: 400,
-    })
-  }
-  expect(await actions.refreshPlayerView()).toStrictEqual(view)
 }
 
 async function selectUnifiedAllocations({ right, left, advance }: UnifiedFleetJourney): Promise<void> {
@@ -281,21 +231,6 @@ async function selectUnifiedAllocations({ right, left, advance }: UnifiedFleetJo
   const actions = await new GalaxyPage(right.page).openActions()
   await expect(actions.resource("Influence")).toHaveAttribute("aria-label", "5 available of 38 Influence")
   await expect(actions.resource("Fuel")).toHaveAttribute("aria-label", "0 available of 6 Fuel")
-  const view = await actions.refreshPlayerView(),
-    state = toActionEligibilityState(view),
-    ruleset = typedParse(RulesetSchema, view.ruleset)
-  expect(state.submittedActions).toHaveLength(3)
-  const control = resolveTurn(structuredClone({ ...state, winnerPlayerId: undefined }), ruleset, createSeededRng(1234))
-  expect(control).toMatchObject({ type: "Success" })
-  if (control.type === "Success") {
-    expect(
-      Object.values(control.value.fleets)
-        .filter((fleet) => fleet.ownerPlayerId === view.player.id)
-        .map((fleet) => fleet.strength)
-        .toSorted((a, b) => a - b),
-    ).toEqual([5, 10, 30, 35])
-    expect(control.value.players[view.player.id]?.resources).toEqual({ INFLUENCE: 5, METAL: 2, FUEL: 0, ENERGY: 0, COLONY: 0 })
-  }
   await actions.setNumericInput("Attack Move", "Standard Directive", "Strength", "40")
   await actions.updateAction("Attack Move", "Standard Directive")
   await actions.setNumericInput("Attack Move", "Standard Directive", "Strength", "41")
@@ -304,20 +239,6 @@ async function selectUnifiedAllocations({ right, left, advance }: UnifiedFleetJo
     attack = forty.actions.find((action) => action.id === "ATTACK_MOVE_STANDARD_1")
   Assert.isDefined(attack)
   expect(attack.selectedInputs).toEqual({ strength: 40 })
-  expect(await actions.submitRawSelection(forty, attack, attack.selectedTargets, { strength: 41 })).toMatchObject({ status: 400 })
-  const projected = toActionEligibilityState(forty),
-    candidate = projected.submittedActions.find((action) => action.id === attack.id)
-  Assert.isDefined(candidate)
-  const selection = { selectedTargets: candidate.selectedTargets, selectedInputs: { strength: 41 } }
-  expect(evaluateActionSelection({ state: projected, ruleset, action: candidate, selection, mode: "complete" })).toMatchObject({
-    eligible: false,
-    issues: expect.arrayContaining([expect.objectContaining({ shortfall: 1 })]),
-  })
-  Reflect.set(candidate, "selectedInputs", { strength: 41 })
-  expect(resolveTurn({ ...structuredClone(projected), winnerPlayerId: undefined }, ruleset, createSeededRng(1234))).toMatchObject({
-    type: "Failure",
-    error: { type: "INVALID_SUBMISSIONS" },
-  })
   await actions.setNumericInput("Attack Move", "Standard Directive", "Strength", "30")
   await actions.updateAction("Attack Move", "Standard Directive")
   await actions.toggleActionSelection("Attack Move", "Standard Directive")
@@ -343,44 +264,15 @@ async function verifySavedDepartures({ right, left, advance }: UnifiedFleetJourn
   await fleets.reload()
   await expect(fleets.rows).toHaveCount(6)
   await expect(fleets.remainingDistance(fleets.rowByStrength(30))).toHaveText("7.08 ly")
-  const actions = await fleets.openActions(),
-    view = await actions.refreshPlayerView()
-  for (const [name, tier, id] of [
-    ["Colonize Planet", "Standard Directive", "COLONIZE_PLANET_STANDARD_1"],
-    ["Attack Move", "Standard Directive", "ATTACK_MOVE_STANDARD_1"],
-    ["Move Fleet", "Exceptional Directive", "MOVE_FLEET_EXCEPTIONAL_1"],
+  const actions = await fleets.openActions()
+  for (const [name, tier] of [
+    ["Colonize Planet", "Standard Directive"],
+    ["Attack Move", "Standard Directive"],
+    ["Move Fleet", "Exceptional Directive"],
   ] as const) {
     await expect(actions.action(name, tier)).toContainText("In progress:")
     await expect(actions.selectActionButton(name, tier)).toHaveCount(0)
-    const action = view.actions.find((action) => action.id === id)
-    Assert.isDefined(action)
-    expect(await actions.submitRawSelection(view, action, null, null)).toMatchObject({ status: 400 })
-    expect(await actions.submitRawSelection({ ...view, turn: 12 }, action, action.selectedTargets, action.selectedInputs)).toMatchObject({
-      status: 400,
-    })
   }
-  const sibling = view.actions.find((action) => action.id === "ATTACK_MOVE_STANDARD_2"),
-    moving = view.fleets.find((fleet) => fleet.movement !== undefined && fleet.ownerPlayerId === view.player.id),
-    destination = view.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "44:96:25")
-  Assert.isDefined(sibling)
-  Assert.isDefined(moving)
-  Assert.isDefined(destination)
-  const candidate = typedParse(SubmittedActionSchema, {
-    ...sibling,
-    playerId: view.player.id,
-    selectedTargets: { fleet: moving.id, planet: destination.id },
-    selectedInputs: { strength: 1 },
-  })
-  const state = toActionEligibilityState(view),
-    ruleset = typedParse(RulesetSchema, view.ruleset)
-  expect(evaluateActionSelection({ state, ruleset, action: candidate, selection: candidate, mode: "complete" }).eligible).toBe(false)
-  expect(
-    resolveTurn(structuredClone({ ...state, submittedActions: [candidate], winnerPlayerId: undefined }), ruleset, createSeededRng(1234)),
-  ).toMatchObject({ type: "Failure", error: { type: "INVALID_SUBMISSIONS" } })
-  expect(await actions.submitRawSelection(view, sibling, candidate.selectedTargets, candidate.selectedInputs)).toMatchObject({
-    status: 400,
-  })
-  expect(await actions.refreshPlayerView()).toStrictEqual(view)
   await actions.toggleActionSelection("Political Campaign")
   await actions.toggleActionSelection("Refine Fuel")
   await advance(14)

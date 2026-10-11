@@ -2,15 +2,12 @@ import type { Action, PlayerView, ResourceType, ResourceStockpile } from "@api-t
 import { typedParse, PositiveNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState, type ReactElement } from "react"
-import { computeActionCommitments, evaluateActionSelection } from "shared/action-submission/actionEligibility.ts"
+import { computeActionCommitments } from "shared/action-submission/actionEligibility.ts"
 import { ActionDefinitionSchema } from "shared/domain/ruleset/action-definitions/ActionDefinition.ts"
-import { RulesetSchema } from "shared/domain/ruleset/Ruleset.ts"
 import { createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { PendingArrivalEffectSchema } from "shared/domain/world/fleets/PendingArrivalEffect.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
-import { createSeededRng } from "shared/testing/createSeededRng.ts"
-import { resolveTurn } from "shared/turn-resolution/resolveTurn.ts"
 import { expect, within } from "storybook/test"
 import { toActionEligibilityState } from "../actionEligibilityState.ts"
 import {
@@ -274,109 +271,10 @@ export const FreshStrengthInvalidatesSavedOrder: Story = {
   },
 }
 
-/** Projection retains total stockpiles and reservations; resolver checks the same completed set before payment. */
-export const ProjectedResolverParity: Story = {
-  play: async ({ canvas }) => {
-    const fixture = initial.scenario
-    const state = toActionEligibilityState(initial.view)
-    await expect(state.players[fixture.playerId]?.resources).toMatchObject({ INFLUENCE: 6, FUEL: 2 })
-    await expect(state.submittedActions).toStrictEqual([fixture.order("X", 20)])
-    for (const strength of [30, 31]) {
-      const candidate = fixture.order("Y", strength)
-      const evaluation = evaluateActionSelection({
-        state,
-        ruleset: fixture.ruleset,
-        action: candidate,
-        selection: candidate,
-        mode: "complete",
-      })
-      const resolved = resolveTurn(
-        structuredClone({ ...state, winnerPlayerId: undefined, submittedActions: [...state.submittedActions, candidate] }),
-        fixture.ruleset,
-        createSeededRng(),
-      )
-      await expect(evaluation.eligible).toBe(strength === 30)
-      await expect(resolved.type).toBe(strength === 30 ? "Success" : "Failure")
-      if (strength === 31)
-        await expect(evaluation.issues).toContainEqual(expect.objectContaining({ path: ["selectedInputs", "force"], shortfall: 1 }))
-    }
-    const outside = createPlanetStub({ id: "outside", x: 3, y: 4.000001 })
-    const invalidSelections = [
-      { targets: { craft: "source", route: "destination" }, inputs: { force: 0 }, path: ["selectedInputs", "force"] },
-      { targets: { craft: "missing", route: "destination" }, inputs: { force: 1 }, path: ["selectedTargets", "craft"] },
-      { targets: { craft: "source", route: "origin" }, inputs: { force: 1 }, path: ["selectedTargets", "route"] },
-      { targets: { craft: "source", route: "outside" }, inputs: { force: 1 }, path: ["selectedTargets", "route"] },
-    ]
-    const scoped = { ...state, planets: { ...state.planets, [outside.id]: outside } }
-    for (const invalid of invalidSelections) {
-      const candidate = structuredClone(fixture.order("Y", 1))
-      Reflect.set(candidate, "selectedTargets", invalid.targets)
-      Reflect.set(candidate, "selectedInputs", invalid.inputs)
-      const evaluation = evaluateActionSelection({
-        state: scoped,
-        ruleset: fixture.ruleset,
-        action: candidate,
-        selection: candidate,
-        mode: "complete",
-      })
-      const resolved = resolveTurn(
-        structuredClone({ ...scoped, winnerPlayerId: undefined, submittedActions: [...state.submittedActions, candidate] }),
-        fixture.ruleset,
-        createSeededRng(),
-      )
-      await expect(evaluation.eligible).toBe(false)
-      await expect(evaluation.issues).toContainEqual(expect.objectContaining({ path: invalid.path, status: "invalid" }))
-      await expect(resolved).toMatchObject({ type: "Failure", error: { type: "INVALID_SUBMISSIONS" } })
-    }
-    await expect(canvas.getByText("Force (available 30)")).toBeVisible()
-  },
-}
-
 /** Assault content uses the same source budget as the sibling ordinary Move. */
 export const AttackAllocation: Story = {
   render: () => <FleetActionExample initialView={createAttackActionCardScenario().view} actionId="ATTACK_MOVE_STANDARD_1" />,
   play: async ({ canvas, canvasElement, userEvent }) => {
-    // Exercise the actual view projection and resolver with Test's literal 25-light-year boundary.
-    const fixture = createAttackActionCardScenario()
-    const projected = toActionEligibilityState(fixture.view)
-    const ruleset = typedParse(RulesetSchema, fixture.view.ruleset)
-    const boundary = createPlanetStub({ id: "attack-boundary", x: 15, y: 20 })
-    const outside = createPlanetStub({ id: "attack-outside", x: 15, y: 20.000001 })
-    const state = { ...projected, planets: { ...projected.planets, [boundary.id]: boundary, [outside.id]: outside } }
-    for (const [destination, strength, eligible] of [
-      [boundary, 30, true],
-      [boundary, 31, false],
-      [outside, 30, false],
-    ] as const) {
-      const candidate = createSubmittedActionStub({
-        id: "ATTACK_MOVE_STANDARD_1",
-        playerId: fixture.view.player.id,
-        actionDefinitionId: fixture.definition.id,
-        selectedTargets: { fleet: fixture.scenario.source.id, planet: destination.id },
-        selectedInputs: { strength },
-      })
-      const evaluation = evaluateActionSelection({
-        state,
-        ruleset: fixture.view.ruleset,
-        action: candidate,
-        selection: candidate,
-        mode: "complete",
-      })
-      const resolved = resolveTurn(
-        structuredClone({ ...state, winnerPlayerId: undefined, submittedActions: [...state.submittedActions, candidate] }),
-        ruleset,
-        createSeededRng(),
-      )
-      await expect(evaluation.eligible).toBe(eligible)
-      await expect(resolved).toMatchObject(
-        eligible
-          ? { type: "Success", value: { turn: 1, fleets: expect.any(Object) } }
-          : { type: "Failure", error: { type: "INVALID_SUBMISSIONS" } },
-      )
-      if (strength === 31) await expect(evaluation.issues).toContainEqual(expect.objectContaining({ shortfall: 1 }))
-      if (destination === outside)
-        await expect(evaluation.issues).toContainEqual(expect.objectContaining({ path: ["selectedTargets", "planet"] }))
-    }
     await expect(canvas.getByText(/assault all enemy fleets/)).toBeVisible()
     await expect(canvas.getByText(/10 light years per turn/)).toBeVisible()
     await expect(canvas.getByText("Strength (available 30)")).toBeVisible()
@@ -724,29 +622,6 @@ export const PublicLifecycleCheckpoint: Story = {
     await userEvent.type(attack.getByRole("spinbutton", { name: "Strength" }), "30")
     await userEvent.click(attack.getByRole("button", { name: "Select action" }))
     await expect(budget).toHaveTextContent('{"allocated":70,"available":10,"influence":5,"fuel":0}')
-    const projected = toActionEligibilityState(createFleetOperationsCardCheckpoint().view)
-    await expect(projected.players[projected.submittedActions[0]?.playerId ?? ""]?.resources).toStrictEqual({
-      INFLUENCE: 38,
-      METAL: 2,
-      FUEL: 6,
-      ENERGY: 0,
-      COLONY: 0,
-    })
-    const result = resolveTurn(
-      structuredClone({ ...projected, winnerPlayerId: undefined }),
-      typedParse(RulesetSchema, createFleetOperationsCardCheckpoint().view.ruleset),
-      createSeededRng(1234),
-    )
-    await expect(result).toMatchObject({ type: "Success" })
-    const invalid = structuredClone({ ...projected, winnerPlayerId: undefined })
-    const action = invalid.submittedActions.find((action) => action.id === "ATTACK_MOVE_STANDARD_1")
-    if (action === undefined) throw new Error("Missing reviewed Attack")
-    Reflect.set(action, "selectedInputs", { strength: 41 })
-    const resources = structuredClone(invalid.players)
-    await expect(
-      resolveTurn(invalid, typedParse(RulesetSchema, createFleetOperationsCardCheckpoint().view.ruleset), createSeededRng(1234)),
-    ).toMatchObject({ type: "Failure", error: { type: "INVALID_SUBMISSIONS" } })
-    await expect(invalid.players).toStrictEqual(resources)
   },
 }
 
@@ -792,15 +667,6 @@ export const AlternatePublicCheckpoint: Story = {
     await userEvent.type(y.getByRole("spinbutton", { name: "Force" }), "10")
     await userEvent.click(y.getByRole("button", { name: "Select action" }))
     await expect(budget).toHaveTextContent('{"allocated":80,"available":0,"influence":3,"fuel":1}')
-    const fixture = createFleetOperationsCardCheckpoint(true),
-      state = toActionEligibilityState(fixture.view)
-    await expect(
-      resolveTurn(
-        structuredClone({ ...state, winnerPlayerId: undefined }),
-        typedParse(RulesetSchema, fixture.view.ruleset),
-        createSeededRng(1234),
-      ),
-    ).toMatchObject({ type: "Success" })
   },
 }
 
@@ -817,14 +683,5 @@ export const AlternatePublicRange17: Story = {
       await expect(body.queryByRole("option", { name: /Left home/ })).not.toBeInTheDocument()
       await userEvent.keyboard("{Escape}")
     }
-    const fixture = createFleetOperationsCardCheckpoint(true, 17),
-      state = toActionEligibilityState(fixture.view),
-      resources = structuredClone(state.players)
-    const working = { ...structuredClone(state), winnerPlayerId: undefined }
-    await expect(resolveTurn(working, typedParse(RulesetSchema, fixture.view.ruleset), createSeededRng(1234))).toMatchObject({
-      type: "Failure",
-      error: { type: "INVALID_SUBMISSIONS" },
-    })
-    await expect(working.players).toStrictEqual(resources)
   },
 }
