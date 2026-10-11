@@ -1,13 +1,10 @@
 import { branded, indexBy } from "@guillaume-docquier/tools-ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
-import { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
+import { createFleetMoveActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
 import type { ActionDefinition } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
-import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
-import { ResourceLossEffectDefinition } from "#shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
 import { createRulesetStub } from "#shared/domain/ruleset/Ruleset.stub.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
@@ -39,21 +36,7 @@ export function createFleetEligibilityScenario({
   const destination = createPlanetStub({ id: "destination", x: 3, y: 4 })
   const second = createPlanetStub({ id: "second", x: -3, y: 4 })
   const source = createFleetStub({ id: "source", name: "Original", ownerPlayerId: playerId, originPlanetId: origin.id, strength })
-  const definition = createActionDefinitionStub({
-    id: "RENAMED",
-    name: "Traverse",
-    tier: "BASIC",
-    inputs: { force: { type: "FLEET_STRENGTH", fleetTargetTag: "craft" } },
-    targets: {
-      craft: { targetType: "FLEET", constraints: [OwnedBySubmittingPlayerConstraint.create(), { type: "STATIONARY_FLEET" }] },
-      route: { targetType: "PLANET", constraints: [{ type: "WITHIN_FLEET_RANGE", fleetTargetTag: "craft", maximumDistance: range }] },
-    },
-    costs: [
-      ResourceLossEffectDefinition.create({ resourceType: "INFLUENCE", quantity: 3 }),
-      ResourceLossEffectDefinition.create({ resourceType: "FUEL", quantity: 1 }),
-    ],
-    effects: [FleetMoveEffectDefinition.create({ fleetTag: "craft", planetTag: "route", strengthTag: "force", speed })],
-  })
+  const definition = createFleetMoveActionDefinitionStub({ speed, range })
   const ruleset = createRulesetStub({
     actionDefinitions: { [definition.id]: definition },
     actionPool: ["X", "Y", "Z"].map((id) => ({ id, actionDefinitionId: definition.id })),

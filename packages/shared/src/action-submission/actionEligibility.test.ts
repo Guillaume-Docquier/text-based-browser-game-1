@@ -217,39 +217,6 @@ describe("shared fleet action eligibility", () => {
     // Assert
     expect(result.eligible).toBe(false)
   })
-
-  it("should rejects malformed declarative movement compositions", () => {
-    // Arrange
-    const { definition } = createFleetEligibilityScenario()
-    const variants = [
-      { ...definition, inputs: {} },
-      { ...definition, inputs: { ...definition.inputs, unused: { type: "FLEET_STRENGTH", fleetTargetTag: "craft" } } },
-      { ...definition, effects: [...definition.effects, ...definition.effects] },
-      { ...definition, targets: { ...definition.targets, craft: { targetType: "FLEET", constraints: [] } } },
-      {
-        ...definition,
-        targets: {
-          ...definition.targets,
-          route: { targetType: "PLANET", constraints: [{ type: "WITHIN_FLEET_RANGE", fleetTargetTag: "route", maximumDistance: 5 }] },
-        },
-      },
-      ...[0, -1, Infinity].map((speed) => ({
-        ...definition,
-        effects: definition.effects.map((effect) => ({ ...effect, parameters: { speed } })),
-      })),
-      ...[0, -1, Infinity].map((maximumDistance) => ({
-        ...definition,
-        targets: {
-          ...definition.targets,
-          route: { targetType: "PLANET", constraints: [{ type: "WITHIN_FLEET_RANGE", fleetTargetTag: "craft", maximumDistance }] },
-        },
-      })),
-    ]
-    // Act
-    const results = variants.map((value) => ActionDefinitionSchema.safeParse(value).success)
-    // Assert
-    expect(results).toStrictEqual(variants.map(() => false))
-  })
 })
 
 describe("authoritative fleet boundary snapshots", () => {

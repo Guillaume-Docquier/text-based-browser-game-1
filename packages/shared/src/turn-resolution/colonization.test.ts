@@ -4,7 +4,10 @@ import { describe, expect, it } from "vitest"
 import { computeActionCommitments, evaluateActionSelection, evaluateTargetSelection } from "#shared/action-submission/actionEligibility.ts"
 import { ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
-import { ColonizeEffectDefinitionSchema } from "#shared/domain/ruleset/effect-definitions/ColonizeEffectDefinition.ts"
+import {
+  ColonizeEffectDefinition,
+  ColonizeEffectDefinitionSchema,
+} from "#shared/domain/ruleset/effect-definitions/ColonizeEffectDefinition.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
@@ -470,9 +473,7 @@ describe("Colonization commitments and deferred integrity", () => {
     "should rejects invalid configured requirement%s",
     (requiredStrength) => {
       // Arrange
-      const fixture = createColonizationScenario()
-      const definition = Object.values(fixture.ruleset.actionDefinitions)[0]?.effects.find((effect) => effect.type === "COLONIZE")
-      Assert.isDefined(definition)
+      const definition = ColonizeEffectDefinition.create({ fleetTag: "craft", planetTag: "route", requiredStrength: 20 })
       // Act
       const result = ColonizeEffectDefinitionSchema.safeParse({ ...definition, parameters: { requiredStrength } })
       // Assert
