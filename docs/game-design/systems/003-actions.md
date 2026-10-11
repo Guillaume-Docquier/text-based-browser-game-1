@@ -61,7 +61,7 @@ Relates to:
 
 ## Current Implementation
 
-The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, three Build Fleet Directives, and three Move Fleet Directives. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders target pickers for Build Fleet's owned Planet and Move Fleet's owned Fleet and destination Planet. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
+The Standard Ruleset's single Action Pool offers one of each resource-gain Action, the placeholder victory Action, three Build Fleet Directives, and three Move Fleet Directives. Each Pooled Action has a stable Action ID and references an Action Definition. Every player receives these Actions at game start and on each subsequent Turn, retaining the same IDs across Turns, except instances occupied by active journeys. The frontend renders each definition's type, tier, costs, effect text, and affordability. It renders target pickers for Build Fleet's owned Planet and Move Fleet's owned Fleet and destination Planet. Ideology-driven Action selection and other target pickers remain planned. Political Campaign currently has no cost, an exception to the planned rule that every Action costs Influence.
 
 The live Build Fleet values are temporary balance and differ from the planned Directive catalogue below. These are the current Standard Ruleset values:
 
@@ -73,15 +73,17 @@ The live Build Fleet values are temporary balance and differ from the planned Di
 
 Each Build Fleet submission chooses an owned Planet. Its costs are paid during Turn Resolution; the Fleet Build Phase then creates or reinforces the player's Fleet there. See [System 010-fleets](./010-fleets.md) for Fleet identity and presentation.
 
-Each Move Fleet submission chooses an owned Fleet and a destination Planet. The current Move Fleet values are temporary and differ from the planned catalogue below:
+Each Move Fleet submission chooses an owned stationary Fleet, positive whole-number Strength and a distinct destination Planet within the configured range. The current Move Fleet values are temporary and differ from the planned catalogue below:
 
-| Move Fleet tier  | Influence cost | Fuel cost | Speed (light-years per Turn) |
-| ---------------- | -------------: | --------: | ---------------------------: |
-| Standard (T4)    |              3 |         1 |                          0.1 |
-| Improved (T3)    |              3 |         3 |                            1 |
-| Exceptional (T1) |              3 |         5 |                            5 |
+| Move Fleet tier  | Influence cost | Fuel cost | Speed (light-years per Turn) | Range (light-years) |
+| ---------------- | -------------: | --------: | ---------------------------: | ------------------: |
+| Standard (T4)    |              3 |         1 |                          0.1 |                   5 |
+| Improved (T3)    |              3 |         3 |                            1 |                   5 |
+| Exceptional (T1) |              3 |         5 |                            5 |                  25 |
 
-Range limits and choosing part of a Fleet's Strength remain planned.
+Resources and source Strength are reserved cumulatively across submitted Actions. Replacing an instance excludes its previous allocation; cancellation releases only that instance. Shared eligibility evaluates complete submissions at the frontend, locked API transaction and Turn Resolution boundaries. Numeric edits remain local until explicitly submitted; invalid edits preserve the saved order and still permit cancellation.
+
+Departure pays once. The selected Strength continues automatically at its saved speed, and the initiating instance is presented as In Progress until arrival or terminal removal. Transit cannot be cancelled, edited, redirected or refunded. See [Movement](./012-movement.md) for remaining chronological arrival work.
 
 ## Rules
 

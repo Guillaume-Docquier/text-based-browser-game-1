@@ -32,7 +32,7 @@ flowchart LR
   end
   C --> Create[Create Effects]
   D --> Create
-  S[Action Submission with selected targets] --> Create
+  S[Action Submission with selected targets and inputs] --> Create
   Create --> E[Effects] --> P[Effect Pool] --> R[Resolve in Phases] --> O[Effect Outcomes] --> A[Resolved Action]
 ```
 
@@ -48,7 +48,7 @@ Because of this, the use of the `Assert` module is not permitted there.
 
 ## Validation
 
-All action submissions are validated before any resolution starts. Any invalid action fails the turn. Every action is expected to have been validated already on submission using the same validators.
+All action submissions are validated before any resolution starts. Any invalid action fails the turn. Every action is expected to have been validated already on submission using the same shared eligibility evaluator. Draft, complete-set and candidate evaluations use total resources, game-scoped entities, cumulative costs and source Strength allocations. Replacement excludes the prior player/instance allocation. The API holds the Turn lock while evaluating the entire proposed set; the frontend projects the same state shape.
 
 A failed turn state is expected to not be persisted, as the turn resolver stopped at the first error and the state is probably incomplete.
 
@@ -113,3 +113,7 @@ The phases pipeline handles Effect resolution:
 Effects can be added to the Effect pool through other Effects during the Phases.
 
 After all phases are done, we expect all effects to have been resolved.
+
+## Fleet journeys
+
+Movement input/effect and source/range constraints are declarative Ruleset data. The Fleet Movement Phase creates all deterministic child departures before advancing old and new journeys once by their saved speed. Positive remainders preserve source identity; zero sources and merged children are removed. Friendly stationed merge preserves its identity. Journey records retain the initiating submission, Turn and speed, and occupy that player/Action instance until terminal cleanup. Saved journey integrity checks bind the existing definition, pooled instance, mapped selections and deterministic child identity before continuation. Before any departure, saved route endpoints and remaining distance must agree exactly with the canonical route-length, saved-speed and elapsed-Turn calculation; inconsistent progress fails rather than being overwritten. These checks do not recheck departure eligibility or require an exhausted source Fleet to remain. Saved speed remains authoritative when the current definition speed changes. Costs apply to new locked submissions only. The current Effect completes at departure; continuation is persisted game state rather than an unresolved pool Effect. Chronological arrival coordination and separate arrival provenance remain future work.

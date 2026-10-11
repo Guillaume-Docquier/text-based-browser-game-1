@@ -1,38 +1,70 @@
 # Run state
 
-## Preparation
+## Current authority and workspace
 
-- Status: ready to launch; no gameplay implementation started.
-- Worktree: C:/Users/Guillaume/.codex/worktrees/fleet-operations-sol/text-based-browser-game-1
-- Branch: codex/fleet-operations-sol
-- Source base: e9408c64620fc988dc3b1fd39827afabcb7d40f5
-- Worktree setup: pnpm wts completed successfully on 2026-10-10.
-- Scope: requirements.md; all requested human scope questions answered.
-- Orchestration: ../../personas/fleet-orchestrator.md
-- First action on launch: inspect status, then commission increment 1 from a fresh planner.
+- Status: Increment1 v1 accepted after fresh tester7, clean full reviewer4 and root independent acceptance. Explicit staging/commit in progress; no gameplay commit/push yet. Accepted increment1; commit pending and no gameplay push yet.
+- Exact worktree C:/Users/Guillaume/.codex/worktrees/fleet-operations-sol/text-based-browser-game-1; branch codex/fleet-operations-sol; HEAD/base aa9272ec2b9ac756aa5d606bca900875ff9f58ed (preparation); original gameplay e9408c64620fc988dc3b1fd39827afabcb7d40f5.
+- requirements.md is authoritative, supersedes old colonization design, and records settled scope. Finish only all agreed movement/normalAssault/colonization implemented, every accepted increment committed, and one open ready PR with all required/applicable CI green at its exact latest head. No merge/auto-merge/externalbot. No arbitrary budget/round cutoff or routine confirmation.
+- Root gpt-6.1-sol/xhigh owns approval, dispositions, independent acceptance, commits/PR/CI and this ledger. No root production/test fixes. Each increment fresh planner sol/high, implementer sol/medium, tester sol/medium, reviewer sol/high. Every spawn explicit model/effort/fork_turns=none; no worker subagents; one code/test writer. Existing implementer may handle fixes; independent testing/review passes fresh, primary contract/code/tests only, no prior confidence narratives.
 
-## Increment ledger
+## Environment and safe resumption
 
-| Increment                            | Plan/version | Phase       | Agent IDs | Implementer/tester/reviewer reports | Verification | Commit |
-| ------------------------------------ | ------------ | ----------- | --------- | ----------------------------------- | ------------ | ------ |
-| 1 Shared eligibility and allocations | Pending      | Not started |           |                                     |              |        |
-| 2 Movement lifecycle                 | Pending      | Not started |           |                                     |              |        |
-| 3 Assault                            | Pending      | Not started |           |                                     |              |        |
-| 4 Colonization                       | Pending      | Not started |           |                                     |              |        |
-| 5 Integration and delivery           | Pending      | Not started |           |                                     |              |        |
+- Exact checkout was absent and recovered by authorized git worktree add. pnpm wts completed installed/migrated/seeded isolated services. Main untouched. Worktree45 DB10135, backend10136, frontend10137, optionalStorybook10138. Preserve DB; no pre-existing app/preview service at tester7 dispatch. Tester may own temporary E2E services: verify ownership before cleanup, never stop unrelated/pre-existing services.
+- App attach_worktree ownerless verification rejected; exact-checkout shell fallback works, PR attached. Do not recreate/reset checkout. Sandbox writable root still main; use exact-workdir require_escalated with user-authorized-checkout justification for runtime/Git/writes. Normal sandbox Git can misleadingly fail cwd/worktree metadata. No manual env-value edits, pnpm only.
+- Windows pnpm node -e multiline must flatten newlines; EXIT0 without expected output is not proof. Follow runtime actual EXIT/cleanup. Some write_stdin receipts omitted exit_code; explicit shell marker provides proof. No indirect approval bypass. Read-only pnpm format auto-review rejection resolved by proving package.json oxfmt --check and retrying same command.
+- Hook .husky/pre-commit invokes pnpm lint-staged. Stage inspected paths explicitly, inspect staged diff and account for any hook changes. Never bypass gates or sweep unrelated/ignored state.
 
-## Current handoff
+## Increment ledger and active roles
 
-No active agents. No pending fixes. No gameplay checks have been claimed.
+| Increment                                             | Approved packet / scope                                                                 | Current phase        | Accepted commit |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------- | --------------- |
+| 1 Eligibility, allocations, playable partial movement | increments/01-eligibility-and-allocations.md v1 approved2026-10-10, unchanged A1-01..18 | Accepted; committing | Pending         |
+| 2 Chronology and arrival intent                       | Fresh planner from accepted increment1 SHA required                                     | Not started          |                 |
+| 3 Normal Assault                                      | Fresh planner required                                                                  | Not started          |                 |
+| 4 Colonization                                        | Fresh planner required                                                                  | Not started          |                 |
+| 5 Integration and delivery                            | Fresh planner required                                                                  | Not started          |                 |
 
-## Findings and decisions
+- No worker writer/runtime active. Fresh tester7 completed/stopped, reports/01-tester-r7.md current affected PASS, only three test paths plus own report. Fresh full reviewer4 completed/stopped, reports/01-reviewer-r4.md explicitly no actionable findings across full tracked/untracked delta and ALLA1-01..18; own shared140/integration95/root+package types/diff EXIT0. Browser/PG/migration evidence inspected only in its report, root separately supplies actual runtimes.
+- Root acceptance complete for unchanged approved v1/all18: report01-orchestrator.md exact layered mapping; source/test/doc manifest106paths/13deleted unchanged from reviewed content, finalformat593files/diff EXIT0. Prior historical/incomplete/failed reports never accepted by themselves. Current affected gates plus unchanged-gate accounting are complete; all actionable increment1 findings resolved.
+- Explicitly stage inspected intended130paths only; inspect staged diff and account pre-commit hook content changes, commit increment1, then record exact SHA and commission fresh next planner from it. Do not dispatch next implementation before packet approval. /root/increment_1_implementer remains stopped/available for fixes if a commit gate exposes a defect.
 
-Track finding ID, source, affected criterion, owner, disposition/evidence, and retest/review status. Distinguish approved human decisions from planner defaults. Do not edit approved acceptance criteria to accommodate a faulty implementation.
+## Findings and durable evidence
 
-## Delivery
+Full chronological statuses/receipts preserved in reports/01-run-state-history.md and reports/01-orchestrator.md. Independent role reports are separate artifacts; historical PASS never approves later changes.
 
-- PR URL: not created.
-- Latest pushed head: none.
-- CI run/check references and matching head: none.
-- Remaining acceptance criteria: all implementation criteria.
-- Next required action: launch the prepared prompt with gpt-6.1-sol / xhigh.
+| ID          | Disposition and evidence                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| O1-01       | Duplicate API occupancy predicate replaced by actual shared isActionOccupied.                                                                                                                                                                                                                                                                                                                                                                      |
+| O1-02       | Repeated full projection inside planet filtering fixed; normalize once per card. Root real3057planet diagnostic494ms→7ms/equal decisions is not browser performance acceptance.                                                                                                                                                                                                                                                                    |
+| O1-03       | Repeated fractional subtraction caused distance1/speed0.1 arrival11; canonical route/saved-speed/elapsed progress fixed exact1→10,1+EPS→11,tiny travel preserved.                                                                                                                                                                                                                                                                                  |
+| T1-r1-01    | Missing saved definition wrongly continued. Bounded definition/pool/mapping/player/destination/deterministic child identity/duplicates validation now typed failure; disappeared exhausted source/current speed/range variation remain valid.                                                                                                                                                                                                      |
+| O1-04/O1-05 | Unused DTO resource argument removed; auth res renamed _res and separate strict Playwright compiler profile preserves noUnused/arity/native boundaries.                                                                                                                                                                                                                                                                                            |
+| O1-06       | Root invalidated historical tester3 PASS: fixed destination unsuitable under another UUID/home assignment. Controlled low/high API fixture and public observed-home browser role selection corrected; ownership/retention/literal distance oracles retained. reports/01-tester-fix-r3.md.                                                                                                                                                          |
+| R2-01       | Fresh reviewer2 P2 saved route/progress corruption accepted; fixr3 validates endpoints and exact canonical progress before departures. JSON corruption regressions and root post-fix probe pass, source-gone/current-definition/numeric controls retained.                                                                                                                                                                                         |
+| F1-01       | Tester5 full-format failed three ruleset CRLF paths. Implementer formatting-only repair, fresh bounded tester6 exact base/current LF byte equality/static/ruleset9 pass. No semantic change.                                                                                                                                                                                                                                                       |
+| R3-01       | Fresh reviewer3 P2 destination candidates dropped declared source issues, although complete submission rejects. Root reproduced. Fixr5 derives candidate plus actual range source tags, retaining prerequisite/global identity issues but excluding unrelated stale input/destination errors. Failing-first shared6fail/1pass and native3fail retained; fresh tester7 current affected PASS; fresh full reviewer4 clean; root acceptance complete. |
+
+## Current completed local receipts and limits
+
+- Approved full contract/moved criteria in increment1 packet. Basic split/continuation/binding/locks/reload/release/merge moved from original2 so players cannot strand journeys. Increment2 still owes20ticks/provenance/persisted pending arrival effects and merge-safe actual identity. No acceptance dropped.
+- Tester5 reports/01-tester-r5.md: full shared125/coverage and backend123/coverage (unit/integration104, PG/types19), full Storybook54, fullE2E20 through actual cleanup, frontend/Storybookbuilds, types/lint/diff EXIT0; finalformat failed F1-01, subsequently resolved. Tester6 reports/01-tester-r6.md bounded qualityPASS/report-only: format/lint/root+packagetypes/diff/ruleset9 EXIT0, wholeA1 mapping inspected not runtime-claimed.
+- Reviewer3 reports/01-reviewer-r3.md: complete whole tracked/untracked source/test/migration/config/doc review, oneR3-01 and no other established actionable finding. Actual shared125/backend104/router7/realPG5/Storybook54/typeprojects/diff EXIT0; E2E inspected only. Its verdict is not clean acceptance.
+- Fixr5 report01-implementer-fix-r5.md: only shared candidate filter + candidatePrerequisites.test.ts8 + TargetPicker.browser.test.ts3 + own report. Current shared133/22coverage/Storybook57/16/static/format/diff EXIT0, failing-before proof retained. No API/accounting/persistence/content/schema/config or productionUI/doc delta. All writing/processes stopped. Fresh tester/reviewer still required.
+- Root independent current critical after R2/F1 fixes: pnpm --filter backend test --project integration --project concurrency fleetActions session16113 actual12passed/2files41.29s/FLEET_CRITICAL_EXIT=0/toolEXIT0. Controlled-home ownership/failed-edit retention, persisted partial/reload/occupancy/release and realPG strength/resource/edit/closure races verified. R3 modifies only candidate function unused by complete-set/backend consumers; account actual changed inputs rather than gratuitous repeated gates.
+- Root postR2 exported probe actual FLEET_ROOT_R2_PROBE_PASS/FLEET_ROOT_PROBE_EXIT=0: origin/remaining0.5/4 corruption typed-fails without Y10 departure, source30/occupiedX retained; saved2 progress3/1/arrival despitecurrent1/range1/cost3/1once; full50sourcegone; exact1/.1arrival10,1+EPS11,MINarrival1. functions.store fleet_r2_root_probe retained.
+- Root postR3 exported probe actual FLEET_ROOT_R3_PROBE_PASS/FLEET_ROOT_R3_EXIT=0: enemy/exhausted destinations ineligible; actual shared-departure X20 child with FleetSchema+JSON reload/currentturn2/candidateY10 exactly stationary prerequisite failure; absent source pending; valid source reselection under oldmissing/origin/force51 eligible. No root production/test write/runtime remains.
+- Root inspected actual frontend/API/resolver delegation/full scoped origins+totals, lock context, nullableJSON migration+journal, symmetric selectedInputs/movement save/load/nullclear/removal IDs/nextturn per-instance availability and honest partial docs. Earlier actual UI inspection/screenshot reports/01-implementer-in-progress.png demonstrates basic busy/local invalid31/source-change presentation; preview now stopped.
+- Exact50/distance5/speed2 arithmetic is shared/component evidence; normal public seeded persistence/browser uses literal actual generated routes, not manufactured SQL geometry. Actual same-snapshot E2E parity uses source10/X4/Y6 and total8/uncommitted2 Build6 shortfall4, plus enemy100/unknown/origin/range/transit. Root literal adapter projection is not router/component runtime. Source destruction currently shared effect seam, not shipped combat. Do not inflate evidence layers.
+- functions.store fleet_i1_content_manifest held104 source/test/doc path hashes with13deleted before R3fix; now historical. Final manifest106paths/13deleted captured and unchanged after reviewer4; compare hook changes to this tested/reviewed tree.
+
+## Mandatory next-plan boundary
+
+- O2-01: root literal Number.MIN_VALUE distance5e-324/saved speed5 ratio underflow produces arrivaltick0. Chronology explicitly deferred by A1-14, not increment1 failure. Next planner MUST add independent literal oracle positive travel tick1..20 versus true coincident distance/stationaryColonize tick0; no epsilon/tiny-route erasure.
+- O2-02 planning observation: resolveTurn currently returns outcomes only for current-turn submittedActions, while continued journeys carry the initiating submission. Deferred arrival effects need explanatory outcomes attached to their initiating order in the engine result; avoid silently dropping continued-action outcomes. TurnProcessor/ProcessedTurnModel currently discard resolvedActions and the DB has no outcome column: do not assume existing persisted outcome records or invent a history UI. Planner must state the bounded result/ownership approach and any actual persistence need; no new outcome-history scope approved.
+- Next fresh planner may refine coherent remaining scope against live accepted code (including whether chronology/pending intent and first concrete Assault belong together to avoid unused scaffolding), but no such combination approved yet. Preserve all original movement/Assault acceptance and fixed phase order. Requirements defaults settle RNG tie ordering/current merged strength/proportional stableID remainder/colonize20; no reopening design.
+
+## PR and final CI delivery
+
+- Reuse attached draft https://github.com/Guillaume-Docquier/text-based-browser-game-1/pull/596, latest pushed headaa9272ec preparation only. No gameplay push. No duplicate/invented issue.
+- After all increments accepted/committed push branch, rewrite prep-only title/body per .agents/skills/create-github-prs/SKILL.md and .github/pull_request_template.md. Concrete final behavior, relevant screenshot, explicit nullable selected_inputs/movement schema + reset/old-save incompatibility/no-backfill and any later deployment implications. No new env/infra currently. Template omits CI command list. Attach updated PR to task.
+- Exact latest-head required/applicable checks: code-quality(roottypes/format/lint), frontendbuild/types/Storybookbuild/fullnativecomponent, fullE2E, backend+sharedcoverage/Codecov, PRtitle. Missing/pending/cancelled/older SHA not green. Fix CI through roles/appropriate tests/full review/root verification/commit then refresh SHA/checks. Mark ready only completed allgreen, leave OPEN; no merge/automerge/externalbot.

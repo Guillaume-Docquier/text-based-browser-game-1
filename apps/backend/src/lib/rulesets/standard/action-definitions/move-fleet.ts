@@ -8,20 +8,33 @@ import { ResourceLossEffectDefinition } from "shared/domain/ruleset/effect-defin
 import { OwnedBySubmittingPlayerConstraint } from "shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 
-function moveFleetDirective({ id, tier, fuel, speed }: { id: string; tier: ActionTier; fuel: number; speed: number }): ActionDefinition {
+function moveFleetDirective({
+  id,
+  tier,
+  fuel,
+  speed,
+  range,
+}: {
+  id: string
+  tier: ActionTier
+  fuel: number
+  speed: number
+  range: number
+}): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {
     id,
     name: "Move Fleet",
     type: ActionType.DIRECTIVE,
     tier,
+    inputs: { strength: { type: "FLEET_STRENGTH", fleetTargetTag: "fleet" } },
     targets: {
       fleet: {
         targetType: TargetType.FLEET,
-        constraints: [OwnedBySubmittingPlayerConstraint.create()],
+        constraints: [OwnedBySubmittingPlayerConstraint.create(), { type: "STATIONARY_FLEET" }],
       },
       planet: {
         targetType: TargetType.PLANET,
-        constraints: [],
+        constraints: [{ type: "WITHIN_FLEET_RANGE", fleetTargetTag: "fleet", maximumDistance: range }],
       },
     },
     costs: [
@@ -34,7 +47,7 @@ function moveFleetDirective({ id, tier, fuel, speed }: { id: string; tier: Actio
         resourceType: ResourceType.FUEL,
       }),
     ],
-    effects: [FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", speed })],
+    effects: [FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed })],
   })
 }
 
@@ -43,16 +56,19 @@ export const MoveFleetStandard = moveFleetDirective({
   tier: ActionTier.STANDARD,
   fuel: 1,
   speed: 0.1,
+  range: 5,
 })
 export const MoveFleetImproved = moveFleetDirective({
   id: "MOVE_FLEET_IMPROVED",
   tier: ActionTier.IMPROVED,
   fuel: 3,
   speed: 1,
+  range: 5,
 })
 export const MoveFleetExceptional = moveFleetDirective({
   id: "MOVE_FLEET_EXCEPTIONAL",
   tier: ActionTier.EXCEPTIONAL,
   fuel: 5,
   speed: 5,
+  range: 25,
 })

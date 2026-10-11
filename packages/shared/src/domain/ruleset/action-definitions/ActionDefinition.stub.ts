@@ -10,6 +10,7 @@ export function createActionDefinitionStub({ ...overrides }: Partial<DeepUnbrand
     name: "Test Action",
     type: ActionType.DIRECTIVE,
     tier: ActionTier.STANDARD,
+    inputs: {},
     targets: {},
     costs: [],
     effects: [],

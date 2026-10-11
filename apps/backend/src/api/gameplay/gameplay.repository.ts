@@ -8,10 +8,13 @@ import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
 import type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
+import { ActionSchema } from "shared/domain/turns/actions/Action.ts"
 import type { Action } from "shared/domain/turns/actions/Action.ts"
 import type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
+import type { SelectedInputs } from "shared/domain/turns/actions/SelectedInputs.ts"
 import type { SelectedTargets } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import { FleetSchema } from "shared/domain/world/fleets/Fleet.ts"
 import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
 import type { Galaxy } from "shared/domain/world/Galaxy.ts"
 import type { Planet } from "shared/domain/world/planets/Planet.ts"
@@ -47,6 +50,8 @@ export type ActionSubmissionsForUpdate = Branded<
     playerId: PlayerId
     turn: number
     resources: Readonly<Resources>
+    planets: readonly ResolutionPlanet[]
+    fleets: readonly ResolutionFleet[]
     actions: readonly Action[]
     ruleset: Ruleset
   }>
@@ -60,7 +65,7 @@ export type UpdateActionSubmissionsModel = Readonly<{
   /**
    * The actions to update, can be newly selected, selected target updates or de-selected.
    */
-  actions: ReadonlyArray<Pick<Action, "id" | "selectedTargets">>
+  actions: ReadonlyArray<Pick<Action, "id" | "selectedTargets" | "selectedInputs">>
 }>
 
 type PlayerViewPlayerModel = Readonly<{
@@ -82,6 +87,7 @@ export type ReadinessForUpdate = Branded<
 type PlayerViewActionModel = Readonly<{
   id: ActionId
   actionDefinitionId: ActionDefinitionId
+  selectedInputs: SelectedInputs | null
   selectedTargets: SelectedTargets | null
 }>
 
@@ -167,6 +173,7 @@ export class GameplayRepository extends PostgresRepository {
               id: actionsTable.id,
               actionDefinitionId: actionsTable.actionDefinitionId,
               selectedTargets: actionsTable.selectedTargets,
+              selectedInputs: actionsTable.selectedInputs,
             })
             .from(actionsTable)
             .where(and(eq(actionsTable.gameId, gameId), eq(actionsTable.playerId, playerId), eq(actionsTable.turn, turn.turn)))
@@ -264,7 +271,9 @@ export class GameplayRepository extends PostgresRepository {
       playerId,
       turn,
       resources: toResourceBag(resourceRows),
-      actions,
+      actions: actions.map((action) => ActionSchema.parse(action)),
+      planets: await tx.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)),
+      fleets: (await tx.select().from(fleetsTable).where(eq(fleetsTable.gameId, gameId))).map(toFleet),
       ruleset,
     })
   }
@@ -369,7 +378,7 @@ export class GameplayRepository extends PostgresRepository {
         async (action) =>
           await tx
             .update(actionsTable)
-            .set({ selectedTargets: action.selectedTargets, updatedAt })
+            .set({ selectedTargets: action.selectedTargets, selectedInputs: action.selectedInputs, updatedAt })
             .where(
               and(
                 eq(actionsTable.gameId, context.gameId),
@@ -461,10 +470,11 @@ function toPlanetModel({
   }
 }
 
-function toFleet({ destinationPlanetId, distanceToEnd, ...fleet }: typeof fleetsTable.$inferSelect): ResolutionFleet {
-  return {
+function toFleet({ destinationPlanetId, distanceToEnd, movement, ...fleet }: typeof fleetsTable.$inferSelect): ResolutionFleet {
+  return FleetSchema.parse({
     ...fleet,
+    ...(movement === null ? {} : { movement }),
     ...(destinationPlanetId === null ? {} : { destinationPlanetId }),
     ...(distanceToEnd === null ? {} : { distanceToEnd }),
-  }
+  })
 }

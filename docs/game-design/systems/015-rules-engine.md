@@ -16,7 +16,8 @@ Partially Implemented
 - [x] Ruleset-defined Action Pool with stable Action IDs
 - [x] Frontend target selection for Build Fleet's owned Planet and Move Fleet's owned Fleet and destination Planet targets
 - [x] Fleet Build Effect and resolution Phase
-- [x] Move Fleet Effect and per-submission movement
+- [x] Numeric input definitions, shared draft/complete/candidate eligibility and cumulative commitments
+- [x] Partial departure and persisted automatic continuation with per-instance occupancy
 - [ ] Frontend target selection for all target types
 - [x] Multiple Actions
 
@@ -112,7 +113,9 @@ The Phase sequence belongs to the Rules Engine and is the same for every Ruleset
 
 Pay Costs, Fleet Movement, Fleet Build, Income, and Victory currently resolve Effects. Fleet Combat, Planet, and Colonization have Phase boundaries but no gameplay behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
 
-The Move Fleet Effect advances the submitted owned Fleet toward its destination by up to the configured speed. Remaining distance persists for another submission on a later Turn; on arrival, the Fleet lands or merges into the same player's stationed Fleet. [System 012-movement](./012-movement.md) records the remaining work, including automatic continuation, Action binding during transit, Range limits, partial-Strength movement, and coordinated Tick-based arrivals.
+The Move Fleet Effect creates a child journey from its mapped numeric Strength input. The Fleet Movement Phase materializes all departures before advancing each journey exactly once. Remaining distance, original submission and speed persist independently of later seeded content changes. Unfinished movement completes its current Effect and leaves an empty pool; automatic continuation needs no new submission or payment. [System 012-movement](./012-movement.md) records the remaining chronological arrival and provenance work.
+
+The supported input vocabulary is bounded: `FLEET_STRENGTH` references a Fleet target slot. Move maps its Strength role to that input. Targets support ownership, stationary Fleet and source-dependent finite range constraints. Schema validation rejects missing or incompatible references, unused inputs and more than one Move Effect per Action. No general expression language is introduced.
 
 Phases are coarse ordering boundaries. Planned Tick-based resolution provides finer ordering inside the Fleet Movement Phase; a Tick is not a Phase, and the other Phases do not each receive 20 Ticks.
 

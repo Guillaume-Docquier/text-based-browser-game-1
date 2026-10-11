@@ -117,6 +117,7 @@ export class TurnProcessor {
   }
 
   private processTurn(turnToProcess: TurnToProcessModel): Result<ProcessedTurnModel, ResolveTurnError> {
+    const initialFleetIds = Object.values(turnToProcess.fleets).map((fleet) => fleet.id)
     const rng = Rng.fromState(turnToProcess.rngState, mulberry32Prng)
     const resolvedTurnResult = resolveTurn(
       {
@@ -137,7 +138,7 @@ export class TurnProcessor {
 
     const processedAt = this.clock.now()
     const fleetsToUpdate = []
-    const fleetIdsToDelete = []
+    const fleetIdsToDelete = initialFleetIds.filter((id) => resolvedTurnResult.value.fleets[id] === undefined)
     for (const fleet of Object.values(resolvedTurnResult.value.fleets)) {
       if (fleet.strength === 0) {
         fleetIdsToDelete.push(fleet.id)
@@ -153,6 +154,7 @@ export class TurnProcessor {
       availableActions: computeAvailableActions({
         playerIds: Object.values(resolvedTurnResult.value.players).map(({ id }) => id),
         ruleset: turnToProcess.ruleset,
+        fleets: Object.values(resolvedTurnResult.value.fleets),
       }),
       processedAt,
       rngState: rng.getState(),

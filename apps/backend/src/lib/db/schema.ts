@@ -21,8 +21,10 @@ import type { Alias } from "shared/domain/accounts/Alias.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { SelectedInputs } from "shared/domain/turns/actions/SelectedInputs.ts"
 import type { SelectedTargets } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
+import type { FleetMovement } from "shared/domain/world/fleets/FleetMovement.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetSize } from "shared/domain/world/planets/PlanetSize.ts"
 import { accountIdColumn } from "#lib/db/accounts/AccountId.ts"
@@ -181,6 +183,7 @@ export const actionsTable = pgTable(
     /**
      * non-null when the action is selected, empty object ({}) if the action is selected and has no targets to specify
      */
+    selectedInputs: jsonb("selected_inputs").$type<SelectedInputs>(),
     selectedTargets: jsonb("selected_targets").$type<SelectedTargets>(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -327,6 +330,7 @@ export const fleetsTable = pgTable(
     strength: integer("strength").notNull(),
     originPlanetId: planetIdColumn("origin_planet_id").notNull(),
     destinationPlanetId: planetIdColumn("destination_planet_id"),
+    movement: jsonb("movement").$type<FleetMovement>(),
     distanceToEnd: doublePrecision("distance_to_end").$type<NonNegativeNumber>(),
   },
   (table) => [

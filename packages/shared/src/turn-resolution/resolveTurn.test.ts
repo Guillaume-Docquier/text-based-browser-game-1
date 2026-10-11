@@ -25,7 +25,7 @@ describe("resolveTurn", () => {
 
   it("should not resolve the turn when the player cannot afford an Action", () => {
     // Arrange
-    const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
+    const submittedAction = createSubmittedActionStub({ id: `${WinTheGame.id}_1`, actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
       players: indexBy("id", [
@@ -53,25 +53,25 @@ describe("resolveTurn", () => {
               actionDefinitionId: WinTheGame.id,
               // oxlint-disable-next-line typescript/no-non-null-assertion -- It's there
               actionDefinitionName: TestRuleset.actionDefinitions[submittedAction.actionDefinitionId]!.name,
-              issue: "Missing 7 INFLUENCE",
+              issue: "Insufficient INFLUENCE: shortfall 7",
             },
             {
               submittedActionId: submittedAction.id,
               actionDefinitionId: WinTheGame.id,
               actionDefinitionName: WinTheGame.name,
-              issue: "Missing 3 METAL",
+              issue: "Insufficient METAL: shortfall 3",
             },
             {
               submittedActionId: submittedAction.id,
               actionDefinitionId: WinTheGame.id,
               actionDefinitionName: WinTheGame.name,
-              issue: "Missing 4 FUEL",
+              issue: "Insufficient FUEL: shortfall 4",
             },
             {
               submittedActionId: submittedAction.id,
               actionDefinitionId: WinTheGame.id,
               actionDefinitionName: WinTheGame.name,
-              issue: "Missing 5 ENERGY",
+              issue: "Insufficient ENERGY: shortfall 5",
             },
           ],
         }),
@@ -81,7 +81,7 @@ describe("resolveTurn", () => {
 
   it("should gain influence", () => {
     // Arrange
-    const submittedAction = createSubmittedActionStub({ actionDefinitionId: GainInfluence.id, playerId })
+    const submittedAction = createSubmittedActionStub({ id: `${GainInfluence.id}_1`, actionDefinitionId: GainInfluence.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
       players: indexBy("id", [
@@ -131,8 +131,16 @@ describe("resolveTurn", () => {
     // Arrange
     const firstPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000002")
     const secondPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000003")
-    const firstPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: GainInfluence.id, playerId: firstPlayerId })
-    const secondPlayerSubmittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId: secondPlayerId })
+    const firstPlayerSubmittedAction = createSubmittedActionStub({
+      id: `${GainInfluence.id}_1`,
+      actionDefinitionId: GainInfluence.id,
+      playerId: firstPlayerId,
+    })
+    const secondPlayerSubmittedAction = createSubmittedActionStub({
+      id: `${WinTheGame.id}_1`,
+      actionDefinitionId: WinTheGame.id,
+      playerId: secondPlayerId,
+    })
     const turnState = createTurnStateStub({
       submittedActions: [firstPlayerSubmittedAction, secondPlayerSubmittedAction],
       players: indexBy("id", [
@@ -203,7 +211,7 @@ describe("resolveTurn", () => {
 
   it("should win the game when the player can afford it", () => {
     // Arrange
-    const submittedAction = createSubmittedActionStub({ actionDefinitionId: WinTheGame.id, playerId })
+    const submittedAction = createSubmittedActionStub({ id: `${WinTheGame.id}_1`, actionDefinitionId: WinTheGame.id, playerId })
     const turnState = createTurnStateStub({
       submittedActions: [submittedAction],
       players: indexBy("id", [
@@ -251,6 +259,7 @@ describe("resolveTurn", () => {
     // Arrange
     const planetId = branded<PlanetId>("planet-id")
     const submittedAction = createSubmittedActionStub({
+      id: `${BuildFleetStandard.id}_1`,
       actionDefinitionId: BuildFleetStandard.id,
       playerId,
       selectedTargets: { planet: String(planetId) },
@@ -308,6 +317,7 @@ describe("resolveTurn", () => {
     const fleetId = branded<FleetId>(v4())
     const fleetName = typedParse(FleetNameSchema, "Existing Fleet")
     const submittedAction = createSubmittedActionStub({
+      id: `${BuildFleetStandard.id}_1`,
       actionDefinitionId: BuildFleetStandard.id,
       playerId,
       selectedTargets: { planet: String(planetId) },
@@ -365,6 +375,7 @@ describe("resolveTurn", () => {
     const enemyFleetId = branded<FleetId>(v4())
     const enemyFleetName = typedParse(FleetNameSchema, "Enemy Fleet")
     const submittedAction = createSubmittedActionStub({
+      id: `${BuildFleetStandard.id}_1`,
       actionDefinitionId: BuildFleetStandard.id,
       playerId,
       selectedTargets: { planet: String(planetId) },

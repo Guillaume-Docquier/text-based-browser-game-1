@@ -1,8 +1,11 @@
-import type { Players, PlayerView, TargetDefinition, TargetId } from "@api-types"
+import type { Action, Players, PlayerView, TargetDefinition, TargetId, TargetTag } from "@api-types"
 import type { Comparator } from "@guillaume-docquier/tools-ts"
 import type { ReactElement } from "react"
-import type { TargetForValidation } from "shared/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts"
-import { validateTarget } from "shared/action-submission/validation/targets/validateTarget.ts"
+import {
+  evaluateTargetSelection,
+  type ActionEligibilityState,
+  type ActionSelectionDraft,
+} from "shared/action-submission/actionEligibility.ts"
 import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 import { SearchSelect } from "@/components/search-select.tsx"
 import { formatRulesetTerm } from "@/features/play/effectDefinitionToRulesText.ts"
@@ -11,7 +14,7 @@ import { formatRulesetTerm } from "@/features/play/effectDefinitionToRulesText.t
  * A player-visible choice for an Action target slot.
  */
 export type TargetOption = { id: TargetId; label: string }
-type TargetCandidate = TargetOption & { target: TargetForValidation }
+type TargetCandidate = TargetOption
 
 const TEXT_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" })
 const sortByLabel: Comparator<{ label: string }> = (first, second) => TEXT_COLLATOR.compare(first.label, second.label)
@@ -35,7 +38,6 @@ export function TargetPicker({
   onChange: (targetId: TargetId) => void
 }): ReactElement {
   const label = formatRulesetTerm(targetTag)
-  const onlyOption = options.length === 1 ? options[0] : undefined
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -43,8 +45,9 @@ export function TargetPicker({
       <SearchSelect
         label={`${label} target`}
         options={options}
-        value={onlyOption?.id ?? value}
+        value={value}
         disabled={disabled}
+        allowSingleOptionSelection={targetDefinition.constraints.some((constraint) => constraint.type === "WITHIN_FLEET_RANGE")}
         placeholder={
           options.length === 0 ? `No ${targetDefinition.targetType.toLowerCase()} targets available` : `Choose ${label.toLowerCase()}`
         }
@@ -57,10 +60,26 @@ export function TargetPicker({
 /**
  * Resolves target choices from the player-visible game state and the slot constraints.
  */
-export function getTargetOptions(targetDefinition: TargetDefinition, playerView: PlayerView, players: Players): TargetOption[] {
+export function getTargetOptions(
+  targetDefinition: TargetDefinition,
+  playerView: PlayerView,
+  players: Players,
+  action: Action,
+  targetTag: TargetTag,
+  selection: ActionSelectionDraft,
+  state: ActionEligibilityState,
+): TargetOption[] {
   return getTargetCandidates(targetDefinition, playerView, players)
     .filter(
-      (candidate) => validateTarget({ target: candidate.target, submittingPlayerId: playerView.player.id, targetDefinition }) === null,
+      (candidate) =>
+        evaluateTargetSelection({
+          state,
+          ruleset: playerView.ruleset,
+          action: { ...action, playerId: playerView.player.id },
+          selection,
+          targetTag,
+          targetId: candidate.id,
+        }).status === "eligible",
     )
     .sort(sortByLabel)
 }
@@ -72,20 +91,17 @@ function getTargetCandidates(targetDefinition: TargetDefinition, playerView: Pla
         planets.map((planet) => ({
           id: planet.id,
           label: `${planet.name} (${planet.coordinates})`,
-          target: { type: TargetType.PLANET, ownerPlayerId: planet.ownerPlayerId },
         })),
       )
     case TargetType.PLAYER:
       return players.map((player) => ({
         id: player.id,
         label: player.alias,
-        target: { type: TargetType.PLAYER },
       }))
     case TargetType.FLEET:
       return playerView.fleets.map((fleet) => ({
         id: fleet.id,
         label: `Fleet ${fleet.id.slice(0, 8)} (${fleet.strength} strength)`,
-        target: { type: TargetType.FLEET, ownerPlayerId: fleet.ownerPlayerId },
       }))
   }
 }

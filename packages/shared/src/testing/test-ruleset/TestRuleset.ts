@@ -32,10 +32,13 @@ export const TestRuleset = Ruleset.create({
   name: "Test",
   isDefault: false,
   actionDefinitions: indexBy("id", ACTION_DEFINITIONS),
-  actionPool: ACTION_DEFINITIONS.map((actionDefinition) => ({
-    id: `${actionDefinition.id}_1`,
-    actionDefinitionId: actionDefinition.id,
-  })),
+  actionPool: [
+    ...ACTION_DEFINITIONS.map((actionDefinition) => ({
+      id: `${actionDefinition.id}_1`,
+      actionDefinitionId: actionDefinition.id,
+    })),
+    { id: `${MoveFleetStandard.id}_2`, actionDefinitionId: MoveFleetStandard.id },
+  ],
   startingResources: {
     [ResourceType.INFLUENCE]: 3,
     [ResourceType.METAL]: 2,

@@ -1,7 +1,9 @@
+import { typedParse, PositiveNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
+import { createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { expect, within } from "storybook/test"
@@ -26,6 +28,16 @@ const moving = createFleetStub({
   ownerPlayerId: bob.id,
   originPlanetId: origin.id,
   destinationPlanetId: destination.id,
+  movement: {
+    type: "FLEET_MOVE",
+    initiatingTurn: 1,
+    speed: typedParse(PositiveNumberSchema, 1),
+    submittedAction: createSubmittedActionStub({
+      playerId: bob.id,
+      selectedInputs: { strength: 25 },
+      selectedTargets: { fleet: "fleet-vanguard", planet: destination.id },
+    }),
+  },
   distanceToEnd: 12.345,
   strength: 25,
 })
@@ -37,6 +49,16 @@ const mixedFleets = [
     ownerPlayerId: alice.id,
     originPlanetId: destination.id,
     destinationPlanetId: distantPlanet.id,
+    movement: {
+      type: "FLEET_MOVE",
+      initiatingTurn: 1,
+      speed: typedParse(PositiveNumberSchema, 1),
+      submittedAction: createSubmittedActionStub({
+        playerId: alice.id,
+        selectedInputs: { strength: 5 },
+        selectedTargets: { fleet: "fleet-scout", planet: distantPlanet.id },
+      }),
+    },
     distanceToEnd: 2.5,
     strength: 5,
   }),

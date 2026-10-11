@@ -3,10 +3,19 @@ import { once } from "node:events"
 import { setTimeout } from "node:timers/promises"
 import { Assert, FatalError, Logger } from "@guillaume-docquier/tools-ts"
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql"
+import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { AccountsRepository } from "#api/accounts/accounts.repository.ts"
+import { createApiStub } from "#api/createApi.stub.ts"
 import { PortListeningMessageSchema } from "#api/PortListeningMessage.ts"
+import { ControlledClock } from "#lib/ControlledClock.ts"
 import { createDb, type Database } from "#lib/db/createDb.ts"
+import { CoreRulesets } from "#lib/rulesets/CoreRulesets.ts"
+import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
+import { ApiServer } from "#tests/ApiServer.ts"
+import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
+import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
 // Needs to be in sync with the GitHub Actions, prod and docker-compose
 // See infra/docker-compose.yaml
@@ -126,4 +135,56 @@ async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<
 async function timeout(timeoutMs: number): Promise<FatalError<{ timeoutMs: number }>> {
   await setTimeout(timeoutMs)
   return new FatalError("API process did not start in time", { timeoutMs })
+}
+
+/** Real PostgreSQL with injected production clock/worker so deadline races have no sleep oracle. */
+export class ControlledConcurrencyTestApiServer {
+  private readonly postgres: StartedPostgreSqlContainer
+  private readonly db: Database
+  private readonly api: ApiServer
+  public readonly clock: ControlledClock
+  public readonly processor: TurnProcessor
+  public readonly turnsRepository: TurnsRepository
+  private constructor({
+    postgres,
+    db,
+    api,
+    clock,
+    processor,
+    turnsRepository,
+  }: {
+    postgres: StartedPostgreSqlContainer
+    db: Database
+    api: ApiServer
+    clock: ControlledClock
+    processor: TurnProcessor
+    turnsRepository: TurnsRepository
+  }) {
+    this.postgres = postgres
+    this.db = db
+    this.api = api
+    this.clock = clock
+    this.processor = processor
+    this.turnsRepository = turnsRepository
+  }
+  public static async create(): Promise<ControlledConcurrencyTestApiServer> {
+    const postgres = await new PostgreSqlContainer(POSTGRES_IMAGE).start()
+    const db = createDb({ databaseUrl: postgres.getConnectionUri() })
+    await migrate(db, { migrationsFolder: "./drizzle/" })
+    const logger = Logger.get()
+    const repository = new RulesetsRepository({ db, logger })
+    for (const ruleset of CoreRulesets) Assert.isSuccess(await repository.upsertRuleset(ruleset))
+    const clock = new ControlledClock()
+    const api = new ApiServer(await createApiStub({ db, clock }))
+    const { turnProcessor: processor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+    return new ControlledConcurrencyTestApiServer({ postgres, db, api, clock, processor, turnsRepository })
+  }
+  public async createClient(): Promise<AuthenticatedApiClient> {
+    return await this.api.createClient({ authenticated: true })
+  }
+  public async [Symbol.asyncDispose](): Promise<void> {
+    this.api[Symbol.dispose]()
+    await this.db.$client.end()
+    await this.postgres.stop()
+  }
 }

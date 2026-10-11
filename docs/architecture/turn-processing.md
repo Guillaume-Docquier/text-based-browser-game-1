@@ -46,3 +46,7 @@ Phase order belongs to the Rules Engine and is the same for every Ruleset. `reso
 Use the [Rules Engine guide](turn-resolution.md) for the implementation structure, [GDDR 009](../game-design/decisions/009-deterministic-data-driven-rules-engine.md) for the design decision, and [System 015-rules-engine](../game-design/systems/015-rules-engine.md) for the Phase table and current gameplay scope.
 
 Rulesets are currently developer-authored and persisted. Immutable snapshots, versioning, and player-authored Rulesets remain future capabilities; System 015 records the current mutable-seed exception and planned authoring boundary.
+
+## Fleet persistence
+
+Actions persist both `selected_targets` and `selected_inputs`: both null for availability/cancellation, both records for submission. Fleets persist the shared journey value alongside destination and remaining distance. Loads validate all transit fields together, and arrival explicitly clears them. The worker deletes removed source/merged Fleet IDs before upserting positive survivors, round-trips saved speed and binding, and creates next-Turn Actions excluding occupied instances. No API dependency or new queue is needed for continuation.

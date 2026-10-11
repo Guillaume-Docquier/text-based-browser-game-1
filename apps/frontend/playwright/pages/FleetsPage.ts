@@ -25,8 +25,23 @@ export class FleetsPage extends GamePage {
     this.rows = this.table.locator("tbody tr").filter({ has: page.getByRole("link") })
   }
 
+  public async reload(): Promise<void> {
+    await this.page.reload()
+  }
+
   public row(index: LocatorIndex): FleetRowLocator {
     return branded(index === "last" ? this.rows.last() : this.rows.nth(index))
+  }
+
+  public rowByStrength(value: number): FleetRowLocator {
+    return branded(this.rows.filter({ has: this.page.getByRole("cell", { name: String(value), exact: true }) }))
+  }
+
+  public strength(row: FleetRowLocator): Locator {
+    return row.getByRole("cell").nth(2)
+  }
+  public remainingDistance(row: FleetRowLocator): Locator {
+    return row.getByRole("cell").nth(5)
   }
 
   public originPlanet(row: FleetRowLocator): Locator {

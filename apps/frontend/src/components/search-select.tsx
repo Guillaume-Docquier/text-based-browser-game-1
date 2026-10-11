@@ -16,6 +16,7 @@ export function SearchSelect<TOption extends SearchSelectOption>({
   value,
   placeholder,
   disabled = false,
+  allowSingleOptionSelection = false,
   onValueChange,
 }: {
   label: string
@@ -23,6 +24,7 @@ export function SearchSelect<TOption extends SearchSelectOption>({
   value: TOption["id"] | undefined
   placeholder: string
   disabled?: boolean
+  allowSingleOptionSelection?: boolean
   onValueChange: (value: TOption["id"]) => void
 }): JSX.Element {
   const [open, setOpen] = useState(false)
@@ -30,7 +32,7 @@ export function SearchSelect<TOption extends SearchSelectOption>({
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listboxId = useId()
-  const isDisabled = disabled || options.length <= 1
+  const isDisabled = disabled || options.length === 0 || (options.length === 1 && !allowSingleOptionSelection)
   const isOpen = open && !isDisabled
   const selectedOption = options.find((option) => option.id === value)
   const normalizedSearch = search.trim().toLowerCase()

@@ -4,9 +4,11 @@
 
 Partially Implemented
 
-The Standard and Test Rulesets offer three Move Fleet Directives with speeds of 0.1, 1, and 5 light-years per Turn. They require an owned Fleet and a destination Planet. Each submitted Directive advances the Fleet toward that Planet. Its remaining distance persists between Turns; on arrival, it lands or merges with the player's stationed Fleet there. Range limits, partial-Strength movement, automatic continuation, binding the Action during transit, and Tick-based coordination of movement and arrivals remain planned.
+The Standard and independent Test Rulesets offer three Move Fleet Directives with speeds of 0.1, 1, and 5 light-years per Turn and maximum departure distances of 5, 5, and 25 light-years. A submission selects an owned stationary Fleet, a positive whole-number Strength allocation and a distinct destination Planet in range. The selected Strength departs as a deterministic child Fleet; any remainder keeps the original Fleet's ID and name.
 
-The Move Fleet Effect calculates an arrival Tick when a submitted move reaches its destination. The Fleet Movement Phase does not yet coordinate movement and arrivals through a Tick loop. An In-Transit Fleet still needs another submission to advance on a later Turn.
+Journeys automatically advance once per Turn using their persisted departure speed. Remaining distance is derived from the route length and elapsed Turns, avoiding accumulated subtraction error that could delay arrival by an extra Turn; distinct tiny remaining distances are preserved. Costs are paid only on departure. The initiating Action instance remains occupied until arrival or terminal removal; it cannot be edited, redirected, cancelled or reused in transit. Other instances remain independently usable. On arrival, the child lands or merges into a positive same-owner stationed Fleet, preserving that stationed Fleet's identity. Ordinary Move causes no combat or ownership change.
+
+The Fleet Movement Phase materializes all departures before advancing journeys, in canonical player/Action order. Zero-distance travel to a distinct coincident Planet arrives immediately. It calculates an arrival Tick but does not yet coordinate chronological movement and arrivals through the 20-Tick loop. Arrival provenance and composed arrival effects remain planned.
 
 The galaxy map shows an In-Transit Fleet between its origin and destination stars according to its remaining distance. A solid route segment shows distance traveled, and a dashed segment shows distance remaining. The Fleet icon points toward its destination and displays its Strength. A movement between Planets in the same Star System appears at that star without a visible interstellar route.
 
