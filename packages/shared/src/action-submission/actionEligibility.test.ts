@@ -348,41 +348,6 @@ describe("playable partial movement", () => {
     expect(forward.players[branded<PlayerId>("00000000-0000-4000-8000-000000000001")]?.resources).toMatchObject({ INFLUENCE: 0, FUEL: 0 })
   })
 
-  it("should reloads 2/2/1 progress using snapshotted speed, locks only its instance, and releases on arrival", () => {
-    // Arrange
-    const { state, ruleset, order, playerId } = createFleetEligibilityScenario()
-    const action = order("X", 20)
-    // Act
-    const first = extractSuccess(resolveTurn({ ...state, submittedActions: [action] }, ruleset, createSeededRng()))
-    const reloadedFleets = Object.values(first.fleets).map((fleet) => FleetSchema.parse(JSON.parse(JSON.stringify(fleet))))
-    const secondState = { ...state, turn: 2, submittedActions: [], fleets: indexBy("id", reloadedFleets) }
-    const second = extractSuccess(
-      resolveTurn(structuredClone(secondState), createFleetEligibilityScenario({ speed: 1 }).ruleset, createSeededRng()),
-    )
-    const third = extractSuccess(
-      resolveTurn({ ...secondState, turn: 3, submittedActions: [], fleets: structuredClone(second.fleets) }, ruleset, createSeededRng()),
-    )
-    // Assert
-    expect(reloadedFleets.find((fleet) => fleet.movement !== undefined)).toMatchObject({
-      strength: 20,
-      distanceToEnd: 3,
-      movement: { speed: 2, initiatingTurn: 1, submittedAction: action },
-    })
-    expect(Object.values(second.fleets).find((fleet) => fleet.movement !== undefined)?.distanceToEnd).toBe(1)
-    expect(Object.values(third.fleets).find((fleet) => fleet.originPlanetId === "destination")).toMatchObject({
-      strength: 20,
-      movement: undefined,
-    })
-    expect(third.players[branded<PlayerId>("00000000-0000-4000-8000-000000000001")]?.resources).toMatchObject({ INFLUENCE: 3, FUEL: 1 })
-    expect(computeAvailableActions({ playerIds: [playerId], ruleset, fleets: reloadedFleets }).map((action) => action.id)).toStrictEqual([
-      "Y",
-      "Z",
-    ])
-    expect(
-      computeAvailableActions({ playerIds: [playerId], ruleset, fleets: Object.values(third.fleets) }).map((action) => action.id),
-    ).toStrictEqual(["X", "Y", "Z"])
-  })
-
   it.each([
     { distance: 1, speed: 0.1, arrivalTurn: 10, lastRemaining: 0.09999999999999998 },
     { distance: 1 + Number.EPSILON, speed: 0.1, arrivalTurn: 11, lastRemaining: Number.EPSILON },

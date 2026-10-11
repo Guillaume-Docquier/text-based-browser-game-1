@@ -2,6 +2,7 @@ import { Assert, branded, type DeepUnbranded, Result } from "@guillaume-docquier
 import { describe, expect, it } from "vitest"
 import { createFleetEligibilityScenario } from "#shared/action-submission/actionEligibility.stub.ts"
 import { evaluateActionSelection, evaluateSubmittedActions } from "#shared/action-submission/actionEligibility.ts"
+import { computeAvailableActions } from "#shared/action-submission/computeAvailableActions.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
 import { type ActionDefinition, ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
@@ -159,7 +160,7 @@ describe("independent fleet allocation boundary regressions", () => {
     expect(state.players[fixture.playerId]?.resources.INFLUENCE).toBe(change.influence)
   })
 
-  it("should reload the entire paid state and replay automatic 2/2/1 continuation without another split or payment", () => {
+  it("should reload and replay paid partial movement with saved speed, source identity and instance release", () => {
     // Arrange
     const fixture = createFleetEligibilityScenario()
     const input = { ...fixture.state, submittedActions: [fixture.order("X", 20)] }
@@ -176,6 +177,11 @@ describe("independent fleet allocation boundary regressions", () => {
       ),
       players: structuredClone(first.players),
     }
+    const occupied = computeAvailableActions({
+      playerIds: [fixture.playerId],
+      ruleset: fixture.ruleset,
+      fleets: Object.values(reloaded.fleets),
+    })
     const second = extractSuccess(
       resolveTurn({ ...reloaded, turn: 2, submittedActions: [] }, createFleetEligibilityScenario({ speed: 1 }).ruleset, createSeededRng()),
     )
@@ -184,6 +190,12 @@ describe("independent fleet allocation boundary regressions", () => {
     )
     // Assert
     expect(replay).toStrictEqual(first)
+    expect(occupied.map((action) => action.id)).toStrictEqual(["Y", "Z"])
+    expect(
+      computeAvailableActions({ playerIds: [fixture.playerId], ruleset: fixture.ruleset, fleets: Object.values(third.fleets) }).map(
+        (action) => action.id,
+      ),
+    ).toStrictEqual(["X", "Y", "Z"])
     expect(Object.values(first.fleets).map((fleet) => [fleet.strength, fleet.distanceToEnd])).toStrictEqual([
       [30, undefined],
       [20, 3],
