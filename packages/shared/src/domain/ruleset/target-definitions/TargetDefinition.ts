@@ -1,32 +1,31 @@
 import { z } from "zod"
-import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
-import { TargetConstraintSchema, type TargetConstraint } from "#shared/domain/ruleset/target-definitions/TargetConstraint.ts"
-import { TargetTypeSchema, type TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
+import { FleetTargetConstraintSchema } from "#shared/domain/ruleset/target-definitions/fleet/FleetTargetConstraint.ts"
+import { PlanetTargetConstraintSchema } from "#shared/domain/ruleset/target-definitions/planet/PlanetTargetConstraint.ts"
+import { PlayerTargetConstraintSchema } from "#shared/domain/ruleset/target-definitions/player/PlayerTargetConstraint.ts"
+import type { TargetConstraint } from "#shared/domain/ruleset/target-definitions/TargetConstraint.ts"
+import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
 
-export type TargetDefinition = Readonly<{
-  targetType: TargetType
-  constraints: readonly TargetConstraint[]
-}>
+/**
+ * A target slot pairs one entity type with its own constraint array.
+ */
+export type TargetDefinition = {
+  [TType in TargetType]: Readonly<{
+    targetType: TType
+    constraints: ReadonlyArray<TargetConstraint[TType]>
+  }>
+}[TargetType]
 
-export const TargetDefinitionSchema = z
-  .object({
-    targetType: TargetTypeSchema,
-    constraints: z.array(TargetConstraintSchema).readonly(),
-  })
-  .superRefine(validateConstraintsSupportTargetType) satisfies z.ZodType<TargetDefinition>
-
-const supportedTargetTypes: Record<TargetConstraint["type"], ReadonlySet<TargetType>> = {
-  [OwnedBySubmittingPlayerConstraint.type]: OwnedBySubmittingPlayerConstraint.supportedTargetTypes,
-}
-
-function validateConstraintsSupportTargetType({ targetType, constraints }: TargetDefinition, context: z.RefinementCtx): void {
-  for (const [index, constraint] of constraints.entries()) {
-    if (!supportedTargetTypes[constraint.type].has(targetType)) {
-      context.addIssue({
-        code: "custom",
-        path: ["constraints", index],
-        message: `Constraint "${constraint.type}" does not support target type "${targetType}"`,
-      })
-    }
-  }
-}
+export const TargetDefinitionSchema = z.discriminatedUnion("targetType", [
+  z.object({
+    targetType: z.literal(TargetType.FLEET),
+    constraints: z.array(FleetTargetConstraintSchema).readonly(),
+  }),
+  z.object({
+    targetType: z.literal(TargetType.PLANET),
+    constraints: z.array(PlanetTargetConstraintSchema).readonly(),
+  }),
+  z.object({
+    targetType: z.literal(TargetType.PLAYER),
+    constraints: z.array(PlayerTargetConstraintSchema).readonly(),
+  }),
+]) satisfies z.ZodType<TargetDefinition>

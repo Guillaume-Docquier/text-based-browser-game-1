@@ -1,31 +1,26 @@
-import type { Result } from "@guillaume-docquier/tools-ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
-import type { AbstractTargetConstraint } from "#shared/domain/ruleset/target-definitions/AbstractTargetConstraint.ts"
+import type { TargetConstraint } from "#shared/domain/ruleset/target-definitions/TargetConstraint.ts"
 import type { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
 import type { TargetableFleet, TargetablePlanet, TargetablePlayer } from "#shared/turn-resolution/TargetableEntity.ts"
 
-/**
- * The entity fields needed to evaluate target constraints.
- */
-export type TargetForValidation =
-  | Pick<TargetableFleet, "type" | "ownerPlayerId">
-  | Pick<TargetablePlanet, "type" | "ownerPlayerId">
-  | Pick<TargetablePlayer, "type">
+type TargetsForValidation = {
+  [TargetType.FLEET]: Pick<TargetableFleet, "type" | "ownerPlayerId">
+  [TargetType.PLANET]: Pick<TargetablePlanet, "type" | "ownerPlayerId">
+  [TargetType.PLAYER]: Pick<TargetablePlayer, "type">
+}
 
-export type TargetConstraintEvaluator<TConstraint extends AbstractTargetConstraint> = ({
-  target,
-  submittingPlayerId,
-}: {
+/**
+ * The entity fields needed to evaluate constraints for the selected entity type.
+ */
+export type TargetForValidation<TType extends TargetType = TargetType> = TargetsForValidation[TType]
+
+/**
+ * Evaluates one constraint against only its entity type.
+ */
+export type TargetConstraintEvaluator<TType extends TargetType, TConstraint extends TargetConstraint[TType]> = (input: {
   constraint: TConstraint
-  target: TargetForValidation
+  target: TargetForValidation<TType>
   submittingPlayerId: PlayerId
-}) => Result<TargetConstraintIssue, TargetConstraintError>
+}) => TargetConstraintIssue
 
 export type TargetConstraintIssue = string | undefined
-
-export type TargetConstraintError = Readonly<{
-  type: string
-  targetConstraintType: string
-  targetType: TargetType
-  error: string
-}>

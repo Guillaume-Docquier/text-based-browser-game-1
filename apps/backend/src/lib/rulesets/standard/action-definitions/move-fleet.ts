@@ -5,7 +5,7 @@ import { ActionTier } from "shared/domain/ruleset/action-definitions/ActionTier.
 import { ActionType } from "shared/domain/ruleset/action-definitions/ActionType.ts"
 import { FleetMoveEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { ResourceLossEffectDefinition } from "shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
-import { OwnedBySubmittingPlayerConstraint } from "shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { FleetOwnedBySubmittingPlayerConstraint } from "shared/domain/ruleset/target-definitions/fleet/FleetOwnedBySubmittingPlayerConstraint.ts"
 import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 
 function moveFleetDirective({ id, tier, fuel, speed }: { id: string; tier: ActionTier; fuel: number; speed: number }): ActionDefinition {
@@ -17,7 +17,7 @@ function moveFleetDirective({ id, tier, fuel, speed }: { id: string; tier: Actio
     targets: {
       fleet: {
         targetType: TargetType.FLEET,
-        constraints: [OwnedBySubmittingPlayerConstraint.create()],
+        constraints: [FleetOwnedBySubmittingPlayerConstraint.create()],
       },
       planet: {
         targetType: TargetType.PLANET,

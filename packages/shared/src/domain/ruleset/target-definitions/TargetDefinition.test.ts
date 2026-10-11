@@ -1,40 +1,94 @@
 import { describe, expect, it } from "vitest"
-import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { FleetOwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/fleet/FleetOwnedBySubmittingPlayerConstraint.ts"
+import { PlanetOwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/planet/PlanetOwnedBySubmittingPlayerConstraint.ts"
+import { createTargetDefinitionStub } from "#shared/domain/ruleset/target-definitions/TargetDefinition.stub.ts"
 import { TargetDefinitionSchema } from "#shared/domain/ruleset/target-definitions/TargetDefinition.ts"
 import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
 
-describe("ActionTargetDefinitionSchema", () => {
-  it.each([TargetType.FLEET, TargetType.PLANET])("should accept an ownership constraint for %s targets", (targetType) => {
+describe("TargetDefinitionSchema", () => {
+  it("should accept fleet ownership constraints as an array", () => {
     // Arrange
-    const definition = {
-      targetType,
-      constraints: [OwnedBySubmittingPlayerConstraint.create()],
-    }
+    const definition = createTargetDefinitionStub({
+      targetType: TargetType.FLEET,
+      constraints: [FleetOwnedBySubmittingPlayerConstraint.create(), FleetOwnedBySubmittingPlayerConstraint.create()],
+    })
 
     // Act
     const result = TargetDefinitionSchema.safeParse(definition)
 
     // Assert
-    expect(result.success).toBe(true)
+    expect(result).toMatchObject({ success: true, data: definition })
   })
 
-  it("should reject an ownership constraint for player targets", () => {
+  it("should accept planet ownership constraints as an array", () => {
     // Arrange
-    const definition = {
-      targetType: TargetType.PLAYER,
-      constraints: [OwnedBySubmittingPlayerConstraint.create()],
-    }
+    const definition = createTargetDefinitionStub({
+      targetType: TargetType.PLANET,
+      constraints: [PlanetOwnedBySubmittingPlayerConstraint.create(), PlanetOwnedBySubmittingPlayerConstraint.create()],
+    })
 
     // Act
     const result = TargetDefinitionSchema.safeParse(definition)
 
     // Assert
-    expect(result.error?.issues).toStrictEqual([
-      {
-        code: "custom",
-        path: ["constraints", 0],
-        message: `Constraint "${OwnedBySubmittingPlayerConstraint.type}" does not support target type "${TargetType.PLAYER}"`,
-      },
-    ])
+    expect(result).toMatchObject({ success: true, data: definition })
+  })
+
+  it.each([TargetType.FLEET, TargetType.PLANET, TargetType.PLAYER])(
+    "should accept an empty constraint array for %s targets",
+    (targetType) => {
+      // Arrange
+      const definition = { targetType, constraints: [] }
+
+      // Act
+      const result = TargetDefinitionSchema.safeParse(definition)
+
+      // Assert
+      expect(result).toMatchObject({ success: true, data: definition })
+    },
+  )
+
+  it.each([TargetType.FLEET, TargetType.PLANET, TargetType.PLAYER])("should reject an unknown constraint for %s targets", (targetType) => {
+    // Arrange
+    const definition = { targetType, constraints: [{ type: "UNSUPPORTED", references: {}, parameters: {} }] }
+
+    // Act
+    const result = TargetDefinitionSchema.safeParse(definition)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  it("should reject fleet ownership on player targets", () => {
+    // Arrange
+    const definition = { targetType: TargetType.PLAYER, constraints: [FleetOwnedBySubmittingPlayerConstraint.create()] }
+
+    // Act
+    const result = TargetDefinitionSchema.safeParse(definition)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  it("should reject planet ownership on player targets", () => {
+    // Arrange
+    const definition = { targetType: TargetType.PLAYER, constraints: [PlanetOwnedBySubmittingPlayerConstraint.create()] }
+
+    // Act
+    const result = TargetDefinitionSchema.safeParse(definition)
+
+    // Assert
+    expect(result.success).toBe(false)
+  })
+
+  it("should reject any nonempty player constraint array", () => {
+    // Arrange
+    const definition = { targetType: TargetType.PLAYER, constraints: [{}] }
+
+    // Act
+    const result = TargetDefinitionSchema.safeParse(definition)
+
+    // Assert
+    expect(result.success).toBe(false)
   })
 })

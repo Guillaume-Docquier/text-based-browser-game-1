@@ -9,7 +9,8 @@ import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
 import { FleetBuildEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetBuildEffectDefinition.ts"
 import { createRulesetStub } from "#shared/domain/ruleset/Ruleset.stub.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { FleetOwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/fleet/FleetOwnedBySubmittingPlayerConstraint.ts"
+import { PlanetOwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/planet/PlanetOwnedBySubmittingPlayerConstraint.ts"
 import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
@@ -121,29 +122,27 @@ describe("validateTargets", () => {
     )
   })
 
-  it("should accept fleet and planet targets owned by the submitting player", () => {
+  it("should accept a fleet target owned by the submitting player", () => {
     // Arrange
     const playerId = typedParse(PlayerIdSchema, v4())
-    const fleetId = branded<FleetId>("fleet-id")
+
     const planetId = branded<PlanetId>("planet-id")
-    const constraint = OwnedBySubmittingPlayerConstraint.create()
+    const fleetId = branded<FleetId>("fleet-id")
     const actionDefinition = createActionDefinitionStub({
       targets: {
-        fleet: { targetType: TargetType.FLEET, constraints: [constraint] },
-        planet: { targetType: TargetType.PLANET, constraints: [constraint] },
+        fleet: { targetType: TargetType.FLEET, constraints: [FleetOwnedBySubmittingPlayerConstraint.create()] },
       },
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
-      selectedTargets: { fleet: fleetId, planet: planetId },
+      selectedTargets: { fleet: fleetId },
     })
     const turnState = createTurnStateStub({
       fleets: indexBy("id", [
         { id: fleetId, ownerPlayerId: playerId, name: typedParse(FleetNameSchema, "Test Fleet"), strength: 1, originPlanetId: planetId },
       ]),
-      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: playerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -153,24 +152,22 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(Result.Success([]))
   })
 
-  it("should report fleet and planet targets owned by another player", () => {
+  it("should report a fleet target owned by another player", () => {
     // Arrange
     const playerId = typedParse(PlayerIdSchema, v4())
     const otherPlayerId = typedParse(PlayerIdSchema, v4())
-    const fleetId = branded<FleetId>("fleet-id")
     const planetId = branded<PlanetId>("planet-id")
-    const constraint = OwnedBySubmittingPlayerConstraint.create()
+    const fleetId = branded<FleetId>("fleet-id")
     const actionDefinition = createActionDefinitionStub({
       targets: {
-        fleet: { targetType: TargetType.FLEET, constraints: [constraint] },
-        planet: { targetType: TargetType.PLANET, constraints: [constraint] },
+        fleet: { targetType: TargetType.FLEET, constraints: [FleetOwnedBySubmittingPlayerConstraint.create()] },
       },
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
     const submittedAction = createSubmittedActionStub({
       actionDefinitionId: actionDefinition.id,
       playerId,
-      selectedTargets: { fleet: fleetId, planet: planetId },
+      selectedTargets: { fleet: fleetId },
     })
     const turnState = createTurnStateStub({
       fleets: indexBy("id", [
@@ -182,7 +179,6 @@ describe("validateTargets", () => {
           originPlanetId: planetId,
         },
       ]),
-      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: otherPlayerId, x: 0, y: 0 }]),
     })
 
     // Act
@@ -197,8 +193,131 @@ describe("validateTargets", () => {
           actionDefinitionId: actionDefinition.id,
           actionDefinitionName: actionDefinition.name,
         },
+      ]),
+    )
+  })
+
+  it("should report an unknown fleet target before evaluating ownership", () => {
+    // Arrange
+    const playerId = typedParse(PlayerIdSchema, v4())
+    const actionDefinition = createActionDefinitionStub({
+      targets: {
+        target: { targetType: TargetType.FLEET, constraints: [FleetOwnedBySubmittingPlayerConstraint.create()] },
+      },
+    })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: actionDefinition.id,
+      playerId,
+      selectedTargets: { target: "unknown-fleet" },
+    })
+    const turnState = createTurnStateStub()
+
+    // Act
+    const result = validateTargets([submittedAction], ruleset, turnState)
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success([
+        {
+          issue: 'Target selected for tag "target" references unknown FLEET id "unknown-fleet"',
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: actionDefinition.id,
+          actionDefinitionName: actionDefinition.name,
+        },
+      ]),
+    )
+  })
+
+  it("should accept a planet target owned by the submitting player", () => {
+    // Arrange
+    const playerId = typedParse(PlayerIdSchema, v4())
+
+    const planetId = branded<PlanetId>("planet-id")
+
+    const actionDefinition = createActionDefinitionStub({
+      targets: {
+        planet: { targetType: TargetType.PLANET, constraints: [PlanetOwnedBySubmittingPlayerConstraint.create()] },
+      },
+    })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: actionDefinition.id,
+      playerId,
+      selectedTargets: { planet: planetId },
+    })
+    const turnState = createTurnStateStub({
+      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: playerId, x: 0, y: 0 }]),
+    })
+
+    // Act
+    const result = validateTargets([submittedAction], ruleset, turnState)
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(Result.Success([]))
+  })
+
+  it("should report a planet target owned by another player", () => {
+    // Arrange
+    const playerId = typedParse(PlayerIdSchema, v4())
+    const otherPlayerId = typedParse(PlayerIdSchema, v4())
+    const planetId = branded<PlanetId>("planet-id")
+
+    const actionDefinition = createActionDefinitionStub({
+      targets: {
+        planet: { targetType: TargetType.PLANET, constraints: [PlanetOwnedBySubmittingPlayerConstraint.create()] },
+      },
+    })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: actionDefinition.id,
+      playerId,
+      selectedTargets: { planet: planetId },
+    })
+    const turnState = createTurnStateStub({
+      planets: indexBy("id", [{ id: planetId, name: typedParse(PlanetNameSchema, "planet-1"), ownerPlayerId: otherPlayerId, x: 0, y: 0 }]),
+    })
+
+    // Act
+    const result = validateTargets([submittedAction], ruleset, turnState)
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success([
         {
           issue: "Expected target planet to be owned by the submitting player.",
+          submittedActionId: submittedAction.id,
+          actionDefinitionId: actionDefinition.id,
+          actionDefinitionName: actionDefinition.name,
+        },
+      ]),
+    )
+  })
+
+  it("should report an unknown planet target before evaluating ownership", () => {
+    // Arrange
+    const playerId = typedParse(PlayerIdSchema, v4())
+    const actionDefinition = createActionDefinitionStub({
+      targets: {
+        target: { targetType: TargetType.PLANET, constraints: [PlanetOwnedBySubmittingPlayerConstraint.create()] },
+      },
+    })
+    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
+    const submittedAction = createSubmittedActionStub({
+      actionDefinitionId: actionDefinition.id,
+      playerId,
+      selectedTargets: { target: "unknown-planet" },
+    })
+    const turnState = createTurnStateStub()
+
+    // Act
+    const result = validateTargets([submittedAction], ruleset, turnState)
+
+    // Assert
+    expect(result).toStrictEqual<typeof result>(
+      Result.Success([
+        {
+          issue: 'Target selected for tag "target" references unknown PLANET id "unknown-planet"',
           submittedActionId: submittedAction.id,
           actionDefinitionId: actionDefinition.id,
           actionDefinitionName: actionDefinition.name,
@@ -213,7 +332,7 @@ describe("validateTargets", () => {
     const planetId = branded<PlanetId>("planet-id")
     const actionDefinition = createActionDefinitionStub({
       targets: {
-        planet: { targetType: TargetType.PLANET, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
+        planet: { targetType: TargetType.PLANET, constraints: [PlanetOwnedBySubmittingPlayerConstraint.create()] },
       },
     })
     const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
@@ -234,45 +353,6 @@ describe("validateTargets", () => {
       Result.Success([
         {
           issue: "Expected target planet to be owned by the submitting player.",
-          submittedActionId: submittedAction.id,
-          actionDefinitionId: actionDefinition.id,
-          actionDefinitionName: actionDefinition.name,
-        },
-      ]),
-    )
-  })
-
-  it.each([
-    {
-      targetType: TargetType.FLEET,
-      targetId: "unknown-fleet",
-      issue: 'Target selected for tag "target" references unknown FLEET id "unknown-fleet"',
-    },
-    { targetType: TargetType.PLANET, targetId: "123", issue: 'Target selected for tag "target" references unknown PLANET id "123"' },
-  ])("should report an unknown $targetType target before evaluating its constraint", ({ targetType, targetId, issue }) => {
-    // Arrange
-    const playerId = typedParse(PlayerIdSchema, v4())
-    const actionDefinition = createActionDefinitionStub({
-      targets: {
-        target: { targetType, constraints: [OwnedBySubmittingPlayerConstraint.create()] },
-      },
-    })
-    const ruleset = createRulesetStub({ actionDefinitions: indexBy("id", [actionDefinition]) })
-    const submittedAction = createSubmittedActionStub({
-      actionDefinitionId: actionDefinition.id,
-      playerId,
-      selectedTargets: { target: targetId },
-    })
-    const turnState = createTurnStateStub()
-
-    // Act
-    const result = validateTargets([submittedAction], ruleset, turnState)
-
-    // Assert
-    expect(result).toStrictEqual<typeof result>(
-      Result.Success([
-        {
-          issue,
           submittedActionId: submittedAction.id,
           actionDefinitionId: actionDefinition.id,
           actionDefinitionName: actionDefinition.name,

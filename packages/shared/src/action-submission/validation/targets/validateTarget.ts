@@ -1,17 +1,12 @@
-import { Result } from "@guillaume-docquier/tools-ts"
-import { evaluateOwnedBySubmittingPlayerConstraint } from "#shared/action-submission/validation/targets/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
-import type {
-  TargetConstraintError,
-  TargetConstraintIssue,
-  TargetForValidation,
-} from "#shared/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts"
+import { Assert } from "@guillaume-docquier/tools-ts"
+import type { TargetForValidation } from "#shared/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts"
+import { targetConstraintEvaluators } from "#shared/action-submission/validation/targets/target-constraints/targetConstraintEvaluators.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
-import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
-import type { TargetConstraint } from "#shared/domain/ruleset/target-definitions/TargetConstraint.ts"
 import type { TargetDefinition } from "#shared/domain/ruleset/target-definitions/TargetDefinition.ts"
+import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
 
 /**
- * Checks a resolved target against the slot's type and constraints.
+ * Checks a resolved target against the slot's type and returns its first constraint issue.
  */
 export function validateTarget({
   target,
@@ -26,31 +21,26 @@ export function validateTarget({
     return `Expected a ${targetDefinition.targetType} target, received ${target.type}`
   }
 
-  for (const constraint of targetDefinition.constraints) {
-    const constraintValidationResult = validateConstraint({ constraint, submittingPlayerId, target })
-    if (Result.isFailure(constraintValidationResult)) {
-      return constraintValidationResult.error.error
-    }
-
-    if (constraintValidationResult.value !== undefined) {
-      return constraintValidationResult.value
-    }
-  }
-
-  return null
-}
-
-function validateConstraint({
-  constraint,
-  submittingPlayerId,
-  target,
-}: {
-  constraint: TargetConstraint
-  submittingPlayerId: PlayerId
-  target: TargetForValidation
-}): Result<TargetConstraintIssue, TargetConstraintError> {
-  switch (constraint.type) {
-    case OwnedBySubmittingPlayerConstraint.type:
-      return evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
+  switch (targetDefinition.targetType) {
+    case TargetType.FLEET:
+      Assert.isTrue(target.type === TargetType.FLEET)
+      for (const constraint of targetDefinition.constraints) {
+        const issue = targetConstraintEvaluators.FLEET[constraint.type]({ constraint, submittingPlayerId, target })
+        if (issue !== undefined) {
+          return issue
+        }
+      }
+      return null
+    case TargetType.PLANET:
+      Assert.isTrue(target.type === TargetType.PLANET)
+      for (const constraint of targetDefinition.constraints) {
+        const issue = targetConstraintEvaluators.PLANET[constraint.type]({ constraint, submittingPlayerId, target })
+        if (issue !== undefined) {
+          return issue
+        }
+      }
+      return null
+    case TargetType.PLAYER:
+      return null
   }
 }

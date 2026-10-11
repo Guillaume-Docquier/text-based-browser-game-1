@@ -5,7 +5,7 @@ import { ActionTier } from "shared/domain/ruleset/action-definitions/ActionTier.
 import { ActionType } from "shared/domain/ruleset/action-definitions/ActionType.ts"
 import { FleetBuildEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetBuildEffectDefinition.ts"
 import { ResourceLossEffectDefinition } from "shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
-import { OwnedBySubmittingPlayerConstraint } from "shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
+import { PlanetOwnedBySubmittingPlayerConstraint } from "shared/domain/ruleset/target-definitions/planet/PlanetOwnedBySubmittingPlayerConstraint.ts"
 import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 
 function buildFleetDirective({
@@ -29,7 +29,7 @@ function buildFleetDirective({
     targets: {
       planet: {
         targetType: TargetType.PLANET,
-        constraints: [OwnedBySubmittingPlayerConstraint.create()],
+        constraints: [PlanetOwnedBySubmittingPlayerConstraint.create()],
       },
     },
     costs: [
