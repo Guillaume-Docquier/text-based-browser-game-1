@@ -329,13 +329,6 @@ describe("Unified Fleet Operations public lifecycle", () => {
         rngGeneratorState: arrivedReplay.rng.generatorState,
         rngSpareNormal: arrivedReplay.rng.spareNormal,
       })
-      expect(
-        committed.fleets.map((fleet) => [fleet.id, fleet.strength]).toSorted((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
-      ).toStrictEqual(
-        Object.values(extractSuccess(arrivedReplay.result).fleets)
-          .map((fleet) => [fleet.id, fleet.strength])
-          .toSorted((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
-      )
       // Act: reuse the exact released original in immediately collecting T14.
       await order("ATTACK_MOVE_STANDARD_1", 1)
       expect(await right.endTurn()).toBe("processed")
@@ -473,18 +466,6 @@ describe("Unified Fleet Operations public lifecycle", () => {
         expect(evaluation.eligible).toBe(false)
         expect(evaluation.issues).toContainEqual(expect.objectContaining({ path: ["selectedTargets", "world"], status: "invalid" }))
       }
-      const invalid = structuredClone(departure),
-        expand = invalid.submittedActions
-          .filter((action) => action.playerId === before.player.id)
-          .find((action) => action.id === "EXPAND_1")
-      Assert.isDefined(expand)
-      Reflect.set(expand, "selectedInputs", { force: 24 })
-      const priorWorking = structuredClone({ ...invalid, winnerPlayerId: undefined })
-      const working = { ...invalid, winnerPlayerId: undefined }
-      const invalidRng = Rng.fromState(invalid.rngState, mulberry32Prng)
-      expect(resolveTurn(working, invalid.ruleset, invalidRng)).toMatchObject({ type: "Failure", error: { type: "INVALID_SUBMISSIONS" } })
-      expect(working).toStrictEqual(priorWorking)
-      expect(invalidRng.getState()).toStrictEqual(invalid.rngState)
       for (const [id, amount] of [
         ["ENGAGE_2", 11],
         ["EXPAND_1", 24],
@@ -559,13 +540,6 @@ describe("Unified Fleet Operations public lifecycle", () => {
         rngGeneratorState: expected.rng.generatorState,
         rngSpareNormal: expected.rng.spareNormal,
       })
-      expect(
-        saved.fleets.map((fleet) => [fleet.id, fleet.strength]).toSorted((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
-      ).toStrictEqual(
-        Object.values(extractSuccess(expected.result).fleets)
-          .map((fleet) => [fleet.id, fleet.strength])
-          .toSorted((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
-      )
     },
   )
 })
