@@ -1,5 +1,4 @@
 import { Assert, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
-import type { AuthenticatedUser } from "../AuthenticatedUser.ts"
 import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { FleetsPage } from "../pages/FleetsPage.ts"
@@ -59,38 +58,108 @@ test("fleet origin and destination links open their planets in the galaxy view",
   const travelerFleetsPage = await test.step("Build a fleet and finish the turn", async () =>
     await buildTraveler({ travelerGalaxyPage, opponentPlayersPage }))
 
-  const originPlanetName = await test.step("Open the fleet's origin planet and return to Fleets", async () =>
-    await verifyOriginLink({ travelerFleetsPage, traveler }))
+  const originPlanetName = await test.step("Open the fleet's origin planet and return to Fleets", async () => {
+    const row = travelerFleetsPage.rowByStrength(10)
+    const name = await travelerFleetsPage.getOriginPlanet(row)
+    const coordinates = await travelerFleetsPage.getCoordinate(row)
+    const travelerOriginGalaxyPage = await travelerFleetsPage.openOriginPlanet(row)
+    expect(GalaxyPage.urlPattern.test(traveler.page.url())).toBe(true)
+    await expect(travelerOriginGalaxyPage.starSystemMap).toBeVisible()
+    await expect(travelerOriginGalaxyPage.planetDetailsPane).toContainText(name)
+    await expect(travelerOriginGalaxyPage.planetDetailsPane).toContainText(coordinates)
+    await travelerOriginGalaxyPage.goBack()
+    expect(FleetsPage.urlPattern.test(traveler.page.url())).toBe(true)
+    await expect(travelerFleetsPage.heading).toBeVisible()
+    return name
+  })
 
-  const destinationPlanetName = await test.step("Choose the fixed in-range nonorigin planet", async () =>
-    await chooseTravelerDestination({ travelerFleetsPage, originPlanetName }))
+  const destinationPlanetName = await test.step("Choose the fixed in-range nonorigin planet", async () => {
+    const actions = await travelerFleetsPage.openActions()
+    await actions.searchTarget("Move Fleet", "Improved Directive", "Planet", "56:07:50")
+    const name = await actions.getTargetName("Planet", "56:07:50")
+    expect(name).not.toBe(originPlanetName)
+    await actions.chooseTarget("Planet", "56:07:50")
+    return name
+  })
 
   await test.step("Send the fleet toward a destination and finish the turn", async () => {
-    await departTraveler({ travelerFleetsPage, destinationPlanetName, traveler, opponentPlayersPage })
+    const travelerActionsPage = await travelerFleetsPage.openActions()
+    await travelerActionsPage.searchTarget("Move Fleet", "Improved Directive", "Planet", destinationPlanetName)
+    await travelerActionsPage.chooseTarget("Planet", destinationPlanetName)
+    await travelerActionsPage.setNumericInput("Move Fleet", "Improved Directive", "Strength", "4")
+    const submission = traveler.page.waitForResponse((response) => response.url().includes("gameplay.updateActionSubmission"))
+    await travelerActionsPage.toggleActionSelection("Move Fleet", "Improved Directive")
+    const submitted = await submission
+    expect(submitted.ok(), JSON.stringify(await submitted.json())).toBe(true)
+    await expect(travelerActionsPage.selectActionButton("Move Fleet", "Improved Directive")).toHaveAttribute("aria-pressed", "true", {
+      timeout: 30000,
+    })
+    const travelerPlayersPage = await travelerActionsPage.openPlayers()
+    await travelerPlayersPage.toggleReady()
+    await opponentPlayersPage.toggleReady()
+    await expect(travelerPlayersPage.turn).toHaveText("Turn 4", { timeout: 15000 })
+    await expect(opponentPlayersPage.turn).toHaveText("Turn 4", { timeout: 15000 })
+    await travelerPlayersPage.openFleets()
   })
 
   await test.step("Open the destination planet in the galaxy view", async () => {
-    await verifyDestinationLink({ travelerFleetsPage, destinationPlanetName, traveler })
+    await expect(travelerFleetsPage.strength(travelerFleetsPage.rowByStrength(6))).toHaveText("6")
+    await expect(travelerFleetsPage.remainingDistance(travelerFleetsPage.rowByStrength(4))).toHaveText("3.77 ly")
+    const row = travelerFleetsPage.rowByStrength(4)
+    const destinationLink = travelerFleetsPage.destinationPlanetLink(row)
+    await expect(destinationLink).toContainText(destinationPlanetName)
+    const destinationUrl = await destinationLink.getAttribute("href")
+    const aliceDestinationGalaxyPage = await travelerFleetsPage.openDestinationPlanet(row)
+    expect(GalaxyPage.urlPattern.test(traveler.page.url())).toBe(true)
+    expect(new URL(traveler.page.url()).pathname + new URL(traveler.page.url()).search).toBe(destinationUrl)
+    await expect(aliceDestinationGalaxyPage.starSystemMap).toBeVisible()
+    await expect(aliceDestinationGalaxyPage.planetDetailsPane).toContainText(destinationPlanetName)
+    await expect(aliceDestinationGalaxyPage.fleetStrength(aliceDestinationGalaxyPage.fleetMarkerAtStrength(4))).toHaveText("4")
+    const fleets = await aliceDestinationGalaxyPage.openFleets()
+    const originView = await fleets.openOriginPlanet(fleets.rowByStrength(6))
+    await expect(originView.fleetStrength(originView.fleetMarkerAtStrength(6))).toHaveText("6")
   })
 
   await test.step("Reload the bound journey and finish its next turn without another order", async () => {
-    await verifyTravelerProgress({ traveler, opponentPlayersPage })
+    const fleets = await new GalaxyPage(traveler.page).openFleets()
+    await fleets.reload()
+    await expect(fleets.remainingDistance(fleets.rowByStrength(4))).toHaveText("3.77 ly")
+    const actions = await fleets.openActions()
+    await expect(actions.action("Move Fleet", "Improved Directive")).toContainText("In progress:")
+    await expect(actions.selectActionButton("Move Fleet", "Improved Directive")).toHaveCount(0)
+    await expect(actions.resource("Fuel")).toHaveAttribute("aria-label", "3 available of 3 Fuel")
+    for (const expected of [
+      { turn: "Turn 5", distance: "2.77 ly" },
+      { turn: "Turn 6", distance: "1.77 ly" },
+      { turn: "Turn 7", distance: "0.77 ly" },
+      { turn: "Turn 8", distance: "-" },
+    ]) {
+      const players = await new FleetsPage(traveler.page).openPlayers()
+      await players.toggleReady()
+      await opponentPlayersPage.toggleReady()
+      await expect(players.turn).toHaveText(expected.turn, { timeout: 15000 })
+      await expect(opponentPlayersPage.turn).toHaveText(expected.turn, { timeout: 15000 })
+      const advanced = await players.openFleets()
+      await expect(advanced.remainingDistance(advanced.rowByStrength(4))).toHaveText(expected.distance)
+      await expect(advanced.strength(advanced.rowByStrength(6))).toHaveText("6")
+      const current = await advanced.openActions()
+      await expect(current.resource("Fuel")).toHaveAttribute("aria-label", "3 available of 3 Fuel")
+      if (expected.distance === "-")
+        await expect(current.selectActionButton("Move Fleet", "Improved Directive")).toHaveText("Select action")
+      else {
+        await expect(current.action("Move Fleet", "Improved Directive")).toContainText("In progress:")
+        await expect(current.selectActionButton("Move Fleet", "Improved Directive")).toHaveCount(0)
+      }
+    }
   })
 })
 
-type TravelerJourney = Readonly<{
-  traveler: AuthenticatedUser
+type TravelerFunding = Readonly<{
   opponentPlayersPage: PlayersPage
   travelerGalaxyPage: GalaxyPage
-  travelerFleetsPage: FleetsPage
-  originPlanetName: string
-  destinationPlanetName: string
 }>
 
-async function fundTraveler({
-  travelerGalaxyPage,
-  opponentPlayersPage,
-}: Pick<TravelerJourney, "travelerGalaxyPage" | "opponentPlayersPage">): Promise<void> {
+async function fundTraveler({ travelerGalaxyPage, opponentPlayersPage }: TravelerFunding): Promise<void> {
   const actions = await travelerGalaxyPage.openActions()
   await actions.toggleActionSelection("Political Campaign")
   await actions.toggleActionSelection("Extract Metal")
@@ -105,10 +174,7 @@ async function fundTraveler({
   await expect(opponentPlayersPage.turn).toHaveText("Turn 2", { timeout: 15000 })
 }
 
-async function buildTraveler({
-  travelerGalaxyPage,
-  opponentPlayersPage,
-}: Pick<TravelerJourney, "travelerGalaxyPage" | "opponentPlayersPage">): Promise<FleetsPage> {
+async function buildTraveler({ travelerGalaxyPage, opponentPlayersPage }: TravelerFunding): Promise<FleetsPage> {
   const travelerActionsPage = await travelerGalaxyPage.openActions()
   await travelerActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
   await travelerActionsPage.toggleActionSelection("Political Campaign")
@@ -122,123 +188,4 @@ async function buildTraveler({
   await expect(travelerPlayersPage.turn).toHaveText("Turn 3", { timeout: 15000 })
   await expect(opponentPlayersPage.turn).toHaveText("Turn 3", { timeout: 15000 })
   return await travelerPlayersPage.openFleets()
-}
-
-async function verifyOriginLink({
-  travelerFleetsPage,
-  traveler,
-}: Pick<TravelerJourney, "travelerFleetsPage" | "traveler">): Promise<string> {
-  const row = travelerFleetsPage.rowByStrength(10)
-  const name = await travelerFleetsPage.getOriginPlanet(row)
-  const coordinates = await travelerFleetsPage.getCoordinate(row)
-  const travelerOriginGalaxyPage = await travelerFleetsPage.openOriginPlanet(row)
-  expect(GalaxyPage.urlPattern.test(traveler.page.url())).toBe(true)
-  await expect(travelerOriginGalaxyPage.starSystemMap).toBeVisible()
-  await expect(travelerOriginGalaxyPage.planetDetailsPane).toContainText(name)
-  await expect(travelerOriginGalaxyPage.planetDetailsPane).toContainText(coordinates)
-  await travelerOriginGalaxyPage.goBack()
-  expect(FleetsPage.urlPattern.test(traveler.page.url())).toBe(true)
-  await expect(travelerFleetsPage.heading).toBeVisible()
-  return name
-}
-
-async function chooseTravelerDestination({
-  travelerFleetsPage,
-  originPlanetName,
-}: Pick<TravelerJourney, "travelerFleetsPage" | "originPlanetName">): Promise<string> {
-  const actions = await travelerFleetsPage.openActions()
-  await actions.searchTarget("Move Fleet", "Improved Directive", "Planet", "56:07:50")
-  const name = await actions.getTargetName("Planet", "56:07:50")
-  expect(name).not.toBe(originPlanetName)
-  await actions.chooseTarget("Planet", "56:07:50")
-  return name
-}
-
-async function departTraveler({
-  travelerFleetsPage,
-  destinationPlanetName,
-  traveler,
-  opponentPlayersPage,
-}: Pick<TravelerJourney, "travelerFleetsPage" | "destinationPlanetName" | "traveler" | "opponentPlayersPage">): Promise<void> {
-  const travelerActionsPage = await travelerFleetsPage.openActions()
-  await travelerActionsPage.searchTarget("Move Fleet", "Improved Directive", "Planet", destinationPlanetName)
-  await travelerActionsPage.chooseTarget("Planet", destinationPlanetName)
-  await travelerActionsPage.setNumericInput("Move Fleet", "Improved Directive", "Strength", "4")
-  const submission = traveler.page.waitForResponse((response) => response.url().includes("gameplay.updateActionSubmission"))
-  await travelerActionsPage.toggleActionSelection("Move Fleet", "Improved Directive")
-  const submitted = await submission
-  expect(submitted.ok(), JSON.stringify(await submitted.json())).toBe(true)
-  await expect(travelerActionsPage.selectActionButton("Move Fleet", "Improved Directive")).toHaveAttribute("aria-pressed", "true", {
-    timeout: 30000,
-  })
-  const travelerPlayersPage = await travelerActionsPage.openPlayers()
-  await travelerPlayersPage.toggleReady()
-  await opponentPlayersPage.toggleReady()
-  await expect(travelerPlayersPage.turn).toHaveText("Turn 4", { timeout: 15000 })
-  await expect(opponentPlayersPage.turn).toHaveText("Turn 4", { timeout: 15000 })
-  await travelerPlayersPage.openFleets()
-}
-
-async function verifyDestinationLink({
-  travelerFleetsPage,
-  destinationPlanetName,
-  traveler,
-}: Pick<TravelerJourney, "travelerFleetsPage" | "destinationPlanetName" | "traveler">): Promise<void> {
-  await expect(travelerFleetsPage.strength(travelerFleetsPage.rowByStrength(6))).toHaveText("6")
-  await expect(travelerFleetsPage.remainingDistance(travelerFleetsPage.rowByStrength(4))).toHaveText("3.77 ly")
-  const row = travelerFleetsPage.rowByStrength(4)
-  const destinationLink = travelerFleetsPage.destinationPlanetLink(row)
-  await expect(destinationLink).toContainText(destinationPlanetName)
-  const destinationUrl = await destinationLink.getAttribute("href")
-  const aliceDestinationGalaxyPage = await travelerFleetsPage.openDestinationPlanet(row)
-  expect(GalaxyPage.urlPattern.test(traveler.page.url())).toBe(true)
-  expect(new URL(traveler.page.url()).pathname + new URL(traveler.page.url()).search).toBe(destinationUrl)
-  await expect(aliceDestinationGalaxyPage.starSystemMap).toBeVisible()
-  await expect(aliceDestinationGalaxyPage.planetDetailsPane).toContainText(destinationPlanetName)
-  await expect(aliceDestinationGalaxyPage.fleetStrength(aliceDestinationGalaxyPage.fleetMarkerAtStrength(4))).toHaveText("4")
-  const fleets = await aliceDestinationGalaxyPage.openFleets()
-  const originView = await fleets.openOriginPlanet(fleets.rowByStrength(6))
-  await expect(originView.fleetStrength(originView.fleetMarkerAtStrength(6))).toHaveText("6")
-}
-
-async function verifyTravelerProgress({
-  traveler,
-  opponentPlayersPage,
-}: Pick<TravelerJourney, "traveler" | "opponentPlayersPage">): Promise<void> {
-  const fleets = await new GalaxyPage(traveler.page).openFleets()
-  await fleets.reload()
-  await expect(fleets.remainingDistance(fleets.rowByStrength(4))).toHaveText("3.77 ly")
-  const actions = await fleets.openActions()
-  await expect(actions.action("Move Fleet", "Improved Directive")).toContainText("In progress:")
-  await expect(actions.selectActionButton("Move Fleet", "Improved Directive")).toHaveCount(0)
-  await expect(actions.resource("Fuel")).toHaveAttribute("aria-label", "3 available of 3 Fuel")
-  await advanceTravelerJourney({ traveler, opponentPlayersPage })
-}
-
-async function advanceTravelerJourney({
-  traveler,
-  opponentPlayersPage,
-}: Pick<TravelerJourney, "traveler" | "opponentPlayersPage">): Promise<void> {
-  for (const expected of [
-    { turn: "Turn 5", distance: "2.77 ly" },
-    { turn: "Turn 6", distance: "1.77 ly" },
-    { turn: "Turn 7", distance: "0.77 ly" },
-    { turn: "Turn 8", distance: "-" },
-  ]) {
-    const players = await new FleetsPage(traveler.page).openPlayers()
-    await players.toggleReady()
-    await opponentPlayersPage.toggleReady()
-    await expect(players.turn).toHaveText(expected.turn, { timeout: 15000 })
-    await expect(opponentPlayersPage.turn).toHaveText(expected.turn, { timeout: 15000 })
-    const advanced = await players.openFleets()
-    await expect(advanced.remainingDistance(advanced.rowByStrength(4))).toHaveText(expected.distance)
-    await expect(advanced.strength(advanced.rowByStrength(6))).toHaveText("6")
-    const current = await advanced.openActions()
-    await expect(current.resource("Fuel")).toHaveAttribute("aria-label", "3 available of 3 Fuel")
-    if (expected.distance === "-") await expect(current.selectActionButton("Move Fleet", "Improved Directive")).toHaveText("Select action")
-    else {
-      await expect(current.action("Move Fleet", "Improved Directive")).toContainText("In progress:")
-      await expect(current.selectActionButton("Move Fleet", "Improved Directive")).toHaveCount(0)
-    }
-  }
 }

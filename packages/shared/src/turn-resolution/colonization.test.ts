@@ -2,7 +2,8 @@ import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { describe, expect, it } from "vitest"
 import { computeActionCommitments, evaluateActionSelection, evaluateTargetSelection } from "#shared/action-submission/actionEligibility.ts"
-import { ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
+import { type ActionDefinition, ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import {
   ColonizeEffectDefinition,
@@ -10,13 +11,13 @@ import {
 } from "#shared/domain/ruleset/effect-definitions/ColonizeEffectDefinition.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
+import type { FleetMovement } from "#shared/domain/world/fleets/FleetMovement.ts"
+import type { PendingArrivalEffect } from "#shared/domain/world/fleets/PendingArrivalEffect.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
 import { extractSuccess } from "#shared/testing/extractSuccess.ts"
 import {
-  corruptColonizationJourney,
   enumerateColonizationState,
-  malformedColonizationDefinition,
   createColonizationScenario,
   nextColonizationTurn,
   positionFourthColonizationOwner,
@@ -443,29 +444,85 @@ describe("Colonization commitments and deferred integrity", () => {
     expect(idle.resolvedActions).toStrictEqual([])
   })
 
-  it.each(["missing", "duplicate", "index", "requirement", "mapping", "extra", "variant"])(
-    "should rejects saved%s corruption before mutations with valid control",
-    (corruption) => {
+  it.each([
+    {
+      name: "missing pending effect",
+      corrupt: (movement): void => {
+        movement.pendingArrivalEffects = undefined
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "duplicate index",
+      corrupt: (movement, pending): void => {
+        movement.pendingArrivalEffects = [pending, pending]
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "wrong index",
+      corrupt: (_movement, pending): void => {
+        Reflect.set(pending, "effectIndex", 0)
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "changed required strength",
+      corrupt: (_movement, pending): void => {
+        Reflect.set(pending.definition.parameters, "requiredStrength", 25)
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "wrong fleet mapping",
+      corrupt: (_movement, pending): void => {
+        Reflect.set(pending.definition.targets.fleet, "actionTargetTag", "route")
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "extra parameter",
+      corrupt: (_movement, pending): void => {
+        Reflect.set(pending.definition.parameters, "refund", true)
+      },
+      error: "Malformed persisted fleet journey",
+    },
+    {
+      name: "wrong pending variant",
+      corrupt: (_movement, pending): void => {
+        Reflect.set(pending, "type", "ASSAULT")
+      },
+      error: "Malformed persisted fleet journey",
+    },
+  ] satisfies Array<{ name: string; corrupt: (movement: FleetMovement, pending: PendingArrivalEffect) => void; error: string }>)(
+    "should reject saved $name without mutations with a valid control",
+    ({ corrupt, error }) => {
       // Arrange
       const fixture = createColonizationScenario({ orders: [{ owner: 1, strength: 35, distance: 5, assault: false }], defenders: [] })
       extractSuccess(resolveTurn(fixture.state, fixture.ruleset, createSeededRng()))
       const control = nextColonizationTurn(fixture)
-      const corrupt = structuredClone(control)
-      corruptColonizationJourney(corrupt, corruption)
-      const before = structuredClone(corrupt)
+      const invalidState = structuredClone(control)
+      const fleet = Object.values(invalidState.fleets)[0]
+      Assert.isDefined(fleet)
+      const movement = fleet.movement
+      Assert.isDefined(movement)
+      const pending = movement.pendingArrivalEffects?.[0]
+      Assert.isDefined(pending)
+      corrupt(movement, pending)
+      const before = structuredClone(invalidState)
       // Act
       const valid = resolveTurn(control, fixture.ruleset, createSeededRng())
-      const invalid = resolveTurn(corrupt, fixture.ruleset, createSeededRng())
+      const invalid = resolveTurn(invalidState, fixture.ruleset, createSeededRng())
       // Assert
       expect(valid).toStrictEqual(Result.Success(expect.objectContaining({ fleets: expect.any(Object) })))
       expect(invalid).toStrictEqual(
         Result.Failure(
           ResolveTurnError.FailedToResolvePhases({
-            error: ResolvePhaseError.FailedEffect({ error: EffectError.Failed({ error: expect.any(String) }) }),
+            error: ResolvePhaseError.FailedEffect({ error: EffectError.Failed({ error }) }),
           }),
         ),
       )
-      expect(corrupt).toStrictEqual(before)
+      expect(invalidState).toStrictEqual(before)
     },
   )
 
@@ -654,25 +711,101 @@ describe("complete stationary reservation sets", () => {
   )
 
   it.each([
-    "duplicate",
-    "missing-owned",
-    "missing-stationary",
-    "missing-unclaimed",
-    "wrong-fleet",
-    "wrong-planet",
-    "wrong-dependency",
-    "stationary-input",
-  ])("should rejects invalid Colonize composition%s", (malformation) => {
-    // Arrange
-    const fixture = createColonizationScenario({
-      stationary: true,
-      orders: [{ owner: 1, strength: 50, distance: 1, assault: false }],
-      defenders: [],
-    })
-    const definition = malformedColonizationDefinition(fixture, malformation)
-    // Act / Assert
-    expect(ActionDefinitionSchema.safeParse(definition).success).toBe(false)
-  })
+    {
+      name: "duplicate Colonize",
+      corrupt: (definition, effect): void => {
+        definition.effects.push(effect)
+      },
+      message: "An Action supports at most one COLONIZE",
+    },
+    {
+      name: "missing owned source policy",
+      corrupt: (definition): void => {
+        Reflect.set(definition.targets, "craft", { targetType: "FLEET", constraints: [{ type: "STATIONARY_FLEET" }] })
+      },
+      message: "Colonize source must be owned",
+    },
+    {
+      name: "missing stationary source policy",
+      corrupt: (definition): void => {
+        Reflect.set(definition.targets, "craft", {
+          targetType: "FLEET",
+          constraints: [{ type: "OWNED_BY_SUBMITTING_PLAYER", references: {}, parameters: {} }],
+        })
+      },
+      message: "Colonize source must be stationary",
+    },
+    {
+      name: "missing unclaimed destination policy",
+      corrupt: (definition): void => {
+        Reflect.set(definition.targets, "route", {
+          targetType: "PLANET",
+          constraints: [{ type: "AT_FLEET_PLANET", fleetTargetTag: "craft" }],
+        })
+      },
+      message: "Colonize destination must be unclaimed",
+    },
+    {
+      name: "wrong fleet role",
+      corrupt: (_definition, effect): void => {
+        Reflect.set(effect.targets.fleet, "actionTargetTag", "route")
+      },
+      message:
+        'Action Definition "Establish" target slot tagged "route" has type "PLANET", but the "COLONIZE" effect definition requires "FLEET"',
+    },
+    {
+      name: "wrong planet role",
+      corrupt: (_definition, effect): void => {
+        Reflect.set(effect.targets.planet, "actionTargetTag", "craft")
+      },
+      message:
+        'Action Definition "Establish" target slot tagged "craft" has type "FLEET", but the "COLONIZE" effect definition requires "PLANET"',
+    },
+    {
+      name: "wrong source dependency",
+      corrupt: (definition): void => {
+        Reflect.set(definition.targets, "route", {
+          targetType: "PLANET",
+          constraints: [{ type: "UNCLAIMED_PLANET" }, { type: "AT_FLEET_PLANET", fleetTargetTag: "route" }],
+        })
+      },
+      message: "Stationary Colonize destination must be at its source",
+    },
+    {
+      name: "stationary input",
+      corrupt: (definition): void => {
+        Reflect.set(definition, "inputs", { force: { type: "FLEET_STRENGTH", fleetTargetTag: "craft" } })
+      },
+      message: "Stationary Colonize has no inputs",
+    },
+  ] satisfies Array<{ name: string; corrupt: (definition: ActionDefinition, effect: ColonizeEffectDefinition) => void; message: string }>)(
+    "should reject invalid Colonize composition with $name",
+    ({ corrupt, message }) => {
+      // Arrange
+      const effect = ColonizeEffectDefinition.create({ fleetTag: "craft", planetTag: "route", requiredStrength: 20 })
+      const definition = createActionDefinitionStub({
+        name: "Establish",
+        targets: {
+          craft: {
+            targetType: "FLEET",
+            constraints: [{ type: "OWNED_BY_SUBMITTING_PLAYER", references: {}, parameters: {} }, { type: "STATIONARY_FLEET" }],
+          },
+          route: {
+            targetType: "PLANET",
+            constraints: [{ type: "UNCLAIMED_PLANET" }, { type: "AT_FLEET_PLANET", fleetTargetTag: "craft" }],
+          },
+        },
+        effects: [effect],
+      })
+      const parsedEffect = definition.effects.find((item) => item.type === "COLONIZE")
+      Assert.isDefined(parsedEffect)
+      corrupt(definition, parsedEffect)
+      // Act
+      const result = ActionDefinitionSchema.safeParse(definition)
+      // Assert
+      expect(result.error?.issues).toContainEqual(expect.objectContaining({ message }))
+    },
+  )
 })
 
 describe("stationary phase-current priority", () => {

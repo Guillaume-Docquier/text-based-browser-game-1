@@ -2,8 +2,12 @@ import { Assert, Result, Rng, mulberry32Prng } from "@guillaume-docquier/tools-t
 import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { describe, expect, it } from "vitest"
 import { computeAvailableActions } from "#shared/action-submission/computeAvailableActions.ts"
-import { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
-import { ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import {
+  createActionDefinitionStub,
+  createFleetMoveActionDefinitionStub,
+} from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
+import { type ActionDefinition, ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import { AssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/AssaultEffectDefinition.ts"
 import { FleetBuildEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetBuildEffectDefinition.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
@@ -12,8 +16,7 @@ import { extractSuccess } from "#shared/testing/extractSuccess.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
 import { EffectPool } from "#shared/turn-resolution/effects/EffectPool.ts"
 import {
-  createMalformedAssaultDefinition,
-  createCorruptFleetOperationsScenario,
+  createSavedFleetOperationsScenario,
   createDefenderFixtures,
   changeMoveSpeed,
   reverseFleetOperationsState,
@@ -340,28 +343,86 @@ describe("normal Assault and chronological journey integration", () => {
   })
 
   it.each([
-    "missing-pending",
-    "duplicate-index",
-    "changed-composition",
-    "wrong-type",
-    "wrong-index",
-    "wrong-role",
-    "unsupported-parameter",
-  ])("should fails corrupt saved $0 before any payment", (corruption) => {
+    {
+      name: "missing pending effect",
+      corrupt: ({ movement }): void => {
+        movement.pendingArrivalEffects = undefined
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "duplicate effect index",
+      corrupt: ({ movement, pending }): void => {
+        movement.pendingArrivalEffects = [pending, pending]
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "changed composition",
+      corrupt: (fixture): void => {
+        fixture.ruleset = {
+          ...fixture.ruleset,
+          actionDefinitions: Object.fromEntries(
+            Object.values(fixture.ruleset.actionDefinitions).map((definition) => [
+              definition.id,
+              typedParse(ActionDefinitionSchema, {
+                ...definition,
+                effects: definition.effects.filter((effect) => effect.type !== "ASSAULT"),
+              }),
+            ]),
+          ),
+        }
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "wrong pending type",
+      corrupt: ({ pending }): void => {
+        Reflect.set(pending, "type", "SURPRISE")
+      },
+      error: "Malformed persisted fleet journey",
+    },
+    {
+      name: "wrong pending index",
+      corrupt: ({ pending }): void => {
+        Reflect.set(pending, "effectIndex", 0)
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "wrong fleet mapping",
+      corrupt: ({ pending }): void => {
+        Reflect.set(pending.definition.targets.fleet, "actionTargetTag", "route")
+      },
+      error: "Invalid persisted pending arrival effects",
+    },
+    {
+      name: "unsupported parameter",
+      corrupt: ({ pending }): void => {
+        Reflect.set(pending.definition.parameters, "rounds", 2)
+      },
+      error: "Malformed persisted fleet journey",
+    },
+  ] satisfies Array<{
+    name: string
+    corrupt: (fixture: ReturnType<typeof createSavedFleetOperationsScenario>) => void
+    error: string
+  }>)("should reject saved $name before any payment", ({ corrupt, error }) => {
     // Arrange
-    const { state, ruleset } = createCorruptFleetOperationsScenario(corruption)
-    const resources = structuredClone(state.players)
+    const fixture = createSavedFleetOperationsScenario()
+    corrupt(fixture)
+    const before = structuredClone(fixture.state)
     // Act
-    const result = resolveTurn(state, ruleset, createSeededRng())
+    const result = resolveTurn(fixture.state, fixture.ruleset, createSeededRng())
     // Assert
     expect(result).toStrictEqual(
       Result.Failure(
         ResolveTurnError.FailedToResolvePhases({
-          error: ResolvePhaseError.FailedEffect({ error: EffectError.Failed({ error: expect.any(String) }) }),
+          error: ResolvePhaseError.FailedEffect({ error: EffectError.Failed({ error }) }),
         }),
       ),
     )
-    expect(state.players).toStrictEqual(resources)
+    expect(fixture.state).toStrictEqual(before)
   })
 })
 
@@ -708,15 +769,61 @@ describe("movement provenance and explicit composition boundaries", () => {
     expect(after.resolvedActions).toStrictEqual([])
   })
 
-  it.each(["missing-move", "wrong-fleet-role", "wrong-planet-role", "wrong-type", "extra-role", "unsupported-parameters"])(
-    "should rejects malformed Assault composition %s",
-    (malformation) => {
+  it.each([
+    {
+      name: "missing Move",
+      corrupt: (definition, assault): void => {
+        Reflect.set(definition, "effects", [assault])
+      },
+      issue: expect.objectContaining({ message: "Assault must share the source and destination of exactly one Move" }),
+    },
+    {
+      name: "wrong fleet role",
+      corrupt: (_definition, assault): void => {
+        Reflect.set(assault.targets.fleet, "actionTargetTag", "route")
+      },
+      issue: expect.objectContaining({ message: expect.stringContaining('requires "FLEET"') }),
+    },
+    {
+      name: "wrong planet role",
+      corrupt: (_definition, assault): void => {
+        Reflect.set(assault.targets.planet, "actionTargetTag", "craft")
+      },
+      issue: expect.objectContaining({ message: expect.stringContaining('requires "PLANET"') }),
+    },
+    {
+      name: "wrong target type",
+      corrupt: (_definition, assault): void => {
+        Reflect.set(assault.targets.fleet, "targetType", "PLANET")
+      },
+      issue: expect.objectContaining({ code: "invalid_value", path: ["effects", 1, "targets", "fleet", "targetType"] }),
+    },
+    {
+      name: "extra target role",
+      corrupt: (_definition, assault): void => {
+        Reflect.set(assault.targets, "extra", assault.targets.fleet)
+      },
+      issue: expect.objectContaining({ code: "unrecognized_keys", path: ["effects", 1, "targets"] }),
+    },
+    {
+      name: "unsupported parameters",
+      corrupt: (_definition, assault): void => {
+        Reflect.set(assault.parameters, "rounds", 2)
+      },
+      issue: expect.objectContaining({ code: "unrecognized_keys", path: ["effects", 1, "parameters"] }),
+    },
+  ] satisfies Array<{ name: string; corrupt: (definition: ActionDefinition, assault: AssaultEffectDefinition) => void; issue: unknown }>)(
+    "should reject malformed Assault composition with $name",
+    ({ corrupt, issue }) => {
       // Arrange
-      const definition = createMalformedAssaultDefinition(malformation)
+      const movement = createFleetMoveActionDefinitionStub()
+      const assault = AssaultEffectDefinition.create({ fleetTag: "craft", planetTag: "route" })
+      const definition = { ...movement, effects: [...movement.effects, assault] }
+      corrupt(definition, assault)
       // Act
       const result = ActionDefinitionSchema.safeParse(definition)
       // Assert
-      expect(result.success).toBe(false)
+      expect(result.error?.issues).toContainEqual(issue)
     },
   )
 
@@ -854,7 +961,7 @@ describe("independent saved strength and whole-tick scheduling", () => {
     "should fails saved strength %s before a legal payable action",
     (strength) => {
       // Arrange: the untouched fixture has one genuine saved journey and a legal current Gain.
-      const { state: control, ruleset } = createCorruptFleetOperationsScenario("none")
+      const { state: control, ruleset } = createSavedFleetOperationsScenario()
       const corrupt = structuredClone(control)
       const journey = Object.values(corrupt.fleets).find((fleet) => fleet.movement !== undefined)
       Assert.isDefined(journey)

@@ -4,7 +4,7 @@ import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { PlayerIdSchema } from "#shared/domain/players/PlayerId.ts"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
 import { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
-import { ActionDefinitionSchema, type ActionDefinition } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
 import { AssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/AssaultEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { ResourceGainEffectDefinition } from "#shared/domain/ruleset/effect-definitions/ResourceGainEffectDefinition.ts"
@@ -14,6 +14,7 @@ import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import { createSubmittedActionStub } from "#shared/domain/turns/actions/Action.stub.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
+import type { FleetMovement } from "#shared/domain/world/fleets/FleetMovement.ts"
 import type { PendingArrivalEffect } from "#shared/domain/world/fleets/PendingArrivalEffect.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
@@ -148,18 +149,25 @@ export function changeMoveSpeed(ruleset: Ruleset, speed: number): Ruleset {
     ),
   }
 }
-export function createCorruptFleetOperationsScenario(corruption: string): { state: TurnState; ruleset: Ruleset } {
+/**
+ * Arranges a genuine saved Assault journey alongside a legal current payable action.
+ */
+export function createSavedFleetOperationsScenario(): {
+  state: TurnState
+  ruleset: Ruleset
+  movement: FleetMovement
+  pending: PendingArrivalEffect
+} {
   const fixture = createFleetOperationsScenario({ orders: [{ owner: 1, strength: 30, distance: 5, assault: true }] })
   extractSuccess(resolveTurn(fixture.state, fixture.ruleset, createSeededRng()))
   const state: TurnState = { ...structuredClone(fixture.state), turn: 2, submittedActions: [] }
   const journey = Object.values(state.fleets).find((fleet) => fleet.movement !== undefined)
   Assert.isDefined(journey)
-  Assert.isDefined(journey.movement)
-  const mutation = Object.entries(fleetJourneyCorruptions).find(([key]) => key === corruption)?.[1]
-  if (mutation === undefined && corruption !== "none") throw new Error(`Unknown fleet journey corruption: ${corruption}`)
-  const mutationContext: CorruptFleetJourney = { state, fixture, journey, ruleset: fixture.ruleset }
-  if (mutation !== undefined) mutation(mutationContext)
-  let ruleset = mutationContext.ruleset
+  const movement = journey.movement
+  Assert.isDefined(movement)
+  const pending = movement.pendingArrivalEffects?.[0]
+  Assert.isDefined(pending)
+  let ruleset = fixture.ruleset
   const payable = createActionDefinitionStub({
     id: "PAYABLE",
     costs: [ResourceLossEffectDefinition.create({ quantity: 5, resourceType: "INFLUENCE" })],
@@ -173,66 +181,5 @@ export function createCorruptFleetOperationsScenario(corruption: string): { stat
     actionDefinitions: { ...ruleset.actionDefinitions, [payable.id]: payable },
     actionPool: [...ruleset.actionPool, { id: paymentAction.id, actionDefinitionId: payable.id }],
   }
-  return { state: { ...state, submittedActions: [paymentAction] }, ruleset }
-}
-
-export function createMalformedAssaultDefinition(malformation: string): ActionDefinition {
-  const fixture = createFleetOperationsScenario()
-  const definition = structuredClone(Object.values(fixture.ruleset.actionDefinitions)[0])
-  Assert.isDefined(definition)
-  const assault = definition.effects.find((effect) => effect.type === "ASSAULT")
-  Assert.isDefined(assault)
-  if (malformation === "missing-move") Reflect.set(definition, "effects", [assault])
-  if (malformation === "wrong-fleet-role") Reflect.set(assault.targets.fleet, "actionTargetTag", "route")
-  if (malformation === "wrong-planet-role") Reflect.set(assault.targets.planet, "actionTargetTag", "craft")
-  if (malformation === "wrong-type") Reflect.set(assault.targets.fleet, "targetType", "PLANET")
-  if (malformation === "extra-role") Reflect.set(assault.targets, "extra", assault.targets.fleet)
-  if (malformation === "unsupported-parameters") Reflect.set(assault.parameters, "rounds", 2)
-  return definition
-}
-
-type CorruptFleetJourney = {
-  state: TurnState
-  fixture: ReturnType<typeof createFleetOperationsScenario>
-  journey: TurnState["fleets"][keyof TurnState["fleets"]]
-  ruleset: Ruleset
-}
-const fleetJourneyCorruptions = {
-  "missing-pending": ({ journey }): void => {
-    Assert.isDefined(journey.movement)
-    journey.movement.pendingArrivalEffects = undefined
-  },
-  "duplicate-index": ({ journey }): void => {
-    Assert.isDefined(journey.movement)
-    journey.movement.pendingArrivalEffects?.push(...journey.movement.pendingArrivalEffects)
-  },
-  "wrong-type": ({ journey }): void => {
-    Reflect.set(requirePendingAssault(journey), "type", "SURPRISE")
-  },
-  "wrong-index": ({ journey }): void => {
-    Reflect.set(requirePendingAssault(journey), "effectIndex", 0)
-  },
-  "wrong-role": ({ journey }): void => {
-    Reflect.set(requirePendingAssault(journey).definition.targets.fleet, "actionTargetTag", "route")
-  },
-  "unsupported-parameter": ({ journey }): void => {
-    Reflect.set(requirePendingAssault(journey).definition.parameters, "rounds", 2)
-  },
-  "changed-composition": (context): void => {
-    context.ruleset = {
-      ...context.ruleset,
-      actionDefinitions: Object.fromEntries(
-        Object.values(context.ruleset.actionDefinitions).map((definition) => [
-          definition.id,
-          typedParse(ActionDefinitionSchema, { ...definition, effects: definition.effects.filter((effect) => effect.type !== "ASSAULT") }),
-        ]),
-      ),
-    }
-  },
-} satisfies Record<string, (context: CorruptFleetJourney) => void>
-
-function requirePendingAssault(journey: CorruptFleetJourney["journey"]): PendingArrivalEffect {
-  const pending = journey.movement?.pendingArrivalEffects?.[0]
-  Assert.isDefined(pending)
-  return pending
+  return { state: { ...state, submittedActions: [paymentAction] }, ruleset, movement, pending }
 }
