@@ -4,6 +4,7 @@ import { expect, test } from "../fixtures.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { GameDetailsPage } from "../pages/GameDetailsPage.ts"
+import { expectAvailableResources } from "./resourceAssertions.ts"
 
 test("Colonize persists a successful owner and prevents a later saved competitor without loss or return", async ({ alice, bob }) => {
   test.setTimeout(360000)
@@ -38,14 +39,7 @@ test("Colonize persists a successful owner and prevents a later saved competitor
       const fleets = await new GalaxyPage(user.page).openFleets()
       await expect(fleets.strength(fleets.rowByOwnerAndStrength(user.alias, 40))).toHaveText("40")
       const actions = await fleets.openActions()
-      for (const [resource, value] of [
-        ["Influence", 29],
-        ["Metal", 3],
-        ["Fuel", 1],
-        ["Energy", 0],
-        ["Colony", 0],
-      ] as const)
-        await expect(actions.resource(resource)).toHaveAttribute("aria-label", `${value} available of ${value} ${resource}`)
+      await expectAvailableResources(actions, { Influence: 29, Metal: 3, Fuel: 1, Energy: 0, Colony: 0 })
       const view = await actions.refreshPlayerView()
       expect(view.turn).toBe(8)
       expect(view.resources).toEqual({
@@ -136,13 +130,7 @@ test("Colonize persists a successful owner and prevents a later saved competitor
       await expect(galaxy.planet("planet 404958")).toHaveAttribute("aria-label", `View planet 404958 details, owned by ${winner.alias}`)
       const actions = await galaxy.openActions()
       await expect(actions.selectActionButton("Colonize Planet", "Standard Directive")).toBeDisabled()
-      for (const [resource, value] of [
-        ["Influence", 4],
-        ["Metal", 3],
-        ["Fuel", 1],
-        ["Colony", 0],
-      ] as const)
-        await expect(actions.resource(resource)).toHaveAttribute("aria-label", `${value} available of ${value} ${resource}`)
+      await expectAvailableResources(actions, { Influence: 4, Metal: 3, Fuel: 1, Colony: 0 })
       const view = await actions.refreshPlayerView()
       expect(view.actions.find((action) => action.id === "COLONIZE_PLANET_STANDARD_1")?.status).toBe("AVAILABLE")
       expect(view.actions.find((action) => action.id === "COLONIZE_PLANET_STANDARD_1")?.inProgressFleetId).toBeUndefined()
