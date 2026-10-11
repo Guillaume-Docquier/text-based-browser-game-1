@@ -4,6 +4,7 @@ import { safeTypedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { Check, Compass, Crosshair, Landmark, type LucideIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { evaluateActionSelection, computeActionCommitments } from "shared/action-submission/actionEligibility.ts"
+import { getFleetTargetDependency } from "shared/domain/ruleset/target-definitions/TargetConstraint.ts"
 import { SelectedInputsSchema } from "shared/domain/turns/actions/SelectedInputs.ts"
 import { Button } from "@/components/button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/card.tsx"
@@ -89,7 +90,7 @@ export function ActionCard({
     const targetTag = branded<TargetTag>(tag)
     if (
       selectedTargets[targetTag] !== undefined ||
-      targetDefinition.constraints.some((constraint) => constraint.type === "WITHIN_FLEET_RANGE")
+      targetDefinition.constraints.some((constraint) => getFleetTargetDependency(constraint) !== undefined)
     )
       continue
     const options = getTargetOptions(targetDefinition, playerView, players, action, targetTag, selection, state)
@@ -147,6 +148,11 @@ export function ActionCard({
       <CardContent className="relative z-10 flex min-h-36 flex-1 flex-col gap-4 border-t border-border/70 px-5 py-5">
         <p className={cn("leading-relaxed", canAfford ? "text-card-foreground" : "text-zinc-500")}>
           {effectDefinitionsToRulesText(actionDefinition.effects)}{" "}
+          {!actionDefinition.effects.some((effect) => effect.type === "FLEET_MOVE") &&
+            actionDefinition.effects
+              .filter((effect) => effect.type === "COLONIZE")
+              .map((effect) => `Reserve ${effect.parameters.requiredStrength} Strength from the stationed source. `)
+              .join("")}
           {Object.values(actionDefinition.targets)
             .flatMap((slot) => slot.constraints)
             .filter((constraint) => constraint.type === "WITHIN_FLEET_RANGE")
@@ -164,7 +170,7 @@ export function ActionCard({
             onChange={(targetId) => {
               const nextTargets: Record<TargetTag, TargetId> = { ...selectedTargets, [tag]: targetId }
               for (const [dependentTag, slot] of Object.entries(actionDefinition.targets))
-                if (slot.constraints.some((constraint) => constraint.type === "WITHIN_FLEET_RANGE" && constraint.fleetTargetTag === tag))
+                if (slot.constraints.some((constraint) => getFleetTargetDependency(constraint) === tag))
                   Reflect.deleteProperty(nextTargets, dependentTag)
               setDraft({ serverKey, targets: nextTargets, inputs: selectedInputs })
             }}

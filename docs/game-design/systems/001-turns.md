@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Turn timing, lifecycle, Action locking, public reversible Readiness, and the Pay Costs, Fleet Build, Income, and Victory effect resolvers are implemented. Fleet Move Directives allocate partial Strength and start automatically continuing journeys, with persisted instance occupancy, arrival and merging. Chronological arrival ordering and explicit normal Assault are implemented. The current Victory effect is a placeholder, not the planned bounded game length or Legacy win condition. Surprise Assault, Planet Development, and Colonization resolution remain planned.
+Turn timing, lifecycle, Action locking, public reversible Readiness, and the Pay Costs, Fleet Build, Income, and Victory effect resolvers are implemented. Fleet Move Directives allocate partial Strength and start automatically continuing journeys, with persisted instance occupancy, arrival and merging. Chronological arrival ordering, explicit normal Assault, and moving and stationary Colonization are implemented. The current Victory effect is a placeholder, not the planned bounded game length or Legacy win condition. Surprise Assault and Planet Development remain planned.
 
 ## Purpose
 
@@ -64,3 +64,7 @@ Action submission and Turn closure lock the same Turn row. This makes the deadli
 ## Potential Flaws
 
 Because Turns are coarse-grained, in some cases a player might not have the time to react to what their opponents are doing.
+
+## Current Colonization integration
+
+Colonization is a current phase after Fleet Combat. Saved Colonize journeys continue without resubmission and release their initiating Action on success or prevention; ownership is included in the atomic Turn save. See [Planets](./008-planets.md) and [Actions](./003-actions.md) for the implemented contract.

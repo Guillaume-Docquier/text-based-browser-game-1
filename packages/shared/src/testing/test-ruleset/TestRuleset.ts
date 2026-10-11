@@ -7,6 +7,7 @@ import {
   BuildFleetImproved,
   BuildFleetStandard,
 } from "#shared/testing/test-ruleset/action-definitions/build-fleet.ts"
+import { ColonizePlanetStandard, ColonizeStationedPlanetStandard } from "#shared/testing/test-ruleset/action-definitions/colonize-planet.ts"
 import { GainEnergy } from "#shared/testing/test-ruleset/action-definitions/gain-energy.ts"
 import { GainFuel } from "#shared/testing/test-ruleset/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#shared/testing/test-ruleset/action-definitions/gain-influence.ts"
@@ -27,6 +28,8 @@ const ACTION_DEFINITIONS = [
   MoveFleetImproved,
   MoveFleetExceptional,
   AttackMoveStandard,
+  ColonizePlanetStandard,
+  ColonizeStationedPlanetStandard,
 ]
 
 export const TestRuleset = Ruleset.create({
@@ -39,6 +42,7 @@ export const TestRuleset = Ruleset.create({
       id: `${actionDefinition.id}_1`,
       actionDefinitionId: actionDefinition.id,
     })),
+    { id: `${ColonizePlanetStandard.id}_2`, actionDefinitionId: ColonizePlanetStandard.id },
     { id: `${AttackMoveStandard.id}_2`, actionDefinitionId: AttackMoveStandard.id },
     { id: `${MoveFleetStandard.id}_2`, actionDefinitionId: MoveFleetStandard.id },
   ],

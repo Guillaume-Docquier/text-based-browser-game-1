@@ -1,9 +1,12 @@
-import { Result } from "@guillaume-docquier/tools-ts"
+import { branded, Result } from "@guillaume-docquier/tools-ts"
 import { safeTypedParse, NonNegativeNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
 import { ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
 import { compareOrigins, compareCodePoints } from "#shared/domain/turns/actions/ActionResolutionOrigin.ts"
 import { FleetSchema } from "#shared/domain/world/fleets/Fleet.ts"
+import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
+import { getPendingArrivalEffects } from "#shared/domain/world/fleets/PendingArrivalEffect.ts"
 import { getPlanetDistance } from "#shared/domain/world/planets/getPlanetDistance.ts"
+import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { ArrivalTickSchema, type ArrivalTick } from "#shared/turn-resolution/ArrivalIntent.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
 import { getDepartureFleetId } from "#shared/turn-resolution/effects/implementations/FleetMoveEffect.ts"
@@ -76,9 +79,7 @@ function validateJourneyBinding(fleet: ResolutionFleet, context: TurnContext): s
     fleet.id !== getDepartureFleetId(context.turnState.gameId, movement.initiatingTurn, action, sourceId)
   )
     return "Invalid persisted journey departure identity"
-  const expectedPending = definition.effects.flatMap((effect, effectIndex) =>
-    effect.type === "ASSAULT" ? [{ type: "ASSAULT", effectIndex, definition: effect }] : [],
-  )
+  const expectedPending = getPendingArrivalEffects(definition.effects)
   const pending = movement.pendingArrivalEffects ?? []
   const indexes = new Set(pending.map((saved) => saved.effectIndex))
   if (
@@ -90,7 +91,10 @@ function validateJourneyBinding(fleet: ResolutionFleet, context: TurnContext): s
         expected === undefined ||
         saved.type !== expected.type ||
         saved.definition.targets.fleet.actionTargetTag !== expected.definition.targets.fleet.actionTargetTag ||
-        saved.definition.targets.planet.actionTargetTag !== expected.definition.targets.planet.actionTargetTag
+        saved.definition.targets.planet.actionTargetTag !== expected.definition.targets.planet.actionTargetTag ||
+        (saved.type === "COLONIZE" &&
+          expected.type === "COLONIZE" &&
+          saved.definition.parameters.requiredStrength !== expected.definition.parameters.requiredStrength)
       )
     })
   )
@@ -99,6 +103,27 @@ function validateJourneyBinding(fleet: ResolutionFleet, context: TurnContext): s
 }
 
 export function resolveFleetMovementPhase(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
+  const stationaryTick = safeTypedParse(ArrivalTickSchema, 0)
+  if (!stationaryTick.success) return fail("Invalid stationary arrival tick")
+  for (const action of context.turnState.submittedActions) {
+    const definition = context.ruleset.actionDefinitions[action.actionDefinitionId]
+    if (definition === undefined || definition.effects.some((effect) => effect.type === "FLEET_MOVE")) continue
+    for (const pending of getPendingArrivalEffects(definition.effects)) {
+      if (pending.type !== "COLONIZE") continue
+      const sourceId = action.selectedTargets[pending.definition.targets.fleet.actionTargetTag]
+      const planetId = action.selectedTargets[pending.definition.targets.planet.actionTargetTag]
+      if (sourceId === undefined || planetId === undefined) return fail("Missing stationary colonization binding")
+      context.arrivalIntents.push({
+        origin: { initiatingTurn: context.turnState.turn, submittedAction: action },
+        departureFleetId: branded<FleetId>(sourceId),
+        actualFleetId: branded<FleetId>(sourceId),
+        destinationPlanetId: branded<PlanetId>(planetId),
+        arrivalTurn: context.turnState.turn,
+        tick: stationaryTick.data,
+        pending,
+      })
+    }
+  }
   for (const fleet of Object.values(context.turnState.fleets)) {
     if (fleet.strength !== 0) continue
     context.destroyedFleetIds.add(fleet.id)

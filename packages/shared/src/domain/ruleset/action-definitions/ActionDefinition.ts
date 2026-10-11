@@ -83,10 +83,38 @@ function validateMovementComposition(action: ActionDefinition, context: z.Refine
     )
       issue("Assault must share the source and destination of exactly one Move")
   }
+  const colonizes = action.effects.filter((effect) => effect.type === "COLONIZE")
+  if (colonizes.length > 1) issue("An Action supports at most one COLONIZE")
+  for (const colonize of colonizes) {
+    const sourceTag = colonize.targets.fleet.actionTargetTag
+    const destinationTag = colonize.targets.planet.actionTargetTag
+    const source = action.targets[sourceTag]
+    const destination = action.targets[destinationTag]
+    if (source?.constraints.some((c) => c.type === "OWNED_BY_SUBMITTING_PLAYER") !== true) issue("Colonize source must be owned")
+    if (source?.constraints.some((c) => c.type === "STATIONARY_FLEET") !== true) issue("Colonize source must be stationary")
+    if (destination?.constraints.some((c) => c.type === "UNCLAIMED_PLANET") !== true) issue("Colonize destination must be unclaimed")
+    if (moves.length === 0) {
+      if (Object.keys(action.inputs).length !== 0) issue("Stationary Colonize has no inputs")
+      if (destination?.constraints.some((c) => c.type === "AT_FLEET_PLANET" && c.fleetTargetTag === sourceTag) !== true)
+        issue("Stationary Colonize destination must be at its source")
+    } else {
+      const move = moves[0]
+      if (
+        moves.length !== 1 ||
+        move === undefined ||
+        move.targets.fleet.actionTargetTag !== sourceTag ||
+        move.targets.planet.actionTargetTag !== destinationTag
+      )
+        issue("Colonize must share the source and destination of exactly one Move")
+    }
+  }
   if (moves.length > 1) issue("An Action supports at most one FLEET_MOVE")
   for (const [tag, slot] of Object.entries(action.targets)) {
     for (const constraint of slot.constraints) {
-      if (constraint.type === "WITHIN_FLEET_RANGE" && action.targets[constraint.fleetTargetTag]?.targetType !== "FLEET")
+      if (
+        (constraint.type === "WITHIN_FLEET_RANGE" || constraint.type === "AT_FLEET_PLANET") &&
+        action.targets[constraint.fleetTargetTag]?.targetType !== "FLEET"
+      )
         issue(`Target ${tag} references a missing or non-fleet source`)
     }
   }

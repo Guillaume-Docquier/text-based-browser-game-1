@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Build Fleet Actions create and reinforce stationed Fleets. Move Fleet Directives split explicitly allocated Strength, continue automatically, occupy their initiating Action instance, and land or merge. The Fleets view and map markers show the remainder and journey. Chronological arrivals and normal Assault are implemented. Cloaking and colonization remain planned.
+Build Fleet Actions create and reinforce stationed Fleets. Move Fleet Directives split explicitly allocated Strength, continue automatically, occupy their initiating Action instance, and land or merge. The Fleets view and map markers show the remainder and journey. Chronological arrivals and normal Assault are implemented. Move+Colonize and stationary Colonize are implemented; Cloaking remains planned.
 
 ## Purpose
 
@@ -63,3 +63,7 @@ Cloaked Strength participates fully in Combat. A Fleet can attack or defend whil
 A single-stat unit model may not provide enough tactical variety once fleet gameplay expands.
 
 Cloaking may create frustrating attacks without enough detection, warning, or counterplay systems.
+
+## Current Colonization integration
+
+Colonize validates current surviving merged Strength after Combat. Success consumes exactly configured Strength, deletes zero Fleets and preserves any positive survivor at the destination. Moving selected force is reserved once; stationary Colonize reserves fixed required Strength alongside all other source orders. See [Planets](./008-planets.md) and [Actions](./003-actions.md) for the implemented contract.

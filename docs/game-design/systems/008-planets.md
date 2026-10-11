@@ -4,7 +4,7 @@
 
 Partially Implemented
 
-Biome, Size, initial Planet Attributes, and one Home Planet per player are generated deterministically when a game starts, persisted, and visible on the Star System map. Build Fleet Actions can target owned Planets, and their stationed Fleets appear there. Colonization, vision memory, Terraforming, and automatic Planet Development remain planned.
+Biome, Size, initial Planet Attributes, and one Home Planet per player are generated deterministically when a game starts, persisted, and visible on the Star System map. Build Fleet Actions can target owned Planets, and their stationed Fleets appear there. Move+Colonize and stationary Colonize claim Unclaimed Planets after Combat. Vision memory, Terraforming, and automatic Planet Development remain planned.
 
 ## Purpose
 
@@ -32,7 +32,7 @@ Relates to:
 | -------------------- | ------------------------------------------------------------------------------------------------------ |
 | Planet               | A fixed location in the galaxy that may be Unclaimed or owned by an empire.                            |
 | Unclaimed Planet     | A Planet with no owner that may be claimed through colonization.                                       |
-| Colony               | A resource required to attempt colonization.                                                           |
+| Colony               | A retained resource type with no current colonization cost or production.                              |
 | Colonization Attempt | An empire's attempt to establish ownership of an Unclaimed Planet with a Fleet that has arrived there. |
 | Planet Attribute     | A statistic of a Planet that affects its capabilities and resource production.                         |
 | Biome                | A Planet classification that determines ranges for resource production.                                |
@@ -92,11 +92,13 @@ Each Planet has a Size that determines independent ranges for Max Population and
 
 ## Colonization
 
-A Colonization Attempt requires an Unclaimed Planet, an arriving Fleet, and a Colony resource. On success, the Planet becomes owned by the colonizing empire and the Fleet is consumed.
+A Colonization Attempt targets an Unclaimed Planet with an owned stationary source Fleet. Moving Colonize allocates selected Strength to a journey; stationary Colonize targets the source Fleet's exact Planet and reserves the configured required Strength. Both use the same `COLONIZE` effect with one positive safe whole `requiredStrength` parameter. Current content requires 20 Strength and costs 25 Influence, with no Fuel or Colony cost.
 
-Colonization resolves after Fleet Combat. A Colonization Attempt is valid only if its Fleet survives the encounter and remains at the Unclaimed Planet after Fleet Combat. Fleet Combat can therefore deny colonization by destroying a would-be colonizing Fleet. Valid Attempts are considered in the arrival order established by Movement Ticks, so an earlier arrival has priority over later arrivals. If multiple valid Attempts arrive on the same Movement Tick, one is selected randomly to succeed. The Fleets and Colony resources used by unsuccessful attempts return to their empires.
+Colonization resolves after Fleet Combat against the current surviving, merged Fleet. It requires that Fleet to remain owned by the submitting player, stationed at the selected Planet, and at or above the configured requirement. Success changes only Planet ownership and consumes exactly the configured Strength: 35 becomes 15; 20 is deleted. Other Planet fields remain unchanged. Enemy co-presence does not cause combat; only a composed Assault attacks.
 
-A newly colonized Planet starts with `min(Max Population / 2, max(2, floor(colonizing Fleet Strength / 5)))` Population. In other words, every colonized Planet starts with between 2 and half its Max Population based on the colonizing Fleet Strength divided by 5, rounded down.
+Stationary attempts use Movement Tick 0. Moving attempts retain their original arrival Tick and submission even after friendly merging. The earliest otherwise-valid attempt wins. At a tied Tick and Planet, the engine sorts eligible intents canonically and shuffles them with the saved Turn RNG. Ineligible attempts do not participate in that draw. Other attempts are Prevented once the Planet is claimed. Destroyed or insufficient current Fleets also produce explanatory Prevented outcomes. These outcomes consume no extra Strength, refund no departure costs, and do not return a Fleet home.
+
+Saved journeys continue even if another empire claims the Planet while they travel. On arrival they are Prevented, remain stationed, and release the initiating Action instance. Colonization creates no Population, production, growth, or conquest mechanics.
 
 ## Planet Development
 

@@ -1,5 +1,6 @@
 import { Assert } from "@guillaume-docquier/tools-ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
+import type { RulesetId } from "shared/domain/ruleset/RulesetId.ts"
 import { BuildFleetStandard } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
 import { GainInfluence } from "shared/testing/test-ruleset/action-definitions/gain-influence.ts"
 import { GainMetal } from "shared/testing/test-ruleset/action-definitions/gain-metal.ts"
@@ -17,16 +18,23 @@ export async function createCombatActionsScenario({
   processor,
   turnsRepository,
   defenderBuildThroughTurn = 3,
+  rulesetId,
 }: {
   players: [AuthenticatedApiClient, AuthenticatedApiClient]
   clock: ControlledClock
   processor: TurnProcessor
   turnsRepository: TurnsRepository
   defenderBuildThroughTurn?: number
+  rulesetId?: RulesetId
 }): Promise<{ attacker: FleetActionsScenario; defender: FleetActionsScenario; funded: PlayerView; gameId: GameId }> {
   const [creator, joiner] = players
   const { createdGameId: gameId } = await creator.client.games.create.mutate({
-    configuration: createGameConfigurationStub({ nbSeats: 2, mapGenerationSeed: 1234, turnIntervalSeconds: 10 }),
+    configuration: createGameConfigurationStub({
+      nbSeats: 2,
+      mapGenerationSeed: 1234,
+      turnIntervalSeconds: 10,
+      ...(rulesetId === undefined ? {} : { rulesetId }),
+    }),
   })
   await joiner.client.games.join.mutate({ gameId })
   await creator.client.games.startGame.mutate({ gameId })

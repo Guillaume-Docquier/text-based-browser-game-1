@@ -42,6 +42,7 @@ describe.each(CoreRulesets)("persisted movement declarations in $name", (ruleset
     const loaded = RulesetSchema.parse(saved)
     const movement = Object.values(loaded.actionDefinitions)
       .filter((definition) => !definition.effects.some((effect) => effect.type === "ASSAULT"))
+      .filter((definition) => !definition.effects.some((effect) => effect.type === "COLONIZE"))
       .filter((definition) => definition.effects.some((effect) => effect.type === "FLEET_MOVE"))
     // Assert
     expect(
@@ -177,5 +178,53 @@ describe.each([
       { type: "WITHIN_FLEET_RANGE", fleetTargetTag: "fleet", maximumDistance: range },
     ])
     expect(loaded.actionPool.filter((action) => action.actionDefinitionId === definition.id)).toHaveLength(instances)
+  })
+})
+
+describe.each([
+  { name: "Standard V1", speed: 1, range: 5, instances: 1, definitions: 14, pool: 14 },
+  { name: "Test", speed: 10, range: 25, instances: 2, definitions: 14, pool: 17 },
+])("persisted Colonize content in $name", ({ name, speed, range, instances, definitions, pool }) => {
+  it("should retain independent bounded moving and stationary declarations after JSON reload", () => {
+    // Arrange
+    const ruleset = CoreRulesets.find((candidate) => candidate.name === name)
+    Assert.isDefined(ruleset)
+    // Act
+    const loaded = RulesetSchema.parse(JSON.parse(JSON.stringify(ruleset)))
+    const colonizes = Object.values(loaded.actionDefinitions).filter((definition) =>
+      definition.effects.some((effect) => effect.type === "COLONIZE"),
+    )
+    // Assert
+    expect(Object.keys(loaded.actionDefinitions)).toHaveLength(definitions)
+    expect(loaded.actionPool).toHaveLength(pool)
+    expect(
+      colonizes.map((definition) => ({
+        id: definition.id,
+        costs: definition.costs.map((cost) => cost.parameters),
+        inputs: definition.inputs,
+        planetConstraints: Object.values(definition.targets).find((slot) => slot.targetType === "PLANET")?.constraints,
+        effects: definition.effects.map((effect) => ({ type: effect.type, parameters: effect.parameters })),
+      })),
+    ).toStrictEqual([
+      {
+        id: "COLONIZE_PLANET_STANDARD",
+        costs: [{ quantity: 25, resourceType: "INFLUENCE" }],
+        inputs: { strength: { type: "FLEET_STRENGTH", fleetTargetTag: "fleet" } },
+        planetConstraints: [{ type: "UNCLAIMED_PLANET" }, { type: "WITHIN_FLEET_RANGE", fleetTargetTag: "fleet", maximumDistance: range }],
+        effects: [
+          { type: "FLEET_MOVE", parameters: { speed } },
+          { type: "COLONIZE", parameters: { requiredStrength: 20 } },
+        ],
+      },
+      {
+        id: "COLONIZE_STATIONED_PLANET_STANDARD",
+        costs: [{ quantity: 25, resourceType: "INFLUENCE" }],
+        inputs: {},
+        planetConstraints: [{ type: "UNCLAIMED_PLANET" }, { type: "AT_FLEET_PLANET", fleetTargetTag: "fleet" }],
+        effects: [{ type: "COLONIZE", parameters: { requiredStrength: 20 } }],
+      },
+    ])
+    expect(loaded.actionPool.filter((entry) => entry.actionDefinitionId === "COLONIZE_PLANET_STANDARD")).toHaveLength(instances)
+    expect(loaded.actionPool.filter((entry) => entry.actionDefinitionId === "COLONIZE_STATIONED_PLANET_STANDARD")).toHaveLength(1)
   })
 })

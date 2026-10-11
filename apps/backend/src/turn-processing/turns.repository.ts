@@ -106,6 +106,7 @@ export type ProcessedTurnModel = {
     resourceType: ResourceType
     amount: number
   }>
+  planetOwnersToUpdate: Array<{ id: PlanetId; ownerPlayerId: PlayerId | null }>
   fleetsToUpdate: TurnToProcessFleetModel[]
   fleetIdsToDelete: FleetId[]
   winnerAccountId?: AccountId
@@ -337,6 +338,15 @@ export class TurnsRepository extends PostgresRepository {
           )
           .returning()
         Assert.isTrue(updatedProcessingRows.length === 1)
+
+        for (const planet of processedTurnModel.planetOwnersToUpdate) {
+          const updatedPlanets = await tx
+            .update(planetsTable)
+            .set({ ownerPlayerId: planet.ownerPlayerId })
+            .where(and(eq(planetsTable.gameId, processedTurnModel.gameId), eq(planetsTable.id, planet.id)))
+            .returning({ id: planetsTable.id })
+          Assert.isTrue(updatedPlanets.length === 1)
+        }
 
         // Poor man's batch update using upsert
         // Drizzle doesn't handle this, the alternative is raw SQL... maybe if this is a performance bottleneck

@@ -13,7 +13,12 @@ import { createSeededRng } from "shared/testing/createSeededRng.ts"
 import { resolveTurn } from "shared/turn-resolution/resolveTurn.ts"
 import { expect, within } from "storybook/test"
 import { toActionEligibilityState } from "../actionEligibilityState.ts"
-import { createAttackActionCardScenario, createFleetActionCardScenario } from "./ActionCard.stub.ts"
+import {
+  createColonizeOwnershipScenario,
+  createColonizeActionCardScenario,
+  createAttackActionCardScenario,
+  createFleetActionCardScenario,
+} from "./ActionCard.stub.ts"
 import { ActionCard } from "./ActionCard.tsx"
 
 function projectStorySubmissions(view: PlayerView, actions: Action[]): PlayerView {
@@ -90,6 +95,14 @@ function FleetActionExample({
           Cancel sibling order
         </button>
       ) : null}
+      <output aria-label="Uncommitted fleet strength">
+        {view.fleets
+          .map(
+            (fleet) =>
+              `${fleet.name}:${fleet.strength - (computeActionCommitments({ ruleset: view.ruleset, actions: toActionEligibilityState(view).submittedActions }).strength[fleet.id] ?? 0)}`,
+          )
+          .join(",")}
+      </output>
       <output aria-label="Saved orders">
         {JSON.stringify(
           view.actions
@@ -478,5 +491,149 @@ export const AttackInProgress: Story = {
         <FleetActionExample initialView={view} actionId="ATTACK_MOVE_STANDARD_2" />
       </div>
     )
+  },
+}
+
+/** Configured minimum gates the real draft before a saved order is replaced. */
+export const ColonizeThreshold: Story = {
+  render: () => <FleetActionExample initialView={createColonizeActionCardScenario().view} actionId="Y" />,
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    await userEvent.click(canvas.getByRole("combobox", { name: "Route target" }))
+    await expect(within(canvasElement.ownerDocument.body).queryByRole("option", { name: /Origin/ })).not.toBeInTheDocument()
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: /Boundary/ }))
+    const input = canvas.getByRole("spinbutton", { name: "Force" })
+    await userEvent.type(input, "19")
+    await expect(canvas.getByText("Colonization requires at least 20 Strength")).toBeVisible()
+    await expect(canvas.getByRole("button", { name: "Select action" })).toBeDisabled()
+    await userEvent.clear(input)
+    await userEvent.type(input, "20")
+    await expect(canvas.getByRole("button", { name: "Select action" })).toBeEnabled()
+    await userEvent.clear(input)
+    await userEvent.type(input, "35")
+    await userEvent.click(canvas.getByRole("button", { name: "Select action" }))
+    await expect(canvas.getByRole("status", { name: "Saved orders" })).toHaveTextContent('[{"id":"Y","inputs":{"force":35}}]')
+    await expect(canvas.getByRole("status", { name: "Uncommitted fleet strength" })).toHaveTextContent(":15")
+    await userEvent.clear(input)
+    await userEvent.type(input, "19")
+    await expect(canvas.getByRole("button", { name: "Update action" })).toBeDisabled()
+    await expect(canvas.getByRole("status", { name: "Saved orders" })).toHaveTextContent('[{"id":"Y","inputs":{"force":35}}]')
+    await userEvent.click(canvas.getByRole("button", { name: "Selected" }))
+    await expect(canvas.getByRole("status", { name: "Saved orders" })).toHaveTextContent("[]")
+  },
+}
+/** Alternate content changes both displayed loss and live threshold without app rules. */
+export const ColonizeConfigured25: Story = {
+  render: () => <FleetActionExample initialView={createColonizeActionCardScenario({ requiredStrength: 25 }).view} actionId="Y" />,
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    await expect(canvas.getByText(/consuming exactly 25 Strength/)).toBeVisible()
+    await userEvent.type(canvas.getByRole("combobox", { name: "Route target" }), "Boundary")
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: /Boundary/ }))
+    const input = canvas.getByRole("spinbutton", { name: "Force" })
+    await userEvent.type(input, "24")
+    await expect(canvas.getByRole("button", { name: "Select action" })).toBeDisabled()
+    await userEvent.clear(input)
+    await userEvent.type(input, "25")
+    await userEvent.click(canvas.getByRole("button", { name: "Select action" }))
+    await expect(canvas.getByRole("status", { name: "Saved orders" })).toHaveTextContent('[{"id":"Y","inputs":{"force":25}}]')
+  },
+}
+/** Same-location singleton is selectable after source settlement, with no numeric input. */
+export const StationaryColonize: Story = {
+  render: () => <FleetActionExample initialView={createColonizeActionCardScenario({ stationary: true, strength: 20 }).view} actionId="Y" />,
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    await expect(canvas.getByText(/Reserve 20 Strength/)).toBeVisible()
+    await expect(canvas.getByRole("button", { name: "Select action" })).toBeDisabled()
+    await userEvent.click(canvas.getByRole("combobox", { name: "Route target" }))
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: /Boundary/ }))
+    await expect(canvas.getByRole("button", { name: "Select action" })).toBeEnabled()
+    await userEvent.click(canvas.getByRole("button", { name: "Select action" }))
+    await expect(canvas.getByRole("status", { name: "Saved orders" })).toHaveTextContent('[{"id":"Y","inputs":{}}]')
+  },
+}
+
+/** Under-strength stations are excluded and changing the source clears the dependent world. */
+export const ColonizeCandidates: Story = {
+  render: () => {
+    const fixture = createColonizeActionCardScenario({ stationary: true, strength: 20 })
+    const second = createFleetStub({
+      ...fixture.view.fleets[0],
+      id: "second-source",
+      name: "Other station",
+      originPlanetId: fixture.scenario.second.id,
+      strength: 20,
+    })
+    const weak = createFleetStub({ ...second, id: "weak-source", name: "Weak station", strength: 19 })
+    return <FleetActionExample initialView={{ ...fixture.view, fleets: [...fixture.view.fleets, second, weak] }} actionId="Y" />
+  },
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const body = within(canvasElement.ownerDocument.body)
+    await userEvent.click(canvas.getByRole("combobox", { name: "Craft target" }))
+    await expect(body.queryByRole("option", { name: /Fleet weak-sou/ })).not.toBeInTheDocument()
+    await userEvent.click(body.getByRole("option", { name: /Fleet source/ }))
+    await userEvent.click(canvas.getByRole("combobox", { name: "Route target" }))
+    await expect(body.getAllByRole("option")).toHaveLength(1)
+    await userEvent.click(body.getByRole("option", { name: /Boundary/ }))
+    await expect(canvas.getByRole("button", { name: "Select action" })).toBeEnabled()
+    await userEvent.click(canvas.getByRole("combobox", { name: "Craft target" }))
+    await userEvent.click(body.getByRole("option", { name: /Fleet second-s/ }))
+    await expect(canvas.getByRole("combobox", { name: "Route target" })).toHaveValue("")
+    await expect(canvas.getByRole("button", { name: "Select action" })).toBeDisabled()
+    await userEvent.click(canvas.getByRole("combobox", { name: "Route target" }))
+    await expect(body.getAllByRole("option")).toHaveLength(1)
+    await userEvent.click(body.getByRole("option", { name: /Other/ }))
+    await userEvent.click(canvas.getByRole("button", { name: "Select action" }))
+    await expect(canvas.getByRole("status", { name: "Uncommitted fleet strength" })).toHaveTextContent("Other station:0")
+  },
+}
+/** A stationary20 reservation leaves30 from source50. */
+export const StationaryBudget: Story = {
+  render: () => <FleetActionExample initialView={createColonizeActionCardScenario({ stationary: true }).view} actionId="Y" />,
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    await userEvent.click(canvas.getByRole("combobox", { name: "Route target" }))
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: /Boundary/ }))
+    await userEvent.click(canvas.getByRole("button", { name: "Select action" }))
+    await expect(canvas.getByRole("status", { name: "Uncommitted fleet strength" })).toHaveTextContent(":30")
+    await userEvent.click(canvas.getByRole("button", { name: "Selected" }))
+    await expect(canvas.getByRole("status", { name: "Uncommitted fleet strength" })).toHaveTextContent(":50")
+  },
+}
+
+/** Configured stationary25 excludes24 and settles only its valid source before destination selection. */
+export const StationaryConfigured25: Story = {
+  render: () => {
+    const fixture = createColonizeActionCardScenario({ requiredStrength: 25, stationary: true, strength: 24 })
+    const source = createFleetStub({ ...fixture.view.fleets[0], id: "valid25", name: "Valid station", strength: 25 })
+    return <FleetActionExample initialView={{ ...fixture.view, fleets: [...fixture.view.fleets, source] }} actionId="Y" />
+  },
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    await expect(canvas.getByText(/Reserve 25 Strength/)).toBeVisible()
+    await expect(canvas.getByRole("combobox", { name: "Craft target" })).toHaveValue("Fleet valid25 (25 strength)")
+    await expect(canvas.getByRole("button", { name: "Select action" })).toBeDisabled()
+    await userEvent.click(canvas.getByRole("combobox", { name: "Route target" }))
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: /Boundary/ }))
+    await userEvent.click(canvas.getByRole("button", { name: "Select action" }))
+    await expect(canvas.getByRole("status", { name: "Uncommitted fleet strength" })).toHaveTextContent("Valid station:0")
+  },
+}
+
+/**
+ * Distinct own and enemy claimed destinations are excluded independently of the source no-op prohibition.
+ */
+export const ColonizeUnclaimedDestination: Story = {
+  render: () => <FleetActionExample initialView={createColonizeOwnershipScenario().view} actionId="Y" />,
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    await expect(canvas.getByRole("combobox", { name: "Craft target" })).toHaveValue("Fleet source (50 strength)")
+    await userEvent.type(canvas.getByRole("spinbutton", { name: "Force" }), "35")
+    await userEvent.click(canvas.getByRole("combobox", { name: "Route target" }))
+    const options = within(canvasElement.ownerDocument.body)
+    await expect(options.getAllByRole("option")).toHaveLength(1)
+    await expect(options.queryByRole("option", { name: /Owned destination/ })).not.toBeInTheDocument()
+    await expect(options.queryByRole("option", { name: /Enemy destination/ })).not.toBeInTheDocument()
+    await userEvent.click(options.getByRole("option", { name: /Unclaimed destination/ }))
+    await expect(canvas.getByRole("button", { name: "Select action" })).toBeEnabled()
+    await userEvent.click(canvas.getByRole("button", { name: "Select action" }))
+    await expect(canvas.getByRole("combobox", { name: "Route target" })).toHaveValue("Unclaimed destination (0:0:0)")
+    await expect(canvas.getByRole("status", { name: "Saved orders" })).toHaveTextContent('[{"id":"Y","inputs":{"force":35}}]')
+    await expect(canvas.getByRole("status", { name: "Uncommitted fleet strength" })).toHaveTextContent(":15")
   },
 }

@@ -6,7 +6,7 @@ import type { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-de
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
-import { PendingArrivalEffectSchema, type PendingArrivalEffect } from "#shared/domain/world/fleets/PendingArrivalEffect.ts"
+import { getPendingArrivalEffects } from "#shared/domain/world/fleets/PendingArrivalEffect.ts"
 import { getPlanetDistance } from "#shared/domain/world/planets/getPlanetDistance.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { Effect } from "#shared/turn-resolution/effects/Effect.ts"
@@ -45,15 +45,9 @@ export class FleetMoveEffect extends Effect {
     if (context.turnState.fleets[id] !== undefined) return Result.Failure(EffectError.Failed({ error: "Duplicate departure identity" }))
     const distance = safeTypedParse(NonNegativeNumberSchema, getPlanetDistance(origin, destination))
     if (!distance.success) return Result.Failure(EffectError.Failed({ error: "Invalid movement distance" }))
-    const pendingArrivalEffects: PendingArrivalEffect[] = []
-    for (const [effectIndex, definition] of (
-      context.ruleset.actionDefinitions[this.submittedAction.actionDefinitionId]?.effects ?? []
-    ).entries()) {
-      if (definition.type !== "ASSAULT") continue
-      const parsed = safeTypedParse(PendingArrivalEffectSchema, { type: "ASSAULT", effectIndex, definition })
-      if (!parsed.success) return Result.Failure(EffectError.Failed({ error: "Invalid pending Assault definition" }))
-      pendingArrivalEffects.push(parsed.data)
-    }
+    const pendingArrivalEffects = getPendingArrivalEffects(
+      context.ruleset.actionDefinitions[this.submittedAction.actionDefinitionId]?.effects ?? [],
+    )
     const child = {
       id,
       name: generateFleetName(context.rng),

@@ -37,7 +37,9 @@ export function createFleetOperationsScenario({
   assaultCount?: number
   turn?: number
 } = {}): { state: TurnState; ruleset: Ruleset; owners: PlayerId[]; destination: Planet; submissions: SubmittedAction[] } {
-  const owners = [1, 2, 3].map((n) => typedParse(PlayerIdSchema, `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`))
+  const owners = Array.from({ length: Math.max(3, ...orders.map((order) => order.owner)) }, (_, index) => index + 1).map((n) =>
+    typedParse(PlayerIdSchema, `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`),
+  )
   const ownerAt = (n: number): PlayerId => {
     const id = owners[n - 1]
     if (id === undefined) throw new Error("Invalid fixture owner")

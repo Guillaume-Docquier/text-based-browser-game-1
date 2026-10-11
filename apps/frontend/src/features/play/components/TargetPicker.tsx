@@ -6,6 +6,7 @@ import {
   type ActionEligibilityState,
   type ActionSelectionDraft,
 } from "shared/action-submission/actionEligibility.ts"
+import { getFleetTargetDependency } from "shared/domain/ruleset/target-definitions/TargetConstraint.ts"
 import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 import { SearchSelect } from "@/components/search-select.tsx"
 import { formatRulesetTerm } from "@/features/play/effectDefinitionToRulesText.ts"
@@ -47,7 +48,7 @@ export function TargetPicker({
         options={options}
         value={value}
         disabled={disabled}
-        allowSingleOptionSelection={targetDefinition.constraints.some((constraint) => constraint.type === "WITHIN_FLEET_RANGE")}
+        allowSingleOptionSelection={targetDefinition.constraints.some((constraint) => getFleetTargetDependency(constraint) !== undefined)}
         placeholder={
           options.length === 0 ? `No ${targetDefinition.targetType.toLowerCase()} targets available` : `Choose ${label.toLowerCase()}`
         }

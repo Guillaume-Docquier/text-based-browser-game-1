@@ -5,13 +5,15 @@ import { ResolvePhaseError } from "#shared/turn-resolution/phases/ResolvePhaseEr
 import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 
 export function resolveFleetCombatPhase(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
-  const canonical = context.arrivalIntents.toSorted((a, b) => {
-    if (a.tick !== b.tick) return a.tick - b.tick
-    const origin = compareOrigins(a.origin, b.origin)
-    if (origin !== 0) return origin
-    if (a.pending.effectIndex !== b.pending.effectIndex) return a.pending.effectIndex - b.pending.effectIndex
-    return compareCodePoints(a.departureFleetId, b.departureFleetId)
-  })
+  const canonical = context.arrivalIntents
+    .filter((intent) => intent.pending.type === "ASSAULT")
+    .toSorted((a, b) => {
+      if (a.tick !== b.tick) return a.tick - b.tick
+      const origin = compareOrigins(a.origin, b.origin)
+      if (origin !== 0) return origin
+      if (a.pending.effectIndex !== b.pending.effectIndex) return a.pending.effectIndex - b.pending.effectIndex
+      return compareCodePoints(a.departureFleetId, b.departureFleetId)
+    })
   for (let start = 0; start < canonical.length;) {
     const tick = canonical[start]?.tick
     let end = start + 1

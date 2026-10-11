@@ -117,6 +117,7 @@ export class TurnProcessor {
   }
 
   private processTurn(turnToProcess: TurnToProcessModel): Result<ProcessedTurnModel, ResolveTurnError> {
+    const initialPlanetOwners = new Map(Object.values(turnToProcess.planets).map((planet) => [planet.id, planet.ownerPlayerId]))
     const initialFleetIds = Object.values(turnToProcess.fleets).map((fleet) => fleet.id)
     const rng = Rng.fromState(turnToProcess.rngState, mulberry32Prng)
     const resolvedTurnResult = resolveTurn(
@@ -164,6 +165,9 @@ export class TurnProcessor {
           resourceType,
           amount: player.resources[resourceType],
         })),
+      ),
+      planetOwnersToUpdate: Object.values(resolvedTurnResult.value.planets).flatMap((planet) =>
+        initialPlanetOwners.get(planet.id) === planet.ownerPlayerId ? [] : [{ id: planet.id, ownerPlayerId: planet.ownerPlayerId }],
       ),
       fleetsToUpdate,
       fleetIdsToDelete,

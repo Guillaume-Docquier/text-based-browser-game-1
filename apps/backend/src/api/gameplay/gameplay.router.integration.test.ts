@@ -26,6 +26,36 @@ import { ApiServer } from "#tests/ApiServer.ts"
 import { integrationTest } from "#tests/vitest.integration.fixture.ts"
 import { TurnsRepository } from "#turn-processing/turns.repository.ts"
 
+const expectedColonizationActions = [
+  {
+    id: "COLONIZE_PLANET_STANDARD_1",
+    actionDefinitionId: "COLONIZE_PLANET_STANDARD",
+    selectedTargets: null,
+    selectedInputs: null,
+    status: "AVAILABLE",
+    isEligible: false,
+    canAffordResources: false,
+  },
+  {
+    id: "COLONIZE_PLANET_STANDARD_2",
+    actionDefinitionId: "COLONIZE_PLANET_STANDARD",
+    selectedTargets: null,
+    selectedInputs: null,
+    status: "AVAILABLE",
+    isEligible: false,
+    canAffordResources: false,
+  },
+  {
+    id: "COLONIZE_STATIONED_PLANET_STANDARD_1",
+    actionDefinitionId: "COLONIZE_STATIONED_PLANET_STANDARD",
+    selectedTargets: null,
+    selectedInputs: null,
+    status: "AVAILABLE",
+    isEligible: false,
+    canAffordResources: false,
+  },
+]
+
 describe("gameplay.router", () => {
   integrationTest("should reject all gameplay routes when the authenticated player has not joined the game", async ({ db }) => {
     // Arrange
@@ -68,6 +98,7 @@ describe("gameplay.router", () => {
 
       // Assert
       const expectedActions = [
+        ...expectedColonizationActions,
         ...Array.from({ length: 2 }, () => ({
           id: expect.any(String),
           actionDefinitionId: AttackMoveStandard.id,
@@ -392,6 +423,7 @@ describe("gameplay.router", () => {
 
       // Assert
       const expectedSelectedActions = [
+        ...expectedColonizationActions,
         ...Array.from({ length: 2 }, () => ({
           id: expect.any(String),
           actionDefinitionId: AttackMoveStandard.id,
@@ -505,6 +537,7 @@ describe("gameplay.router", () => {
       expect(selectedPlayerView.actions).toHaveLength(expectedSelectedActions.length + 1)
 
       const expectedDeselectedActions = [
+        ...expectedColonizationActions,
         ...Array.from({ length: 2 }, () => ({
           id: expect.any(String),
           actionDefinitionId: AttackMoveStandard.id,

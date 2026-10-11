@@ -68,3 +68,7 @@ Individual Resources may have additional rules that define their sources, costs,
 ## Potential Flaws
 
 A large or poorly differentiated resource catalogue can create bookkeeping without meaningful strategic choices. Resource sources, uses, scarcity, and alignment relationships must be clear enough for players to make informed decisions.
+
+## Current Colonization integration
+
+Current moving and stationary Colonize cost25 Influence and no Fuel or Colony. COLONY remains in the resource catalogue with no production or colonization consumption. Payment occurs once on new submission; later prevention does not refund it. See [Planets](./008-planets.md) and [Actions](./003-actions.md) for the implemented contract.

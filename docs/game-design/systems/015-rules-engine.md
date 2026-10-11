@@ -111,7 +111,7 @@ Turn Resolution creates one Effect Pool from locked Action Submissions and autom
 
 The Phase sequence belongs to the Rules Engine and is the same for every Ruleset. Each Phase is free to collect, order, coordinate, and resolve its Effects in the way that Phase requires.
 
-Pay Costs, Fleet Movement, Fleet Build, Income, and Victory currently resolve Effects. Fleet Combat resolves explicit normal Assault after Movement and Build. Planet and Colonization have Phase boundaries but no gameplay behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
+Pay Costs, Fleet Movement, Fleet Build, Income, and Victory currently resolve Effects. Fleet Combat resolves explicit normal Assault after Movement and Build. Colonization resolves configured ownership claims against current surviving force after Combat. Planet has a Phase boundary but no automatic development behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
 
 The Move Fleet Effect creates a child journey from its mapped numeric Strength input. The Fleet Movement Phase materializes all departures before advancing each journey exactly once. Remaining distance, original submission and speed persist independently of later seeded content changes. Unfinished movement completes its current Effect and leaves an empty pool; automatic continuation needs no new submission or payment. [System 012-movement](./012-movement.md) records live chronological arrivals, immutable order provenance and merge-safe actual Fleet binding.
 
@@ -144,3 +144,7 @@ An Effect resolution failure or an invalid locked Action Submission indicates an
 - Frontend target-choice logic can drift from server validation, especially when target slots depend on one another or on state the client cannot see. A [shared package](../../architecture/decisions/007-code-sharing.md) can reduce duplicated logic, but the server must still validate against authoritative state.
 - Invalid combinations in Action Definitions or Effect Definitions can make an entire Ruleset unplayable without strong authoring-time and game-start validation.
 - Persisted Rulesets need durable versioning so engine changes do not alter or strand active games.
+
+## Current Colonization integration
+
+The bounded COLONIZE effect has one requiredStrength parameter shared by initial eligibility, reservations, UI text and final resolution. Colonization filters its own pending variant, resolves after Combat, and orders eligible competition by Tick then Planet with canonical seeded ties. See [Planets](./008-planets.md) and [Actions](./003-actions.md) for the implemented contract.

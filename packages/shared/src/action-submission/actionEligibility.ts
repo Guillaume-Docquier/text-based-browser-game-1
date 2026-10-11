@@ -1,4 +1,5 @@
 import { branded } from "@guillaume-docquier/tools-ts"
+import { evaluateColonization, isUnclaimedPlanet } from "#shared/action-submission/colonizationEligibility.ts"
 import type { GameId } from "#shared/domain/games/GameId.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { Resources } from "#shared/domain/resources/Resources.ts"
@@ -6,6 +7,7 @@ import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import { getFleetTargetDependency } from "#shared/domain/ruleset/target-definitions/TargetConstraint.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import type { Fleet } from "#shared/domain/world/fleets/Fleet.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
@@ -51,6 +53,15 @@ export function computeActionCommitments({
   for (const action of actions) {
     const definition = ruleset.actionDefinitions[action.actionDefinitionId]
     if (definition === undefined) continue
+    if (!definition.effects.some((effect) => effect.type === "FLEET_MOVE")) {
+      for (const colonize of definition.effects.filter((effect) => effect.type === "COLONIZE")) {
+        const fleetId = action.selectedTargets[colonize.targets.fleet.actionTargetTag]
+        if (fleetId !== undefined) {
+          const id = branded<FleetId>(fleetId)
+          strength[id] = (strength[id] ?? 0) + colonize.parameters.requiredStrength
+        }
+      }
+    }
     const committed = (resources[action.playerId] ??= emptyResources())
     for (const cost of definition.costs) committed[cost.parameters.resourceType] += cost.parameters.quantity
     for (const [tag, input] of Object.entries(definition.inputs)) {
@@ -98,6 +109,7 @@ export function evaluateActionSelection({ state, ruleset, action, selection, mod
   const missing = mode === "draft" ? "incomplete" : "invalid"
   const definition = ruleset.actionDefinitions[action.actionDefinitionId]
   const others = state.submittedActions.filter((other) => other.playerId !== action.playerId || other.id !== action.id)
+  const otherCommitments = computeActionCommitments({ ruleset, actions: others })
   const commitments = computeActionCommitments({ ruleset, actions: [...others, { ...action, ...selection }] })
   const availableStrength: Record<FleetId, number> = {}
   for (const fleet of Object.values(state.fleets)) availableStrength[fleet.id] = fleet.strength - (commitments.strength[fleet.id] ?? 0)
@@ -141,6 +153,14 @@ export function evaluateActionSelection({ state, ruleset, action, selection, mod
           if (fleet !== undefined && fleet.strength - (othersCommitments.strength[fleet.id] ?? 0) <= 0)
             add(path, "Source fleet has no available strength")
         }
+        if (constraint.type === "UNCLAIMED_PLANET" && (!("ownerPlayerId" in target) || !isUnclaimedPlanet(target.ownerPlayerId)))
+          add(path, "Planet is already claimed")
+        if (constraint.type === "AT_FLEET_PLANET") {
+          const sourceId = selection.selectedTargets[constraint.fleetTargetTag]
+          const source = sourceId === undefined ? undefined : state.fleets[branded<FleetId>(sourceId)]
+          if (sourceId === undefined) add(path, "Choose a source fleet first", mode === "draft" ? "dependency-pending" : "invalid")
+          else if (source === undefined || source.originPlanetId !== id) add(path, "Planet must be at the source fleet")
+        }
         if (constraint.type === "WITHIN_FLEET_RANGE") {
           const sourceId = selection.selectedTargets[constraint.fleetTargetTag]
           if (sourceId === undefined) {
@@ -174,6 +194,30 @@ export function evaluateActionSelection({ state, ruleset, action, selection, mod
         add(path, `Insufficient fleet strength: shortfall ${shortfall}`, "invalid", shortfall)
       }
     }
+    const move = definition.effects.find((effect) => effect.type === "FLEET_MOVE")
+    for (const colonize of definition.effects.filter((effect) => effect.type === "COLONIZE")) {
+      const sourceTag = colonize.targets.fleet.actionTargetTag
+      const sourceId = selection.selectedTargets[sourceTag]
+      const source = sourceId === undefined ? undefined : state.fleets[branded<FleetId>(sourceId)]
+      const planetId = selection.selectedTargets[colonize.targets.planet.actionTargetTag]
+      const planet = planetId === undefined ? undefined : state.planets[branded<PlanetId>(planetId)]
+      const amount =
+        move === undefined
+          ? source === undefined
+            ? undefined
+            : source.strength - (otherCommitments.strength[source.id] ?? 0)
+          : selection.selectedInputs[move.inputs.strength.actionInputTag]
+      if (typeof amount === "number" && Number.isSafeInteger(amount) && (move === undefined || amount > 0)) {
+        // Owner eligibility is independently attached to the destination target; force eligibility belongs to its selection.
+        for (const reason of evaluateColonization({ definition: colonize, ownerPlayerId: planet?.ownerPlayerId ?? null, strength: amount }))
+          if (reason !== "Planet is already claimed")
+            add(move === undefined ? ["selectedTargets", sourceTag] : ["selectedInputs", move.inputs.strength.actionInputTag], reason)
+      }
+      if (move === undefined && source !== undefined) {
+        const shortfall = (commitments.strength[source.id] ?? 0) - source.strength
+        if (shortfall > 0) add(["selectedTargets", sourceTag], `Insufficient fleet strength: shortfall ${shortfall}`, "invalid", shortfall)
+      }
+    }
     const totals = state.players[action.playerId]?.resources
     if (totals !== undefined)
       for (const resource of Object.values(ResourceType)) {
@@ -195,8 +239,10 @@ export function evaluateTargetSelection(context: Omit<EvaluationContext, "mode">
   // A destination retains its declared source prerequisites; source candidates ignore stale dependent drafts.
   const candidateSlot = context.ruleset.actionDefinitions[context.action.actionDefinitionId]?.targets[context.targetTag]
   const relevantTargetTags = new Set<string>([context.targetTag])
-  for (const constraint of candidateSlot?.constraints ?? [])
-    if (constraint.type === "WITHIN_FLEET_RANGE") relevantTargetTags.add(constraint.fleetTargetTag)
+  for (const constraint of candidateSlot?.constraints ?? []) {
+    const dependency = getFleetTargetDependency(constraint)
+    if (dependency !== undefined) relevantTargetTags.add(dependency)
+  }
   const issues = evaluation.issues.filter(
     (issue) =>
       issue.path[0] === "id" ||

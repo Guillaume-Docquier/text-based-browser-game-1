@@ -174,7 +174,7 @@ export const ManyFleets: Story = {
         ),
     ).toEqual([
       ["Home Guard", "Alice", "1,000", "Earth (1:2:3)", "-", "-"],
-      ["Scout", "Alice", "5", "Mars (4:5:6)", "Venus (7:8:9)", "2.5 ly"],
+      ["Scout", "Alice", "5", "Mars (4:5:6)", "Venus (7:8:9)", "2.50 ly"],
       ["Reserve", "Bob", "10", "Venus (7:8:9)", "-", "-"],
       ["Vanguard", "Bob", "25", "Earth (1:2:3)", "Mars (4:5:6)", "12.35 ly"],
     ])
@@ -248,5 +248,28 @@ export const SortFleets: Story = {
           .map((row) => within(row).getAllByRole("cell")[0]?.textContent),
       ).toEqual(descending)
     }
+  },
+}
+
+/** A claimed world retains different owners'15/35 stations after the later Colonize is prevented. */
+export const ColonizationSurvivors: Story = {
+  args: {
+    planets: [origin, { ...destination, ownerPlayerId: alice.id }],
+    fleets: [
+      createFleetStub({ id: "winner", name: "Colonizing survivor", ownerPlayerId: alice.id, originPlanetId: destination.id, strength: 15 }),
+      createFleetStub({ id: "loser", name: "Prevented competitor", ownerPlayerId: bob.id, originPlanetId: destination.id, strength: 35 }),
+    ],
+  },
+  play: async ({ canvas }) => {
+    const table = within(canvas.getByRole("table", { name: "Fleets" }))
+    const winner = within(table.getByRole("row", { name: /Colonizing survivor/ }))
+    const loser = within(table.getByRole("row", { name: /Prevented competitor/ }))
+    await expect(winner.getByRole("cell", { name: "15" })).toBeVisible()
+    await expect(winner.getByRole("cell", { name: "Alice" })).toBeVisible()
+    await expect(loser.getByRole("cell", { name: "35" })).toBeVisible()
+    await expect(loser.getByRole("cell", { name: "Bob" })).toBeVisible()
+    await expect(table.getAllByRole("row")).toHaveLength(3)
+    await expect(winner.getAllByRole("cell", { name: "-" })).toHaveLength(2)
+    await expect(loser.getAllByRole("cell", { name: "-" })).toHaveLength(2)
   },
 }

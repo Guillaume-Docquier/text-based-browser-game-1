@@ -45,3 +45,7 @@ A planned Surprise Assault resolves in two steps. First, the attacking Fleet dea
 ## Potential Flaws
 
 Losses use exact largest remainders with Fleet-ID code-point ties. Very large total forces require exact integer arithmetic; aggregates and products remain BigInt internally and only individual losses enter Fleet state.
+
+## Current Colonization integration
+
+Colonize does not implicitly attack. A composed Assault resolves first; surviving force below the configured requirement or known destruction prevents Colonize without additional loss. Enemy co-presence alone does not prevent claiming an Unclaimed Planet. See [Planets](./008-planets.md) and [Actions](./003-actions.md) for the implemented contract.
