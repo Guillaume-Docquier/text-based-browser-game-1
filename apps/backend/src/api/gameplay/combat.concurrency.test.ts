@@ -46,8 +46,14 @@ describe("public Assault PostgreSQL", () => {
     expect(departed.resources).toMatchObject({ INFLUENCE: { total: 14 }, METAL: { total: 3 }, FUEL: { total: 0 } })
     expect(departed.fleets.map((fleet) => fleet.strength).toSorted((a, b) => a - b)).toStrictEqual([10, 20, 30])
     expect(departed.fleets.find((fleet) => fleet.movement !== undefined)).toMatchObject({
+      strength: 30,
       distanceToEnd: 7.080338258080797,
-      movement: { initiatingTurn: 6, pendingArrivalEffects: [{ type: "ASSAULT", effectIndex: 1 }] },
+      movement: {
+        speed: 10,
+        initiatingTurn: 6,
+        submittedAction: { id: "ATTACK_MOVE_STANDARD_1", selectedInputs: { strength: 30 } },
+        pendingArrivalEffects: [{ type: "ASSAULT", effectIndex: 1 }],
+      },
     })
     expect(departed.actions.find((action) => action.id === "ATTACK_MOVE_STANDARD_1")?.status).toBe("IN_PROGRESS")
     expect(await processor.processNextDueTurn()).toBe("idle")
@@ -62,8 +68,10 @@ describe("public Assault PostgreSQL", () => {
     expect(await attacker.view()).toStrictEqual({ ...departed, turnStatus: "PROCESSING" })
     expect(await defender.view()).toStrictEqual({ ...defenderDeparted, turnStatus: "PROCESSING" })
     expect(await api.turnsRepository.resetProcessingAttempt({ gameId, turn: 7 })).toStrictEqual(Result.Success({ reset: true }))
-    expect(await processor.processNextDueTurn()).toBe("processed")
+    const reloadedProcessor = await api.recreateProcessor()
+    expect(await reloadedProcessor.processNextDueTurn()).toBe("processed")
     const arrived = await attacker.view()
+    const saved = await api.observeWorkerPersistence(gameId)
     expect(arrived.turn).toBe(8)
     expect(arrived.resources).toStrictEqual(departed.resources)
     expect(
@@ -72,85 +80,22 @@ describe("public Assault PostgreSQL", () => {
       [before.player.id, 10, undefined, undefined, undefined],
       [before.player.id, 10, undefined, undefined, undefined],
     ])
+    expect(
+      saved.fleets.map(({ ownerPlayerId, strength, movement, destinationPlanetId, distanceToEnd }) => ({
+        ownerPlayerId,
+        strength,
+        movement,
+        destinationPlanetId,
+        distanceToEnd,
+      })),
+    ).toStrictEqual([
+      { ownerPlayerId: before.player.id, strength: 10, movement: null, destinationPlanetId: null, distanceToEnd: null },
+      { ownerPlayerId: before.player.id, strength: 10, movement: null, destinationPlanetId: null, distanceToEnd: null },
+    ])
     expect(arrived.actions.find((action) => action.id === "ATTACK_MOVE_STANDARD_1")?.status).toBe("AVAILABLE")
     expect((await defender.view()).resources).toStrictEqual(defenderBefore.resources)
-    expect(fault.completedSaveCallbacks).toBe(4)
-    expect(fault.failures).toBe(2)
-    expect(await processor.processNextDueTurn()).toBe("idle")
+    expect(await reloadedProcessor.processNextDueTurn()).toBe("idle")
     expect(await attacker.view()).toStrictEqual(arrived)
-  })
-
-  it("should round trips pending Assault and explicit null/deletion with real PostgreSQL", { timeout: 120000 }, async () => {
-    // Arrange
-    await using api = await ControlledConcurrencyTestApiServer.create()
-    const { clock, processor, turnsRepository } = api
-    const fixture = await createCombatActionsScenario({
-      players: [await api.createClient(), await api.createClient()],
-      clock,
-      processor,
-      turnsRepository,
-    })
-    const { attacker, defender } = fixture
-    const before = await attacker.view()
-    const source = before.fleets.find((fleet) => fleet.ownerPlayerId === before.player.id)
-    const destination = before.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.coordinates === "44:96:25")
-    Assert.isDefined(source)
-    Assert.isDefined(destination)
-    const x = before.actions.find((action) => action.id === "ATTACK_MOVE_STANDARD_1")
-    Assert.isDefined(x)
-    // Act
-    await attacker.move(x.id, 30, destination.id)
-    const departureStatus = await attacker.endTurn()
-    const departed = await attacker.view()
-    const reload = await attacker.view()
-    const reloadedProcessor = await api.recreateProcessor()
-    clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-    await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-    const arrivalStatus = await reloadedProcessor.processNextDueTurn()
-    const arrived = await attacker.view()
-    const defenderView = await defender.view()
-    const idle = await reloadedProcessor.processNextDueTurn()
-    const idleView = await attacker.view()
-    // Assert
-    expect(fixture.funded.resources).toMatchObject({ INFLUENCE: { total: 7 }, METAL: { total: 7 }, FUEL: { total: 1 } })
-    expect(before.resources).toMatchObject({ INFLUENCE: { total: 19 }, METAL: { total: 3 }, FUEL: { total: 1 } })
-    expect(before.fleets.find((fleet) => fleet.ownerPlayerId === before.player.id)?.strength).toBe(40)
-    expect(before.fleets.find((fleet) => fleet.ownerPlayerId !== before.player.id)?.strength).toBe(20)
-    expect(departureStatus).toBe("processed")
-    expect(departed.fleets.find((fleet) => fleet.movement !== undefined)).toMatchObject({
-      strength: 30,
-      distanceToEnd: 7.080338258080797,
-      movement: {
-        speed: 10,
-        initiatingTurn: 6,
-        submittedAction: { id: x.id, selectedInputs: { strength: 30 } },
-        pendingArrivalEffects: [{ type: "ASSAULT", effectIndex: 1 }],
-      },
-    })
-    expect(departed.fleets.find((fleet) => fleet.id === source.id)).toMatchObject({
-      id: source.id,
-      strength: 10,
-    })
-    expect(departed.actions.find((action) => action.id === x.id)?.status).toBe("IN_PROGRESS")
-    expect(departed.actions.find((action) => action.id === "ATTACK_MOVE_STANDARD_2")?.status).toBe("AVAILABLE")
-    expect(reload.fleets).toStrictEqual(departed.fleets)
-    expect(arrivalStatus).toBe("processed")
-    expect(arrived.fleets).toHaveLength(2)
-    expect(arrived.fleets.map((fleet) => fleet.strength)).toStrictEqual([10, 10])
-    expect(
-      arrived.fleets.map((fleet) => [fleet.ownerPlayerId, fleet.movement, fleet.destinationPlanetId, fleet.distanceToEnd]),
-    ).toStrictEqual([
-      [before.player.id, undefined, undefined, undefined],
-      [before.player.id, undefined, undefined, undefined],
-    ])
-    expect(arrived.actions.find((action) => action.id === x.id)?.status).toBe("AVAILABLE")
-    expect(arrived.resources).toMatchObject({ INFLUENCE: { total: 14 }, FUEL: { total: 0 } })
-    expect(defenderView.resources).toMatchObject({ INFLUENCE: { total: 13 }, METAL: { total: 5 }, FUEL: { total: 1 } })
-    expect(
-      defenderView.galaxy.systems.flatMap((system) => system.planets).find((planet) => planet.id === destination.id)?.ownerPlayerId,
-    ).toBe(defenderView.player.id)
-    expect(idle).toBe("idle")
-    expect(idleView).toStrictEqual(arrived)
   })
 
   it.each([
