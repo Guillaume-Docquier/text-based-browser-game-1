@@ -1,18 +1,17 @@
 import type { Action, TargetTag } from "@api-types"
-import { Assert, branded } from "@guillaume-docquier/tools-ts"
+import { branded } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { createActionDefinitionStub } from "shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
 import { FleetMoveEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
-import { FleetSchema } from "shared/domain/world/fleets/Fleet.ts"
+import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
+import { FleetMovementSchema } from "shared/domain/world/fleets/FleetMovement.ts"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
-import { createSeededRng } from "shared/testing/createSeededRng.ts"
-import { extractSuccess } from "shared/testing/extractSuccess.ts"
-import { resolveTurn } from "shared/turn-resolution/resolveTurn.ts"
 import { describe, expect, it } from "vitest"
 import { toActionEligibilityState } from "../actionEligibilityState.ts"
 import { createFleetActionCardScenario } from "./ActionCard.stub.ts"
-import { getTargetOptions } from "./TargetPicker.tsx"
+import { getTargetOptions } from "./targetOptions.ts"
 
 describe("destination choices with fresh source prerequisites", () => {
   it.each([
@@ -57,20 +56,20 @@ describe("destination choices with fresh source prerequisites", () => {
   it("should hide destinations for a coherent public journey belonging to Y while X remains usable", () => {
     // Arrange
     const fixture = createFleetActionCardScenario()
-    const departed = extractSuccess(
-      resolveTurn(
-        structuredClone({ ...fixture.scenario.state, submittedActions: [fixture.scenario.order("Y", 20)] }),
-        fixture.scenario.ruleset,
-        createSeededRng(),
-      ),
-    )
-    const child = Object.values(departed.fleets).find((fleet) => fleet.movement !== undefined)
-    Assert.isDefined(child)
-    const persisted = FleetSchema.parse(JSON.parse(JSON.stringify(child)))
+    const journey = fixture.scenario.order("Y", 20)
+    const moving = createFleetStub({
+      ...fixture.scenario.source,
+      id: "moving",
+      strength: 20,
+      destinationPlanetId: fixture.scenario.destination.id,
+      distanceToEnd: 3,
+      movement: typedParse(FleetMovementSchema, { type: "FLEET_MOVE", initiatingTurn: 1, submittedAction: journey, speed: 2 }),
+    })
+    const remainder = createFleetStub({ ...fixture.scenario.source, strength: 30 })
     const view = {
       ...fixture.view,
       turn: 2,
-      fleets: Object.values(departed.fleets).map((fleet) => FleetSchema.parse(JSON.parse(JSON.stringify(fleet)))),
+      fleets: [remainder, moving],
       actions: [
         { ...fixture.view.actions[0], selectedTargets: null, selectedInputs: null, status: "AVAILABLE" as const },
         {
@@ -78,8 +77,8 @@ describe("destination choices with fresh source prerequisites", () => {
           selectedTargets: null,
           selectedInputs: null,
           status: "IN_PROGRESS" as const,
-          inProgressFleetId: persisted.id,
-          destinationPlanetId: persisted.destinationPlanetId,
+          inProgressFleetId: moving.id,
+          destinationPlanetId: moving.destinationPlanetId,
         },
         { ...fixture.view.actions[2], selectedTargets: null, selectedInputs: null, status: "AVAILABLE" as const },
       ],
@@ -87,7 +86,7 @@ describe("destination choices with fresh source prerequisites", () => {
     const action = view.actions[0]
     const routeTag = branded<TargetTag>("route")
     const craftTag = branded<TargetTag>("craft")
-    const selection = { selectedTargets: { craft: persisted.id }, selectedInputs: { force: 1 } }
+    const selection = { selectedTargets: { craft: moving.id }, selectedInputs: { force: 1 } }
     const state = toActionEligibilityState(view)
     // Act
     const destinations = getTargetOptions({
@@ -110,7 +109,7 @@ describe("destination choices with fresh source prerequisites", () => {
     })
     // Assert
     expect(state.submittedActions).toStrictEqual([])
-    expect(state.fleets[persisted.id]).toMatchObject({
+    expect(state.fleets[moving.id]).toMatchObject({
       distanceToEnd: 3,
       strength: 20,
       movement: { initiatingTurn: 1, submittedAction: { id: "Y" }, speed: 2 },

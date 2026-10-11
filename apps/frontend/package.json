@@ -13,6 +13,7 @@
     "storybook:build": "storybook build",
     "storybook:test": "vitest run --project storybook --project storybook-native",
     "storybook:test:watch": "vitest --project storybook --project storybook-native",
+    "test": "vitest run --project unit --outputFile.junit=./test-results/unit/results.xml",
     "typecheck": "tsc -b"
   },
   "dependencies": {

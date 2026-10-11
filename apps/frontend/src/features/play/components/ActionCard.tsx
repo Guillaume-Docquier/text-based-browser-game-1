@@ -21,7 +21,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/input.tsx"
 import { toActionEligibilityState } from "@/features/play/actionEligibilityState.ts"
 import { RESOURCE_ICONS, sortCostsByResource } from "@/features/play/components/resourceIcons.ts"
-import { getTargetOptions, TargetPicker, type TargetOption } from "@/features/play/components/TargetPicker.tsx"
+import { getTargetOptions, type TargetOption } from "@/features/play/components/targetOptions.ts"
+import { TargetPicker } from "@/features/play/components/TargetPicker.tsx"
 import { formatRulesetTerm, effectDefinitionsToRulesText } from "@/features/play/effectDefinitionToRulesText.ts"
 import { cn } from "@/lib/cn.ts"
 
