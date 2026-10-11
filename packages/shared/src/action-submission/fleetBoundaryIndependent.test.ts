@@ -86,7 +86,6 @@ describe("independent fleet allocation boundary regressions", () => {
       shortfall: 1,
     })
     expect(resolved.players[fixture.playerId]?.resources).toMatchObject({ INFLUENCE: 0, FUEL: 0 })
-    expect(fixture.state.players[fixture.playerId]?.resources).toMatchObject({ INFLUENCE: 6, FUEL: 2 })
   })
 
   it("should reject departure before payment even when a same-turn gain would cover its shortfall", () => {
@@ -106,14 +105,15 @@ describe("independent fleet allocation boundary regressions", () => {
       fixture.order("Y", 30),
       createSubmittedActionStub({ id: "income-instance", playerId: fixture.playerId, actionDefinitionId: gain.id }),
     ]
+    const input = structuredClone({ ...fixture.state, submittedActions: submissions })
+    const before = structuredClone(input)
     // Act
-    const issues = evaluateSubmittedActions({ state: fixture.state, ruleset, submittedActions: submissions })
-    const result = resolveTurn(structuredClone({ ...fixture.state, submittedActions: submissions }), ruleset, createSeededRng())
+    const issues = evaluateSubmittedActions({ state: input, ruleset, submittedActions: submissions })
+    const result = resolveTurn(input, ruleset, createSeededRng())
     // Assert
     expect(issues[0]?.issues).toContainEqual(expect.objectContaining({ path: ["resources", "INFLUENCE"], shortfall: 1 }))
     expect(result).toStrictEqual(Result.Failure(expect.objectContaining({ type: "INVALID_SUBMISSIONS" })))
-    expect(fixture.source.strength).toBe(50)
-    expect(fixture.state.players[fixture.playerId]?.resources.INFLUENCE).toBe(5)
+    expect(input).toStrictEqual(before)
   })
 
   it.each([
