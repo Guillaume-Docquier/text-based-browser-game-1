@@ -133,6 +133,7 @@ describe("gameplay.router", () => {
       })
       expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length + 1)
       expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
+      expect(repeatedGetPlayerViewResult).toStrictEqual(getPlayerViewResult)
     })
 
     integrationTest("should expose uncommitted resources and use them to determine Action affordability", async ({ db }) => {

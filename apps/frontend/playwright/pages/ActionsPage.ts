@@ -18,13 +18,17 @@ export class ActionsPage extends GamePage {
 
   /** Captures the production router output after a normal page reload, retaining auth only inside this page object. */
   public async refreshPlayerView(): Promise<PlayerView> {
-    const pending = this.page.waitForResponse((response) => response.url().includes("gameplay.getPlayerView") && response.ok())
+    const pending = this.page
+      .waitForResponse((response) => response.url().includes("gameplay.getPlayerView") && response.ok())
+      .then(async (response) => {
+        const body: unknown = await response.json()
+        return { response, body }
+      })
     await this.page.reload()
-    const response = await pending
+    const { response, body } = await pending
     const url = new URL(response.url())
     this.submissionUrl = `${url.origin}${url.pathname.split("/trpc/")[0]}/trpc/gameplay.updateActionSubmission?batch=1`
     this.authorization = await response.request().headerValue("authorization")
-    const body: unknown = await response.json()
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: the successful production getPlayerView router parses its output with PlayerViewDtoSchema; this is its tRPC batch transport envelope.
     const entries = body as Array<{ result?: { data: PlayerView } }>
     const view = entries.map((entry) => entry.result?.data).find((data) => data?.gameId !== undefined && data?.fleets !== undefined)

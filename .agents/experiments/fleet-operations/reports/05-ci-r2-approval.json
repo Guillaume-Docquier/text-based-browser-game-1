@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "repair": "05-ci-code-health-repair-r2",
+  "base": "b97976ffa66d57f97ec5fa7e32e9cfc43973ce30",
+  "status": "approved by root",
+  "plan": ".agents/experiments/fleet-operations/increments/05-ci-code-health-repair-r2.md",
+  "planSha256": "F8FCECDE0F96C00872658CC2AFC7B3ED97485F63B4D13E5B7A7441AC37279D48",
+  "plannerReportSha256": "20DDBC1CE5706767749D77ED80588C4AF878686B7669704BB25604109514090B",
+  "immutable": {
+    "original05": "A5CC7432A7CDD146C467011806D74E01374B7A09F9E64E0C569CDDEDD0E970E3",
+    "repairR1": "367848B6FBF5855C2CD12370865517B29E59F3F2261A96AD1003D71D144E02B1"
+  },
+  "intendedProductSurfaces": [
+    "apps/frontend/src/components/search-select.tsx",
+    "packages/shared/src/domain/ruleset/action-definitions/ActionDefinition.ts",
+    "packages/shared/src/turn-resolution/phases/implementations/resolveColonizationPhase.ts",
+    "apps/frontend/playwright/specs/fleetOperations.spec.ts",
+    "apps/backend/src/api/gameplay/combat.integration.test.ts"
+  ],
+  "meaningfulTests": "Colocated current tests/stories may be strengthened for changed diagnostics, selector intersections, grouping/current-state/RNG, literal funding and station/terminal observations. Additional production callers/modules need a named root-approved revision.",
+  "acceptance": "Every original80 ID plus every R2-CS01..11/R2-D01..05/R2-B01..03 row binding. I5-11/CH-11 and supplemental hosted aspects remain future exact-head delivery obligations.",
+  "rootInspection": "Complete202-line packet plus version/symbol final correction and complete70-line final report read in bounded untruncated sections; branch/head/frozen hashes and no apps/packages/docs changes verified independently. Literal setup budgets/costs independently read from current TestRuleset.",
+  "decisions": [
+    "Narrow component availability and coherent choice projection; preserve original handlers and default behavior.",
+    "Ordered presence-based source policies and consumed tags keep full issue code/path/order/multiplicity.",
+    "Canonical pure contiguous tick+destination grouping; each group partitions current state during sequential execution.",
+    "Literal POM selection rows and independent T8/asymmetric resource checkpoints retain samegame and successful response waits.",
+    "Only failing public combat setup changes: same initial budgets/BFSroutes/five turns per hop, four moving-owner funding submissions versus45, unchanged60000ms timeout and independent10/20,7/13/owner/no-conquest oracles."
+  ],
+  "gates": "One original-head focused reproduction; current focused checks; full final shared test+coverage, serial backend all4projects coverage, full native/frontend+Storybook builds/fullE2E/static; fresh tester/full reviewer; independent root acceptance before commit/push; all applicable hostedgreen exactlatesthead beforeready.",
+  "unresolvedBlockers": []
+}

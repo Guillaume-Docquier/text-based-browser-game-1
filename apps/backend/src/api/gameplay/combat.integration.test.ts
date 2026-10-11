@@ -177,6 +177,22 @@ integrationTest(
       }
       await attacker.endTurn()
     }
+    for (const [scenario, strength, resources] of [
+      [attacker, 10, [7, 10, 16]],
+      [firstDefender, 10, [7, 10, 16]],
+      [secondDefender, 20, [5, 9, 16]],
+    ] as const) {
+      const view = await scenario.view()
+      const own = view.fleets.filter((fleet) => fleet.ownerPlayerId === view.player.id)
+      expect(own).toHaveLength(1)
+      const home = planets.find((planet) => planet.ownerPlayerId === view.player.id)
+      Assert.isDefined(home)
+      expect(own[0]).toMatchObject({ ownerPlayerId: view.player.id, strength, originPlanetId: home.id })
+      expect(own[0]?.movement).toBeUndefined()
+      expect(own[0]?.destinationPlanetId).toBeUndefined()
+      expect(own[0]?.distanceToEnd).toBeUndefined()
+      expect([view.resources.INFLUENCE.total, view.resources.METAL.total, view.resources.FUEL.total]).toStrictEqual(resources)
+    }
     for (const [scenario, strength] of [
       [firstDefender, 10],
       [secondDefender, 20],
@@ -204,19 +220,37 @@ integrationTest(
         }
       }
       Assert.isDefined(route)
+      let previousStop = home
       for (const stop of route.slice(1)) {
         const view = await scenario.view()
+        const own = view.fleets.filter((fleet) => fleet.ownerPlayerId === view.player.id)
+        expect(own).toHaveLength(1)
+        expect(own[0]).toMatchObject({ ownerPlayerId: view.player.id, strength, originPlanetId: previousStop.id })
+        expect(own[0]?.movement).toBeUndefined()
+        expect(own[0]?.destinationPlanetId).toBeUndefined()
+        expect(own[0]?.distanceToEnd).toBeUndefined()
         const action = view.actions.find((candidate) => candidate.actionDefinitionId === MoveFleetExceptional.id)
         Assert.isDefined(action)
+        expect(action.status).toBe("AVAILABLE")
+        expect(view.resources.INFLUENCE.uncommitted).toBeGreaterThanOrEqual(3)
+        expect(view.resources.FUEL.uncommitted).toBeGreaterThanOrEqual(5)
         await scenario.move(action.id, strength, stop.id)
-        for (let travel = 0; travel < 5; travel++) {
-          for (const funded of scenarios) {
-            await funded.submitDefinition(GainInfluence.id)
-            await funded.submitDefinition(GainMetal.id)
-            await funded.submitDefinition(GainFuel.id)
-          }
-          await attacker.endTurn()
-        }
+        await scenario.submitDefinition(GainInfluence.id)
+        await attacker.endTurn()
+        await scenario.submitDefinition(GainInfluence.id)
+        await scenario.submitDefinition(GainMetal.id)
+        await scenario.submitDefinition(GainFuel.id)
+        await attacker.endTurn()
+        for (let travel = 0; travel < 3; travel++) await attacker.endTurn()
+        const arrived = await scenario.view()
+        const stationed = arrived.fleets.filter((fleet) => fleet.ownerPlayerId === arrived.player.id)
+        expect(stationed).toHaveLength(1)
+        expect(stationed[0]).toMatchObject({ ownerPlayerId: arrived.player.id, strength, originPlanetId: stop.id })
+        expect(stationed[0]?.movement).toBeUndefined()
+        expect(stationed[0]?.destinationPlanetId).toBeUndefined()
+        expect(stationed[0]?.distanceToEnd).toBeUndefined()
+        expect(arrived.actions.find((candidate) => candidate.id === action.id)?.status).toBe("AVAILABLE")
+        previousStop = stop
       }
     }
     const staged = await attacker.view()
@@ -240,6 +274,11 @@ integrationTest(
       { owner: (await firstDefender.view()).player.id, strength: 7 },
       { owner: (await secondDefender.view()).player.id, strength: 13 },
     ])
+    for (const survivor of survivors) {
+      expect(survivor.movement).toBeUndefined()
+      expect(survivor.destinationPlanetId).toBeUndefined()
+      expect(survivor.distanceToEnd).toBeUndefined()
+    }
     expect(after.fleets.some((fleet) => fleet.ownerPlayerId === after.player.id)).toBe(false)
     expect(after.actions.find((action) => action.id === attack.id)?.status).toBe("AVAILABLE")
     expect(

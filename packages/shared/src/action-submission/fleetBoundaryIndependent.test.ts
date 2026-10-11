@@ -5,6 +5,7 @@ import { evaluateActionSelection, evaluateSubmittedActions } from "#shared/actio
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
 import { ActionDefinitionSchema } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { ResourceGainEffectDefinition } from "#shared/domain/ruleset/effect-definitions/ResourceGainEffectDefinition.ts"
 import { ResourceLossEffectDefinition } from "#shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
 import { Ruleset, RulesetSchema } from "#shared/domain/ruleset/Ruleset.ts"
@@ -237,8 +238,89 @@ describe("independent fleet allocation boundary regressions", () => {
       "Movement source must be stationary",
       "Movement destination must declare a range from its source",
     ]
-    expect(constructed.error.issues.map((issue) => issue.message)).toStrictEqual(messages)
-    expect(loaded.error.issues.map((issue) => issue.message)).toStrictEqual(messages)
+    expect(constructed.error.issues).toStrictEqual(messages.map((message) => ({ code: "custom", path: [], message })))
+    expect(loaded.error.issues).toStrictEqual(
+      messages.map((message) => ({ code: "custom", path: ["actionDefinitions", "RENAMED"], message })),
+    )
+  })
+
+  it.each([
+    { name: "empty", constraints: [], messages: ["Movement source must be owned", "Movement source must be stationary"] },
+    {
+      name: "duplicate stationary",
+      constraints: [{ type: "STATIONARY_FLEET" }, { type: "STATIONARY_FLEET" }],
+      messages: ["Movement source must be owned"],
+    },
+    {
+      name: "duplicate owned",
+      constraints: [
+        { type: "OWNED_BY_SUBMITTING_PLAYER", references: {}, parameters: {} },
+        { type: "OWNED_BY_SUBMITTING_PLAYER", references: {}, parameters: {} },
+      ],
+      messages: ["Movement source must be stationary"],
+    },
+  ])("should preserve ordered source-policy diagnostics for $name constraints", ({ constraints, messages }) => {
+    // Arrange
+    const fixture = createFleetEligibilityScenario()
+    const declaration = { ...fixture.definition, targets: { ...fixture.definition.targets, craft: { targetType: "FLEET", constraints } } }
+    // Act
+    const constructed = ActionDefinitionSchema.safeParse(declaration)
+    const loaded = RulesetSchema.safeParse(JSON.parse(JSON.stringify({ ...fixture.ruleset, actionDefinitions: { RENAMED: declaration } })))
+    // Assert
+    expect(constructed.success).toBe(false)
+    expect(loaded.success).toBe(false)
+    Assert.isDefined(constructed.error)
+    Assert.isDefined(loaded.error)
+    expect(constructed.error.issues).toStrictEqual(messages.map((message) => ({ code: "custom", path: [], message })))
+    expect(loaded.error.issues).toStrictEqual(
+      messages.map((message) => ({ code: "custom", path: ["actionDefinitions", "RENAMED"], message })),
+    )
+  })
+
+  it("should preserve the full missing-source diagnostic vector at construction and JSON load", () => {
+    // Arrange
+    const fixture = createFleetEligibilityScenario()
+    const declaration = { ...fixture.definition, targets: { route: fixture.definition.targets[branded<TargetTag>("route")] } }
+    const messages = [
+      'Action Definition "Traverse" is missing target slot tagged "craft" required by the "FLEET_MOVE" effect definition',
+      "Target route references a missing or non-fleet source",
+      "Input force references a missing or non-fleet source",
+      "Movement source must be owned",
+      "Movement source must be stationary",
+    ]
+    // Act
+    const constructed = ActionDefinitionSchema.safeParse(declaration)
+    const loaded = RulesetSchema.safeParse(JSON.parse(JSON.stringify({ ...fixture.ruleset, actionDefinitions: { RENAMED: declaration } })))
+    // Assert
+    expect(constructed.success).toBe(false)
+    expect(loaded.success).toBe(false)
+    Assert.isDefined(constructed.error)
+    Assert.isDefined(loaded.error)
+    expect(constructed.error.issues).toStrictEqual(messages.map((message) => ({ code: "custom", path: [], message })))
+    expect(loaded.error.issues).toStrictEqual(
+      messages.map((message) => ({ code: "custom", path: ["actionDefinitions", "RENAMED"], message })),
+    )
+  })
+
+  it("should accept renamed movement declarations with reversed source policies", () => {
+    // Arrange
+    const fixture = createFleetEligibilityScenario()
+    const declaration = {
+      ...fixture.definition,
+      targets: {
+        ...fixture.definition.targets,
+        craft: {
+          targetType: "FLEET",
+          constraints: [{ type: "STATIONARY_FLEET" }, { type: "OWNED_BY_SUBMITTING_PLAYER", references: {}, parameters: {} }],
+        },
+      },
+    }
+    // Act
+    const constructed = ActionDefinitionSchema.safeParse(declaration)
+    const loaded = RulesetSchema.safeParse(JSON.parse(JSON.stringify({ ...fixture.ruleset, actionDefinitions: { RENAMED: declaration } })))
+    // Assert
+    expect(constructed.success).toBe(true)
+    expect(loaded.success).toBe(true)
   })
 
   it("should reject invalid movement declarations at construction and JSON ruleset load", () => {

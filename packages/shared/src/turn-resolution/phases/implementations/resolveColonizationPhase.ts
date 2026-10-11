@@ -8,21 +8,26 @@ import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 /** Tick, then destination, then canonical provenance; only eligible contenders draw tie RNG. */
 export function resolveColonizationPhase(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
   const canonical = context.arrivalIntents.filter((intent) => intent.pending.type === "COLONIZE").toSorted(compareColonizationIntents)
-  for (let start = 0; start < canonical.length;) {
-    const first = canonical[start]
-    if (first === undefined) break
-    let end = start + 1
-    while (
-      canonical[end]?.tick === first.tick &&
-      canonical[end]?.destinationPlanetId === first.destinationPlanetId &&
-      end < canonical.length
-    )
-      end++
-    const result = resolveColonizationGroup(context, canonical.slice(start, end))
+  for (const group of groupColonizationCompetitions(canonical)) {
+    const result = resolveColonizationGroup(context, group)
     if (Result.isFailure(result)) return result
-    start = end
   }
   return Result.Success(context)
+}
+
+/** Groups canonical arrivals without observing mutable state or consuming RNG. */
+function groupColonizationCompetitions(canonicalIntents: readonly ArrivalIntent[]): ArrivalIntent[][] {
+  const groups: ArrivalIntent[][] = []
+  let current: ArrivalIntent[] = []
+  for (const intent of canonicalIntents) {
+    const previous = current[0]
+    if (previous?.tick !== intent.tick || previous?.destinationPlanetId !== intent.destinationPlanetId) {
+      current = []
+      groups.push(current)
+    }
+    current.push(intent)
+  }
+  return groups
 }
 
 function compareColonizationIntents(a: ArrivalIntent, b: ArrivalIntent): number {

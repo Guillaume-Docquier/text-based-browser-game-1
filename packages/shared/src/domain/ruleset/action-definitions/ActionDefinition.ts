@@ -134,9 +134,10 @@ function validateTargetDependencies({ action, issue }: MovementComposition): voi
 }
 
 function validateInputReferences({ action, moves, issue }: MovementComposition): void {
+  const consumedTags = new Set(moves.map((move) => move.inputs.strength.actionInputTag))
   for (const [tag, input] of Object.entries(action.inputs)) {
     if (action.targets[input.fleetTargetTag]?.targetType !== "FLEET") issue(`Input ${tag} references a missing or non-fleet source`)
-    if (!moves.some((move) => move.inputs.strength.actionInputTag === tag)) issue(`Unused input ${tag}`)
+    if (!consumedTags.has(branded<InputTag>(tag))) issue(`Unused input ${tag}`)
   }
 }
 
@@ -162,8 +163,7 @@ function validateSharedMovement(
   destinationTag: TargetTag,
   report: Readonly<{ effectName: "Assault" | "Colonize"; issue: CompositionIssue }>,
 ): void {
-  const move = moves[0]
-  if (moves.length !== 1 || move === undefined || !sharesMovementTargets(move, sourceTag, destinationTag))
+  if (moves.length !== 1 || !moves.every((move) => sharesMovementTargets(move, sourceTag, destinationTag)))
     report.issue(`${report.effectName} must share the source and destination of exactly one Move`)
 }
 
@@ -187,8 +187,10 @@ function validateFleetSourcePolicy(
   effectName: "Colonize" | "Movement",
   issue: CompositionIssue,
 ): void {
-  if (source?.constraints.some((constraint) => constraint.type === "OWNED_BY_SUBMITTING_PLAYER") !== true)
-    issue(`${effectName} source must be owned`)
-  if (source?.constraints.some((constraint) => constraint.type === "STATIONARY_FLEET") !== true)
-    issue(`${effectName} source must be stationary`)
+  const presentConstraints = new Set(source?.constraints.map((constraint) => constraint.type))
+  for (const [constraint, message] of [
+    ["OWNED_BY_SUBMITTING_PLAYER", "owned"],
+    ["STATIONARY_FLEET", "stationary"],
+  ] as const)
+    if (!presentConstraints.has(constraint)) issue(`${effectName} source must be ${message}`)
 }

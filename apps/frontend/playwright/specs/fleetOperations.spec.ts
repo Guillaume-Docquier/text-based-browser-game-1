@@ -13,6 +13,46 @@ import { CreateGamePage } from "../pages/CreateGamePage.ts"
 import { GalaxyPage } from "../pages/GalaxyPage.ts"
 import { GameDetailsPage } from "../pages/GameDetailsPage.ts"
 
+// Independent literal phase selections and checkpoints; the executor derives no expected state.
+const UNIFIED_LATE_FUNDING_PHASES = [
+  {
+    turn: 8,
+    nextTurn: 9,
+    rightActions: [
+      { name: "Build Fleet", identifyingText: "Standard Directive" },
+      { name: "Extract Metal" },
+      { name: "Political Campaign" },
+    ],
+    rightStrength: 70,
+    rightResources: [27, 5, 1],
+    leftResources: [30, 1, 1],
+  },
+  {
+    turn: 9,
+    nextTurn: 10,
+    rightActions: [{ name: "Build Fleet", identifyingText: "Standard Directive" }, { name: "Political Campaign" }],
+    rightStrength: 80,
+    rightResources: [30, 4, 1],
+    leftResources: [35, 1, 1],
+  },
+  {
+    turn: 10,
+    nextTurn: 11,
+    rightActions: [{ name: "Refine Fuel" }, { name: "Political Campaign" }],
+    rightStrength: 80,
+    rightResources: [33, 2, 6],
+    leftResources: [40, 1, 1],
+  },
+  {
+    turn: 11,
+    nextTurn: 12,
+    rightActions: [{ name: "Political Campaign" }],
+    rightStrength: 80,
+    rightResources: [38, 2, 6],
+    leftResources: [45, 1, 1],
+  },
+] as const
+
 test("Fleet Operations joins funded allocations, range and busy locks, Combat, contested claims and immediate original Attack reuse", async ({
   alice,
   bob,
@@ -47,9 +87,58 @@ test("Fleet Operations joins funded allocations, range and busy locks, Combat, c
   await test.step("T1 Campaign and Extract give each7 Influence7 Metal1 Fuel", async () => {
     await fundUnifiedEmpires({ right, left, advance, testInfo })
   })
-  for (let turn = 2; turn <= 11; turn++)
-    await test.step(`Normal affordable funding and builds in T${turn}`, async () => {
-      await buildUnifiedForces({ right, left, advance, testInfo }, turn)
+  for (let turn = 2; turn <= 7; turn++)
+    await test.step(`Normal affordable Build then Campaign in T${turn}`, async () => {
+      await buildUnifiedForces(
+        { right, left, advance, testInfo },
+        {
+          nextTurn: turn + 1,
+          selections: [right, left].map((user) => ({
+            user,
+            actions: [{ name: "Build Fleet", identifyingText: "Standard Directive" }, { name: "Political Campaign" }],
+          })),
+        },
+      )
+    })
+  await test.step("Collecting T8: both source60 and literal resources25/1/1/0/0", async () => {
+    for (const user of [right, left]) {
+      const fleets = await new GalaxyPage(user.page).openFleets()
+      await expect(fleets.rowByOwnerAndStrength(user.alias, 60)).toHaveCount(1)
+      const view = await (await fleets.openActions()).refreshPlayerView()
+      expect(view.turn).toBe(8)
+      expect(view.resources).toEqual({
+        INFLUENCE: { total: 25, uncommitted: 25 },
+        METAL: { total: 1, uncommitted: 1 },
+        FUEL: { total: 1, uncommitted: 1 },
+        ENERGY: { total: 0, uncommitted: 0 },
+        COLONY: { total: 0, uncommitted: 0 },
+      })
+    }
+  })
+  for (const phase of UNIFIED_LATE_FUNDING_PHASES)
+    await test.step(`T${phase.turn} ordered funding and collecting T${phase.nextTurn} literal checkpoint`, async () => {
+      await buildUnifiedForces(
+        { right, left, advance, testInfo },
+        {
+          nextTurn: phase.nextTurn,
+          selections: [
+            { user: right, actions: phase.rightActions },
+            { user: left, actions: [{ name: "Political Campaign" }] },
+          ],
+        },
+      )
+      for (const checkpoint of [
+        { user: right, strength: phase.rightStrength, resources: phase.rightResources },
+        { user: left, strength: 60, resources: phase.leftResources },
+      ]) {
+        const fleets = await new GalaxyPage(checkpoint.user.page).openFleets()
+        await expect(fleets.rowByOwnerAndStrength(checkpoint.user.alias, checkpoint.strength)).toHaveCount(1)
+        const view = await (await fleets.openActions()).refreshPlayerView()
+        expect(view.turn).toBe(phase.nextTurn)
+        expect([view.resources.INFLUENCE.total, view.resources.METAL.total, view.resources.FUEL.total]).toEqual(checkpoint.resources)
+        expect(view.resources.ENERGY).toEqual({ total: 0, uncommitted: 0 })
+        expect(view.resources.COLONY).toEqual({ total: 0, uncommitted: 0 })
+      }
     })
   await test.step("T12 literal funding, source-dependent ordinary range and actual three-boundary invalid controls", async () => {
     await verifyInitialBoundaries({ right, left, advance, testInfo })
@@ -89,23 +178,31 @@ async function fundUnifiedEmpires({ right, left, advance }: UnifiedFleetJourney)
     const actions = await new GalaxyPage(user.page).openActions()
     await expect(actions.resource("Influence")).toHaveAttribute("aria-label", "7 available of 7 Influence")
     await expect(actions.resource("Metal")).toHaveAttribute("aria-label", "7 available of 7 Metal")
+    await expect(actions.resource("Fuel")).toHaveAttribute("aria-label", "1 available of 1 Fuel")
+    const view = await actions.refreshPlayerView()
+    expect(view.turn).toBe(2)
+    expect([view.resources.INFLUENCE.total, view.resources.METAL.total, view.resources.FUEL.total]).toEqual([7, 7, 1])
+    expect(view.resources.ENERGY).toEqual({ total: 0, uncommitted: 0 })
+    expect(view.resources.COLONY).toEqual({ total: 0, uncommitted: 0 })
   }
 }
 
-async function buildUnifiedForces({ right, left, advance }: UnifiedFleetJourney, turn: number): Promise<void> {
-  for (const user of [right, left]) {
+type UnifiedFundingTurn = Readonly<{
+  nextTurn: number
+  selections: ReadonlyArray<
+    Readonly<{
+      user: AuthenticatedUser
+      actions: ReadonlyArray<Readonly<{ name: string; identifyingText?: string }>>
+    }>
+  >
+}>
+
+async function buildUnifiedForces({ advance }: UnifiedFleetJourney, { nextTurn, selections }: UnifiedFundingTurn): Promise<void> {
+  for (const { user, actions: selectionsForUser } of selections) {
     const actions = await new GalaxyPage(user.page).openActions()
-    if (turn <= 7 || (user === right && turn <= 9)) await actions.toggleActionSelection("Build Fleet", "Standard Directive")
-    if (user === right && turn === 8) await actions.toggleActionSelection("Extract Metal")
-    if (user === right && turn === 10) await actions.toggleActionSelection("Refine Fuel")
-    await actions.toggleActionSelection("Political Campaign")
+    for (const selection of selectionsForUser) await actions.toggleActionSelection(selection.name, selection.identifyingText)
   }
-  await advance(turn + 1)
-  if (turn === 7)
-    for (const user of [right, left]) {
-      const fleets = await new GalaxyPage(user.page).openFleets()
-      await expect(fleets.rowByOwnerAndStrength(user.alias, 60)).toHaveCount(1)
-    }
+  await advance(nextTurn)
 }
 
 async function verifyInitialBoundaries({ right }: UnifiedFleetJourney): Promise<void> {

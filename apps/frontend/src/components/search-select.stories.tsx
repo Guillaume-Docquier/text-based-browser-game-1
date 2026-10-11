@@ -94,9 +94,10 @@ export const LargeList: Story = {
     await expect(body.getAllByRole("option")).toHaveLength(50)
     await expect(body.getByRole("option", { name: "Planet 0001" })).toBeVisible()
     await expect(body.getByRole("option", { name: "Planet 0050" })).toBeVisible()
+    await expect(body.queryByRole("option", { name: "Planet 0051" })).not.toBeInTheDocument()
     await expect(body.getByText("Showing first 50 of 3000. Keep typing to narrow the list.")).toBeVisible()
 
-    await userEvent.type(combobox, "planet 2999")
+    await userEvent.type(combobox, "  pLaNeT 2999  ")
     await expect(body.getAllByRole("option")).toHaveLength(1)
     await expect(body.getByRole("option", { name: "Planet 2999" })).toBeVisible()
     await userEvent.click(body.getByRole("option", { name: "Planet 2999" }))
@@ -150,6 +151,42 @@ export const DependentSingleton: Story = {
     await userEvent.click(dependent)
     await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: "Unclaimed World" }))
     await expect(dependent).toHaveValue("Unclaimed World")
+  },
+}
+
+/** Explicit disabling and an empty dependent list must override the singleton opt-in. */
+export const UnavailableDependentChoices: Story = {
+  render: () => (
+    <>
+      <SearchSelect
+        label="Empty dependent planet"
+        options={[]}
+        value={undefined}
+        placeholder="Choose planet"
+        allowSingleOptionSelection
+        onValueChange={(): void => {}}
+      />
+      <SearchSelect
+        label="Disabled dependent planet"
+        options={[{ id: "world", label: "Unclaimed World" }]}
+        value="world"
+        placeholder="Choose planet"
+        allowSingleOptionSelection
+        disabled
+        onValueChange={(): void => {}}
+      />
+    </>
+  ),
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const empty = canvas.getByRole("combobox", { name: "Empty dependent planet" })
+    const disabled = canvas.getByRole("combobox", { name: "Disabled dependent planet" })
+    await expect(empty).toBeDisabled()
+    await expect(disabled).toBeDisabled()
+    await userEvent.click(empty)
+    await userEvent.click(disabled)
+    await expect(empty).toHaveValue("")
+    await expect(disabled).toHaveValue("Unclaimed World")
+    await expect(within(canvasElement.ownerDocument.body).queryByRole("listbox")).not.toBeInTheDocument()
   },
 }
 
