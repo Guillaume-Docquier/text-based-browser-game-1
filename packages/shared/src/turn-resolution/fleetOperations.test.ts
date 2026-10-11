@@ -534,14 +534,14 @@ describe("movement provenance and explicit composition boundaries", () => {
     expect(forces(state)).toStrictEqual([{ owner: fixture.owners[0], strength: 10 }])
   })
 
-  it("should reads the later surviving attacker10 rather than its chosen historical40", () => {
+  it("should exchange the later surviving attacker strength against remaining defenders", () => {
     // Arrange
     const fixture = createFleetOperationsScenario({
       orders: [
-        { owner: 1, strength: 30, distance: 0.01, assault: true },
+        { owner: 1, strength: 90, distance: 0.01, assault: true },
         { owner: 2, strength: 40, distance: 0.11, assault: true },
       ],
-      defenders: [],
+      defenders: [{ owner: 3, strength: 80, id: "remaining-opponent" }],
     })
     // Act
     const result = resolveTurn(fixture.state, fixture.ruleset, createSeededRng())
@@ -551,18 +551,20 @@ describe("movement provenance and explicit composition boundaries", () => {
         expect.objectContaining({
           resolvedActions: [
             expect.objectContaining({
-              actionOutcomes: expect.arrayContaining([expect.objectContaining({ result: expect.stringContaining("exchanged 30") })]),
+              actionOutcomes: expect.arrayContaining([
+                expect.objectContaining({ result: expect.stringContaining("exchanged 90 Strength against 120") }),
+              ]),
             }),
             expect.objectContaining({
               actionOutcomes: expect.arrayContaining([
-                expect.objectContaining({ result: expect.stringContaining("exchanged 0 Strength against 0") }),
+                expect.objectContaining({ result: expect.stringContaining("exchanged 10 Strength against 20") }),
               ]),
             }),
           ],
         }),
       ),
     )
-    expect(forces(fixture.state)).toStrictEqual([{ owner: fixture.owners[1], strength: 10 }])
+    expect(forces(fixture.state)).toStrictEqual([{ owner: fixture.owners[2], strength: 10 }])
   })
 
   it.each([false, true])("should ordinary Move versus explicit Assault composition=%s", (assault) => {
