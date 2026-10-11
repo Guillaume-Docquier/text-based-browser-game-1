@@ -7,6 +7,7 @@ import { FleetStrengthSchema } from "#shared/domain/world/fleets/FleetStrength.t
 import type { ArrivalIntent } from "#shared/turn-resolution/ArrivalIntent.ts"
 import { Effect } from "#shared/turn-resolution/effects/Effect.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
+import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
 import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 
 /** Binding integrity precedes the same eligibility predicate used by initial selections. */
@@ -16,15 +17,7 @@ export function evaluateColonizeIntent(context: TurnContext, intent: ArrivalInte
     return Result.Failure(EffectError.Failed({ error: "Invalid Colonize arrival definition or planet" }))
   if (context.destroyedFleetIds.has(intent.actualFleetId)) return Result.Success(["Colonizing fleet was destroyed before Colonization"])
   const fleet = context.turnState.fleets[intent.actualFleetId]
-  if (
-    fleet === undefined ||
-    fleet.ownerPlayerId !== intent.origin.submittedAction.playerId ||
-    fleet.destinationPlanetId !== undefined ||
-    fleet.movement !== undefined ||
-    fleet.originPlanetId !== planet.id ||
-    !safeTypedParse(FleetStrengthSchema, fleet.strength).success ||
-    fleet.strength <= 0
-  )
+  if (!isBoundColonizingFleet(fleet, intent, planet.id))
     return Result.Failure(EffectError.Failed({ error: "Invalid Colonize arrival binding" }))
   return Result.Success(
     evaluateColonization({ definition: intent.pending.definition, ownerPlayerId: planet.ownerPlayerId, strength: fleet.strength }),
@@ -60,4 +53,20 @@ export class ColonizeEffect extends Effect {
       }),
     ])
   }
+}
+
+function isBoundColonizingFleet(
+  fleet: ResolutionFleet | undefined,
+  intent: ArrivalIntent,
+  planetId: ArrivalIntent["destinationPlanetId"],
+): fleet is ResolutionFleet {
+  return !(
+    fleet === undefined ||
+    fleet.ownerPlayerId !== intent.origin.submittedAction.playerId ||
+    fleet.destinationPlanetId !== undefined ||
+    fleet.movement !== undefined ||
+    fleet.originPlanetId !== planetId ||
+    !safeTypedParse(FleetStrengthSchema, fleet.strength).success ||
+    fleet.strength <= 0
+  )
 }

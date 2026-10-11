@@ -54,22 +54,33 @@ export async function createFleetOperationsScenario(options: Parameters<typeof c
 }
 
 /** Explicit source identity avoids selecting an incidental station after arrival. */
-export async function submitFleetOrder(
-  side: FleetActionsScenario,
-  actionId: string,
-  source: FleetId,
-  destination: PlanetId,
-  amount: number,
-  alternate = false,
-): Promise<void> {
+type FleetOrder = Readonly<{
+  side: FleetActionsScenario
+  actionId: string
+  source: FleetId
+  destination: PlanetId
+  amount: number
+  mapping?: Readonly<{ source: string; destination: string; strength: string }>
+}>
+
+export const authoredFleetOrderMapping = { source: "craft", destination: "world", strength: "force" } as const
+
+export async function submitFleetOrder({
+  side,
+  actionId,
+  source,
+  destination,
+  amount,
+  mapping = { source: "fleet", destination: "planet", strength: "strength" },
+}: FleetOrder): Promise<void> {
   const view = await side.view()
   await side.player.client.gameplay.updateActionSubmission.mutate({
     gameId: side.gameId,
     turn: view.turn,
     submittedActionTargets: {
       actionId,
-      selectedTargets: alternate ? { craft: source, world: destination } : { fleet: source, planet: destination },
-      selectedInputs: alternate ? { force: amount } : { strength: amount },
+      selectedTargets: { [mapping.source]: source, [mapping.destination]: destination },
+      selectedInputs: { [mapping.strength]: amount },
     },
   })
 }

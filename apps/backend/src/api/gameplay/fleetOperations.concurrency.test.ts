@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest"
 import type { PlayerView } from "#api/types.ts"
 import { ControlledConcurrencyTestApiServer } from "#tests/ConcurrencyTestApiServer.ts"
 import { extractSuccess } from "#tests/extractSuccess.ts"
-import { createFleetOperationsScenario, submitFleetOrder } from "#tests/FleetOperationsScenario.stub.ts"
+import { createFleetOperationsScenario, submitFleetOrder, authoredFleetOrderMapping } from "#tests/FleetOperationsScenario.stub.ts"
 import type { TurnToProcessModel } from "#turn-processing/turns.repository.ts"
 
 function stockpiles(view: PlayerView): number[] {
@@ -75,7 +75,8 @@ async function capture(api: ControlledConcurrencyTestApiServer): Promise<TurnToP
   await api.turnsRepository.markDueTurnsAwaitingProcessing({ since: api.clock.now() })
   return await api.captureNextDueTurn()
 }
-function assertBudget(view: PlayerView, sourceId: string, allocated: number, available: number, influence: number, fuel: number): void {
+type ExpectedBudget = Readonly<{ sourceId: string; allocated: number; available: number; influence: number; fuel: number }>
+function assertBudget(view: PlayerView, { sourceId, allocated, available, influence, fuel }: ExpectedBudget): void {
   expect(view.fleets.find((fleet) => fleet.id === sourceId)).toMatchObject({ strength: 80, uncommittedStrength: available })
   expect(view.resources.INFLUENCE).toStrictEqual({ total: 38, uncommitted: 38 - influence })
   expect(view.resources.FUEL).toStrictEqual({ total: 6, uncommitted: 6 - fuel })
@@ -116,7 +117,7 @@ describe("Unified Fleet Operations public lifecycle", () => {
         [12, 38, 2, 6],
       ])
       const order = async (id: string, amount: number, target = leftHome.id, source = rightSource.id): Promise<void> => {
-        await submitFleetOrder(right, id, source, target, amount)
+        await submitFleetOrder({ side: right, actionId: id, source, destination: target, amount })
       }
       for (const target of [destination.id, leftHome.id, rightHome.id]) {
         await expect(order("MOVE_FLEET_STANDARD_1", 1, target)).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
@@ -135,11 +136,23 @@ describe("Unified Fleet Operations public lifecycle", () => {
       await expect(order("COLONIZE_PLANET_STANDARD_1", 35, leftHome.id)).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
       await order("COLONIZE_PLANET_STANDARD_1", 35, destination.id)
       await order("ATTACK_MOVE_STANDARD_1", 30)
-      await submitFleetOrder(right, "MOVE_FLEET_EXCEPTIONAL_1", rightSource.id, leftHome.id, 5)
-      await submitFleetOrder(left, "COLONIZE_PLANET_STANDARD_1", leftSource.id, destination.id, 35)
-      assertBudget(await right.view(), rightSource.id, 70, 10, 33, 6)
+      await submitFleetOrder({
+        side: right,
+        actionId: "MOVE_FLEET_EXCEPTIONAL_1",
+        source: rightSource.id,
+        destination: leftHome.id,
+        amount: 5,
+      })
+      await submitFleetOrder({
+        side: left,
+        actionId: "COLONIZE_PLANET_STANDARD_1",
+        source: leftSource.id,
+        destination: destination.id,
+        amount: 35,
+      })
+      assertBudget(await right.view(), { sourceId: rightSource.id, allocated: 70, available: 10, influence: 33, fuel: 6 })
       await order("ATTACK_MOVE_STANDARD_1", 40)
-      assertBudget(await right.view(), rightSource.id, 80, 0, 33, 6)
+      assertBudget(await right.view(), { sourceId: rightSource.id, allocated: 80, available: 0, influence: 33, fuel: 6 })
       const forty = await right.view()
       await expect(order("ATTACK_MOVE_STANDARD_1", 41)).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
@@ -148,9 +161,9 @@ describe("Unified Fleet Operations public lifecycle", () => {
       expect(await right.view()).toStrictEqual(forty)
       await order("ATTACK_MOVE_STANDARD_1", 30)
       await right.cancel("ATTACK_MOVE_STANDARD_1")
-      assertBudget(await right.view(), rightSource.id, 40, 40, 28, 5)
+      assertBudget(await right.view(), { sourceId: rightSource.id, allocated: 40, available: 40, influence: 28, fuel: 5 })
       await order("ATTACK_MOVE_STANDARD_1", 30)
-      assertBudget(await right.view(), rightSource.id, 70, 10, 33, 6)
+      assertBudget(await right.view(), { sourceId: rightSource.id, allocated: 70, available: 10, influence: 33, fuel: 6 })
       const leftOrders = await left.view()
       expect(leftOrders.fleets.find((fleet) => fleet.id === leftSource.id)?.uncommittedStrength).toBe(25)
       expect(leftOrders.resources.INFLUENCE).toStrictEqual({ total: 45, uncommitted: 20 })
@@ -401,7 +414,14 @@ describe("Unified Fleet Operations public lifecycle", () => {
       const order = async (id: string, amount: number): Promise<void> => {
         const target = routes.get(id)
         Assert.isDefined(target)
-        await submitFleetOrder(right, id, rightSource.id, target, amount, true)
+        await submitFleetOrder({
+          side: right,
+          actionId: id,
+          source: rightSource.id,
+          destination: target,
+          amount,
+          mapping: authoredFleetOrderMapping,
+        })
       }
       expect(before.ruleset).toStrictEqual(ruleset)
       await expect(order("EXPAND_1", 24)).rejects.toMatchObject({ data: { code: "BAD_REQUEST" }, message: expect.stringContaining("25") })
@@ -409,8 +429,14 @@ describe("Unified Fleet Operations public lifecycle", () => {
       await order("EXPAND_1", 35)
       await order("ENGAGE_1", 30)
       await order("ENGAGE_2", 10)
-      await submitFleetOrder(right, "MOVE_FLEET_EXCEPTIONAL_1", rightSource.id, leftHome.id, 5)
-      assertBudget(await right.view(), rightSource.id, 80, 0, 35, 5)
+      await submitFleetOrder({
+        side: right,
+        actionId: "MOVE_FLEET_EXCEPTIONAL_1",
+        source: rightSource.id,
+        destination: leftHome.id,
+        amount: 5,
+      })
+      assertBudget(await right.view(), { sourceId: rightSource.id, allocated: 80, available: 0, influence: 35, fuel: 5 })
       expect(
         (await right.view()).actions.filter((action) => action.actionDefinitionId === "ENGAGE").map((action) => [action.id, action.status]),
       ).toStrictEqual([
@@ -421,13 +447,20 @@ describe("Unified Fleet Operations public lifecycle", () => {
       await expect(order("ENGAGE_2", 11)).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
       expect(await right.view()).toStrictEqual(eighty)
       await order("ENGAGE_1", 25)
-      assertBudget(await right.view(), rightSource.id, 75, 5, 35, 5)
+      assertBudget(await right.view(), { sourceId: rightSource.id, allocated: 75, available: 5, influence: 35, fuel: 5 })
       await order("ENGAGE_1", 30)
-      assertBudget(await right.view(), rightSource.id, 80, 0, 35, 5)
+      assertBudget(await right.view(), { sourceId: rightSource.id, allocated: 80, available: 0, influence: 35, fuel: 5 })
       await right.cancel("ENGAGE_2")
-      assertBudget(await right.view(), rightSource.id, 70, 10, 31, 5)
+      assertBudget(await right.view(), { sourceId: rightSource.id, allocated: 70, available: 10, influence: 31, fuel: 5 })
       await order("ENGAGE_2", 10)
-      await submitFleetOrder(left, "EXPAND_1", leftSource.id, destination.id, 35, true)
+      await submitFleetOrder({
+        side: left,
+        actionId: "EXPAND_1",
+        source: leftSource.id,
+        destination: destination.id,
+        amount: 35,
+        mapping: authoredFleetOrderMapping,
+      })
       // Act: public valid bindings provide resolver controls with changed content.
       const departure = await capture(api),
         immutableDeparture = structuredClone(departure),
@@ -555,7 +588,16 @@ describe("Pregame range variant", () => {
       ["ENGAGE_1", destination.id, 30],
       ["EXPAND_1", destination.id, 35],
     ] as const) {
-      await expect(submitFleetOrder(right, id, rightSource.id, planet, amount, true)).rejects.toMatchObject({
+      await expect(
+        submitFleetOrder({
+          side: right,
+          actionId: id,
+          source: rightSource.id,
+          destination: planet,
+          amount,
+          mapping: authoredFleetOrderMapping,
+        }),
+      ).rejects.toMatchObject({
         data: { code: "BAD_REQUEST" },
       })
       expect(await right.view()).toStrictEqual(before)

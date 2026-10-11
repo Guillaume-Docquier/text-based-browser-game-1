@@ -28,24 +28,24 @@ describe("destination choices with fresh source prerequisites", () => {
     const selection = fixture.scenario.order("X", 20)
     const changedView = { ...fixture.view, fleets: [{ ...fixture.scenario.source, ...change }] }
     // Act
-    const before = getTargetOptions(
-      target,
-      fixture.view,
-      fixture.players,
+    const before = getTargetOptions({
+      targetDefinition: target,
+      playerView: fixture.view,
+      players: fixture.players,
       action,
       targetTag,
       selection,
-      toActionEligibilityState(fixture.view),
-    )
-    const after = getTargetOptions(
-      target,
-      changedView,
-      fixture.players,
+      state: toActionEligibilityState(fixture.view),
+    })
+    const after = getTargetOptions({
+      targetDefinition: target,
+      playerView: changedView,
+      players: fixture.players,
       action,
       targetTag,
       selection,
-      toActionEligibilityState(changedView),
-    )
+      state: toActionEligibilityState(changedView),
+    })
     // Assert
     expect(before).toStrictEqual([
       { id: "destination", label: "Boundary (0:0:0)" },
@@ -90,8 +90,24 @@ describe("destination choices with fresh source prerequisites", () => {
     const selection = { selectedTargets: { craft: persisted.id }, selectedInputs: { force: 1 } }
     const state = toActionEligibilityState(view)
     // Act
-    const destinations = getTargetOptions(fixture.definition.targets[routeTag], view, fixture.players, action, routeTag, selection, state)
-    const sources = getTargetOptions(fixture.definition.targets[craftTag], view, fixture.players, action, craftTag, selection, state)
+    const destinations = getTargetOptions({
+      targetDefinition: fixture.definition.targets[routeTag],
+      playerView: view,
+      players: fixture.players,
+      action,
+      targetTag: routeTag,
+      selection,
+      state,
+    })
+    const sources = getTargetOptions({
+      targetDefinition: fixture.definition.targets[craftTag],
+      playerView: view,
+      players: fixture.players,
+      action,
+      targetTag: craftTag,
+      selection,
+      state,
+    })
     // Assert
     expect(state.submittedActions).toStrictEqual([])
     expect(state.fleets[persisted.id]).toMatchObject({
@@ -111,15 +127,15 @@ describe("destination choices with fresh source prerequisites", () => {
     const fixture = createFleetActionCardScenario()
     const tag = branded<TargetTag>("route")
     // Act
-    const options = getTargetOptions(
-      fixture.definition.targets[tag],
-      fixture.view,
-      fixture.players,
-      fixture.view.actions[0],
-      tag,
-      { selectedTargets, selectedInputs: {} },
-      toActionEligibilityState(fixture.view),
-    )
+    const options = getTargetOptions({
+      targetDefinition: fixture.definition.targets[tag],
+      playerView: fixture.view,
+      players: fixture.players,
+      action: fixture.view.actions[0],
+      targetTag: tag,
+      selection: { selectedTargets, selectedInputs: {} },
+      state: toActionEligibilityState(fixture.view),
+    })
     // Assert
     expect(options).toStrictEqual([])
   })
@@ -145,8 +161,24 @@ describe("destination choices with fresh source prerequisites", () => {
     const state = toActionEligibilityState(view)
     const selection = fixture.scenario.order("X", 20)
     // Act
-    const blocked = getTargetOptions(fixture.definition.targets[tag], view, fixture.players, view.actions[0], tag, selection, state)
-    const edited = getTargetOptions(fixture.definition.targets[tag], view, fixture.players, view.actions[1], tag, selection, state)
+    const blocked = getTargetOptions({
+      targetDefinition: fixture.definition.targets[tag],
+      playerView: view,
+      players: fixture.players,
+      action: view.actions[0],
+      targetTag: tag,
+      selection,
+      state,
+    })
+    const edited = getTargetOptions({
+      targetDefinition: fixture.definition.targets[tag],
+      playerView: view,
+      players: fixture.players,
+      action: view.actions[1],
+      targetTag: tag,
+      selection,
+      state,
+    })
     // Assert
     expect(state.submittedActions).toStrictEqual([reserved])
     expect(state.players[fixture.scenario.playerId]?.resources).toMatchObject({ INFLUENCE: 6, FUEL: 2 })
@@ -163,15 +195,15 @@ describe("destination choices with fresh source prerequisites", () => {
     const tag = branded<TargetTag>("craft")
     const selection = { selectedTargets: { craft: "missing", route: "origin" }, selectedInputs: { force: 51 } }
     // Act
-    const options = getTargetOptions(
-      fixture.definition.targets[tag],
-      fixture.view,
-      fixture.players,
-      fixture.view.actions[0],
-      tag,
+    const options = getTargetOptions({
+      targetDefinition: fixture.definition.targets[tag],
+      playerView: fixture.view,
+      players: fixture.players,
+      action: fixture.view.actions[0],
+      targetTag: tag,
       selection,
-      toActionEligibilityState(fixture.view),
-    )
+      state: toActionEligibilityState(fixture.view),
+    })
     // Assert
     expect(options).toStrictEqual([{ id: "source", label: "Fleet source (50 strength)" }])
   })
@@ -204,24 +236,24 @@ describe("destination choices with fresh source prerequisites", () => {
     const tag = branded<TargetTag>("landing")
     const selection = { selectedTargets: { vessel: "source" }, selectedInputs: { power: 20 } }
     // Act
-    const valid = getTargetOptions(
-      definition.targets[tag],
-      view,
-      fixture.players,
-      view.actions[0],
-      tag,
+    const valid = getTargetOptions({
+      targetDefinition: definition.targets[tag],
+      playerView: view,
+      players: fixture.players,
+      action: view.actions[0],
+      targetTag: tag,
       selection,
-      toActionEligibilityState(view),
-    )
-    const invalid = getTargetOptions(
-      definition.targets[tag],
-      changed,
-      fixture.players,
-      changed.actions[0],
-      tag,
+      state: toActionEligibilityState(view),
+    })
+    const invalid = getTargetOptions({
+      targetDefinition: definition.targets[tag],
+      playerView: changed,
+      players: fixture.players,
+      action: changed.actions[0],
+      targetTag: tag,
       selection,
-      toActionEligibilityState(changed),
-    )
+      state: toActionEligibilityState(changed),
+    })
     // Assert
     expect(valid).toStrictEqual([
       { id: "destination", label: "Boundary (0:0:0)" },

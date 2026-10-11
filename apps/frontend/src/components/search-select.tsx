@@ -32,7 +32,7 @@ export function SearchSelect<TOption extends SearchSelectOption>({
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listboxId = useId()
-  const isDisabled = disabled || options.length === 0 || (options.length === 1 && !allowSingleOptionSelection)
+  const isDisabled = disabled || !hasSelectableOptions(options.length, allowSingleOptionSelection)
   const isOpen = open && !isDisabled
   const selectedOption = options.find((option) => option.id === value)
   const normalizedSearch = search.trim().toLowerCase()
@@ -208,4 +208,8 @@ export function SearchSelect<TOption extends SearchSelectOption>({
       </Popover.Portal>
     </Popover.Root>
   )
+}
+
+function hasSelectableOptions(optionCount: number, allowSingleOptionSelection: boolean): boolean {
+  return optionCount > (allowSingleOptionSelection ? 0 : 1)
 }

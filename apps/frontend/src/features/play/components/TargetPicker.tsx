@@ -61,15 +61,25 @@ export function TargetPicker({
 /**
  * Resolves target choices from the player-visible game state and the slot constraints.
  */
-export function getTargetOptions(
-  targetDefinition: TargetDefinition,
-  playerView: PlayerView,
-  players: Players,
-  action: Action,
-  targetTag: TargetTag,
-  selection: ActionSelectionDraft,
-  state: ActionEligibilityState,
-): TargetOption[] {
+export type TargetOptionsRequest = Readonly<{
+  targetDefinition: TargetDefinition
+  playerView: PlayerView
+  players: Players
+  action: Action
+  targetTag: TargetTag
+  selection: ActionSelectionDraft
+  state: ActionEligibilityState
+}>
+
+export function getTargetOptions({
+  targetDefinition,
+  playerView,
+  players,
+  action,
+  targetTag,
+  selection,
+  state,
+}: TargetOptionsRequest): TargetOption[] {
   return getTargetCandidates(targetDefinition, playerView, players)
     .filter(
       (candidate) =>

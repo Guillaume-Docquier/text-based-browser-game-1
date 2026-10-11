@@ -40,6 +40,29 @@ describe("R3-01 destination candidate prerequisites", () => {
     expect(candidate.issues).toContainEqual({ path: ["selectedTargets", "craft"], status: "invalid", message })
   })
 
+  it("should preserve both stationary exhaustion diagnostics around a missing origin", () => {
+    const fixture = createFleetEligibilityScenario()
+    const source = { ...fixture.source, strength: 0, originPlanetId: branded<PlanetId>("missing") }
+    const action = fixture.order("X", 1)
+    const candidate = evaluateTargetSelection({
+      state: { ...fixture.state, fleets: { [source.id]: source } },
+      ruleset: fixture.ruleset,
+      action,
+      selection: action,
+      targetTag: branded("route"),
+      targetId: "destination",
+    })
+    expect(candidate).toStrictEqual({
+      status: "ineligible",
+      issues: [
+        { path: ["selectedTargets", "craft"], status: "invalid", message: "Source fleet has no available strength" },
+        { path: ["selectedTargets", "craft"], status: "invalid", message: "Source origin planet is missing" },
+        { path: ["selectedTargets", "craft"], status: "invalid", message: "Source fleet has no available strength" },
+        { path: ["selectedTargets", "route"], status: "invalid", message: "Source origin or destination is missing" },
+      ],
+    })
+  })
+
   it("should reject a persisted moving source bound to a different instance without an occupancy error", () => {
     // Arrange
     const fixture = createFleetEligibilityScenario()

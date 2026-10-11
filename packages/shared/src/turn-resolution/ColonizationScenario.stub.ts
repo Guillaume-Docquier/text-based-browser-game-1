@@ -57,21 +57,9 @@ export function corruptColonizationJourney(corrupt: TurnState, corruption: strin
   Assert.isDefined(fleet.movement)
   const pending = fleet.movement.pendingArrivalEffects?.[0]
   Assert.isDefined(pending)
-  if (corruption === "missing") fleet.movement.pendingArrivalEffects = undefined
-  if (corruption === "duplicate") fleet.movement.pendingArrivalEffects?.push(pending)
-  if (corruption === "index") Reflect.set(pending, "effectIndex", 0)
-  if (corruption === "strength") fleet.strength = 1.5
-  if (corruption === "requirement") Reflect.set(pending.definition.parameters, "requiredStrength", 25)
-  if (corruption === "mapping") Reflect.set(pending.definition.targets.fleet, "actionTargetTag", "route")
-  if (corruption === "extra") Reflect.set(pending.definition.parameters, "refund", true)
-  if (corruption === "variant") Reflect.set(pending, "type", "ASSAULT")
-  if (corruption === "missing-player") Reflect.deleteProperty(corrupt.players, fleet.ownerPlayerId)
-  if (corruption === "missing-planet") Reflect.deleteProperty(corrupt.planets, fleet.destinationPlanetId ?? "missing")
-  if (corruption === "forged-child") {
-    Reflect.deleteProperty(corrupt.fleets, fleet.id)
-    Reflect.set(corrupt.fleets, "forged", { ...fleet, id: "forged" })
-  }
-  if (corruption === "impossible-progress") Reflect.set(fleet, "distanceToEnd", 4)
+  const mutation = Object.entries(colonizationJourneyCorruptions).find(([key]) => key === corruption)?.[1]
+  if (mutation === undefined) throw new Error(`Unknown colonization corruption: ${corruption}`)
+  mutation({ state: corrupt, fleet, pending })
 }
 
 export function malformedColonizationDefinition(
@@ -86,30 +74,9 @@ export function malformedColonizationDefinition(
     route = definition.targets[branded<TargetTag>("route")]
   Assert.isDefined(craft)
   Assert.isDefined(route)
-  if (malformation === "duplicate") definition.effects.push(effect)
-  if (malformation === "missing-owned")
-    Reflect.set(
-      craft,
-      "constraints",
-      craft.constraints.filter((constraint) => constraint.type !== "OWNED_BY_SUBMITTING_PLAYER"),
-    )
-  if (malformation === "missing-stationary")
-    Reflect.set(
-      craft,
-      "constraints",
-      craft.constraints.filter((constraint) => constraint.type !== "STATIONARY_FLEET"),
-    )
-  if (malformation === "missing-unclaimed")
-    Reflect.set(
-      route,
-      "constraints",
-      route.constraints.filter((constraint) => constraint.type !== "UNCLAIMED_PLANET"),
-    )
-  if (malformation === "wrong-fleet") Reflect.set(effect.targets.fleet, "actionTargetTag", "route")
-  if (malformation === "wrong-planet") Reflect.set(effect.targets.planet, "actionTargetTag", "craft")
-  if (malformation === "wrong-dependency")
-    Reflect.set(route, "constraints", [{ type: "UNCLAIMED_PLANET" }, { type: "AT_FLEET_PLANET", fleetTargetTag: "route" }])
-  if (malformation === "stationary-input") Reflect.set(definition, "inputs", { force: { type: "FLEET_STRENGTH", fleetTargetTag: "craft" } })
+  const mutation = Object.entries(colonizationDeclarationCorruptions).find(([key]) => key === malformation)?.[1]
+  if (mutation === undefined) throw new Error(`Unknown colonization declaration corruption: ${malformation}`)
+  mutation({ definition, effect, craft, route })
 
   return definition
 }
@@ -150,3 +117,95 @@ export function positionFourthColonizationOwner(fixture: ReturnType<typeof creat
     ),
   }
 }
+
+type CorruptColonizationJourney = {
+  state: TurnState
+  fleet: TurnState["fleets"][keyof TurnState["fleets"]]
+  pending: NonNullable<NonNullable<TurnState["fleets"][keyof TurnState["fleets"]]["movement"]>["pendingArrivalEffects"]>[number]
+}
+const colonizationJourneyCorruptions = {
+  missing: ({ fleet }): void => {
+    Assert.isDefined(fleet.movement)
+    fleet.movement.pendingArrivalEffects = undefined
+  },
+  duplicate: ({ fleet, pending }): void => {
+    Assert.isDefined(fleet.movement)
+    fleet.movement.pendingArrivalEffects?.push(pending)
+  },
+  index: ({ pending }): void => {
+    Reflect.set(pending, "effectIndex", 0)
+  },
+  strength: ({ fleet }): void => {
+    fleet.strength = 1.5
+  },
+  requirement: ({ pending }): void => {
+    Reflect.set(pending.definition.parameters, "requiredStrength", 25)
+  },
+  mapping: ({ pending }): void => {
+    Reflect.set(pending.definition.targets.fleet, "actionTargetTag", "route")
+  },
+  extra: ({ pending }): void => {
+    Reflect.set(pending.definition.parameters, "refund", true)
+  },
+  variant: ({ pending }): void => {
+    Reflect.set(pending, "type", "ASSAULT")
+  },
+  "missing-player": ({ state, fleet }): void => {
+    Reflect.deleteProperty(state.players, fleet.ownerPlayerId)
+  },
+  "missing-planet": ({ state, fleet }): void => {
+    Reflect.deleteProperty(state.planets, fleet.destinationPlanetId ?? "missing")
+  },
+  "forged-child": ({ state, fleet }): void => {
+    Reflect.deleteProperty(state.fleets, fleet.id)
+    Reflect.set(state.fleets, "forged", { ...fleet, id: "forged" })
+  },
+  "impossible-progress": ({ fleet }): void => {
+    Reflect.set(fleet, "distanceToEnd", 4)
+  },
+} satisfies Record<string, (context: CorruptColonizationJourney) => void>
+
+type CorruptColonizationDeclaration = {
+  definition: ActionDefinition
+  effect: Extract<ActionDefinition["effects"][number], { type: "COLONIZE" }>
+  craft: ActionDefinition["targets"][TargetTag]
+  route: ActionDefinition["targets"][TargetTag]
+}
+const colonizationDeclarationCorruptions = {
+  duplicate: ({ definition, effect }): void => {
+    definition.effects.push(effect)
+  },
+  "missing-owned": ({ craft }): void => {
+    Reflect.set(
+      craft,
+      "constraints",
+      craft.constraints.filter((constraint) => constraint.type !== "OWNED_BY_SUBMITTING_PLAYER"),
+    )
+  },
+  "missing-stationary": ({ craft }): void => {
+    Reflect.set(
+      craft,
+      "constraints",
+      craft.constraints.filter((constraint) => constraint.type !== "STATIONARY_FLEET"),
+    )
+  },
+  "missing-unclaimed": ({ route }): void => {
+    Reflect.set(
+      route,
+      "constraints",
+      route.constraints.filter((constraint) => constraint.type !== "UNCLAIMED_PLANET"),
+    )
+  },
+  "wrong-fleet": ({ effect }): void => {
+    Reflect.set(effect.targets.fleet, "actionTargetTag", "route")
+  },
+  "wrong-planet": ({ effect }): void => {
+    Reflect.set(effect.targets.planet, "actionTargetTag", "craft")
+  },
+  "wrong-dependency": ({ route }): void => {
+    Reflect.set(route, "constraints", [{ type: "UNCLAIMED_PLANET" }, { type: "AT_FLEET_PLANET", fleetTargetTag: "route" }])
+  },
+  "stationary-input": ({ definition }): void => {
+    Reflect.set(definition, "inputs", { force: { type: "FLEET_STRENGTH", fleetTargetTag: "craft" } })
+  },
+} satisfies Record<string, (context: CorruptColonizationDeclaration) => void>

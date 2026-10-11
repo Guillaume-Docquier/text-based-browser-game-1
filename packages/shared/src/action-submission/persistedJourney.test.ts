@@ -1,4 +1,5 @@
 import { Assert, branded, Result } from "@guillaume-docquier/tools-ts"
+import { typedParse, NonNegativeNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
 import { describe, expect, it } from "vitest"
 import { createFleetEligibilityScenario } from "#shared/action-submission/actionEligibility.stub.ts"
 import type { FleetEligibilityScenario } from "#shared/action-submission/actionEligibility.stub.ts"
@@ -165,6 +166,31 @@ const corruptions: Array<{ name: string; corrupt: (fixture: JourneyFixture) => R
 ]
 
 describe("persisted journey binding integrity", () => {
+  it("should report saved instance corruption before progress and fresh payment without mutating state or RNG", () => {
+    // Arrange
+    const fixture = createJourneyFixture()
+    fixture.movement.submittedAction.id = branded<ActionId>("missing-instance")
+    fixture.journey.distanceToEnd = typedParse(NonNegativeNumberSchema, 0.5)
+    const state = { ...fixture.state, turn: 2, submittedActions: [fixture.scenario.order("Y", 10)] }
+    const before = structuredClone(state)
+    const rng = createSeededRng()
+    const beforeRng = rng.getState()
+    // Act
+    const result = resolveTurn(state, fixture.scenario.ruleset, rng)
+    // Assert
+    expect(result).toStrictEqual(
+      Result.Failure({
+        type: "FAILED_TO_RESOLVE_PHASES",
+        error: { type: "FAILED_TO_RESOLVE_EFFECT", error: { type: "FAILED", error: "Invalid persisted journey Action instance" } },
+      }),
+    )
+    expect(state).toStrictEqual(before)
+    expect(rng.getState()).toStrictEqual(beforeRng)
+    expect(state.fleets[fixture.scenario.source.id]?.strength).toBe(30)
+    expect(state.players[fixture.scenario.playerId]?.resources.INFLUENCE).toBe(3)
+    expect(state.players[fixture.scenario.playerId]?.resources.FUEL).toBe(1)
+  })
+
   it.each(corruptions)("should return typed corruption failure for $name", ({ corrupt }) => {
     // Arrange
     const fixture = createJourneyFixture()

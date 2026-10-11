@@ -203,6 +203,44 @@ describe("independent fleet allocation boundary regressions", () => {
     expect(third.fleets[fixture.source.id]).toMatchObject({ name: "Original", strength: 30, originPlanetId: fixture.origin.id })
   })
 
+  it("should preserve declaration diagnostic order and duplicate Move diagnostics at construction and JSON load", () => {
+    // Arrange
+    const fixture = createFleetEligibilityScenario()
+    const declaration = {
+      ...fixture.definition,
+      targets: { craft: { targetType: "FLEET", constraints: [] }, route: { targetType: "PLANET", constraints: [] } },
+      inputs: {
+        force: { type: "FLEET_STRENGTH", fleetTargetTag: "absent" },
+        spare: { type: "FLEET_STRENGTH", fleetTargetTag: "absent" },
+      },
+      effects: [fixture.definition.effects[0], fixture.definition.effects[0]],
+    }
+    // Act
+    const constructed = ActionDefinitionSchema.safeParse(declaration)
+    const loaded = RulesetSchema.safeParse(JSON.parse(JSON.stringify({ ...fixture.ruleset, actionDefinitions: { RENAMED: declaration } })))
+    // Assert
+    expect(constructed.success).toBe(false)
+    expect(loaded.success).toBe(false)
+    Assert.isDefined(constructed.error)
+    Assert.isDefined(loaded.error)
+    const messages = [
+      "An Action supports at most one FLEET_MOVE",
+      "Input force references a missing or non-fleet source",
+      "Input spare references a missing or non-fleet source",
+      "Unused input spare",
+      "Movement strength input must reference its fleet source",
+      "Movement source must be owned",
+      "Movement source must be stationary",
+      "Movement destination must declare a range from its source",
+      "Movement strength input must reference its fleet source",
+      "Movement source must be owned",
+      "Movement source must be stationary",
+      "Movement destination must declare a range from its source",
+    ]
+    expect(constructed.error.issues.map((issue) => issue.message)).toStrictEqual(messages)
+    expect(loaded.error.issues.map((issue) => issue.message)).toStrictEqual(messages)
+  })
+
   it("should reject invalid movement declarations at construction and JSON ruleset load", () => {
     // Arrange
     const fixture = createFleetEligibilityScenario()

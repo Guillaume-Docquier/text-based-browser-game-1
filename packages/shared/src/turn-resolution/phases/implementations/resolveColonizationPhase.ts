@@ -7,17 +7,7 @@ import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 
 /** Tick, then destination, then canonical provenance; only eligible contenders draw tie RNG. */
 export function resolveColonizationPhase(context: TurnContext): Result<TurnContext, ResolvePhaseError> {
-  const canonical = context.arrivalIntents
-    .filter((intent) => intent.pending.type === "COLONIZE")
-    .toSorted((a, b) => {
-      if (a.tick !== b.tick) return a.tick - b.tick
-      const planet = compareCodePoints(a.destinationPlanetId, b.destinationPlanetId)
-      if (planet !== 0) return planet
-      const origin = compareOrigins(a.origin, b.origin)
-      if (origin !== 0) return origin
-      if (a.pending.effectIndex !== b.pending.effectIndex) return a.pending.effectIndex - b.pending.effectIndex
-      return compareCodePoints(a.departureFleetId, b.departureFleetId)
-    })
+  const canonical = context.arrivalIntents.filter((intent) => intent.pending.type === "COLONIZE").toSorted(compareColonizationIntents)
   for (let start = 0; start < canonical.length;) {
     const first = canonical[start]
     if (first === undefined) break
@@ -28,22 +18,47 @@ export function resolveColonizationPhase(context: TurnContext): Result<TurnConte
       end < canonical.length
     )
       end++
-    const eligible: ArrivalIntent[] = []
-    const prevented: ArrivalIntent[] = []
-    for (const intent of canonical.slice(start, end)) {
-      const evaluation = evaluateColonizeIntent(context, intent)
-      if (Result.isFailure(evaluation)) return Result.Failure(ResolvePhaseError.FailedEffect({ error: evaluation.error }))
-      if (evaluation.value.length === 0) eligible.push(intent)
-      else prevented.push(intent)
-    }
-    const ordered = eligible.length > 1 ? context.rng.shuffle(eligible) : eligible
-    for (const intent of [...prevented, ...ordered]) {
-      const effect = new ColonizeEffect(context.effectPool.getAll().length, intent.origin.submittedAction, intent)
-      context.effectPool.addMany([effect])
-      const result = effect.resolve(context)
-      if (Result.isFailure(result)) return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
-    }
+    const result = resolveColonizationGroup(context, canonical.slice(start, end))
+    if (Result.isFailure(result)) return result
     start = end
+  }
+  return Result.Success(context)
+}
+
+function compareColonizationIntents(a: ArrivalIntent, b: ArrivalIntent): number {
+  if (a.tick !== b.tick) return a.tick - b.tick
+  const planet = compareCodePoints(a.destinationPlanetId, b.destinationPlanetId)
+  if (planet !== 0) return planet
+  const origin = compareOrigins(a.origin, b.origin)
+  if (origin !== 0) return origin
+  if (a.pending.effectIndex !== b.pending.effectIndex) return a.pending.effectIndex - b.pending.effectIndex
+  return compareCodePoints(a.departureFleetId, b.departureFleetId)
+}
+
+type ColonizationContenders = Readonly<{ eligible: ArrivalIntent[]; prevented: ArrivalIntent[] }>
+
+function partitionContenders(context: TurnContext, group: ArrivalIntent[]): Result<ColonizationContenders, ResolvePhaseError> {
+  const eligible: ArrivalIntent[] = []
+  const prevented: ArrivalIntent[] = []
+  for (const intent of group) {
+    const evaluation = evaluateColonizeIntent(context, intent)
+    if (Result.isFailure(evaluation)) return Result.Failure(ResolvePhaseError.FailedEffect({ error: evaluation.error }))
+    if (evaluation.value.length === 0) eligible.push(intent)
+    else prevented.push(intent)
+  }
+  return Result.Success({ eligible, prevented })
+}
+
+function resolveColonizationGroup(context: TurnContext, group: ArrivalIntent[]): Result<TurnContext, ResolvePhaseError> {
+  const contenders = partitionContenders(context, group)
+  if (Result.isFailure(contenders)) return contenders
+  const { eligible, prevented } = contenders.value
+  const ordered = eligible.length > 1 ? context.rng.shuffle(eligible) : eligible
+  for (const intent of [...prevented, ...ordered]) {
+    const effect = new ColonizeEffect(context.effectPool.getAll().length, intent.origin.submittedAction, intent)
+    context.effectPool.addMany([effect])
+    const result = effect.resolve(context)
+    if (Result.isFailure(result)) return Result.Failure(ResolvePhaseError.FailedEffect({ error: result.error }))
   }
   return Result.Success(context)
 }

@@ -58,7 +58,14 @@ export class ActionsPage extends GamePage {
   }
 
   public async toggleActionSelection(name: string, identifyingText?: string): Promise<void> {
-    await this.selectActionButton(name, identifyingText).click()
+    const button = this.selectActionButton(name, identifyingText)
+    const selected = (await button.getAttribute("aria-pressed")) === "true"
+    const saved = this.page.waitForResponse((response) => response.url().includes("gameplay.updateActionSubmission") && response.ok())
+    await button.click()
+    await saved
+    await this.action(name, identifyingText)
+      .getByRole("button", { name: /^(Select action|Selected)$/, pressed: !selected })
+      .waitFor({ state: "visible" })
   }
 
   public async updateAction(name: string, identifyingText?: string): Promise<void> {

@@ -39,14 +39,8 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
   }
 
   // Create effects
-  const monotonicIdFactory = MonotonicIdFactory.create()
-  for (const submittedAction of submittedActions) {
-    const created = EffectFactory.fromSubmittedAction(submittedAction, ruleset, monotonicIdFactory)
-    if (Result.isFailure(created))
-      return Result.Failure(ResolveTurnError.FailedToResolvePhases({ error: ResolvePhaseError.FailedEffect({ error: created.error }) }))
-    for (const effect of created.value) effect.origin = { initiatingTurn: turnState.turn, submittedAction }
-    context.effectPool.addMany(created.value)
-  }
+  const creation = createSubmittedEffects(context)
+  if (Result.isFailure(creation)) return creation
 
   // Resolve effects
   const phaseResolutionResult = resolvePhases(context)
@@ -59,23 +53,39 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
     return Result.Failure(ResolveTurnError.UnresolvedEffects({ effects: context.effectPool.getAll().map((effect) => effect.toJson()) }))
   }
 
-  const origins = new Map(context.effectPool.getOrigins().map((origin) => [actionOriginKey(origin), origin]))
-  for (const submittedAction of submittedActions) {
-    const origin = { initiatingTurn: turnState.turn, submittedAction }
-    origins.set(actionOriginKey(origin), origin)
-  }
   return Result.Success({
     gameId: context.turnState.gameId,
     turn: context.turnState.turn,
-    resolvedActions: Array.from(origins.values())
-      .toSorted(compareOrigins)
-      .map((origin) => ({
-        ...origin,
-        actionOutcomes: context.effectPool.getOutcomes(origin.submittedAction, origin.initiatingTurn),
-      })),
+    resolvedActions: projectResolvedActions(context),
     players: context.turnState.players,
     planets: context.turnState.planets,
     fleets: context.turnState.fleets,
     winnerPlayerId: context.turnState.winnerPlayerId,
   })
+}
+
+function createSubmittedEffects(context: TurnContext): Result<void, ResolveTurnError> {
+  const monotonicIdFactory = MonotonicIdFactory.create()
+  for (const submittedAction of context.turnState.submittedActions) {
+    const created = EffectFactory.fromSubmittedAction(submittedAction, context.ruleset, monotonicIdFactory)
+    if (Result.isFailure(created))
+      return Result.Failure(ResolveTurnError.FailedToResolvePhases({ error: ResolvePhaseError.FailedEffect({ error: created.error }) }))
+    for (const effect of created.value) effect.origin = { initiatingTurn: context.turnState.turn, submittedAction }
+    context.effectPool.addMany(created.value)
+  }
+  return Result.Success(undefined)
+}
+
+function projectResolvedActions(context: TurnContext): ResolvedTurnState["resolvedActions"] {
+  const origins = new Map(context.effectPool.getOrigins().map((origin) => [actionOriginKey(origin), origin]))
+  for (const submittedAction of context.turnState.submittedActions) {
+    const origin = { initiatingTurn: context.turnState.turn, submittedAction }
+    origins.set(actionOriginKey(origin), origin)
+  }
+  return Array.from(origins.values())
+    .toSorted(compareOrigins)
+    .map((origin) => ({
+      ...origin,
+      actionOutcomes: context.effectPool.getOutcomes(origin.submittedAction, origin.initiatingTurn),
+    }))
 }

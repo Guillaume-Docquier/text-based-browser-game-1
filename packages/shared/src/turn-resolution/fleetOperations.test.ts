@@ -107,6 +107,27 @@ describe("normal Assault and chronological journey integration", () => {
     expect(JSON.stringify(result)).not.toContain("BigInt")
   })
 
+  it("should award a tied whole defender loss by code-point ID order instead of language collation", () => {
+    // Arrange: uppercase Z precedes lowercase a in code-point order.
+    const fixture = createFleetOperationsScenario({
+      orders: [{ owner: 1, strength: 1, distance: 1, assault: true }],
+      defenders: [
+        { owner: 2, strength: 5, id: "fleet-a" },
+        { owner: 3, strength: 5, id: "fleet-Z" },
+      ],
+    })
+    const reversed = reverseFleetOperationsState(structuredClone(fixture.state), true)
+    // Act
+    const result = resolveTurn(fixture.state, fixture.ruleset, createSeededRng())
+    const reverseResult = resolveTurn(reversed, fixture.ruleset, createSeededRng())
+    // Assert
+    expect(result).toStrictEqual(Result.Success(expect.objectContaining({ fleets: expect.any(Object) })))
+    expect(reverseResult).toStrictEqual(result)
+    expect(Object.values(fixture.state.fleets).find((fleet) => fleet.id === "fleet-Z")?.strength).toBe(4)
+    expect(Object.values(fixture.state.fleets).find((fleet) => fleet.id === "fleet-a")?.strength).toBe(5)
+    expect(Object.values(fixture.state.fleets).some((fleet) => fleet.ownerPlayerId === fixture.owners[0])).toBe(false)
+  })
+
   it("should keeps deferred outcomes with original turn and selections after JSON reload", () => {
     // Arrange
     const fixture = createFleetOperationsScenario({
@@ -999,33 +1020,33 @@ describe("independent actual bindings and stationed defense", () => {
 
 describe("independent alternate seed and enemy transit exclusion", () => {
   it.each([
-    [
-      1234,
-      ["ORDER-1", "ORDER-0", "ORDER-2"],
-      1199731377,
-      567895707,
-      10,
-      [
+    {
+      seed: 1234,
+      order: ["ORDER-1", "ORDER-0", "ORDER-2"],
+      persistedState: 1199731377,
+      generatorState: 567895707,
+      survivor: 10,
+      outcomes: [
         'Assault at Planet "destination" exchanged 5 Strength against 15 defending Strength',
         'Assault at Planet "destination" exchanged 20 Strength against 40 defending Strength',
         'Assault at Planet "destination" exchanged 0 Strength against 0 defending Strength',
       ],
-    ],
-    [
-      1,
-      ["ORDER-0", "ORDER-1", "ORDER-2"],
-      1199730144,
-      567894474,
-      8,
-      [
+    },
+    {
+      seed: 1,
+      order: ["ORDER-0", "ORDER-1", "ORDER-2"],
+      persistedState: 1199730144,
+      generatorState: 567894474,
+      survivor: 8,
+      outcomes: [
         'Assault at Planet "destination" exchanged 10 Strength against 50 defending Strength',
         'Assault at Planet "destination" exchanged 16 Strength against 24 defending Strength',
         'Assault at Planet "destination" exchanged 0 Strength against 0 defending Strength',
       ],
-    ],
+    },
   ] as const)(
-    "should replays persisted seed%s with literal execution and arithmetic",
-    (seed, order, persistedState, generatorState, survivor, outcomes) => {
+    "should replays persisted seed$seed with literal execution and arithmetic",
+    ({ seed, order, persistedState, generatorState, survivor, outcomes }) => {
       // Arrange: observed exported behavior fixes the two seed oracles; expected values call no shuffle helper.
       const fixture = createFleetOperationsScenario({
         orders: [

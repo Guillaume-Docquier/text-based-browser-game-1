@@ -129,19 +129,52 @@ export const Disabled: Story = {
   },
 }
 
+/**
+ * A dependent singleton must remain selectable; the ordinary singleton stays settled and disabled.
+ */
+export const DependentSingleton: Story = {
+  render: () => (
+    <>
+      <SearchSelectExample
+        label="Dependent planet"
+        options={[{ id: "world", label: "Unclaimed World" }]}
+        placeholder="Choose planet"
+        allowSingleOptionSelection
+      />
+      <SearchSelectExample label="Settled source" options={[{ id: "source", label: "Home Guard" }]} placeholder="Choose source" />
+    </>
+  ),
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const dependent = canvas.getByRole("combobox", { name: "Dependent planet" })
+    await expect(canvas.getByRole("combobox", { name: "Settled source" })).toBeDisabled()
+    await userEvent.click(dependent)
+    await userEvent.click(within(canvasElement.ownerDocument.body).getByRole("option", { name: "Unclaimed World" }))
+    await expect(dependent).toHaveValue("Unclaimed World")
+  },
+}
+
 function SearchSelectExample({
   label,
   options,
   placeholder,
+  allowSingleOptionSelection = false,
 }: {
   label: string
   options: ReadonlyArray<{ id: string; label: string }>
   placeholder: string
+  allowSingleOptionSelection?: boolean
 }): React.JSX.Element {
   const [value, setValue] = useState<string | undefined>()
   return (
     <div className="w-80">
-      <SearchSelect label={label} options={options} value={value} placeholder={placeholder} onValueChange={setValue} />
+      <SearchSelect
+        label={label}
+        options={options}
+        value={value}
+        placeholder={placeholder}
+        allowSingleOptionSelection={allowSingleOptionSelection}
+        onValueChange={setValue}
+      />
     </div>
   )
 }
