@@ -84,6 +84,29 @@ describe("ruleset compiler", () => {
     )
   })
 
+  it("should collect binding and parameter issues in authoring order", () => {
+    // Arrange
+    const input = rulesetInput([
+      {
+        ...moveActions[0],
+        mechanics: [{ use: "moveFleet", bind: { fleet: "planet", extra: "fleet" }, parameters: { speed: 0 } }],
+        constraints: [{ kind: "ownedByActor", target: "missing" }],
+      },
+    ])
+    // Act
+    const result = Result.map(compileRuleset(input), { failure: (issues) => issues.map((issue) => issue.path) })
+    // Assert
+    expect(result).toStrictEqual(
+      Result.Failure([
+        ["actionDefinitions", 0, "mechanics", 0, "bind", "fleet"],
+        ["actionDefinitions", 0, "mechanics", 0, "bind", "destination"],
+        ["actionDefinitions", 0, "mechanics", 0, "bind", "extra"],
+        ["actionDefinitions", 0, "mechanics", 0, "parameters", "speed"],
+        ["actionDefinitions", 0, "constraints", 0, "target"],
+      ]),
+    )
+  })
+
   it("should expand mechanic ownership requirements without action-authored ownership", () => {
     // Arrange
     const input = rulesetInput([moveActions[0]])

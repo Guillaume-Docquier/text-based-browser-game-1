@@ -4,13 +4,15 @@ import { ActionType } from "#shared/domain/ruleset/action-definitions/ActionType
 import { defineAction, type AuthoredAction } from "../../definitions/defineAction.ts"
 import { mechanicRegistry } from "../../mechanics/mechanicRegistry.ts"
 
-function build(
-  id: string,
-  tier: ActionTier,
-  influence: number,
-  metal: number,
-  strength: number,
-): AuthoredAction<{ readonly planet: "planet" }, typeof mechanicRegistry> {
+type BuildTier = Readonly<{ id: string; tier: ActionTier; influence: number; metal: number; strength: number }>
+
+function build({
+  id,
+  tier,
+  influence,
+  metal,
+  strength,
+}: BuildTier): AuthoredAction<{ readonly planet: "planet" }, typeof mechanicRegistry> {
   return defineAction(mechanicRegistry, {
     id,
     name: "Build Fleet",
@@ -29,7 +31,7 @@ function build(
  * Ownership belongs to the mechanic, so actions need not repeat it.
  */
 export const buildActions = [
-  build("BUILD_FLEET_STANDARD", ActionTier.STANDARD, 2, 1, 10),
-  build("BUILD_FLEET_IMPROVED", ActionTier.IMPROVED, 6, 3, 100),
-  build("BUILD_FLEET_EXCEPTIONAL", ActionTier.EXCEPTIONAL, 10, 5, 1000),
+  build({ id: "BUILD_FLEET_STANDARD", tier: ActionTier.STANDARD, influence: 2, metal: 1, strength: 10 }),
+  build({ id: "BUILD_FLEET_IMPROVED", tier: ActionTier.IMPROVED, influence: 6, metal: 3, strength: 100 }),
+  build({ id: "BUILD_FLEET_EXCEPTIONAL", tier: ActionTier.EXCEPTIONAL, influence: 10, metal: 5, strength: 1000 }),
 ] as const
