@@ -6,7 +6,7 @@ import { PositiveIntegerSchema } from "#shared/domain/ruleset/action-definitions
 import type { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
-import type { PendingArrivalAssault } from "#shared/domain/world/fleets/Fleet.ts"
+import type { PendingArrivalEffect } from "#shared/domain/world/fleets/Fleet.ts"
 import { FleetIdSchema, type FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { Effect } from "#shared/turn-resolution/effects/Effect.ts"
@@ -22,13 +22,13 @@ export class FleetMoveEffect extends Effect {
   private readonly effectDefinition: FleetMoveEffectDefinition
   private readonly targetFleetId: FleetId
   private readonly targetPlanetId: PlanetId
-  private readonly pendingArrivalEffects: readonly PendingArrivalAssault[]
+  private readonly pendingArrivalEffects: readonly PendingArrivalEffect[]
 
   public constructor(
     id: number,
     effectDefinition: FleetMoveEffectDefinition,
     submittedAction: SubmittedAction,
-    pendingArrivalEffects: readonly PendingArrivalAssault[] = [],
+    pendingArrivalEffects: readonly PendingArrivalEffect[] = [],
     definitionOrdinal: number = id,
   ) {
     super(id, effectDefinition.type, submittedAction, definitionOrdinal)

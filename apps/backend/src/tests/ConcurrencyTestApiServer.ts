@@ -57,10 +57,16 @@ export class ConcurrencyTestApiServer {
     this.accountsRepository = new AccountsRepository({ db, logger: Logger.get() })
   }
 
-  public async createClient(args: { authenticated: true }): Promise<AuthenticatedApiClient>
+  public async createClient(args: { authenticated: true; id?: string }): Promise<AuthenticatedApiClient>
   public async createClient(args: { authenticated: false }): Promise<AnonymousApiClient>
-  public async createClient({ authenticated }: { authenticated: boolean }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
-    return await createApiClient({ port: this.server.port, accountsRepository: this.accountsRepository, authenticated })
+  public async createClient({
+    authenticated,
+    id,
+  }: {
+    authenticated: boolean
+    id?: string
+  }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
+    return await createApiClient({ port: this.server.port, accountsRepository: this.accountsRepository, authenticated, id })
   }
 
   public async [Symbol.asyncDispose](): Promise<void> {

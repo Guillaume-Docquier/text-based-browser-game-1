@@ -1,19 +1,25 @@
-import { type DeepUnbranded, indexBy, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, type DeepUnbranded, indexBy, Result } from "@guillaume-docquier/tools-ts"
 import { describe, expect, it } from "vitest"
 import { createResourcesStub } from "#shared/domain/resources/Resources.stub.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import { createActionDefinitionStub } from "#shared/domain/ruleset/action-definitions/ActionDefinition.stub.ts"
-import type { ActionDefinition } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import { ActionDefinitionSchema, type ActionDefinition } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
+import { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
 import { FleetBuildEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetBuildEffectDefinition.ts"
+import { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { ResourceGainEffectDefinition } from "#shared/domain/ruleset/effect-definitions/ResourceGainEffectDefinition.ts"
 import { ResourceLossEffectDefinition } from "#shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
 import { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
+import { AtFleetPlanetConstraint } from "#shared/domain/ruleset/target-definitions/AtFleetPlanetTargetConstraint.ts"
 import { DifferentFromFleetOriginConstraint } from "#shared/domain/ruleset/target-definitions/DifferentFromFleetOriginTargetConstraint.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
 import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
+import { UnclaimedPlanetConstraint } from "#shared/domain/ruleset/target-definitions/UnclaimedPlanetTargetConstraint.ts"
 import { WithinFleetRangeConstraint } from "#shared/domain/ruleset/target-definitions/WithinFleetRangeTargetConstraint.ts"
+import { ColonizeHereTest, ColonizePlanetTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { MoveFleetStandard } from "#shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 
 const validActionDefinition = createActionDefinitionStub({
@@ -405,6 +411,181 @@ describe("Ruleset.safeCreate", () => {
     )
   })
 
+  it.each([0, -1, 1.5, Number.POSITIVE_INFINITY])(
+    "should reject an invalid Colonize strength requirement at its parameter field",
+    (strengthRequirement) => {
+      const effect = ColonizeHereTest.effects[0]
+      Assert.isDefined(effect)
+      const invalidAction = {
+        ...ColonizeHereTest,
+        id: "INVALID_COLONIZE_STRENGTH",
+        effects: [{ ...effect, parameters: { strengthRequirement } }],
+      }
+
+      expectActionIssue(invalidAction, ["effects", 0, "parameters", "strengthRequirement"])
+    },
+  )
+
+  it("should reject missing, mismatched, or incorrectly typed Colonize role mappings at their effect fields", () => {
+    const effect = ColonizeHereTest.effects.find(isColonizeEffect)
+    Assert.isDefined(effect)
+    const missingFleetSlot = {
+      ...ColonizeHereTest,
+      effects: [
+        {
+          ...effect,
+          targets: { ...effect.targets, fleet: { ...effect.targets.fleet, actionTargetTag: "missingFleet" } },
+        },
+      ],
+    }
+    const missingPlanetSlot = {
+      ...ColonizeHereTest,
+      effects: [
+        {
+          ...effect,
+          targets: { ...effect.targets, planet: { ...effect.targets.planet, actionTargetTag: "missingPlanet" } },
+        },
+      ],
+    }
+    const wrongFleetSlot = {
+      ...ColonizeHereTest,
+      effects: [
+        {
+          ...effect,
+          targets: { ...effect.targets, fleet: { ...effect.targets.fleet, actionTargetTag: "planet" } },
+        },
+      ],
+    }
+    const wrongFleetType = {
+      ...ColonizeHereTest,
+      effects: [
+        {
+          ...effect,
+          targets: { ...effect.targets, fleet: { ...effect.targets.fleet, targetType: TargetType.PLANET } },
+        },
+      ],
+    }
+
+    expectActionIssue(missingFleetSlot, ["effects", 0, "targets", "fleet"], 'missing target slot tagged "missingFleet"')
+    expectActionIssue(missingPlanetSlot, ["effects", 0, "targets", "planet"], 'missing target slot tagged "missingPlanet"')
+    expectActionIssue(wrongFleetSlot, ["effects", 0, "targets", "fleet"], 'target slot tagged "planet" has type "PLANET"')
+    expectActionIssue(wrongFleetType, ["effects", 0, "targets", "fleet", "targetType"])
+  })
+
+  it("should require owned stationary source, unclaimed destination, and the selected Fleet's current Planet", () => {
+    const fleetTag = branded<TargetTag>("fleet")
+    const planetTag = branded<TargetTag>("planet")
+    const fleetTarget = ColonizeHereTest.targets[fleetTag]
+    const planetTarget = ColonizeHereTest.targets[planetTag]
+    Assert.isDefined(fleetTarget)
+    Assert.isDefined(planetTarget)
+    const missingOwnership = {
+      ...ColonizeHereTest,
+      targets: {
+        ...ColonizeHereTest.targets,
+        [fleetTag]: {
+          ...fleetTarget,
+          constraints: fleetTarget.constraints.filter((constraint) => constraint.type !== OwnedBySubmittingPlayerConstraint.type),
+        },
+      },
+    }
+    const missingStationary = {
+      ...ColonizeHereTest,
+      targets: {
+        ...ColonizeHereTest.targets,
+        [fleetTag]: {
+          ...fleetTarget,
+          constraints: fleetTarget.constraints.filter((constraint) => constraint.type !== StationaryFleetConstraint.type),
+        },
+      },
+    }
+    const missingUnclaimed = {
+      ...ColonizeHereTest,
+      targets: {
+        ...ColonizeHereTest.targets,
+        [planetTag]: {
+          ...planetTarget,
+          constraints: planetTarget.constraints.filter((constraint) => constraint.type !== UnclaimedPlanetConstraint.type),
+        },
+      },
+    }
+    const missingAtFleetPlanet = {
+      ...ColonizeHereTest,
+      targets: {
+        ...ColonizeHereTest.targets,
+        [planetTag]: {
+          ...planetTarget,
+          constraints: planetTarget.constraints.filter((constraint) => constraint.type !== AtFleetPlanetConstraint.type),
+        },
+      },
+    }
+
+    expect(ActionDefinitionSchema.safeParse(missingOwnership).success).toBe(false)
+    expect(ActionDefinitionSchema.safeParse(missingStationary).success).toBe(false)
+    expect(ActionDefinitionSchema.safeParse(missingUnclaimed).success).toBe(false)
+    expect(ActionDefinitionSchema.safeParse(missingAtFleetPlanet).success).toBe(false)
+    expectActionIssue(missingOwnership, ["effects", 0, "targets", "fleet"], "must require ownership by the submitting player")
+    expectActionIssue(missingStationary, ["effects", 0, "targets", "fleet"], "must require a stationary Fleet")
+    expectActionIssue(missingUnclaimed, ["targets", "planet"], "must require an unclaimed Planet")
+    expectActionIssue(missingAtFleetPlanet, ["targets", "planet"], "must require the selected Fleet's stationary Planet")
+  })
+
+  it("should retain the original Move effect index after a Colonize effect", () => {
+    const colonizeEffect = ColonizePlanetTest.effects.find((effect) => effect.type === FleetColonizeEffectDefinition.type)
+    const movementEffect = ColonizePlanetTest.effects.find((effect) => effect.type === "FLEET_MOVE")
+    Assert.isDefined(colonizeEffect)
+    Assert.isDefined(movementEffect)
+    const invalidAction = {
+      ...ColonizePlanetTest,
+      id: "COLONIZE_BEFORE_MOVE_MISSING_STRENGTH",
+      inputs: {},
+      effects: [
+        colonizeEffect,
+        {
+          ...movementEffect,
+          inputs: { ...movementEffect.inputs, strength: { ...movementEffect.inputs.strength, actionInputTag: "missingStrength" } },
+        },
+      ],
+    }
+
+    expectActionIssue(invalidAction, ["effects", 1, "inputs", "strength"], 'is missing input slot "missingStrength" required by FLEET_MOVE')
+  })
+
+  it("should reject mismatched Move, Assault, and Colonize mappings, duplicate Colonize effects, and unused inputs", () => {
+    const colonizeEffect = ColonizePlanetTest.effects.find(isColonizeEffect)
+    Assert.isDefined(colonizeEffect)
+    const mismatchedColonizeEffects = [...ColonizePlanetTest.effects]
+    const colonizeEffectIndex = mismatchedColonizeEffects.indexOf(colonizeEffect)
+    mismatchedColonizeEffects[colonizeEffectIndex] = {
+      ...colonizeEffect,
+      targets: {
+        ...colonizeEffect.targets,
+        planet: { ...colonizeEffect.targets.planet, actionTargetTag: branded<TargetTag>("otherPlanet") },
+      },
+    }
+    const mismatchedColonize = { ...ColonizePlanetTest, id: "MISMATCHED_MOVE_COLONIZE", effects: mismatchedColonizeEffects }
+    const mismatchedAssault = {
+      ...ColonizePlanetTest,
+      id: "MISMATCHED_MOVE_ASSAULT",
+      effects: [...ColonizePlanetTest.effects, FleetAssaultEffectDefinition.create({ fleetTag: "planet", planetTag: "fleet" })],
+    }
+    const duplicateColonize = {
+      ...ColonizeHereTest,
+      id: "DUPLICATE_COLONIZE",
+      effects: [...ColonizeHereTest.effects, colonizeEffect],
+    }
+    const unusedInput = {
+      ...ColonizeHereTest,
+      id: "UNUSED_COLONIZE_INPUT",
+      inputs: { quota: { type: "POSITIVE_INTEGER", label: "Quota" } },
+    }
+
+    expectActionIssue(mismatchedColonize, ["effects", 1, "targets"], "FLEET_COLONIZE must use the same source and destination target tags")
+    expectActionIssue(mismatchedAssault, ["effects", 2, "targets"], "FLEET_ASSAULT must use the same source and destination target tags")
+    expectActionIssue(duplicateColonize, ["effects"], "may contain only one FLEET_COLONIZE effect")
+    expectActionIssue(unusedInput, ["inputs", "quota"], 'input slot "quota" is not used by an Effect Definition')
+  })
+
   it("should reject an Action Pool entry that references a missing Action Definition", () => {
     // Arrange
     const ruleset: DeepUnbranded<Ruleset> = {
@@ -446,6 +627,22 @@ describe("Ruleset.safeCreate", () => {
     expect(result).toStrictEqual(Result.Failure(["Action Pool contains duplicate action id VALID_ACTION_1"]))
   })
 })
+
+function expectActionIssue(actionDefinition: unknown, path: Array<string | number>, message?: string): void {
+  const result = ActionDefinitionSchema.safeParse(actionDefinition)
+  expect(result.success).toBe(false)
+  if (result.success) return
+
+  const issue = result.error.issues.find(
+    ({ path: actualPath }) => actualPath.length === path.length && actualPath.every((part, index) => part === path[index]),
+  )
+  expect(issue).toBeDefined()
+  expect(issue?.message ?? "").toContain(message ?? "")
+}
+
+function isColonizeEffect(effect: ActionDefinition["effects"][number]): effect is ReturnType<typeof FleetColonizeEffectDefinition.create> {
+  return effect.type === FleetColonizeEffectDefinition.type
+}
 
 function safeCreateRulesetWithAction(
   actionDefinition: DeepUnbranded<ActionDefinition>,

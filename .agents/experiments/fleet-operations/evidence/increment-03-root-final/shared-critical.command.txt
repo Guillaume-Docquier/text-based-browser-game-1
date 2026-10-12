@@ -1,0 +1,1 @@
+pnpm --filter shared test src/turn-resolution/fleet-colonization.test.ts src/action-submission/evaluateActionSelection.test.ts src/domain/ruleset

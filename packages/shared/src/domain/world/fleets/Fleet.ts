@@ -10,6 +10,8 @@ import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.t
 import { PositiveIntegerSchema, type PositiveInteger } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
 import { FleetAssaultEffectDefinitionSchema } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
+import type { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
+import { FleetColonizeEffectDefinitionSchema } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { SubmittedActionSchema } from "#shared/domain/turns/actions/Action.ts"
 import { FleetIdSchema, type FleetId } from "#shared/domain/world/fleets/FleetId.ts"
@@ -23,7 +25,7 @@ export type FleetMovement = Readonly<{
   speed: PositiveNumber
   departureTurn: PositiveInteger
   submission: SubmittedAction
-  pendingArrivalEffects: readonly PendingArrivalAssault[]
+  pendingArrivalEffects: readonly PendingArrivalEffect[]
 }>
 
 export type PendingArrivalAssault = Readonly<{
@@ -38,11 +40,30 @@ export const PendingArrivalAssaultSchema = z
   })
   .strict() satisfies z.ZodType<PendingArrivalAssault>
 
+export type PendingArrivalColonization = Readonly<{
+  effectDefinition: FleetColonizeEffectDefinition
+  definitionOrdinal: NonNegativeSafeInteger
+}>
+
+export const PendingArrivalColonizationSchema = z
+  .object({
+    effectDefinition: FleetColonizeEffectDefinitionSchema,
+    definitionOrdinal: NonNegativeSafeIntegerSchema,
+  })
+  .strict() satisfies z.ZodType<PendingArrivalColonization>
+
+export type PendingArrivalEffect = PendingArrivalAssault | PendingArrivalColonization
+
+export const PendingArrivalEffectSchema = z.union([
+  PendingArrivalAssaultSchema,
+  PendingArrivalColonizationSchema,
+]) satisfies z.ZodType<PendingArrivalEffect>
+
 export const FleetMovementSchema = z.object({
   speed: z.number().finite().pipe(PositiveNumberSchema),
   departureTurn: PositiveIntegerSchema,
   submission: SubmittedActionSchema,
-  pendingArrivalEffects: z.array(PendingArrivalAssaultSchema).readonly(),
+  pendingArrivalEffects: z.array(PendingArrivalEffectSchema).readonly(),
 }) satisfies z.ZodType<FleetMovement>
 
 export type Fleet = {

@@ -7,6 +7,7 @@ import {
   BuildFleetImproved,
   BuildFleetStandard,
 } from "#shared/testing/test-ruleset/action-definitions/build-fleet.ts"
+import { ColonizeHereTest, ColonizePlanetTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { GainEnergy } from "#shared/testing/test-ruleset/action-definitions/gain-energy.ts"
 import { GainFuel } from "#shared/testing/test-ruleset/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "#shared/testing/test-ruleset/action-definitions/gain-influence.ts"
@@ -29,6 +30,8 @@ const ACTION_DEFINITIONS = [
   AttackMoveTest,
   FlexibleAssaultTest,
   StationaryAssaultTest,
+  ColonizePlanetTest,
+  ColonizeHereTest,
 ]
 
 export const TestRuleset = Ruleset.create({

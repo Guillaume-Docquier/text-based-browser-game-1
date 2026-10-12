@@ -4,17 +4,19 @@ import { NonNegativeSafeIntegerSchema } from "#shared/domain/NonNegativeSafeInte
 import type { EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
 import { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
 import { FleetBuildEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetBuildEffectDefinition.ts"
+import { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { ResourceGainEffectDefinition } from "#shared/domain/ruleset/effect-definitions/ResourceGainEffectDefinition.ts"
 import { ResourceLossEffectDefinition } from "#shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
 import { VictoryEffectDefinition } from "#shared/domain/ruleset/effect-definitions/VictoryEffectDefinition.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
-import type { PendingArrivalAssault } from "#shared/domain/world/fleets/Fleet.ts"
+import type { PendingArrivalEffect } from "#shared/domain/world/fleets/Fleet.ts"
 import type { Effect } from "#shared/turn-resolution/effects/Effect.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
 import { FleetAssaultEffect } from "#shared/turn-resolution/effects/implementations/FleetAssaultEffect.ts"
 import { FleetBuildEffect } from "#shared/turn-resolution/effects/implementations/FleetBuildEffect.ts"
+import { FleetColonizeEffect } from "#shared/turn-resolution/effects/implementations/FleetColonizeEffect.ts"
 import { FleetMoveEffect } from "#shared/turn-resolution/effects/implementations/FleetMoveEffect.ts"
 import { ResourceGainEffect } from "#shared/turn-resolution/effects/implementations/ResourceGainEffect.ts"
 import { ResourceLossEffect } from "#shared/turn-resolution/effects/implementations/ResourceLossEffect.ts"
@@ -37,15 +39,22 @@ export const EffectFactory = {
 
     const actionDefinition = ruleset.actionDefinitions[actionDefinitionId]
     const effectDefinitions = [...actionDefinition.costs, ...actionDefinition.effects]
-    const pendingArrivalEffects = effectDefinitions.flatMap((effectDefinition, definitionOrdinal) =>
-      effectDefinition.type === FleetAssaultEffectDefinition.type
-        ? [{ effectDefinition, definitionOrdinal: typedParse(NonNegativeSafeIntegerSchema, definitionOrdinal) }]
-        : [],
-    )
+    const pendingArrivalEffects: PendingArrivalEffect[] = []
+    for (const [definitionOrdinal, effectDefinition] of effectDefinitions.entries()) {
+      if (!isArrivalBoundEffect(effectDefinition, effectDefinitions)) {
+        continue
+      }
+      const typedOrdinal = typedParse(NonNegativeSafeIntegerSchema, definitionOrdinal)
+      if (effectDefinition.type === FleetAssaultEffectDefinition.type) {
+        pendingArrivalEffects.push({ effectDefinition, definitionOrdinal: typedOrdinal })
+      } else {
+        pendingArrivalEffects.push({ effectDefinition, definitionOrdinal: typedOrdinal })
+      }
+    }
 
     return Result.Success(
       effectDefinitions.flatMap((effectDefinition, definitionOrdinal) => {
-        if (isArrivalBoundAssault(effectDefinition, effectDefinitions)) {
+        if (isArrivalBoundEffect(effectDefinition, effectDefinitions)) {
           return []
         }
         return [
@@ -64,7 +73,7 @@ export const EffectFactory = {
     id: number,
     effectDefinition: EffectDefinition,
     submittedAction: SubmittedAction,
-    { definitionOrdinal, pendingArrivalEffects }: { definitionOrdinal: number; pendingArrivalEffects: readonly PendingArrivalAssault[] } = {
+    { definitionOrdinal, pendingArrivalEffects }: { definitionOrdinal: number; pendingArrivalEffects: readonly PendingArrivalEffect[] } = {
       definitionOrdinal: id,
       pendingArrivalEffects: [],
     },
@@ -82,12 +91,17 @@ export const EffectFactory = {
         return new FleetMoveEffect(id, effectDefinition, submittedAction, pendingArrivalEffects, definitionOrdinal)
       case FleetAssaultEffectDefinition.type:
         return new FleetAssaultEffect(id, effectDefinition, submittedAction, definitionOrdinal)
+      case FleetColonizeEffectDefinition.type:
+        return new FleetColonizeEffect(id, effectDefinition, submittedAction, definitionOrdinal)
     }
   },
 }
 
-function isArrivalBoundAssault(effectDefinition: EffectDefinition, effectDefinitions: readonly EffectDefinition[]): boolean {
-  if (effectDefinition.type !== FleetAssaultEffectDefinition.type) {
+function isArrivalBoundEffect(
+  effectDefinition: EffectDefinition,
+  effectDefinitions: readonly EffectDefinition[],
+): effectDefinition is Extract<EffectDefinition, { type: "FLEET_ASSAULT" | "FLEET_COLONIZE" }> {
+  if (effectDefinition.type !== FleetAssaultEffectDefinition.type && effectDefinition.type !== FleetColonizeEffectDefinition.type) {
     return false
   }
   return effectDefinitions.some(

@@ -49,6 +49,7 @@ export type EffectDefinition = ActionDefinition["costs"][number] | ActionDefinit
 export type Actions = PlayerView["actions"][number]
 export type Galaxy = PlayerView["galaxy"]
 export type StarSystem = Galaxy["systems"][number]
+export type StarId = StarSystem["star"]["id"]
 export type Planet = StarSystem["planets"][number]
 export type Fleet = PlayerView["fleets"][number]
 export type PlanetBiome = Planet["biome"]

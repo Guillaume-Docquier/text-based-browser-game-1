@@ -357,6 +357,7 @@ describe("resolveTurn", () => {
         winnerPlayerId: undefined,
         resolvedContinuations: [],
         removedFleetIds: [],
+        planetOwnershipChanges: [],
       }),
     )
   })
@@ -433,6 +434,7 @@ describe("resolveTurn", () => {
         winnerPlayerId: secondPlayerId,
         resolvedContinuations: [],
         removedFleetIds: [],
+        planetOwnershipChanges: [],
       }),
     )
   })
@@ -481,6 +483,7 @@ describe("resolveTurn", () => {
         winnerPlayerId: playerId,
         resolvedContinuations: [],
         removedFleetIds: [],
+        planetOwnershipChanges: [],
       }),
     )
   })

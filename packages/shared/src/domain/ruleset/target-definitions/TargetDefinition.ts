@@ -4,6 +4,7 @@ import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target
 import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
 import { TargetConstraintSchema, type TargetConstraint } from "#shared/domain/ruleset/target-definitions/TargetConstraint.ts"
 import { TargetType, TargetTypeSchema, type TargetType as TargetTypeValue } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
+import { UnclaimedPlanetConstraint } from "#shared/domain/ruleset/target-definitions/UnclaimedPlanetTargetConstraint.ts"
 
 export type TargetDefinition = Readonly<{
   targetType: TargetType
@@ -23,6 +24,7 @@ const supportedTargetTypes: Record<TargetConstraint["type"], ReadonlySet<TargetT
   WITHIN_FLEET_RANGE: new Set([TargetType.PLANET]),
   DIFFERENT_FROM_FLEET_ORIGIN: new Set([TargetType.PLANET]),
   [AtFleetPlanetConstraint.type]: AtFleetPlanetConstraint.supportedTargetTypes,
+  [UnclaimedPlanetConstraint.type]: UnclaimedPlanetConstraint.supportedTargetTypes,
 }
 
 function validateConstraintsSupportTargetType({ targetType, constraints }: TargetDefinition, context: z.RefinementCtx): void {

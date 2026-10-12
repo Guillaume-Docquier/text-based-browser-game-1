@@ -8,6 +8,7 @@ type FleetRowLocator = Branded<"FleetRowLocator", Locator>
 
 const FleetColumnIndices = {
   NAME: 0,
+  OWNER: 1,
   STRENGTH: 2,
   ORIGIN_PLANET: 3,
   DESTINATION_PLANET: 4,
@@ -55,6 +56,14 @@ export class FleetsPage extends GamePage {
 
   public fleetName(row: FleetRowLocator): Locator {
     return row.getByRole("cell").nth(FleetColumnIndices.NAME)
+  }
+
+  public ownerName(row: FleetRowLocator): Locator {
+    return row.getByRole("cell").nth(FleetColumnIndices.OWNER)
+  }
+
+  public async getOwnerName(row: FleetRowLocator): Promise<string> {
+    return (await this.ownerName(row).innerText()).trim()
   }
 
   public fleetStrength(row: FleetRowLocator): Locator {

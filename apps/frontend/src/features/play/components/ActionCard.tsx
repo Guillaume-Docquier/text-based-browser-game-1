@@ -19,6 +19,7 @@ import {
   type ActionSelectionDraft,
   type EligibilityState,
 } from "shared/action-submission/evaluateActionSelection.ts"
+import { FleetColonizeEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import type { Ruleset as SharedRuleset } from "shared/domain/ruleset/Ruleset.ts"
 import { SelectedInputsSchema } from "shared/domain/turns/actions/SelectedInputs.ts"
@@ -143,11 +144,13 @@ export function ActionCard({
         tag: branded<InputTag>(tag),
         inputDefinition,
       }))
-  const fleetMoveEffect = actionDefinition.effects.find(
-    (effect): effect is FleetMoveEffectDefinition => effect.type === FleetMoveEffectDefinition.type,
+
+  const fleetStrengthEffect = actionDefinition.effects.find(
+    (effect): effect is FleetMoveEffectDefinition | FleetColonizeEffectDefinition =>
+      effect.type === FleetMoveEffectDefinition.type || effect.type === FleetColonizeEffectDefinition.type,
   )
   const sourceFleetTargetId =
-    fleetMoveEffect === undefined ? undefined : getOwnRecordValue(selectedTargets, fleetMoveEffect.targets.fleet.actionTargetTag)
+    fleetStrengthEffect === undefined ? undefined : getOwnRecordValue(selectedTargets, fleetStrengthEffect.targets.fleet.actionTargetTag)
   const sourceFleetId = sourceFleetTargetId === undefined ? undefined : safeTypedParse(FleetIdSchema, sourceFleetTargetId)
   const sourceFleet = sourceFleetId?.success === true ? eligibilityState.fleets[sourceFleetId.data] : undefined
   const remainingSourceStrength =
@@ -289,7 +292,7 @@ export function ActionCard({
             </label>
           )
         })}
-        {sourceFleet !== undefined && fleetMoveEffect !== undefined ? (
+        {sourceFleet !== undefined && fleetStrengthEffect !== undefined ? (
           <p className="text-xs text-muted-foreground">
             {remainingSourceStrength?.toLocaleString()} of {sourceFleet.strength.toLocaleString()} strength available after this allocation
           </p>

@@ -96,6 +96,7 @@ export type ProcessedTurnModel = {
   }>
   fleetsToUpdate: TurnToProcessFleetModel[]
   fleetIdsToDelete: FleetId[]
+  planetOwnershipChanges: ReadonlyArray<{ planetId: PlanetId; ownerPlayerId: PlayerId | null }>
   winnerAccountId?: AccountId
   nextTurn: number
   availableActions: AvailableAction[]
@@ -366,6 +367,21 @@ export class TurnsRepository extends PostgresRepository {
                 movement: sql`excluded.movement`,
               },
             })
+        }
+
+        for (const ownershipChange of processedTurnModel.planetOwnershipChanges) {
+          const updatedPlanets = await tx
+            .update(planetsTable)
+            .set({ ownerPlayerId: ownershipChange.ownerPlayerId })
+            .where(
+              and(
+                eq(planetsTable.gameId, processedTurnModel.gameId),
+                eq(planetsTable.id, ownershipChange.planetId),
+                isNull(planetsTable.ownerPlayerId),
+              ),
+            )
+            .returning({ id: planetsTable.id })
+          Assert.isTrue(updatedPlanets.length === 1)
         }
 
         if (processedTurnModel.nextTurnScheduledFor === undefined) {

@@ -116,6 +116,6 @@ The phases pipeline handles Effect resolution:
 
 Effects can be added to the Effect pool through other Effects during the Phases.
 
-The Fleet Movement Phase advances all new departures and existing journeys once, settles every arrival by its calculated Tick and stable Fleet ID, and preserves pending Assault intent for each initiating arrival. Fleet Build then creates or reinforces Fleets. Fleet Combat applies normal Assaults after all arrivals and Builds; intents retain their initiating order through friendly merges, while a Fleet in transit is not present at its recorded origin. Colonization remains a later, separate phase.
+The Fleet Movement Phase advances all new departures and existing journeys once, settles every arrival by its calculated Tick and stable Fleet ID, and preserves pending Assault and Colonize intents for each initiating arrival. Fleet Build then creates or reinforces Fleets. Fleet Combat applies normal Assaults after all arrivals and Builds; their intents retain their initiating order through friendly merges, while a Fleet in transit is not present at its recorded origin. The Colonization Phase runs after Combat and resolves arrival and stationary claims against current ownership and surviving Fleet Strength. See [System 008 Planets](../game-design/systems/008-planets.md) for the player-facing rules.
 
 After all phases are done, we expect all effects to have been resolved.

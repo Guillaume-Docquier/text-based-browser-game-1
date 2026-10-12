@@ -33,6 +33,7 @@ import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { FleetActionSelectionParity } from "#shared/testing/FleetActionSelectionParity.ts"
 import { StationaryAssaultTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
+import { ColonizeHereTest, ColonizePlanetTest, SeedOutpostTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { GainInfluence } from "#shared/testing/test-ruleset/action-definitions/gain-influence.ts"
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 
@@ -1147,6 +1148,402 @@ describe("evaluateActionSelection", () => {
     expect(evaluation.status).toBe("INELIGIBLE")
     expect(evaluation.issues.map(({ code }) => code)).toContain("ACTION_NOT_AUTHORIZED")
   })
+
+  it("should reserve standalone Colonize Strength in the shared movement budget without double-counting Move+Colonize", () => {
+    const fixture = createColonizationBudgetFixture(35)
+    const moveSubmission = createSubmittedActionStub({
+      id: fixture.moveActionId,
+      playerId: fixture.playerId,
+      actionDefinitionId: MoveFleetStandard.id,
+      selectedTargets: { [branded<TargetTag>("fleet")]: fixture.fleetId, [branded<TargetTag>("planet")]: fixture.destinationId },
+      selectedInputs: { [branded<InputTag>("strength")]: 15 },
+    })
+    const stateWithMove: EligibilityState = {
+      ...fixture.state,
+      actions: [...fixture.state.actions.filter(({ id }) => id !== fixture.moveActionId), moveSubmission],
+    }
+    const stationaryEvaluation = evaluateActionSelection({
+      state: stateWithMove,
+      ruleset: fixture.ruleset,
+      draft: {
+        actionId: fixture.colonizeActionId,
+        selectedTargets: { [branded<TargetTag>("fleet")]: fixture.fleetId, [branded<TargetTag>("planet")]: fixture.originId },
+        selectedInputs: {},
+      },
+    })
+
+    expect(stationaryEvaluation.status).toBe("ELIGIBLE")
+    expect(stationaryEvaluation.strengthCommitments[fixture.fleetId]).toBe(35)
+    expect(stationaryEvaluation.remainingStrength[fixture.fleetId]).toBe(0)
+    expect(stationaryEvaluation.resourceCommitments).toStrictEqual({
+      [ResourceType.INFLUENCE]: 28,
+      [ResourceType.METAL]: 0,
+      [ResourceType.FUEL]: 1,
+      [ResourceType.ENERGY]: 0,
+      [ResourceType.COLONY]: 0,
+    })
+
+    const pairedRuleset = createRulesetStub({
+      actionDefinitions: indexBy("id", [ColonizePlanetTest]),
+      actionPool: [{ id: fixture.moveActionId, actionDefinitionId: ColonizePlanetTest.id }],
+    })
+    const pairedState: EligibilityState = {
+      ...fixture.state,
+      resources: createResourcesStub({ [ResourceType.INFLUENCE]: 25 }),
+      actions: computeAvailableActions({ playerIds: [fixture.playerId], ruleset: pairedRuleset }),
+    }
+    const paired = evaluateActionSelection({
+      state: pairedState,
+      ruleset: pairedRuleset,
+      draft: {
+        actionId: fixture.moveActionId,
+        selectedTargets: { [branded<TargetTag>("fleet")]: fixture.fleetId, [branded<TargetTag>("planet")]: fixture.destinationId },
+        selectedInputs: { [branded<InputTag>("strength")]: 35 },
+      },
+    })
+    expect(paired.status).toBe("ELIGIBLE")
+    expect(paired.strengthCommitments[fixture.fleetId]).toBe(35)
+  })
+
+  it("should reject Move+Colonize below the configured requirement and accept the exact threshold", () => {
+    const fixture = createColonizationBudgetFixture(100)
+    const ruleset = createRulesetStub({
+      actionDefinitions: indexBy("id", [ColonizePlanetTest]),
+      actionPool: [{ id: fixture.moveActionId, actionDefinitionId: ColonizePlanetTest.id }],
+    })
+    const state: EligibilityState = {
+      ...fixture.state,
+      resources: createResourcesStub({ [ResourceType.INFLUENCE]: 25 }),
+      actions: computeAvailableActions({ playerIds: [fixture.playerId], ruleset }),
+    }
+    const evaluate = (strength: number): ReturnType<typeof evaluateActionSelection> =>
+      evaluateActionSelection({
+        state,
+        ruleset,
+        draft: {
+          actionId: fixture.moveActionId,
+          selectedTargets: { [branded<TargetTag>("fleet")]: fixture.fleetId, [branded<TargetTag>("planet")]: fixture.destinationId },
+          selectedInputs: { [branded<InputTag>("strength")]: strength },
+        },
+      })
+
+    expect(evaluate(19).issues).toContainEqual(expect.objectContaining({ code: "INSUFFICIENT_STRENGTH" }))
+    expect(evaluate(20).status).toBe("ELIGIBLE")
+    expect(evaluate(35).status).toBe("ELIGIBLE")
+    expect(evaluate(35).strengthCommitments[fixture.fleetId]).toBe(35)
+  })
+
+  it("should evaluate renamed Seed Outpost threshold and range from its configured tags and costs", () => {
+    const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000051")
+    const actionId = branded<ActionId>("TEST_SEED_OUTPOST_1")
+    const origin = createPlanetStub({
+      id: branded<PlanetId>("seed-outpost-origin"),
+      ownerPlayerId: playerId,
+      name: "Outpost Home",
+      x: 0,
+      y: 0,
+    })
+    const site = createPlanetStub({ id: branded<PlanetId>("seed-outpost-site"), ownerPlayerId: null, name: "Seed Site", x: 3, y: 0 })
+    const beyondRange = createPlanetStub({
+      id: branded<PlanetId>("seed-outpost-beyond-range"),
+      ownerPlayerId: null,
+      name: "Beyond Seed Range",
+      x: 3.001,
+      y: 0,
+    })
+    const force = createFleetStub({
+      id: branded<FleetId>("seed-outpost-force"),
+      ownerPlayerId: playerId,
+      originPlanetId: origin.id,
+      name: "Outpost Guard",
+      strength: 45,
+    })
+    const ruleset = createRulesetStub({
+      actionDefinitions: indexBy("id", [SeedOutpostTest]),
+      actionPool: [{ id: actionId, actionDefinitionId: SeedOutpostTest.id }],
+    })
+    const state: EligibilityState = {
+      gameId: typedParse(GameIdSchema, 51),
+      turn: 1,
+      submittingPlayerId: playerId,
+      resources: createResourcesStub({ [ResourceType.INFLUENCE]: 50, [ResourceType.FUEL]: 10 }),
+      players: indexBy("id", [{ id: playerId, ownerPlayerId: playerId }]),
+      planets: indexBy("id", [origin, site, beyondRange]),
+      fleets: indexBy("id", [force]),
+      actions: computeAvailableActions({ playerIds: [playerId], ruleset }),
+    }
+    const evaluate = (siteId: PlanetId, quota: number): ReturnType<typeof evaluateActionSelection> =>
+      evaluateActionSelection({
+        state,
+        ruleset,
+        draft: {
+          actionId,
+          selectedTargets: {
+            [branded<TargetTag>("force")]: force.id,
+            [branded<TargetTag>("site")]: siteId,
+          },
+          selectedInputs: { [branded<InputTag>("quota")]: quota },
+        },
+      })
+
+    const belowRequirement = evaluate(site.id, 29)
+    const exactRequirement = evaluate(site.id, 30)
+    const fullForce = evaluate(site.id, 45)
+    const beyondRangeSelection = evaluate(beyondRange.id, 30)
+
+    expect(belowRequirement.status).toBe("INELIGIBLE")
+    expect(belowRequirement.issues).toContainEqual(
+      expect.objectContaining({ code: "INSUFFICIENT_STRENGTH", targetTag: branded<TargetTag>("site") }),
+    )
+    expect(exactRequirement.status).toBe("ELIGIBLE")
+    expect(exactRequirement.strengthCommitments[force.id]).toBe(30)
+    expect(exactRequirement.remainingStrength[force.id]).toBe(15)
+    expect(exactRequirement.resourceCommitments).toStrictEqual({
+      [ResourceType.INFLUENCE]: 7,
+      [ResourceType.METAL]: 0,
+      [ResourceType.FUEL]: 2,
+      [ResourceType.ENERGY]: 0,
+      [ResourceType.COLONY]: 0,
+    })
+    expect(fullForce.status).toBe("ELIGIBLE")
+    expect(fullForce.strengthCommitments[force.id]).toBe(45)
+    expect(fullForce.remainingStrength[force.id]).toBe(0)
+    expect(fullForce.resourceCommitments).toStrictEqual(exactRequirement.resourceCommitments)
+    expect(beyondRangeSelection.status).toBe("INELIGIBLE")
+    expect(beyondRangeSelection.issues).toContainEqual(
+      expect.objectContaining({ code: "OUT_OF_RANGE", targetTag: branded<TargetTag>("site") }),
+    )
+  })
+
+  it("should preserve exact aggregate Move and stationary Colonize budgets through replace, cancel, and source changes", () => {
+    const fixture = createColonizationBudgetFixture(35)
+    const moveSubmission = (strength: number): ReturnType<typeof createSubmittedActionStub> =>
+      createSubmittedActionStub({
+        id: fixture.moveActionId,
+        playerId: fixture.playerId,
+        actionDefinitionId: MoveFleetStandard.id,
+        selectedTargets: { fleet: fixture.fleetId, planet: fixture.destinationId },
+        selectedInputs: { strength },
+      })
+    const move15 = moveSubmission(15)
+    const colonize20 = createSubmittedActionStub({
+      id: fixture.colonizeActionId,
+      playerId: fixture.playerId,
+      actionDefinitionId: ColonizeHereTest.id,
+      selectedTargets: {
+        [branded<TargetTag>("fleet")]: fixture.fleetId,
+        [branded<TargetTag>("planet")]: fixture.originId,
+      },
+    })
+    const occupied = withSubmissions(fixture.state, [move15, colonize20])
+    const moveDraft = (strength: number): ActionSelectionDraft => ({
+      actionId: fixture.moveActionId,
+      selectedTargets: {
+        [branded<TargetTag>("fleet")]: fixture.fleetId,
+        [branded<TargetTag>("planet")]: fixture.destinationId,
+      },
+      selectedInputs: { [branded<InputTag>("strength")]: strength },
+    })
+    const eitherUpdateOrder = evaluateSubmittedActions({
+      state: fixture.state,
+      ruleset: fixture.ruleset,
+      submissions: [move15, colonize20],
+    })
+    const reversedUpdateOrder = evaluateSubmittedActions({
+      state: fixture.state,
+      ruleset: fixture.ruleset,
+      submissions: [colonize20, move15],
+    })
+    const overcommittedMove = evaluateSubmittedActions({
+      state: fixture.state,
+      ruleset: fixture.ruleset,
+      submissions: [moveSubmission(16), colonize20],
+    })
+    const moveReplacement = evaluateActionSelection({
+      state: occupied,
+      ruleset: fixture.ruleset,
+      draft: moveDraft(14),
+    })
+    const cancelMove = evaluateSubmittedActions({ state: occupied, ruleset: fixture.ruleset, submissions: [colonize20] })
+    const cancelColonize = evaluateSubmittedActions({ state: occupied, ruleset: fixture.ruleset, submissions: [move15] })
+    const replaceColonizeSource = evaluateActionSelection({
+      state: occupied,
+      ruleset: fixture.ruleset,
+      draft: {
+        actionId: fixture.colonizeActionId,
+        selectedTargets: {
+          [branded<TargetTag>("fleet")]: fixture.secondFleetId,
+          [branded<TargetTag>("planet")]: fixture.destinationId,
+        },
+        selectedInputs: {},
+      },
+    })
+
+    expect(moveReplacement.status).toBe("ELIGIBLE")
+    expect(moveReplacement.strengthCommitments[fixture.fleetId]).toBe(34)
+    expect(moveReplacement.remainingStrength[fixture.fleetId]).toBe(1)
+    expect(moveReplacement.resourceCommitments).toStrictEqual({
+      [ResourceType.INFLUENCE]: 28,
+      [ResourceType.METAL]: 0,
+      [ResourceType.FUEL]: 1,
+      [ResourceType.ENERGY]: 0,
+      [ResourceType.COLONY]: 0,
+    })
+    expect(eitherUpdateOrder.status).toBe("ELIGIBLE")
+    expect(reversedUpdateOrder.status).toBe("ELIGIBLE")
+    expect(eitherUpdateOrder.strengthCommitments[fixture.fleetId]).toBe(35)
+    expect(reversedUpdateOrder.strengthCommitments[fixture.fleetId]).toBe(35)
+    expect(eitherUpdateOrder.resourceCommitments).toStrictEqual(reversedUpdateOrder.resourceCommitments)
+    expect(overcommittedMove.status).toBe("INELIGIBLE")
+    expect(overcommittedMove.strengthCommitments[fixture.fleetId]).toBe(36)
+    expect(overcommittedMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(28)
+    expect(overcommittedMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
+    expect(cancelMove.strengthCommitments[fixture.fleetId]).toBe(20)
+    expect(cancelMove.remainingStrength[fixture.fleetId]).toBe(15)
+    expect(cancelMove.resourceCommitments).toStrictEqual({
+      [ResourceType.INFLUENCE]: 25,
+      [ResourceType.METAL]: 0,
+      [ResourceType.FUEL]: 0,
+      [ResourceType.ENERGY]: 0,
+      [ResourceType.COLONY]: 0,
+    })
+    expect(cancelColonize.strengthCommitments[fixture.fleetId]).toBe(15)
+    expect(cancelColonize.remainingStrength[fixture.fleetId]).toBe(20)
+    expect(cancelColonize.resourceCommitments).toStrictEqual({
+      [ResourceType.INFLUENCE]: 3,
+      [ResourceType.METAL]: 0,
+      [ResourceType.FUEL]: 1,
+      [ResourceType.ENERGY]: 0,
+      [ResourceType.COLONY]: 0,
+    })
+    expect(replaceColonizeSource.strengthCommitments[fixture.fleetId]).toBe(15)
+    expect(replaceColonizeSource.remainingStrength[fixture.fleetId]).toBe(20)
+    expect(replaceColonizeSource.strengthCommitments[fixture.secondFleetId]).toBe(20)
+    expect(replaceColonizeSource.remainingStrength[fixture.secondFleetId]).toBe(10)
+    expect(replaceColonizeSource.resourceCommitments).toStrictEqual({
+      [ResourceType.INFLUENCE]: 28,
+      [ResourceType.METAL]: 0,
+      [ResourceType.FUEL]: 1,
+      [ResourceType.ENERGY]: 0,
+      [ResourceType.COLONY]: 0,
+    })
+  })
+
+  it("should reserve Move+Colonize only once and reject a competing Move against its reserved remainder", () => {
+    const fixture = createColonizationBudgetFixture(35)
+    const pairedRuleset = createRulesetStub({
+      actionDefinitions: indexBy("id", [ColonizePlanetTest, MoveFleetStandard]),
+      actionPool: [
+        { id: fixture.moveActionId, actionDefinitionId: ColonizePlanetTest.id },
+        { id: fixture.colonizeActionId, actionDefinitionId: MoveFleetStandard.id },
+      ],
+    })
+    const pairedState = {
+      ...fixture.state,
+      actions: computeAvailableActions({ playerIds: [fixture.playerId], ruleset: pairedRuleset }),
+    }
+    const paired = evaluateActionSelection({
+      state: pairedState,
+      ruleset: pairedRuleset,
+      draft: {
+        actionId: fixture.moveActionId,
+        selectedTargets: {
+          [branded<TargetTag>("fleet")]: fixture.fleetId,
+          [branded<TargetTag>("planet")]: fixture.destinationId,
+        },
+        selectedInputs: { [branded<InputTag>("strength")]: 35 },
+      },
+    })
+    const pairedSubmission = createSubmittedActionStub({
+      id: fixture.moveActionId,
+      playerId: fixture.playerId,
+      actionDefinitionId: ColonizePlanetTest.id,
+      selectedTargets: {
+        [branded<TargetTag>("fleet")]: fixture.fleetId,
+        [branded<TargetTag>("planet")]: fixture.destinationId,
+      },
+      selectedInputs: { [branded<InputTag>("strength")]: 35 },
+    })
+    const pairedStateWithSelection = withSubmissions(pairedState, [pairedSubmission])
+    const competingMove = evaluateActionSelection({
+      state: pairedStateWithSelection,
+      ruleset: pairedRuleset,
+      draft: {
+        actionId: fixture.colonizeActionId,
+        selectedTargets: {
+          [branded<TargetTag>("fleet")]: fixture.fleetId,
+          [branded<TargetTag>("planet")]: fixture.destinationId,
+        },
+        selectedInputs: { [branded<InputTag>("strength")]: 1 },
+      },
+    })
+
+    expect(paired.status).toBe("ELIGIBLE")
+    expect(paired.strengthCommitments[fixture.fleetId]).toBe(35)
+    expect(paired.remainingStrength[fixture.fleetId]).toBe(0)
+    expect(paired.resourceCommitments[ResourceType.INFLUENCE]).toBe(25)
+    expect(paired.resourceCommitments[ResourceType.FUEL]).toBe(0)
+    expect(competingMove.status).toBe("INELIGIBLE")
+    expect(competingMove.strengthCommitments[fixture.fleetId]).toBe(36)
+    expect(competingMove.issues.map(({ code }) => code)).toContain("INSUFFICIENT_STRENGTH")
+  })
+
+  it("should enforce aggregate reservations for two stationary Colonize instances at the exact40 boundary", () => {
+    const fixture = createColonizationBudgetFixture(35)
+    const state = fixture.state
+    const draft = (actionId: ActionId): ActionSelectionDraft => ({
+      actionId,
+      selectedTargets: {
+        [branded<TargetTag>("fleet")]: fixture.fleetId,
+        [branded<TargetTag>("planet")]: fixture.originId,
+      },
+      selectedInputs: {},
+    })
+    const first = createSubmittedActionStub({
+      id: fixture.colonizeActionId,
+      playerId: fixture.playerId,
+      actionDefinitionId: ColonizeHereTest.id,
+      selectedTargets: { fleet: fixture.fleetId, planet: fixture.originId },
+    })
+    const second = createSubmittedActionStub({
+      id: fixture.secondColonizeActionId,
+      playerId: fixture.playerId,
+      actionDefinitionId: ColonizeHereTest.id,
+      selectedTargets: { fleet: fixture.fleetId, planet: fixture.originId },
+    })
+    const individualFirst = evaluateActionSelection({ state, ruleset: fixture.ruleset, draft: draft(fixture.colonizeActionId) })
+    const individualSecond = evaluateActionSelection({
+      state: withSubmissions(state, [first]),
+      ruleset: fixture.ruleset,
+      draft: draft(fixture.secondColonizeActionId),
+    })
+    const bothAt35 = evaluateSubmittedActions({ state, ruleset: fixture.ruleset, submissions: [first, second] })
+    const stateAt40: EligibilityState = {
+      ...state,
+      fleets: {
+        ...state.fleets,
+        [fixture.fleetId]: createFleetStub({
+          id: fixture.fleetId,
+          ownerPlayerId: fixture.playerId,
+          originPlanetId: fixture.originId,
+          strength: 40,
+        }),
+      },
+    }
+    const bothAt40 = evaluateSubmittedActions({ state: stateAt40, ruleset: fixture.ruleset, submissions: [first, second] })
+
+    expect(individualFirst.status).toBe("ELIGIBLE")
+    expect(individualSecond.status).toBe("INELIGIBLE")
+    expect(individualSecond.strengthCommitments[fixture.fleetId]).toBe(40)
+    expect(bothAt35.status).toBe("INELIGIBLE")
+    expect(bothAt35.strengthCommitments[fixture.fleetId]).toBe(40)
+    expect(bothAt35.issues.map(({ code }) => code)).toContain("INSUFFICIENT_STRENGTH")
+    expect(bothAt40.status).toBe("ELIGIBLE")
+    expect(bothAt40.strengthCommitments[fixture.fleetId]).toBe(40)
+    expect(bothAt40.remainingStrength[fixture.fleetId]).toBe(0)
+    expect(bothAt40.resourceCommitments[ResourceType.INFLUENCE]).toBe(50)
+    expect(bothAt40.resourceCommitments[ResourceType.FUEL]).toBe(0)
+  })
 })
 
 function createFixture(): {
@@ -1217,6 +1614,62 @@ function createDraft(fixture: ReturnType<typeof createFixture>, actionId: Action
     actionId,
     selectedTargets: { [branded<TargetTag>("fleet")]: fixture.fleetId, [branded<TargetTag>("planet")]: fixture.destinationId },
     selectedInputs: { [branded<InputTag>("strength")]: strength },
+  }
+}
+
+function createColonizationBudgetFixture(strength: number): {
+  playerId: PlayerId
+  moveActionId: ActionId
+  colonizeActionId: ActionId
+  secondColonizeActionId: ActionId
+  fleetId: FleetId
+  secondFleetId: FleetId
+  originId: PlanetId
+  destinationId: PlanetId
+  ruleset: ReturnType<typeof createRulesetStub>
+  state: EligibilityState
+} {
+  const playerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000031")
+  const moveActionId = branded<ActionId>("MOVE_FLEET_TEST")
+  const colonizeActionId = branded<ActionId>("COLONIZE_HERE_TEST")
+  const secondColonizeActionId = branded<ActionId>("COLONIZE_HERE_TEST_2")
+  const fleetId = branded<FleetId>("fleet-colonization-budget")
+  const secondFleetId = branded<FleetId>("fleet-colonization-second")
+  const originId = branded<PlanetId>("planet-colonization-origin")
+  const destinationId = branded<PlanetId>("planet-colonization-destination")
+  const ruleset = createRulesetStub({
+    actionDefinitions: indexBy("id", [MoveFleetStandard, ColonizeHereTest]),
+    actionPool: [
+      { id: moveActionId, actionDefinitionId: MoveFleetStandard.id },
+      { id: colonizeActionId, actionDefinitionId: ColonizeHereTest.id },
+      { id: secondColonizeActionId, actionDefinitionId: ColonizeHereTest.id },
+    ],
+  })
+  const origin = createPlanetStub({ id: originId, ownerPlayerId: null, x: 0, y: 0 })
+  const destination = createPlanetStub({ id: destinationId, ownerPlayerId: null, x: 4, y: 0 })
+  const fleet = createFleetStub({ id: fleetId, ownerPlayerId: playerId, originPlanetId: originId, strength })
+  const secondFleet = createFleetStub({ id: secondFleetId, ownerPlayerId: playerId, originPlanetId: destinationId, strength: 30 })
+  const state: EligibilityState = {
+    gameId: typedParse(GameIdSchema, 1),
+    turn: 1,
+    submittingPlayerId: playerId,
+    resources: createResourcesStub({ [ResourceType.INFLUENCE]: 100, [ResourceType.FUEL]: 10 }),
+    players: indexBy("id", [{ id: playerId, ownerPlayerId: playerId }]),
+    planets: indexBy("id", [origin, destination]),
+    fleets: indexBy("id", [fleet, secondFleet]),
+    actions: computeAvailableActions({ playerIds: [playerId], ruleset }),
+  }
+  return {
+    playerId,
+    moveActionId,
+    colonizeActionId,
+    secondColonizeActionId,
+    fleetId,
+    secondFleetId,
+    originId,
+    destinationId,
+    ruleset,
+    state,
   }
 }
 

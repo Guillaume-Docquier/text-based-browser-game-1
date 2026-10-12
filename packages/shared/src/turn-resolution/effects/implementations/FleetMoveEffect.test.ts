@@ -52,8 +52,10 @@ describe("FleetMoveEffect", () => {
       previousJourneyFleetIds: [],
       newDepartureFleetIds: new Set(),
       removedFleetIds: new Set(),
+      changedPlanetIds: new Set(),
       resolvedContinuations: [],
       pendingArrivalAssaults: [],
+      pendingArrivalColonizations: [],
       fleetIdRebindings: new Map(),
     }
     const expectedOutcomes = [

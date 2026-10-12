@@ -37,8 +37,10 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
       .toSorted((first, second) => compareOrdinalStrings(first, second)),
     newDepartureFleetIds: new Set(),
     removedFleetIds: new Set(),
+    changedPlanetIds: new Set(),
     resolvedContinuations: [],
     pendingArrivalAssaults: [],
+    pendingArrivalColonizations: [],
     fleetIdRebindings: new Map(),
   }
   const submittedActions = turnState.submittedActions
@@ -89,6 +91,12 @@ export function resolveTurn(turnState: TurnState, ruleset: Ruleset, rng: Rng): R
     winnerPlayerId: context.turnState.winnerPlayerId,
     resolvedContinuations: context.resolvedContinuations,
     removedFleetIds: [...context.removedFleetIds].toSorted((first, second) => compareOrdinalStrings(first, second)),
+    planetOwnershipChanges: [...context.changedPlanetIds]
+      .toSorted((first, second) => compareOrdinalStrings(first, second))
+      .flatMap((planetId) => {
+        const planet = context.turnState.planets[planetId]
+        return planet?.ownerPlayerId === null || planet === undefined ? [] : [{ planetId, ownerPlayerId: planet.ownerPlayerId }]
+      }),
   })
 }
 function validateLoadedFleetCombatState(turnState: TurnState, ruleset: Ruleset): string | undefined {
@@ -134,6 +142,9 @@ function validateLoadedFleetCombatState(turnState: TurnState, ruleset: Ruleset):
       continue
     }
     for (const pendingArrival of movement.pendingArrivalEffects) {
+      if (pendingArrival.effectDefinition.type !== FleetAssaultEffectDefinition.type) {
+        continue
+      }
       addAssaultTarget(
         movement.submission.playerId,
         movement.submission.selectedTargets[pendingArrival.effectDefinition.targets.planet.actionTargetTag],

@@ -14,10 +14,11 @@ Partially Implemented
 - [x] Resource stockpile and affordability presentation
 - [x] Available Actions
 - [x] Ruleset-defined Action Pool with stable Action IDs
-- [x] Frontend target selection for Build Fleet's owned Planet and Move Fleet's owned Fleet and destination Planet targets
+- [x] Frontend target selection for Build Fleet's owned Planet, Move Fleet's Fleet/destination, and Colonize's Fleet/Unclaimed Planet targets
 - [x] Fleet Build Effect and resolution Phase
 - [x] Move Fleet Effect with partial allocations and persisted automatic continuation
 - [x] Normal Fleet Assault Effect with deterministic combat and arrival-bound composition
+- [x] Fleet Colonize Effect with shared eligibility, stationary reservations, and arrival-bound composition
 - [x] Typed positive-integer Action inputs and movement-composition validation
 - [x] Shared Action eligibility at frontend selection, API submission, and locked resolution
 - [x] Per-instance Action binding during movement
@@ -114,9 +115,9 @@ Turn Resolution creates one Effect Pool from locked Action Submissions and autom
 
 The Phase sequence belongs to the Rules Engine and is the same for every Ruleset. Each Phase is free to collect, order, coordinate, and resolve its Effects in the way that Phase requires.
 
-Pay Costs, Fleet Movement, Fleet Build, normal Fleet Combat, Income, and Victory currently resolve Effects. Planet and Colonization have Phase boundaries but no gameplay behavior yet. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
+Pay Costs, Fleet Movement, Fleet Build, normal Fleet Combat, Colonization, Income, and Victory currently resolve Effects. Planet remains a Phase boundary without gameplay behavior. Colonization evaluates arriving and stationary Fleet attempts against current Planet ownership and surviving Strength after Combat; success assigns ownership and consumes the configured Strength requirement. [System 008-planets](./008-planets.md) records the current Colonization rules. The Fleet Build Effect creates or reinforces a Fleet at the submitted owned Planet; [System 010-fleets](./010-fleets.md) defines the current Fleet behavior.
 
-The Move Fleet Effect advances only the selected Strength from an owned, stationary Fleet to a different Planet within the configured inclusive Range. The origin keeps its unallocated Strength; the deterministic child stores its Speed, departure Turn, originating Action Submission, and any captured pending Assault definition in movement JSON. It advances automatically once during the departure Turn and once per later Turn without repaying costs. Its Action Instance stays In Progress until arrival, when it lands or merges with the same player's stationed Fleet. A pending normal Assault follows its initiating arrival through that merge and resolves after all arrivals and Fleet Builds. Continuation outcomes are returned for that resolution only and are not stored as action history. [System 012-movement](./012-movement.md) records the current rules.
+The Move Fleet Effect advances only the selected Strength from an owned, stationary Fleet to a different Planet within the configured inclusive Range. The origin keeps its unallocated Strength; the deterministic child stores its Speed, departure Turn, originating Action Submission, and any captured pending Assault or Colonize definitions in movement JSON. It advances automatically once during the departure Turn and once per later Turn without repaying costs. Its Action Instance stays In Progress until arrival, when it lands or merges with the same player's stationed Fleet. Pending Assault and Colonize definitions follow their initiating arrivals through friendly merges. Assault resolves after all arrivals and Fleet Builds; Colonization then uses its recorded initiating Tick and current Planet/Fleet state. Continuation outcomes are returned for that resolution only and are not stored as action history. [System 012-movement](./012-movement.md) records the current rules.
 
 Phases are coarse ordering boundaries. The Fleet Movement Phase calculates arrival Ticks on a 20-Tick scale and settles every arrival before Fleet Build and Fleet Combat. A Tick is not a Phase, and the other Phases do not each receive 20 Ticks. Pending Assaults keep their initiating order through friendly merges; a Fleet in transit is not present at its recorded origin.
 

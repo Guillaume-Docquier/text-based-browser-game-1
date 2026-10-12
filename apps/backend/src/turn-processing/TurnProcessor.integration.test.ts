@@ -33,6 +33,7 @@ import {
   BuildFleetImproved,
   BuildFleetStandard,
 } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
+import { ColonizeHereTest, ColonizePlanetTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { GainEnergy } from "shared/testing/test-ruleset/action-definitions/gain-energy.ts"
 import { GainFuel } from "shared/testing/test-ruleset/action-definitions/gain-fuel.ts"
 import { GainInfluence } from "shared/testing/test-ruleset/action-definitions/gain-influence.ts"
@@ -4524,6 +4525,8 @@ describe("TurnProcessor", () => {
         [AttackMoveTest.id]: false,
         [FlexibleAssaultTest.id]: false,
         [StationaryAssaultTest.id]: true,
+        [ColonizeHereTest.id]: false,
+        [ColonizePlanetTest.id]: false,
       }
       const joinerPostSpendAffordability = { ...postSpendAffordability, [AttackMoveTest.id]: true }
 

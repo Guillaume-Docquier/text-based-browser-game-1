@@ -165,6 +165,7 @@ export class TurnProcessor {
       ),
       fleetsToUpdate,
       fleetIdsToDelete: [...fleetIdsToDelete].toSorted((first, second) => first.localeCompare(second)),
+      planetOwnershipChanges: resolvedTurnResult.value.planetOwnershipChanges,
     }
 
     if (resolvedTurnResult.value.winnerPlayerId === undefined) {

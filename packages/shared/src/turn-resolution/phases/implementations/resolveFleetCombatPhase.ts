@@ -1,8 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
-import { compareOrdinalStrings } from "#shared/domain/compareOrdinalStrings.ts"
 import { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
 import type { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
-import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
+import { compareArrivalProvenance, resolveFleetRebinding } from "#shared/turn-resolution/arrivalProvenance.ts"
 import type { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
 import { FleetAssaultEffect } from "#shared/turn-resolution/effects/implementations/FleetAssaultEffect.ts"
 import { resolveFleetAssaultAttempt } from "#shared/turn-resolution/phases/implementations/fleetAssault.ts"
@@ -65,7 +64,7 @@ export function resolveFleetCombatPhase(context: TurnContext): Result<TurnContex
     while (end < candidates.length && candidates[end]?.tick === candidates[first]?.tick) {
       end += 1
     }
-    const canonicalTie = candidates.slice(first, end).toSorted(compareProvenance)
+    const canonicalTie = candidates.slice(first, end).toSorted(compareArrivalProvenance)
     const orderedTie = canonicalTie.length > 1 ? context.rng.shuffle(canonicalTie) : canonicalTie
     for (const candidate of orderedTie) {
       const result = resolveScheduledAssault(context, candidate)
@@ -84,7 +83,7 @@ function resolveScheduledAssault(
   candidate: ScheduledAssault,
 ): Result<EffectOutcome | undefined, ReturnType<typeof EffectError.Failed>> {
   if (candidate.kind === "standalone") {
-    const attackingFleetId = resolveFleetRebinding(context, candidate.effect.initiatingFleetId)
+    const attackingFleetId = resolveFleetRebinding(context.fleetIdRebindings, candidate.effect.initiatingFleetId)
     const result = candidate.effect.resolveAgainstFleet(context, attackingFleetId)
     return Result.isFailure(result) ? result : Result.Success(result.value[0])
   }
@@ -106,34 +105,7 @@ function resolveScheduledAssault(
   return Result.Success(undefined)
 }
 
-function resolveFleetRebinding(context: TurnContext, fleetId: FleetId): FleetId {
-  let resolvedFleetId = fleetId
-  let nextFleetId = context.fleetIdRebindings.get(resolvedFleetId)
-  while (nextFleetId !== undefined) {
-    resolvedFleetId = nextFleetId
-    nextFleetId = context.fleetIdRebindings.get(resolvedFleetId)
-  }
-  return resolvedFleetId
-}
-
 function compareScheduledAssaults(first: ScheduledAssault, second: ScheduledAssault): number {
   const tickOrder = first.tick - second.tick
-  return tickOrder !== 0 ? tickOrder : compareProvenance(first, second)
-}
-
-function compareProvenance(first: ScheduledAssault, second: ScheduledAssault): number {
-  const playerOrder = compareOrdinalStrings(first.playerId, second.playerId)
-  if (playerOrder !== 0) {
-    return playerOrder
-  }
-  const actionOrder = compareOrdinalStrings(first.actionId, second.actionId)
-  if (actionOrder !== 0) {
-    return actionOrder
-  }
-  const departureOrder = first.departureTurn - second.departureTurn
-  if (departureOrder !== 0) {
-    return departureOrder
-  }
-  const journeyOrder = compareOrdinalStrings(first.initiatingJourneyId, second.initiatingJourneyId)
-  return journeyOrder !== 0 ? journeyOrder : first.definitionOrdinal - second.definitionOrdinal
+  return tickOrder !== 0 ? tickOrder : compareArrivalProvenance(first, second)
 }

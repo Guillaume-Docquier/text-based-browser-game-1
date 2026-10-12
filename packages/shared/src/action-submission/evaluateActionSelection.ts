@@ -5,11 +5,13 @@ import type { GameId } from "#shared/domain/games/GameId.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { Resources } from "#shared/domain/resources/Resources.ts"
 import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
+import type { ActionDefinition } from "#shared/domain/ruleset/action-definitions/ActionDefinition.ts"
 import type { InputTag } from "#shared/domain/ruleset/action-definitions/InputTag.ts"
 import { PositiveIntegerSchema } from "#shared/domain/ruleset/action-definitions/PositiveInteger.ts"
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import type { EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
 import { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
+import { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import { AtFleetPlanetConstraint } from "#shared/domain/ruleset/target-definitions/AtFleetPlanetTargetConstraint.ts"
@@ -18,11 +20,14 @@ import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definit
 import type { TargetDefinition } from "#shared/domain/ruleset/target-definitions/TargetDefinition.ts"
 import type { TargetId } from "#shared/domain/ruleset/target-definitions/TargetId.ts"
 import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
+import { UnclaimedPlanetConstraint } from "#shared/domain/ruleset/target-definitions/UnclaimedPlanetTargetConstraint.ts"
 import type { Action, SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
 import type { Fleet } from "#shared/domain/world/fleets/Fleet.ts"
+import { getFleetColonizationEligibility } from "#shared/domain/world/fleets/fleetColonizationEligibility.ts"
 import { FleetIdSchema, type FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { isFleetPresentAtPlanet } from "#shared/domain/world/fleets/isFleetPresentAtPlanet.ts"
+import { isPlanetUnclaimed } from "#shared/domain/world/planets/isPlanetUnclaimed.ts"
 import { PlanetIdSchema, type PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 
 function isFleetMoveEffectDefinition(effectDefinition: EffectDefinition): effectDefinition is FleetMoveEffectDefinition {
@@ -87,6 +92,7 @@ export type EligibilityIssueCode =
   | "UNKNOWN_TARGET"
   | "TARGET_TYPE_MISMATCH"
   | "TARGET_NOT_OWNED"
+  | "PLANET_ALREADY_CLAIMED"
   | "FLEET_NOT_STATIONARY"
   | "FLEET_HAS_NO_STRENGTH"
   | "MISSING_INPUT"
@@ -438,23 +444,89 @@ function evaluateProposal({
   }
 
   for (const effectDefinition of actionDefinition.effects) {
-    if (effectDefinition.type !== FleetMoveEffectDefinition.type) {
+    if (effectDefinition.type === FleetMoveEffectDefinition.type) {
+      const selectedFleetId = getOwnRecordValue(proposal.selectedTargets, effectDefinition.targets.fleet.actionTargetTag)
+      const selectedStrength = getOwnRecordValue(proposal.selectedInputs, effectDefinition.inputs.strength.actionInputTag)
+      if (selectedFleetId === undefined || selectedStrength === undefined) {
+        continue
+      }
+      const fleet = getOwnRecordValue(state.fleets, branded<FleetId>(selectedFleetId))
+      if (fleet !== undefined && safeTypedParse(PositiveIntegerSchema, selectedStrength).success) {
+        evaluation.strengthCommitments[fleet.id] = (evaluation.strengthCommitments[fleet.id] ?? 0) + selectedStrength
+      }
+    } else if (effectDefinition.type === FleetColonizeEffectDefinition.type) {
+      const pairedMove = actionDefinition.effects.some(
+        (candidate) =>
+          candidate.type === FleetMoveEffectDefinition.type &&
+          candidate.targets.fleet.actionTargetTag === effectDefinition.targets.fleet.actionTargetTag &&
+          candidate.targets.planet.actionTargetTag === effectDefinition.targets.planet.actionTargetTag,
+      )
+      if (pairedMove) {
+        continue
+      }
+      const selectedFleetId = getOwnRecordValue(proposal.selectedTargets, effectDefinition.targets.fleet.actionTargetTag)
+      const fleet = selectedFleetId === undefined ? undefined : getOwnRecordValue(state.fleets, branded<FleetId>(selectedFleetId))
+      if (fleet !== undefined) {
+        evaluation.strengthCommitments[fleet.id] =
+          (evaluation.strengthCommitments[fleet.id] ?? 0) + effectDefinition.parameters.strengthRequirement
+      }
+    }
+  }
+  evaluateColonizationEligibility({ state, proposal, actionDefinition, evaluation })
+}
+
+function evaluateColonizationEligibility({
+  state,
+  proposal,
+  actionDefinition,
+  evaluation,
+}: {
+  state: EligibilityState
+  proposal: ProposedSelection
+  actionDefinition: ActionDefinition
+  evaluation: MutableEvaluation
+}): void {
+  for (const effectDefinition of actionDefinition.effects) {
+    if (effectDefinition.type !== FleetColonizeEffectDefinition.type) {
       continue
     }
     const fleetTag = effectDefinition.targets.fleet.actionTargetTag
-    const selectedFleetId = getOwnRecordValue(proposal.selectedTargets, fleetTag)
-    const forceTag = effectDefinition.inputs.strength.actionInputTag
-    const selectedStrength = getOwnRecordValue(proposal.selectedInputs, forceTag)
-    if (selectedFleetId === undefined || selectedStrength === undefined) {
+    const planetTag = effectDefinition.targets.planet.actionTargetTag
+    const fleetId = getOwnRecordValue(proposal.selectedTargets, fleetTag)
+    const planetId = getOwnRecordValue(proposal.selectedTargets, planetTag)
+    if (fleetId === undefined || planetId === undefined) {
+      continue
+    }
+    const fleet = getOwnRecordValue(state.fleets, branded<FleetId>(fleetId))
+    const planet = getOwnRecordValue(state.planets, branded<PlanetId>(planetId))
+    if (fleet === undefined || planet === undefined) {
       continue
     }
 
-    const fleet = getOwnRecordValue(state.fleets, branded<FleetId>(selectedFleetId))
-    if (fleet === undefined) {
-      continue
-    }
-    if (safeTypedParse(PositiveIntegerSchema, selectedStrength).success) {
-      evaluation.strengthCommitments[fleet.id] = (evaluation.strengthCommitments[fleet.id] ?? 0) + selectedStrength
+    const pairedMove = actionDefinition.effects.find(
+      (candidate) =>
+        candidate.type === FleetMoveEffectDefinition.type &&
+        candidate.targets.fleet.actionTargetTag === fleetTag &&
+        candidate.targets.planet.actionTargetTag === planetTag,
+    )
+    const selectedStrength =
+      pairedMove?.type === FleetMoveEffectDefinition.type
+        ? getOwnRecordValue(proposal.selectedInputs, pairedMove.inputs.strength.actionInputTag)
+        : fleet.strength
+    const eligibility = getFleetColonizationEligibility({
+      planetOwnerPlayerId: planet.ownerPlayerId,
+      fleetOwnerPlayerId: fleet.ownerPlayerId,
+      submittingPlayerId: state.submittingPlayerId,
+      fleetStrength: selectedStrength,
+      strengthRequirement: effectDefinition.parameters.strengthRequirement,
+    })
+    if (!eligibility.eligible && eligibility.reason.code === "INSUFFICIENT_STRENGTH") {
+      addIssue(evaluation, {
+        code: "INSUFFICIENT_STRENGTH",
+        actionId: proposal.actionId,
+        targetTag: planetTag,
+        message: eligibility.reason.message,
+      })
     }
   }
 }
@@ -500,6 +572,16 @@ function evaluateTarget({
             actionId,
             targetTag,
             message: `Target "${targetId}" must be owned by the submitting player`,
+          })
+        }
+        break
+      case UnclaimedPlanetConstraint.type:
+        if (!isPlanetUnclaimed(target.ownerPlayerId)) {
+          addIssue(evaluation, {
+            code: "PLANET_ALREADY_CLAIMED",
+            actionId,
+            targetTag,
+            message: `Planet "${targetId}" is already claimed`,
           })
         }
         break
@@ -689,7 +771,7 @@ function evaluateStrengthBudget(
     Array<{
       actionId: ActionId
       targetTag: TargetTag
-      inputTag: InputTag
+      inputTag?: InputTag
       strength: number
     }>
   >()
@@ -702,27 +784,38 @@ function evaluateStrengthBudget(
     }
 
     for (const effectDefinition of definition.effects) {
-      if (effectDefinition.type !== FleetMoveEffectDefinition.type) {
-        continue
-      }
-      const fleetId = getOwnRecordValue(proposal.selectedTargets, effectDefinition.targets.fleet.actionTargetTag)
-      const strength = getOwnRecordValue(proposal.selectedInputs, effectDefinition.inputs.strength.actionInputTag)
-      if (fleetId === undefined || strength === undefined || !safeTypedParse(PositiveIntegerSchema, strength).success) {
-        continue
-      }
-      const brandedFleetId = branded<FleetId>(fleetId)
-      if (getOwnRecordValue(state.fleets, brandedFleetId) === undefined) {
-        continue
-      }
-      allocationsByFleet.set(brandedFleetId, [
-        ...(allocationsByFleet.get(brandedFleetId) ?? []),
-        {
+      if (effectDefinition.type === FleetMoveEffectDefinition.type) {
+        const fleetId = getOwnRecordValue(proposal.selectedTargets, effectDefinition.targets.fleet.actionTargetTag)
+        const strength = getOwnRecordValue(proposal.selectedInputs, effectDefinition.inputs.strength.actionInputTag)
+        if (fleetId === undefined || strength === undefined || !safeTypedParse(PositiveIntegerSchema, strength).success) {
+          continue
+        }
+        addStrengthAllocation(state, allocationsByFleet, fleetId, {
           actionId: proposal.actionId,
           targetTag: effectDefinition.targets.fleet.actionTargetTag,
           inputTag: effectDefinition.inputs.strength.actionInputTag,
           strength,
-        },
-      ])
+        })
+      } else if (effectDefinition.type === FleetColonizeEffectDefinition.type) {
+        const pairedMove = definition.effects.some(
+          (candidate) =>
+            candidate.type === FleetMoveEffectDefinition.type &&
+            candidate.targets.fleet.actionTargetTag === effectDefinition.targets.fleet.actionTargetTag &&
+            candidate.targets.planet.actionTargetTag === effectDefinition.targets.planet.actionTargetTag,
+        )
+        if (pairedMove) {
+          continue
+        }
+        const fleetId = getOwnRecordValue(proposal.selectedTargets, effectDefinition.targets.fleet.actionTargetTag)
+        if (fleetId === undefined) {
+          continue
+        }
+        addStrengthAllocation(state, allocationsByFleet, fleetId, {
+          actionId: proposal.actionId,
+          targetTag: effectDefinition.targets.fleet.actionTargetTag,
+          strength: effectDefinition.parameters.strengthRequirement,
+        })
+      }
     }
   }
 
@@ -740,11 +833,24 @@ function evaluateStrengthBudget(
         code: "INSUFFICIENT_STRENGTH",
         actionId: allocation.actionId,
         targetTag: allocation.targetTag,
-        inputTag: allocation.inputTag,
+        ...(allocation.inputTag === undefined ? {} : { inputTag: allocation.inputTag }),
         message: "The selected Fleet has " + fleet.strength + " Strength, but submitted Actions reserve " + totalReserved,
       })
     }
   }
+}
+
+function addStrengthAllocation(
+  state: EligibilityState,
+  allocationsByFleet: Map<FleetId, Array<{ actionId: ActionId; targetTag: TargetTag; inputTag?: InputTag; strength: number }>>,
+  fleetId: TargetId,
+  allocation: { actionId: ActionId; targetTag: TargetTag; inputTag?: InputTag; strength: number },
+): void {
+  const brandedFleetId = branded<FleetId>(fleetId)
+  if (getOwnRecordValue(state.fleets, brandedFleetId) === undefined) {
+    return
+  }
+  allocationsByFleet.set(brandedFleetId, [...(allocationsByFleet.get(brandedFleetId) ?? []), allocation])
 }
 function validateMovementOccupancy({
   state,
@@ -776,10 +882,14 @@ function validateMovementOccupancy({
     const moveEffects = definition?.effects.filter(isFleetMoveEffectDefinition) ?? []
     const moveEffect = moveEffects.length === 1 ? moveEffects[0] : undefined
     const expectedPendingArrivalEffects =
-      definition === undefined
+      definition === undefined || moveEffect === undefined
         ? []
         : [...definition.costs, ...definition.effects].flatMap((effectDefinition, definitionOrdinal) =>
-            effectDefinition.type === FleetAssaultEffectDefinition.type ? [{ effectDefinition, definitionOrdinal }] : [],
+            (effectDefinition.type === FleetAssaultEffectDefinition.type || effectDefinition.type === FleetColonizeEffectDefinition.type) &&
+            effectDefinition.targets.fleet.actionTargetTag === moveEffect.targets.fleet.actionTargetTag &&
+            effectDefinition.targets.planet.actionTargetTag === moveEffect.targets.planet.actionTargetTag
+              ? [{ effectDefinition, definitionOrdinal }]
+              : [],
           )
     const fleetTargetTag = moveEffect?.targets.fleet.actionTargetTag
     const planetTargetTag = moveEffect?.targets.planet.actionTargetTag
@@ -812,8 +922,12 @@ function validateMovementOccupancy({
         return (
           expected !== undefined &&
           pending.definitionOrdinal === expected.definitionOrdinal &&
+          pending.effectDefinition.type === expected.effectDefinition.type &&
           pending.effectDefinition.targets.fleet.actionTargetTag === expected.effectDefinition.targets.fleet.actionTargetTag &&
           pending.effectDefinition.targets.planet.actionTargetTag === expected.effectDefinition.targets.planet.actionTargetTag &&
+          (pending.effectDefinition.type !== FleetColonizeEffectDefinition.type ||
+            (expected.effectDefinition.type === FleetColonizeEffectDefinition.type &&
+              pending.effectDefinition.parameters.strengthRequirement === expected.effectDefinition.parameters.strengthRequirement)) &&
           selectedFleetId ===
             getOwnRecordValue(movement.submission.selectedTargets, pending.effectDefinition.targets.fleet.actionTargetTag) &&
           selectedPlanetId ===

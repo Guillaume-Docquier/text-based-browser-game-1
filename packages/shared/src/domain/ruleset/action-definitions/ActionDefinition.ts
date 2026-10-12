@@ -8,6 +8,7 @@ import { InputTagSchema, type InputTag } from "#shared/domain/ruleset/action-def
 import { type TargetTag, TargetTagSchema } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { EffectDefinitionSchema, type EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
 import { FleetAssaultEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
+import { FleetColonizeEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import {
   ResourceLossEffectDefinitionSchema,
@@ -18,6 +19,7 @@ import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target
 import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
 import { type TargetDefinition, TargetDefinitionSchema } from "#shared/domain/ruleset/target-definitions/TargetDefinition.ts"
 import { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
+import { UnclaimedPlanetConstraint } from "#shared/domain/ruleset/target-definitions/UnclaimedPlanetTargetConstraint.ts"
 
 /**
  * The definition of an Action.
@@ -57,17 +59,25 @@ export const ActionDefinitionSchema = z
  * Requires an action definition target slot with a compatible type for every effect definition target.
  */
 function validateEffectDefinitionTargets(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
-  for (const effectDefinition of [...actionDefinition.costs, ...actionDefinition.effects]) {
-    for (const effectDefinitionTarget of Object.values(effectDefinition.targets)) {
+  const definitions = [
+    ...actionDefinition.costs.map((effectDefinition, effectIndex) => ({ effectDefinition, path: ["costs", effectIndex] })),
+    ...actionDefinition.effects.map((effectDefinition, effectIndex) => ({ effectDefinition, path: ["effects", effectIndex] })),
+  ]
+
+  for (const { effectDefinition, path } of definitions) {
+    for (const [targetRole, effectDefinitionTarget] of Object.entries(effectDefinition.targets)) {
       const slotTargetType = actionDefinition.targets[effectDefinitionTarget.actionTargetTag]?.targetType
+      const targetPath = [...path, "targets", targetRole]
       if (slotTargetType === undefined) {
         context.addIssue({
           code: "custom",
+          path: targetPath,
           message: `Action Definition "${actionDefinition.name}" is missing target slot tagged "${effectDefinitionTarget.actionTargetTag}" required by the "${effectDefinition.type}" effect definition`,
         })
       } else if (slotTargetType !== effectDefinitionTarget.targetType) {
         context.addIssue({
           code: "custom",
+          path: targetPath,
           message: `Action Definition "${actionDefinition.name}" target slot tagged "${effectDefinitionTarget.actionTargetTag}" has type "${slotTargetType}", but the "${effectDefinition.type}" effect definition requires "${effectDefinitionTarget.targetType}"`,
         })
       }
@@ -79,13 +89,27 @@ function validateEffectDefinitionTargets(actionDefinition: ActionDefinition, con
  * Checks cross-slot and input mappings required for configured Fleet Movement.
  */
 function validateFleetEffectMappings(actionDefinition: ActionDefinition, context: z.RefinementCtx): void {
-  const movementEffects = actionDefinition.effects.filter((effect) => effect.type === FleetMoveEffectDefinition.type)
-  const assaultEffects = actionDefinition.effects.filter((effect) => effect.type === FleetAssaultEffectDefinition.type)
+  const movementEffects = actionDefinition.effects.flatMap((effect, effectIndex) =>
+    effect.type === FleetMoveEffectDefinition.type ? [{ effect, effectIndex }] : [],
+  )
+  const assaultEffects = actionDefinition.effects.flatMap((effect, effectIndex) =>
+    effect.type === FleetAssaultEffectDefinition.type ? [{ effect, effectIndex }] : [],
+  )
+  const colonizeEffects = actionDefinition.effects.flatMap((effect, effectIndex) =>
+    effect.type === FleetColonizeEffectDefinition.type ? [{ effect, effectIndex }] : [],
+  )
   if (movementEffects.length > 1) {
     context.addIssue({ code: "custom", message: `Action Definition "${actionDefinition.name}" may contain only one FLEET_MOVE effect` })
   }
   if (assaultEffects.length > 1) {
     context.addIssue({ code: "custom", message: `Action Definition "${actionDefinition.name}" may contain only one FLEET_ASSAULT effect` })
+  }
+  if (colonizeEffects.length > 1) {
+    context.addIssue({
+      code: "custom",
+      path: ["effects"],
+      message: `Action Definition "${actionDefinition.name}" may contain only one FLEET_COLONIZE effect`,
+    })
   }
 
   const referencedInputTags = new Set<InputTag>()
@@ -118,7 +142,7 @@ function validateFleetEffectMappings(actionDefinition: ActionDefinition, context
     }
   }
 
-  for (const [effectIndex, effect] of movementEffects.entries()) {
+  for (const { effect, effectIndex } of movementEffects) {
     const fleetTag = effect.targets.fleet.actionTargetTag
     const planetTag = effect.targets.planet.actionTargetTag
     const fleetDefinition = actionDefinition.targets[fleetTag]
@@ -179,8 +203,8 @@ function validateFleetEffectMappings(actionDefinition: ActionDefinition, context
     }
   }
 
-  const movementEffect = movementEffects[0]
-  for (const [effectIndex, effect] of assaultEffects.entries()) {
+  const movementEffect = movementEffects[0]?.effect
+  for (const { effect, effectIndex } of assaultEffects) {
     const fleetTag = effect.targets.fleet.actionTargetTag
     const planetTag = effect.targets.planet.actionTargetTag
     const fleetDefinition = actionDefinition.targets[fleetTag]
@@ -220,6 +244,57 @@ function validateFleetEffectMappings(actionDefinition: ActionDefinition, context
         code: "custom",
         path: ["targets", planetTag],
         message: `Action Definition "${actionDefinition.name}" standalone Assault target slot "${planetTag}" must require the selected Fleet's stationary Planet`,
+      })
+    }
+  }
+
+  for (const { effect, effectIndex } of colonizeEffects) {
+    const fleetTag = effect.targets.fleet.actionTargetTag
+    const planetTag = effect.targets.planet.actionTargetTag
+    const fleetDefinition = actionDefinition.targets[fleetTag]
+    const planetDefinition = actionDefinition.targets[planetTag]
+    const fleetConstraints = fleetDefinition?.constraints ?? []
+    const planetConstraints = planetDefinition?.constraints ?? []
+
+    if (!fleetConstraints.some((constraint) => constraint.type === OwnedBySubmittingPlayerConstraint.type)) {
+      context.addIssue({
+        code: "custom",
+        path: ["effects", effectIndex, "targets", "fleet"],
+        message: `Action Definition "${actionDefinition.name}" Colonize source slot "${fleetTag}" must require ownership by the submitting player`,
+      })
+    }
+    if (!fleetConstraints.some((constraint) => constraint.type === StationaryFleetConstraint.type)) {
+      context.addIssue({
+        code: "custom",
+        path: ["effects", effectIndex, "targets", "fleet"],
+        message: `Action Definition "${actionDefinition.name}" Colonize source slot "${fleetTag}" must require a stationary Fleet`,
+      })
+    }
+    if (!planetConstraints.some((constraint) => constraint.type === UnclaimedPlanetConstraint.type)) {
+      context.addIssue({
+        code: "custom",
+        path: ["targets", planetTag],
+        message: `Action Definition "${actionDefinition.name}" Colonize target slot "${planetTag}" must require an unclaimed Planet`,
+      })
+    }
+
+    if (movementEffect !== undefined) {
+      if (movementEffect.targets.fleet.actionTargetTag !== fleetTag || movementEffect.targets.planet.actionTargetTag !== planetTag) {
+        context.addIssue({
+          code: "custom",
+          path: ["effects", effectIndex, "targets"],
+          message: `Action Definition "${actionDefinition.name}" FLEET_COLONIZE must use the same source and destination target tags as FLEET_MOVE`,
+        })
+      }
+    } else if (
+      !planetConstraints.some(
+        (constraint) => constraint.type === AtFleetPlanetConstraint.type && constraint.references.sourceFleetTag === fleetTag,
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["targets", planetTag],
+        message: `Action Definition "${actionDefinition.name}" standalone Colonize target slot "${planetTag}" must require the selected Fleet's stationary Planet`,
       })
     }
   }

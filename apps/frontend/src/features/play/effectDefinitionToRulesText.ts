@@ -34,6 +34,10 @@ export function effectDefinitionToRulesText(effectDefinition: EffectDefinition, 
       return actionDefinition.effects.some((effect) => effect.type === "FLEET_MOVE")
         ? "On arrival, join friendly fleets at the target, then attack all enemy fleets there in one simultaneous exchange"
         : "Attack all enemy fleets at the target planet in one simultaneous exchange"
+    case "FLEET_COLONIZE":
+      return actionDefinition.effects.some((effect) => effect.type === "FLEET_MOVE")
+        ? `On arrival, claim the unclaimed target planet; success consumes ${effectDefinition.parameters.strengthRequirement} fleet strength`
+        : `Claim the unclaimed planet at the selected fleet's current location; success consumes ${effectDefinition.parameters.strengthRequirement} fleet strength`
   }
 }
 

@@ -5,14 +5,14 @@ import { NonNegativeSafeIntegerSchema } from "#shared/domain/NonNegativeSafeInte
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import type { FleetMovement } from "#shared/domain/world/fleets/Fleet.ts"
-import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { isFleetPresentAtPlanet } from "#shared/domain/world/fleets/isFleetPresentAtPlanet.ts"
+import { resolveFleetRebinding } from "#shared/turn-resolution/arrivalProvenance.ts"
 import type { Effect } from "#shared/turn-resolution/effects/Effect.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
 import { resolveTargetId } from "#shared/turn-resolution/effects/resolveTargetId.ts"
 import { ResolvePhaseError } from "#shared/turn-resolution/phases/ResolvePhaseError.ts"
 import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
-import type { PendingArrivalAssaultIntent, TurnContext } from "#shared/turn-resolution/TurnContext.ts"
+import type { PendingArrivalAssaultIntent, PendingArrivalColonizationIntent, TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 import { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
 const MOVEMENT_TICKS = 20
@@ -101,7 +101,7 @@ export function resolveFleetMovementPhase(context: TurnContext): Result<TurnCont
       return Result.Failure(ResolvePhaseError.FailedEffect({ error: settleResult.error }))
     }
     arrival.outcomes.push(settleResult.value)
-    const queueResult = queueArrivalAssaults(context, arrival)
+    const queueResult = queueArrivalEffects(context, arrival)
     if (Result.isFailure(queueResult)) {
       return Result.Failure(ResolvePhaseError.FailedEffect({ error: queueResult.error }))
     }
@@ -190,6 +190,11 @@ function settleArrival(context: TurnContext, arrival: JourneyAdvance): Result<Ef
       assault.actualFleetId = targetFleet.id
     }
   }
+  for (const colonization of context.pendingArrivalColonizations) {
+    if (colonization.actualFleetId === fleet.id) {
+      colonization.actualFleetId = targetFleet.id
+    }
+  }
   return Result.Success(
     EffectOutcome.Resolved({
       result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}" and merged ${mergedStrength} Strength into Fleet "${targetFleet.name}"`,
@@ -197,33 +202,28 @@ function settleArrival(context: TurnContext, arrival: JourneyAdvance): Result<Ef
   )
 }
 
-function queueArrivalAssaults(context: TurnContext, arrival: JourneyAdvance): Result<void, ReturnType<typeof EffectError.Failed>> {
+function queueArrivalEffects(context: TurnContext, arrival: JourneyAdvance): Result<void, ReturnType<typeof EffectError.Failed>> {
   for (const pending of arrival.movement.pendingArrivalEffects) {
     const targetPlanetId = resolveTargetId(arrival.movement.submission.selectedTargets, pending.effectDefinition.targets.planet)
-    const intent: PendingArrivalAssaultIntent = {
-      effectDefinition: pending.effectDefinition,
+    const common = {
       definitionOrdinal: pending.definitionOrdinal,
       submittedAction: arrival.movement.submission,
       departureTurn: arrival.movement.departureTurn,
       initiatingJourneyId: arrival.fleet.id,
-      actualFleetId: resolveFleetRebinding(context, arrival.fleet.id),
+      actualFleetId: resolveFleetRebinding(context.fleetIdRebindings, arrival.fleet.id),
       planetId: targetPlanetId,
       tick: arrival.fleet.arrivedAtTick ?? 0,
       actionOutcomes: arrival.outcomes,
     }
-    context.pendingArrivalAssaults.push(intent)
+    if (pending.effectDefinition.type === "FLEET_ASSAULT") {
+      const intent: PendingArrivalAssaultIntent = { ...common, effectDefinition: pending.effectDefinition }
+      context.pendingArrivalAssaults.push(intent)
+    } else {
+      const intent: PendingArrivalColonizationIntent = { ...common, effectDefinition: pending.effectDefinition }
+      context.pendingArrivalColonizations.push(intent)
+    }
   }
   return Result.Success(undefined)
-}
-
-function resolveFleetRebinding(context: TurnContext, fleetId: FleetId): FleetId {
-  let resolvedFleetId = fleetId
-  let nextFleetId = context.fleetIdRebindings.get(resolvedFleetId)
-  while (nextFleetId !== undefined) {
-    resolvedFleetId = nextFleetId
-    nextFleetId = context.fleetIdRebindings.get(resolvedFleetId)
-  }
-  return resolvedFleetId
 }
 
 function recordAdvance(context: TurnContext, advance: JourneyAdvance, movement: FleetMovement): void {

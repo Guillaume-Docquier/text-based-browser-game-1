@@ -13,10 +13,12 @@ import { cn } from "@/lib/cn.ts"
  */
 export function PlanetDetailsPane({
   planet,
+  ownerName,
   isClosing,
   onCloseAnimationEnd,
 }: {
   planet: Planet
+  ownerName: string | undefined
   isClosing: boolean
   onCloseAnimationEnd: () => void
 }): ReactElement {
@@ -73,6 +75,14 @@ export function PlanetDetailsPane({
       </header>
 
       <div className="space-y-6 px-5 py-5">
+        <section aria-labelledby="planet-ownership-heading">
+          <h3 id="planet-ownership-heading" className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+            Ownership
+          </h3>
+          <dl className="mt-3 rounded-lg border border-border/50 bg-muted/20 px-3">
+            <PlanetFact label="Owner" value={ownerName ?? "Unclaimed"} />
+          </dl>
+        </section>
         <section aria-labelledby="planet-attributes-heading">
           <h3 id="planet-attributes-heading" className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             Planet attributes

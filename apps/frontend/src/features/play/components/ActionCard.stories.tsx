@@ -9,20 +9,25 @@ import { ActionDefinitionSchema, type ActionDefinition } from "shared/domain/rul
 import { ActionTier } from "shared/domain/ruleset/action-definitions/ActionTier.ts"
 import type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { FleetAssaultEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
+import { FleetColonizeEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetColonizeEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
+import { ResourceLossEffectDefinition } from "shared/domain/ruleset/effect-definitions/ResourceLossEffectDefinition.ts"
 import { Ruleset } from "shared/domain/ruleset/Ruleset.ts"
 import { DifferentFromFleetOriginConstraint } from "shared/domain/ruleset/target-definitions/DifferentFromFleetOriginTargetConstraint.ts"
 import { OwnedBySubmittingPlayerConstraint } from "shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { StationaryFleetConstraint } from "shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
 import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
+import { UnclaimedPlanetConstraint } from "shared/domain/ruleset/target-definitions/UnclaimedPlanetTargetConstraint.ts"
 import { WithinFleetRangeConstraint } from "shared/domain/ruleset/target-definitions/WithinFleetRangeTargetConstraint.ts"
 import { createAvailableActionStub, createSubmittedActionStub } from "shared/domain/turns/actions/Action.stub.ts"
+import type { SubmittedAction } from "shared/domain/turns/actions/Action.ts"
 import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { FleetMovementSchema } from "shared/domain/world/fleets/Fleet.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
 import { FleetActionSelectionParity } from "shared/testing/FleetActionSelectionParity.ts"
 import { AttackMoveTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
+import { ColonizeHereTest, ColonizePlanetTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { TestRuleset } from "shared/testing/test-ruleset/TestRuleset.ts"
 import { expect, within } from "storybook/test"
@@ -1640,4 +1645,466 @@ export const RenamedComposedAttackMove: Story = {
 }
 function toActionDto(action: Omit<Action, "canAfford" | "isInProgress">, isInProgress: boolean): Action {
   return { ...action, canAfford: true, isInProgress }
+}
+
+const colonizeThresholdFleet = createFleetStub({
+  id: "fleet-colonize-threshold",
+  ownerPlayerId: player.id,
+  name: "Threshold Guard",
+  strength: 100,
+  originPlanetId: home.id,
+})
+const colonizeThresholdAction = createAvailableActionStub({
+  id: "COLONIZE_PLANET_THRESHOLD_STORY",
+  playerId: player.id,
+  actionDefinitionId: ColonizePlanetTest.id,
+})
+const colonizeThresholdRuleset = Ruleset.create({
+  ...TestRuleset,
+  actionPool: [...TestRuleset.actionPool, { id: colonizeThresholdAction.id, actionDefinitionId: ColonizePlanetTest.id }],
+})
+const colonizeThresholdPlayerView = {
+  ...playerView,
+  galaxy: {
+    systems: [
+      {
+        star: createStarStub({ id: "colonize-threshold-star", name: "Threshold System", coordinates: "0:0", x: 0, y: 0 }),
+        planets: [home, waypoint],
+      },
+    ],
+  },
+  fleets: [colonizeThresholdFleet],
+  resources: {
+    ...playerView.resources,
+    [ResourceType.INFLUENCE]: { total: 25, uncommitted: 25 },
+    [ResourceType.COLONY]: { total: 0, uncommitted: 0 },
+  },
+  ruleset: colonizeThresholdRuleset,
+  actions: [toActionDto(colonizeThresholdAction, false)],
+} satisfies PlayerView
+const colonizeThresholdProjection = createEligibilityState(colonizeThresholdPlayerView)
+if (!colonizeThresholdProjection.success) {
+  throw new Error(colonizeThresholdProjection.message)
+}
+
+function ColonizeThresholdCard(): ReactElement {
+  const [action, setAction] = useState(() => toActionDto(colonizeThresholdAction, false))
+  const currentPlayerView = { ...colonizeThresholdPlayerView, actions: [action] }
+  const projection = createEligibilityState(currentPlayerView)
+  if (!projection.success) {
+    throw new Error(projection.message)
+  }
+
+  return (
+    <div className="w-80">
+      <output data-testid="colonize-threshold-selection" className="sr-only">
+        {JSON.stringify({ selectedTargets: action.selectedTargets, selectedInputs: action.selectedInputs })}
+      </output>
+      <ActionCard
+        actionDefinition={ColonizePlanetTest}
+        action={action}
+        playerView={currentPlayerView}
+        players={players}
+        ruleset={projection.ruleset}
+        eligibilityState={projection.eligibilityState}
+        disabled={false}
+        onSelect={(selectedTargets, selectedInputs) => {
+          setAction({ ...action, selectedTargets, selectedInputs })
+        }}
+      />
+    </div>
+  )
+}
+
+export const ColonizePlanetThreshold: Story = {
+  render: (): ReactElement => <ColonizeThresholdCard />,
+  args: {
+    actionDefinition: ColonizePlanetTest,
+    action: toActionDto(colonizeThresholdAction, false),
+    playerView: colonizeThresholdPlayerView,
+    players,
+    ruleset: colonizeThresholdProjection.ruleset,
+    eligibilityState: colonizeThresholdProjection.eligibilityState,
+    disabled: false,
+  },
+  play: async ({ canvas, userEvent }): Promise<void> => {
+    const card = within(canvas.getByRole("group", { name: "Colonize Planet action" }))
+    await expect(card.getByText("Exceptional Directive")).toBeVisible()
+    await expect(card.getByLabelText("25 Influence")).toBeVisible()
+    await expect(card.getByRole("combobox", { name: "Fleet target" })).toHaveValue("Threshold Guard (100 strength)")
+    await expect(card.getByRole("combobox", { name: "Planet target" })).toHaveValue("Waypoint (2:0:0)")
+    const strengthInput = card.getByRole("spinbutton", { name: "Fleet strength" })
+    const selectionButton = card.getByRole("button", { name: "Select action" })
+
+    await userEvent.type(strengthInput, "19")
+    await expect(selectionButton).toBeDisabled()
+    await userEvent.clear(strengthInput)
+    await userEvent.type(strengthInput, "20")
+    await expect(selectionButton).toBeEnabled()
+    await userEvent.click(selectionButton)
+    const exactThresholdSelection = canvas.getByTestId("colonize-threshold-selection").textContent
+    await expect(JSON.parse(exactThresholdSelection ?? "null")).toStrictEqual({
+      selectedTargets: { fleet: colonizeThresholdFleet.id, planet: waypoint.id },
+      selectedInputs: { strength: 20 },
+    })
+
+    await userEvent.clear(strengthInput)
+    await userEvent.type(strengthInput, "35")
+    const updateButton = card.getByRole("button", { name: "Update action" })
+    await expect(updateButton).toBeEnabled()
+    await userEvent.click(updateButton)
+    const aboveThresholdSelection = canvas.getByTestId("colonize-threshold-selection").textContent
+    await expect(JSON.parse(aboveThresholdSelection ?? "null")).toStrictEqual({
+      selectedTargets: { fleet: colonizeThresholdFleet.id, planet: waypoint.id },
+      selectedInputs: { strength: 35 },
+    })
+  },
+}
+
+const stationaryColonizeFleet = createFleetStub({
+  id: "fleet-stationary-colonize",
+  ownerPlayerId: player.id,
+  name: "Wayfinder Guard",
+  strength: 35,
+  originPlanetId: waypoint.id,
+})
+const stationaryColonizeMoveAction = createAvailableActionStub({
+  id: "MOVE_FLEET_STANDARD_COLONIZE_STORY",
+  playerId: player.id,
+  actionDefinitionId: MoveFleetStandard.id,
+})
+const stationaryColonizeAction = createAvailableActionStub({
+  id: "COLONIZE_HERE_STORY",
+  playerId: player.id,
+  actionDefinitionId: ColonizeHereTest.id,
+})
+const stationaryColonizePlayerView = {
+  ...playerView,
+  fleets: [stationaryColonizeFleet],
+  resources: {
+    ...playerView.resources,
+    [ResourceType.INFLUENCE]: { total: 100, uncommitted: 100 },
+    [ResourceType.FUEL]: { total: 10, uncommitted: 10 },
+  },
+  actions: [toActionDto(stationaryColonizeMoveAction, false), toActionDto(stationaryColonizeAction, false)],
+} satisfies PlayerView
+const stationaryColonizeProjection = createEligibilityState(stationaryColonizePlayerView)
+if (!stationaryColonizeProjection.success) {
+  throw new Error(stationaryColonizeProjection.message)
+}
+
+function StationaryColonizeBudgetCards(): ReactElement {
+  const [actions, setActions] = useState(stationaryColonizePlayerView.actions)
+  const currentPlayerView = { ...stationaryColonizePlayerView, actions }
+  const projection = createEligibilityState(currentPlayerView)
+  if (!projection.success) {
+    throw new Error(projection.message)
+  }
+  const submissions = projection.eligibilityState.actions.filter((action): action is SubmittedAction => action.selectedTargets !== null)
+  const evaluation = evaluateSubmittedActions({
+    state: projection.eligibilityState,
+    ruleset: projection.ruleset,
+    submissions,
+  })
+  const budget = {
+    status: evaluation.status,
+    strengthCommitment: evaluation.strengthCommitments[stationaryColonizeFleet.id] ?? 0,
+    remainingStrength: evaluation.remainingStrength[stationaryColonizeFleet.id],
+    influenceCommitted: evaluation.resourceCommitments[ResourceType.INFLUENCE],
+    fuelCommitted: evaluation.resourceCommitments[ResourceType.FUEL],
+    influenceAvailable: currentPlayerView.resources[ResourceType.INFLUENCE].total - evaluation.resourceCommitments[ResourceType.INFLUENCE],
+    fuelAvailable: currentPlayerView.resources[ResourceType.FUEL].total - evaluation.resourceCommitments[ResourceType.FUEL],
+  }
+
+  return (
+    <div className="flex flex-wrap gap-4">
+      <output data-testid="stationary-colonize-budget" className="sr-only">
+        {JSON.stringify(budget)}
+      </output>
+      <ActionCard
+        actionDefinition={MoveFleetStandard}
+        action={actions[0]}
+        playerView={currentPlayerView}
+        players={players}
+        ruleset={projection.ruleset}
+        eligibilityState={projection.eligibilityState}
+        disabled={false}
+        onSelect={(selectedTargets, selectedInputs) => {
+          setActions((currentActions) =>
+            currentActions.map((action) =>
+              action.id === stationaryColonizeMoveAction.id ? { ...action, selectedTargets, selectedInputs } : action,
+            ),
+          )
+        }}
+      />
+      <ActionCard
+        actionDefinition={ColonizeHereTest}
+        action={actions[1]}
+        playerView={currentPlayerView}
+        players={players}
+        ruleset={projection.ruleset}
+        eligibilityState={projection.eligibilityState}
+        disabled={false}
+        onSelect={(selectedTargets, selectedInputs) => {
+          setActions((currentActions) =>
+            currentActions.map((action) =>
+              action.id === stationaryColonizeAction.id ? { ...action, selectedTargets, selectedInputs } : action,
+            ),
+          )
+        }}
+      />
+    </div>
+  )
+}
+
+const seedOutpostSource = createPlanetStub({
+  id: "planet-seed-outpost-home",
+  ownerPlayerId: player.id,
+  name: "Outpost Home",
+  coordinates: "0:0:0",
+  x: 0,
+  y: 0,
+})
+const seedOutpostSite = createPlanetStub({
+  id: "planet-seed-site",
+  ownerPlayerId: null,
+  name: "Seed Site",
+  coordinates: "3:0:0",
+  x: 3,
+  y: 0,
+})
+const seedOutpostNearbySite = createPlanetStub({
+  id: "planet-seed-nearby-site",
+  ownerPlayerId: null,
+  name: "Nearby Seed Site",
+  coordinates: "2:0:0",
+  x: 2,
+  y: 0,
+})
+const seedOutpostBeyondRange = createPlanetStub({
+  id: "planet-seed-beyond-range",
+  ownerPlayerId: null,
+  name: "Beyond Seed Range",
+  coordinates: "3.001:0:0",
+  x: 3.001,
+  y: 0,
+})
+const seedOutpostFleet = createFleetStub({
+  id: "fleet-seed-outpost",
+  ownerPlayerId: player.id,
+  name: "Outpost Guard",
+  strength: 45,
+  originPlanetId: seedOutpostSource.id,
+})
+const SeedOutpostDefinition = ActionDefinitionSchema.parse({
+  ...ColonizePlanetTest,
+  id: "RENAMED_SEED_OUTPOST",
+  name: "Seed Outpost",
+  tier: ActionTier.IMPROVED,
+  inputs: { quota: { type: "POSITIVE_INTEGER", label: "Units" } },
+  targets: {
+    force: {
+      targetType: TargetType.FLEET,
+      constraints: [OwnedBySubmittingPlayerConstraint.create(), StationaryFleetConstraint.create()],
+    },
+    site: {
+      targetType: TargetType.PLANET,
+      constraints: [
+        WithinFleetRangeConstraint.create({ sourceFleetTag: "force", maxDistance: 3 }),
+        DifferentFromFleetOriginConstraint.create({ sourceFleetTag: "force" }),
+        UnclaimedPlanetConstraint.create(),
+      ],
+    },
+  },
+  costs: [
+    ResourceLossEffectDefinition.create({ quantity: 7, resourceType: ResourceType.INFLUENCE }),
+    ResourceLossEffectDefinition.create({ quantity: 2, resourceType: ResourceType.FUEL }),
+  ],
+  effects: [
+    FleetMoveEffectDefinition.create({ fleetTag: "force", planetTag: "site", strengthTag: "quota", speed: 2 }),
+    FleetColonizeEffectDefinition.create({ fleetTag: "force", planetTag: "site", strengthRequirement: 30 }),
+  ],
+})
+const seedOutpostAction = createAvailableActionStub({
+  id: "SEED_OUTPOST_STORY",
+  playerId: player.id,
+  actionDefinitionId: SeedOutpostDefinition.id,
+})
+const seedOutpostRuleset = Ruleset.create({
+  ...TestRuleset,
+  actionDefinitions: { ...TestRuleset.actionDefinitions, [SeedOutpostDefinition.id]: SeedOutpostDefinition },
+  actionPool: [...TestRuleset.actionPool, { id: seedOutpostAction.id, actionDefinitionId: SeedOutpostDefinition.id }],
+})
+const seedOutpostPlayerView = {
+  ...playerView,
+  galaxy: {
+    systems: [
+      {
+        star: createStarStub({ id: "seed-outpost-star", name: "Outpost System", coordinates: "0:0", x: 0, y: 0 }),
+        planets: [seedOutpostSource, seedOutpostSite, seedOutpostNearbySite, seedOutpostBeyondRange],
+      },
+    ],
+  },
+  fleets: [seedOutpostFleet],
+  resources: {
+    ...playerView.resources,
+    [ResourceType.INFLUENCE]: { total: 7, uncommitted: 7 },
+    [ResourceType.FUEL]: { total: 2, uncommitted: 2 },
+  },
+  ruleset: seedOutpostRuleset,
+  actions: [toActionDto(seedOutpostAction, false)],
+} satisfies PlayerView
+const seedOutpostProjection = createEligibilityState(seedOutpostPlayerView)
+if (!seedOutpostProjection.success) {
+  throw new Error(seedOutpostProjection.message)
+}
+
+function SeedOutpostCard(): ReactElement {
+  const [action, setAction] = useState(toActionDto(seedOutpostAction, false))
+  const currentPlayerView = { ...seedOutpostPlayerView, actions: [action] }
+  const projection = createEligibilityState(currentPlayerView)
+  if (!projection.success) {
+    throw new Error(projection.message)
+  }
+
+  return (
+    <div className="w-80">
+      <output data-testid="seed-outpost-selection" className="sr-only">
+        {JSON.stringify({ selectedTargets: action.selectedTargets, selectedInputs: action.selectedInputs })}
+      </output>
+      <ActionCard
+        actionDefinition={SeedOutpostDefinition}
+        action={action}
+        playerView={currentPlayerView}
+        players={players}
+        ruleset={projection.ruleset}
+        eligibilityState={projection.eligibilityState}
+        disabled={false}
+        onSelect={(selectedTargets, selectedInputs) => {
+          setAction({ ...action, selectedTargets, selectedInputs })
+        }}
+      />
+    </div>
+  )
+}
+
+export const StationaryColonizeBudget: Story = {
+  render: (): ReactElement => <StationaryColonizeBudgetCards />,
+  args: {
+    actionDefinition: ColonizeHereTest,
+    action: toActionDto(stationaryColonizeAction, false),
+    playerView: stationaryColonizePlayerView,
+    players,
+    ruleset: stationaryColonizeProjection.ruleset,
+    eligibilityState: stationaryColonizeProjection.eligibilityState,
+    disabled: false,
+  },
+  play: async ({ canvas, canvasElement, userEvent }): Promise<void> => {
+    const body = within(canvasElement.ownerDocument.body)
+    const moveCard = within(canvas.getByRole("group", { name: "Move Fleet action" }))
+    const colonizeCard = within(canvas.getByRole("group", { name: "Colonize Here action" }))
+    const movePlanetPicker = moveCard.getByRole("combobox", { name: "Planet target" })
+    await userEvent.click(movePlanetPicker)
+    await userEvent.click(body.getByRole("option", { name: "Inner Reach (4:0:0)" }))
+    await userEvent.type(moveCard.getByRole("spinbutton", { name: "Fleet strength" }), "15")
+    await userEvent.click(moveCard.getByRole("button", { name: "Select action" }))
+    await expect(moveCard.getByText("20 of 35 strength available after this allocation")).toBeVisible()
+    await expect(
+      colonizeCard.getByText("Claim the unclaimed planet at the selected fleet's current location; success consumes 20 fleet strength."),
+    ).toBeVisible()
+    await expect(colonizeCard.getByLabelText("25 Influence")).toBeVisible()
+    await expect(colonizeCard.getByRole("combobox", { name: "Fleet target" })).toHaveValue("Wayfinder Guard (35 strength)")
+    await expect(colonizeCard.getByRole("combobox", { name: "Planet target" })).toHaveValue("Waypoint (2:0:0)")
+    await userEvent.click(colonizeCard.getByRole("button", { name: "Select action" }))
+    await expect(colonizeCard.getByText("0 of 35 strength available after this allocation")).toBeVisible()
+    const initialBudget = canvas.getByTestId("stationary-colonize-budget").textContent
+    await expect(JSON.parse(initialBudget ?? "null")).toStrictEqual({
+      status: "ELIGIBLE",
+      strengthCommitment: 35,
+      remainingStrength: 0,
+      influenceCommitted: 28,
+      fuelCommitted: 1,
+      influenceAvailable: 72,
+      fuelAvailable: 9,
+    })
+
+    await userEvent.click(moveCard.getByRole("button", { name: "Update action" }))
+    const moveStrengthInput = moveCard.getByRole("spinbutton", { name: "Fleet strength" })
+    await userEvent.clear(moveStrengthInput)
+    await userEvent.type(moveStrengthInput, "14")
+    await userEvent.click(moveCard.getByRole("button", { name: "Update action" }))
+    await expect(colonizeCard.getByText("1 of 35 strength available after this allocation")).toBeVisible()
+
+    await userEvent.click(moveCard.getByRole("button", { name: "Cancel" }))
+    await expect(colonizeCard.getByText("15 of 35 strength available after this allocation")).toBeVisible()
+    const canceledMoveBudget = canvas.getByTestId("stationary-colonize-budget").textContent
+    await expect(JSON.parse(canceledMoveBudget ?? "null")).toStrictEqual({
+      status: "ELIGIBLE",
+      strengthCommitment: 20,
+      remainingStrength: 15,
+      influenceCommitted: 25,
+      fuelCommitted: 0,
+      influenceAvailable: 75,
+      fuelAvailable: 10,
+    })
+  },
+}
+
+export const RenamedSeedOutpost: Story = {
+  render: (): ReactElement => <SeedOutpostCard />,
+  args: {
+    actionDefinition: SeedOutpostDefinition,
+    action: toActionDto(seedOutpostAction, false),
+    playerView: seedOutpostPlayerView,
+    players,
+    ruleset: seedOutpostProjection.ruleset,
+    eligibilityState: seedOutpostProjection.eligibilityState,
+    disabled: false,
+  },
+  play: async ({ canvas, canvasElement, userEvent }): Promise<void> => {
+    const body = within(canvasElement.ownerDocument.body)
+    const card = within(canvas.getByRole("group", { name: "Seed Outpost action" }))
+    await expect(card.getByText("Improved Directive")).toBeVisible()
+    await expect(
+      card.getByText(
+        "Move a fleet to the target planet at 2 light years per turn, within a range of 3 light years. On arrival, claim the unclaimed target planet; success consumes 30 fleet strength.",
+      ),
+    ).toBeVisible()
+    await expect(card.getByLabelText("7 Influence")).toBeVisible()
+    await expect(card.getByLabelText("2 Fuel")).toBeVisible()
+    const forcePicker = card.getByRole("combobox", { name: "Force target" })
+    const sitePicker = card.getByRole("combobox", { name: "Site target" })
+    const unitsInput = card.getByRole("spinbutton", { name: "Units" })
+    await expect(forcePicker).toHaveValue("Outpost Guard (45 strength)")
+
+    await userEvent.type(unitsInput, "30")
+    await userEvent.click(sitePicker)
+    await expect(body.getByRole("option", { name: "Seed Site (3:0:0)" })).toBeVisible()
+    await expect(body.getByRole("option", { name: "Nearby Seed Site (2:0:0)" })).toBeVisible()
+    await expect(body.queryByRole("option", { name: "Beyond Seed Range (3.001:0:0)" })).not.toBeInTheDocument()
+    await userEvent.click(body.getByRole("option", { name: "Seed Site (3:0:0)" }))
+    await userEvent.clear(unitsInput)
+    await userEvent.type(unitsInput, "29")
+    await expect(card.getByRole("button", { name: "Select action" })).toBeDisabled()
+    await userEvent.clear(unitsInput)
+    await userEvent.type(unitsInput, "30")
+    await expect(card.getByRole("button", { name: "Select action" })).toBeEnabled()
+    await userEvent.click(card.getByRole("button", { name: "Select action" }))
+    const selection = canvas.getByTestId("seed-outpost-selection").textContent
+    await expect(JSON.parse(selection ?? "null")).toStrictEqual({
+      selectedTargets: { force: seedOutpostFleet.id, site: seedOutpostSite.id },
+      selectedInputs: { quota: 30 },
+    })
+
+    await userEvent.clear(unitsInput)
+    await userEvent.type(unitsInput, "45")
+    const updateButton = card.getByRole("button", { name: "Update action" })
+    await expect(updateButton).toBeEnabled()
+    await userEvent.click(updateButton)
+    const aboveThresholdSelection = canvas.getByTestId("seed-outpost-selection").textContent
+    await expect(JSON.parse(aboveThresholdSelection ?? "null")).toStrictEqual({
+      selectedTargets: { force: seedOutpostFleet.id, site: seedOutpostSite.id },
+      selectedInputs: { quota: 45 },
+    })
+  },
 }
