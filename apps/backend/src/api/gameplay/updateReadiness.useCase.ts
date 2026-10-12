@@ -4,7 +4,9 @@ import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import { z } from "zod"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
+import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import type { GameplayRepository } from "./gameplay.repository.ts"
+import { UpdateReadinessError } from "./updateReadiness.error.ts"
 
 /**
  * Updates a player's Readiness and closes the Turn when all players are Ready.
@@ -35,7 +37,7 @@ export class UpdateReadinessUseCase {
   /**
    * Changes Readiness and checks for unanimous Readiness within one Turn transaction.
    */
-  public async execute({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, string>> {
+  public async execute({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, UpdateReadinessError>> {
     const result = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getReadinessForUpdate({ gameId, playerId, turn }, tx)
 
@@ -48,8 +50,12 @@ export class UpdateReadinessUseCase {
     })
 
     if (Result.isFailure(result)) {
+      if (result.error instanceof TransactionRollbackError && result.error.cause === UpdateReadinessError.TURN_NOT_OPEN) {
+        return Result.Failure(UpdateReadinessError.TURN_NOT_OPEN)
+      }
+
       this.logger.error("Could not update readiness", { gameId, turn, playerId, error: result.error })
-      return Result.Failure(result.error.message)
+      return Result.Failure(UpdateReadinessError.UNKNOWN)
     }
 
     return Result.Success(undefined)

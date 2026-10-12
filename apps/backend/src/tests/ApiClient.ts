@@ -43,10 +43,7 @@ export async function createApiClient({
 
   const account = extractSuccess(await accountsRepository.createAccount(createAccountStub({ id: id ?? v4() })))
 
-  return {
-    client: createTrpcClient({ port, authId: account.authId }),
-    account,
-  }
+  return createAuthenticatedApiClient({ port, account })
 }
 
 /**
@@ -64,4 +61,11 @@ function createTrpcClient({ port, authId }: { port: number; authId: string | und
       }),
     ],
   })
+}
+
+/**
+ * Connects an existing account to another API server without creating it again.
+ */
+export function createAuthenticatedApiClient({ port, account }: { port: number; account: Account }): AuthenticatedApiClient {
+  return { client: createTrpcClient({ port, authId: account.authId }), account }
 }

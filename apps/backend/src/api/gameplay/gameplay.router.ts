@@ -1,8 +1,13 @@
-import { Result } from "@guillaume-docquier/tools-ts"
+import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
+import type { ActionValidationIssue } from "shared/action-submission/validation/ActionValidationIssue.ts"
+import type { SubmittedActionIssue } from "shared/action-submission/validation/SubmittedActionIssue.ts"
 import { NO_OUTPUT, type Trpc } from "#api/trpc.ts"
+import { GetPlayerViewError } from "./getPlayerView.error.ts"
 import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./getPlayerView.useCase.ts"
+import { UpdateActionSubmissionError } from "./updateActionSubmission.error.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./updateActionSubmission.useCase.ts"
+import { UpdateReadinessError } from "./updateReadiness.error.ts"
 import { type UpdateReadinessUseCase, UpdateReadinessDtoSchema } from "./updateReadiness.useCase.ts"
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- Let trpc inference do the work
@@ -28,7 +33,14 @@ export function createGameplayRouter({
       .mutation(async ({ input, ctx: { playerId } }) => {
         const result = await updateReadinessUseCase.execute({ ...input, playerId })
         if (Result.isFailure(result)) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
+          switch (result.error) {
+            case UpdateReadinessError.TURN_NOT_OPEN:
+              throw new TRPCError({ code: "CONFLICT", message: "Readiness cannot be changed for this turn." })
+            case UpdateReadinessError.UNKNOWN:
+              throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Readiness could not be updated." })
+            default:
+              Assert.isExhausted(result.error)
+          }
         }
       }),
 
@@ -38,21 +50,19 @@ export function createGameplayRouter({
      */
     getPlayerView: trpc.inGameProcedure.output(PlayerViewDtoSchema).query(async ({ input, ctx: { playerId } }) => {
       const getPlayerViewResult = await getPlayerViewUseCase.execute({ ...input, playerId })
-      if (Result.isFailure(getPlayerViewResult)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: getPlayerViewResult.error,
-        })
+      if (Result.isSuccess(getPlayerViewResult)) {
+        return getPlayerViewResult.value
       }
 
-      if (getPlayerViewResult.value === undefined) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No view exists for this player and this game",
-        })
+      switch (getPlayerViewResult.error) {
+        case GetPlayerViewError.VIEW_NOT_FOUND:
+          throw new TRPCError({ code: "NOT_FOUND", message: "No view exists for this player and this game." })
+        case GetPlayerViewError.UNKNOWN:
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Player view could not be loaded." })
+        default:
+          Assert.isExhausted(getPlayerViewResult.error)
+          return getPlayerViewResult.error
       }
-
-      return getPlayerViewResult.value
     }),
 
     /**
@@ -65,11 +75,52 @@ export function createGameplayRouter({
       .mutation(async ({ input, ctx: { playerId } }) => {
         const updateActionSubmissionResult = await updateActionSubmissionUseCase.execute({ ...input, playerId })
         if (Result.isFailure(updateActionSubmissionResult)) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: updateActionSubmissionResult.error,
-          })
+          switch (updateActionSubmissionResult.error.type) {
+            case UpdateActionSubmissionError.TURN_NOT_OPEN:
+              throw new TRPCError({ code: "CONFLICT", message: "Actions cannot be changed for this turn." })
+            case UpdateActionSubmissionError.PLAYER_READY:
+              throw new TRPCError({ code: "CONFLICT", message: "Cancel readiness before changing actions." })
+            case UpdateActionSubmissionError.INVALID_ACTION_ID:
+              throw new TRPCError({ code: "BAD_REQUEST", message: "This action is not available for this player and turn." })
+            case UpdateActionSubmissionError.INVALID_TARGETS:
+              throw new TRPCError({ code: "BAD_REQUEST", message: formatSubmissionIssues(updateActionSubmissionResult.error.issues) })
+            case UpdateActionSubmissionError.INSUFFICIENT_RESOURCES:
+              throw new TRPCError({ code: "BAD_REQUEST", message: formatSubmissionIssues(updateActionSubmissionResult.error.issues) })
+            case UpdateActionSubmissionError.UNKNOWN:
+              throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Action submission could not be updated." })
+            default:
+              Assert.isExhausted(updateActionSubmissionResult.error)
+          }
         }
       }),
   })
+}
+
+function formatSubmissionIssues(issues: readonly SubmittedActionIssue[]): string {
+  return issues.map(({ issue }) => formatSubmissionIssue(issue)).join("\n")
+}
+
+function formatSubmissionIssue(issue: ActionValidationIssue): string {
+  switch (issue.type) {
+    case "MISSING_TARGET":
+      return `Select a target for "${issue.targetTag}".`
+    case "UNEXPECTED_TARGET":
+      return `Unexpected target selection "${issue.targetTag}".`
+    case "EMPTY_TARGET":
+      return `Select a ${issue.targetType.toLowerCase()} for "${issue.targetTag}".`
+    case "UNKNOWN_TARGET":
+      return `The selected ${issue.targetType.toLowerCase()} for "${issue.targetTag}" does not exist.`
+    case "WRONG_TARGET_TYPE":
+      return `Expected a ${issue.expected.toLowerCase()} target, received ${issue.received.toLowerCase()}.`
+    case "TARGET_NOT_OWNED":
+      return `The selected ${issue.targetType.toLowerCase()} must belong to you.`
+    case "INSUFFICIENT_RESOURCE":
+      return `You need ${issue.shortage} more ${issue.resourceType.toLowerCase()} for this action.`
+    case "ACTION_DEFINITION_NOT_FOUND":
+    case "INVALID_TARGET_CONSTRAINT":
+      return "Action submission could not be updated."
+    default:
+      Assert.isExhausted(issue)
+      return issue
+  }
 }

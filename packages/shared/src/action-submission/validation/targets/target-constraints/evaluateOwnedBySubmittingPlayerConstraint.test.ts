@@ -48,7 +48,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       const result = evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
 
       // Assert
-      expect(result).toStrictEqual<typeof result>(Result.Success("Expected target fleet to be owned by the submitting player."))
+      expect(result).toStrictEqual<typeof result>(Result.Success({ type: "TARGET_NOT_OWNED", targetType: TargetType.FLEET }))
     })
 
     it("should accept a planet owned by the submitting player", () => {
@@ -84,7 +84,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       const result = evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
 
       // Assert
-      expect(result).toStrictEqual<typeof result>(Result.Success("Expected target planet to be owned by the submitting player."))
+      expect(result).toStrictEqual<typeof result>(Result.Success({ type: "TARGET_NOT_OWNED", targetType: TargetType.PLANET }))
     })
 
     it("should report an unowned planet", () => {
@@ -102,7 +102,7 @@ describe("evaluateOwnedBySubmittingPlayerConstraint", () => {
       const result = evaluateOwnedBySubmittingPlayerConstraint({ constraint, submittingPlayerId, target })
 
       // Assert
-      expect(result).toStrictEqual<typeof result>(Result.Success("Expected target planet to be owned by the submitting player."))
+      expect(result).toStrictEqual<typeof result>(Result.Success({ type: "TARGET_NOT_OWNED", targetType: TargetType.PLANET }))
     })
 
     it("should reject a player target as incompatible", () => {

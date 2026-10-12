@@ -1,4 +1,4 @@
-import { Assert, branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { Assert, branded, type Logger, Result, TypeGuard } from "@guillaume-docquier/tools-ts"
 import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { GameStatus } from "shared/domain/games/GameStatus.ts"
@@ -8,8 +8,8 @@ import { z } from "zod"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { rollbackOnFailure } from "#lib/db/drizzle/rollbackOnFailure.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
-import { couldNot } from "#lib/errors.ts"
 import type { GamesRepository } from "./games.repository.ts"
+import { JoinGameError } from "./joinGame.error.ts"
 
 /**
  * Joins a lobby atomically, assigning an unused player color and updating its status.
@@ -36,7 +36,7 @@ export class JoinGameUseCase {
   /**
    * Joining an already joined lobby returns a success for idempotency.
    */
-  public async execute({ gameId, accountId }: JoinGameDto): Promise<Result<void, string>> {
+  public async execute({ gameId, accountId }: JoinGameDto): Promise<Result<void, JoinGameError>> {
     const playerId = branded<PlayerId>(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
       const gameForJoin = await this.gamesRepository.getGameForJoin({ gameId }, tx)
@@ -47,8 +47,12 @@ export class JoinGameUseCase {
         return
       }
 
+      if (gameForJoin.value.status === GameStatus.READY_TO_START) {
+        throw new TransactionRollbackError("Lobby full", { cause: JoinGameError.LOBBY_FULL })
+      }
+
       if (gameForJoin.value.status !== GameStatus.WAITING_FOR_PLAYERS) {
-        throw new TransactionRollbackError("Cannot join lobby, it is full.")
+        throw new TransactionRollbackError("Game already started", { cause: JoinGameError.GAME_ALREADY_STARTED })
       }
 
       const status =
@@ -62,8 +66,12 @@ export class JoinGameUseCase {
     })
 
     if (Result.isFailure(joinGameResult)) {
+      if (joinGameResult.error instanceof TransactionRollbackError && TypeGuard.isEnumMember(JoinGameError, joinGameResult.error.cause)) {
+        return Result.Failure(joinGameResult.error.cause)
+      }
+
       this.logger.error("Could not join game lobby", { gameId, accountId, error: joinGameResult.error })
-      return Result.Failure(couldNot("join game lobby"))
+      return Result.Failure(JoinGameError.UNKNOWN)
     }
 
     return joinGameResult

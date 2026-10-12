@@ -1,4 +1,5 @@
 import type { Result } from "@guillaume-docquier/tools-ts"
+import type { TargetValidationIssue } from "#shared/action-submission/validation/ActionValidationIssue.ts"
 import type { PlayerId } from "#shared/domain/players/PlayerId.ts"
 import type { AbstractTargetConstraint } from "#shared/domain/ruleset/target-definitions/AbstractTargetConstraint.ts"
 import type { TargetType } from "#shared/domain/ruleset/target-definitions/TargetType.ts"
@@ -21,7 +22,7 @@ export type TargetConstraintEvaluator<TConstraint extends AbstractTargetConstrai
   submittingPlayerId: PlayerId
 }) => Result<TargetConstraintIssue, TargetConstraintError>
 
-export type TargetConstraintIssue = string | undefined
+export type TargetConstraintIssue = Extract<TargetValidationIssue, { type: "TARGET_NOT_OWNED" }> | undefined
 
 export type TargetConstraintError = Readonly<{
   type: string

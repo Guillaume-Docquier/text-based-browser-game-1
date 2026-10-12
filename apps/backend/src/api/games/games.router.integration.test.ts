@@ -225,7 +225,7 @@ describe("games.router", () => {
       const startGame = joiner.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Assert
-      await expect(startGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(startGame).rejects.toMatchObject({ data: { code: "FORBIDDEN" }, message: "Only the game creator can start it." })
     })
 
     integrationTest("should reject starting a game that has already started", async ({ db }) => {
@@ -240,7 +240,7 @@ describe("games.router", () => {
       const startGame = creator.client.games.startGame.mutate({ gameId: createdGameId })
 
       // Assert
-      await expect(startGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(startGame).rejects.toMatchObject({ data: { code: "CONFLICT" }, message: "The game cannot start in its current status." })
     })
 
     integrationTest("should reject anonymous game start", async ({ db }) => {
@@ -297,7 +297,10 @@ describe("games.router", () => {
       const createGame = creator.client.games.create.mutate({ configuration: createGameConfigurationStub({ mapGenerationSeed }) })
 
       // Assert
-      await expect(createGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(createGame).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+        message: `The seed must be an integer between 0 and ${UInt32.max}.`,
+      })
     })
 
     integrationTest("should reject an unknown Ruleset", async ({ db }) => {
@@ -311,7 +314,7 @@ describe("games.router", () => {
       })
 
       // Assert
-      await expect(createGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(createGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" }, message: "The selected ruleset does not exist." })
     })
 
     integrationTest("should create a game for the authenticated player", async ({ db }) => {
@@ -397,7 +400,10 @@ describe("games.router", () => {
       })
 
       // Assert
-      await expect(createGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(createGame).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+        message: `Games cannot have more than ${MAX_NB_SEATS} seats.`,
+      })
     })
 
     integrationTest("should reject anonymous game creation", async ({ db }) => {
@@ -532,7 +538,7 @@ describe("games.router", () => {
       const getLobby = anonymous.client.games.getById.query({ gameId: 404 })
 
       // Assert
-      await expect(getLobby).rejects.toMatchObject({ data: { code: "NOT_FOUND" } })
+      await expect(getLobby).rejects.toMatchObject({ data: { code: "NOT_FOUND" }, message: "No game exists with id 404." })
     })
   })
 
@@ -671,7 +677,7 @@ describe("games.router", () => {
       const joinGame = joiner.client.games.join.mutate({ gameId: createdGameId })
 
       // Assert
-      await expect(joinGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(joinGame).rejects.toMatchObject({ data: { code: "CONFLICT" }, message: "The lobby is full." })
 
       const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(2)
@@ -690,7 +696,10 @@ describe("games.router", () => {
       const joinGame = joiner.client.games.join.mutate({ gameId: createdGameId })
 
       // Assert
-      await expect(joinGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(joinGame).rejects.toMatchObject({
+        data: { code: "CONFLICT" },
+        message: "You cannot join a game that has already started.",
+      })
 
       const lobby = await creator.client.games.getById.query({ gameId: createdGameId })
       expect(lobby.players).toHaveLength(1)
@@ -788,7 +797,10 @@ describe("games.router", () => {
       const leaveGame = leaver.client.games.leave.mutate({ gameId: createdGameId })
 
       // Assert
-      await expect(leaveGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(leaveGame).rejects.toMatchObject({
+        data: { code: "CONFLICT" },
+        message: "You cannot leave a game that has already started.",
+      })
     })
 
     integrationTest("should reject leaving a game as its creator", async ({ db }) => {
@@ -802,7 +814,7 @@ describe("games.router", () => {
       const leaveGame = player.client.games.leave.mutate({ gameId: createdGameId })
 
       // Assert
-      await expect(leaveGame).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(leaveGame).rejects.toMatchObject({ data: { code: "FORBIDDEN" }, message: "The game creator cannot leave the lobby." })
     })
 
     integrationTest("should successfully leave a game the player has not joined", async ({ db }) => {
@@ -833,4 +845,18 @@ describe("games.router", () => {
       await expect(leaveGame).rejects.toMatchObject({ data: { code: "UNAUTHORIZED" } })
     })
   })
+  integrationTest.for(["join", "leave", "startGame"] as const)(
+    "should return not found for $0 on a missing game",
+    async (operation, { db }) => {
+      // Arrange
+      using apiServer = new ApiServer(await createApiStub({ db }))
+      const player = await apiServer.createClient({ authenticated: true })
+
+      // Act
+      const request = player.client.games[operation].mutate({ gameId: 404 })
+
+      // Assert
+      await expect(request).rejects.toMatchObject({ data: { code: "NOT_FOUND" }, message: "The game does not exist." })
+    },
+  )
 })

@@ -1,8 +1,9 @@
+import type { ActionValidationIssue } from "#shared/action-submission/validation/ActionValidationIssue.ts"
 import type { ActionDefinitionId } from "#shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 
 export type SubmittedActionIssue = Readonly<{
-  issue: string
+  issue: ActionValidationIssue
   submittedActionId: string
   actionDefinitionId: ActionDefinitionId
   actionDefinitionName: string | undefined
@@ -14,7 +15,7 @@ export const SubmittedActionIssue = {
     submittedAction,
     actionDefinitionName,
   }: {
-    issue: string
+    issue: ActionValidationIssue
     submittedAction: SubmittedAction
     actionDefinitionName: string | undefined
   }): SubmittedActionIssue => {

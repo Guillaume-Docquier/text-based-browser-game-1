@@ -35,8 +35,10 @@ import {
   turnsProcessingTable,
   rulesetsTable,
 } from "#lib/db/schema.ts"
-import { couldNot } from "#lib/errors.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
+import { GetPlayerViewError } from "./getPlayerView.error.ts"
+import { UpdateActionSubmissionError, UpdateActionSubmissionRollbackError } from "./updateActionSubmission.error.ts"
+import { UpdateReadinessError } from "./updateReadiness.error.ts"
 
 type ResourceRow = typeof resourcesTable.$inferSelect
 
@@ -115,7 +117,7 @@ export class GameplayRepository extends PostgresRepository {
   public async getPlayerView(
     { gameId, playerId }: { gameId: GameId; playerId: PlayerId },
     db: PostgresRepository["db"] = this.db,
-  ): Promise<Result<PlayerViewModel | undefined, string>> {
+  ): Promise<Result<PlayerViewModel | undefined, GetPlayerViewError>> {
     const playerViewResult = await Result.tryCatch(
       db.transaction(
         async (tx) => {
@@ -196,7 +198,7 @@ export class GameplayRepository extends PostgresRepository {
 
     if (Result.isFailure(playerViewResult)) {
       this.logger.error("Could not get player game state by ids", { gameId, playerId, error: playerViewResult.error })
-      return Result.Failure(couldNot("get player game state by ids"))
+      return Result.Failure(GetPlayerViewError.UNKNOWN)
     }
 
     return playerViewResult
@@ -222,7 +224,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const gameTurn = gameTurns[0]
     if (gameTurn === undefined) {
-      throw new TransactionRollbackError("Cannot submit actions for this turn")
+      throw new UpdateActionSubmissionRollbackError({ type: UpdateActionSubmissionError.TURN_NOT_OPEN })
     }
 
     const players = await tx
@@ -232,7 +234,7 @@ export class GameplayRepository extends PostgresRepository {
     Assert.isTrue(players.length === 1)
     Assert.isDefined(players[0])
     if (players[0].isReady) {
-      throw new TransactionRollbackError("Cannot submit actions while ready")
+      throw new UpdateActionSubmissionRollbackError({ type: UpdateActionSubmissionError.PLAYER_READY })
     }
 
     const games = await tx
@@ -328,7 +330,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const gameTurn = gameTurns[0]
     if (gameTurn === undefined) {
-      throw new TransactionRollbackError("Cannot submit actions for this game and turn", {})
+      throw new TransactionRollbackError("Turn not open", { cause: UpdateReadinessError.TURN_NOT_OPEN })
     }
 
     const players = await tx

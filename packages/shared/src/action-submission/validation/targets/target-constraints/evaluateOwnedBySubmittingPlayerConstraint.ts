@@ -22,13 +22,13 @@ export function evaluateOwnedBySubmittingPlayerConstraint({
   switch (target.type) {
     case TargetType.FLEET:
       if (target.ownerPlayerId !== submittingPlayerId) {
-        return Result.Success("Expected target fleet to be owned by the submitting player.")
+        return Result.Success({ type: "TARGET_NOT_OWNED", targetType: TargetType.FLEET })
       }
 
       return Result.Success(undefined)
     case TargetType.PLANET:
       if (target.ownerPlayerId !== submittingPlayerId) {
-        return Result.Success("Expected target planet to be owned by the submitting player.")
+        return Result.Success({ type: "TARGET_NOT_OWNED", targetType: TargetType.PLANET })
       }
 
       return Result.Success(undefined)

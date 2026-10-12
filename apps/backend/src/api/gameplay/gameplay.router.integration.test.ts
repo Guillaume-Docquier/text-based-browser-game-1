@@ -511,7 +511,11 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(invalidSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(invalidSubmission).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+        message: 'The selected planet for "planet" does not exist.',
+      })
+      await expect(player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).resolves.toStrictEqual(initialPlayerView)
     })
 
     integrationTest("should reject setting an action for a stale turn", async ({ db }) => {
@@ -533,7 +537,10 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(updateActionSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(updateActionSubmission).rejects.toMatchObject({
+        data: { code: "CONFLICT" },
+        message: "Actions cannot be changed for this turn.",
+      })
     })
 
     integrationTest("should reject setting an action after the turn deadline", async ({ db }) => {
@@ -560,7 +567,8 @@ describe("gameplay.router", () => {
 
       // Assert
       await expect(updateActionSubmission).rejects.toMatchObject({
-        data: { code: "BAD_REQUEST" },
+        data: { code: "CONFLICT" },
+        message: "Actions cannot be changed for this turn.",
       })
     })
 
@@ -582,7 +590,12 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(setActionPromise).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+        message:
+          "You need 7 more influence for this action.\nYou need 3 more metal for this action.\nYou need 4 more fuel for this action.\nYou need 5 more energy for this action.",
+      })
+      await expect(player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).resolves.toStrictEqual(playerView)
     })
 
     integrationTest("should reject an action that is not available to the player", async ({ db }) => {
@@ -603,7 +616,10 @@ describe("gameplay.router", () => {
       })
 
       // Assert
-      await expect(setActionPromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(setActionPromise).rejects.toMatchObject({
+        data: { code: "BAD_REQUEST" },
+        message: "This action is not available for this player and turn.",
+      })
     })
   })
 
@@ -716,7 +732,10 @@ describe("gameplay.router", () => {
       const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 0, isReady: true })
 
       // Assert
-      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(updateReadiness).rejects.toMatchObject({
+        data: { code: "CONFLICT" },
+        message: "Readiness cannot be changed for this turn.",
+      })
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
@@ -743,7 +762,10 @@ describe("gameplay.router", () => {
       const updateReadiness = creator.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
 
       // Assert
-      await expect(updateReadiness).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+      await expect(updateReadiness).rejects.toMatchObject({
+        data: { code: "CONFLICT" },
+        message: "Readiness cannot be changed for this turn.",
+      })
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
@@ -770,5 +792,71 @@ describe("gameplay.router", () => {
       const playerView = await creator.client.gameplay.getPlayerView.query({ gameId: createdGameId })
       expect(playerView).toStrictEqual<typeof playerView>(initialPlayerView)
     })
+  })
+  integrationTest("should return not found when a lobby has no player view", async ({ db }) => {
+    // Arrange
+    using apiServer = new ApiServer(await createApiStub({ db }))
+    const player = await apiServer.createClient({ authenticated: true })
+    const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
+
+    // Act
+    const request = player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+
+    // Assert
+    await expect(request).rejects.toMatchObject({ data: { code: "NOT_FOUND" }, message: "No view exists for this player and this game." })
+  })
+
+  integrationTest("should reject action changes while ready without changing the submission", async ({ db }) => {
+    // Arrange
+    using apiServer = new ApiServer(await createApiStub({ db }))
+    const player = await apiServer.createClient({ authenticated: true })
+    const opponent = await apiServer.createClient({ authenticated: true })
+    const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub({ nbSeats: 2 }) })
+    await opponent.client.games.join.mutate({ gameId: createdGameId })
+    await player.client.games.startGame.mutate({ gameId: createdGameId })
+    await player.client.gameplay.updateReadiness.mutate({ gameId: createdGameId, turn: 1, isReady: true })
+    const initialView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+    const action = initialView.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
+    Assert.isDefined(action)
+
+    // Act
+    const request = player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: 1,
+      submittedActionTargets: { actionId: action.id, selectedTargets: {} },
+    })
+
+    // Assert
+    await expect(request).rejects.toMatchObject({ data: { code: "CONFLICT" }, message: "Cancel readiness before changing actions." })
+    await expect(player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).resolves.toStrictEqual(initialView)
+  })
+
+  integrationTest.for([
+    { selectedTargets: {}, message: 'Select a target for "planet".' },
+    { selectedTargets: { planet: "" }, message: 'Select a planet for "planet".' },
+    {
+      selectedTargets: { planet: "missing", unexpected: "missing" },
+      message: 'The selected planet for "planet" does not exist.\nUnexpected target selection "unexpected".',
+    },
+  ])("should format target validation: $message", async ({ selectedTargets, message }, { db }) => {
+    // Arrange
+    using apiServer = new ApiServer(await createApiStub({ db }))
+    const player = await apiServer.createClient({ authenticated: true })
+    const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
+    await player.client.games.startGame.mutate({ gameId: createdGameId })
+    const initialView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+    const action = initialView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+    Assert.isDefined(action)
+
+    // Act
+    const request = player.client.gameplay.updateActionSubmission.mutate({
+      gameId: createdGameId,
+      turn: 1,
+      submittedActionTargets: { actionId: action.id, selectedTargets },
+    })
+
+    // Assert
+    await expect(request).rejects.toMatchObject({ data: { code: "BAD_REQUEST" }, message })
+    await expect(player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).resolves.toStrictEqual(initialView)
   })
 })

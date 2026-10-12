@@ -1,4 +1,5 @@
 import { Result } from "@guillaume-docquier/tools-ts"
+import type { TargetValidationIssue } from "#shared/action-submission/validation/ActionValidationIssue.ts"
 import { evaluateOwnedBySubmittingPlayerConstraint } from "#shared/action-submission/validation/targets/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts"
 import type {
   TargetConstraintError,
@@ -21,15 +22,15 @@ export function validateTarget({
   target: TargetForValidation
   submittingPlayerId: PlayerId
   targetDefinition: TargetDefinition
-}): string | null {
+}): TargetValidationIssue | null {
   if (target.type !== targetDefinition.targetType) {
-    return `Expected a ${targetDefinition.targetType} target, received ${target.type}`
+    return { type: "WRONG_TARGET_TYPE", expected: targetDefinition.targetType, received: target.type }
   }
 
   for (const constraint of targetDefinition.constraints) {
     const constraintValidationResult = validateConstraint({ constraint, submittingPlayerId, target })
     if (Result.isFailure(constraintValidationResult)) {
-      return constraintValidationResult.error.error
+      return { type: "INVALID_TARGET_CONSTRAINT", constraintType: constraint.type, targetType: target.type }
     }
 
     if (constraintValidationResult.value !== undefined) {

@@ -77,7 +77,7 @@ describe("validateCosts", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: "Missing 1 INFLUENCE",
+          issue: { type: "INSUFFICIENT_RESOURCE", resourceType: ResourceType.INFLUENCE, shortage: 1 },
           submittedActionId: secondPlayerSubmittedAction.id,
           actionDefinitionId: secondPlayerSubmittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -118,7 +118,7 @@ describe("validateCosts", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: "Missing 3 INFLUENCE",
+          issue: { type: "INSUFFICIENT_RESOURCE", resourceType: ResourceType.INFLUENCE, shortage: 3 },
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
@@ -160,7 +160,7 @@ describe("validateCosts", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: "Missing 6 INFLUENCE",
+          issue: { type: "INSUFFICIENT_RESOURCE", resourceType: ResourceType.INFLUENCE, shortage: 6 },
           submittedActionId: submittedAction2.id,
           actionDefinitionId: submittedAction2.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
@@ -202,13 +202,13 @@ describe("validateCosts", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: "Missing 3 INFLUENCE",
+          issue: { type: "INSUFFICIENT_RESOURCE", resourceType: ResourceType.INFLUENCE, shortage: 3 },
           submittedActionId: submittedAction1.id,
           actionDefinitionId: submittedAction1.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,
         },
         {
-          issue: "Missing 10 INFLUENCE",
+          issue: { type: "INSUFFICIENT_RESOURCE", resourceType: ResourceType.INFLUENCE, shortage: 10 },
           submittedActionId: submittedAction2.id,
           actionDefinitionId: submittedAction2.actionDefinitionId,
           actionDefinitionName: actionDefinitionWithMultipleCosts.name,

@@ -12,7 +12,7 @@ export function validateActionDefinition(submittedActions: readonly SubmittedAct
       if (ruleset.actionDefinitions[submittedAction.actionDefinitionId] === undefined) {
         return [
           SubmittedActionIssue.create({
-            issue: "Action definition does not exist in the Ruleset",
+            issue: { type: "ACTION_DEFINITION_NOT_FOUND" },
             submittedAction,
             actionDefinitionName: undefined,
           }),

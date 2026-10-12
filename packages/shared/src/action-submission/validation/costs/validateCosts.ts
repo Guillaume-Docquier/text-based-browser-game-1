@@ -1,6 +1,7 @@
 import { Result } from "@guillaume-docquier/tools-ts"
 import type { ReadonlyDeep } from "type-fest"
 import { SubmittedActionIssue } from "#shared/action-submission/validation/SubmittedActionIssue.ts"
+import { ResourceType } from "#shared/domain/resources/ResourceType.ts"
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import type { TurnState } from "#shared/turn-resolution/TurnState.ts"
@@ -47,11 +48,11 @@ export function validateCosts(
 
     // We'll need something better that can format issues per cost effect definition if we start having costs beyond resources
     issues.push(
-      ...Object.entries(player.resources)
-        .filter(([_, resourceCount]) => resourceCount < 0)
-        .map(([resourceType, resourceCount]) =>
+      ...Object.values(ResourceType)
+        .filter((resourceType) => player.resources[resourceType] < 0)
+        .map((resourceType) =>
           SubmittedActionIssue.create({
-            issue: `Missing ${Math.abs(resourceCount)} ${resourceType}`,
+            issue: { type: "INSUFFICIENT_RESOURCE", resourceType, shortage: Math.abs(player.resources[resourceType]) },
             submittedAction,
             actionDefinitionName: actionDefinition.name,
           }),

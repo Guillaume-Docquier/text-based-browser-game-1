@@ -41,6 +41,16 @@ export const integrationTest = test
 
     return db
   })
+  /**
+   * A closed database exercises production repository failures without changing game state.
+   */
+  .extend("unavailableDb", async () => {
+    const pglite = new PGlite()
+    await pglite.waitReady
+    const db = pgliteToDb(pglite)
+    await pglite.close()
+    return db
+  })
 
 function pgliteToDb(pglite: PGlite): Database {
   // TS2375: Type

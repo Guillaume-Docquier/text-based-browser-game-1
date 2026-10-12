@@ -1,4 +1,4 @@
-import { Datetime, type Logger, mulberry32Prng, Result, Rng, Timer } from "@guillaume-docquier/tools-ts"
+import { Datetime, type Logger, mulberry32Prng, Result, TypeGuard, Rng, Timer } from "@guillaume-docquier/tools-ts"
 import { computeAvailableActions } from "shared/action-submission/computeAvailableActions.ts"
 import { AccountIdSchema } from "shared/domain/accounts/AccountId.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
@@ -10,9 +10,9 @@ import { z } from "zod"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
-import { couldNot } from "#lib/errors.ts"
 import { UInt32 } from "#lib/UInt32.ts"
 import type { GamesRepository } from "./games.repository.ts"
+import { StartGameError } from "./startGame.error.ts"
 
 /**
  * Starts a game and initializes its galaxy, resources, and first Turn atomically.
@@ -40,17 +40,17 @@ export class StartGameUseCase {
     this.createTransaction = createTransaction
   }
 
-  public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<void, string>> {
+  public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<void, StartGameError>> {
     const startGameResult = await this.createTransaction(async (tx) => {
       const gameForStart = await this.gamesRepository.getGameForStart({ gameId }, tx)
 
       if (gameForStart.createdByAccountId !== requesterAccountId) {
-        throw new TransactionRollbackError("Only the game creator can start it.")
+        throw new TransactionRollbackError("Not game creator", { cause: StartGameError.NOT_GAME_CREATOR })
       }
 
       if (gameForStart.status !== GameStatus.WAITING_FOR_PLAYERS && gameForStart.status !== GameStatus.READY_TO_START) {
         throw new TransactionRollbackError("The game cannot start in its current status.", {
-          cause: { status: gameForStart.status, expected: [GameStatus.WAITING_FOR_PLAYERS, GameStatus.READY_TO_START] },
+          cause: StartGameError.INVALID_GAME_STATUS,
         })
       }
 
@@ -88,8 +88,15 @@ export class StartGameUseCase {
     })
 
     if (Result.isFailure(startGameResult)) {
+      if (
+        startGameResult.error instanceof TransactionRollbackError &&
+        TypeGuard.isEnumMember(StartGameError, startGameResult.error.cause)
+      ) {
+        return Result.Failure(startGameResult.error.cause)
+      }
+
       this.logger.error("Could not start game", { gameId, requesterAccountId, error: startGameResult.error })
-      return Result.Failure(couldNot("start game"))
+      return Result.Failure(StartGameError.UNKNOWN)
     }
 
     return startGameResult
@@ -98,6 +105,6 @@ export class StartGameUseCase {
 
 export type StartGameDto = z.infer<typeof StartGameDtoSchema>
 export const StartGameDtoSchema = z.object({
-  gameId: z.coerce.number().pipe(GameIdSchema),
+  gameId: GameIdSchema,
   requesterAccountId: AccountIdSchema,
 })

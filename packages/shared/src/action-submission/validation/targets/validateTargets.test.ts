@@ -41,7 +41,7 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: 'Missing target selection for tag "targetPlayer"',
+          issue: { type: "MISSING_TARGET", targetTag: "targetPlayer" },
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -74,7 +74,7 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: 'Unexpected target tag "fleet"',
+          issue: { type: "UNEXPECTED_TARGET", targetTag: "fleet" },
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -112,7 +112,7 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: 'Target selection for tag "planet" must be a PLANET id',
+          issue: { type: "EMPTY_TARGET", targetTag: "planet", targetType: TargetType.PLANET },
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: actionDefinition.name,
@@ -192,13 +192,13 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: "Expected target fleet to be owned by the submitting player.",
+          issue: { type: "TARGET_NOT_OWNED", targetType: TargetType.FLEET },
           submittedActionId: submittedAction.id,
           actionDefinitionId: actionDefinition.id,
           actionDefinitionName: actionDefinition.name,
         },
         {
-          issue: "Expected target planet to be owned by the submitting player.",
+          issue: { type: "TARGET_NOT_OWNED", targetType: TargetType.PLANET },
           submittedActionId: submittedAction.id,
           actionDefinitionId: actionDefinition.id,
           actionDefinitionName: actionDefinition.name,
@@ -233,7 +233,7 @@ describe("validateTargets", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: "Expected target planet to be owned by the submitting player.",
+          issue: { type: "TARGET_NOT_OWNED", targetType: TargetType.PLANET },
           submittedActionId: submittedAction.id,
           actionDefinitionId: actionDefinition.id,
           actionDefinitionName: actionDefinition.name,
@@ -246,9 +246,13 @@ describe("validateTargets", () => {
     {
       targetType: TargetType.FLEET,
       targetId: "unknown-fleet",
-      issue: 'Target selected for tag "target" references unknown FLEET id "unknown-fleet"',
+      issue: { type: "UNKNOWN_TARGET", targetTag: "target", targetType: TargetType.FLEET, targetId: "unknown-fleet" } as const,
     },
-    { targetType: TargetType.PLANET, targetId: "123", issue: 'Target selected for tag "target" references unknown PLANET id "123"' },
+    {
+      targetType: TargetType.PLANET,
+      targetId: "123",
+      issue: { type: "UNKNOWN_TARGET", targetTag: "target", targetType: TargetType.PLANET, targetId: "123" } as const,
+    },
   ])("should report an unknown $targetType target before evaluating its constraint", ({ targetType, targetId, issue }) => {
     // Arrange
     const playerId = typedParse(PlayerIdSchema, v4())

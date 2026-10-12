@@ -17,7 +17,7 @@ describe("validateActionDefinition", () => {
     expect(result).toStrictEqual<typeof result>(
       Result.Success([
         {
-          issue: "Action definition does not exist in the Ruleset",
+          issue: { type: "ACTION_DEFINITION_NOT_FOUND" },
           submittedActionId: submittedAction.id,
           actionDefinitionId: submittedAction.actionDefinitionId,
           actionDefinitionName: undefined,

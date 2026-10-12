@@ -29,7 +29,7 @@ describe("validateTarget", () => {
     const result = validateTarget({ target: unclaimedPlanetTarget, submittingPlayerId, targetDefinition })
 
     // Assert
-    expect(result).toBe("Expected target planet to be owned by the submitting player.")
+    expect(result).toStrictEqual({ type: "TARGET_NOT_OWNED", targetType: TargetType.PLANET })
   })
 
   it("should reject a target with the wrong type for its slot", () => {
@@ -42,6 +42,6 @@ describe("validateTarget", () => {
     const result = validateTarget({ target: ownedFleetTarget, submittingPlayerId, targetDefinition })
 
     // Assert
-    expect(result).toBe("Expected a PLANET target, received FLEET")
+    expect(result).toStrictEqual({ type: "WRONG_TARGET_TYPE", expected: TargetType.PLANET, received: TargetType.FLEET })
   })
 })

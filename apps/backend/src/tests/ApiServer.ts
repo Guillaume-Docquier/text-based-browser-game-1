@@ -1,8 +1,9 @@
 import { createServer, type Server } from "node:http"
 import type { AddressInfo } from "node:net"
 import type { Express } from "express"
+import type { Account } from "shared/domain/accounts/Account.ts"
 import type { AccountsRepository } from "#api/accounts/accounts.repository.ts"
-import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient } from "#tests/ApiClient.ts"
+import { type AnonymousApiClient, type AuthenticatedApiClient, createApiClient, createAuthenticatedApiClient } from "#tests/ApiClient.ts"
 
 /**
  * An api server that lets you create trpc clients for testing.
@@ -43,6 +44,13 @@ export class ApiServer {
     id?: string | undefined
   }): Promise<AuthenticatedApiClient | AnonymousApiClient> {
     return await createApiClient({ port: this.port, accountsRepository: this.accountsRepository, authenticated, id })
+  }
+
+  /**
+   * Reuses an account created through another API server.
+   */
+  public createClientForAccount(account: Account): AuthenticatedApiClient {
+    return createAuthenticatedApiClient({ port: this.port, account })
   }
 
   public [Symbol.dispose](): void {
