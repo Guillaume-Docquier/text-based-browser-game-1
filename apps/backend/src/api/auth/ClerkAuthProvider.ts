@@ -2,7 +2,7 @@ import { clerkClient, clerkMiddleware, getAuth } from "@clerk/express"
 import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import type { RequestHandler, Request } from "express"
 import type { AuthProvider, AuthStatus, User } from "#api/auth/AuthProvider.ts"
-import { couldNot } from "#lib/errors.ts"
+import { FetchUserError } from "#api/auth/fetchUser.error.ts"
 
 export class ClerkAuthProvider implements AuthProvider {
   private readonly logger: Logger
@@ -18,22 +18,17 @@ export class ClerkAuthProvider implements AuthProvider {
   public parseAuthStatus({ req }: { req: Request }): AuthStatus {
     const auth = getAuth(req)
     if (!auth.isAuthenticated) {
-      return {
-        isAuthenticated: auth.isAuthenticated,
-      }
+      return { isAuthenticated: false }
     }
 
-    return {
-      isAuthenticated: auth.isAuthenticated,
-      authId: auth.userId,
-    }
+    return { isAuthenticated: true, authId: auth.userId }
   }
 
-  public async fetchUser({ authId }: { authId: string }): Promise<Result<User, string>> {
+  public async fetchUser({ authId }: { authId: string }): Promise<Result<User, FetchUserError>> {
     const clerkUserResult = await Result.tryCatch(clerkClient.users.getUser(authId))
     if (Result.isFailure(clerkUserResult)) {
       this.logger.error("Could not get user data from clerk", { authId, error: clerkUserResult.error })
-      return Result.Failure(couldNot("get user data from clerk"))
+      return Result.Failure(FetchUserError.UNKNOWN)
     }
 
     return Result.Success({

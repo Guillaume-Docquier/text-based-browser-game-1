@@ -2,6 +2,7 @@ import { type Logger, Result } from "@guillaume-docquier/tools-ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import { z } from "zod"
+import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gameplay/updateReadiness.error.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
 import type { GameplayRepository } from "./gameplay.repository.ts"
@@ -35,7 +36,7 @@ export class UpdateReadinessUseCase {
   /**
    * Changes Readiness and checks for unanimous Readiness within one Turn transaction.
    */
-  public async execute({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, string>> {
+  public async execute({ gameId, turn, playerId, isReady }: UpdateReadinessDto): Promise<Result<void, UpdateReadinessError>> {
     const result = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getReadinessForUpdate({ gameId, playerId, turn }, tx)
 
@@ -49,7 +50,11 @@ export class UpdateReadinessUseCase {
 
     if (Result.isFailure(result)) {
       this.logger.error("Could not update readiness", { gameId, turn, playerId, error: result.error })
-      return Result.Failure(result.error.message)
+      if (result.error instanceof UpdateReadinessRollbackError) {
+        return Result.Failure(result.error.code)
+      }
+
+      return Result.Failure(UpdateReadinessError.UNKNOWN)
     }
 
     return Result.Success(undefined)

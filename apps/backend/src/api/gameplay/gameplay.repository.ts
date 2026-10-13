@@ -19,6 +19,7 @@ import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import type { Star } from "shared/domain/world/stars/Star.ts"
 import type { ResolutionFleet } from "shared/turn-resolution/state/ResolutionFleet.ts"
 import type { ResolutionPlanet } from "shared/turn-resolution/state/ResolutionPlanet.ts"
+import { UpdateReadinessError, UpdateReadinessRollbackError } from "#api/gameplay/updateReadiness.error.ts"
 import type { Clock } from "#lib/Clock.ts"
 import type { Transaction } from "#lib/db/createDb.ts"
 import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
@@ -328,7 +329,7 @@ export class GameplayRepository extends PostgresRepository {
 
     const gameTurn = gameTurns[0]
     if (gameTurn === undefined) {
-      throw new TransactionRollbackError("Cannot submit actions for this game and turn", {})
+      throw new UpdateReadinessRollbackError(UpdateReadinessError.TURN_NOT_OPEN)
     }
 
     const players = await tx

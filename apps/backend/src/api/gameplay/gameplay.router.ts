@@ -1,5 +1,6 @@
-import { Result } from "@guillaume-docquier/tools-ts"
+import { Assert, Result } from "@guillaume-docquier/tools-ts"
 import { TRPCError } from "@trpc/server"
+import { UpdateReadinessError } from "#api/gameplay/updateReadiness.error.ts"
 import { NO_OUTPUT, type Trpc } from "#api/trpc.ts"
 import { type GetPlayerViewUseCase, PlayerViewDtoSchema } from "./getPlayerView.useCase.ts"
 import { type UpdateActionSubmissionUseCase, UpdateActionSubmissionDtoSchema } from "./updateActionSubmission.useCase.ts"
@@ -26,9 +27,18 @@ export function createGameplayRouter({
       .input(UpdateReadinessDtoSchema.omit({ playerId: true }))
       .output(NO_OUTPUT)
       .mutation(async ({ input, ctx: { playerId } }) => {
-        const result = await updateReadinessUseCase.execute({ ...input, playerId })
-        if (Result.isFailure(result)) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: result.error })
+        const updateReadinessResult = await updateReadinessUseCase.execute({ ...input, playerId })
+        if (Result.isSuccess(updateReadinessResult)) {
+          return
+        }
+
+        switch (updateReadinessResult.error) {
+          case UpdateReadinessError.TURN_NOT_OPEN:
+            throw new TRPCError({ code: "CONFLICT", message: "Readiness cannot be changed: the turn is not open" })
+          case UpdateReadinessError.UNKNOWN:
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Readiness could not be updated." })
+          default:
+            Assert.isExhausted(updateReadinessResult.error)
         }
       }),
 

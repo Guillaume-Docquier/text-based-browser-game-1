@@ -74,6 +74,7 @@ export class AuthService {
       if (account === undefined) {
         const userResult = await this.authProvider.fetchUser({ authId })
         if (Result.isFailure(userResult)) {
+          this.logger.error("Could not fetch user data from Clerk", { authId, error: userResult.error })
           next()
           return
         }

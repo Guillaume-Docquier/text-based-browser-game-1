@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@guillaume-docquier/oxfmt": "^1.0.15",
-    "@guillaume-docquier/oxlint": "^1.9.0",
+    "@guillaume-docquier/oxlint": "^1.10.0",
     "@guillaume-docquier/show-me": "^1.7.1",
     "@types/node": "^26.6.4",
     "eslint-import-resolver-typescript": "^4.4.5",
@@ -51,12 +51,12 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "12.8.1",
+      "version": "12.11.2",
       "onFail": "download"
     },
     "runtime": {
       "name": "node",
-      "version": "26.8.1",
+      "version": "26.11.1",
       "onFail": "download"
     }
   }
