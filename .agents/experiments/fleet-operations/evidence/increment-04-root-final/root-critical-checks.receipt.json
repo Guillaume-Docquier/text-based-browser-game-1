@@ -1,0 +1,104 @@
+{
+  "state": "Independent current critical checks completed; full reviewer and acceptance pending",
+  "recordedAtUtc": "2026-10-13T00:01:25.4506055Z",
+  "root": "C:/Users/Guillaume/.codex/worktrees/fleet-operations-experiment/text-based-browser-game-1",
+  "branch": "codex/fleet-operations-experiment",
+  "head": "9fb5a3946bfa5ba9e9d033a88c7f4c633d84a564",
+  "sourceRows": [
+    {
+      "path": "apps/backend/src/api/gameplay/gameplay.colonization.concurrency.test.ts",
+      "sha256": "AE62C8F24CB13B3CE39B80FEA6A33DE3DE8AA020D99A90C256D2149E5C940062"
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/gameplay.concurrency.test.ts",
+      "sha256": "4A3FE3DC23741C9DEFD4E7DD9D9512B4CF106EFB0355AEFFDF5B981C2F570154"
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/gameplay.router.integration.test.ts",
+      "sha256": "9AFA15578897E79BE1ECCDC3E6C0FA2B0D375C66B9478C335AF4790D7633A5C0"
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/AssaultRuleset.unit.test.ts",
+      "sha256": "1F22CF9222AC64283310FC3581F242714C03F42B97DFCFF697C43FD2C666387E"
+    },
+    {
+      "path": "apps/backend/src/turn-processing/TurnProcessor.integration.test.ts",
+      "sha256": "4703AFDA3AC13A292EFE88E65AAF8CEDE4245F7D2002736E6A42583DD7FB5CFC"
+    },
+    {
+      "path": "apps/frontend/src/features/play/components/ActionCard.stories.tsx",
+      "sha256": "26A30930B69D47F84742D8D9A3F793ECCA2A1A06D0848BF79E31076E80343930"
+    },
+    {
+      "path": "apps/frontend/src/features/play/galaxy/GalaxyPage.stories.tsx",
+      "sha256": "367ADF02A51DAB79FFC1AE8FE412413B8B4ED8A1FB237222FF081D4D80588709"
+    },
+    {
+      "path": "packages/shared/src/action-submission/evaluateActionSelection.test.ts",
+      "sha256": "EACB95DBB8C243079895B71B88BB70483E47EE6B0219209A1212F17FE2860DDA"
+    },
+    {
+      "path": "packages/shared/src/testing/FleetActionSelectionParity.ts",
+      "sha256": "878E56FDE1C0DA0045B4CD0586A97DF719DE08B040C6181C29CB510418435367"
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/implementations/FleetMoveEffect.ts",
+      "sha256": "140576B63BBBC203FB7442E548E149483AA9BD2BA57DE84CCFAFCF08B1610894"
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/fleet-assault.test.ts",
+      "sha256": "7332A5417B0E6CC71447D113472A99707549CDC3323895315177A3F5507EA716"
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/fleet-colonization.test.ts",
+      "sha256": "D41CCB3886D4CB079864D1A15CF05A922D5F07D4B957EEDA1E82D0A74D448D64"
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/fleet-movement.test.ts",
+      "sha256": "6F855DA3D995F9A58550223B6D13D0B149AB1F27ECDE268733992BE32B97A40D"
+    }
+  ],
+  "runs": [
+    {
+      "command": "pnpm --filter shared test src/turn-resolution/fleet-colonization.test.ts src/turn-resolution/fleet-movement.test.ts src/turn-resolution/fleet-assault.test.ts src/action-submission/evaluateActionSelection.test.ts",
+      "exitCode": 0,
+      "files": 4,
+      "passedTests": 113,
+      "skippedTests": 0,
+      "output": ".agents\\experiments\\fleet-operations\\evidence\\increment-04-root-final\\root-critical-shared.output.txt",
+      "outputSha256": "C02B5D1FBBA36A58087C23C2BA280220EB1BCE5214C78E6838DB3A5DAEB7BC5E",
+      "attribution": "Root own completed actual command"
+    },
+    {
+      "command": "pnpm --filter backend test --project concurrency src/api/gameplay/gameplay.concurrency.test.ts -t 'should restore and retry the real worker save exactly once after an invalid ownership projection'",
+      "exitCode": 0,
+      "files": 1,
+      "passedTests": 1,
+      "skippedTests": 18,
+      "output": ".agents\\experiments\\fleet-operations\\evidence\\increment-04-root-final\\root-postgres-restore-retry.output.txt",
+      "outputSha256": "5FF2793341264D81577343BD9DBFD5321E05CA12646A18DB966B84103D0684D6",
+      "attribution": "Root own completed actual command"
+    }
+  ],
+  "dockerContainersAfterChecks": [
+    "cosmic-empires-worktree-43-db-1 | 0.0.0.0:10129->5432/tcp, [::]:10129->5432/tcp | Up 34 minutes (healthy)",
+    "cosmic-empires-main-db-1 | 0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp | Up 36 minutes (healthy)"
+  ],
+  "relevantListeners": [
+    {
+      "LocalAddress": "::1",
+      "LocalPort": 10129,
+      "OwningProcess": 25828
+    },
+    {
+      "LocalAddress": "::",
+      "LocalPort": 10129,
+      "OwningProcess": 6496
+    },
+    {
+      "LocalAddress": "::",
+      "LocalPort": 6006,
+      "OwningProcess": 36796
+    }
+  ]
+}

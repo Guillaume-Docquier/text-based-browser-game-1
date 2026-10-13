@@ -1,0 +1,28 @@
+{
+  "checkedAtUtc": "2026-10-13T00:04:15.2035710Z",
+  "attribution": "Reviewer own read-only structural inspection of current coverage files, not reviewer-owned coverage execution",
+  "lcov": [
+    {
+      "path": "packages/shared/coverage/lcov.info",
+      "bytes": 62904,
+      "lastWriteUtc": "2026-10-12T23:21:34.7391795Z",
+      "sha256": "8FED2F284FFFCA63170D260055A1C4E4828916345F7B9E537288D6E636262B46",
+      "sourceFiles": 159,
+      "endRecords": 159,
+      "daRows": 1425,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "path": "apps/backend/coverage/lcov.info",
+      "bytes": 34515,
+      "lastWriteUtc": "2026-10-12T23:45:44.2944730Z",
+      "sha256": "BFF71A0781886A170A94F2D5687ADF531D07098413A6990F01C9569414C4A835",
+      "sourceFiles": 80,
+      "endRecords": 80,
+      "daRows": 924,
+      "valid": true,
+      "errors": []
+    }
+  ]
+}

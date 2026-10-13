@@ -12,6 +12,7 @@ import {
   Time,
   UnitOfTime,
 } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { asc, eq } from "drizzle-orm"
 import { compareOrdinalStrings } from "shared/domain/compareOrdinalStrings.ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
@@ -4616,7 +4617,7 @@ describe("TurnProcessor", () => {
   })
 })
 
-const SpeedTwoAssaultWorkerTest = ActionDefinitionSchema.parse({
+const SpeedTwoAssaultWorkerTest = typedParse(ActionDefinitionSchema, {
   ...FlexibleAssaultTest,
   id: "TEST_SPEED_TWO_ASSAULT",
   name: "Worker Speed Two Assault",
@@ -4626,7 +4627,7 @@ const SpeedTwoAssaultWorkerTest = ActionDefinitionSchema.parse({
   ],
 })
 
-const ChargedStationaryAssaultWorkerTest = ActionDefinitionSchema.parse({
+const ChargedStationaryAssaultWorkerTest = typedParse(ActionDefinitionSchema, {
   ...StationaryAssaultTest,
   id: "TEST_CHARGED_STATIONARY_ASSAULT",
   name: "Charged Stationary Assault",
@@ -4636,7 +4637,7 @@ const ChargedStationaryAssaultWorkerTest = ActionDefinitionSchema.parse({
   ],
 })
 
-const TickFiveAttackMoveWorkerTest = ActionDefinitionSchema.parse({
+const TickFiveAttackMoveWorkerTest = typedParse(ActionDefinitionSchema, {
   ...AttackMoveTest,
   id: "TEST_TICK_FIVE_ATTACK_MOVE",
   name: "Tick Five Assault",
@@ -4644,7 +4645,7 @@ const TickFiveAttackMoveWorkerTest = ActionDefinitionSchema.parse({
     effect.type === FleetMoveEffectDefinition.type ? { ...effect, parameters: { ...effect.parameters, speed: 20 } } : effect,
   ),
 })
-const TickTenAttackMoveWorkerTest = ActionDefinitionSchema.parse({
+const TickTenAttackMoveWorkerTest = typedParse(ActionDefinitionSchema, {
   ...AttackMoveTest,
   id: "TEST_TICK_TEN_ATTACK_MOVE",
   name: "Tick Ten Assault",
@@ -4652,7 +4653,7 @@ const TickTenAttackMoveWorkerTest = ActionDefinitionSchema.parse({
     effect.type === FleetMoveEffectDefinition.type ? { ...effect, parameters: { ...effect.parameters, speed: 9.5 } } : effect,
   ),
 })
-const TickFifteenAttackMoveWorkerTest = ActionDefinitionSchema.parse({
+const TickFifteenAttackMoveWorkerTest = typedParse(ActionDefinitionSchema, {
   ...AttackMoveTest,
   id: "TEST_TICK_FIFTEEN_ATTACK_MOVE",
   name: "Tick Fifteen Assault",
@@ -4717,7 +4718,7 @@ const MultiInstanceTestRuleset = Ruleset.create({
   },
 })
 
-const SlowMoveFleetStandard = ActionDefinitionSchema.parse({
+const SlowMoveFleetStandard = typedParse(ActionDefinitionSchema, {
   ...MoveFleetStandard,
   effects: MoveFleetStandard.effects.map((effect) =>
     effect.type === FleetMoveEffectDefinition.type ? { ...effect, parameters: { ...effect.parameters, speed: 0.5 } } : effect,
@@ -4737,15 +4738,15 @@ const SlowContinuationRuleset = Ruleset.create({
   },
 })
 
-const WorkerEnemyArrivalBuildStandard = ActionDefinitionSchema.parse({
+const WorkerEnemyArrivalBuildStandard = typedParse(ActionDefinitionSchema, {
   ...BuildFleetStandard,
   effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 20 })],
 })
-const WorkerEnemyArrivalBuildImproved = ActionDefinitionSchema.parse({
+const WorkerEnemyArrivalBuildImproved = typedParse(ActionDefinitionSchema, {
   ...BuildFleetImproved,
   effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 7 })],
 })
-const WorkerEnemyArrivalMoveStandard = ActionDefinitionSchema.parse({
+const WorkerEnemyArrivalMoveStandard = typedParse(ActionDefinitionSchema, {
   ...MoveFleetStandard,
   targets: {
     ...MoveFleetStandard.targets,

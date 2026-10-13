@@ -30,7 +30,7 @@ import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 const PLAYER_A = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000001")
 const PLAYER_B = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000002")
 const PLAYER_C = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000003")
-const SpeedTwoAttackMoveTest = ActionDefinitionSchema.parse({
+const SpeedTwoAttackMoveTest = typedParse(ActionDefinitionSchema, {
   ...AttackMoveTest,
   id: "TEST_SPEED_TWO_ATTACK_MOVE",
   name: "Speed Two Attack Move",

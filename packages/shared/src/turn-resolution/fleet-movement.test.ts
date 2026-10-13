@@ -818,7 +818,7 @@ function createMovementJourney(
     strength: 20,
     destinationPlanetId: fixture.destinationId,
     distanceToEnd: 3,
-    movement: FleetMovementSchema.parse({ speed: 2, departureTurn, submission, pendingArrivalEffects: [] }),
+    movement: typedParse(FleetMovementSchema, { speed: 2, departureTurn, submission, pendingArrivalEffects: [] }),
   })
 }
 

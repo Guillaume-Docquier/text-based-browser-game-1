@@ -1,4 +1,5 @@
 import type { GameDetails, PlayerView } from "@api-types"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ReactElement } from "react"
 import { useState } from "react"
@@ -14,7 +15,7 @@ import { createPlayerStub } from "@/lib/api/Player.stub.ts"
 import { GalaxyPage } from "./GalaxyPage.tsx"
 
 const alice = createPlayerStub()
-const gameId = GameIdSchema.parse(42)
+const gameId = typedParse(GameIdSchema, 42)
 const target = createPlanetStub({ id: "planet-refresh-target", name: "Waypoint", coordinates: "1:2:3", x: 0.0001, y: 0 })
 const star = createStarStub({ id: "star-refresh-target", name: "Northstar", coordinates: "1:2", x: 0, y: 0 })
 const gameDetails: GameDetails = {

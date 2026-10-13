@@ -19,6 +19,7 @@ import { PositiveIntegerSchema } from "#shared/domain/ruleset/action-definitions
 import type { TargetTag } from "#shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import { createRulesetStub } from "#shared/domain/ruleset/Ruleset.stub.ts"
+import { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import { DifferentFromFleetOriginConstraint } from "#shared/domain/ruleset/target-definitions/DifferentFromFleetOriginTargetConstraint.ts"
 import { OwnedBySubmittingPlayerConstraint } from "#shared/domain/ruleset/target-definitions/OwnedBySubmittingPlayerTargetConstraint.ts"
 import { StationaryFleetConstraint } from "#shared/domain/ruleset/target-definitions/StationaryFleetTargetConstraint.ts"
@@ -31,11 +32,99 @@ import { FleetMovementSchema } from "#shared/domain/world/fleets/Fleet.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
-import { FleetActionSelectionParity } from "#shared/testing/FleetActionSelectionParity.ts"
+import { FleetActionSelectionParity, FleetActionSelectionParityActionPool } from "#shared/testing/FleetActionSelectionParity.ts"
 import { StationaryAssaultTest } from "#shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { ColonizeHereTest, ColonizePlanetTest, SeedOutpostTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { GainInfluence } from "#shared/testing/test-ruleset/action-definitions/gain-influence.ts"
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "#shared/testing/test-ruleset/action-definitions/move-fleet.ts"
+import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
+
+function replaceActionById(
+  actions: EligibilityState["actions"],
+  replacement: EligibilityState["actions"][number],
+): EligibilityState["actions"] {
+  const replacementById = new Map([[replacement.id, replacement]])
+  return actions.map((action) => replacementById.get(action.id) ?? action)
+}
+
+function normalizeFleetSelectionInput(
+  state: EligibilityState,
+  ruleset: Ruleset,
+  fixture: ReturnType<typeof createFixture>,
+  parity: typeof FleetActionSelectionParity,
+  candidateActionId: ActionId,
+): unknown {
+  const sourceFleet = state.fleets[fixture.fleetId]
+  const originPlanet = state.planets[fixture.originId]
+  const destinationPlanet = state.planets[fixture.destinationId]
+  const uncommittedResources = Object.fromEntries(
+    Object.values(ResourceType).map((resourceType) => [
+      resourceType,
+      state.resources[resourceType] -
+        state.actions
+          .filter((action) => action.selectedTargets !== null)
+          .flatMap((action) => ruleset.actionDefinitions[action.actionDefinitionId]?.costs ?? [])
+          .filter((cost) => cost.type === "RESOURCE_LOSS" && cost.parameters.resourceType === resourceType)
+          .reduce((total, cost) => total + cost.parameters.quantity, 0),
+    ]),
+  )
+
+  return {
+    resources: {
+      total: Object.fromEntries(Object.values(ResourceType).map((resourceType) => [resourceType, state.resources[resourceType]])),
+      uncommitted: uncommittedResources,
+    },
+    source: {
+      role: "source",
+      owner: sourceFleet?.ownerPlayerId === fixture.playerId ? "player" : "other",
+      strength: sourceFleet?.strength,
+      origin: sourceFleet?.originPlanetId === fixture.originId ? "origin" : "other",
+      movement: sourceFleet?.movement ?? null,
+    },
+    planets: [
+      {
+        role: "origin",
+        owner: originPlanet?.ownerPlayerId === fixture.playerId ? "player" : "other",
+        x: originPlanet?.x,
+        y: originPlanet?.y,
+      },
+      {
+        role: "destination",
+        owner: destinationPlanet?.ownerPlayerId === null ? null : "other",
+        x: destinationPlanet?.x,
+        y: destinationPlanet?.y,
+      },
+    ],
+    authorizedActions: ruleset.actionPool
+      .map(({ id, actionDefinitionId }) => ({ id, actionDefinitionId }))
+      .toSorted((first, second) => (first.id < second.id ? -1 : first.id > second.id ? 1 : 0)),
+    currentActions: state.actions
+      .map(({ id, actionDefinitionId, selectedTargets, selectedInputs }) => {
+        const fleetTargetId = selectedTargets?.[branded<TargetTag>("fleet")]
+        const planetTargetId = selectedTargets?.[branded<TargetTag>("planet")]
+        return {
+          id,
+          actionDefinitionId,
+          selectedTargets:
+            selectedTargets === null
+              ? null
+              : {
+                  fleet: fleetTargetId === fixture.fleetId ? "source" : fleetTargetId,
+                  planet: planetTargetId === fixture.destinationId ? "destination" : planetTargetId,
+                },
+          selectedInputs,
+          isInProgress: Object.values(state.fleets).some((fleet) => fleet.movement?.submission.id === id),
+        }
+      })
+      .toSorted((first, second) => (first.id < second.id ? -1 : first.id > second.id ? 1 : 0)),
+    candidate: {
+      id: candidateActionId,
+      actionDefinitionId: MoveFleetStandard.id,
+      selectedTargets: { fleet: "source", planet: "destination" },
+      selectedInputs: { strength: parity.standardStrength },
+    },
+  }
+}
 
 describe("evaluateActionSelection", () => {
   it("should replace the edited instance and aggregate partial Strength and resource commitments", () => {
@@ -761,13 +850,16 @@ describe("evaluateActionSelection", () => {
   it("should aggregate allocations across different movement definitions", () => {
     // Arrange
     const fixture = createFixture()
+    const firstActionId = branded<ActionId>("MOVE_FLEET_STANDARD_1")
+    const secondActionId = branded<ActionId>("MOVE_FLEET_IMPROVED_1")
     const improvedOnlyPlanetId = branded<PlanetId>("improved-only-range-planet")
-    const ruleset = createRulesetStub({
-      actionDefinitions: indexBy("id", [MoveFleetStandard, MoveFleetImproved]),
-      actionPool: [
-        { id: fixture.firstActionId, actionDefinitionId: MoveFleetStandard.id },
-        { id: fixture.secondActionId, actionDefinitionId: MoveFleetImproved.id },
-      ],
+    const ruleset = Ruleset.create({ ...TestRuleset, actionPool: FleetActionSelectionParityActionPool })
+    const improvedSubmission = createSubmittedActionStub({
+      id: secondActionId,
+      playerId: fixture.playerId,
+      actionDefinitionId: MoveFleetImproved.id,
+      selectedTargets: { fleet: fixture.fleetId, planet: fixture.destinationId },
+      selectedInputs: { strength: FleetActionSelectionParity.improvedStrength },
     })
     const state = {
       ...fixture.state,
@@ -803,28 +895,24 @@ describe("evaluateActionSelection", () => {
           strength: FleetActionSelectionParity.sourceStrength,
         }),
       ]),
-      actions: computeAvailableActions({ playerIds: [fixture.playerId], ruleset }),
+      actions: replaceActionById(computeAvailableActions({ playerIds: [fixture.playerId], ruleset }), improvedSubmission),
     }
     const standardSubmission = createSubmittedActionStub({
-      id: fixture.firstActionId,
+      id: firstActionId,
       playerId: fixture.playerId,
       actionDefinitionId: MoveFleetStandard.id,
       selectedTargets: { fleet: fixture.fleetId, planet: fixture.destinationId },
       selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
     })
-    const improvedSubmission = createSubmittedActionStub({
-      id: fixture.secondActionId,
-      playerId: fixture.playerId,
-      actionDefinitionId: MoveFleetImproved.id,
-      selectedTargets: { fleet: fixture.fleetId, planet: fixture.destinationId },
-      selectedInputs: { strength: FleetActionSelectionParity.improvedStrength },
-    })
     const partialDraft = {
-      actionId: fixture.firstActionId,
+      actionId: firstActionId,
       selectedTargets: { [branded<TargetTag>("fleet")]: fixture.fleetId },
       selectedInputs: { [branded<InputTag>("strength")]: FleetActionSelectionParity.standardStrength },
     }
+    const normalizedInput = normalizeFleetSelectionInput(state, ruleset, fixture, FleetActionSelectionParity, firstActionId)
+    expect(normalizedInput).toStrictEqual(FleetActionSelectionParity.normalizedInput)
     const partialStandard = evaluateActionSelection({ state, ruleset, draft: partialDraft })
+
     const partialDestinationCandidate = evaluateTargetCandidate({
       state,
       ruleset,
@@ -843,7 +931,7 @@ describe("evaluateActionSelection", () => {
       state,
       ruleset,
       draft: {
-        actionId: fixture.secondActionId,
+        actionId: secondActionId,
         selectedTargets: { [branded<TargetTag>("fleet")]: fixture.fleetId },
         selectedInputs: { [branded<InputTag>("strength")]: FleetActionSelectionParity.improvedStrength },
       },
@@ -918,7 +1006,7 @@ describe("evaluateActionSelection", () => {
   it("should evaluate movement through arbitrary role tags instead of conventional field names", () => {
     // Arrange
     const fixture = createFixture()
-    const customMovement = ActionDefinitionSchema.parse({
+    const customMovement = typedParse(ActionDefinitionSchema, {
       ...MoveFleetStandard,
       id: "RENAMED_MOVEMENT",
       name: "Renamed movement",
@@ -974,7 +1062,7 @@ describe("evaluateActionSelection", () => {
     const sourceFleetId = branded<FleetId>("00000000-0000-4000-8000-000000000078")
     const originId = branded<PlanetId>("00000000-0000-4000-8000-000000000079")
     const destinationId = branded<PlanetId>("00000000-0000-4000-8000-000000000080")
-    const actionDefinition = ActionDefinitionSchema.parse({
+    const actionDefinition = typedParse(ActionDefinitionSchema, {
       ...MoveFleetStandard,
       id: "ARBITRARY_TAG_MOVE",
       name: "Arbitrary tag movement",
@@ -1118,7 +1206,7 @@ describe("evaluateActionSelection", () => {
       strength: 20,
       destinationPlanetId: fixture.destinationId,
       distanceToEnd: 3,
-      movement: FleetMovementSchema.parse({ speed: 2, departureTurn: fixture.state.turn, submission, pendingArrivalEffects: [] }),
+      movement: typedParse(FleetMovementSchema, { speed: 2, departureTurn: fixture.state.turn, submission, pendingArrivalEffects: [] }),
     })
     const completedViewState: EligibilityState = {
       ...fixture.state,
@@ -1266,15 +1354,15 @@ describe("evaluateActionSelection", () => {
       gameId: typedParse(GameIdSchema, 51),
       turn: 1,
       submittingPlayerId: playerId,
-      resources: createResourcesStub({ [ResourceType.INFLUENCE]: 50, [ResourceType.FUEL]: 10 }),
+      resources: createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 2 }),
       players: indexBy("id", [{ id: playerId, ownerPlayerId: playerId }]),
       planets: indexBy("id", [origin, site, beyondRange]),
       fleets: indexBy("id", [force]),
       actions: computeAvailableActions({ playerIds: [playerId], ruleset }),
     }
-    const evaluate = (siteId: PlanetId, quota: number): ReturnType<typeof evaluateActionSelection> =>
+    const evaluate = (siteId: PlanetId, quota: number, resources = state.resources): ReturnType<typeof evaluateActionSelection> =>
       evaluateActionSelection({
-        state,
+        state: { ...state, resources },
         ruleset,
         draft: {
           actionId,
@@ -1286,11 +1374,49 @@ describe("evaluateActionSelection", () => {
         },
       })
 
+    const exactThresholdSubmission = createSubmittedActionStub({
+      id: actionId,
+      playerId,
+      actionDefinitionId: SeedOutpostTest.id,
+      selectedTargets: { force: force.id, site: site.id },
+      selectedInputs: { quota: 30 },
+    })
+    const evaluateSubmittedAtBudget = (resources: EligibilityState["resources"]): ReturnType<typeof evaluateSubmittedActions> =>
+      evaluateSubmittedActions({ state: { ...state, resources }, ruleset, submissions: [exactThresholdSubmission] })
+    const submittedAtInsufficientInfluence = evaluateSubmittedAtBudget(
+      createResourcesStub({ [ResourceType.INFLUENCE]: 6, [ResourceType.FUEL]: 2 }),
+    )
+    const submittedAtInsufficientFuel = evaluateSubmittedAtBudget(
+      createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 1 }),
+    )
+    const submittedAtExactBudget = evaluateSubmittedAtBudget(createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 2 }))
+    const insufficientInfluence = evaluate(site.id, 30, createResourcesStub({ [ResourceType.INFLUENCE]: 6, [ResourceType.FUEL]: 2 }))
+    const insufficientFuel = evaluate(site.id, 30, createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 1 }))
     const belowRequirement = evaluate(site.id, 29)
     const exactRequirement = evaluate(site.id, 30)
     const fullForce = evaluate(site.id, 45)
     const beyondRangeSelection = evaluate(beyondRange.id, 30)
 
+    expect(submittedAtInsufficientInfluence.status).toBe("INELIGIBLE")
+    expect(submittedAtInsufficientInfluence.issues).toContainEqual(
+      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
+    )
+    expect(submittedAtInsufficientFuel.status).toBe("INELIGIBLE")
+    expect(submittedAtInsufficientFuel.issues).toContainEqual(
+      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
+    )
+    expect(submittedAtExactBudget.status).toBe("ELIGIBLE")
+    expect(submittedAtExactBudget.resourceCommitments[ResourceType.INFLUENCE]).toBe(7)
+    expect(submittedAtExactBudget.resourceCommitments[ResourceType.FUEL]).toBe(2)
+    expect(submittedAtExactBudget.strengthCommitments[force.id]).toBe(30)
+    expect(insufficientInfluence.status).toBe("INELIGIBLE")
+    expect(insufficientInfluence.issues).toContainEqual(
+      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
+    )
+    expect(insufficientFuel.status).toBe("INELIGIBLE")
+    expect(insufficientFuel.issues).toContainEqual(
+      expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
+    )
     expect(belowRequirement.status).toBe("INELIGIBLE")
     expect(belowRequirement.issues).toContainEqual(
       expect.objectContaining({ code: "INSUFFICIENT_STRENGTH", targetTag: branded<TargetTag>("site") }),

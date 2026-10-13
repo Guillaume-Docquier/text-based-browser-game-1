@@ -1,4 +1,5 @@
 import { branded } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { ActionDefinitionSchema } from "shared/domain/ruleset/action-definitions/ActionDefinition.ts"
 import type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
@@ -18,7 +19,7 @@ import { describe, expect, it } from "vitest"
 const renamedActionId = "TEST_RENAMED_ATTACK_MOVE"
 const renamedPoolId = "TEST_RENAMED_ATTACK_MOVE_1"
 
-const RenamedAttackMove = ActionDefinitionSchema.parse({
+const RenamedAttackMove = typedParse(ActionDefinitionSchema, {
   ...AttackMoveTest,
   id: renamedActionId,
   name: "Flexible Landing Assault",

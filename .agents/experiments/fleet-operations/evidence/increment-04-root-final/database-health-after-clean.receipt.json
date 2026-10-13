@@ -1,0 +1,14 @@
+{
+  "recordedAtUtc": "2026-10-12T23:27:16.9966728Z",
+  "worktree": "C:\\Users\\Guillaume\\.codex\\worktrees\\fleet-operations-experiment\\text-based-browser-game-1",
+  "dockerVersionExit": 0,
+  "assignedDbInventoryExit": 0,
+  "assignedDbPgIsReadyExit": 0,
+  "log": ".agents/experiments/fleet-operations/evidence/increment-04-root-final/database-health-after-clean.output.txt",
+  "expectedProject": "cosmic-empires-worktree-43",
+  "expectedPort": 10129,
+  "humanRestartAndClear": true,
+  "rootDbCleanExit": 0,
+  "rootRestartedDocker": false,
+  "envFilesEdited": false
+}

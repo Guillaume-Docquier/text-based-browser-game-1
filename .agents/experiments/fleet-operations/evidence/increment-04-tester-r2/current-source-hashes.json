@@ -1,0 +1,70 @@
+{
+  "createdAtUtc": "2026-10-12T23:46:58.0531199Z",
+  "worktree": "C:/Users/Guillaume/.codex/worktrees/fleet-operations-experiment/text-based-browser-game-1",
+  "branch": "codex/fleet-operations-experiment",
+  "head": "9fb5a3946bfa5ba9e9d033a88c7f4c633d84a564",
+  "originalBase": "e9408c64620fc988dc3b1fd39827afabcb7d40f5",
+  "acceptedPacketSha256": "772ADC2B2D1EEFF581D2D19E0ACCBD08248B743701811BF86466DF26B1F21BBF",
+  "handoffReconciliation": {
+    "path": ".agents/experiments/fleet-operations/evidence/increment-04-root-final/source-handoff-r3-reconciliation.json",
+    "sha256": "D155CB7C6EB868AEC38D31DE6B8027B15F7C6701D3362BE38636EA137896189A",
+    "recordedAtUtc": "2026-10-12T22:58:49.4545082Z",
+    "sourceCount": 13,
+    "wholeBranchCount": 147
+  },
+  "currentWholeChangedSourceCount": 13,
+  "currentWholeChangedSourceSha256": {
+    "apps/backend/src/api/gameplay/gameplay.colonization.concurrency.test.ts": "AE62C8F24CB13B3CE39B80FEA6A33DE3DE8AA020D99A90C256D2149E5C940062",
+    "apps/backend/src/api/gameplay/gameplay.concurrency.test.ts": "4A3FE3DC23741C9DEFD4E7DD9D9512B4CF106EFB0355AEFFDF5B981C2F570154",
+    "apps/backend/src/api/gameplay/gameplay.router.integration.test.ts": "9AFA15578897E79BE1ECCDC3E6C0FA2B0D375C66B9478C335AF4790D7633A5C0",
+    "apps/backend/src/lib/rulesets/AssaultRuleset.unit.test.ts": "1F22CF9222AC64283310FC3581F242714C03F42B97DFCFF697C43FD2C666387E",
+    "apps/backend/src/turn-processing/TurnProcessor.integration.test.ts": "4703AFDA3AC13A292EFE88E65AAF8CEDE4245F7D2002736E6A42583DD7FB5CFC",
+    "apps/frontend/src/features/play/components/ActionCard.stories.tsx": "26A30930B69D47F84742D8D9A3F793ECCA2A1A06D0848BF79E31076E80343930",
+    "apps/frontend/src/features/play/galaxy/GalaxyPage.stories.tsx": "367ADF02A51DAB79FFC1AE8FE412413B8B4ED8A1FB237222FF081D4D80588709",
+    "packages/shared/src/action-submission/evaluateActionSelection.test.ts": "EACB95DBB8C243079895B71B88BB70483E47EE6B0219209A1212F17FE2860DDA",
+    "packages/shared/src/testing/FleetActionSelectionParity.ts": "878E56FDE1C0DA0045B4CD0586A97DF719DE08B040C6181C29CB510418435367",
+    "packages/shared/src/turn-resolution/effects/implementations/FleetMoveEffect.ts": "140576B63BBBC203FB7442E548E149483AA9BD2BA57DE84CCFAFCF08B1610894",
+    "packages/shared/src/turn-resolution/fleet-assault.test.ts": "7332A5417B0E6CC71447D113472A99707549CDC3323895315177A3F5507EA716",
+    "packages/shared/src/turn-resolution/fleet-colonization.test.ts": "D41CCB3886D4CB079864D1A15CF05A922D5F07D4B957EEDA1E82D0A74D448D64",
+    "packages/shared/src/turn-resolution/fleet-movement.test.ts": "6F855DA3D995F9A58550223B6D13D0B149AB1F27ECDE268733992BE32B97A40D"
+  },
+  "testerOwnedSourcePaths": [
+    "apps/backend/src/api/gameplay/gameplay.router.integration.test.ts",
+    "packages/shared/src/testing/FleetActionSelectionParity.ts"
+  ],
+  "freshSharedCoverageArtifact": {
+    "path": "packages/shared/coverage/lcov.info",
+    "sizeBytes": 62904,
+    "sha256": "8FED2F284FFFCA63170D260055A1C4E4828916345F7B9E537288D6E636262B46",
+    "modifiedAtUtc": "2026-10-12T19:21:34.73918-04:00",
+    "parityFixtureSha256": "878E56FDE1C0DA0045B4CD0586A97DF719DE08B040C6181C29CB510418435367"
+  },
+  "freshBackendCoverageArtifact": {
+    "command": "pnpm --filter backend test:coverage",
+    "exitCode": 0,
+    "tests": 181,
+    "testFiles": 13,
+    "coverage": {
+      "statements": 82.54,
+      "branches": 78.0,
+      "functions": 90.18,
+      "lines": 81.7
+    },
+    "artifact": {
+      "path": "apps/backend/coverage/lcov.info",
+      "sizeBytes": 34515,
+      "sha256": "BFF71A0781886A170A94F2D5687ADF531D07098413A6990F01C9569414C4A835",
+      "modifiedAtUtc": "2026-10-12T23:45:44.2944730Z",
+      "sourceFiles": 80,
+      "endOfRecordCount": 80,
+      "dataRows": 924
+    },
+    "output": {
+      "path": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/backend-coverage-output.txt",
+      "sizeBytes": 390871,
+      "sha256": "76FAEB2F6549E7C296059854C74F0CC43573C9A1FB7B02153237FDBC6F96721D"
+    }
+  },
+  "preO409Snapshot": ".agents/experiments/fleet-operations/evidence/increment-04-tester-r2/current-source-hashes-pre-O4-09.json",
+  "note": "The current router test input includes the approved O4-09 real-worker delegated observer correction; pre-correction backend coverage is historical only."
+}

@@ -1,4 +1,5 @@
 import { Assert, branded, indexBy, Logger, mulberry32Prng, Rng, Time, UnitOfTime, type DeepUnbranded } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { eq } from "drizzle-orm"
 import { compareOrdinalStrings } from "shared/domain/compareOrdinalStrings.ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
@@ -49,7 +50,7 @@ const MANUAL_CLOCK_ADVANCE = Time.create(2, UnitOfTime.HOURS)
 const PUBLIC_COLONIZATION_FIXTURE_RULESET_ID = "test_public_colonization_routes"
 const PUBLIC_NATURAL_COLONIZATION_RULESET_ID = "test_public_natural_colonization"
 
-const SeedOutpost: ActionDefinition = ActionDefinitionSchema.parse({
+const SeedOutpost: ActionDefinition = typedParse(ActionDefinitionSchema, {
   id: "TEST_SEED_OUTPOST",
   name: "Seed Outpost",
   type: ActionType.DIRECTIVE,
@@ -79,7 +80,7 @@ const SeedOutpost: ActionDefinition = ActionDefinitionSchema.parse({
   ],
 })
 
-const SeedOutpostHere: ActionDefinition = ActionDefinitionSchema.parse({
+const SeedOutpostHere: ActionDefinition = typedParse(ActionDefinitionSchema, {
   id: "TEST_SEED_OUTPOST_HERE",
   name: "Seed Outpost Here",
   type: ActionType.DIRECTIVE,
@@ -124,35 +125,35 @@ const PublicNaturalColonizationRuleset = Ruleset.create({
   },
 })
 
-const PublicBudgetBuild35: ActionDefinition = ActionDefinitionSchema.parse({
+const PublicBudgetBuild35: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...BuildFleetStandard,
   id: "FIXTURE_PUBLIC_BUDGET_BUILD35",
   name: "Public Budget Build 35",
   costs: [],
   effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 35 })],
 })
-const PublicBudgetBuild5: ActionDefinition = ActionDefinitionSchema.parse({
+const PublicBudgetBuild5: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...BuildFleetStandard,
   id: "FIXTURE_PUBLIC_BUDGET_BUILD5",
   name: "Public Budget Build 5",
   costs: [],
   effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 5 })],
 })
-const PublicBudgetBuild30: ActionDefinition = ActionDefinitionSchema.parse({
+const PublicBudgetBuild30: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...BuildFleetStandard,
   id: "FIXTURE_PUBLIC_BUDGET_BUILD30",
   name: "Public Budget Build 30",
   costs: [],
   effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 30 })],
 })
-const PublicBudgetStageFleet: ActionDefinition = ActionDefinitionSchema.parse({
+const PublicBudgetStageFleet: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...MoveFleetStandard,
   id: "FIXTURE_PUBLIC_BUDGET_STAGE_FLEET",
   name: "Public Budget Stage Fleet",
   costs: [],
   effects: [FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed: 10 })],
 })
-const PublicBudgetSecondColonizeHere: ActionDefinition = ActionDefinitionSchema.parse({
+const PublicBudgetSecondColonizeHere: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...ColonizeHereTest,
   id: "FIXTURE_BUDGET_COLONIZE_HERE_2",
   name: "Public Budget Colonize Here 2",
@@ -195,7 +196,7 @@ const PublicStationarySeedOutpostRuleset = Ruleset.create({
 })
 
 function createFixtureBuildFleetAction(id: string, strength: number): ActionDefinition {
-  return ActionDefinitionSchema.parse({
+  return typedParse(ActionDefinitionSchema, {
     ...BuildFleetStandard,
     id,
     name: `Fixture Build ${strength}`,
@@ -204,7 +205,7 @@ function createFixtureBuildFleetAction(id: string, strength: number): ActionDefi
 }
 
 function createFixtureMoveFleetAction(id: string, speed: number): ActionDefinition {
-  return ActionDefinitionSchema.parse({
+  return typedParse(ActionDefinitionSchema, {
     ...MoveFleetExceptional,
     id,
     name: `Fixture Move ${speed}`,
@@ -213,7 +214,7 @@ function createFixtureMoveFleetAction(id: string, speed: number): ActionDefiniti
 }
 
 function createFixtureColonizeAction(id: string, speed: number): ActionDefinition {
-  return ActionDefinitionSchema.parse({
+  return typedParse(ActionDefinitionSchema, {
     ...ColonizePlanetTest,
     id,
     name: `Fixture Colonize ${speed}`,
@@ -235,14 +236,14 @@ const MoveFleetSpeed10 = createFixtureMoveFleetAction("FIXTURE_MOVE_FLEET_SPEED_
 const ColonizeFleetSpeed2 = createFixtureColonizeAction("FIXTURE_COLONIZE_FLEET_SPEED_2", 2)
 const ColonizeFleetSpeed4 = createFixtureColonizeAction("FIXTURE_COLONIZE_FLEET_SPEED_4", 4)
 const ColonizeFleetSpeed01 = createFixtureColonizeAction("FIXTURE_COLONIZE_FLEET_SPEED_01", 0.1)
-const ColonizeFarFleetSpeed5: ActionDefinition = ActionDefinitionSchema.parse({
+const ColonizeFarFleetSpeed5: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...ColonizePlanetTest,
   id: "FIXTURE_COLONIZE_FAR_FLEET_SPEED_5",
   name: "Fixture Colonize Far Fleet Speed 5",
   targets: {
     ...ColonizePlanetTest.targets,
     planet: {
-      ...ColonizePlanetTest.targets[branded<TargetTag>("planet")],
+      ...required(ColonizePlanetTest.targets[branded<TargetTag>("planet")]),
       constraints: [
         WithinFleetRangeConstraint.create({ sourceFleetTag: "fleet", maxDistance: 25 }),
         DifferentFromFleetOriginConstraint.create({ sourceFleetTag: "fleet" }),
@@ -256,7 +257,7 @@ const ColonizeFarFleetSpeed5: ActionDefinition = ActionDefinitionSchema.parse({
   ],
 })
 const deadEarlierAttackPlanetTarget = required(AttackMoveTest.targets[branded<TargetTag>("planet")])
-const DeadEarlierAttackColonize: ActionDefinition = ActionDefinitionSchema.parse({
+const DeadEarlierAttackColonize: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...AttackMoveTest,
   id: "FIXTURE_ATTACK_MOVE_COLONIZE",
   name: "Fixture Attack Move Colonize",
@@ -273,7 +274,7 @@ const DeadEarlierAttackColonize: ActionDefinition = ActionDefinitionSchema.parse
     FleetColonizeEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthRequirement: 20 }),
   ],
 })
-const ComposedSuccessAttackColonize: ActionDefinition = ActionDefinitionSchema.parse({
+const ComposedSuccessAttackColonize: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...DeadEarlierAttackColonize,
   id: "FIXTURE_COMPOSED_ASSAULT_COLONIZE",
   name: "Fixture Composed Success Attack Colonize",
@@ -284,14 +285,14 @@ const ComposedSuccessAttackColonize: ActionDefinition = ActionDefinitionSchema.p
     FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed: 1 }),
   ],
 })
-const DeadFarAttackColonize: ActionDefinition = ActionDefinitionSchema.parse({
+const DeadFarAttackColonize: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...DeadEarlierAttackColonize,
   id: "FIXTURE_ATTACK_FAR_MOVE_COLONIZE",
   name: "Fixture Far Attack Move Colonize",
   targets: {
     ...DeadEarlierAttackColonize.targets,
     planet: {
-      ...DeadEarlierAttackColonize.targets[branded<TargetTag>("planet")],
+      ...required(DeadEarlierAttackColonize.targets[branded<TargetTag>("planet")]),
       constraints: [
         WithinFleetRangeConstraint.create({ sourceFleetTag: "fleet", maxDistance: 25 }),
         DifferentFromFleetOriginConstraint.create({ sourceFleetTag: "fleet" }),
@@ -363,7 +364,7 @@ function required<T>(value: T | null | undefined): T {
 }
 
 function playerIdFor(client: AuthenticatedApiClient): PlayerId {
-  return PlayerIdSchema.parse(client.account.id)
+  return typedParse(PlayerIdSchema, client.account.id)
 }
 type PublicPlanet = PlayerView["galaxy"]["systems"][number]["planets"][number]
 type PublicFleet = PlayerView["fleets"][number]
@@ -1100,7 +1101,7 @@ describe("public Colonization worker companions", () => {
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn }) => turn === arrivalTurn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -1317,7 +1318,7 @@ describe("public Colonization worker companions", () => {
       const persistedFleetRows = await server.database
         .select()
         .from(fleetsTable)
-        .where(eq(fleetsTable.gameId, GameIdSchema.parse(gameId)))
+        .where(eq(fleetsTable.gameId, typedParse(GameIdSchema, gameId)))
       expect(persistedFleetRows.find(({ id }) => id === loadedDefender.id)).toBeUndefined()
       expect(persistedFleetRows.find(({ id }) => id === loadedAttacker.id)?.strength).toBe(expectedSurvivingAttackerStrength)
       expect(persistedFleetRows.filter(({ id }) => id === loadedAttacker.id)).toHaveLength(expectedAttackerFleetCount)
@@ -1327,7 +1328,7 @@ describe("public Colonization worker companions", () => {
       const savedTurns = await server.database
         .select()
         .from(turnsTable)
-        .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+        .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
       const savedNextTurn = savedTurns.find(({ turn }) => turn === workerInput.turn + 1)
       Assert.isDefined(savedNextTurn)
       const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -1561,7 +1562,7 @@ describe("public Colonization worker companions", () => {
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn: candidateTurn }) => candidateTurn === turn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -1743,7 +1744,7 @@ describe("public Colonization worker companions", () => {
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn: candidateTurn }) => candidateTurn === workerInput.turn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -1846,7 +1847,7 @@ describe("public Colonization worker companions", () => {
       await server.database
         .select()
         .from(fleetsTable)
-        .where(eq(fleetsTable.gameId, GameIdSchema.parse(gameId))),
+        .where(eq(fleetsTable.gameId, typedParse(GameIdSchema, gameId))),
     ).not.toContainEqual(expect.objectContaining({ id: journey.id }))
 
     const emptyTurnInput = await captureWorkerInput({
@@ -1876,7 +1877,7 @@ describe("public Colonization worker companions", () => {
       await server.database
         .select()
         .from(fleetsTable)
-        .where(eq(fleetsTable.gameId, GameIdSchema.parse(gameId))),
+        .where(eq(fleetsTable.gameId, typedParse(GameIdSchema, gameId))),
     ).toHaveLength(0)
 
     logReceipt("[C3-03 public exact20 deletion receipt]", {
@@ -2056,12 +2057,12 @@ describe("public Colonization worker companions", () => {
       await server.database
         .select()
         .from(fleetsTable)
-        .where(eq(fleetsTable.gameId, GameIdSchema.parse(gameId))),
+        .where(eq(fleetsTable.gameId, typedParse(GameIdSchema, gameId))),
     ).toHaveLength(0)
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn }) => turn === workerInput.turn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -2254,7 +2255,7 @@ describe("public Colonization worker companions", () => {
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn }) => turn === workerInput.turn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -3190,12 +3191,12 @@ describe("public Colonization worker companions", () => {
       await server.database
         .select()
         .from(fleetsTable)
-        .where(eq(fleetsTable.gameId, GameIdSchema.parse(gameId))),
+        .where(eq(fleetsTable.gameId, typedParse(GameIdSchema, gameId))),
     ).not.toContainEqual(expect.objectContaining({ id: stationary.id }))
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn: candidateTurn }) => candidateTurn === workerInput.turn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -3513,7 +3514,7 @@ describe("public Colonization worker companions", () => {
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn }) => turn === required(readyViews[0]).turn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -3718,7 +3719,7 @@ describe("public Colonization worker companions", () => {
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn }) => turn === finalTurn.turn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -3940,7 +3941,7 @@ describe("public Colonization worker companions", () => {
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn }) => turn === required(selectedViews[0]).turn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -4191,7 +4192,7 @@ describe("public Colonization worker companions", () => {
     const savedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const savedNextTurn = savedTurns.find(({ turn }) => turn === required(selectedViews[0]).turn + 1)
     Assert.isDefined(savedNextTurn)
     const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
@@ -4807,7 +4808,7 @@ describe("public Colonization worker companions", () => {
     const exact40SavedTurns = await server.database
       .select()
       .from(turnsTable)
-      .where(eq(turnsTable.gameId, GameIdSchema.parse(gameId)))
+      .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
     const exact40SavedNextTurn = exact40SavedTurns.find(({ turn: candidateTurn }) => candidateTurn === exact40WorkerInput.turn + 1)
     Assert.isDefined(exact40SavedNextTurn)
     const exact40PersistedRngState = {

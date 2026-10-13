@@ -1,4 +1,5 @@
 import { Assert, branded, indexBy, Logger, mulberry32Prng, Rng, Time, UnitOfTime, type DeepUnbranded } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import { eq } from "drizzle-orm"
 import { compareOrdinalStrings } from "shared/domain/compareOrdinalStrings.ts"
 import { createGameConfigurationStub } from "shared/domain/games/GameConfiguration.stub.ts"
@@ -49,7 +50,7 @@ const MANUAL_WORKER_CLOCK_ADVANCE = Time.create(2, UnitOfTime.HOURS)
 const RULESET_ID_FOR_STRENGTH_RACES = "test_strength_concurrency"
 const RULESET_ID_FOR_RESOURCE_RACE = "test_resource_concurrency"
 
-const WorkerBuildFleetForty: ActionDefinition = ActionDefinitionSchema.parse({
+const WorkerBuildFleetForty: ActionDefinition = typedParse(ActionDefinitionSchema, {
   id: "TEST_BUILD_FLEET_FORTY",
   name: "Fixture Build Forty",
   type: ActionType.DIRECTIVE,
@@ -73,14 +74,14 @@ const PostgresColonizeWorkerRuleset = Ruleset.create({
   actionPool: [...TestRuleset.actionPool, { id: "TEST_BUILD_FLEET_FORTY_1", actionDefinitionId: WorkerBuildFleetForty.id }],
 })
 
-const WorkerBuildFleetSeventy: ActionDefinition = ActionDefinitionSchema.parse({
+const WorkerBuildFleetSeventy: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...WorkerBuildFleetForty,
   id: "TEST_BUILD_FLEET_SEVENTY",
   name: "Fixture Build Seventy",
   effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: 70 })],
 })
 
-const ColonizePlanetSpeedFive: ActionDefinition = ActionDefinitionSchema.parse({
+const ColonizePlanetSpeedFive: ActionDefinition = typedParse(ActionDefinitionSchema, {
   ...ColonizePlanetTest,
   id: "TEST_COLONIZE_PLANET_SPEED_FIVE",
   name: "Fixture Colonize Planet Speed Five",
@@ -138,14 +139,27 @@ const PostgresColonizeJourneyValidationRuleset = Ruleset.create({
     [ResourceType.INFLUENCE]: 50,
   },
 })
+const PostgresColonizeAssaultMove: ActionDefinition = typedParse(ActionDefinitionSchema, {
+  ...ColonizePlanetTest,
+  id: "TEST_COLONIZE_ASSAULT_MOVE",
+  name: "Colonize after Assault",
+  effects: [
+    FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed: 1 }),
+    FleetAssaultEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet" }),
+    FleetColonizeEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthRequirement: 20 }),
+  ],
+})
 const PostgresColonizeSaveFailureRuleset = Ruleset.create({
   ...TestRuleset,
   id: "test_postgres_colonize_save_failure",
   name: "PostgreSQL Colonize Save Failure Test",
+  actionDefinitions: { ...TestRuleset.actionDefinitions, [PostgresColonizeAssaultMove.id]: PostgresColonizeAssaultMove },
+  actionPool: [...TestRuleset.actionPool, { id: "TEST_COLONIZE_ASSAULT_MOVE_1", actionDefinitionId: PostgresColonizeAssaultMove.id }],
   startingResources: {
     ...TestRuleset.startingResources,
     [ResourceType.INFLUENCE]: 50,
     [ResourceType.METAL]: 5,
+    [ResourceType.FUEL]: 5,
   },
 })
 
@@ -177,7 +191,7 @@ const pendingAssaultCorruptions: readonly PendingAssaultCorruption[] = [
     corruptMovement: (movement) => ({
       ...movement,
       pendingArrivalEffects: movement.pendingArrivalEffects.map((pendingEffect, index) =>
-        index === 0 ? { ...pendingEffect, definitionOrdinal: NonNegativeSafeIntegerSchema.parse(2) } : pendingEffect,
+        index === 0 ? { ...pendingEffect, definitionOrdinal: typedParse(NonNegativeSafeIntegerSchema, 2) } : pendingEffect,
       ),
     }),
   },
@@ -255,7 +269,7 @@ const pendingColonizeCorruptions: readonly PendingColonizeCorruption[] = [
       ...movement,
       pendingArrivalEffects: movement.pendingArrivalEffects.map((pendingEffect) => ({
         ...pendingEffect,
-        definitionOrdinal: NonNegativeSafeIntegerSchema.parse(1),
+        definitionOrdinal: typedParse(NonNegativeSafeIntegerSchema, 1),
       })),
     }),
   },
@@ -552,6 +566,35 @@ type ColonizationPersistenceSnapshot = {
   turnsProcessing: Array<typeof turnsProcessingTable.$inferSelect>
 }
 
+type RetryActionInput = {
+  id: string
+  playerId: string
+  turn: number
+  actionDefinitionId: string
+  selectedTargets: unknown
+  selectedInputs: unknown
+}
+
+function projectPlayerViewActionInputs(view: PlayerView): RetryActionInput[] {
+  return view.actions
+    .flatMap(({ id, actionDefinitionId, selectedTargets, selectedInputs }) =>
+      selectedTargets === null
+        ? []
+        : [{ id, playerId: view.player.id, turn: view.turn, actionDefinitionId, selectedTargets, selectedInputs }],
+    )
+    .toSorted((first, second) => first.id.localeCompare(second.id))
+}
+
+function projectPersistedActionInputs(snapshot: ColonizationPersistenceSnapshot, playerId: PlayerId, turn: number): RetryActionInput[] {
+  return snapshot.actions
+    .flatMap(({ id, playerId: actionPlayerId, turn: actionTurn, actionDefinitionId, selectedTargets, selectedInputs }) =>
+      actionPlayerId === playerId && actionTurn === turn && selectedTargets !== null
+        ? [{ id, playerId: actionPlayerId, turn: actionTurn, actionDefinitionId, selectedTargets, selectedInputs }]
+        : [],
+    )
+    .toSorted((first, second) => first.id.localeCompare(second.id))
+}
+
 type PublicWorkerReplay = {
   resolved: ResolvedTurnState
   rngState: TurnToProcessModel["rngState"]
@@ -567,6 +610,12 @@ function compareOrdinalPair(first: string, second: string, nextFirst: string, ne
   return primaryComparison === 0 ? compareOrdinalStrings(nextFirst, nextSecond) : primaryComparison
 }
 
+function findPlanetOwnerInView(
+  view: PlayerView,
+  planetId: PlayerView["galaxy"]["systems"][number]["planets"][number]["id"],
+): PlayerId | null | undefined {
+  return view.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === planetId)?.ownerPlayerId
+}
 function findStationaryFleetAt(
   view: PlayerView,
   ownerPlayerId: PlayerId,
@@ -576,15 +625,6 @@ function findStationaryFleetAt(
     ({ ownerPlayerId: candidateOwner, originPlanetId, movement }) =>
       candidateOwner === ownerPlayerId && originPlanetId === planetId && movement === undefined,
   )
-}
-
-function hasFleetAtStrength(
-  fleets: ReadonlyArray<{ ownerPlayerId: string | null; originPlanetId: string; strength: number }>,
-  ownerPlayerId: PlayerId,
-  planetId: PlayerView["galaxy"]["systems"][number]["planets"][number]["id"],
-  strength: number,
-): boolean {
-  return fleets.some((fleet) => fleet.ownerPlayerId === ownerPlayerId && fleet.originPlanetId === planetId && fleet.strength === strength)
 }
 
 function findMovingFleetForOwner(view: PlayerView, ownerPlayerId: PlayerId): PlayerView["fleets"][number] | undefined {
@@ -597,6 +637,22 @@ function findPlayerResource<T extends { playerId: string; resourceType: Resource
   resourceType: ResourceType,
 ): T | undefined {
   return resources.find((resource) => resource.playerId === playerId && resource.resourceType === resourceType)
+}
+
+function hasFleetAtPlanet(
+  view: PlayerView,
+  ownerPlayerId: PlayerId,
+  planetId: PlayerView["galaxy"]["systems"][number]["planets"][number]["id"],
+): boolean {
+  return view.fleets.some((fleet) => fleet.ownerPlayerId === ownerPlayerId && fleet.originPlanetId === planetId)
+}
+
+function areActionInstancesReleased(actions: PlayerView["actions"]): boolean {
+  return actions.every(({ selectedTargets, isInProgress }) => selectedTargets === null && !isInProgress)
+}
+
+function hasActionForTurn(actions: ReadonlyArray<{ turn: number }>, turn: number): boolean {
+  return actions.some((action) => action.turn === turn)
 }
 
 function fundingTargetsFor(
@@ -646,7 +702,7 @@ function reverseWorkerInputEnumeration(input: TurnToProcessModel): TurnToProcess
 }
 
 function expectedTwoPlayerTieWinner(firstDraw: number, aliceAccountId: string, bobAccountId: string): PlayerId {
-  return PlayerIdSchema.parse(firstDraw < 0.5 ? bobAccountId : aliceAccountId)
+  return typedParse(PlayerIdSchema, firstDraw < 0.5 ? bobAccountId : aliceAccountId)
 }
 
 function findViewForPlayer(views: readonly PlayerView[], playerId: PlayerId): PlayerView | undefined {
@@ -701,6 +757,7 @@ async function readColonizationPersistenceSnapshot(db: Database, gameId: GameId)
 class InvalidOwnerProjectionTurnsRepository extends TurnsRepository {
   private readonly invalidOwnerPlayerId: PlayerId
   private readonly beforeInvalidSave: (processedTurn: ProcessedTurnModel) => Promise<void>
+  private injectInvalidOwnerProjection = true
 
   public constructor({
     db,
@@ -716,11 +773,15 @@ class InvalidOwnerProjectionTurnsRepository extends TurnsRepository {
     this.beforeInvalidSave = beforeInvalidSave
   }
 
+  public allowOwnershipChangesForRetry(): void {
+    this.injectInvalidOwnerProjection = false
+  }
+
   public override async saveProcessedTurn(
     processedTurn: ProcessedTurnModel,
     db?: Parameters<TurnsRepository["saveProcessedTurn"]>[1],
   ): Promise<Awaited<ReturnType<TurnsRepository["saveProcessedTurn"]>>> {
-    if (processedTurn.planetOwnershipChanges.length === 0) {
+    if (processedTurn.planetOwnershipChanges.length === 0 || !this.injectInvalidOwnerProjection) {
       return await super.saveProcessedTurn(processedTurn, db)
     }
 
@@ -1325,32 +1386,43 @@ describe("gameplay submission concurrency", () => {
     },
   )
 
-  it("should roll back the real worker save when the ownership player is outside the game", async () => {
+  it("should restore and retry the real worker save exactly once after an invalid ownership projection", async () => {
     await using server = await ConcurrencyTestApiServer.create()
     const clock = new ControlledClock({ startDate: new Date() })
     const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
     Assert.isSuccess(await rulesetsRepository.upsertRuleset(PostgresColonizeSaveFailureRuleset))
     const player = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000041" })
-    const createPublicGame = async (turnIntervalSeconds = Time.in(MANUAL_WORKER_TURN_INTERVAL, UnitOfTime.SECONDS)): Promise<GameId> => {
-      const { createdGameId } = await player.client.games.create.mutate({
-        configuration: createGameConfigurationStub({
-          rulesetId: PostgresColonizeSaveFailureRuleset.id,
-          turnIntervalSeconds,
-          mapGenerationSeed: 1234,
-        }),
-      })
-      await player.client.games.startGame.mutate({ gameId: createdGameId })
-      return createdGameId
-    }
-    const gameId = await createPublicGame()
-    const untouchedGameId = await createPublicGame(Time.in(Time.create(30, UnitOfTime.DAYS), UnitOfTime.SECONDS))
-    const invalidOwnerPlayerId = PlayerIdSchema.parse("00000000-0000-4000-8000-000000000099")
+    const defender = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000042" })
+    const { createdGameId: gameId } = await player.client.games.create.mutate({
+      configuration: createGameConfigurationStub({
+        rulesetId: PostgresColonizeSaveFailureRuleset.id,
+        turnIntervalSeconds: Time.in(MANUAL_WORKER_TURN_INTERVAL, UnitOfTime.SECONDS),
+        mapGenerationSeed: 1234,
+      }),
+    })
+    await defender.client.games.join.mutate({ gameId })
+    await player.client.games.startGame.mutate({ gameId })
+    const { createdGameId: untouchedGameId } = await player.client.games.create.mutate({
+      configuration: createGameConfigurationStub({
+        rulesetId: PostgresColonizeSaveFailureRuleset.id,
+        turnIntervalSeconds: Time.in(Time.create(30, UnitOfTime.DAYS), UnitOfTime.SECONDS),
+        mapGenerationSeed: 1234,
+      }),
+    })
+    await player.client.games.startGame.mutate({ gameId: untouchedGameId })
+    const invalidOwnerPlayerId = typedParse(PlayerIdSchema, "00000000-0000-4000-8000-000000000099")
     const expectedProjection: {
       preSaveSnapshot?: Awaited<ReturnType<typeof readColonizationPersistenceSnapshot>>
-      fleetToDeleteId?: PlayerView["fleets"][number]["id"]
       homePlanetId?: PlayerView["galaxy"]["systems"][number]["planets"][number]["id"]
       playerId?: PlayerId
-      fleetUpdate?: {
+      defenderFleetToDeleteId?: PlayerView["fleets"][number]["id"]
+      homeFleetUpdate?: {
+        id: PlayerView["fleets"][number]["id"]
+        ownerPlayerId: PlayerId
+        originPlanetId: PlayerView["galaxy"]["systems"][number]["planets"][number]["id"]
+        strength: number
+      }
+      arrivalFleetUpdate?: {
         id: PlayerView["fleets"][number]["id"]
         ownerPlayerId: PlayerId
         originPlanetId: PlayerView["galaxy"]["systems"][number]["planets"][number]["id"]
@@ -1364,17 +1436,21 @@ describe("gameplay submission concurrency", () => {
       beforeInvalidSave: async (processedTurn): Promise<void> => {
         expect(processedTurn.gameId).toBe(gameId)
         expect(processedTurn.planetOwnershipChanges).toHaveLength(1)
-        const fleetToDeleteId = expectedProjection.fleetToDeleteId
         const homePlanetId = expectedProjection.homePlanetId
         const playerId = expectedProjection.playerId
-        const fleetUpdate = expectedProjection.fleetUpdate
-        Assert.isDefined(fleetToDeleteId)
+        const defenderFleetToDeleteId = expectedProjection.defenderFleetToDeleteId
+        const homeFleetUpdate = expectedProjection.homeFleetUpdate
+        const arrivalFleetUpdate = expectedProjection.arrivalFleetUpdate
         Assert.isDefined(homePlanetId)
         Assert.isDefined(playerId)
-        Assert.isDefined(fleetUpdate)
+        Assert.isDefined(defenderFleetToDeleteId)
+        Assert.isDefined(homeFleetUpdate)
+        Assert.isDefined(arrivalFleetUpdate)
         expect(processedTurn.planetOwnershipChanges[0]?.planetId).toBe(homePlanetId)
-        expect(processedTurn.fleetIdsToDelete).toContain(fleetToDeleteId)
-        expect(processedTurn.fleetsToUpdate).toContainEqual(expect.objectContaining(fleetUpdate))
+        expect(processedTurn.planetOwnershipChanges[0]?.ownerPlayerId).toBe(playerId)
+        expect(processedTurn.fleetIdsToDelete).toContain(defenderFleetToDeleteId)
+        expect(processedTurn.fleetsToUpdate).toContainEqual(expect.objectContaining(homeFleetUpdate))
+        expect(processedTurn.fleetsToUpdate).toContainEqual(expect.objectContaining(arrivalFleetUpdate))
         expect(findPlayerResource(processedTurn.playerResources, playerId, ResourceType.INFLUENCE)?.amount).toBe(22)
         expect(findPlayerResource(processedTurn.playerResources, playerId, ResourceType.METAL)?.amount).toBe(1)
         expectedProjection.preSaveSnapshot = await readColonizationPersistenceSnapshot(server.database, gameId)
@@ -1383,20 +1459,34 @@ describe("gameplay submission concurrency", () => {
     const { turnProcessor } = await createTurnProcessorStub({ db: server.database, clock, turnsRepository })
 
     let view = await player.client.gameplay.getPlayerView.query({ gameId })
+    let defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
     const planets = view.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
     const home = planets.find(({ ownerPlayerId }) => ownerPlayerId === view.player.id)
-    const target = planets.find(({ coordinates }) => coordinates === "55:07:50")
+    const defenderHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === defenderView.player.id)
     Assert.isDefined(home)
-    Assert.isDefined(target)
-    expect({
-      home: { x: home.x, y: home.y },
-      target: { x: target.x, y: target.y, ownerPlayerId: target.ownerPlayerId },
-      routeDistance: Math.hypot(home.x - target.x, home.y - target.y),
-    }).toStrictEqual({
-      home: { x: 58.43842436611536, y: 49.61917707239218 },
-      target: { x: 57.77998524757335, y: 50.556704120958045, ownerPlayerId: null },
-      routeDistance: 1.1456435045942517,
+    Assert.isDefined(defenderHome)
+    expect(home).toMatchObject({
+      coordinates: "46:93:25",
+      x: 63.22189724800524,
+      y: 49.62838420494031,
     })
+    const target = planets.find(({ id }) => id === "3992658e-fbf9-58e0-b7ee-70a57ca38381")
+    Assert.isDefined(target)
+    expect(target).toMatchObject({
+      coordinates: "56:33:50",
+      x: 63.12006530944588,
+      y: 53.28310291556491,
+    })
+    expect(target.ownerPlayerId).toBeNull()
+    const routeDistance = Math.hypot(home.x - target.x, home.y - target.y)
+    expect(routeDistance).toBeCloseTo(3.6561371141548142, 12)
+    Logger.get().info("[C3-22 seeded natural retry route]", {
+      seed: 1234,
+      home: { id: home.id, coordinates: home.coordinates, x: home.x, y: home.y },
+      target: { id: target.id, coordinates: target.coordinates, x: target.x, y: target.y },
+      routeDistance,
+    })
+
     const submitAndAdvanceTurn = async (
       actionDefinitionId: ActionDefinitionId,
       selectedTargets: DeepUnbranded<SubmittedActionTargetsDto["selectedTargets"]>,
@@ -1414,22 +1504,154 @@ describe("gameplay submission concurrency", () => {
     }
 
     await submitAndAdvanceTurn(BuildFleetImproved.id, { planet: home.id }, {})
-    expect(view.fleets.map(({ strength }) => strength)).toStrictEqual([100])
-    const source = view.fleets[0]
+    const source = findStationaryFleetAt(view, view.player.id, home.id)
     Assert.isDefined(source)
-    await submitAndAdvanceTurn(ColonizePlanetTest.id, { fleet: source.id, planet: target.id }, { strength: 20 })
-    const movingFleet = findMovingFleetForOwner(view, view.player.id)
+    expect(source.strength).toBe(100)
+
+    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    const defenderBuildAction = defenderView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+    Assert.isDefined(defenderBuildAction)
+    await defender.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: defenderView.turn,
+      submittedActionTargets: {
+        actionId: defenderBuildAction.id,
+        selectedTargets: { planet: defenderHome.id },
+        selectedInputs: {},
+      },
+    })
+    await processManualDeadlineTurn({
+      clock,
+      turnProcessor,
+      turnsRepository,
+      client: defender.client,
+      gameId,
+      turn: defenderView.turn,
+    })
+    view = await player.client.gameplay.getPlayerView.query({ gameId })
+    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+
+    const defenderSource = findStationaryFleetAt(defenderView, defenderView.player.id, defenderHome.id)
+    const defenderMoveAction = defenderView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetExceptional.id)
+    Assert.isDefined(defenderSource)
+    Assert.isDefined(defenderMoveAction)
+    expect(defenderSource.strength).toBe(10)
+    expect(defenderHome).toMatchObject({
+      coordinates: "44:96:25",
+      x: 46.15278531453192,
+      y: 49.009213135673384,
+    })
+    const defenderRouteDistance = Math.hypot(defenderHome.x - target.x, defenderHome.y - target.y)
+    expect(defenderRouteDistance).toBeCloseTo(17.49727762471833, 12)
+    await defender.client.gameplay.updateActionSubmission.mutate({
+      gameId,
+      turn: defenderView.turn,
+      submittedActionTargets: {
+        actionId: defenderMoveAction.id,
+        selectedTargets: { fleet: defenderSource.id, planet: target.id },
+        selectedInputs: { strength: defenderSource.strength },
+      },
+    })
+    await processManualDeadlineTurn({
+      clock,
+      turnProcessor,
+      turnsRepository,
+      client: defender.client,
+      gameId,
+      turn: defenderView.turn,
+    })
+    view = await player.client.gameplay.getPlayerView.query({ gameId })
+    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    let defenderJourney = findMovingFleetForOwner(defenderView, defenderView.player.id)
+    Assert.isDefined(defenderJourney)
+    expect(defenderJourney.distanceToEnd).toBeCloseTo(12.497277624718329, 12)
+
+    await processManualDeadlineTurn({
+      clock,
+      turnProcessor,
+      turnsRepository,
+      client: defender.client,
+      gameId,
+      turn: defenderView.turn,
+    })
+    view = await player.client.gameplay.getPlayerView.query({ gameId })
+    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    defenderJourney = findMovingFleetForOwner(defenderView, defenderView.player.id)
+    Assert.isDefined(defenderJourney)
+    expect(defenderJourney.distanceToEnd).toBeCloseTo(7.497277624718329, 12)
+
+    await processManualDeadlineTurn({
+      clock,
+      turnProcessor,
+      turnsRepository,
+      client: defender.client,
+      gameId,
+      turn: defenderView.turn,
+    })
+    view = await player.client.gameplay.getPlayerView.query({ gameId })
+    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    defenderJourney = findMovingFleetForOwner(defenderView, defenderView.player.id)
+    Assert.isDefined(defenderJourney)
+    expect(defenderJourney.distanceToEnd).toBeCloseTo(2.497277624718329, 12)
+
+    await processManualDeadlineTurn({
+      clock,
+      turnProcessor,
+      turnsRepository,
+      client: defender.client,
+      gameId,
+      turn: defenderView.turn,
+    })
+    view = await player.client.gameplay.getPlayerView.query({ gameId })
+    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    expect(findMovingFleetForOwner(defenderView, defenderView.player.id)).toBeUndefined()
+    const stagedDefender = findStationaryFleetAt(defenderView, defenderView.player.id, target.id)
+    Assert.isDefined(stagedDefender)
+    expect(stagedDefender.strength).toBe(10)
+
+    await submitAndAdvanceTurn(PostgresColonizeAssaultMove.id, { fleet: source.id, planet: target.id }, { strength: 35 })
+    expect(view.turn).toBeGreaterThanOrEqual(5)
+    expect(view.fleets.find(({ id }) => id === source.id)?.strength).toBe(65)
+    let movingFleet = findMovingFleetForOwner(view, view.player.id)
     Assert.isDefined(movingFleet)
-    expect(movingFleet.distanceToEnd).toBeCloseTo(0.1456435045942517, 12)
-    expect(view.turn).toBe(3)
-    expect(view.fleets.find(({ id }) => id === source.id)?.strength).toBe(80)
-    expect(movingFleet.strength).toBe(20)
-    expectedProjection.fleetToDeleteId = movingFleet.id
+    Assert.isDefined(movingFleet.distanceToEnd)
+    expect(movingFleet.distanceToEnd).toBeCloseTo(2.6561371141548142, 12)
+    await processManualDeadlineTurn({
+      clock,
+      turnProcessor,
+      turnsRepository,
+      client: player.client,
+      gameId,
+      turn: view.turn,
+    })
+    view = await player.client.gameplay.getPlayerView.query({ gameId })
+    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    movingFleet = findMovingFleetForOwner(view, view.player.id)
+    Assert.isDefined(movingFleet)
+    Assert.isDefined(movingFleet.distanceToEnd)
+    expect(movingFleet.distanceToEnd).toBeCloseTo(1.6561371141548142, 12)
+
+    await processManualDeadlineTurn({
+      clock,
+      turnProcessor,
+      turnsRepository,
+      client: player.client,
+      gameId,
+      turn: view.turn,
+    })
+    view = await player.client.gameplay.getPlayerView.query({ gameId })
+    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    movingFleet = findMovingFleetForOwner(view, view.player.id)
+    Assert.isDefined(movingFleet)
+    Assert.isDefined(movingFleet.distanceToEnd)
+    expect(movingFleet.distanceToEnd).toBeCloseTo(0.6561371141548142, 12)
+    Assert.isDefined(movingFleet.distanceToEnd)
+    expect(movingFleet.distanceToEnd).toBeGreaterThan(0)
+    expect(movingFleet.distanceToEnd).toBeLessThanOrEqual(1)
+    expect(findPlanetOwnerInView(view, target.id)).toBeNull()
+    expectedProjection.defenderFleetToDeleteId = stagedDefender.id
     expectedProjection.homePlanetId = target.id
     expectedProjection.playerId = view.player.id
-    expect(
-      view.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === target.id)?.ownerPlayerId,
-    ).toBeNull()
 
     const influenceAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === GainInfluence.id)
     Assert.isDefined(influenceAction)
@@ -1443,11 +1665,28 @@ describe("gameplay submission concurrency", () => {
     await player.client.gameplay.updateActionSubmission.mutate({
       gameId,
       turn: view.turn,
-      submittedActionTargets: { actionId: buildAction.id, selectedTargets: { planet: home.id }, selectedInputs: {} },
+      submittedActionTargets: {
+        actionId: buildAction.id,
+        selectedTargets: { planet: home.id },
+        selectedInputs: {},
+      },
     })
-    expectedProjection.fleetUpdate = { id: source.id, ownerPlayerId: view.player.id, originPlanetId: home.id, strength: 90 }
+    expectedProjection.homeFleetUpdate = {
+      id: source.id,
+      ownerPlayerId: view.player.id,
+      originPlanetId: home.id,
+      strength: 75,
+    }
+    expectedProjection.arrivalFleetUpdate = {
+      id: movingFleet.id,
+      ownerPlayerId: view.player.id,
+      originPlanetId: target.id,
+      strength: 5,
+    }
 
     const failureView = await player.client.gameplay.getPlayerView.query({ gameId })
+    const expectedFailureActionInputs = projectPlayerViewActionInputs(failureView)
+    expect(expectedFailureActionInputs).toHaveLength(2)
     const untouchedBefore = await readColonizationPersistenceSnapshot(server.database, untouchedGameId)
     expect(untouchedBefore.planets.find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
     await markManualDeadlineDue({ clock, turnsRepository })
@@ -1458,50 +1697,134 @@ describe("gameplay submission concurrency", () => {
     const afterFailure = await readColonizationPersistenceSnapshot(server.database, gameId)
     expect(findPlayerResource(preSaveSnapshot.resources, failureView.player.id, ResourceType.INFLUENCE)?.amount).toBe(19)
     expect(findPlayerResource(preSaveSnapshot.resources, failureView.player.id, ResourceType.METAL)?.amount).toBe(2)
-    expect(preSaveSnapshot.fleets.find(({ id }) => id === source.id)?.strength).toBe(80)
-    expect(preSaveSnapshot.fleets.find(({ id }) => id === movingFleet.id)?.strength).toBe(20)
-    expect(hasFleetAtStrength(preSaveSnapshot.fleets, failureView.player.id, home.id, 10)).toBe(false)
+    expect(preSaveSnapshot.fleets.find(({ id }) => id === source.id)?.strength).toBe(65)
+    expect(preSaveSnapshot.fleets.find(({ id }) => id === movingFleet.id)?.strength).toBe(35)
+    expect(preSaveSnapshot.fleets.find(({ id }) => id === stagedDefender.id)?.strength).toBe(10)
     expect(afterFailure).toStrictEqual(preSaveSnapshot)
-    expect(afterFailure.planets.find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+    expect(findPlanetOwnerInView(failureView, target.id)).toBeNull()
     expect(afterFailure.resources).toStrictEqual(preSaveSnapshot.resources)
     expect(afterFailure.fleets).toStrictEqual(preSaveSnapshot.fleets)
     expect(afterFailure.turns.find(({ turn }) => turn === failureView.turn)).toMatchObject({
       turn: failureView.turn,
       status: TurnStatus.PROCESSING,
     })
-    expect(afterFailure.turns.map(({ turn }) => turn).toSorted((first, second) => first - second)).toStrictEqual([1, 2, 3])
+    expect(afterFailure.turns.map(({ turn }) => turn).toSorted((first, second) => first - second)).toStrictEqual(
+      Array.from({ length: failureView.turn }, (_, index) => index + 1),
+    )
     expect(afterFailure.turnsProcessing.find(({ turn }) => turn === failureView.turn)).toMatchObject({
       turn: failureView.turn,
       processingEndedAt: null,
     })
-    expect(afterFailure.actions.every(({ turn }) => turn !== failureView.turn + 1)).toBe(true)
+    expect(hasActionForTurn(afterFailure.actions, failureView.turn + 1)).toBe(false)
+    const persistedFailureActionInputs = projectPersistedActionInputs(afterFailure, failureView.player.id, failureView.turn)
+    expect(persistedFailureActionInputs).toStrictEqual(expectedFailureActionInputs)
 
     const untouchedAfter = await readColonizationPersistenceSnapshot(server.database, untouchedGameId)
     expect(untouchedAfter).toStrictEqual(untouchedBefore)
-    expect(untouchedAfter.turns.map(({ turn }) => turn)).toStrictEqual([1])
-    expect(untouchedAfter.planets.find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
 
-    Logger.get().info("[C3-22 invalid-owner rollback receipt]", {
+    Assert.isSuccess(await turnsRepository.resetProcessingAttempt({ gameId, turn: failureView.turn }))
+    const afterReset = await readColonizationPersistenceSnapshot(server.database, gameId)
+    expect(afterReset.actions).toStrictEqual(afterFailure.actions)
+    expect(afterReset.fleets).toStrictEqual(afterFailure.fleets)
+    expect(afterReset.planets).toStrictEqual(afterFailure.planets)
+    expect(afterReset.resources).toStrictEqual(afterFailure.resources)
+    const failedTurnRow = afterFailure.turns.find(({ turn }) => turn === failureView.turn)
+    const resetTurnRow = afterReset.turns.find(({ turn }) => turn === failureView.turn)
+    Assert.isDefined(failedTurnRow)
+    Assert.isDefined(resetTurnRow)
+    expect({
+      rngGeneratorState: resetTurnRow.rngGeneratorState,
+      rngSpareNormal: resetTurnRow.rngSpareNormal,
+    }).toStrictEqual({
+      rngGeneratorState: failedTurnRow.rngGeneratorState,
+      rngSpareNormal: failedTurnRow.rngSpareNormal,
+    })
+    expect(resetTurnRow.status).toBe(TurnStatus.AWAITING_PROCESSING)
+    expect(afterReset.turnsProcessing.find(({ turn }) => turn === failureView.turn)?.processingStartedAt).toBeNull()
+    expect(afterReset.turnsProcessing.find(({ turn }) => turn === failureView.turn)?.processingEndedAt).toBeNull()
+    const restoredFailureActionInputs = projectPersistedActionInputs(afterReset, failureView.player.id, failureView.turn)
+    expect(restoredFailureActionInputs).toStrictEqual(expectedFailureActionInputs)
+
+    turnsRepository.allowOwnershipChangesForRetry()
+    expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+    const retryView = await player.client.gameplay.getPlayerView.query({ gameId })
+    const retryDefenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    const afterRetry = await readColonizationPersistenceSnapshot(server.database, gameId)
+    expect(retryView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
+    expect(retryView.turn).toBe(failureView.turn + 1)
+    expect(findPlanetOwnerInView(retryView, target.id)).toBe(retryView.player.id)
+    expect(findStationaryFleetAt(retryView, retryView.player.id, home.id)).toMatchObject({ id: source.id, strength: 75 })
+    expect(findStationaryFleetAt(retryView, retryView.player.id, target.id)).toMatchObject({
+      id: movingFleet.id,
+      strength: 5,
+    })
+    expect(hasFleetAtPlanet(retryDefenderView, retryDefenderView.player.id, target.id)).toBe(false)
+    expect(retryView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 22, uncommitted: 22 })
+    expect(retryView.resources[ResourceType.METAL]).toStrictEqual({ total: 1, uncommitted: 1 })
+    expect(areActionInstancesReleased(retryView.actions)).toBe(true)
+    expect(afterRetry.turns.find(({ turn }) => turn === failureView.turn)?.status).toBe(TurnStatus.COMPLETED)
+
+    expect(await turnProcessor.processNextDueTurn()).toBe("idle")
+    const afterNoDuePoll = await readColonizationPersistenceSnapshot(server.database, gameId)
+    expect(afterNoDuePoll).toStrictEqual(afterRetry)
+
+    const emptyTurn = retryView.turn
+    await processManualDeadlineTurn({
+      clock,
+      turnProcessor,
+      turnsRepository,
+      client: player.client,
+      gameId,
+      turn: emptyTurn,
+    })
+    const emptyView = await player.client.gameplay.getPlayerView.query({ gameId })
+    const afterEmptyTurn = await readColonizationPersistenceSnapshot(server.database, gameId)
+    expect(emptyView.turn).toBe(emptyTurn + 1)
+    expect(emptyView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
+    expect(findPlanetOwnerInView(emptyView, target.id)).toBe(emptyView.player.id)
+    expect(findStationaryFleetAt(emptyView, emptyView.player.id, home.id)).toMatchObject({ id: source.id, strength: 75 })
+    expect(findStationaryFleetAt(emptyView, emptyView.player.id, target.id)).toMatchObject({
+      id: movingFleet.id,
+      strength: 5,
+    })
+    expect(emptyView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 22, uncommitted: 22 })
+    expect(emptyView.resources[ResourceType.METAL]).toStrictEqual({ total: 1, uncommitted: 1 })
+    expect(areActionInstancesReleased(emptyView.actions)).toBe(true)
+    expect(afterEmptyTurn.fleets).toStrictEqual(afterRetry.fleets)
+    expect(afterEmptyTurn.planets).toStrictEqual(afterRetry.planets)
+    expect(afterEmptyTurn.resources).toStrictEqual(afterRetry.resources)
+    expect(afterEmptyTurn.turns.find(({ turn }) => turn === failureView.turn)?.status).toBe(TurnStatus.COMPLETED)
+    expect(afterEmptyTurn.turns.find(({ turn }) => turn === emptyTurn)?.status).toBe(TurnStatus.COMPLETED)
+
+    Logger.get().info("[C3-22 invalid-owner rollback and retry receipt]", {
       gameId,
       untouchedGameId,
-      seed: 1234,
-      target: { id: target.id, name: target.name, coordinates: target.coordinates },
-      source: { id: source.id, name: source.name, strength: source.strength },
-      arrivingFleet: { id: movingFleet.id, strength: movingFleet.strength, distanceToEnd: movingFleet.distanceToEnd },
-      intendedResources: { influence: 22, metal: 1 },
-      intendedFleetUpdate: expectedProjection.fleetUpdate,
-      intendedFleetDeletions: [movingFleet.id],
+      target: { id: target.id, coordinates: target.coordinates, owner: findPlanetOwnerInView(emptyView, target.id) },
+      input: {
+        sourceStrength: 100,
+        submittedAssaultColonizeStrength: 35,
+        defendingStrength: 10,
+        colonizationThreshold: 20,
+        expectedArrivalStrength: 5,
+        resources: { influence: 22, metal: 1 },
+      },
+      rollback: {
+        structuralSnapshotAssertion: "afterFailure.toStrictEqual(preSaveSnapshot) passed",
+        resetKeptRngState: true,
+        restoredActions: afterReset.actions.filter(({ turn }) => turn === failureView.turn).length,
+      },
+      retry: {
+        result: "processed",
+        attackerHomeStrength: findStationaryFleetAt(emptyView, emptyView.player.id, home.id)?.strength,
+        attackerTargetStrength: findStationaryFleetAt(emptyView, emptyView.player.id, target.id)?.strength,
+        defenderRemainsAtTarget: hasFleetAtPlanet(retryDefenderView, retryDefenderView.player.id, target.id),
+        immediateNoDuePoll: "idle",
+        ordinaryEmptyTurn: emptyView.turn,
+      },
       invalidOwnerPlayerId,
-      saveReturned: "failed",
-      preSaveResources: preSaveSnapshot.resources
-        .filter(({ playerId }) => playerId === failureView.player.id)
-        .map(({ resourceType, amount }) => ({ resourceType, amount }))
-        .toSorted((first, second) => compareOrdinalStrings(first.resourceType, second.resourceType)),
-      preSaveFleetStrengths: preSaveSnapshot.fleets.map(({ id, strength }) => ({ id, strength })),
       preSaveTurnStatus: preSaveSnapshot.turns.find(({ turn }) => turn === failureView.turn)?.status,
       postFailureTurnStatus: afterFailure.turns.find(({ turn }) => turn === failureView.turn)?.status,
-      ownershipRemainedNull: afterFailure.planets.find(({ id }) => id === target.id)?.ownerPlayerId === null,
-      nextTurnCreated: afterFailure.turns.some(({ turn }) => turn === failureView.turn + 1),
+      nextActionStatuses: emptyView.actions.map(({ id, isInProgress, selectedTargets }) => ({ id, isInProgress, selectedTargets })),
     })
   })
 

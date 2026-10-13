@@ -70,7 +70,8 @@ export class FleetMoveEffect extends Effect {
       return Result.Failure(EffectError.Failed({ error: `Fleet "${fleet.id}" is not an owned stationary source` }))
     }
 
-    const departureId = FleetIdSchema.parse(
+    const departureId = typedParse(
+      FleetIdSchema,
       v5(
         JSON.stringify([
           context.turnState.gameId,

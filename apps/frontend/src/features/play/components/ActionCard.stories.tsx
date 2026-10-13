@@ -1,11 +1,13 @@
 import type { Action, PlayerView, Players } from "@api-types"
-import { branded } from "@guillaume-docquier/tools-ts"
+import { branded, type DeepUnbranded } from "@guillaume-docquier/tools-ts"
+import { typedParse } from "@guillaume-docquier/tools-ts/schemas"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { type ReactElement, useState } from "react"
 import { evaluateSubmittedActions, evaluateTargetCandidate } from "shared/action-submission/evaluateActionSelection.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { ActionDefinitionSchema, type ActionDefinition } from "shared/domain/ruleset/action-definitions/ActionDefinition.ts"
+import type { ActionInputDefinition } from "shared/domain/ruleset/action-definitions/ActionInputDefinition.ts"
 import { ActionTier } from "shared/domain/ruleset/action-definitions/ActionTier.ts"
 import type { TargetTag } from "shared/domain/ruleset/action-definitions/TargetTag.ts"
 import { FleetAssaultEffectDefinition } from "shared/domain/ruleset/effect-definitions/FleetAssaultEffectDefinition.ts"
@@ -25,7 +27,7 @@ import { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import { FleetMovementSchema } from "shared/domain/world/fleets/Fleet.ts"
 import { createPlanetStub } from "shared/domain/world/planets/Planet.stub.ts"
 import { createStarStub } from "shared/domain/world/stars/Star.stub.ts"
-import { FleetActionSelectionParity } from "shared/testing/FleetActionSelectionParity.ts"
+import { FleetActionSelectionParity, FleetActionSelectionParityActionPool } from "shared/testing/FleetActionSelectionParity.ts"
 import { AttackMoveTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { ColonizeHereTest, ColonizePlanetTest } from "shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { MoveFleetExceptional, MoveFleetImproved, MoveFleetStandard } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
@@ -83,7 +85,7 @@ const existingAllocation = createSubmittedActionStub({
   selectedTargets: { fleet: homeFleet.id, planet: waypoint.id },
   selectedInputs: { strength: 15 },
 })
-const gameId = GameIdSchema.parse(77)
+const gameId = typedParse(GameIdSchema, 77)
 const storyRuleset = Ruleset.create({
   ...TestRuleset,
   actionPool: [...TestRuleset.actionPool, { id: existingAllocation.id, actionDefinitionId: MoveFleetStandard.id }],
@@ -176,6 +178,12 @@ const parityImprovedAction = createSubmittedActionStub({
   selectedTargets: { fleet: parityFleet.id, planet: parityDestination.id },
   selectedInputs: { strength: FleetActionSelectionParity.improvedStrength },
 })
+const parityRuleset = Ruleset.create({ ...TestRuleset, actionPool: FleetActionSelectionParityActionPool })
+const parityCurrentActions = FleetActionSelectionParityActionPool.map(({ id, actionDefinitionId }) =>
+  id === parityImprovedAction.id
+    ? toActionDto(parityImprovedAction, false)
+    : toActionDto(createAvailableActionStub({ id, playerId: player.id, actionDefinitionId }), false),
+)
 const parityPlayerView = {
   ...playerView,
   galaxy: {
@@ -192,9 +200,68 @@ const parityPlayerView = {
     [ResourceType.INFLUENCE]: { total: FleetActionSelectionParity.totalResources.INFLUENCE, uncommitted: 3 },
     [ResourceType.FUEL]: { total: FleetActionSelectionParity.totalResources.FUEL, uncommitted: 1 },
   },
-  ruleset: TestRuleset,
-  actions: [toActionDto(parityStandardAction, false), toActionDto(parityImprovedAction, false)],
+  ruleset: parityRuleset,
+  actions: parityCurrentActions,
 } satisfies PlayerView
+const parityNormalizedInput = {
+  resources: {
+    total: Object.fromEntries(
+      Object.values(ResourceType).map((resourceType) => [resourceType, parityPlayerView.resources[resourceType].total]),
+    ),
+    uncommitted: Object.fromEntries(
+      Object.values(ResourceType).map((resourceType) => [resourceType, parityPlayerView.resources[resourceType].uncommitted]),
+    ),
+  },
+  source: {
+    role: "source",
+    owner: parityFleet.ownerPlayerId === player.id ? "player" : "other",
+    strength: parityFleet.strength,
+    origin: parityFleet.originPlanetId === parityOrigin.id ? "origin" : "other",
+    movement: parityFleet.movement ?? null,
+  },
+  planets: [
+    {
+      role: "origin",
+      owner: parityOrigin.ownerPlayerId === player.id ? "player" : parityOrigin.ownerPlayerId,
+      x: parityOrigin.x,
+      y: parityOrigin.y,
+    },
+    {
+      role: "destination",
+      owner: parityDestination.ownerPlayerId === null ? null : "other",
+      x: parityDestination.x,
+      y: parityDestination.y,
+    },
+  ],
+  authorizedActions: parityPlayerView.ruleset.actionPool
+    .map(({ id, actionDefinitionId }) => ({ id, actionDefinitionId }))
+    .toSorted((first, second) => (first.id < second.id ? -1 : first.id > second.id ? 1 : 0)),
+  currentActions: parityPlayerView.actions
+    .map(({ id, actionDefinitionId, selectedTargets, selectedInputs, isInProgress }) => ({
+      id,
+      actionDefinitionId,
+      selectedTargets:
+        selectedTargets === null
+          ? null
+          : {
+              fleet:
+                selectedTargets[branded<TargetTag>("fleet")] === parityFleet.id ? "source" : selectedTargets[branded<TargetTag>("fleet")],
+              planet:
+                selectedTargets[branded<TargetTag>("planet")] === parityDestination.id
+                  ? "destination"
+                  : selectedTargets[branded<TargetTag>("planet")],
+            },
+      selectedInputs,
+      isInProgress,
+    }))
+    .toSorted((first, second) => (first.id < second.id ? -1 : first.id > second.id ? 1 : 0)),
+  candidate: {
+    id: parityStandardAction.id,
+    actionDefinitionId: MoveFleetStandard.id,
+    selectedTargets: { fleet: "source", planet: "destination" },
+    selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
+  },
+}
 const parityProjection = createEligibilityState(parityPlayerView)
 if (!parityProjection.success) {
   throw new Error(parityProjection.message)
@@ -365,7 +432,7 @@ function createConjoinedRangeFixture({
   name: string
   rangeLimits: readonly [number, number]
 }): ConjoinedRangeFixture {
-  const actionDefinition = ActionDefinitionSchema.parse({
+  const actionDefinition = typedParse(ActionDefinitionSchema, {
     ...AttackMoveTest,
     id,
     name,
@@ -444,7 +511,7 @@ function ConjoinedRangeCard({ fixture }: { fixture: ConjoinedRangeFixture }): Re
     </div>
   )
 }
-const renamedRelayDefinition = ActionDefinitionSchema.parse({
+const renamedRelayDefinition = typedParse(ActionDefinitionSchema, {
   ...AttackMoveTest,
   id: "TEST_RENAMED_SIEGE_RELAY",
   name: "Siege Relay",
@@ -519,7 +586,7 @@ const renamedRelayJourney = createFleetStub({
   strength: 20,
   destinationPlanetId: waypoint.id,
   distanceToEnd: 2,
-  movement: FleetMovementSchema.parse({
+  movement: typedParse(FleetMovementSchema, {
     speed: 2,
     departureTurn: 3,
     submission: renamedRelayCapturedSubmission,
@@ -570,11 +637,12 @@ const renamedRelayUnaffordableProjection = createEligibilityState(renamedRelayUn
 if (!renamedRelayUnaffordableProjection.success) {
   throw new Error(renamedRelayUnaffordableProjection.message)
 }
-const arbitraryTagActionDefinition = ActionDefinitionSchema.parse({
+const arbitraryTagActionInput: ActionInputDefinition = { type: "POSITIVE_INTEGER", label: "Units" }
+const arbitraryTagActionDefinitionInput: DeepUnbranded<ActionDefinition> = {
   ...MoveFleetStandard,
   id: "ARBITRARY_TAG_MOVE",
   name: "Arbitrary tag movement",
-  inputs: { constructor: { type: "POSITIVE_INTEGER", label: "Units" } },
+  inputs: { constructor: arbitraryTagActionInput },
   targets: {
     constructor: {
       targetType: TargetType.FLEET,
@@ -596,7 +664,8 @@ const arbitraryTagActionDefinition = ActionDefinitionSchema.parse({
       speed: 0.1,
     }),
   ],
-})
+}
+const arbitraryTagActionDefinition = typedParse(ActionDefinitionSchema, arbitraryTagActionDefinitionInput)
 const arbitraryTagAction = createAvailableActionStub({
   id: "ARBITRARY_TAG_MOVE_1",
   playerId: player.id,
@@ -775,6 +844,7 @@ export const MixedDefinitionParity: Story = {
     )
   },
   play: async ({ canvas, canvasElement, userEvent }): Promise<void> => {
+    await expect(parityNormalizedInput).toEqual(FleetActionSelectionParity.normalizedInput)
     const body = within(canvasElement.ownerDocument.body)
     const fleetPicker = canvas.getByRole("combobox", { name: "Fleet target" })
     const planetPicker = canvas.getByRole("combobox", { name: "Planet target" })
@@ -1113,7 +1183,7 @@ export const OccupiedDuringMovement: Story = {
       id: "fleet-northern-source",
       strength: 20,
     })
-    const movement = FleetMovementSchema.parse({
+    const movement = typedParse(FleetMovementSchema, {
       speed: 0.1,
       departureTurn: 3,
       submission: createSubmittedActionStub({
@@ -1481,7 +1551,7 @@ export const AttackMoveJourneyInProgress: Story = {
           strength: 30,
           destinationPlanetId: waypoint.id,
           distanceToEnd: 2,
-          movement: FleetMovementSchema.parse({
+          movement: typedParse(FleetMovementSchema, {
             speed: 1,
             departureTurn: 4,
             submission: createSubmittedActionStub({
@@ -1896,7 +1966,7 @@ const seedOutpostFleet = createFleetStub({
   strength: 45,
   originPlanetId: seedOutpostSource.id,
 })
-const SeedOutpostDefinition = ActionDefinitionSchema.parse({
+const SeedOutpostDefinition = typedParse(ActionDefinitionSchema, {
   ...ColonizePlanetTest,
   id: "RENAMED_SEED_OUTPOST",
   name: "Seed Outpost",

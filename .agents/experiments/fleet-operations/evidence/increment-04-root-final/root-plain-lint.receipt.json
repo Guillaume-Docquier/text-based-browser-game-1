@@ -1,0 +1,22 @@
+{
+  "recordedAtUtc": "2026-10-13T00:01:26.0930883Z",
+  "command": "pnpm lint",
+  "sourceIdentity": "source-handoff-tester-r2-reconciliation.json",
+  "actualExecSession": 11837,
+  "actualToolExitCode": -2146233082,
+  "pnpmExitCode": null,
+  "exitMarkerProduced": false,
+  "partialOutput": "root-plain-lint.output.txt",
+  "outputBytes": 10558,
+  "outputSha256": "EA546C511B7E55D42963EA691D390AE8E302C4E397F89AF49C7A7AB20FA56850",
+  "result": "Failed: Rust allocation3303485 and Go VirtualAlloc1130496/errno1455; host PowerShell then fatal out-of-memory. No successful local full lint result",
+  "remainingLintProcesses": [],
+  "memoryAfter": [
+    {
+      "FreePhysicalMemory": 24729488,
+      "FreeVirtualMemory": 30819820,
+      "TotalVisibleMemorySize": 33289372,
+      "TotalVirtualMemorySize": 55309468
+    }
+  ]
+}
