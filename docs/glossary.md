@@ -36,3 +36,18 @@ These are terms and their meaning in the context of this app.
 | Turn Resolution           | The shared processing period after a Turn ends that computes the next game state.                                                                                                                  |
 | Phase                     | An engine-owned, ordered stage of Turn Resolution that determines when a category of Effects resolves.                                                                                             |
 | Tick                      | An internal precision sub-step within the Fleet Movement Phase used to sequence movement progress and arrivals.                                                                                    |
+
+## Fleet allocation and journey
+
+- **Strength allocation**: a submitted positive whole-number amount reserved from one stationary source Fleet. All submitted allocations share the source's current Strength; local unsaved drafts reserve nothing.
+- **Fleet journey**: persisted automatic movement of a departed allocation, retaining its original submission, initiating Turn and departure speed.
+- **Occupied Action instance**: the player/Action-pool ID bound to a surviving journey. It becomes reusable in the next collecting Turn after terminal release.
+- **Input slot**: an Action Definition entry mapping an Input Tag to a supported numeric input requirement; it is separate from target IDs.
+
+- **Pending arrival effect**: an indexed supported Assault or Colonize definition persisted with a journey until arrival; departure costs are excluded.
+- **Arrival intent**: transient per-order arrival priority and original submission, with an actual Fleet binding that redirects through friendly merging.
+- **Action resolution origin**: initiating Turn, Player ID and Action ID identifying ownership of this resolution's outcome deltas, independently of reconstructed object identity.
+- **Normal Assault**: one simultaneous snapshot exchange between an explicit attacker and all stationed opponents at its destination.
+
+- **Colonization Attempt**: a moving or stationary `COLONIZE` intent that claims an Unclaimed Planet after Combat and consumes exactly its configured required Strength on success.
+- **Unclaimed Planet**: a Planet whose `ownerPlayerId` is null; Colonization changes only that owner value.

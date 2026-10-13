@@ -16,6 +16,7 @@ export function SearchSelect<TOption extends SearchSelectOption>({
   value,
   placeholder,
   disabled = false,
+  allowSingleOptionSelection = false,
   onValueChange,
 }: {
   label: string
@@ -23,6 +24,7 @@ export function SearchSelect<TOption extends SearchSelectOption>({
   value: TOption["id"] | undefined
   placeholder: string
   disabled?: boolean
+  allowSingleOptionSelection?: boolean
   onValueChange: (value: TOption["id"]) => void
 }): JSX.Element {
   const [open, setOpen] = useState(false)
@@ -30,14 +32,9 @@ export function SearchSelect<TOption extends SearchSelectOption>({
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listboxId = useId()
-  const isDisabled = disabled || options.length <= 1
+  const isDisabled = !hasSelectableOptions({ disabled, optionCount: options.length, allowSingleOptionSelection })
   const isOpen = open && !isDisabled
-  const selectedOption = options.find((option) => option.id === value)
-  const normalizedSearch = search.trim().toLowerCase()
-  const matchingOptions =
-    normalizedSearch === "" ? options : options.filter((option) => option.label.toLowerCase().includes(normalizedSearch))
-  const visibleOptions = matchingOptions.slice(0, MAX_VISIBLE_OPTIONS)
-  const activeOption = visibleOptions[activeIndex]
+  const { selectedOption, matchingOptions, visibleOptions, activeOption } = getSearchSelectChoices({ options, value, search, activeIndex })
 
   useEffect(() => {
     if (isOpen && activeOption !== undefined) {
@@ -206,4 +203,40 @@ export function SearchSelect<TOption extends SearchSelectOption>({
       </Popover.Portal>
     </Popover.Root>
   )
+}
+
+function hasSelectableOptions({
+  disabled,
+  optionCount,
+  allowSingleOptionSelection,
+}: Readonly<{
+  disabled: boolean
+  optionCount: number
+  allowSingleOptionSelection: boolean
+}>): boolean {
+  return !disabled && optionCount > (allowSingleOptionSelection ? 0 : 1)
+}
+
+function getSearchSelectChoices<TOption extends SearchSelectOption>({
+  options,
+  value,
+  search,
+  activeIndex,
+}: Readonly<{
+  options: readonly TOption[]
+  value: TOption["id"] | undefined
+  search: string
+  activeIndex: number
+}>): Readonly<{
+  selectedOption: TOption | undefined
+  matchingOptions: readonly TOption[]
+  visibleOptions: readonly TOption[]
+  activeOption: TOption | undefined
+}> {
+  const selectedOption = options.find((option) => option.id === value)
+  const normalizedSearch = search.trim().toLowerCase()
+  const matchingOptions =
+    normalizedSearch === "" ? options : options.filter((option) => option.label.toLowerCase().includes(normalizedSearch))
+  const visibleOptions = matchingOptions.slice(0, MAX_VISIBLE_OPTIONS)
+  return { selectedOption, matchingOptions, visibleOptions, activeOption: visibleOptions[activeIndex] }
 }

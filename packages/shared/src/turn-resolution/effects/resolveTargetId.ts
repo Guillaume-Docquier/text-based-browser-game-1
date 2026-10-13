@@ -44,7 +44,7 @@ export function safeResolveTargetId(
 /**
  * A utility to resolve target ids from selected targets and a target definition.
  * It will parse and brand the target id for you.
- * It is expected that targets have been validated by {@link validateTargets} prior to calling this. Any invalid target will throw an Assertion error.
+ * It is expected that targets have been validated by shared complete selection eligibility prior to calling this. Any invalid target will throw an Assertion error.
  */
 export function resolveTargetId<TTargetType extends TargetType>(
   selectedTargets: SelectedTargets,

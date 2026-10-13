@@ -1,143 +1,120 @@
-import { Result } from "@guillaume-docquier/tools-ts"
-import { NonNegativeNumberSchema, typedParse } from "@guillaume-docquier/tools-ts/schemas"
+import { branded, Result } from "@guillaume-docquier/tools-ts"
+import { safeTypedParse, NonNegativeNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
+import { v5 } from "uuid"
+import type { GameId } from "#shared/domain/games/GameId.ts"
 import type { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import { EffectOutcome } from "#shared/domain/turns/actions/EffectOutcome.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
+import { getPendingArrivalEffects } from "#shared/domain/world/fleets/PendingArrivalEffect.ts"
+import { getPlanetDistance } from "#shared/domain/world/planets/getPlanetDistance.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { Effect } from "#shared/turn-resolution/effects/Effect.ts"
 import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
-import { resolveTargetId } from "#shared/turn-resolution/effects/resolveTargetId.ts"
+import { generateFleetName } from "#shared/turn-resolution/effects/implementations/FleetBuildEffect.ts"
 import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
-import type { ResolutionPlanet } from "#shared/turn-resolution/state/ResolutionPlanet.ts"
 import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
-import { TurnState } from "#shared/turn-resolution/TurnState.ts"
 
-const MOVEMENT_TICKS = 20
-
+/** Departure only: the phase materializes all allocations before advancing any journey. */
 export class FleetMoveEffect extends Effect {
   private readonly effectDefinition: FleetMoveEffectDefinition
-  private readonly targetFleetId: FleetId
-  private readonly targetPlanetId: PlanetId
-
-  public constructor(id: number, effectDefinition: FleetMoveEffectDefinition, submittedAction: SubmittedAction) {
-    super(id, effectDefinition.type, submittedAction)
-    this.effectDefinition = effectDefinition
-    this.targetFleetId = resolveTargetId(this.submittedAction.selectedTargets, this.effectDefinition.targets.fleet)
-    this.targetPlanetId = resolveTargetId(this.submittedAction.selectedTargets, this.effectDefinition.targets.planet)
+  public constructor(id: number, definition: FleetMoveEffectDefinition, action: SubmittedAction) {
+    super(id, definition.type, action)
+    this.effectDefinition = definition
   }
-
   protected override doResolve(context: TurnContext): Result<EffectOutcome[], EffectError> {
-    const entitiesResult = this.getEntities(context)
-    if (Result.isFailure(entitiesResult)) {
-      return entitiesResult
-    }
-
-    const { fleet, originPlanet, destinationPlanet } = entitiesResult.value
-
-    const moveOutcome = this.move({ fleet, originPlanet, destinationPlanet })
-    if (fleet.arrivedAtTick === undefined) {
-      return Result.Success([moveOutcome])
-    }
-
-    // This is O(Fleets), but we expect the number of fleets to stay small, and the number of build effects per turn to also be small.
-    // When efficiency becomes a problem, we can reevaluate this.
-    // The biggest upside right now is that context.turnState.fleets is the authoritative, always consistent, source of truth for fleets and requires 0 upkeep.
-    const fleetAtDestination = Object.values(context.turnState.fleets).find(
-      (candidate) =>
-        candidate.id !== fleet.id &&
-        candidate.ownerPlayerId === this.submittedAction.playerId &&
-        candidate.originPlanetId === this.targetPlanetId &&
-        candidate.destinationPlanetId === undefined,
-    )
-
-    if (fleetAtDestination === undefined) {
-      return Result.Success([moveOutcome, this.land({ fleet, destinationPlanet })])
-    } else {
-      return Result.Success([moveOutcome, this.merge({ fleet, fleetAtDestination, destinationPlanet })])
-    }
+    const departure = validateDeparture(context, this.submittedAction, this.effectDefinition)
+    if (Result.isFailure(departure)) return departure
+    if (departure.value === undefined) return Result.Success([EffectOutcome.Prevented({ reason: "Source fleet no longer exists" })])
+    const { source, destination, strength } = departure.value
+    const construction = constructDeparture(context, this.submittedAction, this.effectDefinition, departure.value)
+    if (Result.isFailure(construction)) return construction
+    const child = construction.value
+    const id = child.id
+    source.strength -= strength
+    if (source.strength === 0) Reflect.deleteProperty(context.turnState.fleets, source.id)
+    context.turnState.fleets[id] = child
+    return Result.Success([
+      EffectOutcome.Resolved({ result: `Fleet "${child.name}" departed with ${strength} strength towards Planet "${destination.name}"` }),
+    ])
   }
+}
 
-  /**
-   * Gets the entities this effect needs to work with.
-   * Returns an error if it fails to find the required entities.
-   */
-  private getEntities(
-    context: TurnContext,
-  ): Result<{ fleet: ResolutionFleet; originPlanet: ResolutionPlanet; destinationPlanet: ResolutionPlanet }, EffectError> {
-    const fleet = TurnState.getFleet(context.turnState, this.targetFleetId)
-    if (fleet === undefined) {
-      return Result.Failure(EffectError.Failed({ error: "Target fleet could not be found." }))
-    }
+/** Stable identity also binds a persisted child to its initiating submission without retaining the source fleet. */
+export function getDepartureFleetId(gameId: GameId, initiatingTurn: number, action: SubmittedAction, sourceId: string): FleetId {
+  return branded<FleetId>(
+    v5(JSON.stringify([gameId, action.playerId, initiatingTurn, action.id, sourceId]), "5080712c-7db6-51ab-9ec9-874198c071bb"),
+  )
+}
 
-    const originPlanet = TurnState.getPlanet(context.turnState, fleet.originPlanetId)
-    if (originPlanet === undefined) {
-      return Result.Failure(EffectError.Failed({ error: "Origin planet could not be found." }))
-    }
+type Departure = Readonly<{
+  sourceId: string
+  source: ResolutionFleet
+  destination: TurnContext["turnState"]["planets"][PlanetId]
+  origin: TurnContext["turnState"]["planets"][PlanetId]
+  strength: number
+}>
 
-    const destinationPlanet = TurnState.getPlanet(context.turnState, this.targetPlanetId)
-    if (destinationPlanet === undefined) {
-      return Result.Failure(EffectError.Failed({ error: "Destination planet could not be found." }))
-    }
+function validateDeparture(
+  context: TurnContext,
+  action: SubmittedAction,
+  definition: FleetMoveEffectDefinition,
+): Result<Departure | undefined, EffectError> {
+  const sourceId = action.selectedTargets[definition.targets.fleet.actionTargetTag]
+  const destinationId = action.selectedTargets[definition.targets.planet.actionTargetTag]
+  if (sourceId === undefined || destinationId === undefined)
+    return Result.Failure(EffectError.Failed({ error: "Missing movement targets" }))
+  const source = context.turnState.fleets[branded<FleetId>(sourceId)]
+  const destination = context.turnState.planets[branded<PlanetId>(destinationId)]
+  const origin = source === undefined ? undefined : context.turnState.planets[source.originPlanetId]
+  const strength = action.selectedInputs[definition.inputs.strength.actionInputTag]
+  if (source === undefined || source.strength <= 0) return Result.Success(undefined)
+  const selection = { source, origin, destination, strength }
+  if (!isValidDepartureSelection(selection, action))
+    return Result.Failure(EffectError.Failed({ error: "Invalid movement departure context" }))
+  return Result.Success({ sourceId, ...selection })
+}
 
-    return Result.Success({ fleet, originPlanet, destinationPlanet })
+function constructDeparture(
+  context: TurnContext,
+  action: SubmittedAction,
+  definition: FleetMoveEffectDefinition,
+  { sourceId, source, destination, origin, strength }: Departure,
+): Result<ResolutionFleet, EffectError> {
+  const id = getDepartureFleetId(context.turnState.gameId, context.turnState.turn, action, sourceId)
+  if (context.turnState.fleets[id] !== undefined) return Result.Failure(EffectError.Failed({ error: "Duplicate departure identity" }))
+  const distance = safeTypedParse(NonNegativeNumberSchema, getPlanetDistance(origin, destination))
+  if (!distance.success) return Result.Failure(EffectError.Failed({ error: "Invalid movement distance" }))
+  const pendingArrivalEffects = getPendingArrivalEffects(context.ruleset.actionDefinitions[action.actionDefinitionId]?.effects ?? [])
+  const child = {
+    id,
+    name: generateFleetName(context.rng),
+    ownerPlayerId: source.ownerPlayerId,
+    strength,
+    originPlanetId: source.originPlanetId,
+    destinationPlanetId: destination.id,
+    distanceToEnd: distance.data,
+    movement: {
+      type: "FLEET_MOVE" as const,
+      initiatingTurn: context.turnState.turn,
+      submittedAction: action,
+      speed: definition.parameters.speed,
+      pendingArrivalEffects,
+    },
   }
+  return Result.Success(child)
+}
 
-  private move({
-    fleet,
-    originPlanet,
-    destinationPlanet,
-  }: {
-    fleet: ResolutionFleet
-    originPlanet: ResolutionPlanet
-    destinationPlanet: ResolutionPlanet
-  }): EffectOutcome {
-    fleet.destinationPlanetId ??= destinationPlanet.id
-    fleet.distanceToEnd ??= typedParse(
-      NonNegativeNumberSchema,
-      Math.hypot(destinationPlanet.x - originPlanet.x, destinationPlanet.y - originPlanet.y),
-    )
-
-    const distanceMoved = Math.min(this.effectDefinition.parameters.speed, fleet.distanceToEnd)
-    fleet.distanceToEnd = typedParse(NonNegativeNumberSchema, fleet.distanceToEnd - distanceMoved)
-
-    if (fleet.distanceToEnd === 0) {
-      fleet.arrivedAtTick = typedParse(
-        NonNegativeNumberSchema,
-        Math.ceil((distanceMoved / this.effectDefinition.parameters.speed) * MOVEMENT_TICKS),
-      )
-    }
-
-    return EffectOutcome.Resolved({
-      result: `Fleet "${fleet.name}" moved ${distanceMoved} light years towards Planet "${destinationPlanet.name}"`,
-    })
-  }
-
-  private land({ fleet, destinationPlanet }: { fleet: ResolutionFleet; destinationPlanet: ResolutionPlanet }): EffectOutcome {
-    fleet.originPlanetId = destinationPlanet.id
-    fleet.destinationPlanetId = undefined
-    fleet.distanceToEnd = undefined
-
-    return EffectOutcome.Resolved({
-      result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}"`,
-    })
-  }
-
-  private merge({
-    fleet,
-    fleetAtDestination,
-    destinationPlanet,
-  }: {
-    fleet: ResolutionFleet
-    fleetAtDestination: ResolutionFleet
-    destinationPlanet: ResolutionPlanet
-  }): EffectOutcome {
-    const mergedStrength = fleet.strength
-    fleetAtDestination.strength += mergedStrength
-    fleet.strength = 0
-
-    return EffectOutcome.Resolved({
-      result: `Fleet "${fleet.name}" arrived on Planet "${destinationPlanet.name}" and merged ${mergedStrength} strength into Fleet "${fleetAtDestination.name}"`,
-    })
-  }
+type DepartureSelection = Readonly<{
+  source: ResolutionFleet
+  origin: Departure["origin"] | undefined
+  destination: Departure["destination"] | undefined
+  strength: number | undefined
+}>
+function isValidDepartureSelection(selection: DepartureSelection, action: SubmittedAction): selection is Omit<Departure, "sourceId"> {
+  if (selection.origin === undefined || selection.destination === undefined) return false
+  if (selection.strength === undefined) return false
+  if (selection.source.destinationPlanetId !== undefined) return false
+  if (selection.source.ownerPlayerId !== action.playerId) return false
+  return !(selection.strength > selection.source.strength)
 }

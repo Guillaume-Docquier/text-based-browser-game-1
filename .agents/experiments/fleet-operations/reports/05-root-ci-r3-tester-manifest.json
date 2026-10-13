@@ -1,0 +1,1207 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-10-11T11:56:33.8350796Z",
+  "worktree": "C:/Users/Guillaume/.codex/worktrees/fleet-operations-sol/text-based-browser-game-1",
+  "head": "b97976ffa66d57f97ec5fa7e32e9cfc43973ce30",
+  "branch": "codex/fleet-operations-sol",
+  "wholeExperimentBase": "aa9272ec2b9ac756aa5d606bca900875ff9f58ed",
+  "increment05Base": "84fa50e210d74e3f480c96d32e6f6c1ad7568d25",
+  "supplementaryBase": "b97976ffa66d57f97ec5fa7e32e9cfc43973ce30",
+  "wholePaths": [
+    "apps/backend/drizzle/0001_fleet_action_inputs_and_movement.sql",
+    "apps/backend/drizzle/meta/0001_snapshot.json",
+    "apps/backend/drizzle/meta/_journal.json",
+    "apps/backend/src/api/auth/auth.service.ts",
+    "apps/backend/src/api/gameplay/SubmittedActionTargetsDto.stub.ts",
+    "apps/backend/src/api/gameplay/SubmittedActionTargetsDto.ts",
+    "apps/backend/src/api/gameplay/colonization.concurrency.test.ts",
+    "apps/backend/src/api/gameplay/colonization.integration.test.ts",
+    "apps/backend/src/api/gameplay/combat.concurrency.test.ts",
+    "apps/backend/src/api/gameplay/combat.integration.test.ts",
+    "apps/backend/src/api/gameplay/fleetActions.concurrency.test.ts",
+    "apps/backend/src/api/gameplay/fleetActions.integration.test.ts",
+    "apps/backend/src/api/gameplay/fleetOperations.concurrency.test.ts",
+    "apps/backend/src/api/gameplay/gameplay.repository.ts",
+    "apps/backend/src/api/gameplay/gameplay.router.integration.test.ts",
+    "apps/backend/src/api/gameplay/getPlayerView.useCase.ts",
+    "apps/backend/src/api/gameplay/updateActionSubmission.useCase.ts",
+    "apps/backend/src/api/types.ts",
+    "apps/backend/src/lib/db/schema.ts",
+    "apps/backend/src/lib/rulesets/CoreRulesets.unit.test.ts",
+    "apps/backend/src/lib/rulesets/standard/StandardRuleset.ts",
+    "apps/backend/src/lib/rulesets/standard/action-definitions/attack-move.ts",
+    "apps/backend/src/lib/rulesets/standard/action-definitions/build-fleet.ts",
+    "apps/backend/src/lib/rulesets/standard/action-definitions/colonize-planet.ts",
+    "apps/backend/src/lib/rulesets/standard/action-definitions/gain-energy.ts",
+    "apps/backend/src/lib/rulesets/standard/action-definitions/gain-fuel.ts",
+    "apps/backend/src/lib/rulesets/standard/action-definitions/gain-influence.ts",
+    "apps/backend/src/lib/rulesets/standard/action-definitions/gain-metal.ts",
+    "apps/backend/src/lib/rulesets/standard/action-definitions/move-fleet.ts",
+    "apps/backend/src/lib/rulesets/standard/action-definitions/win-the-game.ts",
+    "apps/backend/src/tests/ColonizationActionsScenario.stub.ts",
+    "apps/backend/src/tests/CombatActionsScenario.stub.ts",
+    "apps/backend/src/tests/ConcurrencyTestApiServer.ts",
+    "apps/backend/src/tests/FleetActionsScenario.stub.ts",
+    "apps/backend/src/tests/FleetOperationsScenario.stub.ts",
+    "apps/backend/src/tests/SaveTransactionFailure.stub.ts",
+    "apps/backend/src/turn-processing/TurnProcessor.integration.test.ts",
+    "apps/backend/src/turn-processing/TurnProcessor.ts",
+    "apps/backend/src/turn-processing/turns.repository.ts",
+    "apps/frontend/playwright/pages/ActionsPage.ts",
+    "apps/frontend/playwright/pages/FleetsPage.ts",
+    "apps/frontend/playwright/pages/GalaxyPage.ts",
+    "apps/frontend/playwright/specs/colonization.spec.ts",
+    "apps/frontend/playwright/specs/combat.spec.ts",
+    "apps/frontend/playwright/specs/fleetOperations.spec.ts",
+    "apps/frontend/playwright/specs/fleets.spec.ts",
+    "apps/frontend/src/components/search-select.stories.tsx",
+    "apps/frontend/src/components/search-select.tsx",
+    "apps/frontend/src/features/play/actionEligibilityState.ts",
+    "apps/frontend/src/features/play/components/ActionCard.stories.tsx",
+    "apps/frontend/src/features/play/components/ActionCard.stub.ts",
+    "apps/frontend/src/features/play/components/ActionCard.tsx",
+    "apps/frontend/src/features/play/components/ActionSelector.tsx",
+    "apps/frontend/src/features/play/components/FleetOperationsCardCheckpoint.stub.ts",
+    "apps/frontend/src/features/play/components/TargetPicker.browser.test.ts",
+    "apps/frontend/src/features/play/components/TargetPicker.tsx",
+    "apps/frontend/src/features/play/effectDefinitionToRulesText.ts",
+    "apps/frontend/src/features/play/fleets/FleetsPage.stories.tsx",
+    "apps/frontend/src/features/play/fleets/FleetsPage.tsx",
+    "apps/frontend/src/lib/api/useUpdateActionSubmission.ts",
+    "apps/frontend/tsconfig.json",
+    "apps/frontend/tsconfig.node.json",
+    "apps/frontend/tsconfig.playwright.json",
+    "docs/architecture/turn-processing.md",
+    "docs/architecture/turn-resolution.md",
+    "docs/game-design/systems/001-turns.md",
+    "docs/game-design/systems/003-actions.md",
+    "docs/game-design/systems/008-planets.md",
+    "docs/game-design/systems/010-fleets.md",
+    "docs/game-design/systems/011-combat.md",
+    "docs/game-design/systems/012-movement.md",
+    "docs/game-design/systems/014-resources.md",
+    "docs/game-design/systems/015-rules-engine.md",
+    "docs/game-design/systems/README.md",
+    "docs/glossary.md",
+    "packages/shared/src/action-submission/actionEligibility.stub.ts",
+    "packages/shared/src/action-submission/actionEligibility.test.ts",
+    "packages/shared/src/action-submission/actionEligibility.ts",
+    "packages/shared/src/action-submission/candidatePrerequisites.test.ts",
+    "packages/shared/src/action-submission/colonizationEligibility.ts",
+    "packages/shared/src/action-submission/computeAvailableActions.test.ts",
+    "packages/shared/src/action-submission/computeAvailableActions.ts",
+    "packages/shared/src/action-submission/fleetBoundaryIndependent.test.ts",
+    "packages/shared/src/action-submission/getUncommittedResources.ts",
+    "packages/shared/src/action-submission/persistedJourney.test.ts",
+    "packages/shared/src/action-submission/validation/SubmittedActionValidator.ts",
+    "packages/shared/src/action-submission/validation/action-definition/validateActionDefinition.test.ts",
+    "packages/shared/src/action-submission/validation/action-definition/validateActionDefinition.ts",
+    "packages/shared/src/action-submission/validation/costs/validateCosts.test.ts",
+    "packages/shared/src/action-submission/validation/costs/validateCosts.ts",
+    "packages/shared/src/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts",
+    "packages/shared/src/action-submission/validation/targets/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.test.ts",
+    "packages/shared/src/action-submission/validation/targets/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts",
+    "packages/shared/src/action-submission/validation/targets/validateTarget.test.ts",
+    "packages/shared/src/action-submission/validation/targets/validateTarget.ts",
+    "packages/shared/src/action-submission/validation/targets/validateTargets.test.ts",
+    "packages/shared/src/action-submission/validation/targets/validateTargets.ts",
+    "packages/shared/src/action-submission/validation/validateSubmittedActions.test.ts",
+    "packages/shared/src/action-submission/validation/validateSubmittedActions.ts",
+    "packages/shared/src/domain/ruleset/action-definitions/ActionDefinition.stub.ts",
+    "packages/shared/src/domain/ruleset/action-definitions/ActionDefinition.ts",
+    "packages/shared/src/domain/ruleset/action-definitions/InputDefinition.ts",
+    "packages/shared/src/domain/ruleset/action-definitions/InputTag.ts",
+    "packages/shared/src/domain/ruleset/effect-definitions/AssaultEffectDefinition.stub.ts",
+    "packages/shared/src/domain/ruleset/effect-definitions/AssaultEffectDefinition.ts",
+    "packages/shared/src/domain/ruleset/effect-definitions/ColonizeEffectDefinition.ts",
+    "packages/shared/src/domain/ruleset/effect-definitions/EffectDefinition.ts",
+    "packages/shared/src/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.stub.ts",
+    "packages/shared/src/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts",
+    "packages/shared/src/domain/ruleset/target-definitions/TargetConstraint.ts",
+    "packages/shared/src/domain/ruleset/target-definitions/TargetDefinition.ts",
+    "packages/shared/src/domain/turns/actions/Action.stub.ts",
+    "packages/shared/src/domain/turns/actions/Action.ts",
+    "packages/shared/src/domain/turns/actions/ActionResolutionOrigin.ts",
+    "packages/shared/src/domain/turns/actions/ResolvedAction.stub.ts",
+    "packages/shared/src/domain/turns/actions/ResolvedAction.ts",
+    "packages/shared/src/domain/turns/actions/SelectedInputs.ts",
+    "packages/shared/src/domain/world/fleets/Fleet.ts",
+    "packages/shared/src/domain/world/fleets/FleetMovement.ts",
+    "packages/shared/src/domain/world/fleets/FleetStrength.ts",
+    "packages/shared/src/domain/world/fleets/PendingArrivalEffect.ts",
+    "packages/shared/src/domain/world/planets/getPlanetDistance.ts",
+    "packages/shared/src/testing/FleetOperationsRuleset.stub.ts",
+    "packages/shared/src/testing/extractSuccess.ts",
+    "packages/shared/src/testing/test-ruleset/TestRuleset.ts",
+    "packages/shared/src/testing/test-ruleset/action-definitions/attack-move.ts",
+    "packages/shared/src/testing/test-ruleset/action-definitions/build-fleet.ts",
+    "packages/shared/src/testing/test-ruleset/action-definitions/colonize-planet.ts",
+    "packages/shared/src/testing/test-ruleset/action-definitions/gain-energy.ts",
+    "packages/shared/src/testing/test-ruleset/action-definitions/gain-fuel.ts",
+    "packages/shared/src/testing/test-ruleset/action-definitions/gain-influence.ts",
+    "packages/shared/src/testing/test-ruleset/action-definitions/gain-metal.ts",
+    "packages/shared/src/testing/test-ruleset/action-definitions/move-fleet.ts",
+    "packages/shared/src/testing/test-ruleset/action-definitions/win-the-game.ts",
+    "packages/shared/src/turn-resolution/ArrivalIntent.ts",
+    "packages/shared/src/turn-resolution/ColonizationScenario.stub.ts",
+    "packages/shared/src/turn-resolution/FleetOperationsScenario.stub.ts",
+    "packages/shared/src/turn-resolution/TurnContext.ts",
+    "packages/shared/src/turn-resolution/TurnState.ts",
+    "packages/shared/src/turn-resolution/colonization.test.ts",
+    "packages/shared/src/turn-resolution/effects/Effect.ts",
+    "packages/shared/src/turn-resolution/effects/EffectFactory.ts",
+    "packages/shared/src/turn-resolution/effects/EffectPool.test.ts",
+    "packages/shared/src/turn-resolution/effects/EffectPool.ts",
+    "packages/shared/src/turn-resolution/effects/implementations/AssaultEffect.ts",
+    "packages/shared/src/turn-resolution/effects/implementations/ColonizeEffect.ts",
+    "packages/shared/src/turn-resolution/effects/implementations/FleetBuildEffect.ts",
+    "packages/shared/src/turn-resolution/effects/implementations/FleetMoveEffect.test.ts",
+    "packages/shared/src/turn-resolution/effects/implementations/FleetMoveEffect.ts",
+    "packages/shared/src/turn-resolution/effects/resolveTargetId.ts",
+    "packages/shared/src/turn-resolution/fleetOperations.test.ts",
+    "packages/shared/src/turn-resolution/phases/implementations/resolveColonizationPhase.ts",
+    "packages/shared/src/turn-resolution/phases/implementations/resolveFleetCombatPhase.ts",
+    "packages/shared/src/turn-resolution/phases/implementations/resolveFleetMovementPhase.ts",
+    "packages/shared/src/turn-resolution/resolveTurn.test.ts",
+    "packages/shared/src/turn-resolution/resolveTurn.ts",
+    "packages/shared/src/turn-resolution/state/ResolutionFleet.ts"
+  ],
+  "increment05Paths": [
+    "apps/backend/src/api/gameplay/combat.integration.test.ts",
+    "apps/backend/src/api/gameplay/fleetOperations.concurrency.test.ts",
+    "apps/backend/src/api/gameplay/gameplay.router.integration.test.ts",
+    "apps/backend/src/tests/ConcurrencyTestApiServer.ts",
+    "apps/backend/src/tests/FleetOperationsScenario.stub.ts",
+    "apps/backend/src/tests/SaveTransactionFailure.stub.ts",
+    "apps/backend/src/turn-processing/TurnProcessor.integration.test.ts",
+    "apps/backend/src/turn-processing/TurnProcessor.ts",
+    "apps/frontend/playwright/pages/ActionsPage.ts",
+    "apps/frontend/playwright/pages/FleetsPage.ts",
+    "apps/frontend/playwright/specs/colonization.spec.ts",
+    "apps/frontend/playwright/specs/combat.spec.ts",
+    "apps/frontend/playwright/specs/fleetOperations.spec.ts",
+    "apps/frontend/playwright/specs/fleets.spec.ts",
+    "apps/frontend/src/components/search-select.stories.tsx",
+    "apps/frontend/src/components/search-select.tsx",
+    "apps/frontend/src/features/play/components/ActionCard.stories.tsx",
+    "apps/frontend/src/features/play/components/ActionCard.tsx",
+    "apps/frontend/src/features/play/components/FleetOperationsCardCheckpoint.stub.ts",
+    "apps/frontend/src/features/play/components/TargetPicker.browser.test.ts",
+    "apps/frontend/src/features/play/components/TargetPicker.tsx",
+    "docs/architecture/turn-resolution.md",
+    "docs/game-design/systems/001-turns.md",
+    "docs/game-design/systems/014-resources.md",
+    "docs/game-design/systems/015-rules-engine.md",
+    "packages/shared/src/action-submission/actionEligibility.ts",
+    "packages/shared/src/action-submission/candidatePrerequisites.test.ts",
+    "packages/shared/src/action-submission/fleetBoundaryIndependent.test.ts",
+    "packages/shared/src/action-submission/persistedJourney.test.ts",
+    "packages/shared/src/domain/ruleset/action-definitions/ActionDefinition.ts",
+    "packages/shared/src/testing/FleetOperationsRuleset.stub.ts",
+    "packages/shared/src/turn-resolution/ColonizationScenario.stub.ts",
+    "packages/shared/src/turn-resolution/FleetOperationsScenario.stub.ts",
+    "packages/shared/src/turn-resolution/effects/implementations/AssaultEffect.ts",
+    "packages/shared/src/turn-resolution/effects/implementations/ColonizeEffect.ts",
+    "packages/shared/src/turn-resolution/effects/implementations/FleetMoveEffect.ts",
+    "packages/shared/src/turn-resolution/fleetOperations.test.ts",
+    "packages/shared/src/turn-resolution/phases/implementations/resolveColonizationPhase.ts",
+    "packages/shared/src/turn-resolution/phases/implementations/resolveFleetCombatPhase.ts",
+    "packages/shared/src/turn-resolution/phases/implementations/resolveFleetMovementPhase.ts",
+    "packages/shared/src/turn-resolution/resolveTurn.ts"
+  ],
+  "currentPaths": [
+    "apps/backend/src/api/gameplay/combat.integration.test.ts",
+    "apps/backend/src/api/gameplay/gameplay.router.integration.test.ts",
+    "apps/frontend/playwright/pages/ActionsPage.ts",
+    "apps/frontend/playwright/specs/fleetOperations.spec.ts",
+    "apps/frontend/src/components/search-select.stories.tsx",
+    "apps/frontend/src/components/search-select.tsx",
+    "packages/shared/src/action-submission/fleetBoundaryIndependent.test.ts",
+    "packages/shared/src/domain/ruleset/action-definitions/ActionDefinition.ts",
+    "packages/shared/src/turn-resolution/phases/implementations/resolveColonizationPhase.ts"
+  ],
+  "untrackedProductPaths": [],
+  "contracts": [
+    {
+      "path": ".agents/experiments/fleet-operations/increments/05-ci-code-health-repair-r2.md",
+      "sha256": "F8FCECDE0F96C00872658CC2AFC7B3ED97485F63B4D13E5B7A7441AC37279D48"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/increments/05-ci-code-health-repair.md",
+      "sha256": "367848B6FBF5855C2CD12370865517B29E59F3F2261A96AD1003D71D144E02B1"
+    },
+    {
+      "path": ".agents/experiments/fleet-operations/increments/05-integration-and-delivery.md",
+      "sha256": "A5CC7432A7CDD146C467011806D74E01374B7A09F9E64E0C569CDDEDD0E970E3"
+    }
+  ],
+  "commandPrimary": {
+    "path": ".agents/experiments/fleet-operations/reports/05-ci-r2-command-primary.json",
+    "sha256": "205DA8327A7CA2E6EE7AA5BE7ACC7E072712891EEFB037402C647E5F9754C3FE"
+  },
+  "products": [
+    {
+      "path": "apps/backend/drizzle/0001_fleet_action_inputs_and_movement.sql",
+      "exists": true,
+      "sha256": "E2C84805F9C11E42071E86D50964F9B1DD75859389531584AFC78DD025EB24E3",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/drizzle/meta/_journal.json",
+      "exists": true,
+      "sha256": "2EB5C969BF9733E70734A1007E257BD347FD408BEE2C5BD3E7FB30407D7296DC",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/drizzle/meta/0001_snapshot.json",
+      "exists": true,
+      "sha256": "46501BCBBE72569A1A1DE63A3EA69737A28398A792BC390DBC926F23D229A447",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/auth/auth.service.ts",
+      "exists": true,
+      "sha256": "7FCB78DA29209DDF496469291B9F6D651FA3075CE40279353AC4D7A792579CB3",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/colonization.concurrency.test.ts",
+      "exists": true,
+      "sha256": "AB14A10B4C624FF6345646ACD3C6350FF0870E91E96CF5D22C28004CE34A7641",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/colonization.integration.test.ts",
+      "exists": true,
+      "sha256": "DFCBD01B12ED1695BA1116E15C79B1D0268A5CFF2701CCA2E3498D685ED43F54",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/combat.concurrency.test.ts",
+      "exists": true,
+      "sha256": "48CF88C881484668D6F5E9D08C73F4E83258F5E66D9DA6BCF0B2B0B35E92EF7B",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/combat.integration.test.ts",
+      "exists": true,
+      "sha256": "1B76C6F8860D2112A83806B2A9F8B1876C77DBB9C29C6150C0462CBEF648C782",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/fleetActions.concurrency.test.ts",
+      "exists": true,
+      "sha256": "71813ABFEA59B52EB03C1BDC1EFE720299407D2368BB88E896BA8A135088CEBB",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/fleetActions.integration.test.ts",
+      "exists": true,
+      "sha256": "A20A9537AAD576F7EAD7FEB676078A7DE7C201742A73F472798174C532E5BD79",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/fleetOperations.concurrency.test.ts",
+      "exists": true,
+      "sha256": "3F20D801FE1AF2D289F02FB323274CE35FFDE136BEE334A5A32724C27FFB98A2",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/gameplay.repository.ts",
+      "exists": true,
+      "sha256": "65EBB0837C0FA14E2576AB4BEEE8BD589852854C027E03237CCFDAEE1E55F6C7",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/gameplay.router.integration.test.ts",
+      "exists": true,
+      "sha256": "F9A677DCB3D74B5178D83FAE6F29899945646B66804023E189938EF16111BDC0",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/getPlayerView.useCase.ts",
+      "exists": true,
+      "sha256": "EA22368D43227A3E11F7CDD3BDBC950C4A4777872AF0A4521F3E3B2F583617EE",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/SubmittedActionTargetsDto.stub.ts",
+      "exists": true,
+      "sha256": "5EE8A36696D22102849DB9F05B74CA53E25A6224BBDBBD9A115E9835B607FB27",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/SubmittedActionTargetsDto.ts",
+      "exists": true,
+      "sha256": "9D91835B92767CB9A429EDB289F1B88D50DC61BB3C591BB7202BD5FCD91527EF",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/gameplay/updateActionSubmission.useCase.ts",
+      "exists": true,
+      "sha256": "76F3DA56CE2683FD4ADE0F5CE62241DE4897B7C477821DE7F078F68CCA9430A5",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/api/types.ts",
+      "exists": true,
+      "sha256": "A956CD85A29A1AF9DB8C4817917225094F8B70002E321ACFC202580EAA53E902",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/db/schema.ts",
+      "exists": true,
+      "sha256": "02921D3E9DB1B548B6564A1465E5C763D9CD27FEDEFD9AF20DD41205214A7326",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/CoreRulesets.unit.test.ts",
+      "exists": true,
+      "sha256": "3056CCABD1E285120396BF420B6151951BA0A0B42D34D5182211C8E498F603CD",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/action-definitions/attack-move.ts",
+      "exists": true,
+      "sha256": "48BE85BB83F0B084DA4A8D6DA84774F201CD87842BD0925946A4B7516A80C47F",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/action-definitions/build-fleet.ts",
+      "exists": true,
+      "sha256": "FECD55F302F7BF28C49C8E4D634011CC284E04ECC23C4DF787B8F32248C21A74",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/action-definitions/colonize-planet.ts",
+      "exists": true,
+      "sha256": "265E3CDEB86C8B744DDCB75045DCD1855BFA0A8325ADFCD1DBDADCEF78660806",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/action-definitions/gain-energy.ts",
+      "exists": true,
+      "sha256": "95BE71B4722CA328707B1BD2753C3CE0A1E7F85E87AD9E5E5C31625085489462",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/action-definitions/gain-fuel.ts",
+      "exists": true,
+      "sha256": "87BF5AA6E5FFEA343940B29F4AFA4B428545F402DE11D2530D6A75576EAC3EAC",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/action-definitions/gain-influence.ts",
+      "exists": true,
+      "sha256": "41DA7621971A4057995871B905BD0237419E6C327AD7E9BFDD7EEE98C5E0CB9F",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/action-definitions/gain-metal.ts",
+      "exists": true,
+      "sha256": "86370DB9F88C92C868ADAD7A91ACD72A6F3C478CF247CF4139DBD90493A389F2",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/action-definitions/move-fleet.ts",
+      "exists": true,
+      "sha256": "7AEACD0000D24C51C9C435363EB419BBF09882C1A57F877627F302986977134A",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/action-definitions/win-the-game.ts",
+      "exists": true,
+      "sha256": "1A173EC94590245EC9C20F27DA6EE473D2194FADF439ABF71E2A74F01225073D",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/lib/rulesets/standard/StandardRuleset.ts",
+      "exists": true,
+      "sha256": "D3C181D9A80E3FA970D0E3291ED77597A48CC3958E01FE4F935FA18ED67A5A99",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/tests/ColonizationActionsScenario.stub.ts",
+      "exists": true,
+      "sha256": "C33EB8C4F8CE3EA76E6BAD71094708FA447C732A70C8388686C122C00E1128B4",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/tests/CombatActionsScenario.stub.ts",
+      "exists": true,
+      "sha256": "7FBC58C24BE422B5E5E902589C42D7EE36495971714BB2027049E53714018E3B",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/tests/ConcurrencyTestApiServer.ts",
+      "exists": true,
+      "sha256": "BD7BF3B5FA55B48C83EDDA4231C014A4D7DAC5BEA06E973F59C611B251B1066B",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/tests/FleetActionsScenario.stub.ts",
+      "exists": true,
+      "sha256": "02D66A0273A7007369C03FA9D5B1BE69C78C0C29E406E43EF38A6FF08277EF28",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/tests/FleetOperationsScenario.stub.ts",
+      "exists": true,
+      "sha256": "0E139643C9A84C2F6674BE7880CC8D0455FACFF1E08CE7DDC038776F511D4BCE",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/tests/SaveTransactionFailure.stub.ts",
+      "exists": true,
+      "sha256": "32315CDD81756C7DD8E9B70343021470072913981F16E08F1DDBDE8E26F4A868",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/turn-processing/TurnProcessor.integration.test.ts",
+      "exists": true,
+      "sha256": "D0135EB255DEFC49731A7CA636AF7F80F5AF72D59C688C8326D31B5EB5A8D75C",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/turn-processing/TurnProcessor.ts",
+      "exists": true,
+      "sha256": "D96D061E5A288EE93809328597F2551F6C65AFF7B053E85E1C0B16D74B36A671",
+      "deleted": false
+    },
+    {
+      "path": "apps/backend/src/turn-processing/turns.repository.ts",
+      "exists": true,
+      "sha256": "F1B71353EC23D3E4007FACF91C2F634D7F9F32D4E849F726FA23AA420CEDD31F",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/playwright/pages/ActionsPage.ts",
+      "exists": true,
+      "sha256": "21646AEEBF10AB77BE4CB777443ADBD465AC704DB4C88800FEEA91F67D413D8F",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/playwright/pages/FleetsPage.ts",
+      "exists": true,
+      "sha256": "A15D6515FEC7F1E7BA1BE0D21224ABFF27F23CCB121A8791390862DBF41DB13A",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/playwright/pages/GalaxyPage.ts",
+      "exists": true,
+      "sha256": "F201AFBF631982A7FA9554189A39B242C91D9DF7E7D8FA10540B8B119E28DA19",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/playwright/specs/colonization.spec.ts",
+      "exists": true,
+      "sha256": "FA9EB92B0820C16D8880D38E49C024F61400D144EF58F43E6A7133281DF42A5C",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/playwright/specs/combat.spec.ts",
+      "exists": true,
+      "sha256": "6FDBC75902E420A47A77CE7773E74A80D39D3E7503517DC4534F4BC1838E3EF1",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/playwright/specs/fleetOperations.spec.ts",
+      "exists": true,
+      "sha256": "58F34877FB1094280DBC2AA35CC4B0B1166E34638EFAE365212555B4710EE5D3",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/playwright/specs/fleets.spec.ts",
+      "exists": true,
+      "sha256": "F72E6E7E7AE2D402DC234F8E523128D9EA5C93F36A1A90CFD4EBFFE702462D9B",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/components/search-select.stories.tsx",
+      "exists": true,
+      "sha256": "64BDB6DE9846801E7DAE06CB005F5DEA83261C38F512AC17612D38C183704B75",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/components/search-select.tsx",
+      "exists": true,
+      "sha256": "8537D72AEDC7422515D92B47EF9FBFA5D5263E450B013466E2E6C911FB690339",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/actionEligibilityState.ts",
+      "exists": true,
+      "sha256": "DD2FAC9D3A49764A104A39B7FF8568C5AAFA79EE2DA6A44AD81A9E0D382FECAF",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/components/ActionCard.stories.tsx",
+      "exists": true,
+      "sha256": "6E99C668FEAEBDF063D397C235B9AA1A866C580D6E944FAD9F7179E076A9DD77",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/components/ActionCard.stub.ts",
+      "exists": true,
+      "sha256": "643054395CE8F5B1376A12899CF817CE8910B6511290F1B2B440214EEC36F4FD",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/components/ActionCard.tsx",
+      "exists": true,
+      "sha256": "B76EF55BEDFC365696854FDD02F27DB805606495812DFFF87729FE01A20D05EB",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/components/ActionSelector.tsx",
+      "exists": true,
+      "sha256": "755BDEBDE5CBA0CA185DAEDAD950F27D1C46C63D0F72E67E02908953C1738119",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/components/FleetOperationsCardCheckpoint.stub.ts",
+      "exists": true,
+      "sha256": "C67960E649B9B47871BCE8203B55C3EC7664F76E0C18D0783E9010F156E7F3DB",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/components/TargetPicker.browser.test.ts",
+      "exists": true,
+      "sha256": "0E4DB8FCECA4E26480F385DF9E7127DA2139972FEE364CC5DB9ADEE075E15A57",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/components/TargetPicker.tsx",
+      "exists": true,
+      "sha256": "FCF82864E5EBE6BEA030AFDFB549C3D34CE1F4FF8E522AB0E35124A3BE3A44D8",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/effectDefinitionToRulesText.ts",
+      "exists": true,
+      "sha256": "F9DE32E0173A3BD0545459396094323A3940D04869A918E0A20992008945AA40",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/fleets/FleetsPage.stories.tsx",
+      "exists": true,
+      "sha256": "85149DD31DF0166E8B758574ED1C6A23C60249E7395FEBBAC3EEB8D35C5014DF",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/features/play/fleets/FleetsPage.tsx",
+      "exists": true,
+      "sha256": "730502E9ACB3E3DB6B5EA54D4F80D039158C6AC2EBB313AE4E5541A9B36E405A",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/src/lib/api/useUpdateActionSubmission.ts",
+      "exists": true,
+      "sha256": "052D05D6C10844C7F8C534D2ACC873CF319FEAE1C08914C6DA36E547853C8A4E",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/tsconfig.json",
+      "exists": true,
+      "sha256": "861C1104F7AEC3D088B63FFB0550761C7AFCAE6C9640381A506A508EABA8C997",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/tsconfig.node.json",
+      "exists": true,
+      "sha256": "8BEB4727018FD9ECD1D27682404ECF9D83BF4C0B05EB664BFC6FE91B3321BC19",
+      "deleted": false
+    },
+    {
+      "path": "apps/frontend/tsconfig.playwright.json",
+      "exists": true,
+      "sha256": "5CC12AFD9535FE1E724F3FF73FD56DE6CBA650D09E4290740BA6D82FE251345B",
+      "deleted": false
+    },
+    {
+      "path": "docs/architecture/turn-processing.md",
+      "exists": true,
+      "sha256": "036FADF2F271F6BFA0666F1F813B199336E95437D1D5B2DF34CE7EA2CE8F7E79",
+      "deleted": false
+    },
+    {
+      "path": "docs/architecture/turn-resolution.md",
+      "exists": true,
+      "sha256": "782BDF8EDA6F6333E6C47F65491B1ADA4A775B18B155B4BBE1495AEB95ED0597",
+      "deleted": false
+    },
+    {
+      "path": "docs/game-design/systems/001-turns.md",
+      "exists": true,
+      "sha256": "6E1FAE3C9248170407785DED0E62D110BBFE24F3BB5B283B76AA0C9A599122F8",
+      "deleted": false
+    },
+    {
+      "path": "docs/game-design/systems/003-actions.md",
+      "exists": true,
+      "sha256": "05571E64485AAF85B9FC6B3603D3E7E3B6BD082F2C688FE4ED1810B0EFA5FF4D",
+      "deleted": false
+    },
+    {
+      "path": "docs/game-design/systems/008-planets.md",
+      "exists": true,
+      "sha256": "ED0B78FA4F6B54A68FB402E1C0F29C2583F7EC589A058F035602FF1A1A2C0D12",
+      "deleted": false
+    },
+    {
+      "path": "docs/game-design/systems/010-fleets.md",
+      "exists": true,
+      "sha256": "FC270F2EA1412203DDEF7B5387BE2A0838C2631B21C32CFBBDEBFBCF2B30B3C9",
+      "deleted": false
+    },
+    {
+      "path": "docs/game-design/systems/011-combat.md",
+      "exists": true,
+      "sha256": "28DCD91570931B10D60C24E2F1A0D06648173739F8F54F49341DC1584167F8BC",
+      "deleted": false
+    },
+    {
+      "path": "docs/game-design/systems/012-movement.md",
+      "exists": true,
+      "sha256": "53A3D8D33F85EF6364B896EB3CB21C18854F66BED195C95E7E0DE80883285749",
+      "deleted": false
+    },
+    {
+      "path": "docs/game-design/systems/014-resources.md",
+      "exists": true,
+      "sha256": "896D288CFCA1C40DDE0DA06DC95847F90E30AD53AAEBF3582457E083B42200CC",
+      "deleted": false
+    },
+    {
+      "path": "docs/game-design/systems/015-rules-engine.md",
+      "exists": true,
+      "sha256": "68C2B53889F9410858F6301A17C85EF14EEADE8C4654F777817891373464604A",
+      "deleted": false
+    },
+    {
+      "path": "docs/game-design/systems/README.md",
+      "exists": true,
+      "sha256": "9D47E3B3D716B311D6FE841AB69735DE076B87D3A80B5358826FD10EEB12CDB5",
+      "deleted": false
+    },
+    {
+      "path": "docs/glossary.md",
+      "exists": true,
+      "sha256": "FD607933216D5A0F9AB704F1A25494D1D5505A142DD98D400D33AE030E444A89",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/actionEligibility.stub.ts",
+      "exists": true,
+      "sha256": "F66D63855D20ADE4FC5403E9437FA683DC699F42D8208C4DC00119F07AFF7A83",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/actionEligibility.test.ts",
+      "exists": true,
+      "sha256": "9DD623381850798B29087A494EDC7BF69D8241451ABBD6D9DD07081467FED96C",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/actionEligibility.ts",
+      "exists": true,
+      "sha256": "3C8C8FA23483DCA988054A072E147E14D7A6C22E2CA5694E63A6079DF873BA3A",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/candidatePrerequisites.test.ts",
+      "exists": true,
+      "sha256": "E93718AA7BAF0A1D43B333F8635A49215B667E31BF0DB15DA0822D938F6FE965",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/colonizationEligibility.ts",
+      "exists": true,
+      "sha256": "D14F9E827FD397C6BAC8F64028D3F6C140D6C4D4A209E6EDF3F2C3D08787A357",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/computeAvailableActions.test.ts",
+      "exists": true,
+      "sha256": "638947287035D17CF48956C500A1BC6E0E547601A367BC01673CECD6908A30CE",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/computeAvailableActions.ts",
+      "exists": true,
+      "sha256": "E47B26320C44A1407E6C0D39AD44D391A62A7D4621D67034320F2F58EF33E9AF",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/fleetBoundaryIndependent.test.ts",
+      "exists": true,
+      "sha256": "54AA0675024DF9FA506B75759A25CC6BCF987DD92BB2EEE46AFCEB88DD5D1830",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/getUncommittedResources.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "09180fb31959b40d94d8ed5b92c8edb645403ccb"
+    },
+    {
+      "path": "packages/shared/src/action-submission/persistedJourney.test.ts",
+      "exists": true,
+      "sha256": "EB5D5DC48D1A8BB629A6192A91EABBE6C91F53EB5C1698F9ACBD84A72BAF88C5",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/action-definition/validateActionDefinition.test.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "0a8748bab181261aa855e727ff6f95c8d8884a59"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/action-definition/validateActionDefinition.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "69d174aeefa933688e2cbe0cc2e2b2f9f0fd3caa"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/costs/validateCosts.test.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "6b60d443349f4513cbbf1c8f130a00aa45728c14"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/costs/validateCosts.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "0c43392c35dba52835f7672717e9d344fbce8c5f"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/SubmittedActionValidator.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "85ae3d7fd462758e77d5157c8c3a68264ac4fefc"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/targets/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.test.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "1fad899608c9e6f160bc2ffde89d78f8ce8daf1e"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/targets/target-constraints/evaluateOwnedBySubmittingPlayerConstraint.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "e325851e6439fef6c00fc22127327cc99a3ba7a3"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/targets/target-constraints/TargetConstraintEvaluator.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "ab8a0c1404dcab395ebaee6219f45047d1aad866"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/targets/validateTarget.test.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "203430aa351baad578cae61948c111b9934baba1"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/targets/validateTarget.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "41380b1d0bbf3929ba8fbc1f937564a328bd04ef"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/targets/validateTargets.test.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "0b8cd06e5ce22fa5af8c214cad3fa8c9ba5a2c6d"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/targets/validateTargets.ts",
+      "exists": false,
+      "sha256": null,
+      "deleted": true,
+      "baseBlob": "8a345890e455affed37403a59c85ca7c7e220794"
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/validateSubmittedActions.test.ts",
+      "exists": true,
+      "sha256": "2F75712611BD0366918F29CB4AEFF3BA05911B1F9FEE3998BB829F6F3D512D1C",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/action-submission/validation/validateSubmittedActions.ts",
+      "exists": true,
+      "sha256": "9952CCB65053E4F7B8924BF723AD3FFAAF648E771330C06737F1CC3CF00526E2",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/action-definitions/ActionDefinition.stub.ts",
+      "exists": true,
+      "sha256": "0C53B5FE152B5AB9C1BB254EE7B240459740F7E49081384E78D6800411A7BB2A",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/action-definitions/ActionDefinition.ts",
+      "exists": true,
+      "sha256": "EF6BCAB3F0DC24B0697DDBE7E46ECAC9AA4DEABFC61EF5C6BED4669ED9E344C1",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/action-definitions/InputDefinition.ts",
+      "exists": true,
+      "sha256": "C69FEEE110BCA48F728353CED9FDF0445534F3DD2EDB475C6333E29AF9F5008B",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/action-definitions/InputTag.ts",
+      "exists": true,
+      "sha256": "A57AC9F294E8EEF57929CBFB9B611935749E4062DEE280ABEB145AEDD322A5A2",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/effect-definitions/AssaultEffectDefinition.stub.ts",
+      "exists": true,
+      "sha256": "D51971F2AACD64A3995A0A36F7C98A4CA95A966A79A894EC74214A5DA11B011A",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/effect-definitions/AssaultEffectDefinition.ts",
+      "exists": true,
+      "sha256": "0BCE15B41FA0728FBBA88271D8EB89F7F76E973B63788DE393AD4984ED0E8977",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/effect-definitions/ColonizeEffectDefinition.ts",
+      "exists": true,
+      "sha256": "33A2E6773EF43AC9136728CDA0BA6D45CB4CAD0AF174788971C4A813137694A8",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/effect-definitions/EffectDefinition.ts",
+      "exists": true,
+      "sha256": "1858CC826E58B9788E056A0831A29C1D082D75AE9F0DC0ABF65AC6CA6BA10254",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.stub.ts",
+      "exists": true,
+      "sha256": "D1A97D6667C1A1BC23A34037400195AF71DE3B5B776112AB5D9463DC54521120",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts",
+      "exists": true,
+      "sha256": "3B5ECF7090C35B217F4D5338878D0FFC42B32D535B520A0991E4BF824BFEFF84",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/target-definitions/TargetConstraint.ts",
+      "exists": true,
+      "sha256": "1D0E281E503147B8E37B0B1A1C4687A94F1876563B0C793CA25075D9C6956BF3",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/ruleset/target-definitions/TargetDefinition.ts",
+      "exists": true,
+      "sha256": "BCD3C5CA4F383038B2FDE2300B2192FE7A5652D06DC83646CCBD851785A80B87",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/turns/actions/Action.stub.ts",
+      "exists": true,
+      "sha256": "8D564EC2C6FCEC84616F4845316865A7C19A90FD3C6D0D12A399BE5BC6F4D55B",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/turns/actions/Action.ts",
+      "exists": true,
+      "sha256": "1790CBB1BE66F7736D1386DA51BA43600D96EFF0A18E36E8FDA9DCCD8E040C30",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/turns/actions/ActionResolutionOrigin.ts",
+      "exists": true,
+      "sha256": "EF76FD2E0B1CF5E2FE0B65A91220A3A662E90F18C610DB05FE6A8C600B6AB224",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/turns/actions/ResolvedAction.stub.ts",
+      "exists": true,
+      "sha256": "F3801EC9B81CB504CD74D266458DCE9A2EFFF1AC737064961CA510BD60BB948F",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/turns/actions/ResolvedAction.ts",
+      "exists": true,
+      "sha256": "95D0E11FAEB8318D6C669D0B37D4E4F973F9FBA33B60B1BCA87CFB8D63A5AC42",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/turns/actions/SelectedInputs.ts",
+      "exists": true,
+      "sha256": "49CD31351022D155C1E9451980C79E9E296A548028F18D546DAD025466EC5253",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/world/fleets/Fleet.ts",
+      "exists": true,
+      "sha256": "EFCD2145F6FBA37455F8BD3F96596DA06E158EEFB9B90B6C117A72C3FA636A81",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/world/fleets/FleetMovement.ts",
+      "exists": true,
+      "sha256": "55D47ABE02BB7D30FF949C39E74DE7F567182314937D98678531357E6ED9E699",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/world/fleets/FleetStrength.ts",
+      "exists": true,
+      "sha256": "C3EE76AA18F6EEAFBF64E3C3A2089AA489C264E327B0AA1C568D67D77F59FD89",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/world/fleets/PendingArrivalEffect.ts",
+      "exists": true,
+      "sha256": "69937713A726C860FB893C9F324E9658848A465C62EA05457A8B741F3267EC5F",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/domain/world/planets/getPlanetDistance.ts",
+      "exists": true,
+      "sha256": "75C914C49AC7AB3E2F19BEA54FD088CF53619A7F9F6AB1257A7303E2A1321BD1",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/extractSuccess.ts",
+      "exists": true,
+      "sha256": "0AEE17B22F10CA94CB1D5425197783E8AFC1E68F0AABC91A432C8923CEF1D814",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/FleetOperationsRuleset.stub.ts",
+      "exists": true,
+      "sha256": "00F82B8A06A805A0121AD559C5DAFD9410D821A506A22327FE5D311D721FB919",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/action-definitions/attack-move.ts",
+      "exists": true,
+      "sha256": "EF6C26BDA8071DDC60884C105E82C441152A559BF67C5D0030E166154F8E138E",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/action-definitions/build-fleet.ts",
+      "exists": true,
+      "sha256": "AE0DD467058C7CD5514CCFA220EF9B550363A41E5580D8FB957D2AB0B21AB840",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/action-definitions/colonize-planet.ts",
+      "exists": true,
+      "sha256": "FB658ADEEC3942677327E3E9383F4B2853DDBC4F7802A2C82BBB2067767A0F6A",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/action-definitions/gain-energy.ts",
+      "exists": true,
+      "sha256": "6126187D33448DE3B12C8F4A9C7081982BF5C880D401B7CECABD2FF87C101C49",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/action-definitions/gain-fuel.ts",
+      "exists": true,
+      "sha256": "BF875E318ABCBDA502F475C1A518CA626A47594C598E4AEE41257849FE3B6700",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/action-definitions/gain-influence.ts",
+      "exists": true,
+      "sha256": "6BCD6C33587D474AA06DA3A56E2B4C47D1F900E7435FD542182BAC66F64D4968",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/action-definitions/gain-metal.ts",
+      "exists": true,
+      "sha256": "F3E72242793E1F662650200563805D9DE71DF509F8AA8B8A3205A554BE3D6AA0",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/action-definitions/move-fleet.ts",
+      "exists": true,
+      "sha256": "068E21BA62C944AAFC8710ED48E32942C0A540ECFE3C3BC992329303A1478CD5",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/action-definitions/win-the-game.ts",
+      "exists": true,
+      "sha256": "EF4BC488BFDF1155557E2A3FD86F5B252E9DA075BA4621FFBE8F34ADB300AF5B",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/testing/test-ruleset/TestRuleset.ts",
+      "exists": true,
+      "sha256": "E6928880D749FB2CD7C9E5D2BE4D99653FE3C74D500E5811A42B618262FFBAAE",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/ArrivalIntent.ts",
+      "exists": true,
+      "sha256": "AC1A72E7429197DFBB440585C422DDB096BFA5721B60D691BCA665EB3B8954CE",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/colonization.test.ts",
+      "exists": true,
+      "sha256": "BFFFA8B9CB21F6887786B67F52DDAF15E36F1F2BDC32A47B198FE8E0444B71B1",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/ColonizationScenario.stub.ts",
+      "exists": true,
+      "sha256": "85D714F32B51C10F688D3943588D18ED1D6207B37446428E090600F45237C1F3",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/Effect.ts",
+      "exists": true,
+      "sha256": "8423628CDD33D632265B7AF688E4CA4D224A339F7C13260DAD7842AB7064C417",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/EffectFactory.ts",
+      "exists": true,
+      "sha256": "D61A7445B544868D6B77478EA9C6756A3894261588BEAACE6E440A621A4476D7",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/EffectPool.test.ts",
+      "exists": true,
+      "sha256": "8D15062ECE6F54DDD86B6E94A4BA503B63AE8359503EC86CCF2B685D279E4D2E",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/EffectPool.ts",
+      "exists": true,
+      "sha256": "3527275F7DFF08B73FF499D53D17A5A24BEAB72747E71196C6FA8218587A3339",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/implementations/AssaultEffect.ts",
+      "exists": true,
+      "sha256": "7DDE163BD7B35FC151B4805687A871B84EE15C12889A89296242DDFA0E79C0B2",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/implementations/ColonizeEffect.ts",
+      "exists": true,
+      "sha256": "9175925FB75B5DA89FC146F46CF35C74AA04B016EE3771BE53D3C50F9DFCEB17",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/implementations/FleetBuildEffect.ts",
+      "exists": true,
+      "sha256": "11AD2253E2CFFFEB91963CBBCE2746E4FA1CB61FD50C83A67D63F92366D111F5",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/implementations/FleetMoveEffect.test.ts",
+      "exists": true,
+      "sha256": "0FBDBA5602533EA32E405719B65C4B4714C80303B25F44D2704F503EF71FD000",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/implementations/FleetMoveEffect.ts",
+      "exists": true,
+      "sha256": "E488B49A8C565A6186D78A2307DC491BCF13591C538D8481718C64566FA98DFD",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/effects/resolveTargetId.ts",
+      "exists": true,
+      "sha256": "A32616A73F21A2F67AB0F4E23BAD61C7F75D1E988BC434414E078D359ADF2735",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/fleetOperations.test.ts",
+      "exists": true,
+      "sha256": "72D2F8D97A8A9D795C3BC730F8CF794759BA208E419FBC379F297EC5F5D1EDC0",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/FleetOperationsScenario.stub.ts",
+      "exists": true,
+      "sha256": "84DDC959253A0E7BEB865818CCEDA1180A0D8FDA3CB0F0E93D9A9795E3CA9A6B",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/phases/implementations/resolveColonizationPhase.ts",
+      "exists": true,
+      "sha256": "1BE472AE07FE605ED4EF48ACD96740E442458EB6FA05CA9F8624177BD6ADBA11",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/phases/implementations/resolveFleetCombatPhase.ts",
+      "exists": true,
+      "sha256": "DBB3E7DEC11445AF88A408ED7BEFB6A02DF6A50873CFDF95A7B8281369C8F3FE",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/phases/implementations/resolveFleetMovementPhase.ts",
+      "exists": true,
+      "sha256": "4561304F8F34B655E7BBFDA5AC70D1FB99A26B498EEAECEB9CF845629F0A2509",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/resolveTurn.test.ts",
+      "exists": true,
+      "sha256": "6EA3414936BCA33663D1C822A2304D458DE94BDAC0B9A05A3CF7414DFBD1BACA",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/resolveTurn.ts",
+      "exists": true,
+      "sha256": "438D00732957FA2577081140E0402857159D3D53F2840BF573C5EB2BA2DF0D0C",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/state/ResolutionFleet.ts",
+      "exists": true,
+      "sha256": "C24ED4C6AC6EE593D9FF26BA50A30F4ECCA18DC2348309FCC5E528EEF5465752",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/TurnContext.ts",
+      "exists": true,
+      "sha256": "D2B86D8064590154FB100734EDC44E8B32312711A47ACC8463B3C1559EFF5745",
+      "deleted": false
+    },
+    {
+      "path": "packages/shared/src/turn-resolution/TurnState.ts",
+      "exists": true,
+      "sha256": "6D66553A775165656484CFCFF5BF37F673597D68BDB40B856E8C35DCA118EF6F",
+      "deleted": false
+    }
+  ],
+  "freshTestCommandPrimary": {
+    "path": ".agents/experiments/fleet-operations/reports/05-ci-r2-tester-command-primary.json",
+    "sha256": "2606AAF2FA1BC474A991F45782A797B507EDFF337009B46147F2856E1449A14C"
+  },
+  "priorSourceManifest": {
+    "path": ".agents/experiments/fleet-operations/reports/05-root-ci-r3-implementer-manifest.json",
+    "sha256": "A28569AA53A856905514F9913E72D15D1A32D61C398DB9E9B8BD52673EA1A53B"
+  }
+}

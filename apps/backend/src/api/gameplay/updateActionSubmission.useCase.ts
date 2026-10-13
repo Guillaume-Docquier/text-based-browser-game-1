@@ -1,10 +1,9 @@
-import { branded, type Logger, Result } from "@guillaume-docquier/tools-ts"
+import { type Logger, Result, indexBy } from "@guillaume-docquier/tools-ts"
+import { replaceActionSubmission, isActionOccupied } from "shared/action-submission/actionEligibility.ts"
 import { validateSubmittedActions } from "shared/action-submission/validation/validateSubmittedActions.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
-import { TargetType } from "shared/domain/ruleset/target-definitions/TargetType.ts"
 import type { SubmittedAction } from "shared/domain/turns/actions/Action.ts"
-import { safeResolveTargetId } from "shared/turn-resolution/effects/resolveTargetId.ts"
 import { z } from "zod"
 import { SubmittedActionTargetsDtoSchema } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import type { CreateTransaction } from "#lib/db/createDb.ts"
@@ -38,6 +37,8 @@ export class UpdateActionSubmissionUseCase {
     const setActionResult = await this.createTransaction(async (tx) => {
       const context = await this.gameplayRepository.getActionSubmissionsForUpdate({ gameId, playerId, turn }, tx)
 
+      if (isActionOccupied({ fleets: indexBy("id", context.fleets) }, { playerId, id: submittedActionTargets.actionId }))
+        throw new TransactionRollbackError("Action is in progress and cannot be changed")
       const actionsById = new Map(Array.from(context.actions, (action) => [action.id, action]))
       const action = actionsById.get(submittedActionTargets.actionId)
       if (action === undefined) {
@@ -46,7 +47,7 @@ export class UpdateActionSubmissionUseCase {
 
       if (submittedActionTargets.selectedTargets === null) {
         await this.gameplayRepository.updateActionSubmissions(
-          { context, actions: [{ id: submittedActionTargets.actionId, selectedTargets: null }] },
+          { context, actions: [{ id: submittedActionTargets.actionId, selectedTargets: null, selectedInputs: null }] },
           tx,
         )
         return
@@ -57,61 +58,21 @@ export class UpdateActionSubmissionUseCase {
         actionDefinitionId: action.actionDefinitionId,
         playerId,
         selectedTargets: submittedActionTargets.selectedTargets,
+        selectedInputs: submittedActionTargets.selectedInputs,
       } satisfies SubmittedAction
-
-      const actionDefinition = context.ruleset.actionDefinitions[submittedAction.actionDefinitionId]
-      if (actionDefinition === undefined) {
-        throw new TransactionRollbackError("No action definition found", {
-          cause: { actionDefinitionId: submittedAction.actionDefinitionId },
-        })
-      }
-
-      const planetIds = [
-        ...new Set(
-          Object.entries(actionDefinition.targets)
-            .map(([actionTargetTag, targetDefinition]) => {
-              if (targetDefinition.targetType !== TargetType.PLANET) {
-                return null
-              }
-
-              // Object.entries widens TargetTag to string
-              return safeResolveTargetId(submittedAction.selectedTargets, {
-                actionTargetTag: branded(actionTargetTag),
-                targetType: targetDefinition.targetType,
-              })
-            })
-            .filter((planetId) => planetId !== null),
-        ),
-      ]
-      const planets = await this.gameplayRepository.getPlanetsByIds({ gameId: context.gameId, planetIds }, tx)
-
-      const fleetIds = [
-        ...new Set(
-          Object.entries(actionDefinition.targets)
-            .map(([actionTargetTag, targetDefinition]) => {
-              if (targetDefinition.targetType !== TargetType.FLEET) {
-                return null
-              }
-
-              // Object.entries widens TargetTag to string
-              return safeResolveTargetId(submittedAction.selectedTargets, {
-                actionTargetTag: branded(actionTargetTag),
-                targetType: targetDefinition.targetType,
-              })
-            })
-            .filter((fleetId) => fleetId !== null),
-        ),
-      ]
-      const fleets = await this.gameplayRepository.getFleetsByIds({ gameId: context.gameId, fleetIds }, tx)
 
       const turnState = createTurnState({
         gameId: context.gameId,
         turn,
         playerId,
         resources: context.resources,
-        submittedActions: [submittedAction],
-        planets,
-        fleets,
+        submittedActions: replaceActionSubmission(
+          context.actions.filter((action): action is SubmittedAction => action.selectedTargets !== null),
+          submittedAction,
+          submittedAction,
+        ),
+        planets: [...context.planets],
+        fleets: [...context.fleets],
       })
       const issues = validateSubmittedActions(turnState.submittedActions, context.ruleset, turnState)
       if (issues.length > 0) {

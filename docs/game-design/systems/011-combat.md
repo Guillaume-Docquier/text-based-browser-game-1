@@ -2,7 +2,9 @@
 
 ## Status
 
-Not Implemented
+Partially Implemented
+
+Normal Assault is implemented as an explicit effect composed with Move. Surprise Assault remains planned.
 
 ## Purpose
 
@@ -34,8 +36,16 @@ In normal combat, each side loses Strength equal to the other side's Combined Fo
 
 If a side contains multiple Fleets, its total Strength loss is distributed proportionally across those Fleets. Losses use whole numbers. Rounding may be required, but total losses must be respected.
 
-A Surprise Assault resolves in two steps. First, the attacking Fleet deals its Strength as loss to the Combined defending force. Then only surviving defending Strength deals loss to the attacker. If no defending Strength remains, there is no retaliation.
+Normal Assault snapshots both sides before applying either loss, fires once, and removes zero-strength Fleets. Only positive stationed opponents defend; friendly and in-transit Fleets are excluded. No enemies is a successful no-op. An earlier Assault that destroys a later pending attacker completes that later effect as Prevented. Ownership does not change.
+
+Arrival priority is retained per initiating order even when friendly Fleets merge. Combat processes ascending arrival Ticks after all Movement and Build. Each whole tied Tick group is canonically sorted by initiating Turn, Player ID, Action ID, effect index and departure Fleet ID, then shuffled once with the persisted RNG (singletons draw nothing). A destroyed later candidate remains in this predetermined order.
+
+A planned Surprise Assault resolves in two steps. First, the attacking Fleet deals its Strength as loss to the Combined defending force. Then only surviving defending Strength deals loss to the attacker. If no defending Strength remains, there is no retaliation.
 
 ## Potential Flaws
 
-The exact proportional rounding rule remains open and must be deterministic once implemented.
+Losses use exact largest remainders with Fleet-ID code-point ties. Very large total forces require exact integer arithmetic; aggregates and products remain BigInt internally and only individual losses enter Fleet state.
+
+## Current Colonization integration
+
+Colonize does not implicitly attack. A composed Assault resolves first; surviving force below the configured requirement or known destruction prevents Colonize without additional loss. Enemy co-presence alone does not prevent claiming an Unclaimed Planet. See [Planets](./008-planets.md) and [Actions](./003-actions.md) for the implemented contract.

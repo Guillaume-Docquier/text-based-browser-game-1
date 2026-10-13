@@ -1,0 +1,127 @@
+{
+  "head": "375eedf2966c06a7811fea846c37baffc46e88dc",
+  "pr": {
+    "number": 596,
+    "state": "open",
+    "draft": true,
+    "head": "375eedf2966c06a7811fea846c37baffc46e88dc",
+    "base": "main",
+    "branch": "codex/fleet-operations-sol",
+    "auto_merge": null,
+    "mergeable": true,
+    "url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/pull/596"
+  },
+  "checks": [
+    {
+      "id": 114471273350,
+      "name": "codecov/patch",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "details_url": "https://app.codecov.io/gh/Guillaume-Docquier/text-based-browser-game-1/pull/596",
+      "completed_at": "2026-10-11T12:35:35Z"
+    },
+    {
+      "id": 114471071668,
+      "name": "validate-pr-title",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "details_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139780374/job/114471071668",
+      "completed_at": "2026-10-11T12:34:37Z"
+    },
+    {
+      "id": 114470983270,
+      "name": "validate-pr-title",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "details_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139750646/job/114470983270",
+      "completed_at": "2026-10-11T12:34:09Z"
+    },
+    {
+      "id": 114470982789,
+      "name": "code-quality",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "details_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139750576/job/114470982789",
+      "completed_at": "2026-10-11T12:34:38Z"
+    },
+    {
+      "id": 114470982771,
+      "name": "e2e",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "details_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139750576/job/114470982771",
+      "completed_at": null
+    },
+    {
+      "id": 114470982755,
+      "name": "shared",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "details_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139750576/job/114470982755",
+      "completed_at": "2026-10-11T12:34:45Z"
+    },
+    {
+      "id": 114470982745,
+      "name": "backend",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "details_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139750576/job/114470982745",
+      "completed_at": null
+    },
+    {
+      "id": 114470982618,
+      "name": "frontend",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "details_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139750576/job/114470982618",
+      "completed_at": "2026-10-11T12:35:30Z"
+    },
+    {
+      "id": 114470975410,
+      "name": "CodeScene Code Health Review (main)",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "details_url": "https://codescene.io/projects/83154/delta/results/7902043",
+      "completed_at": "2026-10-11T12:35:37Z"
+    }
+  ],
+  "statuses": [],
+  "workflows": [
+    {
+      "id": 38139780374,
+      "name": "PR Title Validation",
+      "event": "pull_request",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139780374"
+    },
+    {
+      "id": 38139750576,
+      "name": "Continuous Integration",
+      "event": "pull_request",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "status": "in_progress",
+      "conclusion": null,
+      "html_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139750576"
+    },
+    {
+      "id": 38139750646,
+      "name": "PR Title Validation",
+      "event": "pull_request",
+      "head_sha": "375eedf2966c06a7811fea846c37baffc46e88dc",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Guillaume-Docquier/text-based-browser-game-1/actions/runs/38139750646"
+    }
+  ]
+}

@@ -1,18 +1,20 @@
-import { Assert, Result } from "@guillaume-docquier/tools-ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import { NonNegativeNumberSchema } from "@guillaume-docquier/tools-ts/schemas"
-import { getUncommittedResources } from "shared/action-submission/getUncommittedResources.ts"
-import { validateCosts } from "shared/action-submission/validation/costs/validateCosts.ts"
+import { computeActionCommitments, evaluateActionSelection } from "shared/action-submission/actionEligibility.ts"
 import { GameIdSchema } from "shared/domain/games/GameId.ts"
 import { PlayerColor } from "shared/domain/players/PlayerColor.ts"
 import { PlayerIdSchema } from "shared/domain/players/PlayerId.ts"
 import type { Resources } from "shared/domain/resources/Resources.ts"
-import type { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import { ActionDefinitionIdSchema } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import { RulesetSchema } from "shared/domain/ruleset/Ruleset.ts"
+import { SubmittedActionSchema, type SubmittedAction } from "shared/domain/turns/actions/Action.ts"
 import { ActionIdSchema } from "shared/domain/turns/actions/ActionId.ts"
+import { SelectedInputsSchema } from "shared/domain/turns/actions/SelectedInputs.ts"
 import { SelectedTargetsSchema } from "shared/domain/turns/actions/SelectedTargets.ts"
 import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { FleetIdSchema } from "shared/domain/world/fleets/FleetId.ts"
+import { FleetMovementSchema } from "shared/domain/world/fleets/FleetMovement.ts"
 import { FleetNameSchema } from "shared/domain/world/fleets/FleetName.ts"
 import { PlanetBiome } from "shared/domain/world/planets/PlanetBiome.ts"
 import { PlanetCoordinatesSchema } from "shared/domain/world/planets/PlanetCoordinates.ts"
@@ -56,14 +58,15 @@ export class GetPlayerViewUseCase {
 }
 
 function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
-  const uncommittedResources =
-    playerViewModel.turnStatus === TurnStatus.COMPLETED
-      ? playerViewModel.resources // When the turn is completed, at action costs have been spent already, so we don't need to compute commitments
-      : getUncommittedResources({
-          resources: playerViewModel.resources,
-          actions: playerViewModel.actions.filter((action) => action.selectedTargets !== null),
-          ruleset: playerViewModel.ruleset,
-        })
+  const submittedActions = getSubmittedActions(playerViewModel)
+  const commitments = computeActionCommitments({
+    ruleset: playerViewModel.ruleset,
+    actions: playerViewModel.turnStatus === TurnStatus.COMPLETED ? [] : submittedActions,
+  })
+  const committed = commitments.resources[playerViewModel.player.id]
+  const uncommittedResources = { ...playerViewModel.resources }
+  if (playerViewModel.turnStatus !== TurnStatus.COMPLETED && committed !== undefined)
+    for (const resource of Object.values(ResourceType)) uncommittedResources[resource] -= committed[resource]
 
   return {
     gameId: playerViewModel.gameId,
@@ -75,13 +78,16 @@ function toPlayerViewDto(playerViewModel: PlayerViewModel): PlayerViewDto {
         planets: [...planets],
       })),
     },
-    fleets: playerViewModel.fleets,
+    fleets: playerViewModel.fleets.map((fleet) => ({
+      ...fleet,
+      uncommittedStrength: fleet.strength - (commitments.strength[fleet.id] ?? 0),
+    })),
     turn: playerViewModel.turn,
     turnStatus: playerViewModel.turnStatus,
     turnEndsAt: playerViewModel.turnEndsAt,
     resources: toResourcesDto(playerViewModel.resources, uncommittedResources),
     ruleset: playerViewModel.ruleset,
-    actions: toActionDtos(playerViewModel, uncommittedResources),
+    actions: toActionDtos(playerViewModel),
   }
 }
 
@@ -97,44 +103,54 @@ function toResourcesDto(totalResources: Readonly<Resources>, uncommittedResource
   }, {})
 }
 
-function toActionDtos(playerViewModel: PlayerViewModel, uncommittedResources: Resources): ActionDto[] {
-  const turnState = createTurnState({
-    gameId: playerViewModel.gameId,
-    turn: playerViewModel.turn,
-    playerId: playerViewModel.player.id,
-    resources: uncommittedResources,
-    submittedActions: [],
-    planets: [], // doesn't matter for cost validation
-    fleets: [], // doesn't matter for cost validation
+function getSubmittedActions(model: PlayerViewModel): SubmittedAction[] {
+  return model.actions.flatMap((action) =>
+    action.selectedTargets === null ? [] : [SubmittedActionSchema.parse({ ...action, playerId: model.player.id })],
+  )
+}
+function toActionDtos(model: PlayerViewModel): ActionDto[] {
+  const state = createTurnState({
+    gameId: model.gameId,
+    turn: model.turn,
+    playerId: model.player.id,
+    resources: model.resources,
+    submittedActions: model.turnStatus === TurnStatus.COMPLETED ? [] : getSubmittedActions(model),
+    planets: model.galaxy.systems.flatMap((system) => [...system.planets]),
+    fleets: [...model.fleets],
   })
-
-  return playerViewModel.actions.map((action) => {
-    if (action.selectedTargets !== null) {
-      // If the action is submitted already (selected targets are defined), then the action is affordable because it's been committed already
-      return {
-        ...action,
-        canAfford: true,
-      }
-    }
-
-    const affordabilityResult = validateCosts(
-      [
-        {
-          ...action,
-          playerId: playerViewModel.player.id,
-          selectedTargets: {},
-        },
-      ],
-      playerViewModel.ruleset,
-      turnState,
-    )
-    Assert.isSuccess(affordabilityResult)
-
+  const current = model.actions.map((action) => {
+    const evaluation = evaluateActionSelection({
+      state,
+      ruleset: model.ruleset,
+      action: { ...action, playerId: model.player.id },
+      selection: { selectedTargets: action.selectedTargets ?? {}, selectedInputs: action.selectedInputs ?? {} },
+      mode: "draft",
+    })
     return {
       ...action,
-      canAfford: affordabilityResult.value.length === 0,
+      status: action.selectedTargets === null ? ("AVAILABLE" as const) : ("SUBMITTED" as const),
+      canAffordResources: !evaluation.issues.some((issue) => issue.path[0] === "resources"),
+      isEligible: evaluation.eligible,
     }
   })
+  const progress: ActionDto[] = model.fleets.flatMap((fleet) => {
+    const movement = fleet.movement
+    if (fleet.strength <= 0 || fleet.ownerPlayerId !== model.player.id || movement === undefined) return []
+    return [
+      {
+        id: movement.submittedAction.id,
+        actionDefinitionId: movement.submittedAction.actionDefinitionId,
+        selectedTargets: movement.submittedAction.selectedTargets,
+        selectedInputs: movement.submittedAction.selectedInputs,
+        status: "IN_PROGRESS",
+        canAffordResources: false,
+        isEligible: false,
+        inProgressFleetId: fleet.id,
+        destinationPlanetId: fleet.destinationPlanetId,
+      },
+    ]
+  })
+  return [...current.filter((action) => !progress.some((busy) => busy.id === action.id)), ...progress]
 }
 
 export type GetPlayerViewDto = z.infer<typeof GetPlayerViewDtoSchema>
@@ -189,9 +205,11 @@ export const FleetDtoSchema = z.object({
   ownerPlayerId: PlayerIdSchema,
   name: FleetNameSchema,
   strength: z.number(),
+  uncommittedStrength: z.number().optional(),
   originPlanetId: PlanetIdSchema,
   destinationPlanetId: PlanetIdSchema.optional(),
   distanceToEnd: NonNegativeNumberSchema.optional(),
+  movement: FleetMovementSchema.optional(),
 })
 
 type ActionDto = z.infer<typeof ActionDtoSchema>
@@ -199,7 +217,12 @@ const ActionDtoSchema = z.object({
   id: ActionIdSchema,
   actionDefinitionId: ActionDefinitionIdSchema,
   selectedTargets: SelectedTargetsSchema.nullable(),
-  canAfford: z.boolean(),
+  selectedInputs: SelectedInputsSchema.nullable(),
+  status: z.enum(["AVAILABLE", "SUBMITTED", "IN_PROGRESS"]),
+  canAffordResources: z.boolean(),
+  isEligible: z.boolean(),
+  inProgressFleetId: FleetIdSchema.optional(),
+  destinationPlanetId: PlanetIdSchema.optional(),
 })
 
 export type PlayerViewDto = z.infer<typeof PlayerViewDtoSchema>

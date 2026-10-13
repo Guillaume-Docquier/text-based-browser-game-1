@@ -240,7 +240,9 @@ function FleetTableRow({ gameId, row }: { gameId: GameId; row: FleetRow }): Reac
         {destination === undefined ? "-" : <FleetPlanetLink gameId={gameId} planet={destination.planet} />}
       </td>
       <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-        {destination === undefined ? "-" : `${destination.distanceLeft.toLocaleString(undefined, { maximumFractionDigits: 2 })} ly`}
+        {destination === undefined
+          ? "-"
+          : `${destination.distanceLeft.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ly`}
       </td>
     </tr>
   )

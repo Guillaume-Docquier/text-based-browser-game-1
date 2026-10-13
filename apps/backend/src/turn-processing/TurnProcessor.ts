@@ -1,6 +1,10 @@
 import { Datetime, type Logger, mulberry32Prng, Result, Rng, Time, UnitOfTime, branded } from "@guillaume-docquier/tools-ts"
 import { computeAvailableActions } from "shared/action-submission/computeAvailableActions.ts"
+import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
+import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+import type { ResolvedTurnState } from "shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "shared/turn-resolution/resolveTurn.ts"
 import type { ResolveTurnError } from "shared/turn-resolution/ResolveTurnError.ts"
 import type { Clock } from "#lib/Clock.ts"
@@ -117,6 +121,8 @@ export class TurnProcessor {
   }
 
   private processTurn(turnToProcess: TurnToProcessModel): Result<ProcessedTurnModel, ResolveTurnError> {
+    const initialPlanetOwners = new Map(Object.values(turnToProcess.planets).map((planet) => [planet.id, planet.ownerPlayerId]))
+    const initialFleetIds = Object.values(turnToProcess.fleets).map((fleet) => fleet.id)
     const rng = Rng.fromState(turnToProcess.rngState, mulberry32Prng)
     const resolvedTurnResult = resolveTurn(
       {
@@ -136,16 +142,8 @@ export class TurnProcessor {
     }
 
     const processedAt = this.clock.now()
-    const fleetsToUpdate = []
-    const fleetIdsToDelete = []
-    for (const fleet of Object.values(resolvedTurnResult.value.fleets)) {
-      if (fleet.strength === 0) {
-        fleetIdsToDelete.push(fleet.id)
-      } else {
-        fleetsToUpdate.push(fleet)
-      }
-    }
-
+    const resolved = resolvedTurnResult.value
+    const fleetChanges = projectFleetChanges(resolved, initialFleetIds)
     const turnResult: ProcessedTurnModel = {
       gameId: turnToProcess.gameId,
       turn: turnToProcess.turn,
@@ -153,18 +151,13 @@ export class TurnProcessor {
       availableActions: computeAvailableActions({
         playerIds: Object.values(resolvedTurnResult.value.players).map(({ id }) => id),
         ruleset: turnToProcess.ruleset,
+        fleets: Object.values(resolvedTurnResult.value.fleets),
       }),
       processedAt,
       rngState: rng.getState(),
-      playerResources: Object.values(resolvedTurnResult.value.players).flatMap((player) =>
-        Object.values(ResourceType).map((resourceType) => ({
-          playerId: player.id,
-          resourceType,
-          amount: player.resources[resourceType],
-        })),
-      ),
-      fleetsToUpdate,
-      fleetIdsToDelete,
+      playerResources: projectPlayerResources(resolved),
+      planetOwnersToUpdate: projectPlanetOwners(resolved, initialPlanetOwners),
+      ...fleetChanges,
     }
 
     if (resolvedTurnResult.value.winnerPlayerId === undefined) {
@@ -207,4 +200,36 @@ function getNextTurnScheduledFor({
     date: scheduleFrom,
     time: turnInterval,
   })
+}
+
+function projectFleetChanges(
+  resolved: ResolvedTurnState,
+  initialFleetIds: FleetId[],
+): Pick<ProcessedTurnModel, "fleetsToUpdate" | "fleetIdsToDelete"> {
+  const fleetsToUpdate = []
+  const fleetIdsToDelete = initialFleetIds.filter((id) => resolved.fleets[id] === undefined)
+  for (const fleet of Object.values(resolved.fleets)) {
+    if (fleet.strength === 0) {
+      fleetIdsToDelete.push(fleet.id)
+    } else {
+      fleetsToUpdate.push(fleet)
+    }
+  }
+
+  return { fleetsToUpdate, fleetIdsToDelete }
+}
+
+function projectPlayerResources(resolved: ResolvedTurnState): ProcessedTurnModel["playerResources"] {
+  return Object.values(resolved.players).flatMap((player) =>
+    Object.values(ResourceType).map((resourceType) => ({ playerId: player.id, resourceType, amount: player.resources[resourceType] })),
+  )
+}
+
+function projectPlanetOwners(
+  resolved: ResolvedTurnState,
+  initialPlanetOwners: Map<PlanetId, PlayerId | null>,
+): ProcessedTurnModel["planetOwnersToUpdate"] {
+  return Object.values(resolved.planets).flatMap((planet) =>
+    initialPlanetOwners.get(planet.id) === planet.ownerPlayerId ? [] : [{ id: planet.id, ownerPlayerId: planet.ownerPlayerId }],
+  )
 }

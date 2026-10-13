@@ -10,6 +10,7 @@ export type ResolvedAction = Readonly<{
   /**
    * The original action submission
    */
+  initiatingTurn: number
   submittedAction: SubmittedAction
   /**
    * Every outcome related to the action submission
@@ -21,6 +22,7 @@ export type ResolvedAction = Readonly<{
  * Parses a submitted action together with the outcomes recorded during resolution.
  */
 export const ResolvedActionSchema = z.object({
+  initiatingTurn: z.number().int().nonnegative(),
   submittedAction: SubmittedActionSchema,
   actionOutcomes: z.array(EffectOutcomeSchema).readonly(),
 }) satisfies z.ZodType<ResolvedAction>

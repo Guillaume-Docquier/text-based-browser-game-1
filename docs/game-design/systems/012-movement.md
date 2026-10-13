@@ -4,9 +4,13 @@
 
 Partially Implemented
 
-The Standard and Test Rulesets offer three Move Fleet Directives with speeds of 0.1, 1, and 5 light-years per Turn. They require an owned Fleet and a destination Planet. Each submitted Directive advances the Fleet toward that Planet. Its remaining distance persists between Turns; on arrival, it lands or merges with the player's stationed Fleet there. Range limits, partial-Strength movement, automatic continuation, binding the Action during transit, and Tick-based coordination of movement and arrivals remain planned.
+The Standard and independent Test Rulesets offer three Move Fleet Directives with speeds of 0.1, 1, and 5 light-years per Turn and maximum departure distances of 5, 5, and 25 light-years. A submission selects an owned stationary Fleet, a positive whole-number Strength allocation and a distinct destination Planet in range. The selected Strength departs as a deterministic child Fleet; any remainder keeps the original Fleet's ID and name.
 
-The Move Fleet Effect calculates an arrival Tick when a submitted move reaches its destination. The Fleet Movement Phase does not yet coordinate movement and arrivals through a Tick loop. An In-Transit Fleet still needs another submission to advance on a later Turn.
+Journeys automatically advance once per Turn using their persisted departure speed. Remaining distance is derived from the route length and elapsed Turns, avoiding accumulated subtraction error that could delay arrival by an extra Turn; distinct tiny remaining distances are preserved. Costs are paid only on departure. The initiating Action instance remains occupied until arrival or terminal removal; it cannot be edited, redirected, cancelled or reused in transit. Other instances remain independently usable. On arrival, the child lands or merges into a positive same-owner stationed Fleet, preserving that stationed Fleet's identity. Ordinary Move causes no combat or ownership change.
+
+The Fleet Movement Phase materializes all departures before advancing journeys, in canonical player/Action order. Zero-distance travel to a distinct coincident Planet arrives immediately. It processes arrivals in chronological Tick batches. A true zero-distance route arrives at Tick 0; positive final-turn distances use ceil(remaining distance / saved speed × 20), clamped to Ticks 1–20. Canonical elapsed-Turn progress determines arrival even when final subtraction leaves a value slightly greater than speed. Simultaneous landings use initiating Turn, Player ID, Action ID and departure Fleet ID in code-point order. With no friendly station, the earliest canonical child survives; later friendly arrivals reinforce it.
+
+Journeys persist indexed pending Assault and Colonize definitions alongside the original submission. On arrival, separate transient intents retain each order's priority and provenance while redirecting only its actual Fleet binding on merging. Assault activates in Combat against that surviving Fleet's current Strength. Missing legacy pending data is valid only for definitions with no arrival effects; corrupt or changed composition fails before payment.
 
 The galaxy map shows an In-Transit Fleet between its origin and destination stars according to its remaining distance. A solid route segment shows distance traveled, and a dashed segment shows distance remaining. The Fleet icon points toward its destination and displays its Strength. A movement between Planets in the same Star System appears at that star without a visible interstellar route.
 
@@ -19,9 +23,13 @@ Movement moves Fleets between Planets while making distance and movement speed m
 Relates to:
 
 - [System 003-actions](./003-actions.md)
+
 - [System 001-turns](./001-turns.md)
+
 - [System 010-fleets](./010-fleets.md)
+
 - [System 008-planets](./008-planets.md)
+
 - [System 015-rules-engine](./015-rules-engine.md)
 
 ## Core Concepts
@@ -45,3 +53,7 @@ Fleets that arrive on the same Movement Tick are simultaneous. A Fleet ceases to
 ## Potential Flaws
 
 Long travel times can make Fleets feel unresponsive unless players have useful choices while Fleets are In Transit.
+
+## Current Colonization integration
+
+The pending arrival union supports indexed Assault and Colonize. Moving Colonize retains arrival Tick and immutable originating submission through merges; stationary Colonize uses Tick0. Saved Colonize arrival remains valid for processing after a target is claimed and then produces prevention. See [Planets](./008-planets.md) and [Actions](./003-actions.md) for the implemented contract.

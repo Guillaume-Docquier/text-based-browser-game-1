@@ -1,4 +1,14 @@
-import type { Action, ActionDefinition, ActionTier, GameId, Players, PlayerView, Ruleset, SelectedTargets } from "@api-types"
+import type {
+  Action,
+  ActionDefinition,
+  ActionTier,
+  GameId,
+  Players,
+  PlayerView,
+  Ruleset,
+  SelectedTargets,
+  SelectedInputs,
+} from "@api-types"
 import { Sort } from "@guillaume-docquier/tools-ts"
 import { AlertTriangle } from "lucide-react"
 import type { ReactElement } from "react"
@@ -36,28 +46,28 @@ export function ActionSelector({
           .map(toActionAndDefinition(playerView.ruleset.actionDefinitions))
           .sort(sortByTier)
           .map(({ action, definition }) => {
-            const isSelected = action.selectedTargets !== null
-            const selectAction = (selectedTargets: SelectedTargets): void => {
+            const isSelected = action.status === "SUBMITTED"
+            const selectAction = (selectedTargets: SelectedTargets, selectedInputs: SelectedInputs): void => {
               updateActionSubmission.mutate({
                 gameId,
                 turn: playerView.turn,
-                submittedActionTargets: {
-                  actionId: action.id,
-                  selectedTargets,
-                },
+                submittedActionTargets:
+                  selectedTargets === null
+                    ? { actionId: action.id, selectedTargets: null, selectedInputs: null }
+                    : { actionId: action.id, selectedTargets, selectedInputs: selectedInputs ?? {} },
               })
             }
             return (
               <ActionCard
-                key={action.id}
+                key={`${playerView.turn}-${action.id}`}
                 actionDefinition={definition}
                 action={action}
                 playerView={playerView}
                 players={players}
                 resources={playerView.resources}
-                canAfford={action.canAfford}
+                canAfford={action.canAffordResources}
                 isSelected={isSelected}
-                disabled={isTurnLocked || (!action.canAfford && !isSelected)}
+                disabled={isTurnLocked || action.status === "IN_PROGRESS"}
                 onSelect={selectAction}
               />
             )

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-10-11T13:19:56.8912223Z",
+  "criterion": "R2-B01",
+  "originalPrimary": {
+    "path": ".agents/experiments/fleet-operations/reports/05-ci-r2-command-primary.json",
+    "sha256": "205DA8327A7CA2E6EE7AA5BE7ACC7E072712891EEFB037402C647E5F9754C3FE"
+  },
+  "base": "b97976ffa66d57f97ec5fa7e32e9cfc43973ce30",
+  "receipt": {
+    "invocation": "pnpm --filter backend test --project integration src/api/gameplay/combat.integration.test.ts -t 'should exchanges Attack10 against publicly staged opponents10 and20 with literal survivors7 and13'",
+    "input": "original b979",
+    "session": 12074,
+    "exit": 0,
+    "testsPassed": 1,
+    "testsFiltered": 6,
+    "durationSeconds": 25.82
+  }
+}

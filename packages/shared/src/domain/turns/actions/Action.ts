@@ -2,6 +2,7 @@ import { z } from "zod"
 import { PlayerIdSchema, type PlayerId } from "#shared/domain/players/PlayerId.ts"
 import { ActionDefinitionIdSchema, type ActionDefinitionId } from "#shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import { ActionIdSchema, type ActionId } from "#shared/domain/turns/actions/ActionId.ts"
+import { SelectedInputsSchema, type SelectedInputs } from "#shared/domain/turns/actions/SelectedInputs.ts"
 import { SelectedTargetsSchema, type SelectedTargets } from "#shared/domain/turns/actions/SelectedTargets.ts"
 
 export type Action = AvailableAction | SubmittedAction
@@ -15,6 +16,7 @@ export type AvailableAction = Readonly<{
   id: ActionId
   playerId: PlayerId
   actionDefinitionId: ActionDefinitionId
+  selectedInputs: null
   selectedTargets: null
 }>
 
@@ -28,6 +30,7 @@ export type SubmittedAction = Readonly<{
   /**
    * Contains selected target ids keyed by the tags of the action definition's target slots.
    */
+  selectedInputs: SelectedInputs
   selectedTargets: SelectedTargets
 }>
 
@@ -38,6 +41,7 @@ export const AvailableActionSchema = z.object({
   id: ActionIdSchema,
   playerId: PlayerIdSchema,
   actionDefinitionId: ActionDefinitionIdSchema,
+  selectedInputs: z.null(),
   selectedTargets: z.null(),
 }) satisfies z.ZodType<AvailableAction>
 
@@ -48,6 +52,7 @@ export const SubmittedActionSchema = z.object({
   id: ActionIdSchema,
   playerId: PlayerIdSchema,
   actionDefinitionId: ActionDefinitionIdSchema,
+  selectedInputs: SelectedInputsSchema,
   selectedTargets: SelectedTargetsSchema,
 }) satisfies z.ZodType<SubmittedAction>
 

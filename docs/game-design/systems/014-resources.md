@@ -43,17 +43,17 @@ Relates to:
 
 ## Resource Catalogue
 
-| Resource  | Role                                                                                                  |
-| --------- | ----------------------------------------------------------------------------------------------------- |
-| Influence | Planned as the resource required to play every Action, with a per-Turn reset set by Political Regime. |
-| Metal     | Supports construction, including Fleets and Infrastructure.                                           |
-| Fuel      | Supports Fleet movement.                                                                              |
-| Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.   |
-| Colony    | Supports colonizing additional Planets. It is fractional and produced in low amounts.                 |
+| Resource  | Role                                                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Influence | Planned as the resource required to play every Action, with a per-Turn reset set by Political Regime.                     |
+| Metal     | Supports construction, including Fleets and Infrastructure.                                                               |
+| Fuel      | Supports Fleet movement.                                                                                                  |
+| Energy    | Represents coordination effort, time investment and actions that grant buffs or additional effects.                       |
+| Colony    | Planned fractional resource for expansion, produced in low amounts. Currently stored and displayed with no source or use. |
 
 ## Current Implementation
 
-Each player currently has integer stockpiles for all five Resources and starts with placeholder amounts. Standard Ruleset Actions can gain Influence, Metal, Fuel, and Energy. Build Fleet spends Influence and Metal from the empire stockpile through configured Action costs; its current values are in [System 003-actions](./003-actions.md). Political Campaign currently gains Influence without a cost; the planned Influence reset is not implemented. Colony is stored and displayed but has no current source or use. The player view exposes both total and uncommitted Resources, and the frontend displays them with Action costs and affordability.
+Each player currently has integer stockpiles for all five Resources and starts with placeholder amounts. Standard Ruleset Actions can gain Influence, Metal, Fuel, and Energy. Build Fleet spends Influence and Metal from the empire stockpile through configured Action costs; its current values are in [System 003-actions](./003-actions.md). Political Campaign currently gains Influence without a cost; the planned Influence reset is not implemented. Colony is stored and displayed but has no current source or use. The player view exposes both total and uncommitted Resources, and the frontend displays them with Action costs and affordability. Shared commitments aggregate every submitted cost before payment; replacement and cancellation release the previous instance allocation. Same-Turn gains cannot fund earlier costs. Movement pays only on departure, never again during automatic continuation.
 
 ## Rules
 
@@ -68,3 +68,7 @@ Individual Resources may have additional rules that define their sources, costs,
 ## Potential Flaws
 
 A large or poorly differentiated resource catalogue can create bookkeeping without meaningful strategic choices. Resource sources, uses, scarcity, and alignment relationships must be clear enough for players to make informed decisions.
+
+## Current Colonization integration
+
+Current moving and stationary Colonize cost25 Influence and no Fuel or Colony. COLONY remains in the resource catalogue with no production or colonization consumption. Payment occurs once on new submission; later prevention does not refund it. See [Planets](./008-planets.md) and [Actions](./003-actions.md) for the implemented contract.

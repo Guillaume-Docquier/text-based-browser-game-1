@@ -1,0 +1,383 @@
+{
+  "base": "375eedf2966c06a7811fea846c37baffc46e88dc",
+  "cwd": "C:/Users/Guillaume/.codex/worktrees/fleet-operations-sol/text-based-browser-game-1",
+  "packetSha256": "2FBFB3714A33E63EB082905C3E082306E1973ECAF3BEE3AA4E3E4EE6549C5618",
+  "sourceHashes": {
+    "packages/shared/src/domain/ruleset/action-definitions/ActionDefinition.ts": "719C7EFFCA0B9D44271E682BE7F8E51A62D41DA711D8777BCD76E35B85F3DEC2",
+    "packages/shared/src/action-submission/fleetBoundaryIndependent.test.ts": "8658BFC95D2C00D0EF462958F895ABC4DB97EB278AC68C0BF4393622C6451497"
+  },
+  "receipts": [
+    {
+      "command": "pnpm --filter shared test src/domain/ruleset/Ruleset.test.ts src/action-submission/actionEligibility.test.ts src/action-submission/fleetBoundaryIndependent.test.ts src/action-submission/persistedJourney.test.ts src/turn-resolution/fleetOperations.test.ts src/turn-resolution/colonization.test.ts src/turn-resolution/resolveTurn.test.ts",
+      "chunk": "bec82d",
+      "exit": 0,
+      "wallSeconds": 1.8610394000000001,
+      "terminalSummary": " Test Files  7 passed (7)\n      Tests  228 passed (228)\n   Duration  950ms (import 57%, transform 36%, tests 6%)",
+      "input": "final frozen two-path candidate"
+    },
+    {
+      "command": "pnpm typecheck",
+      "chunk": "092e5e",
+      "exit": 0,
+      "wallSeconds": 0.6828831,
+      "terminalSummary": "$ tsc -p tsconfig.json",
+      "input": "final frozen two-path candidate"
+    },
+    {
+      "command": "pnpm --filter shared typecheck",
+      "chunk": "3661aa",
+      "exit": 0,
+      "wallSeconds": 1.1667954,
+      "terminalSummary": "$ tsc -b",
+      "input": "final frozen two-path candidate"
+    },
+    {
+      "command": "pnpm --filter backend typecheck",
+      "chunk": "9a95ae",
+      "exit": 0,
+      "wallSeconds": 1.9031867999999998,
+      "terminalSummary": "$ tsc",
+      "input": "final frozen two-path candidate"
+    },
+    {
+      "command": "pnpm --filter frontend typecheck",
+      "chunk": "bdf669",
+      "exit": 0,
+      "wallSeconds": 2.2889508,
+      "terminalSummary": "$ tsc -b",
+      "input": "final frozen two-path candidate"
+    },
+    {
+      "command": "pnpm lint",
+      "chunk": "c41eab",
+      "exit": 0,
+      "wallSeconds": 4.1271736,
+      "terminalSummary": "$ oxlint --max-warnings 0",
+      "input": "final frozen two-path candidate"
+    },
+    {
+      "command": "pnpm --filter backend test --project unit src/lib/rulesets/CoreRulesets.unit.test.ts",
+      "chunk": "cda026",
+      "exit": 0,
+      "wallSeconds": 1.5836755999999999,
+      "terminalSummary": "Testing types with tsc and vue-tsc is an experimental feature.\n Test Files  1 passed (1)\n      Tests  13 passed (13)\n   Duration  709ms (import 59%, transform 39%, tests 1%)",
+      "input": "final frozen two-path candidate"
+    },
+    {
+      "tests": 57,
+      "files": 4,
+      "exit": 0,
+      "durationSeconds": 91.87,
+      "session": 7575,
+      "input": "final frozen two-path candidate",
+      "command": "pnpm --filter backend test --project integration src/api/gameplay/gameplay.router.integration.test.ts src/turn-processing/TurnProcessor.integration.test.ts src/api/gameplay/combat.integration.test.ts src/api/gameplay/colonization.integration.test.ts"
+    },
+    {
+      "files": 25,
+      "exit": 0,
+      "durationSeconds": 0.962,
+      "tests": 294,
+      "input": "final frozen two-path candidate",
+      "command": "pnpm --filter shared test"
+    },
+    {
+      "files": 25,
+      "exit": 0,
+      "durationSeconds": 1.24,
+      "tests": 294,
+      "input": "final frozen two-path candidate",
+      "command": "pnpm --filter shared test:coverage"
+    },
+    {
+      "exit": 0,
+      "files": 16,
+      "coverage": {
+        "lines": 81.38,
+        "statements": 82.3,
+        "branches": 77.24,
+        "functions": 90.31
+      },
+      "input": "final frozen two-path candidate",
+      "durationSeconds": null,
+      "session": 46648,
+      "projects": ["types", "unit", "integration", "concurrency"],
+      "limitation": "Terminal output truncated. Overall test count and overall duration unavailable; machine artifact records16 file outcomes and individual durations, all failed:false.",
+      "command": "pnpm --filter backend test:coverage",
+      "tests": null,
+      "terminalChunk": "524f4e",
+      "machineArtifact": "apps/backend/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json"
+    },
+    {
+      "exit": 0,
+      "projects": ["storybook", "storybook-native"],
+      "files": 16,
+      "chunk": "ae73cc",
+      "durationSeconds": 7.24,
+      "tests": 79,
+      "command": "pnpm --filter frontend storybook:test",
+      "input": "final frozen two-path candidate"
+    },
+    {
+      "durationSeconds": 1.66,
+      "exit": 0,
+      "input": "final frozen two-path candidate",
+      "command": "pnpm --filter frontend build",
+      "chunk": "987f76"
+    },
+    {
+      "wallSeconds": 6.5197537,
+      "exit": 0,
+      "input": "final frozen two-path candidate",
+      "command": "pnpm --filter frontend storybook:build",
+      "chunk": "c64e55"
+    },
+    {
+      "tty": true,
+      "session": 42528,
+      "additionalReporter": "list",
+      "input": "final frozen two-path candidate",
+      "terminalChunk": "04a86f",
+      "processOnlyPreferences": {
+        "PLAYWRIGHT_HTML_OPEN": "never",
+        "PLAYWRIGHT_LIST_PRINT_STEPS": "1"
+      },
+      "setup": "Clerk global setup plus alice/bob authentication and onboarding",
+      "duration": "2.9m terminal rounded",
+      "exit": 0,
+      "tests": 23,
+      "command": "pnpm --filter frontend e2e --add-reporter=list",
+      "configuredReporter": "html"
+    },
+    {
+      "input": "nonconsumed report files only",
+      "command": "pnpm exec oxfmt --write .agents/experiments/fleet-operations/reports/05-implementer-ci-fix-r4.md .agents/experiments/fleet-operations/reports/05-ci-r3-command-primary.json",
+      "chunk": "15ab19",
+      "exit": 0,
+      "files": 2,
+      "durationMilliseconds": 198
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0,
+      "chunk": "15ab19",
+      "input": "frozen candidate and nonconsumed metadata"
+    }
+  ],
+  "active": null,
+  "runtime": {
+    "rootPreview": {
+      "port": 10138,
+      "pid": 38332,
+      "owner": "root",
+      "disposition": "leave running"
+    },
+    "owned": []
+  },
+  "auditErrors": [
+    {
+      "command": "read docs/adr inventory",
+      "exit": 1,
+      "error": "wrong docs directory; corrected to docs/architecture/decisions"
+    }
+  ],
+  "ownedRuntime": [
+    {
+      "cwd": "apps/backend",
+      "pid": 53544,
+      "command": "node src/api/entry.api.ts",
+      "owner": "E2E42528",
+      "status": "absent after runner terminal exit0; verified CIM and ports10136/10137",
+      "executable": "authorized checkout/node_modules/.bin/node.exe",
+      "parent": 52900
+    },
+    {
+      "cwd": "apps/frontend",
+      "pid": 34004,
+      "command": "node authorized checkout/apps/frontend/node_modules/vite/bin/vite.js --port10137",
+      "owner": "E2E42528",
+      "status": "absent after runner terminal exit0; verified CIM and ports10136/10137",
+      "parent": 2412
+    }
+  ],
+  "backendMachineArtifact": {
+    "sha256": "4E6FB0BE04CE1ABA374665BEFABFE444AEEEC4ED4EFF312913FB5AA621AADAA1",
+    "path": "apps/backend/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json",
+    "lastWriteUtc": "2026-10-11T12:57:06.1676267Z",
+    "content": {
+      "version": "5.0.0",
+      "results": [
+        [
+          "unit:src/lib/rulesets/CoreRulesets.unit.test.ts",
+          {
+            "duration": 23.74649999999997,
+            "failed": false
+          }
+        ],
+        [
+          "integration:src/turn-processing/TurnProcessor.integration.test.ts",
+          {
+            "duration": 39207.1383,
+            "failed": false
+          }
+        ],
+        [
+          "integration:src/api/gameplay/gameplay.router.integration.test.ts",
+          {
+            "duration": 31790.055399999997,
+            "failed": false
+          }
+        ],
+        [
+          "integration:src/api/games/games.router.integration.test.ts",
+          {
+            "duration": 26468.6035,
+            "failed": false
+          }
+        ],
+        [
+          "integration:src/api/accounts/accounts.router.integration.test.ts",
+          {
+            "duration": 7745.288200000001,
+            "failed": false
+          }
+        ],
+        [
+          "integration:src/api/health/health.router.integration.test.ts",
+          {
+            "duration": 3215.3250000000003,
+            "failed": false
+          }
+        ],
+        [
+          "integration:src/api/compression.middleware.integration.test.ts",
+          {
+            "duration": 3502.5964999999997,
+            "failed": false
+          }
+        ],
+        [
+          "concurrency:src/api/games/games.concurrency.test.ts",
+          {
+            "duration": 19429.5089,
+            "failed": false
+          }
+        ],
+        [
+          "integration:src/api/gameplay/fleetActions.integration.test.ts",
+          {
+            "duration": 70457.6044,
+            "failed": false
+          }
+        ],
+        [
+          "concurrency:src/api/gameplay/fleetActions.concurrency.test.ts",
+          {
+            "duration": 49535.088599999995,
+            "failed": false
+          }
+        ],
+        [
+          "types:src/api/trpc.test-d.ts",
+          {
+            "duration": 0,
+            "failed": false
+          }
+        ],
+        [
+          "integration:src/api/gameplay/combat.integration.test.ts",
+          {
+            "duration": 87116.55990000001,
+            "failed": false
+          }
+        ],
+        [
+          "concurrency:src/api/gameplay/combat.concurrency.test.ts",
+          {
+            "duration": 49323.9208,
+            "failed": false
+          }
+        ],
+        [
+          "integration:src/api/gameplay/colonization.integration.test.ts",
+          {
+            "duration": 133668.2862,
+            "failed": false
+          }
+        ],
+        [
+          "concurrency:src/api/gameplay/colonization.concurrency.test.ts",
+          {
+            "duration": 74313.9916,
+            "failed": false
+          }
+        ],
+        [
+          "concurrency:src/api/gameplay/fleetOperations.concurrency.test.ts",
+          {
+            "duration": 53719.7799,
+            "failed": false
+          }
+        ]
+      ]
+    }
+  },
+  "artifacts": [
+    {
+      "sha256": "9F5A685B54D4E6353B33AA5180AE115F65A29169450E959BAB3101717615BBD6",
+      "path": "packages/shared/coverage/lcov.info",
+      "lastWriteUtc": "2026-10-11T12:54:37.12552Z"
+    },
+    {
+      "sha256": "C6A64E076D91EF299D4AF4592E4103D87520B254D66BDA71876C6679C96F153D",
+      "path": "apps/backend/coverage/lcov.info",
+      "lastWriteUtc": "2026-10-11T12:57:06.5241164Z"
+    },
+    {
+      "sha256": "B3A3C6F01C1FFC4AC7E1D723F70EAB3BA4E28E5301EEB4E2C9C07BC581AE0BD3",
+      "path": "apps/frontend/playwright-report/index.html",
+      "lastWriteUtc": "2026-10-11T13:02:11.7172714Z"
+    },
+    {
+      "sha256": "B0D5AF6F8ADC58DD376989B7DC1FF3A25860DCECE136BBEB04CDFA9C954A7088",
+      "path": "apps/frontend/dist/index.html",
+      "lastWriteUtc": "2026-10-11T12:58:15.8092396Z"
+    },
+    {
+      "sha256": "2A37EDEF83365091B97E954393E357B8285381FB3194B335EBF718AC65ACB8BB",
+      "path": "apps/frontend/storybook-static/index.json",
+      "lastWriteUtc": "2026-10-11T12:58:34.7302459Z"
+    },
+    {
+      "lastWriteUtc": "2026-10-11T13:01:46.3735307Z",
+      "path": "apps/frontend/test-results/specs-fleetOperations-Flee-7471a-diate-original-Attack-reuse-chromium/contested-colonization.png",
+      "sha256": "2EB69BFC999BBC796A93741D1948FCA2103B3F6BEA96E60559CA3EDA65E8B02B"
+    },
+    {
+      "lastWriteUtc": "2026-10-11T13:02:04.1100769Z",
+      "path": "apps/frontend/test-results/specs-fleetOperations-Flee-7471a-diate-original-Attack-reuse-chromium/final-reused-attack.png",
+      "sha256": "7AE268BFF3E61F57D9C6A38A66DCEF671F91C29635772C004DF3E0BD29410A84"
+    }
+  ],
+  "artifactLimitations": [
+    "Native Storybook emitted apps/frontend/test-results/storybook/results.xml; subsequent configured Playwright cleanup removed test-results before E2E. Actual79/16 terminal exit0 receipt retained. No rerun for artifact removal.",
+    "Backend terminal output truncated; overall test count/duration absent. Fresh16-file machine outcomes preserved.",
+    "Read-only nonexistent coverage-summary/cache-root probes produced error text; corrected actual LCOV and hashed cache read. No failed application gate in this r3 candidate."
+  ],
+  "cleanup": {
+    "ownPortsAbsent": [10136, 10137],
+    "rootPreview": {
+      "pid": 38332,
+      "status": "running untouched",
+      "port": 10138
+    },
+    "database": {
+      "owners": [25828, 18476],
+      "port": 10135,
+      "status": "retained"
+    },
+    "foreign6006": "not queried/connected/stopped",
+    "manualStopCommands": [],
+    "ownProcessesAbsent": [53544, 34004]
+  },
+  "status": "stopped; no active sessions or owned runtime"
+}

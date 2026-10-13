@@ -31,6 +31,7 @@ export class FleetBuildEffect extends Effect {
     // The biggest upside right now is that context.turnState.fleets is the authoritative, always consistent, source of truth for fleets and requires 0 upkeep.
     const existingFleet = Object.values(context.turnState.fleets).find(
       (candidate) =>
+        candidate.strength > 0 &&
         candidate.ownerPlayerId === this.submittedAction.playerId &&
         candidate.originPlanetId === this.targetPlanetId &&
         candidate.destinationPlanetId === undefined,
@@ -79,7 +80,7 @@ const FLEET_NAME_NUMBER_RANGE = Range.integer({ min: 999, max: 999999 })
  * This could be improved eventually
  * It should also be extracted out of the effect the day other sources can create fleets so we can share the same logic.
  */
-function generateFleetName(rng: Rng): FleetName {
+export function generateFleetName(rng: Rng): FleetName {
   return typedParse(FleetNameSchema, `fleet ${rng.int(FLEET_NAME_NUMBER_RANGE)}`)
 }
 

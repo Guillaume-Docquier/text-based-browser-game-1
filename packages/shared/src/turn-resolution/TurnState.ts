@@ -31,9 +31,9 @@ export type TurnState = {
   readonly players: Readonly<Record<PlayerId, ResolutionPlayer>>
   /**
    * Planets for this turn, indexed by their id.
-   * Planets don't change, they are entirely readonly.
+   * Planet values remain readonly; ownership changes replace their keyed entry.
    */
-  readonly planets: Readonly<Record<PlanetId, ResolutionPlanet>>
+  readonly planets: Record<PlanetId, ResolutionPlanet>
   /**
    * Fleets for this turn, indexed by their id.
    * Fleets can be added as they are built.

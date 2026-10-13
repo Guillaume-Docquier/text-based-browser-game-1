@@ -16,6 +16,10 @@ export const TargetDefinitionSchema = z
   .superRefine(validateConstraintsSupportTargetType) satisfies z.ZodType<TargetDefinition>
 
 const supportedTargetTypes: Record<TargetConstraint["type"], ReadonlySet<TargetType>> = {
+  UNCLAIMED_PLANET: new Set(["PLANET"]),
+  AT_FLEET_PLANET: new Set(["PLANET"]),
+  STATIONARY_FLEET: new Set(["FLEET"]),
+  WITHIN_FLEET_RANGE: new Set(["PLANET"]),
   [OwnedBySubmittingPlayerConstraint.type]: OwnedBySubmittingPlayerConstraint.supportedTargetTypes,
 }
 

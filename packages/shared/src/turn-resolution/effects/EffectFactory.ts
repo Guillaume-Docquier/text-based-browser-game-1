@@ -1,4 +1,4 @@
-import { Assert } from "@guillaume-docquier/tools-ts"
+import { Result } from "@guillaume-docquier/tools-ts"
 import type { EffectDefinition } from "#shared/domain/ruleset/effect-definitions/EffectDefinition.ts"
 import { FleetBuildEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetBuildEffectDefinition.ts"
 import { FleetMoveEffectDefinition } from "#shared/domain/ruleset/effect-definitions/FleetMoveEffectDefinition.ts"
@@ -8,6 +8,9 @@ import { VictoryEffectDefinition } from "#shared/domain/ruleset/effect-definitio
 import type { Ruleset } from "#shared/domain/ruleset/Ruleset.ts"
 import type { SubmittedAction } from "#shared/domain/turns/actions/Action.ts"
 import type { Effect } from "#shared/turn-resolution/effects/Effect.ts"
+import { EffectError } from "#shared/turn-resolution/effects/EffectError.ts"
+import { AssaultEffect } from "#shared/turn-resolution/effects/implementations/AssaultEffect.ts"
+import { ColonizeEffect } from "#shared/turn-resolution/effects/implementations/ColonizeEffect.ts"
 import { FleetBuildEffect } from "#shared/turn-resolution/effects/implementations/FleetBuildEffect.ts"
 import { FleetMoveEffect } from "#shared/turn-resolution/effects/implementations/FleetMoveEffect.ts"
 import { ResourceGainEffect } from "#shared/turn-resolution/effects/implementations/ResourceGainEffect.ts"
@@ -19,14 +22,22 @@ export const EffectFactory = {
   /**
    * Creates all effects for an action submission
    */
-  fromSubmittedAction: (submittedAction: SubmittedAction, ruleset: Ruleset, monotonicIdFactory: MonotonicIdFactory): Effect[] => {
+  fromSubmittedAction: (
+    submittedAction: SubmittedAction,
+    ruleset: Ruleset,
+    monotonicIdFactory: MonotonicIdFactory,
+  ): Result<Effect[], EffectError> => {
     const actionDefinition = ruleset.actionDefinitions[submittedAction.actionDefinitionId]
-    Assert.isDefined(actionDefinition)
+    if (actionDefinition === undefined) return Result.Failure(EffectError.Failed({ error: "Missing Action Definition" }))
 
-    const effectDefinitions = [...actionDefinition.costs, ...actionDefinition.effects]
+    const effectDefinitions = [...actionDefinition.costs, ...actionDefinition.effects].filter(
+      (definition) => definition.type !== "ASSAULT" && definition.type !== "COLONIZE",
+    )
 
-    return effectDefinitions.map((effectDefinition) =>
-      EffectFactory.fromEffectDefinition(monotonicIdFactory(), effectDefinition, submittedAction),
+    return Result.Success(
+      effectDefinitions.map((effectDefinition) =>
+        EffectFactory.fromEffectDefinition(monotonicIdFactory(), effectDefinition, submittedAction),
+      ),
     )
   },
   /**
@@ -34,6 +45,10 @@ export const EffectFactory = {
    */
   fromEffectDefinition: (id: number, effectDefinition: EffectDefinition, submittedAction: SubmittedAction): Effect => {
     switch (effectDefinition.type) {
+      case "COLONIZE":
+        return new ColonizeEffect(id, submittedAction)
+      case "ASSAULT":
+        return new AssaultEffect(id, submittedAction)
       case ResourceLossEffectDefinition.type:
         return new ResourceLossEffect(id, effectDefinition, submittedAction)
       case ResourceGainEffectDefinition.type:

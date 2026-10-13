@@ -5,6 +5,7 @@ export function createFleetMoveEffectDefinitionStub({
   fleetTag = "fleet",
   planetTag = "planet",
   speed = 1,
-}: Partial<EffectDefinitionFactoryParameters<FleetMoveEffectDefinition>> = {}): FleetMoveEffectDefinition {
-  return FleetMoveEffectDefinition.create({ fleetTag, planetTag, speed })
+  strengthTag = "strength",
+}: Partial<EffectDefinitionFactoryParameters<FleetMoveEffectDefinition> & { strengthTag: string }> = {}): FleetMoveEffectDefinition {
+  return FleetMoveEffectDefinition.create({ fleetTag, planetTag, strengthTag, speed })
 }

@@ -188,6 +188,13 @@ export class GalaxyPage extends GamePage {
     return branded(planet.locator("[data-fleet-marker]"))
   }
 
+  public fleetMarkerAtStrength(strength: number): FleetMarkerLocator {
+    return branded(
+      this.starSystemMap
+        .locator("[data-fleet-marker]")
+        .filter({ has: this.page.locator("text", { hasText: new RegExp(`^${strength}$`) }) }),
+    )
+  }
   public fleetStrength(marker: FleetMarkerLocator): Locator {
     return marker.locator("text")
   }

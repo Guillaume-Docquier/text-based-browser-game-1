@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "worktree": "C:/Users/Guillaume/.codex/worktrees/fleet-operations-sol/text-based-browser-game-1",
+  "head": "375eedf2966c06a7811fea846c37baffc46e88dc",
+  "branch": "codex/fleet-operations-sol",
+  "sourceManifest": {
+    "path": ".agents/experiments/fleet-operations/reports/05-root-ci-r4-tester-manifest.json",
+    "sha256": "B35727A8006BD085DAC0909C95134EED92E796174E3A71454A8827D67BCAC202"
+  },
+  "sourceHashes": {
+    "packages/shared/src/domain/ruleset/action-definitions/ActionDefinition.ts": "719C7EFFCA0B9D44271E682BE7F8E51A62D41DA711D8777BCD76E35B85F3DEC2",
+    "packages/shared/src/action-submission/fleetBoundaryIndependent.test.ts": "8658BFC95D2C00D0EF462958F895ABC4DB97EB278AC68C0BF4393622C6451497"
+  },
+  "receipts": [
+    {
+      "command": "pnpm --filter shared exec node --input-type=module; standalone independently authored literal schema probe",
+      "chunk_id": "1cae7c",
+      "wall_time_seconds": 0.7898439,
+      "exit_code": 0,
+      "original_token_count": 30,
+      "output": "ROOT_R3_LITERAL3_REORDERED3_LITERAL19_DIRECT_JSON_SAFE_CREATE_IMMUTABLE_AND_SUCCESS_PASS\nROOT_R3_SCHEMA_PROBE_EXIT=0\r\n"
+    },
+    {
+      "command": "pnpm --filter shared test",
+      "chunk_id": "3ab0dd",
+      "wall_time_seconds": 1.8531933,
+      "exit_code": 0,
+      "original_token_count": 140,
+      "output": "$ vitest run\n\n RUN  v5.0.0 C:/Users/Guillaume/.codex/worktrees/fleet-operations-sol/text-based-browser-game-1/packages/shared\n\n\n Test Files  25 passed (25)\n      Tests  294 passed (294)\n   Start at  09:40:35\n   Duration  969ms (import 53%, transform 41%, tests 5%, worker 1%)\n\n  Transform  transforming modules took 4.66s · 41% of tracked time, re-done on every run\n             persist transforms across runs with fsModuleCache: true\n             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns\n\nROOT_R3_SHARED_FULL_EXIT=0\r\n",
+      "files": 25,
+      "testsPassed": 294,
+      "durationSeconds": 0.969
+    },
+    {
+      "command": "pnpm --filter backend test --project concurrency src/api/gameplay/fleetOperations.concurrency.test.ts",
+      "session": 74407,
+      "chunk_id": "3810d3",
+      "wall_time_seconds": 1.4054868,
+      "exit_code": 0,
+      "original_token_count": 42,
+      "output": "\n Test Files  1 passed (1)\n      Tests  3 passed (3)\n   Start at  09:40:40\n   Duration  31.87s (tests 92%, setup 5%, transform 3%)\n\nROOT_R3_UNIFIED_POSTGRES_EXIT=0\r\n",
+      "files": 1,
+      "testsPassed": 3,
+      "durationSeconds": 31.87
+    },
+    {
+      "command": "pnpm exec node --input-type=module; actual Vite SSR selector render plus normal/alternate projection and resolver probe",
+      "cwd": "apps/frontend",
+      "chunk_id": "ff6617",
+      "wall_time_seconds": 1.9536042999999998,
+      "exit_code": 0,
+      "original_token_count": 91,
+      "output": "9:41:29 a.m. [vite] (client) Re-optimizing dependencies because vite config has changed\nROOT_I5_CI_R2_SEARCH_SELECT_INITIAL_DISABLED_AND_SELECTED_VALUES_PASS\nROOT_I5_NORMAL_REAL_PROJECTION_REPLACE_CANCEL_AND_RESOLVER_PASS\nROOT_I5_VARIANT_REAL_PROJECTION_INSTANCES_RESERVATIONS_AND_RESOLVER_PASS\nROOT_I5_FRONTEND_PROJECTION_SSR_PROBE_PASS\nROOT_CI_R3_SSR_EXIT=0\r\n"
+    },
+    {
+      "command": "pnpm lint",
+      "chunk_id": "de314a",
+      "wall_time_seconds": 3.5223013,
+      "exit_code": 0,
+      "original_token_count": 7,
+      "output": "$ oxlint --max-warnings 0\n"
+    },
+    {
+      "command": "pnpm typecheck",
+      "chunk_id": "d45781",
+      "wall_time_seconds": 0.6811125,
+      "exit_code": 0,
+      "original_token_count": 6,
+      "output": "$ tsc -p tsconfig.json\n"
+    },
+    {
+      "command": "pnpm --filter shared typecheck",
+      "chunk_id": "a834a7",
+      "wall_time_seconds": 1.0522318,
+      "exit_code": 0,
+      "original_token_count": 3,
+      "output": "$ tsc -b\n"
+    },
+    {
+      "command": "pnpm --filter backend typecheck",
+      "chunk_id": "ba9d16",
+      "wall_time_seconds": 1.3278105,
+      "exit_code": 0,
+      "original_token_count": 2,
+      "output": "$ tsc\n"
+    },
+    {
+      "command": "pnpm --filter frontend typecheck",
+      "chunk_id": "aab2fd",
+      "wall_time_seconds": 1.7824563,
+      "exit_code": 0,
+      "original_token_count": 3,
+      "output": "$ tsc -b\n"
+    }
+  ],
+  "sourcePathsChangedByRoot": [],
+  "productFilesWrittenByRoot": [],
+  "artifactObservation": {
+    "workerActualScreenshotsPersonallyViewed": true,
+    "workerCurrentArtifactSource": ".agents/experiments/fleet-operations/reports/05-ci-r3-command-primary.json",
+    "rootE2eInvokedInThisRepair": false
+  },
+  "activeRootGateSessions": [],
+  "capturedAtUtc": "2026-10-11T13:44:21.1703186Z",
+  "runtime": {
+    "listeners": [
+      {
+        "port": 10138,
+        "pid": 38332
+      },
+      {
+        "port": 10135,
+        "pid": 25828
+      },
+      {
+        "port": 10135,
+        "pid": 18476
+      }
+    ],
+    "foreign6006Queried": false,
+    "rootPreviewPort": 10138,
+    "rootPreviewPid": 38332,
+    "databaseResetOrReseed": false,
+    "environmentValuesChanged": false
+  }
+}
