@@ -1,1 +1,4 @@
-pnpm lint-staged
+# cmd.exe has a limit of 8191 characters, but we hit it because of command wrappers and quoting even though lint-staged is supposed to batch at 8191 chars
+# I don't know how much characters command wrappers and quoting add, so I chose 75% of 8191
+# relative also helps with smaller file paths so we can fit more file names
+pnpm lint-staged --relative --max-arg-length 6143
