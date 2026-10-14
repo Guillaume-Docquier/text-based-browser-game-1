@@ -267,8 +267,8 @@ describe("TurnProcessor", () => {
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(AssaultWorkerRuleset))
       using apiServer = new ApiServer(apiServices)
 
-      const createClientsSetupPhase1Result = await createClientsSetup({ apiServer, db, clock })
-      const { fixture, actionIds, forward, firstFleet } = createClientsSetupPhase1Result
+      const clientsSetup1 = await createClientsSetup({ apiServer, db, clock })
+      const { fixture, actionIds, forward, firstFleet } = clientsSetup1
       const laterFleet = fixture.stationed[1]
       const playerAId = fixture.playerIds[0]
       const playerBId = fixture.playerIds[1]
@@ -283,8 +283,8 @@ describe("TurnProcessor", () => {
       Assert.isDefined(firstFleet)
       Assert.isDefined(laterFleet)
 
-      const createEmptyTurnSetupPhase2Result = await createEmptyTurnSetup({
-        ...createClientsSetupPhase1Result,
+      const emptyTurnSetup2 = await createEmptyTurnSetup({
+        ...clientsSetup1,
         playerAId,
         firstActionId,
         firstFleet,
@@ -295,7 +295,7 @@ describe("TurnProcessor", () => {
         laterOutcome,
       })
 
-      await assertEmptyObserved({ ...createClientsSetupPhase1Result, ...createEmptyTurnSetupPhase2Result, db, clock })
+      await assertEmptyObserved({ ...clientsSetup1, ...emptyTurnSetup2, db, clock })
     },
   )
 
@@ -309,11 +309,11 @@ describe("TurnProcessor", () => {
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(AssaultWorkerRuleset))
       using apiServer = new ApiServer(apiServices)
 
-      const createClientsSetupPhase3Result = await createClientsSetup2({ apiServer, db, clock })
-      const { fixture, target, observed, forward } = createClientsSetupPhase3Result
+      const clientsSetup3 = await createClientsSetup2({ apiServer, db, clock })
+      const { fixture, target, observed, forward } = clientsSetup3
 
-      const createFleetBSetupPhase4Result = await createFleetBSetup({ ...createClientsSetupPhase3Result })
-      const { expectedForces } = createFleetBSetupPhase4Result
+      const fleetBSetup4 = await createFleetBSetup({ ...clientsSetup3 })
+      const { expectedForces } = fleetBSetup4
       const afterViews = await Promise.all(
         fixture.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: fixture.gameId })),
       )
@@ -325,14 +325,14 @@ describe("TurnProcessor", () => {
       )
       Assert.isDefined(survivor)
 
-      assertSurvivor({ ...createClientsSetupPhase3Result, ...createFleetBSetupPhase4Result, survivor, afterViews })
+      assertSurvivor({ ...clientsSetup3, ...fleetBSetup4, survivor, afterViews })
 
       const emptyTurn = afterViews[0]
       Assert.isDefined(emptyTurn)
 
       const assertEmptyObservedPhase6Observed = observed
 
-      await assertEmptyObserved2({ ...createClientsSetupPhase3Result, emptyTurn, db, clock, assertEmptyObservedPhase6Observed })
+      await assertEmptyObserved2({ ...clientsSetup3, emptyTurn, db, clock, assertEmptyObservedPhase6Observed })
     },
   )
 
@@ -439,13 +439,13 @@ describe("TurnProcessor", () => {
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(HomeArrivalMergeRuleset))
       using apiServer = new ApiServer(apiServices)
 
-      const createFixtureSetupPhase5Result = await createFixtureSetup({ db, clock, apiServer })
-      const { fixture, alice, initialFriendly, enemy } = createFixtureSetupPhase5Result
+      const fixtureSetup5 = await createFixtureSetup({ db, clock, apiServer })
+      const { fixture, alice, initialFriendly, enemy } = fixtureSetup5
       let {
         movingView,
         attackJourney,
         ordinaryJourney,
-      }: { movingView: PlayerView; attackJourney: Fleet | undefined; ordinaryJourney: Fleet | undefined } = createFixtureSetupPhase5Result
+      }: { movingView: PlayerView; attackJourney: Fleet | undefined; ordinaryJourney: Fleet | undefined } = fixtureSetup5
       for (const remainingDistance of [2.418312565270031, 1.418312565270031, 0.418312565270031]) {
         await processPublicTurn({
           clients: fixture.clients,
@@ -467,25 +467,25 @@ describe("TurnProcessor", () => {
 
       Assert.isDefined(attackJourney)
       Assert.isDefined(ordinaryJourney)
-      const createBuildActionSetupPhase6Result = await createBuildActionSetup({
-        ...createFixtureSetupPhase5Result,
+      const buildActionSetup6 = await createBuildActionSetup({
+        ...fixtureSetup5,
         movingView,
         attackJourney,
         ordinaryJourney,
         db,
         clock,
       })
-      const { observed, forward } = createBuildActionSetupPhase6Result
+      const { observed, forward } = buildActionSetup6
 
-      const createEmptyObservedSetupPhase7Result = await createEmptyObservedSetup({
-        ...createFixtureSetupPhase5Result,
-        ...createBuildActionSetupPhase6Result,
+      const emptyObservedSetup7 = await createEmptyObservedSetup({
+        ...fixtureSetup5,
+        ...buildActionSetup6,
         attackJourney,
         ordinaryJourney,
         db,
         clock,
       })
-      const { emptyObserved } = createEmptyObservedSetupPhase7Result
+      const { emptyObserved } = emptyObservedSetup7
       expect(emptyObserved.submittedActions).toStrictEqual([])
       expect(emptyObserved.rngState).toStrictEqual(forward.rngState)
       logWorkerObservation(

@@ -35,6 +35,7 @@ import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
+import { required } from "#shared/testing/required.ts"
 import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import { resolveTurn } from "#shared/turn-resolution/resolveTurn.ts"
 import { ResolveTurnError } from "#shared/turn-resolution/ResolveTurnError.ts"
@@ -58,7 +59,7 @@ describe("fleet movement turn resolution", () => {
 
     // Assert
     expect(firstFleets).toHaveLength(3)
-    expect(firstFleets.find(({ id }) => id === fixture.sourceFleetId)?.strength).toBe(15)
+    expect(required(firstFleets.find(({ id }) => id === fixture.sourceFleetId)).strength).toBe(15)
     expect(
       firstFleets
         .filter(({ movement }) => movement !== undefined)
@@ -128,7 +129,7 @@ describe("fleet movement turn resolution", () => {
 
     // Assert
     expect(child).toBeDefined()
-    expect(departure.resolvedActions[0]?.actionOutcomes).toHaveLength(4)
+    expect(required(departure.resolvedActions[0]).actionOutcomes).toHaveLength(4)
     expect(advancedDistanceToEnd).toBe(1)
     expect(advanced.players[fixture.playerId]?.resources).toStrictEqual(paidResources)
     expect(advanced.resolvedActions).toStrictEqual([])
@@ -145,9 +146,11 @@ describe("fleet movement turn resolution", () => {
     expect(landedFleet?.distanceToEnd).toBeUndefined()
     expect(arrived.resolvedActions).toStrictEqual([])
     expect(arrived.resolvedContinuations[0]?.originatingSubmission).toStrictEqual(departureSubmission)
-    expect(arrived.resolvedContinuations[0]?.departureTurn).toBe(1)
-    expect(arrived.resolvedContinuations[0]?.actionOutcomes).toHaveLength(2)
-    expect(arrived.resolvedContinuations[0]?.actionOutcomes[1]).toMatchObject({ result: expect.stringContaining("arrived on Planet") })
+    expect(required(arrived.resolvedContinuations[0]).departureTurn).toBe(1)
+    expect(required(arrived.resolvedContinuations[0]).actionOutcomes).toHaveLength(2)
+    expect(required(arrived.resolvedContinuations[0]).actionOutcomes[1]).toMatchObject({
+      result: expect.stringContaining("arrived on Planet"),
+    })
   })
 
   it("should arrive on the exact decimal-speed boundary after reloading each turn and release its Action", () => {
@@ -591,13 +594,13 @@ describe("fleet movement turn resolution", () => {
     const journey = fleets.find(({ movement }) => movement !== undefined)
 
     // Assert
-    expect(fleets.find(({ id }) => id === fixture.sourceFleetId)?.strength).toBe(30)
+    expect(required(fleets.find(({ id }) => id === fixture.sourceFleetId)).strength).toBe(30)
     expect(journey).toMatchObject({ strength: 20, distanceToEnd: 3, movement: { submission } })
-    expect(resolved.players[fixture.playerId]?.resources).toMatchObject({
+    expect(required(resolved.players[fixture.playerId]).resources).toMatchObject({
       [ResourceType.INFLUENCE]: 19,
       [ResourceType.FUEL]: 19,
     })
-    expect(resolved.resolvedActions[0]?.actionOutcomes).toHaveLength(5)
+    expect(required(resolved.resolvedActions[0]).actionOutcomes).toHaveLength(5)
   })
 
   it("should merge an arriving Fleet into the existing friendly station and release its occupancy", () => {
@@ -866,55 +869,45 @@ function toFleetProjection(fleet: ResolutionFleet): ToFleetProjectionResult {
   }
 }
 
-function verifyDepartureResources({
-  departureResources,
-  occupiedJourney,
-  occupiedEvaluation,
-  stillTravelingDistances,
-  continuationResources,
-  resolved,
-  arrivedFleet,
-  fixture,
-  departureSubmission,
-}: VerifyDepartureResourcesInput): void {
-  expect(departureResources).toStrictEqual(
+function verifyDepartureResources(input: VerifyDepartureResourcesInput): void {
+  expect(input.departureResources).toStrictEqual(
     createResourcesStub({
       [ResourceType.INFLUENCE]: 17,
       [ResourceType.FUEL]: 19,
     }),
   )
-  expect(occupiedJourney.distanceToEnd).toBe(0.9)
-  expect(occupiedEvaluation.status).toBe("INELIGIBLE")
-  expect(occupiedEvaluation.issues).toContainEqual({
+  expect(input.occupiedJourney.distanceToEnd).toBe(0.9)
+  expect(input.occupiedEvaluation.status).toBe("INELIGIBLE")
+  expect(input.occupiedEvaluation.issues).toContainEqual({
     code: "ACTION_ALREADY_IN_PROGRESS",
     actionId: branded<ActionId>("MOVE_1"),
-    message: 'Action instance "MOVE_1" is still in progress with Fleet "' + occupiedJourney.id + '"',
+    message: 'Action instance "MOVE_1" is still in progress with Fleet "' + input.occupiedJourney.id + '"',
   })
-  expect(stillTravelingDistances).toHaveLength(8)
-  expect(Math.min(...stillTravelingDistances)).toBeGreaterThan(0)
-  expect(continuationResources).toStrictEqual(Array.from({ length: 9 }, () => departureResources))
-  expect(resolved.turn).toBe(10)
-  expect(arrivedFleet).toMatchObject({
-    originPlanetId: fixture.destinationId,
+  expect(input.stillTravelingDistances).toHaveLength(8)
+  expect(Math.min(...input.stillTravelingDistances)).toBeGreaterThan(0)
+  expect(input.continuationResources).toStrictEqual(Array.from({ length: 9 }, () => input.departureResources))
+  expect(input.resolved.turn).toBe(10)
+  expect(input.arrivedFleet).toMatchObject({
+    originPlanetId: input.fixture.destinationId,
     strength: 20,
     arrivedAtTick: 20,
   })
-  expect(arrivedFleet.movement).toBeUndefined()
-  expect(arrivedFleet.destinationPlanetId).toBeUndefined()
-  expect(arrivedFleet.distanceToEnd).toBeUndefined()
-  expect(resolved.resolvedContinuations).toHaveLength(1)
-  expect(resolved.resolvedContinuations[0]?.originatingSubmission).toStrictEqual(departureSubmission)
+  expect(input.arrivedFleet.movement).toBeUndefined()
+  expect(input.arrivedFleet.destinationPlanetId).toBeUndefined()
+  expect(input.arrivedFleet.distanceToEnd).toBeUndefined()
+  expect(input.resolved.resolvedContinuations).toHaveLength(1)
+  expect(input.resolved.resolvedContinuations[0]?.originatingSubmission).toStrictEqual(input.departureSubmission)
 }
 
-function verify({ resolved, releasedEvaluation, fixture }: VerifyInput): void {
-  expect(resolved.resolvedContinuations[0]?.actionOutcomes).toStrictEqual([
+function verify(input: VerifyInput): void {
+  expect(required(input.resolved.resolvedContinuations[0]).actionOutcomes).toStrictEqual([
     EffectOutcome.Resolved({ result: 'Fleet "Source Fleet" moved 0.1 light years towards Planet "Destination"' }),
     EffectOutcome.Resolved({ result: 'Fleet "Source Fleet" arrived on Planet "Destination"' }),
   ])
-  expect(releasedEvaluation).toMatchObject({
+  expect(input.releasedEvaluation).toMatchObject({
     status: "ELIGIBLE",
     issues: [],
-    strengthCommitments: { [fixture.sourceFleetId]: 1 },
+    strengthCommitments: { [input.fixture.sourceFleetId]: 1 },
     resourceCommitments: {
       [ResourceType.INFLUENCE]: 3,
       [ResourceType.METAL]: 0,

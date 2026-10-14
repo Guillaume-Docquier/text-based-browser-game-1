@@ -163,46 +163,27 @@ export const pendingAssaultCorruptions: readonly PendingAssaultCorruption[] = [
   {
     label: "pending ordinal",
     expectedFailedTurnStatus: TurnStatus.PROCESSING,
-    corruptMovement: (movement) => ({
-      ...movement,
-      pendingArrivalEffects: movement.pendingArrivalEffects.map((pendingEffect, index) =>
-        index === 0 ? { ...pendingEffect, definitionOrdinal: typedParse(NonNegativeSafeIntegerSchema, 2) } : pendingEffect,
-      ),
-    }),
+    corruptMovement: (movement) => corruptFirstArrivalEffect(movement, { definitionOrdinal: typedParse(NonNegativeSafeIntegerSchema, 2) }),
   },
   {
     label: "pending Colonize type substituted for Assault",
     expectedFailedTurnStatus: TurnStatus.PROCESSING,
-    corruptMovement: (movement) => ({
-      ...movement,
-      pendingArrivalEffects: movement.pendingArrivalEffects.map((pendingEffect, index) =>
-        index === 0
-          ? {
-              ...pendingEffect,
-              effectDefinition: FleetColonizeEffectDefinition.create({
-                fleetTag: "fleet",
-                planetTag: "planet",
-                strengthRequirement: 20,
-              }),
-            }
-          : pendingEffect,
-      ),
-    }),
+    corruptMovement: (movement) =>
+      corruptFirstArrivalEffect(movement, {
+        effectDefinition: FleetColonizeEffectDefinition.create({
+          fleetTag: "fleet",
+          planetTag: "planet",
+          strengthRequirement: 20,
+        }),
+      }),
   },
   {
     label: "pending Assault mapping",
     expectedFailedTurnStatus: TurnStatus.PROCESSING,
-    corruptMovement: (movement) => ({
-      ...movement,
-      pendingArrivalEffects: movement.pendingArrivalEffects.map((pendingEffect, index) =>
-        index === 0
-          ? {
-              ...pendingEffect,
-              effectDefinition: FleetAssaultEffectDefinition.create({ fleetTag: "wrongForce", planetTag: "wrongSite" }),
-            }
-          : pendingEffect,
-      ),
-    }),
+    corruptMovement: (movement) =>
+      corruptFirstArrivalEffect(movement, {
+        effectDefinition: FleetAssaultEffectDefinition.create({ fleetTag: "wrongForce", planetTag: "wrongSite" }),
+      }),
   },
   {
     label: "captured journey owner binding",
@@ -268,3 +249,23 @@ export const pendingColonizeCorruptions: readonly PendingColonizeCorruption[] = 
     corruptMovement: (movement) => ({ ...movement, pendingArrivalEffects: [] }),
   },
 ]
+
+type CorruptedMovement = Parameters<PendingAssaultCorruption["corruptMovement"]>[0]
+type ArrivalEffectPatch = Partial<CorruptedMovement["pendingArrivalEffects"][number]>
+function corruptFirstArrivalEffect(movement: CorruptedMovement, patch: ArrivalEffectPatch): CorruptedMovement {
+  return {
+    ...movement,
+    pendingArrivalEffects: movement.pendingArrivalEffects.map((effect, index) =>
+      index === 0 ? patchArrivalEffect(effect, patch) : effect,
+    ),
+  }
+}
+
+type CorruptedArrivalEffect = CorruptedMovement["pendingArrivalEffects"][number]
+function patchArrivalEffect(effect: CorruptedArrivalEffect, patch: ArrivalEffectPatch): CorruptedArrivalEffect {
+  const { effectDefinition, definitionOrdinal } = { ...effect, ...patch }
+  if (effectDefinition.type === FleetAssaultEffectDefinition.type) {
+    return { effectDefinition, definitionOrdinal }
+  }
+  return { effectDefinition, definitionOrdinal }
+}

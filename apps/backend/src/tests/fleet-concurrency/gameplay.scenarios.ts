@@ -164,23 +164,16 @@ export const ResourceRaceRuleset = Ruleset.create({
   },
 })
 
-export async function markManualDeadlineDue({ clock, turnsRepository }: MarkManualDeadlineDueInput): Promise<void> {
-  clock.increment({ time: MANUAL_WORKER_CLOCK_ADVANCE })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+export async function markManualDeadlineDue(input: MarkManualDeadlineDueInput): Promise<void> {
+  input.clock.increment({ time: MANUAL_WORKER_CLOCK_ADVANCE })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
 }
 
-export async function processManualDeadlineTurn({
-  clock,
-  turnProcessor,
-  turnsRepository,
-  client,
-  gameId,
-  turn,
-}: ProcessManualDeadlineTurnInput): Promise<void> {
-  await markManualDeadlineDue({ clock, turnsRepository })
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-  const nextView = await client.gameplay.getPlayerView.query({ gameId })
-  expect(nextView.turn).toBe(turn + 1)
+export async function processManualDeadlineTurn(input: ProcessManualDeadlineTurnInput): Promise<void> {
+  await markManualDeadlineDue({ ...input })
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
+  const nextView = await input.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(nextView.turn).toBe(input.turn + 1)
   expect(nextView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
 }
 
@@ -188,22 +181,20 @@ export function normalizeApiDate(value: Date | string): Date {
   return z.coerce.date().parse(value)
 }
 
-export async function waitForCollectingSuccessor({
-  client,
-  gameId,
-  closedTurn,
-}: WaitForCollectingSuccessorInput): Promise<Awaited<ReturnType<AuthenticatedApiClient["client"]["gameplay"]["getPlayerView"]["query"]>>> {
+export async function waitForCollectingSuccessor(
+  input: WaitForCollectingSuccessorInput,
+): Promise<Awaited<ReturnType<AuthenticatedApiClient["client"]["gameplay"]["getPlayerView"]["query"]>>> {
   await expect
     .poll(
       async () => {
-        const view = await client.gameplay.getPlayerView.query({ gameId })
+        const view = await input.client.gameplay.getPlayerView.query({ gameId: input.gameId })
         return { turn: view.turn, turnStatus: view.turnStatus }
       },
       { interval: 100, timeout: 12_000 },
     )
-    .toStrictEqual({ turn: closedTurn + 1, turnStatus: "COLLECTING_ACTIONS" })
+    .toStrictEqual({ turn: input.closedTurn + 1, turnStatus: "COLLECTING_ACTIONS" })
 
-  return await client.gameplay.getPlayerView.query({ gameId })
+  return await input.client.gameplay.getPlayerView.query({ gameId: input.gameId })
 }
 
 export function createStartGate(parties: number): () => Promise<void> {

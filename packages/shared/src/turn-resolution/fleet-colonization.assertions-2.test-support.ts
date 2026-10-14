@@ -20,6 +20,7 @@ import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import type { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
+import { required } from "#shared/testing/required.ts"
 import { SeedOutpostTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
 import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
@@ -37,99 +38,75 @@ import {
   submit,
 } from "./fleet-colonization.test-support.ts"
 
-export function assertTurnTwoJourneys2({
-  turnTwoJourneys,
-  preCombatState,
-  cAttackJourney,
-  p,
-  preCombatContext,
-  attackActionId,
-  strengthTotal,
-  turnTwo,
-  departure,
-}: AssertTurnTwoJourneys2Input): void {
-  expect(turnTwoJourneys.map(({ id }) => preCombatState.fleets[id]?.arrivedAtTick)).toStrictEqual([5, 10, 10, 8])
-  expect(preCombatState.fleets[cAttackJourney.id]).toMatchObject({
-    id: cAttackJourney.id,
+export function assertTurnTwoJourneys2(input: AssertTurnTwoJourneys2Input): void {
+  expect(input.turnTwoJourneys.map(({ id }) => input.preCombatState.fleets[id]?.arrivedAtTick)).toStrictEqual([5, 10, 10, 8])
+  expect(input.preCombatState.fleets[input.cAttackJourney.id]).toMatchObject({
+    id: input.cAttackJourney.id,
     ownerPlayerId: PLAYER_C,
-    originPlanetId: p.id,
+    originPlanetId: input.p.id,
     strength: 16,
     arrivedAtTick: 8,
   })
   expect(
-    preCombatContext.pendingArrivalAssaults.map(({ initiatingJourneyId, actualFleetId, planetId, tick }) => ({
+    input.preCombatContext.pendingArrivalAssaults.map(({ initiatingJourneyId, actualFleetId, planetId, tick }) => ({
       initiatingJourneyId,
       actualFleetId,
       planetId,
       tick,
     })),
-  ).toStrictEqual([{ initiatingJourneyId: cAttackJourney.id, actualFleetId: cAttackJourney.id, planetId: p.id, tick: 8 }])
-  expect(findResolvedContinuation(preCombatContext, PLAYER_C, attackActionId).actionOutcomes.map(outcomeText)).toStrictEqual([
+  ).toStrictEqual([{ initiatingJourneyId: input.cAttackJourney.id, actualFleetId: input.cAttackJourney.id, planetId: input.p.id, tick: 8 }])
+  expect(findResolvedContinuation(input.preCombatContext, PLAYER_C, input.attackActionId).actionOutcomes.map(outcomeText)).toStrictEqual([
     'Fleet "i4-c-source" moved 0.75 light years towards Planet "i4-destination-p"',
     'Fleet "i4-c-source" arrived on Planet "i4-destination-p"',
   ])
-  expect(strengthTotal(turnTwo)).toBe(121)
-  expect(turnTwo.players[PLAYER_A]?.resources).toStrictEqual(departure.players[PLAYER_A]?.resources)
-  expect(turnTwo.players[PLAYER_B]?.resources).toStrictEqual(departure.players[PLAYER_B]?.resources)
-  expect(turnTwo.players[PLAYER_C]?.resources).toStrictEqual(departure.players[PLAYER_C]?.resources)
+  expect(input.strengthTotal(input.turnTwo)).toBe(121)
+  expect(input.turnTwo.players[PLAYER_A]?.resources).toStrictEqual(input.departure.players[PLAYER_A]?.resources)
+  expect(input.turnTwo.players[PLAYER_B]?.resources).toStrictEqual(input.departure.players[PLAYER_B]?.resources)
+  expect(input.turnTwo.players[PLAYER_C]?.resources).toStrictEqual(input.departure.players[PLAYER_C]?.resources)
 }
 
-export function assertAAtP2({
-  aAtP,
-  aAtQ,
-  bAtP,
-  afterArrival,
-  p,
-  q,
-  cAttackJourney,
-  strengthTotal,
-  colonizeActionId,
-  moveActionId,
-  attackActionId,
-  aColonizeJourney,
-  bColonizeJourney,
-}: AssertAAtP2Input): void {
-  expect(aAtP).toMatchObject({ strength: 7, arrivedAtTick: 5 })
-  expect(aAtQ).toMatchObject({ strength: 15, arrivedAtTick: 10 })
-  expect(bAtP).toMatchObject({ strength: 27, arrivedAtTick: 10 })
-  expect(afterArrival.planets[p.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(afterArrival.planets[q.id]?.ownerPlayerId).toBeNull()
-  expect(Object.values(afterArrival.fleets).some(({ ownerPlayerId }) => ownerPlayerId === PLAYER_C)).toBe(false)
-  expect(afterArrival.removedFleetIds).toContain(cAttackJourney.id)
-  expect(strengthTotal(afterArrival)).toBe(69)
-  expect(afterArrival.players[PLAYER_A]?.resources).toMatchObject({
+export function assertAAtP2(input: AssertAAtP2Input): void {
+  expect(input.aAtP).toMatchObject({ strength: 7, arrivedAtTick: 5 })
+  expect(input.aAtQ).toMatchObject({ strength: 15, arrivedAtTick: 10 })
+  expect(input.bAtP).toMatchObject({ strength: 27, arrivedAtTick: 10 })
+  expect(input.afterArrival.planets[input.p.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(required(input.afterArrival.planets[input.q.id]).ownerPlayerId).toBeNull()
+  expect(Object.values(input.afterArrival.fleets).some(({ ownerPlayerId }) => ownerPlayerId === PLAYER_C)).toBe(false)
+  expect(input.afterArrival.removedFleetIds).toContain(input.cAttackJourney.id)
+  expect(input.strengthTotal(input.afterArrival)).toBe(69)
+  expect(required(input.afterArrival.players[PLAYER_A]).resources).toMatchObject({
     [ResourceType.INFLUENCE]: 72,
     [ResourceType.FUEL]: 9,
     [ResourceType.COLONY]: 7,
   })
-  expect(afterArrival.players[PLAYER_B]?.resources).toMatchObject({
+  expect(required(input.afterArrival.players[PLAYER_B]).resources).toMatchObject({
     [ResourceType.INFLUENCE]: 75,
     [ResourceType.FUEL]: 10,
     [ResourceType.COLONY]: 7,
   })
-  expect(afterArrival.players[PLAYER_C]?.resources).toMatchObject({
+  expect(required(input.afterArrival.players[PLAYER_C]).resources).toMatchObject({
     [ResourceType.INFLUENCE]: 95,
     [ResourceType.FUEL]: 9,
     [ResourceType.COLONY]: 7,
   })
-  expect(findResolvedContinuation(afterArrival, PLAYER_A, colonizeActionId).actionOutcomes.at(-1)).toMatchObject({
+  expect(findResolvedContinuation(input.afterArrival, PLAYER_A, input.colonizeActionId).actionOutcomes.at(-1)).toMatchObject({
     type: "RESOLVED",
     result: expect.stringContaining("colonized Planet"),
   })
-  expect(findResolvedContinuation(afterArrival, PLAYER_A, moveActionId).actionOutcomes.map(outcomeText).join(" ")).not.toContain(
-    "exchanged",
-  )
-  expect(findResolvedContinuation(afterArrival, PLAYER_B, colonizeActionId).actionOutcomes.at(-1)).toMatchObject({
+  expect(
+    findResolvedContinuation(input.afterArrival, PLAYER_A, input.moveActionId).actionOutcomes.map(outcomeText).join(" "),
+  ).not.toContain("exchanged")
+  expect(findResolvedContinuation(input.afterArrival, PLAYER_B, input.colonizeActionId).actionOutcomes.at(-1)).toMatchObject({
     type: "PREVENTED",
   })
-  expect(findResolvedContinuation(afterArrival, PLAYER_C, attackActionId).actionOutcomes.at(-1)).toMatchObject({
+  expect(findResolvedContinuation(input.afterArrival, PLAYER_C, input.attackActionId).actionOutcomes.at(-1)).toMatchObject({
     type: "RESOLVED",
     result: expect.stringContaining("exchanged 16 Strength with 70 enemy Strength"),
   })
-  expect([aColonizeJourney.strength, bColonizeJourney.strength]).toStrictEqual([35, 35])
-  expect([aAtP.strength, bAtP.strength]).toStrictEqual([7, 27])
-  expect(aColonizeJourney.strength - aAtP.strength).toBe(28)
-  expect(bColonizeJourney.strength - bAtP.strength).toBe(8)
+  expect([input.aColonizeJourney.strength, input.bColonizeJourney.strength]).toStrictEqual([35, 35])
+  expect([input.aAtP.strength, input.bAtP.strength]).toStrictEqual([7, 27])
+  expect(input.aColonizeJourney.strength - input.aAtP.strength).toBe(28)
+  expect(input.bColonizeJourney.strength - input.bAtP.strength).toBe(8)
 }
 
 export type AssertAAtP2Input = {
@@ -148,37 +125,20 @@ export type AssertAAtP2Input = {
   bColonizeJourney: ReturnType<typeof createFleetStub>
 }
 
-export function assertAAtP({
-  aAtP,
-  bAtP,
-  aAtQ,
-  aAtHome,
-  eligibilityState,
-  afterArrival,
-  journeyActionBindings,
-  ruleset,
-  moveActionId,
-  aSource,
-  q,
-  ordinaryMove,
-  turnThreeRng,
-  reloadTurn,
-  p,
-  strengthTotal,
-}: AssertAAtPInput): void {
-  expect(aAtP.strength + bAtP.strength + aAtQ.strength + aAtHome.strength).toBe(69)
+export function assertAAtP(input: AssertAAtPInput): void {
+  expect(input.aAtP.strength + input.bAtP.strength + input.aAtQ.strength + input.aAtHome.strength).toBe(69)
 
-  const aTurnFour = eligibilityState(
+  const aTurnFour = input.eligibilityState(
     PLAYER_A,
     4,
-    afterArrival.players,
-    Object.values(afterArrival.planets),
-    Object.values(afterArrival.fleets),
+    input.afterArrival.players,
+    Object.values(input.afterArrival.planets),
+    Object.values(input.afterArrival.fleets),
   )
 
-  verifyReleased({ journeyActionBindings, eligibilityState, afterArrival, ruleset, aTurnFour, moveActionId, aSource, q })
+  verifyReleased({ ...input, aTurnFour })
 
-  verifyReuseSubmission({ moveActionId, ordinaryMove, aSource, q, turnThreeRng, reloadTurn, afterArrival, p, bAtP, strengthTotal })
+  verifyReuseSubmission({ ...input })
 }
 
 export type AssertAAtPInput = {
@@ -255,30 +215,22 @@ export type AssertAAtPInput = {
   strengthTotal: (state: ResolvedTurnState) => number
 }
 
-export function assertFindJourneyForSubmission({
-  turnFive,
-  moveActionId,
-  aSource,
-  turnFour,
-  p,
-  bAtP,
-  strengthTotal,
-}: AssertFindJourneyForSubmissionInput): void {
-  expect(findJourneyForSubmission(turnFive, PLAYER_A, moveActionId)).toMatchObject({ strength: 5, distanceToEnd: 1 })
-  expect(turnFive.fleets[aSource.id]?.strength).toBe(15)
-  expect(turnFive.players[PLAYER_A]?.resources).toStrictEqual(turnFour.players[PLAYER_A]?.resources)
-  expect(turnFive.planets[p.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(turnFive.fleets[bAtP.id]?.strength).toBe(27)
-  expect(strengthTotal(turnFive)).toBe(69)
-  expect(turnFive.resolvedActions).toStrictEqual([])
+export function assertFindJourneyForSubmission(input: AssertFindJourneyForSubmissionInput): void {
+  expect(findJourneyForSubmission(input.turnFive, PLAYER_A, input.moveActionId)).toMatchObject({ strength: 5, distanceToEnd: 1 })
+  expect(required(input.turnFive.fleets[input.aSource.id]).strength).toBe(15)
+  expect(input.turnFive.players[PLAYER_A]?.resources).toStrictEqual(input.turnFour.players[PLAYER_A]?.resources)
+  expect(input.turnFive.planets[input.p.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(required(input.turnFive.fleets[input.bAtP.id]).strength).toBe(27)
+  expect(input.strengthTotal(input.turnFive)).toBe(69)
+  expect(input.turnFive.resolvedActions).toStrictEqual([])
   expect(
-    turnFive.resolvedContinuations
+    input.turnFive.resolvedContinuations
       .flatMap(({ actionOutcomes }) => actionOutcomes)
       .map(outcomeText)
       .join(" "),
   ).not.toContain("exchanged")
   expect(
-    turnFive.resolvedContinuations
+    input.turnFive.resolvedContinuations
       .flatMap(({ actionOutcomes }) => actionOutcomes)
       .map(outcomeText)
       .join(" "),
@@ -295,17 +247,17 @@ export type AssertFindJourneyForSubmissionInput = {
   strengthTotal: (state: ResolvedTurnState) => number
 }
 
-export function assertDeparture({ departure, target, source, journey, ruleset }: AssertDepartureInput): void {
-  assertDeparture2({ departure, target, source, journey })
+export function assertDeparture(input: AssertDepartureInput): void {
+  assertDeparture2({ ...input })
 
-  const arrival = resolveContinuation(departure, 2, createSeededRng(1234), ruleset)
+  const arrival = resolveContinuation(input.departure, 2, createSeededRng(1234), input.ruleset)
 
-  assertArrival({ arrival, target, journey })
+  assertArrival({ ...input, arrival })
 
-  const emptyTurn = resolveContinuation(arrival, 3, createSeededRng(1234), ruleset)
-  expect(emptyTurn.fleets[journey.id]?.strength).toBe(15)
-  expect(emptyTurn.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(emptyTurn.players[PLAYER_A]?.resources).toMatchObject({
+  const emptyTurn = resolveContinuation(arrival, 3, createSeededRng(1234), input.ruleset)
+  expect(required(emptyTurn.fleets[input.journey.id]).strength).toBe(15)
+  expect(emptyTurn.planets[input.target.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(required(emptyTurn.players[PLAYER_A]).resources).toMatchObject({
     [ResourceType.INFLUENCE]: 43,
     [ResourceType.FUEL]: 98,
   })
@@ -326,24 +278,24 @@ export type AssertDeparture2Input = {
   journey: ResolutionFleet
 }
 
-export function assertDeparture2({ departure, target, source, journey }: AssertDeparture2Input): void {
-  expect(departure.planets[target.id]?.ownerPlayerId).toBeNull()
-  expect(departure.fleets[source.id]?.strength).toBe(5)
-  expect(journey).toMatchObject({
+export function assertDeparture2(input: AssertDeparture2Input): void {
+  expect(required(input.departure.planets[input.target.id]).ownerPlayerId).toBeNull()
+  expect(required(input.departure.fleets[input.source.id]).strength).toBe(5)
+  expect(input.journey).toMatchObject({
     strength: 45,
-    destinationPlanetId: target.id,
+    destinationPlanetId: input.target.id,
     distanceToEnd: 0.5,
     movement: {
       speed: 2,
       departureTurn: 1,
       submission: {
         actionDefinitionId: SeedOutpostTest.id,
-        selectedTargets: { force: source.id, site: target.id },
+        selectedTargets: { force: input.source.id, site: input.target.id },
         selectedInputs: { quota: 45 },
       },
     },
   })
-  expect(journey.movement?.pendingArrivalEffects).toContainEqual(
+  expect(required(input.journey.movement).pendingArrivalEffects).toContainEqual(
     expect.objectContaining({
       effectDefinition: {
         type: "FLEET_COLONIZE",
@@ -355,27 +307,27 @@ export function assertDeparture2({ departure, target, source, journey }: AssertD
       },
     }),
   )
-  expect(departure.players[PLAYER_A]?.resources).toMatchObject({
+  expect(required(input.departure.players[PLAYER_A]).resources).toMatchObject({
     [ResourceType.INFLUENCE]: 43,
     [ResourceType.FUEL]: 98,
   })
 }
 
-export function assertArrival({ arrival, target, journey }: AssertArrivalInput): void {
-  expect(arrival.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(arrival.fleets[journey.id]?.arrivedAtTick).toBe(5)
-  expect(arrival.fleets[journey.id]).toMatchObject({
-    originPlanetId: target.id,
+export function assertArrival(input: AssertArrivalInput): void {
+  expect(input.arrival.planets[input.target.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(required(input.arrival.fleets[input.journey.id]).arrivedAtTick).toBe(5)
+  expect(input.arrival.fleets[input.journey.id]).toMatchObject({
+    originPlanetId: input.target.id,
     strength: 15,
     movement: undefined,
     destinationPlanetId: undefined,
     distanceToEnd: undefined,
   })
-  expect(arrival.players[PLAYER_A]?.resources).toMatchObject({
+  expect(required(input.arrival.players[PLAYER_A]).resources).toMatchObject({
     [ResourceType.INFLUENCE]: 43,
     [ResourceType.FUEL]: 98,
   })
-  expect(arrival.resolvedContinuations[0]?.actionOutcomes.at(-1)).toMatchObject({
+  expect(required(input.arrival.resolvedContinuations[0]).actionOutcomes.at(-1)).toMatchObject({
     type: "RESOLVED",
     result: expect.stringContaining("colonized Planet"),
   })
@@ -387,36 +339,27 @@ export type AssertArrivalInput = {
   journey: ResolutionFleet
 }
 
-function verifyReleased({
-  journeyActionBindings,
-  eligibilityState,
-  afterArrival,
-  ruleset,
-  aTurnFour,
-  moveActionId,
-  aSource,
-  q,
-}: VerifyReleasedInput): void {
-  for (const { playerId, actionId } of journeyActionBindings) {
-    const state = eligibilityState(
+function verifyReleased(input: VerifyReleasedInput): void {
+  for (const { playerId, actionId } of input.journeyActionBindings) {
+    const state = input.eligibilityState(
       playerId,
       4,
-      afterArrival.players,
-      Object.values(afterArrival.planets),
-      Object.values(afterArrival.fleets),
+      input.afterArrival.players,
+      Object.values(input.afterArrival.planets),
+      Object.values(input.afterArrival.fleets),
     )
-    const released = evaluateActionSelection({ state, ruleset, draft: createFleetSelectionDraft(actionId, {}, {}) })
+    const released = evaluateActionSelection({ state, ruleset: input.ruleset, draft: createFleetSelectionDraft(actionId, {}, {}) })
     expect(released.status).toBe("INCOMPLETE")
     expect(released.issues.map(({ code }) => code)).not.toContain("ACTION_ALREADY_IN_PROGRESS")
   }
   const reuseEvaluation = evaluateActionSelection({
-    state: aTurnFour,
-    ruleset,
-    draft: createFleetSelectionDraft(moveActionId, { fleet: aSource.id, planet: q.id }, { strength: 5 }),
+    state: input.aTurnFour,
+    ruleset: input.ruleset,
+    draft: createFleetSelectionDraft(input.moveActionId, { fleet: input.aSource.id, planet: input.q.id }, { strength: 5 }),
   })
   expect(reuseEvaluation.status).toBe("ELIGIBLE")
-  expect(reuseEvaluation.strengthCommitments[aSource.id]).toBe(5)
-  expect(reuseEvaluation.remainingStrength[aSource.id]).toBe(15)
+  expect(reuseEvaluation.strengthCommitments[input.aSource.id]).toBe(5)
+  expect(reuseEvaluation.remainingStrength[input.aSource.id]).toBe(15)
   expect(reuseEvaluation.resourceCommitments).toStrictEqual({
     [ResourceType.INFLUENCE]: 3,
     [ResourceType.METAL]: 0,
@@ -426,44 +369,33 @@ function verifyReleased({
   })
 }
 
-function verifyReuseSubmission({
-  moveActionId,
-  ordinaryMove,
-  aSource,
-  q,
-  turnThreeRng,
-  reloadTurn,
-  afterArrival,
-  p,
-  bAtP,
-  strengthTotal,
-}: VerifyReuseSubmissionInput): void {
+function verifyReuseSubmission(input: VerifyReuseSubmissionInput): void {
   const reuseSubmission = submit({
-    id: moveActionId,
+    id: input.moveActionId,
     playerId: PLAYER_A,
-    actionDefinitionId: ordinaryMove.id,
-    source: aSource,
-    target: q,
+    actionDefinitionId: input.ordinaryMove.id,
+    source: input.aSource,
+    target: input.q,
     strength: 5,
   })
-  const turnFourRng = Rng.fromState(turnThreeRng.getState(), mulberry32Prng)
-  const turnFour = reloadTurn(afterArrival, 4, [reuseSubmission], turnFourRng)
-  const reusedJourney = findJourneyForSubmission(turnFour, PLAYER_A, moveActionId)
-  expect(turnFour.fleets[aSource.id]?.strength).toBe(15)
+  const turnFourRng = Rng.fromState(input.turnThreeRng.getState(), mulberry32Prng)
+  const turnFour = input.reloadTurn(input.afterArrival, 4, [reuseSubmission], turnFourRng)
+  const reusedJourney = findJourneyForSubmission(turnFour, PLAYER_A, input.moveActionId)
+  expect(required(turnFour.fleets[input.aSource.id]).strength).toBe(15)
   expect(reusedJourney).toMatchObject({ strength: 5, distanceToEnd: 3, movement: { departureTurn: 4 } })
-  expect(turnFour.players[PLAYER_A]?.resources).toMatchObject({
+  expect(required(turnFour.players[PLAYER_A]).resources).toMatchObject({
     [ResourceType.INFLUENCE]: 69,
     [ResourceType.FUEL]: 8,
     [ResourceType.COLONY]: 7,
   })
-  expect(turnFour.planets[p.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(turnFour.fleets[bAtP.id]?.strength).toBe(27)
-  expect(strengthTotal(turnFour)).toBe(69)
+  expect(turnFour.planets[input.p.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(required(turnFour.fleets[input.bAtP.id]).strength).toBe(27)
+  expect(input.strengthTotal(turnFour)).toBe(69)
 
   const turnFiveRng = Rng.fromState(turnFourRng.getState(), mulberry32Prng)
-  const turnFive = reloadTurn(turnFour, 5, [], turnFiveRng)
+  const turnFive = input.reloadTurn(turnFour, 5, [], turnFiveRng)
 
-  assertFindJourneyForSubmission({ turnFive, moveActionId, aSource, turnFour, p, bAtP, strengthTotal })
+  assertFindJourneyForSubmission({ ...input, turnFive, turnFour })
 }
 
 type VerifyReleasedInput = {

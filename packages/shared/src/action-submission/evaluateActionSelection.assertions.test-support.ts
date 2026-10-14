@@ -24,62 +24,60 @@ import { FleetActionSelectionParity } from "#shared/testing/FleetActionSelection
 import { MoveFleetStandard } from "#shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import { normalizeFleetSelectionInput } from "./evaluateActionSelection.test-support.ts"
 
-export function assertStandardSubmission({
-  firstActionId,
-  fixture,
-  state,
-  ruleset,
-  improvedOnlyPlanetId,
-  secondActionId,
-  improvedSubmission,
-}: AssertStandardSubmissionInput): void {
+export function assertStandardSubmission(input: AssertStandardSubmissionInput): void {
   const standardSubmission = createSubmittedActionStub({
-    id: firstActionId,
-    playerId: fixture.playerId,
+    id: input.firstActionId,
+    playerId: input.fixture.playerId,
     actionDefinitionId: MoveFleetStandard.id,
-    selectedTargets: { fleet: fixture.fleetId, planet: fixture.destinationId },
+    selectedTargets: { fleet: input.fixture.fleetId, planet: input.fixture.destinationId },
     selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
   })
   const partialDraft = {
-    actionId: firstActionId,
-    selectedTargets: { [branded<TargetTag>("fleet")]: fixture.fleetId },
+    actionId: input.firstActionId,
+    selectedTargets: { [branded<TargetTag>("fleet")]: input.fixture.fleetId },
     selectedInputs: { [branded<InputTag>("strength")]: FleetActionSelectionParity.standardStrength },
   }
-  const normalizedInput = normalizeFleetSelectionInput(state, ruleset, fixture, FleetActionSelectionParity, firstActionId)
+  const normalizedInput = normalizeFleetSelectionInput(
+    input.state,
+    input.ruleset,
+    input.fixture,
+    FleetActionSelectionParity,
+    input.firstActionId,
+  )
   expect(normalizedInput).toStrictEqual(FleetActionSelectionParity.normalizedInput)
-  const partialStandard = evaluateActionSelection({ state, ruleset, draft: partialDraft })
+  const partialStandard = evaluateActionSelection({ state: input.state, ruleset: input.ruleset, draft: partialDraft })
 
   const partialDestinationCandidate = evaluateTargetCandidate({
-    state,
-    ruleset,
+    state: input.state,
+    ruleset: input.ruleset,
     draft: partialDraft,
     targetTag: branded("planet"),
-    targetId: fixture.destinationId,
+    targetId: input.fixture.destinationId,
   })
   const beyondStandardCandidate = evaluateTargetCandidate({
-    state,
-    ruleset,
+    state: input.state,
+    ruleset: input.ruleset,
     draft: partialDraft,
     targetTag: branded("planet"),
-    targetId: improvedOnlyPlanetId,
+    targetId: input.improvedOnlyPlanetId,
   })
   const improvedRangeCandidate = evaluateTargetCandidate({
-    state,
-    ruleset,
+    state: input.state,
+    ruleset: input.ruleset,
     draft: {
-      actionId: secondActionId,
-      selectedTargets: { [branded<TargetTag>("fleet")]: fixture.fleetId },
+      actionId: input.secondActionId,
+      selectedTargets: { [branded<TargetTag>("fleet")]: input.fixture.fleetId },
       selectedInputs: { [branded<InputTag>("strength")]: FleetActionSelectionParity.improvedStrength },
     },
     targetTag: branded("planet"),
-    targetId: improvedOnlyPlanetId,
+    targetId: input.improvedOnlyPlanetId,
   })
 
   // Act
   const evaluation = evaluateSubmittedActions({
-    state,
-    ruleset,
-    submissions: [standardSubmission, improvedSubmission],
+    state: input.state,
+    ruleset: input.ruleset,
+    submissions: [standardSubmission, input.improvedSubmission],
   })
 
   // Assert
@@ -90,7 +88,7 @@ export function assertStandardSubmission({
     beyondStandardCandidate,
     improvedRangeCandidate,
     evaluation,
-    fixture,
+    fixture: input.fixture,
   })
 }
 
@@ -131,30 +129,23 @@ export type AssertStandardSubmissionInput = {
   improvedSubmission: ReturnType<typeof createSubmittedActionStub>
 }
 
-export function assertPartialStandard({
-  partialStandard,
-  partialDestinationCandidate,
-  beyondStandardCandidate,
-  improvedRangeCandidate,
-  evaluation,
-  fixture,
-}: AssertPartialStandardInput): void {
-  expect(partialStandard.status).toBe(FleetActionSelectionParity.partialExpected.status)
-  expect(partialStandard.missingTargets).toStrictEqual(FleetActionSelectionParity.partialExpected.missingTargets)
-  expect(partialStandard.missingInputs).toStrictEqual(FleetActionSelectionParity.partialExpected.missingInputs)
-  expect(partialDestinationCandidate.candidateStatus).toBe("ELIGIBLE")
-  expect(partialDestinationCandidate.candidateIssues).toStrictEqual([])
-  expect(beyondStandardCandidate.candidateStatus).toBe("INELIGIBLE")
-  expect(beyondStandardCandidate.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
-  expect(improvedRangeCandidate.candidateStatus).toBe("ELIGIBLE")
-  expect(improvedRangeCandidate.candidateIssues).toStrictEqual([])
-  expect(evaluation.status).toBe(FleetActionSelectionParity.expected.status)
-  expect(evaluation.issues).toStrictEqual(FleetActionSelectionParity.expected.issues)
-  expect(evaluation.missingTargets).toStrictEqual(FleetActionSelectionParity.expected.missingTargets)
-  expect(evaluation.missingInputs).toStrictEqual(FleetActionSelectionParity.expected.missingInputs)
-  expect(evaluation.strengthCommitments[fixture.fleetId]).toBe(FleetActionSelectionParity.expected.strengthCommitment)
-  expect(evaluation.remainingStrength[fixture.fleetId]).toBe(FleetActionSelectionParity.expected.remainingStrength)
-  expect(evaluation.resourceCommitments).toStrictEqual({
+export function assertPartialStandard(input: AssertPartialStandardInput): void {
+  expect(input.partialStandard.status).toBe(FleetActionSelectionParity.partialExpected.status)
+  expect(input.partialStandard.missingTargets).toStrictEqual(FleetActionSelectionParity.partialExpected.missingTargets)
+  expect(input.partialStandard.missingInputs).toStrictEqual(FleetActionSelectionParity.partialExpected.missingInputs)
+  expect(input.partialDestinationCandidate.candidateStatus).toBe("ELIGIBLE")
+  expect(input.partialDestinationCandidate.candidateIssues).toStrictEqual([])
+  expect(input.beyondStandardCandidate.candidateStatus).toBe("INELIGIBLE")
+  expect(input.beyondStandardCandidate.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
+  expect(input.improvedRangeCandidate.candidateStatus).toBe("ELIGIBLE")
+  expect(input.improvedRangeCandidate.candidateIssues).toStrictEqual([])
+  expect(input.evaluation.status).toBe(FleetActionSelectionParity.expected.status)
+  expect(input.evaluation.issues).toStrictEqual(FleetActionSelectionParity.expected.issues)
+  expect(input.evaluation.missingTargets).toStrictEqual(FleetActionSelectionParity.expected.missingTargets)
+  expect(input.evaluation.missingInputs).toStrictEqual(FleetActionSelectionParity.expected.missingInputs)
+  expect(input.evaluation.strengthCommitments[input.fixture.fleetId]).toBe(FleetActionSelectionParity.expected.strengthCommitment)
+  expect(input.evaluation.remainingStrength[input.fixture.fleetId]).toBe(FleetActionSelectionParity.expected.remainingStrength)
+  expect(input.evaluation.resourceCommitments).toStrictEqual({
     [ResourceType.INFLUENCE]: FleetActionSelectionParity.expected.resourceCommitments.INFLUENCE,
     [ResourceType.METAL]: FleetActionSelectionParity.expected.resourceCommitments.METAL,
     [ResourceType.FUEL]: FleetActionSelectionParity.expected.resourceCommitments.FUEL,

@@ -29,12 +29,12 @@ describe("Colonize API boundary", () => {
   integrationTest("should reject strength19 and Influence24 without mutation, then accept strength20 at Influence25", async ({ db }) => {
     // Arrange
 
-    const createClockSetupPhase1Result = await createClockSetup({ db })
-    const { apiServices } = createClockSetupPhase1Result
+    const clockSetup1 = await createClockSetup({ db })
+    const { apiServices } = clockSetup1
     using apiServer = new ApiServer(apiServices)
 
-    const createPlayerSetupPhase2Result = await createPlayerSetup({ ...createClockSetupPhase1Result, apiServer, db })
-    const { player, createdGameId, target, source, colonizeAction } = createPlayerSetupPhase2Result
+    const playerSetup2 = await createPlayerSetup({ ...clockSetup1, apiServer, db })
+    const { player, createdGameId, target, source, colonizeAction } = playerSetup2
     const submitColonize = async (strength: number, selectedTurn: number): Promise<void> => {
       await player.client.gameplay.updateActionSubmission.mutate({
         gameId: createdGameId,
@@ -48,8 +48,8 @@ describe("Colonize API boundary", () => {
     }
 
     await createUpdatedVerifyAtTwentyFiveSetup({
-      ...createClockSetupPhase1Result,
-      ...createPlayerSetupPhase2Result,
+      ...clockSetup1,
+      ...playerSetup2,
       submitColonize,
     })
   })
@@ -127,9 +127,9 @@ type AssertAtTwentyFiveInput = {
 
 type AssertAtTwentyFiveResult = { view: PlayerView }
 
-async function createClockSetup({ db }: CreateClockSetupInput): Promise<CreateClockSetupResult> {
+async function createClockSetup(input: CreateClockSetupInput): Promise<CreateClockSetupResult> {
   const clock = new ControlledClock()
-  const apiServices = await createApiStub({ db, clock })
+  const apiServices = await createApiStub({ db: input.db, clock })
   const buildHundred = typedParse(ActionDefinitionSchema, {
     ...BuildFleetStandard,
     id: "FIXTURE_API_BUILD_FLEET_100",
@@ -165,24 +165,18 @@ async function createClockSetup({ db }: CreateClockSetupInput): Promise<CreateCl
   return { clock, apiServices, buildHundred, gainOneInfluence, ruleset }
 }
 
-async function createPlayerSetup({
-  apiServer,
-  ruleset,
-  db,
-  clock,
-  buildHundred,
-}: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
-  const player = await apiServer.createClient({ authenticated: true })
+async function createPlayerSetup(input: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
+  const player = await input.apiServer.createClient({ authenticated: true })
   const { createdGameId } = await player.client.games.create.mutate({
     configuration: createGameConfigurationStub({
-      rulesetId: ruleset.id,
+      rulesetId: input.ruleset.id,
       nbSeats: 1,
       mapGenerationSeed: 1234,
       turnIntervalSeconds: 10,
     }),
   })
   await player.client.games.startGame.mutate({ gameId: createdGameId })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.db, clock: input.clock })
   let view = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
   const planets = view.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
   const home = planets.find(({ ownerPlayerId }) => ownerPlayerId === view.player.id)
@@ -194,7 +188,7 @@ async function createPlayerSetup({
   expect(view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 24, uncommitted: 24 })
   expect(view.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
 
-  const buildAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === buildHundred.id)
+  const buildAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === input.buildHundred.id)
   Assert.isDefined(buildAction)
   await player.client.gameplay.updateActionSubmission.mutate({
     gameId: createdGameId,
@@ -205,7 +199,7 @@ async function createPlayerSetup({
       selectedInputs: {},
     }),
   })
-  await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+  await processNextRouterTurn({ clock: input.clock, turnProcessor, turnsRepository })
   view = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
   const source = view.fleets.find(
     ({ ownerPlayerId, originPlanetId, movement }) =>
@@ -221,53 +215,28 @@ async function createPlayerSetup({
   return { player, createdGameId, turnProcessor, turnsRepository, view, planets, home, target, source, colonizeAction }
 }
 
-async function createUpdatedVerifyAtTwentyFiveSetup({
-  player,
-  createdGameId,
-  submitColonize,
-  view,
-  source,
-  home,
-  target,
-  gainOneInfluence,
-  clock,
-  turnProcessor,
-  turnsRepository,
-  colonizeAction,
-}: CreateUpdatedVerifyAtTwentyFiveSetupInput): Promise<CreateUpdatedVerifyAtTwentyFiveSetupResult> {
-  const beforeInsufficientInfluence = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  await expect(submitColonize(20, view.turn)).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  const afterInsufficientInfluence = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+async function createUpdatedVerifyAtTwentyFiveSetup(
+  input: CreateUpdatedVerifyAtTwentyFiveSetupInput,
+): Promise<CreateUpdatedVerifyAtTwentyFiveSetupResult> {
+  const beforeInsufficientInfluence = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  await expect(input.submitColonize(20, input.view.turn)).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
+  const afterInsufficientInfluence = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
   expect(afterInsufficientInfluence).toStrictEqual(beforeInsufficientInfluence)
   expect(afterInsufficientInfluence.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 24, uncommitted: 24 })
   expect(afterInsufficientInfluence.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
-  expect(afterInsufficientInfluence.fleets.find(({ id }) => id === source.id)).toMatchObject({
-    id: source.id,
+  expect(afterInsufficientInfluence.fleets.find(({ id }) => id === input.source.id)).toMatchObject({
+    id: input.source.id,
     strength: 100,
-    originPlanetId: home.id,
+    originPlanetId: input.home.id,
   })
   expect(
-    afterInsufficientInfluence.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === target.id)?.ownerPlayerId,
+    afterInsufficientInfluence.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === input.target.id)?.ownerPlayerId,
   ).toBeNull()
 
-  const gainAction = afterInsufficientInfluence.actions.find(({ actionDefinitionId }) => actionDefinitionId === gainOneInfluence.id)
+  const gainAction = afterInsufficientInfluence.actions.find(({ actionDefinitionId }) => actionDefinitionId === input.gainOneInfluence.id)
   Assert.isDefined(gainAction)
 
-  const updatedVerifyAtTwentyFive = await assertAtTwentyFive({
-    player,
-    createdGameId,
-    afterInsufficientInfluence,
-    gainAction,
-    clock,
-    turnProcessor,
-    turnsRepository,
-    view,
-    submitColonize,
-    source,
-    target,
-    colonizeAction,
-    home,
-  })
+  const updatedVerifyAtTwentyFive = await assertAtTwentyFive({ ...input, afterInsufficientInfluence, gainAction })
   return { updatedVerifyAtTwentyFive }
 }
 

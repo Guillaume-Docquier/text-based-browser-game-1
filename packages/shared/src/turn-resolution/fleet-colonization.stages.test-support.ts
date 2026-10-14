@@ -118,16 +118,10 @@ export type CreateColonizeSetupResult = {
   playerIds: PlayerId[]
 }
 
-export function createInitialPlayersSetup({
-  playerIds,
-  colonizeActionId,
-  colonize,
-  moveActionId,
-  ordinaryMove,
-}: CreateInitialPlayersSetupInput): CreateInitialPlayersSetupResult {
+export function createInitialPlayersSetup(input: CreateInitialPlayersSetupInput): CreateInitialPlayersSetupResult {
   const initialPlayers = indexBy(
     "id",
-    playerIds.map((id) => ({
+    input.playerIds.map((id) => ({
       id,
       resources: createResourcesStub({
         [ResourceType.INFLUENCE]: 100,
@@ -150,25 +144,25 @@ export function createInitialPlayersSetup({
   const cSource = fleet("i4-c-source", PLAYER_C, cHome, 16)
   const fleets = [aSource, bSource, cSource]
   const aColonize = submit({
-    id: colonizeActionId,
+    id: input.colonizeActionId,
     playerId: PLAYER_A,
-    actionDefinitionId: colonize.id,
+    actionDefinitionId: input.colonize.id,
     source: aSource,
     target: p,
     strength: 35,
   })
   const aMove = submit({
-    id: moveActionId,
+    id: input.moveActionId,
     playerId: PLAYER_A,
-    actionDefinitionId: ordinaryMove.id,
+    actionDefinitionId: input.ordinaryMove.id,
     source: aSource,
     target: q,
     strength: 15,
   })
   const bColonize = submit({
-    id: colonizeActionId,
+    id: input.colonizeActionId,
     playerId: PLAYER_B,
-    actionDefinitionId: colonize.id,
+    actionDefinitionId: input.colonize.id,
     source: bSource,
     target: p,
     strength: 35,
@@ -217,69 +211,24 @@ export type CreateInitialPlayersSetupResult = {
   }>
 }
 
-export function createDepartureSetup({
-  eligibilityState,
-  initialPlayers,
-  planets,
-  fleets,
-  ruleset,
-  colonizeActionId,
-  aSource,
-  p,
-  aColonize,
-  moveActionId,
-  q,
-  outsideRange,
-  aMove,
-  ordinaryMove,
-  bColonize,
-  cAttack,
-  gameId,
-}: CreateDepartureSetupInput): CreateDepartureSetupResult {
-  const initialA = eligibilityState(PLAYER_A, 1, initialPlayers, planets, fleets)
+export function createDepartureSetup(input: CreateDepartureSetupInput): CreateDepartureSetupResult {
+  const initialA = input.eligibilityState(PLAYER_A, 1, input.initialPlayers, input.planets, input.fleets)
 
-  assertColonizeEvaluation({
-    initialA,
-    ruleset,
-    colonizeActionId,
-    aSource,
-    p,
-    aColonize,
-    moveActionId,
-    q,
-    outsideRange,
-    initialPlayers,
-    aMove,
-  })
+  assertColonizeEvaluation({ ...input, initialA })
 
-  assertIncompleteForce({
-    initialA,
-    ruleset,
-    moveActionId,
-    q,
-    ordinaryMove,
-    aColonize,
-    aMove,
-    eligibilityState,
-    initialPlayers,
-    planets,
-    fleets,
-    bColonize,
-    cAttack,
-    aSource,
-  })
+  assertIncompleteForce({ ...input, initialA })
 
   const firstRng = createSeededRng(1234)
   const firstResult = resolveTurn(
     createTurnStateStub({
-      gameId,
+      gameId: input.gameId,
       turn: 1,
-      submittedActions: [aColonize, aMove, bColonize, cAttack],
-      players: structuredClone(initialPlayers),
-      planets: indexBy("id", structuredClone(planets)),
-      fleets: indexBy("id", structuredClone(fleets)),
+      submittedActions: [input.aColonize, input.aMove, input.bColonize, input.cAttack],
+      players: structuredClone(input.initialPlayers),
+      planets: indexBy("id", structuredClone(input.planets)),
+      fleets: indexBy("id", structuredClone(input.fleets)),
     }),
-    ruleset,
+    input.ruleset,
     firstRng,
   )
   Assert.isSuccess(firstResult)
@@ -334,45 +283,25 @@ export type CreateDepartureSetupInput = {
 
 export type CreateDepartureSetupResult = { departure: ResolvedTurnState; firstRngState: RngState<unknown> }
 
-export function createAColonizeJourneySetup({
-  departure,
-  colonizeActionId,
-  moveActionId,
-  attackActionId,
-  aSource,
-  bSource,
-  cSource,
-  strengthTotal,
-  turnTwo,
-}: CreateAColonizeJourneySetupInput): CreateAColonizeJourneySetupResult {
-  const aColonizeJourney = findJourneyForSubmission(departure, PLAYER_A, colonizeActionId)
-  const aMoveJourney = findJourneyForSubmission(departure, PLAYER_A, moveActionId)
-  const bColonizeJourney = findJourneyForSubmission(departure, PLAYER_B, colonizeActionId)
-  const cAttackJourney = findJourneyForSubmission(departure, PLAYER_C, attackActionId)
+export function createAColonizeJourneySetup(input: CreateAColonizeJourneySetupInput): CreateAColonizeJourneySetupResult {
+  const aColonizeJourney = findJourneyForSubmission(input.departure, PLAYER_A, input.colonizeActionId)
+  const aMoveJourney = findJourneyForSubmission(input.departure, PLAYER_A, input.moveActionId)
+  const bColonizeJourney = findJourneyForSubmission(input.departure, PLAYER_B, input.colonizeActionId)
+  const cAttackJourney = findJourneyForSubmission(input.departure, PLAYER_C, input.attackActionId)
 
-  assertScenarioState2({
-    aSource,
-    bSource,
-    cSource,
-    departure,
-    aColonizeJourney,
-    aMoveJourney,
-    bColonizeJourney,
-    cAttackJourney,
-    strengthTotal,
-  })
+  assertScenarioState2({ ...input, aColonizeJourney, aMoveJourney, bColonizeJourney, cAttackJourney })
 
   const turnTwoJourneys = [
-    findJourneyForSubmission(turnTwo, PLAYER_A, colonizeActionId),
-    findJourneyForSubmission(turnTwo, PLAYER_A, moveActionId),
-    findJourneyForSubmission(turnTwo, PLAYER_B, colonizeActionId),
-    findJourneyForSubmission(turnTwo, PLAYER_C, attackActionId),
+    findJourneyForSubmission(input.turnTwo, PLAYER_A, input.colonizeActionId),
+    findJourneyForSubmission(input.turnTwo, PLAYER_A, input.moveActionId),
+    findJourneyForSubmission(input.turnTwo, PLAYER_B, input.colonizeActionId),
+    findJourneyForSubmission(input.turnTwo, PLAYER_C, input.attackActionId),
   ]
   const journeyActionBindings = [
-    { playerId: PLAYER_A, actionId: colonizeActionId, freeMoveActionId: attackActionId },
-    { playerId: PLAYER_A, actionId: moveActionId, freeMoveActionId: attackActionId },
-    { playerId: PLAYER_B, actionId: colonizeActionId, freeMoveActionId: moveActionId },
-    { playerId: PLAYER_C, actionId: attackActionId, freeMoveActionId: colonizeActionId },
+    { playerId: PLAYER_A, actionId: input.colonizeActionId, freeMoveActionId: input.attackActionId },
+    { playerId: PLAYER_A, actionId: input.moveActionId, freeMoveActionId: input.attackActionId },
+    { playerId: PLAYER_B, actionId: input.colonizeActionId, freeMoveActionId: input.moveActionId },
+    { playerId: PLAYER_C, actionId: input.attackActionId, freeMoveActionId: input.colonizeActionId },
   ]
   expect(turnTwoJourneys.map(({ strength, distanceToEnd }) => ({ strength, distanceToEnd }))).toStrictEqual([
     { strength: 35, distanceToEnd: 0.5 },
@@ -381,13 +310,13 @@ export function createAColonizeJourneySetup({
     { strength: 16, distanceToEnd: 0.75 },
   ])
   const preCombatState = createTurnStateStub({
-    gameId: turnTwo.gameId,
+    gameId: input.turnTwo.gameId,
     turn: 3,
-    players: structuredClone(turnTwo.players),
-    planets: structuredClone(turnTwo.planets),
+    players: structuredClone(input.turnTwo.players),
+    planets: structuredClone(input.turnTwo.planets),
     fleets: indexBy(
       "id",
-      Object.values(turnTwo.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
+      Object.values(input.turnTwo.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
     ),
   })
   return { aColonizeJourney, bColonizeJourney, cAttackJourney, turnTwoJourneys, journeyActionBindings, preCombatState }
@@ -414,28 +343,13 @@ export type CreateAColonizeJourneySetupResult = {
   preCombatState: ReturnType<typeof createTurnStateStub>
 }
 
-export function createAAtPSetup({
-  preCombatState,
-  ruleset,
-  turnTwoJourneys,
-  cAttackJourney,
-  p,
-  attackActionId,
-  strengthTotal,
-  turnTwo,
-  departure,
-  journeyActionBindings,
-  eligibilityState,
-  aSource,
-  afterArrival,
-  q,
-}: CreateAAtPSetupInput): CreateAAtPSetupResult {
+export function createAAtPSetup(input: CreateAAtPSetupInput): CreateAAtPSetupResult {
   const preCombatContext: TurnContext = {
     rng: createSeededRng(1234),
-    turnState: preCombatState,
+    turnState: input.preCombatState,
     effectPool: new EffectPool([]),
-    ruleset,
-    previousJourneyFleetIds: turnTwoJourneys.map(({ id }) => id),
+    ruleset: input.ruleset,
+    previousJourneyFleetIds: input.turnTwoJourneys.map(({ id }) => id),
     newDepartureFleetIds: new Set(),
     removedFleetIds: new Set(),
     changedPlanetIds: new Set(),
@@ -446,25 +360,11 @@ export function createAAtPSetup({
   }
   Assert.isSuccess(resolveFleetMovementPhase(preCombatContext))
 
-  assertTurnTwoJourneys({
-    turnTwoJourneys,
-    preCombatState,
-    cAttackJourney,
-    p,
-    preCombatContext,
-    attackActionId,
-    strengthTotal,
-    turnTwo,
-    departure,
-    journeyActionBindings,
-    eligibilityState,
-    ruleset,
-    aSource,
-  })
+  assertTurnTwoJourneys({ ...input, preCombatContext })
 
-  const aAtP = fleetAtPlanetForOwner(afterArrival, p.id, PLAYER_A)
-  const aAtQ = fleetAtPlanetForOwner(afterArrival, q.id, PLAYER_A)
-  const bAtP = fleetAtPlanetForOwner(afterArrival, p.id, PLAYER_B)
+  const aAtP = fleetAtPlanetForOwner(input.afterArrival, input.p.id, PLAYER_A)
+  const aAtQ = fleetAtPlanetForOwner(input.afterArrival, input.q.id, PLAYER_A)
+  const bAtP = fleetAtPlanetForOwner(input.afterArrival, input.p.id, PLAYER_B)
   Assert.isDefined(aAtP)
   Assert.isDefined(aAtQ)
   Assert.isDefined(bAtP)

@@ -11,31 +11,15 @@ import type { createPublicHomeArrivalFixture as CapturedcreatePublicHomeArrivalF
 import { processPublicTurn, observeTurnAndRollback } from "../fleet-worker/TurnProcessor.scenarios.ts"
 import { assertOwnerIndex } from "./TurnProcessor.assault-arithmetic-2.ts"
 
-export async function createEmptyObservedSetup({
-  mergeResults,
-  attackResults,
-  forward,
-  playerAId,
-  ordinaryAction,
-  fixture,
-  beforeCombatViews,
-  initialFriendly,
-  enemy,
-  attackJourney,
-  ordinaryJourney,
-  attackerSource,
-  attackAction,
-  buildAction,
-  db,
-  clock,
-}: CreateEmptyObservedSetupInput): Promise<CreateEmptyObservedSetupResult> {
-  expect(mergeResults).toHaveLength(1)
-  expect(attackResults).toHaveLength(1)
-  const attackOutcome = attackResults[0]
+export async function createEmptyObservedSetup(input: CreateEmptyObservedSetupInput): Promise<CreateEmptyObservedSetupResult> {
+  expect(input.mergeResults).toHaveLength(1)
+  expect(input.attackResults).toHaveLength(1)
+  const attackOutcome = input.attackResults[0]
   Assert.isDefined(attackOutcome)
   expect(attackOutcome.result).toContain("exchanged 20 Strength with 20 enemy Strength")
-  const ordinaryContinuations = forward.resolved.resolvedContinuations.filter(
-    ({ originatingSubmission }) => originatingSubmission.playerId === playerAId && originatingSubmission.id === ordinaryAction.id,
+  const ordinaryContinuations = input.forward.resolved.resolvedContinuations.filter(
+    ({ originatingSubmission }) =>
+      originatingSubmission.playerId === input.playerAId && originatingSubmission.id === input.ordinaryAction.id,
   )
   expect(ordinaryContinuations).toHaveLength(1)
   const ordinaryContinuation = ordinaryContinuations[0]
@@ -45,40 +29,26 @@ export async function createEmptyObservedSetup({
   ).toHaveLength(0)
 
   // Assert: the real worker saves the original friendly identity at22, preserves source8, removes all children/enemy, and charges once.
-  expect(await fixture.turnProcessor.processNextDueTurn()).toBe("processed")
+  expect(await input.fixture.turnProcessor.processNextDueTurn()).toBe("processed")
   const afterCombat = await Promise.all(
-    fixture.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: fixture.gameId })),
+    input.fixture.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: input.fixture.gameId })),
   )
 
-  assertOwnerIndex({
-    afterCombat,
-    beforeCombatViews,
-    fixture,
-    initialFriendly,
-    playerAId,
-    enemy,
-    attackJourney,
-    ordinaryJourney,
-    attackerSource,
-    attackAction,
-    ordinaryAction,
-    buildAction,
-  })
+  assertOwnerIndex({ ...input, afterCombat })
 
   const nextTurn = afterCombat[0]
   Assert.isDefined(nextTurn)
   await processPublicTurn({
-    clients: fixture.clients,
-    gameId: fixture.gameId,
+    clients: input.fixture.clients,
+    gameId: input.fixture.gameId,
     turn: nextTurn.turn,
-    turnProcessor: fixture.turnProcessor,
+    turnProcessor: input.fixture.turnProcessor,
     process: false,
   })
   const emptyObserved = await observeTurnAndRollback({
-    db,
-    clock,
-    turnsRepository: fixture.turnsRepository,
-    gameId: fixture.gameId,
+    ...input,
+    turnsRepository: input.fixture.turnsRepository,
+    gameId: input.fixture.gameId,
     turn: nextTurn.turn,
   })
   return { emptyObserved }

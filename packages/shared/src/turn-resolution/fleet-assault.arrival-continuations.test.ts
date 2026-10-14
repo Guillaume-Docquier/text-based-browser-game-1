@@ -38,12 +38,12 @@ describe("Fleet Assault", () => {
   it("should capture arbitrary-tag Assault rules through JSON reload and resolves them on the actual arrival turn", () => {
     // Arrange
 
-    const createOriginSetupPhase1Result = createOriginSetup()
-    const { defender } = createOriginSetupPhase1Result
+    const originSetup1 = createOriginSetup()
+    const { defender } = originSetup1
 
-    const createFirstTurnSetupPhase2Result = createFirstTurnSetup({ ...createOriginSetupPhase1Result })
-    const { firstTurn } = createFirstTurnSetupPhase2Result
-    let { reloadedFleets } = createFirstTurnSetupPhase2Result
+    const firstTurnSetup2 = createFirstTurnSetup({ ...originSetup1 })
+    const { firstTurn } = firstTurnSetup2
+    let { reloadedFleets } = firstTurnSetup2
     const secondTurn = resolveTurn(
       createTurnStateStub({
         turn: 2,
@@ -219,13 +219,16 @@ describe("Fleet Assault", () => {
   })
 })
 
-function verifyCorruptPendingAssault({ pendingAssault, journey, firstTurn }: VerifyCorruptPendingAssaultInput): void {
-  Assert.isDefined(journey.movement)
-  const corruptPendingAssault = Object.assign({ ...pendingAssault }, { definitionOrdinal: pendingAssault.definitionOrdinal + 1 })
+function verifyCorruptPendingAssault(input: VerifyCorruptPendingAssaultInput): void {
+  Assert.isDefined(input.journey.movement)
+  const corruptPendingAssault = Object.assign(
+    { ...input.pendingAssault },
+    { definitionOrdinal: input.pendingAssault.definitionOrdinal + 1 },
+  )
   const corruptJourney = {
-    ...journey,
+    ...input.journey,
     movement: {
-      ...journey.movement,
+      ...input.journey.movement,
       pendingArrivalEffects: [corruptPendingAssault],
     },
   }
@@ -233,9 +236,9 @@ function verifyCorruptPendingAssault({ pendingAssault, journey, firstTurn }: Ver
   const continued = resolveTurn(
     createTurnStateStub({
       turn: 2,
-      players: firstTurn.value.players,
-      planets: firstTurn.value.planets,
-      fleets: indexBy("id", [...Object.values(firstTurn.value.fleets).filter(({ id }) => id !== corruptJourney.id), corruptJourney]),
+      players: input.firstTurn.value.players,
+      planets: input.firstTurn.value.planets,
+      fleets: indexBy("id", [...Object.values(input.firstTurn.value.fleets).filter(({ id }) => id !== corruptJourney.id), corruptJourney]),
     }),
     TestRuleset,
     createSeededRng(),
@@ -245,35 +248,25 @@ function verifyCorruptPendingAssault({ pendingAssault, journey, firstTurn }: Ver
   expect(Result.isFailure(continued)).toBe(true)
 }
 
-function verifyForward({
-  alicePlanetB,
-  alicePlanetA,
-  bobPlanetB,
-  bobPlanetA,
-  submissions,
-  forwardRng,
-  ruleset,
-  reversedRng,
-}: VerifyForwardInput): void {
+function verifyForward(input: VerifyForwardInput): void {
   const forward = resolve({
-    planets: [alicePlanetB, alicePlanetA, bobPlanetB, bobPlanetA],
+    ...input,
+    planets: [input.alicePlanetB, input.alicePlanetA, input.bobPlanetB, input.bobPlanetA],
     fleets: [],
-    submissions,
-    rng: forwardRng,
-    ruleset,
+    rng: input.forwardRng,
   })
   const reversed = resolve({
-    planets: [bobPlanetA, bobPlanetB, alicePlanetA, alicePlanetB],
+    planets: [input.bobPlanetA, input.bobPlanetB, input.alicePlanetA, input.alicePlanetB],
     fleets: [],
-    submissions: submissions.toReversed(),
-    rng: reversedRng,
-    ruleset,
+    submissions: input.submissions.toReversed(),
+    rng: input.reversedRng,
+    ruleset: input.ruleset,
   })
   const expectedNames = [
-    [alicePlanetB.id, "fleet 74220"],
-    [alicePlanetA.id, "fleet 703708"],
-    [bobPlanetB.id, "fleet 902953"],
-    [bobPlanetA.id, "fleet 970578"],
+    [input.alicePlanetB.id, "fleet 74220"],
+    [input.alicePlanetA.id, "fleet 703708"],
+    [input.bobPlanetB.id, "fleet 902953"],
+    [input.bobPlanetA.id, "fleet 970578"],
   ] as const
 
   // Assert
@@ -284,49 +277,22 @@ function verifyForward({
       expect(builtFleet.name).toBe(name)
     }
   }
-  expect(forwardRng.getState()).toStrictEqual({ generatorState: 3031297190, spareNormal: null })
+  expect(input.forwardRng.getState()).toStrictEqual({ generatorState: 3031297190, spareNormal: null })
 }
 
-function verifyReversedSubmissions({
-  assault,
-  attackerB,
-  battle,
-  attackerA,
-  build,
-  bobBuildA,
-  bobBuildB,
-  aliceBuildA,
-  aliceBuildB,
-  defenderC,
-  forwardSubmissions,
-  actionPool,
-}: VerifyReversedSubmissionsInput): void {
+function verifyReversedSubmissions(input: VerifyReversedSubmissionsInput): void {
   const reversedSubmissions = [
-    assault(PLAYER_B, attackerB, { station: attackerB.id, battlePlanet: battle.id }),
-    assault(PLAYER_A, attackerA, { battlePlanet: battle.id, station: attackerA.id }),
-    build("a:", PLAYER_B, bobBuildA),
-    build("B!", PLAYER_B, bobBuildB),
-    build("a:", PLAYER_A, aliceBuildA),
-    build("B!", PLAYER_A, aliceBuildB),
+    input.assault(PLAYER_B, input.attackerB, { station: input.attackerB.id, battlePlanet: input.battle.id }),
+    input.assault(PLAYER_A, input.attackerA, { battlePlanet: input.battle.id, station: input.attackerA.id }),
+    input.build("a:", PLAYER_B, input.bobBuildA),
+    input.build("B!", PLAYER_B, input.bobBuildB),
+    input.build("a:", PLAYER_A, input.aliceBuildA),
+    input.build("B!", PLAYER_A, input.aliceBuildB),
   ]
-  const planets = [aliceBuildB, aliceBuildA, bobBuildB, bobBuildA, battle]
-  const fleets = [attackerA, attackerB, defenderC]
+  const planets = [input.aliceBuildB, input.aliceBuildA, input.bobBuildB, input.bobBuildA, input.battle]
+  const fleets = [input.attackerA, input.attackerB, input.defenderC]
 
-  assertAttackerA({
-    attackerA,
-    battle,
-    attackerB,
-    planets,
-    fleets,
-    forwardSubmissions,
-    actionPool,
-    reversedSubmissions,
-    defenderC,
-    aliceBuildB,
-    aliceBuildA,
-    bobBuildB,
-    bobBuildA,
-  })
+  assertAttackerA({ ...input, planets, fleets, reversedSubmissions })
 }
 
 type VerifyCorruptPendingAssaultInput = {
@@ -404,21 +370,14 @@ function createOriginSetup(): CreateOriginSetupResult {
   return { origin, target, attacker, defender, submission, players }
 }
 
-function createFirstTurnSetup({
-  submission,
-  players,
-  origin,
-  target,
-  attacker,
-  defender,
-}: CreateFirstTurnSetupInput): CreateFirstTurnSetupResult {
+function createFirstTurnSetup(input: CreateFirstTurnSetupInput): CreateFirstTurnSetupResult {
   const firstTurn = resolveTurn(
     createTurnStateStub({
       turn: 1,
-      submittedActions: [submission],
-      players,
-      planets: indexBy("id", [origin, target]),
-      fleets: indexBy("id", [attacker, defender]),
+      submittedActions: [input.submission],
+      players: input.players,
+      planets: indexBy("id", [input.origin, input.target]),
+      fleets: indexBy("id", [input.attacker, input.defender]),
     }),
     TestRuleset,
     createSeededRng(),

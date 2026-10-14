@@ -90,16 +90,16 @@ export async function createPublicPendingAssaultFixture(server: ConcurrencyTestA
     await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: alice.client, gameId, turn })
   }
 
-  const createAliceViewSetupPhase1Result = await createAliceViewSetup({ alice, gameId, bob, processDeadlineTurn })
-  const { aliceView, bobView, bobHome, aliceSource } = createAliceViewSetupPhase1Result
+  const aliceViewSetup1 = await createAliceViewSetup({ alice, gameId, bob, processDeadlineTurn })
+  const { aliceView, bobView, bobHome, aliceSource } = aliceViewSetup1
 
-  const createPendingViewSetupPhase2Result = await createPendingViewSetup({
-    ...createAliceViewSetupPhase1Result,
+  const pendingViewSetup2 = await createPendingViewSetup({
+    ...aliceViewSetup1,
     alice,
     gameId,
     processDeadlineTurn,
   })
-  const { pendingView, capturedJourney } = createPendingViewSetupPhase2Result
+  const { pendingView, capturedJourney } = pendingViewSetup2
 
   return {
     alice,
@@ -132,15 +132,15 @@ export type PublicPendingColonizeFixture = {
 }
 
 export async function createPublicPendingColonizeFixture(server: ConcurrencyTestApiServer): Promise<PublicPendingColonizeFixture> {
-  const createPlayerSetupPhase3Result = await createPlayerSetup({ server })
-  const { player, gameId, clock, turnProcessor, turnsRepository, home, target } = createPlayerSetupPhase3Result
-  let { view } = createPlayerSetupPhase3Result
+  const playerSetup3 = await createPlayerSetup({ server })
+  const { player, gameId, clock, turnProcessor, turnsRepository, home, target } = playerSetup3
+  let { view } = playerSetup3
   await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: player.client, gameId, turn: view.turn })
 
   view = await player.client.gameplay.getPlayerView.query({ gameId })
 
-  const createSourceFleetSetupPhase4Result = await createSourceFleetSetup({ ...createPlayerSetupPhase3Result, view })
-  const { sourceFleet, pendingView, journey } = createSourceFleetSetupPhase4Result
+  const sourceFleetSetup4 = await createSourceFleetSetup({ ...playerSetup3, view })
+  const { sourceFleet, pendingView, journey } = sourceFleetSetup4
 
   return {
     player,
@@ -357,68 +357,69 @@ export {
   pendingColonizeCorruptions,
 } from "./gameplay.rulesets.ts"
 
-function verifyCapturedJourney({
-  capturedJourney,
-  bobHome,
-  attackAction,
-  aliceView,
-  aliceSource,
-  pendingView,
-}: VerifyCapturedJourneyInput): void {
-  expect(capturedJourney).toMatchObject({
+function verifyCapturedJourney(input: VerifyCapturedJourneyInput): void {
+  expect(input.capturedJourney).toMatchObject({
     strength: 1,
-    destinationPlanetId: bobHome.id,
+    destinationPlanetId: input.bobHome.id,
     distanceToEnd: 3.418312565270031,
     movement: {
       speed: 1,
       submission: {
-        id: attackAction.id,
-        playerId: aliceView.player.id,
+        id: input.attackAction.id,
+        playerId: input.aliceView.player.id,
         actionDefinitionId: AttackMoveTest.id,
-        selectedTargets: { fleet: aliceSource.id, planet: bobHome.id },
+        selectedTargets: { fleet: input.aliceSource.id, planet: input.bobHome.id },
         selectedInputs: { strength: 1 },
       },
       pendingArrivalEffects: [{ definitionOrdinal: 3, effectDefinition: { type: "FLEET_ASSAULT" } }],
     },
   })
-  expect(pendingView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 93, uncommitted: 93 })
-  expect(pendingView.resources[ResourceType.FUEL]).toStrictEqual({ total: 99, uncommitted: 99 })
-  expect(pendingView.resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
-  expect(pendingView.actions.find(({ id }) => id === attackAction.id)?.isInProgress).toBe(true)
-  expect(pendingView.fleets.find(({ id }) => id === aliceSource.id)?.strength).toBe(9)
+  expect(input.pendingView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 93, uncommitted: 93 })
+  expect(input.pendingView.resources[ResourceType.FUEL]).toStrictEqual({ total: 99, uncommitted: 99 })
+  expect(input.pendingView.resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
+  expect(input.pendingView.actions.find(({ id }) => id === input.attackAction.id)?.isInProgress).toBe(true)
+  expect(input.pendingView.fleets.find(({ id }) => id === input.aliceSource.id)?.strength).toBe(9)
 }
 
-function verifyMath({ home, target }: VerifyMathInput): void {
-  expect({ id: home.id, name: home.name, coordinates: home.coordinates, x: home.x, y: home.y }).toStrictEqual({
-    id: "78821e36-f066-5df0-adbd-19785571d245",
-    name: "planet 278494",
-    coordinates: "45:98:30",
-    x: 58.43842436611536,
-    y: 49.61917707239218,
-  })
-  expect({ id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y }).toStrictEqual({
+function verifyMath(input: VerifyMathInput): void {
+  expect({ id: input.home.id, name: input.home.name, coordinates: input.home.coordinates, x: input.home.x, y: input.home.y }).toStrictEqual(
+    {
+      id: "78821e36-f066-5df0-adbd-19785571d245",
+      name: "planet 278494",
+      coordinates: "45:98:30",
+      x: 58.43842436611536,
+      y: 49.61917707239218,
+    },
+  )
+  expect({
+    id: input.target.id,
+    name: input.target.name,
+    coordinates: input.target.coordinates,
+    x: input.target.x,
+    y: input.target.y,
+  }).toStrictEqual({
     id: "a34e5eae-656c-5330-ac90-9f9a7e0afa5d",
     name: "planet 684163",
     coordinates: "55:07:50",
     x: 57.77998524757335,
     y: 50.556704120958045,
   })
-  expect(Math.hypot(home.x - target.x, home.y - target.y)).toBeCloseTo(1.1456435045942517, 12)
-  expect(target.ownerPlayerId).toBeNull()
+  expect(Math.hypot(input.home.x - input.target.x, input.home.y - input.target.y)).toBeCloseTo(1.1456435045942517, 12)
+  expect(input.target.ownerPlayerId).toBeNull()
 }
 
-function verifyJourney({ journey, target, colonizeAction, view, sourceFleet, pendingView }: VerifyJourneyInput): void {
-  expect(journey).toMatchObject({
+function verifyJourney(input: VerifyJourneyInput): void {
+  expect(input.journey).toMatchObject({
     strength: 35,
-    destinationPlanetId: target.id,
+    destinationPlanetId: input.target.id,
 
     movement: {
       speed: 1,
       submission: {
-        id: colonizeAction.id,
-        playerId: view.player.id,
+        id: input.colonizeAction.id,
+        playerId: input.view.player.id,
         actionDefinitionId: ColonizePlanetTest.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: target.id },
+        selectedTargets: { fleet: input.sourceFleet.id, planet: input.target.id },
         selectedInputs: { strength: 35 },
       },
       pendingArrivalEffects: [
@@ -426,10 +427,10 @@ function verifyJourney({ journey, target, colonizeAction, view, sourceFleet, pen
       ],
     },
   })
-  expect(journey.distanceToEnd).toBeCloseTo(0.1456435045942517, 12)
-  expect(pendingView.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(5)
-  expect(pendingView.actions.find(({ id }) => id === colonizeAction.id)?.isInProgress).toBe(true)
-  expect(pendingView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 23, uncommitted: 23 })
+  expect(input.journey.distanceToEnd).toBeCloseTo(0.1456435045942517, 12)
+  expect(input.pendingView.fleets.find(({ id }) => id === input.sourceFleet.id)?.strength).toBe(5)
+  expect(input.pendingView.actions.find(({ id }) => id === input.colonizeAction.id)?.isInProgress).toBe(true)
+  expect(input.pendingView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 23, uncommitted: 23 })
 }
 
 type VerifyCapturedJourneyInput = {
@@ -452,14 +453,9 @@ type VerifyJourneyInput = {
   pendingView: PlayerView
 }
 
-async function createAliceViewSetup({
-  alice,
-  gameId,
-  bob,
-  processDeadlineTurn,
-}: CreateAliceViewSetupInput): Promise<CreateAliceViewSetupResult> {
-  const aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+async function createAliceViewSetup(input: CreateAliceViewSetupInput): Promise<CreateAliceViewSetupResult> {
+  const aliceView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const bobView = await input.bob.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const planets = aliceView.galaxy.systems.flatMap(({ planets }) => planets)
   const aliceHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === aliceView.player.id)
   const bobHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === bobView.player.id)
@@ -470,14 +466,14 @@ async function createAliceViewSetup({
 
   const buildAction = aliceView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
   Assert.isDefined(buildAction)
-  await alice.client.gameplay.updateActionSubmission.mutate({
-    gameId,
+  await input.alice.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
     turn: aliceView.turn,
     submittedActionTargets: { actionId: buildAction.id, selectedTargets: { planet: aliceHome.id }, selectedInputs: {} },
   })
-  await processDeadlineTurn(aliceView.turn)
+  await input.processDeadlineTurn(aliceView.turn)
 
-  const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const builtView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const aliceSource = builtView.fleets.find(
     ({ ownerPlayerId, originPlanetId, movement }) =>
       ownerPlayerId === builtView.player.id && originPlanetId === aliceHome.id && movement === undefined,
@@ -490,43 +486,34 @@ async function createAliceViewSetup({
   return { aliceView, bobView, bobHome, builtView, aliceSource, attackAction }
 }
 
-async function createPendingViewSetup({
-  alice,
-  gameId,
-  builtView,
-  attackAction,
-  aliceSource,
-  bobHome,
-  processDeadlineTurn,
-  aliceView,
-}: CreatePendingViewSetupInput): Promise<CreatePendingViewSetupResult> {
-  await alice.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: builtView.turn,
+async function createPendingViewSetup(input: CreatePendingViewSetupInput): Promise<CreatePendingViewSetupResult> {
+  await input.alice.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.builtView.turn,
     submittedActionTargets: {
-      actionId: attackAction.id,
-      selectedTargets: { fleet: aliceSource.id, planet: bobHome.id },
+      actionId: input.attackAction.id,
+      selectedTargets: { fleet: input.aliceSource.id, planet: input.bobHome.id },
       selectedInputs: { strength: 1 },
     },
   })
-  const selectedView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const selectedView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 98, uncommitted: 93 })
   expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 99 })
   expect(selectedView.resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
-  await processDeadlineTurn(builtView.turn)
+  await input.processDeadlineTurn(input.builtView.turn)
 
-  const pendingView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const capturedJourney = pendingView.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
+  const pendingView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const capturedJourney = pendingView.fleets.find(({ movement }) => movement?.submission.id === input.attackAction.id)
   Assert.isDefined(capturedJourney)
 
-  verifyCapturedJourney({ capturedJourney, bobHome, attackAction, aliceView, aliceSource, pendingView })
+  verifyCapturedJourney({ ...input, capturedJourney, pendingView })
   return { pendingView, capturedJourney }
 }
 
-async function createPlayerSetup({ server }: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
-  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
+async function createPlayerSetup(input: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
+  const rulesetsRepository = new RulesetsRepository({ db: input.server.database, logger: Logger.get() })
   Assert.isSuccess(await rulesetsRepository.upsertRuleset(PostgresColonizeJourneyValidationRuleset))
-  const player = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000031" })
+  const player = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000031" })
   const { createdGameId: gameId } = await player.client.games.create.mutate({
     configuration: createGameConfigurationStub({
       rulesetId: PostgresColonizeJourneyValidationRuleset.id,
@@ -537,7 +524,7 @@ async function createPlayerSetup({ server }: CreatePlayerSetupInput): Promise<Cr
   })
   await player.client.games.startGame.mutate({ gameId })
   const clock = new ControlledClock({ startDate: Clock.now() })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.server.database, clock })
   const view = await player.client.gameplay.getPlayerView.query({ gameId })
   const planets = view.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
   const home = planets.find(({ ownerPlayerId }) => ownerPlayerId === view.player.id)
@@ -557,45 +544,36 @@ async function createPlayerSetup({ server }: CreatePlayerSetupInput): Promise<Cr
   return { player, gameId, clock, turnProcessor, turnsRepository, view, home, target }
 }
 
-async function createSourceFleetSetup({
-  view,
-  home,
-  player,
-  gameId,
-  target,
-  clock,
-  turnProcessor,
-  turnsRepository,
-}: CreateSourceFleetSetupInput): Promise<CreateSourceFleetSetupResult> {
-  const sourceFleet = view.fleets.find(
+async function createSourceFleetSetup(input: CreateSourceFleetSetupInput): Promise<CreateSourceFleetSetupResult> {
+  const sourceFleet = input.view.fleets.find(
     ({ ownerPlayerId, originPlanetId, movement }) =>
-      ownerPlayerId === view.player.id && originPlanetId === home.id && movement === undefined,
+      ownerPlayerId === input.view.player.id && originPlanetId === input.home.id && movement === undefined,
   )
   Assert.isDefined(sourceFleet)
   expect(sourceFleet.strength).toBe(40)
-  expect(view.resources[ResourceType.INFLUENCE].total).toBe(48)
+  expect(input.view.resources[ResourceType.INFLUENCE].total).toBe(48)
 
-  const colonizeAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === ColonizePlanetTest.id)
+  const colonizeAction = input.view.actions.find(({ actionDefinitionId }) => actionDefinitionId === ColonizePlanetTest.id)
   Assert.isDefined(colonizeAction)
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: view.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.view.turn,
     submittedActionTargets: {
       actionId: colonizeAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: target.id },
+      selectedTargets: { fleet: sourceFleet.id, planet: input.target.id },
       selectedInputs: { strength: 35 },
     },
   })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toMatchObject({
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toMatchObject({
     resources: { [ResourceType.INFLUENCE]: { total: 48, uncommitted: 23 } },
   })
-  await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: player.client, gameId, turn: view.turn })
+  await processManualDeadlineTurn({ ...input, client: input.player.client, turn: input.view.turn })
 
-  const pendingView = await player.client.gameplay.getPlayerView.query({ gameId })
+  const pendingView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const journey = pendingView.fleets.find(({ movement }) => movement?.submission.id === colonizeAction.id)
   Assert.isDefined(journey)
 
-  verifyJourney({ journey, target, colonizeAction, view, sourceFleet, pendingView })
+  verifyJourney({ ...input, journey, colonizeAction, sourceFleet, pendingView })
   return { sourceFleet, pendingView, journey }
 }
 

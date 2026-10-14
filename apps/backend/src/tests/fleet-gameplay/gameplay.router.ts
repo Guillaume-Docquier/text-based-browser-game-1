@@ -120,18 +120,14 @@ export const RenamedComposedAssaultRuleset = Ruleset.create({
   },
 })
 
-export async function processNextRouterTurn({
-  clock,
-  turnProcessor,
-  turnsRepository,
-}: {
+export async function processNextRouterTurn(input: {
   clock: ControlledClock
   turnProcessor: Awaited<ReturnType<typeof createTurnProcessorStub>>["turnProcessor"]
   turnsRepository: TurnsRepository
 }): Promise<void> {
-  clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  input.clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
 }
 
 export function withDefaultActionViewFields<T extends { selectedTargets: unknown }>(

@@ -14,24 +14,19 @@ import type { TurnContext } from "#shared/turn-resolution/TurnContext.ts"
 import { createTurnStateStub } from "#shared/turn-resolution/TurnState.stub.ts"
 import { PLAYER_A, resolveContinuation } from "./fleet-colonization.test-support.ts"
 
-export function createEdgeArrivalSetup({
-  edgeDeparture,
-  ruleset,
-  edgeJourney,
-  edgeSite,
-}: CreateEdgeArrivalSetupInput): CreateEdgeArrivalSetupResult {
+export function createEdgeArrivalSetup(input: CreateEdgeArrivalSetupInput): CreateEdgeArrivalSetupResult {
   const edgePhaseProbeContext: TurnContext = {
     rng: createSeededRng(1234),
     turnState: createTurnStateStub({
-      gameId: edgeDeparture.gameId,
+      gameId: input.edgeDeparture.gameId,
       turn: 2,
-      players: structuredClone(edgeDeparture.players),
-      planets: structuredClone(edgeDeparture.planets),
-      fleets: structuredClone(edgeDeparture.fleets),
+      players: structuredClone(input.edgeDeparture.players),
+      planets: structuredClone(input.edgeDeparture.planets),
+      fleets: structuredClone(input.edgeDeparture.fleets),
     }),
     effectPool: new EffectPool([]),
-    ruleset,
-    previousJourneyFleetIds: [edgeJourney.id],
+    ruleset: input.ruleset,
+    previousJourneyFleetIds: [input.edgeJourney.id],
     newDepartureFleetIds: new Set(),
     removedFleetIds: new Set(),
     changedPlanetIds: new Set(),
@@ -41,9 +36,9 @@ export function createEdgeArrivalSetup({
     fleetIdRebindings: new Map(),
   }
   Assert.isSuccess(resolveFleetMovementPhase(edgePhaseProbeContext))
-  expect(edgePhaseProbeContext.turnState.fleets[edgeJourney.id]).toMatchObject({
-    id: edgeJourney.id,
-    originPlanetId: edgeSite.id,
+  expect(edgePhaseProbeContext.turnState.fleets[input.edgeJourney.id]).toMatchObject({
+    id: input.edgeJourney.id,
+    originPlanetId: input.edgeSite.id,
     strength: 30,
     destinationPlanetId: undefined,
     distanceToEnd: undefined,
@@ -51,14 +46,14 @@ export function createEdgeArrivalSetup({
     arrivedAtTick: 10,
   })
   expect(edgePhaseProbeContext.pendingArrivalColonizations).toMatchObject([
-    { tick: 10, actualFleetId: edgeJourney.id, planetId: edgeSite.id },
+    { tick: 10, actualFleetId: input.edgeJourney.id, planetId: input.edgeSite.id },
   ])
   Assert.isSuccess(resolveFleetCombatPhase(edgePhaseProbeContext))
-  expect(edgePhaseProbeContext.turnState.fleets[edgeJourney.id]?.strength).toBe(30)
+  expect(edgePhaseProbeContext.turnState.fleets[input.edgeJourney.id]?.strength).toBe(30)
   Assert.isSuccess(resolveColonizationPhase(edgePhaseProbeContext))
-  expect(edgePhaseProbeContext.turnState.planets[edgeSite.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(edgePhaseProbeContext.turnState.fleets[edgeJourney.id]).toBeUndefined()
-  expect([...edgePhaseProbeContext.removedFleetIds]).toContain(edgeJourney.id)
+  expect(edgePhaseProbeContext.turnState.planets[input.edgeSite.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(edgePhaseProbeContext.turnState.fleets[input.edgeJourney.id]).toBeUndefined()
+  expect([...edgePhaseProbeContext.removedFleetIds]).toContain(input.edgeJourney.id)
   expect(edgePhaseProbeContext.turnState.players[PLAYER_A]?.resources).toMatchObject({
     [ResourceType.INFLUENCE]: 43,
     [ResourceType.FUEL]: 98,
@@ -68,7 +63,7 @@ export function createEdgeArrivalSetup({
     result: expect.stringContaining("colonized Planet"),
   })
 
-  const edgeArrival = resolveContinuation(edgeDeparture, 2, createSeededRng(1234), ruleset)
+  const edgeArrival = resolveContinuation(input.edgeDeparture, 2, createSeededRng(1234), input.ruleset)
   return { edgeArrival }
 }
 

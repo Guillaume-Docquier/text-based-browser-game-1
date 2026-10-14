@@ -49,12 +49,12 @@ describe("public Colonization worker companions", () => {
 
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createClientsSetupPhase1Result = await createClientsSetup({ server })
-    const { gameId, selectedViews } = createClientsSetupPhase1Result
-    let { views } = createClientsSetupPhase1Result
+    const clientsSetup1 = await createClientsSetup({ server })
+    const { gameId, selectedViews } = clientsSetup1
+    let { views } = clientsSetup1
 
-    const createFinalReplaySetupPhase2Result = await createFinalReplaySetup({ ...createClientsSetupPhase1Result })
-    const { updatedVerifyMergedFriendly } = createFinalReplaySetupPhase2Result
+    const finalReplaySetup2 = await createFinalReplaySetup({ ...clientsSetup1 })
+    const { updatedVerifyMergedFriendly } = finalReplaySetup2
     views = updatedVerifyMergedFriendly.views
 
     const savedTurns = await server.database
@@ -64,7 +64,7 @@ describe("public Colonization worker companions", () => {
     const savedNextTurn = savedTurns.find(({ turn }) => turn === required(selectedViews[0]).turn + 1)
     Assert.isDefined(savedNextTurn)
 
-    assertPersistedNextRngState3({ ...createClientsSetupPhase1Result, ...createFinalReplaySetupPhase2Result, savedNextTurn, views })
+    assertPersistedNextRngState3({ ...clientsSetup1, ...finalReplaySetup2, savedNextTurn, views })
   })
 
   it("should serialize aggregate Move and stationary Colonize reservations against PostgreSQL and Turn closure", async () => {
@@ -72,30 +72,30 @@ describe("public Colonization worker companions", () => {
 
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createAliceSetupPhase3Result = await createAliceSetup({ server })
+    const aliceSetup3 = await createAliceSetup({ server })
 
-    const createRaceSetupPhase4Result = await createRaceSetup({ ...createAliceSetupPhase3Result })
+    const raceSetup4 = await createRaceSetup({ ...aliceSetup3 })
 
-    let { selectedView } = createRaceSetupPhase4Result
+    let { selectedView } = raceSetup4
 
-    const updatedVerifyRaceObservation = await assertRaceObservation({ ...createAliceSetupPhase3Result, ...createRaceSetupPhase4Result })
+    const updatedVerifyRaceObservation = await assertRaceObservation({ ...aliceSetup3, ...raceSetup4 })
     selectedView = updatedVerifyRaceObservation.selectedView
 
-    const createClosureColonizeSetupPhase5Result = await createClosureColonizeSetup({ ...createAliceSetupPhase3Result, selectedView })
+    const closureColonizeSetup5 = await createClosureColonizeSetup({ ...aliceSetup3, selectedView })
 
     assertRemainingAtTarget({
-      ...createAliceSetupPhase3Result,
-      ...createRaceSetupPhase4Result,
-      ...createClosureColonizeSetupPhase5Result,
+      ...aliceSetup3,
+      ...raceSetup4,
+      ...closureColonizeSetup5,
       selectedView,
     })
   })
 })
 
-async function createClientsSetup({ server }: CreateClientsSetupInput): Promise<CreateClientsSetupResult> {
-  const fixture = await createPublicTwoPlayerFixture(server)
+async function createClientsSetup(input: CreateClientsSetupInput): Promise<CreateClientsSetupResult> {
+  const fixture = await createPublicTwoPlayerFixture(input.server)
   const { alice, clients, gameId, clock, turnProcessor, turnsRepository, homeA, target } = fixture
-  const staged = await stagePublicMergeScenario(server, fixture)
+  const staged = await stagePublicMergeScenario(input.server, fixture)
   const views = staged.views
   const { stagedFriendly, aliceSource } = staged
 
@@ -121,7 +121,7 @@ async function createClientsSetup({ server }: CreateClientsSetupInput): Promise<
   expect(getFleetAt(required(selectedViews[0]), required(selectedViews[0]).player.id, homeA.id, 50).id).toBe(aliceSource.id)
 
   const finalTurnInput = await captureWorkerInput({
-    server,
+    server: input.server,
     clock,
     turnsRepository,
     gameId,
@@ -143,30 +143,17 @@ async function createClientsSetup({ server }: CreateClientsSetupInput): Promise<
   }
 }
 
-async function createFinalReplaySetup({
-  finalTurnInput,
-  speed4ActionId,
-  speed2ActionId,
-  stagedFriendly,
-  selectedViews,
-  target,
-  aliceSource,
-  homeA,
-  turnProcessor,
-  views,
-  clients,
-  gameId,
-}: CreateFinalReplaySetupInput): Promise<CreateFinalReplaySetupResult> {
-  const finalReplay = replayWorkerInputWithState(finalTurnInput)
-  const reversedReplay = replayWorkerInputWithState(finalTurnInput, true)
+async function createFinalReplaySetup(input: CreateFinalReplaySetupInput): Promise<CreateFinalReplaySetupResult> {
+  const finalReplay = replayWorkerInputWithState(input.finalTurnInput)
+  const reversedReplay = replayWorkerInputWithState(input.finalTurnInput, true)
   Assert.isSuccess(finalReplay.resolved)
   Assert.isSuccess(reversedReplay.resolved)
   expect(canonicalizeResolvedTurn(reversedReplay.resolved.value)).toStrictEqual(canonicalizeResolvedTurn(finalReplay.resolved.value))
   expect(reversedReplay.nextRngState).toStrictEqual(finalReplay.nextRngState)
-  expect(finalReplay.nextRngState).toStrictEqual(finalTurnInput.rngState)
+  expect(finalReplay.nextRngState).toStrictEqual(input.finalTurnInput.rngState)
   const publicReplay = finalReplay.resolved.value
-  const firstOutcome = required(publicReplay.resolvedActions.find(({ submittedAction }) => submittedAction.id === speed4ActionId))
-  const secondOutcome = required(publicReplay.resolvedActions.find(({ submittedAction }) => submittedAction.id === speed2ActionId))
+  const firstOutcome = required(publicReplay.resolvedActions.find(({ submittedAction }) => submittedAction.id === input.speed4ActionId))
+  const secondOutcome = required(publicReplay.resolvedActions.find(({ submittedAction }) => submittedAction.id === input.speed2ActionId))
   expect(firstOutcome?.actionOutcomes.at(-1)).toMatchObject({
     type: "RESOLVED",
     result: expect.stringContaining(' colonized Planet "planet 649967" with 20 Strength'),
@@ -175,29 +162,15 @@ async function createFinalReplaySetup({
   for (const actionOutcomes of [firstOutcome.actionOutcomes, secondOutcome.actionOutcomes]) {
     expect(actionOutcomes.filter((outcome) => hasPreventedOrColonized(outcome))).toHaveLength(1)
   }
-  const mergedFriendly = publicReplay.fleets[stagedFriendly.id]
+  const mergedFriendly = publicReplay.fleets[input.stagedFriendly.id]
   Assert.isDefined(mergedFriendly)
 
-  const updatedVerifyMergedFriendly = await assertMergedFriendly({
-    mergedFriendly,
-    stagedFriendly,
-    selectedViews,
-    target,
-    publicReplay,
-    aliceSource,
-    homeA,
-    turnProcessor,
-    views,
-    clients,
-    gameId,
-    speed4ActionId,
-    speed2ActionId,
-  })
+  const updatedVerifyMergedFriendly = await assertMergedFriendly({ ...input, mergedFriendly, publicReplay })
   return { finalReplay, reversedReplay, mergedFriendly, updatedVerifyMergedFriendly }
 }
 
-async function createAliceSetup({ server }: CreateAliceSetupInput): Promise<CreateAliceSetupResult> {
-  const fixture = await createPublicTwoPlayerFixture(server)
+async function createAliceSetup(input: CreateAliceSetupInput): Promise<CreateAliceSetupResult> {
+  const fixture = await createPublicTwoPlayerFixture(input.server)
   const { alice, bob, gameId, clock, turnProcessor, turnsRepository, homeA, target } = fixture
   const buildView = required(fixture.views[0])
   await submitAction({
@@ -245,38 +218,28 @@ async function createAliceSetup({ server }: CreateAliceSetupInput): Promise<Crea
   return { alice, bob, gameId, turnProcessor, homeA, target, arrivedView, stationary, moveAction, colonizeAction, raceGate }
 }
 
-async function createRaceSetup({
-  raceGate,
-  alice,
-  gameId,
-  arrivedView,
-  moveAction,
-  stationary,
-  homeA,
-  colonizeAction,
-  target,
-}: CreateRaceSetupInput): Promise<CreateRaceSetupResult> {
+async function createRaceSetup(input: CreateRaceSetupInput): Promise<CreateRaceSetupResult> {
   const race = await Promise.allSettled([
     (async (): Promise<void> => {
-      await raceGate()
-      await alice.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: arrivedView.turn,
+      await input.raceGate()
+      await input.alice.client.gameplay.updateActionSubmission.mutate({
+        gameId: input.gameId,
+        turn: input.arrivedView.turn,
         submittedActionTargets: {
-          actionId: moveAction.id,
-          selectedTargets: { fleet: stationary.id, planet: homeA.id },
+          actionId: input.moveAction.id,
+          selectedTargets: { fleet: input.stationary.id, planet: input.homeA.id },
           selectedInputs: { strength: 16 },
         },
       })
     })(),
     (async (): Promise<void> => {
-      await raceGate()
-      await alice.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: arrivedView.turn,
+      await input.raceGate()
+      await input.alice.client.gameplay.updateActionSubmission.mutate({
+        gameId: input.gameId,
+        turn: input.arrivedView.turn,
         submittedActionTargets: {
-          actionId: colonizeAction.id,
-          selectedTargets: { fleet: stationary.id, planet: target.id },
+          actionId: input.colonizeAction.id,
+          selectedTargets: { fleet: input.stationary.id, planet: input.target.id },
           selectedInputs: {},
         },
       })
@@ -285,9 +248,9 @@ async function createRaceSetup({
   expect(race.filter(({ status }) => status === "fulfilled")).toHaveLength(1)
   expect(race.filter(({ status }) => status === "rejected")).toHaveLength(1)
 
-  const selectedView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const selectedMove = selectedView.actions.find(({ id }) => id === moveAction.id)
-  const selectedColonize = selectedView.actions.find(({ id }) => id === colonizeAction.id)
+  const selectedView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const selectedMove = selectedView.actions.find(({ id }) => id === input.moveAction.id)
+  const selectedColonize = selectedView.actions.find(({ id }) => id === input.colonizeAction.id)
   Assert.isDefined(selectedMove)
   Assert.isDefined(selectedColonize)
   const winningAction = required(selectedView.actions.find(isActionSelected))
@@ -298,56 +261,50 @@ async function createRaceSetup({
   return { race, selectedView, selectedMove, selectedColonize, winningAction, beforeClosure }
 }
 
-async function createClosureColonizeSetup({
-  selectedView,
-  colonizeAction,
-  alice,
-  gameId,
-  stationary,
-  target,
-  bob,
-  turnProcessor,
-}: CreateClosureColonizeSetupInput): Promise<CreateClosureColonizeSetupResult> {
-  const closureColonize = selectedView.actions.find(({ id }) => id === colonizeAction.id)
+async function createClosureColonizeSetup(input: CreateClosureColonizeSetupInput): Promise<CreateClosureColonizeSetupResult> {
+  const closureColonize = input.selectedView.actions.find(({ id }) => id === input.colonizeAction.id)
   Assert.isDefined(closureColonize)
-  expect(selectedView.resources[ResourceType.INFLUENCE].uncommitted).toBe(selectedView.resources[ResourceType.INFLUENCE].total)
-  expect(selectedView.resources[ResourceType.FUEL].uncommitted).toBe(selectedView.resources[ResourceType.FUEL].total)
+  expect(input.selectedView.resources[ResourceType.INFLUENCE].uncommitted).toBe(input.selectedView.resources[ResourceType.INFLUENCE].total)
+  expect(input.selectedView.resources[ResourceType.FUEL].uncommitted).toBe(input.selectedView.resources[ResourceType.FUEL].total)
 
   const closureGate = startTogether(3)
   const closureRace = await Promise.allSettled([
     (async (): Promise<void> => {
       await closureGate()
-      await alice.client.gameplay.updateActionSubmission.mutate({
-        gameId,
-        turn: selectedView.turn,
+      await input.alice.client.gameplay.updateActionSubmission.mutate({
+        gameId: input.gameId,
+        turn: input.selectedView.turn,
         submittedActionTargets: {
           actionId: closureColonize.id,
-          selectedTargets: { fleet: stationary.id, planet: target.id },
+          selectedTargets: { fleet: input.stationary.id, planet: input.target.id },
           selectedInputs: {},
         },
       })
     })(),
     (async (): Promise<void> => {
       await closureGate()
-      await alice.client.gameplay.updateReadiness.mutate({ gameId, turn: selectedView.turn, isReady: true })
+      await input.alice.client.gameplay.updateReadiness.mutate({ gameId: input.gameId, turn: input.selectedView.turn, isReady: true })
     })(),
     (async (): Promise<void> => {
       await closureGate()
-      await bob.client.gameplay.updateReadiness.mutate({ gameId, turn: selectedView.turn, isReady: true })
+      await input.bob.client.gameplay.updateReadiness.mutate({ gameId: input.gameId, turn: input.selectedView.turn, isReady: true })
     })(),
   ])
   expect(closureRace[1]?.status).toBe("fulfilled")
   expect(closureRace[2]?.status).toBe("fulfilled")
   const closureSubmissionStatus = required(closureRace[0]).status
 
-  await assertLockedView({ alice, gameId, closureColonize, closureSubmissionStatus, selectedView, stationary, target, turnProcessor })
+  await assertLockedView({ ...input, closureColonize, closureSubmissionStatus })
 
-  let completedView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  let completedView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   await expect
-    .poll(async () => (await alice.client.gameplay.getPlayerView.query({ gameId })).turn, { timeout: 20_000, interval: 25 })
-    .toBe(selectedView.turn + 1)
-  completedView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const claimedPlanet = getPlanets(completedView).find(({ id }) => id === target.id)
+    .poll(async () => (await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })).turn, {
+      timeout: 20_000,
+      interval: 25,
+    })
+    .toBe(input.selectedView.turn + 1)
+  completedView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const claimedPlanet = getPlanets(completedView).find(({ id }) => id === input.target.id)
   Assert.isDefined(claimedPlanet)
   return { closureColonize, closureRace, closureSubmissionStatus, completedView, claimedPlanet }
 }

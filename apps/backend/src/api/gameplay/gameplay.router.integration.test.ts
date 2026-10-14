@@ -275,26 +275,18 @@ describe("gameplay.router", () => {
   })
 })
 
-function assertGetPlayerViewResult2({
-  getPlayerViewResult,
-  createdGameId,
-  player,
-  clock,
-  gameConfiguration,
-  expectedActions,
-  repeatedGetPlayerViewResult,
-}: AssertGetPlayerViewResult2Input): void {
-  expect(getPlayerViewResult).toStrictEqual<typeof getPlayerViewResult>({
-    gameId: createdGameId,
-    player: { id: branded(player.account.id), color: PlayerColor.TURQUOISE, isReady: false },
+function assertGetPlayerViewResult2(input: AssertGetPlayerViewResult2Input): void {
+  expect(input.getPlayerViewResult).toStrictEqual<typeof input.getPlayerViewResult>({
+    gameId: input.createdGameId,
+    player: { id: branded(input.player.account.id), color: PlayerColor.TURQUOISE, isReady: false },
     opponents: {},
     galaxy: expect.any(Object), // Verified by the snapshot test
     fleets: [],
     turn: 1,
     turnStatus: "COLLECTING_ACTIONS",
     turnEndsAt: Datetime.increment({
-      date: clock.now(),
-      time: Time.create(gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
+      date: input.clock.now(),
+      time: Time.create(input.gameConfiguration.turnIntervalSeconds, UnitOfTime.SECONDS),
     }).toISOString(),
     resources: createResourcesDtoStub({
       [ResourceType.INFLUENCE]: { uncommitted: 3, total: 3 },
@@ -304,9 +296,9 @@ function assertGetPlayerViewResult2({
     ruleset: TestRuleset,
     actions: expect.any(Array),
   })
-  expect(getPlayerViewResult.actions).toStrictEqual(expect.arrayContaining(expectedActions.map(withDefaultActionViewFields)))
-  expect(getPlayerViewResult.actions).toHaveLength(expectedActions.length)
-  expect(repeatedGetPlayerViewResult.actions).toStrictEqual(getPlayerViewResult.actions)
+  expect(input.getPlayerViewResult.actions).toStrictEqual(expect.arrayContaining(input.expectedActions.map(withDefaultActionViewFields)))
+  expect(input.getPlayerViewResult.actions).toHaveLength(input.expectedActions.length)
+  expect(input.repeatedGetPlayerViewResult.actions).toStrictEqual(input.getPlayerViewResult.actions)
 }
 
 type AssertGetPlayerViewResult2Input = {

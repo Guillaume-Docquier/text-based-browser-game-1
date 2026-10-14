@@ -74,7 +74,7 @@ describe("public Colonization worker companions", () => {
     const fixture = await createPublicTwoPlayerFixture(server)
     const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
 
-    const createCreateViewsSetupPhase1ResultSetupPhase1Result = await createCreateViewsSetupResultSetup({
+    const viewsScenario12 = await prepareViewsScenario({
       fixture,
       homeA,
       target,
@@ -88,8 +88,8 @@ describe("public Colonization worker companions", () => {
       turnProcessor,
       clients,
     })
-    const { createViewsSetupPhase1Result, attacker } = createCreateViewsSetupPhase1ResultSetupPhase1Result
-    let { views } = createCreateViewsSetupPhase1ResultSetupPhase1Result
+    const { viewsSetup1, attacker } = viewsScenario12
+    let { views } = viewsScenario12
 
     const composedActionId = await submitAction({
       client: alice.client,
@@ -101,8 +101,8 @@ describe("public Colonization worker companions", () => {
     })
 
     const updatedVerifySelectedViews = await verifySelectedViews({
-      ...createCreateViewsSetupPhase1ResultSetupPhase1Result,
-      ...createViewsSetupPhase1Result,
+      ...viewsScenario12,
+      ...viewsSetup1,
       clients,
       gameId,
       composedActionId,
@@ -116,9 +116,9 @@ describe("public Colonization worker companions", () => {
 
     views = updatedVerifySelectedViews.views
 
-    const createAttackerJourneySetupPhase2Result = await createAttackerJourneySetup({
-      ...createCreateViewsSetupPhase1ResultSetupPhase1Result,
-      ...createViewsSetupPhase1Result,
+    const attackerJourneySetup2 = await createAttackerJourneySetup({
+      ...viewsScenario12,
+      ...viewsSetup1,
       views,
       composedActionId,
       target,
@@ -131,7 +131,7 @@ describe("public Colonization worker companions", () => {
       turnProcessor,
       clients,
     })
-    const { arrivalTurn, updatedAssertContinuation } = createAttackerJourneySetupPhase2Result
+    const { arrivalTurn, updatedAssertContinuation } = attackerJourneySetup2
     views = updatedAssertContinuation.views
 
     const savedTurns = await server.database
@@ -142,8 +142,8 @@ describe("public Colonization worker companions", () => {
     Assert.isDefined(savedNextTurn)
 
     verifyPersistedNextRngState({
-      ...createViewsSetupPhase1Result,
-      ...createAttackerJourneySetupPhase2Result,
+      ...viewsSetup1,
+      ...attackerJourneySetup2,
       savedNextTurn,
       gameId,
       homeA,
@@ -192,16 +192,15 @@ describe("public Colonization worker companions", () => {
       // Arrange
       await using server = await ConcurrencyTestApiServer.create()
 
-      const createCreateAliceSetupPhase3ResultSetupPhase2Result = await createCreateAliceSetupResultSetup({
+      const aliceScenario2 = await prepareAliceScenario({
         server,
         attackerBuildDefinitionId,
         defenderBuildDefinitionId,
         attackerStrength,
         defenderStrength,
       })
-      const { createAliceSetupPhase3Result, alice, clients, gameId, clock, turnProcessor, turnsRepository, target, attacker } =
-        createCreateAliceSetupPhase3ResultSetupPhase2Result
-      let { views, stage } = createCreateAliceSetupPhase3ResultSetupPhase2Result
+      const { aliceSetup3, alice, clients, gameId, clock, turnProcessor, turnsRepository, target, attacker } = aliceScenario2
+      let { views, stage } = aliceScenario2
       // Act & Assert
       const composedActionId = await submitAction({
         client: alice.client,
@@ -227,9 +226,9 @@ describe("public Colonization worker companions", () => {
       })
       views = stage.views
 
-      const createWorkerInputSetupPhase4Result = await createWorkerInputSetup({
-        ...createCreateAliceSetupPhase3ResultSetupPhase2Result,
-        ...createAliceSetupPhase3Result,
+      const workerInputSetup4 = await createWorkerInputSetup({
+        ...aliceScenario2,
+        ...aliceSetup3,
         views,
         composedActionId,
         stage,
@@ -241,12 +240,12 @@ describe("public Colonization worker companions", () => {
         expectedAttackerFleetCount,
         expectedAttackerRemovalCount,
       })
-      const { updatedAssertReplayedTarget } = createWorkerInputSetupPhase4Result
+      const { updatedAssertReplayedTarget } = workerInputSetup4
       views = updatedAssertReplayedTarget.views
 
-      const createPersistedAttackerSetupPhase5Result = await createPersistedAttackerSetup({
-        ...createAliceSetupPhase3Result,
-        ...createWorkerInputSetupPhase4Result,
+      const persistedAttackerSetup5 = await createPersistedAttackerSetup({
+        ...aliceSetup3,
+        ...workerInputSetup4,
         views,
         expectedSurvivingAttackerStrength,
         selectedInfluence,
@@ -257,9 +256,9 @@ describe("public Colonization worker companions", () => {
       })
 
       verifyPersistedAttacker({
-        ...createAliceSetupPhase3Result,
-        ...createWorkerInputSetupPhase4Result,
-        createPersistedAttackerSetupPhase5Result,
+        ...aliceSetup3,
+        ...workerInputSetup4,
+        persistedAttackerSetup5,
         attackerStrength,
         defenderStrength,
         expectedSurvivingAttackerStrength,
@@ -270,97 +269,62 @@ describe("public Colonization worker companions", () => {
   )
 })
 
-async function createViewsSetup({
-  fixture,
-  homeA,
-  target,
-  homeB,
-  alice,
-  gameId,
-  bob,
-  server,
-  clock,
-  turnsRepository,
-  turnProcessor,
-  clients,
-}: CreateViewsSetupInput): Promise<CreateViewsSetupResult> {
-  let views = fixture.views
-  const attackerDistance = Math.hypot(homeA.x - target.x, homeA.y - target.y)
-  const defenderDistance = Math.hypot(homeB.x - target.x, homeB.y - target.y)
+async function createViewsSetup(input: CreateViewsSetupInput): Promise<CreateViewsSetupResult> {
+  let views = input.fixture.views
+  const attackerDistance = Math.hypot(input.homeA.x - input.target.x, input.homeA.y - input.target.y)
+  const defenderDistance = Math.hypot(input.homeB.x - input.target.x, input.homeB.y - input.target.y)
   expect(attackerDistance).toBeCloseTo(1.2645395167985714, 12)
   expect(defenderDistance).toBeCloseTo(18.852953053708077, 12)
-  expect(target.ownerPlayerId).toBeNull()
+  expect(input.target.ownerPlayerId).toBeNull()
 
   await submitAction({
-    client: alice.client,
-    gameId,
+    client: input.alice.client,
+    gameId: input.gameId,
     view: required(views[0]),
     actionDefinitionId: BuildFleet50.id,
-    selectedTargets: { planet: homeA.id },
+    selectedTargets: { planet: input.homeA.id },
     selectedInputs: {},
   })
   await submitAction({
-    client: bob.client,
-    gameId,
+    client: input.bob.client,
+    gameId: input.gameId,
     view: required(views[1]),
     actionDefinitionId: BuildFleet10ForStaging.id,
-    selectedTargets: { planet: homeB.id },
+    selectedTargets: { planet: input.homeB.id },
     selectedInputs: {},
   })
-  let stage = await processTurnWithReplay({
-    server,
-    clock,
-    turnsRepository,
-    turnProcessor,
-    clients,
-    gameId,
-    turn: required(views[0]).turn,
-  })
+  let stage = await processTurnWithReplay({ ...input, turn: required(views[0]).turn })
   views = stage.views
-  const attacker = getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, 50)
-  const defenderSource = getFleetAt(required(views[1]), required(views[1]).player.id, homeB.id, 10)
+  const attacker = getFleetAt(required(views[0]), required(views[0]).player.id, input.homeA.id, 50)
+  const defenderSource = getFleetAt(required(views[1]), required(views[1]).player.id, input.homeB.id, 10)
   expect(views.map(({ resources }) => resources[ResourceType.INFLUENCE].total)).toStrictEqual([498, 498])
   expect(views.map(({ resources }) => resources[ResourceType.METAL].total)).toStrictEqual([99, 99])
 
   const defenderMoveId = await submitAction({
-    client: bob.client,
-    gameId,
+    client: input.bob.client,
+    gameId: input.gameId,
     view: required(views[1]),
     actionDefinitionId: MoveFleetSpeed10.id,
-    selectedTargets: { fleet: defenderSource.id, planet: target.id },
+    selectedTargets: { fleet: defenderSource.id, planet: input.target.id },
     selectedInputs: { strength: 10 },
   })
-  stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
+  stage = await processTurnWithReplay({ ...input, turn: required(views[0]).turn })
   views = stage.views
   const defenderJourney = required(views[1]).fleets.find(({ movement }) => movement?.submission.id === defenderMoveId)
   Assert.isDefined(defenderJourney)
   return { views, attackerDistance, defenderDistance, stage, attacker, defenderJourney }
 }
 
-async function createAttackerJourneySetup({
-  views,
-  composedActionId,
-  attacker,
-  defender,
-  target,
-  server,
-  clock,
-  turnsRepository,
-  gameId,
-  alice,
-  bob,
-  turnProcessor,
-  clients,
-}: CreateAttackerJourneySetupInput): Promise<CreateAttackerJourneySetupResult> {
-  const attackerJourney = required(views[0]).fleets.find(({ movement }) => movement?.submission.id === composedActionId)
+async function createAttackerJourneySetup(input: CreateAttackerJourneySetupInput): Promise<CreateAttackerJourneySetupResult> {
+  const attackerJourney = required(input.views[0]).fleets.find(({ movement }) => movement?.submission.id === input.composedActionId)
   Assert.isDefined(attackerJourney)
   expect(attackerJourney.distanceToEnd).toBeCloseTo(0.2645395167985714, 12)
-  expect(required(views[0]).fleets.find(({ id }) => id === attacker.id)).toBeUndefined()
-  expect(required(views[1]).fleets.find(({ id }) => id === defender.id)?.strength).toBe(10)
-  expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  expect(required(input.views[0]).fleets.find(({ id }) => id === input.attacker.id)).toBeUndefined()
+  expect(required(input.views[1]).fleets.find(({ id }) => id === input.defender.id)?.strength).toBe(10)
+  expect(getPlanets(required(input.views[0])).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBeNull()
 
-  const arrivalTurn = required(views[0]).turn
-  const arrivalInput = await captureWorkerInput({ server, clock, turnsRepository, gameId, turn: arrivalTurn })
+  const arrivalTurn = required(input.views[0]).turn
+  const arrivalInput = await captureWorkerInput({ ...input, turn: arrivalTurn })
   const arrivalReplay = replayWorkerInputWithState(arrivalInput)
   Assert.isSuccess(arrivalReplay.resolved)
   const loadedDefinition = arrivalInput.ruleset.actionDefinitions[ComposedSuccessAttackColonize.id]
@@ -378,11 +342,11 @@ async function createAttackerJourneySetup({
   const loadedJourney = arrivalInput.fleets[attackerJourney.id]
   Assert.isDefined(loadedJourney)
 
-  assertLoadedJourney2({ loadedJourney, attackerJourney, alice, target, composedActionId, attacker, arrivalInput, defender, bob })
+  assertLoadedJourney2({ ...input, loadedJourney, attackerJourney, arrivalInput })
 
   Assert.isSuccess(arrivalReplay.resolved)
   const continuation = arrivalReplay.resolved.value.resolvedContinuations.find(
-    ({ originatingSubmission }) => originatingSubmission.id === composedActionId,
+    ({ originatingSubmission }) => originatingSubmission.id === input.composedActionId,
   )
   Assert.isDefined(continuation)
 
@@ -390,32 +354,19 @@ async function createAttackerJourneySetup({
   const assertAssertContinuationState2ResolvedPhase2Value1 = arrivalReplay.resolved.value
 
   const updatedAssertContinuation = await assertContinuation({
+    ...input,
     assertAssertContinuationState2ResolvedPhase2Value1,
     continuation,
-    defender,
     attackerJourney,
-    alice,
-    target,
     arrivalReplay,
     arrivalInput,
-    turnProcessor,
-    views,
-    clients,
-    gameId,
     arrivalTurn,
-    composedActionId,
   })
   return { attackerJourney, arrivalTurn, arrivalInput, arrivalReplay, loadedDefinition, continuation, updatedAssertContinuation }
 }
 
-async function createAliceSetup({
-  server,
-  attackerBuildDefinitionId,
-  defenderBuildDefinitionId,
-  attackerStrength,
-  defenderStrength,
-}: CreateAliceSetupInput): Promise<CreateAliceSetupResult> {
-  const fixture = await createPublicTwoPlayerFixture(server)
+async function createAliceSetup(input: CreateAliceSetupInput): Promise<CreateAliceSetupResult> {
+  const fixture = await createPublicTwoPlayerFixture(input.server)
   const { alice, bob, clients, gameId, clock, turnProcessor, turnsRepository, homeA, homeB, target } = fixture
   let views = fixture.views
   const defenderDistance = Math.hypot(homeB.x - target.x, homeB.y - target.y)
@@ -426,7 +377,7 @@ async function createAliceSetup({
     client: alice.client,
     gameId,
     view: required(views[0]),
-    actionDefinitionId: attackerBuildDefinitionId,
+    actionDefinitionId: input.attackerBuildDefinitionId,
     selectedTargets: { planet: homeA.id },
     selectedInputs: {},
   })
@@ -434,12 +385,12 @@ async function createAliceSetup({
     client: bob.client,
     gameId,
     view: required(views[1]),
-    actionDefinitionId: defenderBuildDefinitionId,
+    actionDefinitionId: input.defenderBuildDefinitionId,
     selectedTargets: { planet: homeB.id },
     selectedInputs: {},
   })
   const stage = await processTurnWithReplay({
-    server,
+    server: input.server,
     clock,
     turnsRepository,
     turnProcessor,
@@ -448,54 +399,38 @@ async function createAliceSetup({
     turn: required(views[0]).turn,
   })
   views = stage.views
-  const attacker = getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, attackerStrength)
-  const defenderSource = getFleetAt(required(views[1]), required(views[1]).player.id, homeB.id, defenderStrength)
+  const attacker = getFleetAt(required(views[0]), required(views[0]).player.id, homeA.id, input.attackerStrength)
+  const defenderSource = getFleetAt(required(views[1]), required(views[1]).player.id, homeB.id, input.defenderStrength)
   const defenderMoveId = await submitAction({
     client: bob.client,
     gameId,
     view: required(views[1]),
     actionDefinitionId: MoveFleetSpeed10.id,
     selectedTargets: { fleet: defenderSource.id, planet: target.id },
-    selectedInputs: { strength: defenderStrength },
+    selectedInputs: { strength: input.defenderStrength },
   })
   return { alice, clients, gameId, clock, turnProcessor, turnsRepository, target, views, defenderDistance, stage, attacker, defenderMoveId }
 }
 
-async function createWorkerInputSetup({
-  views,
-  composedActionId,
-  stage,
-  defenderJourney,
-  target,
-  defenderStrength,
-  server,
-  clock,
-  turnsRepository,
-  gameId,
-  attackerStrength,
-  preventedReason,
-  expectedSurvivingAttackerStrength,
-  expectedAttackerFleetCount,
-  expectedAttackerRemovalCount,
-  turnProcessor,
-  clients,
-}: CreateWorkerInputSetupInput): Promise<CreateWorkerInputSetupResult> {
-  const arrivingJourney = required(views[0]).fleets.find(({ movement }) => movement?.submission.id === composedActionId)
+async function createWorkerInputSetup(input: CreateWorkerInputSetupInput): Promise<CreateWorkerInputSetupResult> {
+  const arrivingJourney = required(input.views[0]).fleets.find(({ movement }) => movement?.submission.id === input.composedActionId)
   Assert.isDefined(arrivingJourney)
   expect(arrivingJourney.distanceToEnd).toBeCloseTo(0.2645395167985714, 12)
-  expect(stage.resolved.fleets[defenderJourney.id]?.arrivedAtTick).toBe(18)
-  expect(getFleetAt(required(views[1]), required(views[1]).player.id, target.id, defenderStrength).id).toBe(defenderJourney.id)
-  expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  expect(input.stage.resolved.fleets[input.defenderJourney.id]?.arrivedAtTick).toBe(18)
+  expect(getFleetAt(required(input.views[1]), required(input.views[1]).player.id, input.target.id, input.defenderStrength).id).toBe(
+    input.defenderJourney.id,
+  )
+  expect(getPlanets(required(input.views[0])).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBeNull()
 
-  const workerInput = await captureWorkerInput({ server, clock, turnsRepository, gameId, turn: required(views[0]).turn })
+  const workerInput = await captureWorkerInput({ ...input, turn: required(input.views[0]).turn })
   const replay = replayWorkerInputWithState(workerInput)
   Assert.isSuccess(replay.resolved)
-  const loadedAttacker = Object.values(workerInput.fleets).find(({ movement }) => movement?.submission.id === composedActionId)
+  const loadedAttacker = Object.values(workerInput.fleets).find(({ movement }) => movement?.submission.id === input.composedActionId)
   Assert.isDefined(loadedAttacker)
-  const loadedDefender = workerInput.fleets[defenderJourney.id]
+  const loadedDefender = workerInput.fleets[input.defenderJourney.id]
   Assert.isDefined(loadedDefender)
-  expect(loadedAttacker).toMatchObject({ strength: attackerStrength, movement: { submission: { id: composedActionId } } })
-  expect(loadedDefender).toMatchObject({ strength: defenderStrength, originPlanetId: target.id })
+  expect(loadedAttacker).toMatchObject({ strength: input.attackerStrength, movement: { submission: { id: input.composedActionId } } })
+  expect(loadedDefender).toMatchObject({ strength: input.defenderStrength, originPlanetId: input.target.id })
   expect(loadedDefender.movement).toBeUndefined()
   expect(
     loadedAttacker.movement?.pendingArrivalEffects.map(({ effectDefinition, definitionOrdinal }) => ({
@@ -508,10 +443,10 @@ async function createWorkerInputSetup({
   ])
 
   Assert.isSuccess(replay.resolved)
-  const replayedTarget = replay.resolved.value.planets[target.id]
+  const replayedTarget = replay.resolved.value.planets[input.target.id]
   Assert.isSuccess(replay.resolved)
   const continuation = replay.resolved.value.resolvedContinuations.find(
-    ({ originatingSubmission }) => originatingSubmission.id === composedActionId,
+    ({ originatingSubmission }) => originatingSubmission.id === input.composedActionId,
   )
   Assert.isDefined(continuation)
 
@@ -519,74 +454,54 @@ async function createWorkerInputSetup({
   const assertAssertReplayedTargetState1ResolvedPhase3Value1 = replay.resolved.value
 
   const updatedAssertReplayedTarget = await assertReplayedTarget({
+    ...input,
     assertAssertReplayedTargetState1ResolvedPhase3Value1,
     replayedTarget,
     continuation,
-    defenderStrength,
-    preventedReason,
     loadedAttacker,
-    expectedSurvivingAttackerStrength,
     loadedDefender,
-    expectedAttackerFleetCount,
-    expectedAttackerRemovalCount,
-    turnProcessor,
-    views,
-    clients,
-    gameId,
-    target,
+    expectedSurvivingAttackerStrength: input.expectedSurvivingAttackerStrength,
   })
   return { workerInput, replay, loadedAttacker, loadedDefender, replayedTarget, continuation, updatedAssertReplayedTarget }
 }
 
-async function createPersistedAttackerSetup({
-  views,
-  loadedAttacker,
-  expectedSurvivingAttackerStrength,
-  selectedInfluence,
-  composedActionId,
-  server,
-  gameId,
-  loadedDefender,
-  expectedAttackerFleetCount,
-  target,
-  expectedAttackerAtTargetCount,
-  workerInput,
-  replay,
-}: CreatePersistedAttackerSetupInput): Promise<CreatePersistedAttackerSetupResult> {
-  const persistedAttacker = required(views[0]).fleets.find(({ id }) => id === loadedAttacker.id)
-  expect(persistedAttacker?.strength).toBe(expectedSurvivingAttackerStrength)
+async function createPersistedAttackerSetup(input: CreatePersistedAttackerSetupInput): Promise<CreatePersistedAttackerSetupResult> {
+  const persistedAttacker = required(input.views[0]).fleets.find(({ id }) => id === input.loadedAttacker.id)
+  expect(persistedAttacker?.strength).toBe(input.expectedSurvivingAttackerStrength)
 
   expect(persistedAttacker?.movement).toBeUndefined()
   expect(persistedAttacker?.destinationPlanetId).toBeUndefined()
-  expect(required(views[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({
-    total: selectedInfluence.total - 25,
-    uncommitted: selectedInfluence.total - 25,
+  expect(required(input.views[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({
+    total: input.selectedInfluence.total - 25,
+    uncommitted: input.selectedInfluence.total - 25,
   })
-  expect(required(views[0]).resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
-  expect(required(views[0]).actions.find(({ id }) => id === composedActionId)).toMatchObject({
+  expect(required(input.views[0]).resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
+  expect(required(input.views[0]).actions.find(({ id }) => id === input.composedActionId)).toMatchObject({
     selectedTargets: null,
     isInProgress: false,
   })
 
-  const persistedFleetRows = await server.database
+  const persistedFleetRows = await input.server.database
     .select()
     .from(fleetsTable)
-    .where(eq(fleetsTable.gameId, typedParse(GameIdSchema, gameId)))
-  expect(persistedFleetRows.find(({ id }) => id === loadedDefender.id)).toBeUndefined()
-  expect(persistedFleetRows.find(({ id }) => id === loadedAttacker.id)?.strength).toBe(expectedSurvivingAttackerStrength)
-  expect(persistedFleetRows.filter(({ id }) => id === loadedAttacker.id)).toHaveLength(expectedAttackerFleetCount)
+    .where(eq(fleetsTable.gameId, typedParse(GameIdSchema, input.gameId)))
+  expect(persistedFleetRows.find(({ id }) => id === input.loadedDefender.id)).toBeUndefined()
+  expect(persistedFleetRows.find(({ id }) => id === input.loadedAttacker.id)?.strength).toBe(input.expectedSurvivingAttackerStrength)
+  expect(persistedFleetRows.filter(({ id }) => id === input.loadedAttacker.id)).toHaveLength(input.expectedAttackerFleetCount)
   expect(
-    persistedFleetRows.filter(({ id }) => id === loadedAttacker.id).filter(({ originPlanetId }) => originPlanetId === target.id),
-  ).toHaveLength(expectedAttackerAtTargetCount)
-  const savedTurns = await server.database
+    persistedFleetRows
+      .filter(({ id }) => id === input.loadedAttacker.id)
+      .filter(({ originPlanetId }) => originPlanetId === input.target.id),
+  ).toHaveLength(input.expectedAttackerAtTargetCount)
+  const savedTurns = await input.server.database
     .select()
     .from(turnsTable)
-    .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
-  const savedNextTurn = savedTurns.find(({ turn }) => turn === workerInput.turn + 1)
+    .where(eq(turnsTable.gameId, typedParse(GameIdSchema, input.gameId)))
+  const savedNextTurn = savedTurns.find(({ turn }) => turn === input.workerInput.turn + 1)
   Assert.isDefined(savedNextTurn)
 
-  Assert.isSuccess(replay.resolved)
-  const assertPersistedNextRngStatePhase4Value1 = replay.resolved.value
+  Assert.isSuccess(input.replay.resolved)
+  const assertPersistedNextRngStatePhase4Value1 = input.replay.resolved.value
   return { persistedAttacker, persistedFleetRows, savedNextTurn, assertPersistedNextRngStatePhase4Value1 }
 }
 
@@ -776,76 +691,36 @@ async function verifySelectedViews({
   return { stage, views }
 }
 
-function verifyPersistedNextRngState({
-  savedNextTurn,
-  arrivalReplay,
-  gameId,
-  homeA,
-  homeB,
-  target,
-  attackerDistance,
-  defenderDistance,
-  defenderJourney,
-  attackerJourney,
-  loadedDefinition,
-  continuation,
-  views,
-  arrivalInput,
-}: VerifyPersistedNextRngStateInput): void {
-  const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-  expect(persistedNextRngState).toStrictEqual(arrivalReplay.nextRngState)
+function verifyPersistedNextRngState(input: VerifyPersistedNextRngStateInput): void {
+  const persistedNextRngState = { generatorState: input.savedNextTurn.rngGeneratorState, spareNormal: input.savedNextTurn.rngSpareNormal }
+  expect(persistedNextRngState).toStrictEqual(input.arrivalReplay.nextRngState)
 
   logReceipt("[C3-15 public composed success receipt]", {
-    gameId,
+    gameId: input.gameId,
     seed: 1,
     homes: [
-      { id: homeA.id, coordinates: homeA.coordinates, x: homeA.x, y: homeA.y },
-      { id: homeB.id, coordinates: homeB.coordinates, x: homeB.x, y: homeB.y },
+      { id: input.homeA.id, coordinates: input.homeA.coordinates, x: input.homeA.x, y: input.homeA.y },
+      { id: input.homeB.id, coordinates: input.homeB.coordinates, x: input.homeB.x, y: input.homeB.y },
     ],
-    target: { id: target.id, coordinates: target.coordinates, x: target.x, y: target.y },
-    distances: { attacker: attackerDistance, defender: defenderDistance },
-    defender: { journeyId: defenderJourney.id, strength: 10, actualArrivalTick: 18, atTargetBeforeAttack: true },
-    attacker: { journeyId: attackerJourney.id, strengthBeforeCombat: 50, actualArrivalTick: 6 },
-    capturedEffectTypes: loadedDefinition.effects.map(({ type }) => type),
-    capturedMappings: loadedDefinition.effects.map((effect) => ({ type: effect.type, targets: effect.targets })),
-    outcomes: continuation.actionOutcomes,
-    result: { owner: required(views[0]).player.id, strength: 20, defenderFleetRemoved: true },
-    influence: { paidOnce: 25, remaining: required(views[0]).resources[ResourceType.INFLUENCE].total },
-    rng: { preResolution: arrivalInput.rngState, replayNext: arrivalReplay.nextRngState, persistedNext: persistedNextRngState },
+    target: { id: input.target.id, coordinates: input.target.coordinates, x: input.target.x, y: input.target.y },
+    distances: { attacker: input.attackerDistance, defender: input.defenderDistance },
+    defender: { journeyId: input.defenderJourney.id, strength: 10, actualArrivalTick: 18, atTargetBeforeAttack: true },
+    attacker: { journeyId: input.attackerJourney.id, strengthBeforeCombat: 50, actualArrivalTick: 6 },
+    capturedEffectTypes: input.loadedDefinition.effects.map(({ type }) => type),
+    capturedMappings: input.loadedDefinition.effects.map((effect) => ({ type: effect.type, targets: effect.targets })),
+    outcomes: input.continuation.actionOutcomes,
+    result: { owner: required(input.views[0]).player.id, strength: 20, defenderFleetRemoved: true },
+    influence: { paidOnce: 25, remaining: required(input.views[0]).resources[ResourceType.INFLUENCE].total },
+    rng: { preResolution: input.arrivalInput.rngState, replayNext: input.arrivalReplay.nextRngState, persistedNext: persistedNextRngState },
   })
 }
 
-function verifyPersistedAttacker({
-  createPersistedAttackerSetupPhase5Result,
-  replay,
-  gameId,
-  target,
-  defenderDistance,
-  attackerStrength,
-  defenderStrength,
-  expectedSurvivingAttackerStrength,
-  composedActionId,
-  replayedTarget,
-  loadedAttacker,
-  loadedDefender,
-  continuation,
-  views,
-}: VerifyPersistedAttackerInput): void {
+function verifyPersistedAttacker(input: VerifyPersistedAttackerInput): void {
   assertPersistedNextRngState({
-    ...createPersistedAttackerSetupPhase5Result,
-    replay,
-    gameId,
-    target,
-    defenderDistance,
-    attackerStrength,
-    defenderStrength,
-    expectedSurvivingAttackerStrength,
-    composedActionId,
-    replayedTarget,
-    loadedAttacker,
-    loadedDefender,
-    continuation,
-    views,
+    ...input,
+    ...input.persistedAttackerSetup5,
+    expectedSurvivingAttackerStrength: input.expectedSurvivingAttackerStrength,
+    replayedTarget: input.replayedTarget,
   })
 }
 
@@ -945,7 +820,7 @@ type VerifyPersistedNextRngStateInput = {
 }
 
 type VerifyPersistedAttackerInput = {
-  createPersistedAttackerSetupPhase5Result: CreatePersistedAttackerSetupResult
+  persistedAttackerSetup5: CreatePersistedAttackerSetupResult
   replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
   gameId: number
   target: Planet
@@ -961,67 +836,29 @@ type VerifyPersistedAttackerInput = {
   views: PlayerView[]
 }
 
-async function createCreateViewsSetupResultSetup({
-  fixture,
-  homeA,
-  target,
-  homeB,
-  alice,
-  gameId,
-  bob,
-  server,
-  clock,
-  turnsRepository,
-  turnProcessor,
-  clients,
-}: CreateCreateViewsSetupResultSetupInput): Promise<CreateCreateViewsSetupResultSetupResult> {
-  const createViewsSetupPhase1Result = await createViewsSetup({
-    fixture,
-    homeA,
-    target,
-    homeB,
-    alice,
-    gameId,
-    bob,
-    server,
-    clock,
-    turnsRepository,
-    turnProcessor,
-    clients,
-  })
-  const { attacker, defenderJourney } = createViewsSetupPhase1Result
-  let { views, stage } = createViewsSetupPhase1Result
+async function prepareViewsScenario(input: PrepareViewsScenarioInput): Promise<PrepareViewsScenarioResult> {
+  const viewsSetup1 = await createViewsSetup({ ...input })
+  const { attacker, defenderJourney } = viewsSetup1
+  let { views, stage } = viewsSetup1
   expect(defenderJourney.distanceToEnd).toBeCloseTo(8.852953053708077, 12)
-  expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  expect(getPlanets(required(views[0])).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBeNull()
 
-  stage = await processTurnWithReplay({ server, clock, turnsRepository, turnProcessor, clients, gameId, turn: required(views[0]).turn })
+  stage = await processTurnWithReplay({ ...input, turn: required(views[0]).turn })
   views = stage.views
   expect(stage.resolved.fleets[defenderJourney.id]?.arrivedAtTick).toBe(18)
-  const defender = getFleetAt(required(views[1]), required(views[1]).player.id, target.id, 10)
-  expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  const defender = getFleetAt(required(views[1]), required(views[1]).player.id, input.target.id, 10)
+  expect(getPlanets(required(views[0])).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBeNull()
   expect(required(views[1]).resources[ResourceType.INFLUENCE].total).toBe(495)
   expect(required(views[1]).resources[ResourceType.FUEL].total).toBe(95)
-  return { createViewsSetupPhase1Result, attacker, views, stage, defender }
+  return { viewsSetup1, attacker, views, stage, defender }
 }
 
-async function createCreateAliceSetupResultSetup({
-  server,
-  attackerBuildDefinitionId,
-  defenderBuildDefinitionId,
-  attackerStrength,
-  defenderStrength,
-}: CreateCreateAliceSetupResultSetupInput): Promise<CreateCreateAliceSetupResultSetupResult> {
-  const createAliceSetupPhase3Result = await createAliceSetup({
-    server,
-    attackerBuildDefinitionId,
-    defenderBuildDefinitionId,
-    attackerStrength,
-    defenderStrength,
-  })
-  const { alice, clients, gameId, clock, turnProcessor, turnsRepository, target, attacker, defenderMoveId } = createAliceSetupPhase3Result
-  let { views, stage } = createAliceSetupPhase3Result
+async function prepareAliceScenario(input: PrepareAliceScenarioInput): Promise<PrepareAliceScenarioResult> {
+  const aliceSetup3 = await createAliceSetup({ ...input })
+  const { alice, clients, gameId, clock, turnProcessor, turnsRepository, target, attacker, defenderMoveId } = aliceSetup3
+  let { views, stage } = aliceSetup3
   stage = await processTurnWithReplay({
-    server,
+    server: input.server,
     clock,
     turnsRepository,
     turnProcessor,
@@ -1036,7 +873,7 @@ async function createCreateAliceSetupResultSetup({
 
   expect(getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
   return {
-    createAliceSetupPhase3Result,
+    aliceSetup3,
     alice,
     clients,
     gameId,
@@ -1051,7 +888,7 @@ async function createCreateAliceSetupResultSetup({
   }
 }
 
-type CreateCreateViewsSetupResultSetupInput = {
+type PrepareViewsScenarioInput = {
   fixture: Awaited<ReturnType<typeof CapturedcreatePublicTwoPlayerFixture>>
   homeA: Planet
   target: Planet
@@ -1066,15 +903,15 @@ type CreateCreateViewsSetupResultSetupInput = {
   clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
 }
 
-type CreateCreateViewsSetupResultSetupResult = {
-  createViewsSetupPhase1Result: CreateViewsSetupResult
+type PrepareViewsScenarioResult = {
+  viewsSetup1: CreateViewsSetupResult
   attacker: Fleet
   views: PlayerView[]
   stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
   defender: Fleet
 }
 
-type CreateCreateAliceSetupResultSetupInput = {
+type PrepareAliceScenarioInput = {
   server: ConcurrencyTestApiServer
   attackerBuildDefinitionId: ActionDefinitionId
   defenderBuildDefinitionId: ActionDefinitionId
@@ -1082,8 +919,8 @@ type CreateCreateAliceSetupResultSetupInput = {
   defenderStrength: number
 }
 
-type CreateCreateAliceSetupResultSetupResult = {
-  createAliceSetupPhase3Result: CreateAliceSetupResult
+type PrepareAliceScenarioResult = {
+  aliceSetup3: CreateAliceSetupResult
   alice: AuthenticatedApiClient
   clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
   gameId: number

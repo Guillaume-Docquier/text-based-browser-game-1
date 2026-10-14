@@ -16,6 +16,7 @@ import type { ActionId } from "#shared/domain/turns/actions/ActionId.ts"
 import type { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
 import type { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
+import { required } from "#shared/testing/required.ts"
 import { ColonizeHereTest, ColonizePlanetTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { TestRuleset } from "#shared/testing/test-ruleset/TestRuleset.ts"
 import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnState.ts"
@@ -75,7 +76,7 @@ describe("Fleet Colonization", () => {
     )
     expect(resolved.fleets[source.id]).toBeUndefined()
     expect(resolved.fleets[enemy.id]).toMatchObject({ originPlanetId: target.id, strength: 10 })
-    expect(resolved.planets[target.id]?.ownerPlayerId).toBeNull()
+    expect(required(resolved.planets[target.id]).ownerPlayerId).toBeNull()
     expect(ordinaryMove.effects.map(({ type }) => type)).toStrictEqual(["FLEET_MOVE"])
     expect(outcomesFor(resolved, PLAYER_A, action.id).every(({ type }) => type === "RESOLVED")).toBe(true)
   })
@@ -113,7 +114,7 @@ describe("Fleet Colonization", () => {
     const colonization = resolve({ planets: [origin, target], fleets: [source, defender], submissions: [action] })
     expect(colonization.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(fleetStrengthForOwner(colonization, PLAYER_A)).toBe(15)
-    expect(colonization.fleets[defender.id]?.strength).toBe(10)
+    expect(required(colonization.fleets[defender.id]).strength).toBe(10)
     expect(outcomesFor(colonization, PLAYER_A, action.id)).not.toContainEqual(
       expect.objectContaining({ type: "RESOLVED", result: expect.stringContaining("exchanged") }),
     )
@@ -165,7 +166,7 @@ describe("Fleet Colonization", () => {
     })
     const resolved35 = resolve({ planets: [origin], fleets: [fleet35], submissions: [action35] })
     expect(resolved35.planets[origin.id]?.ownerPlayerId).toBe(PLAYER_A)
-    expect(resolved35.fleets[fleet35.id]?.strength).toBe(15)
+    expect(required(resolved35.fleets[fleet35.id]).strength).toBe(15)
     expect(Object.values(resolved35.fleets).some(({ movement }) => movement !== undefined)).toBe(false)
 
     const exactOrigin = planet("stationary-exact-origin", null, 0)
@@ -190,7 +191,7 @@ describe("Fleet Colonization", () => {
     expect(uncontested.resolved.fleets[uncontested.source.id]).toBeUndefined()
     expect(uncontestedJourney.strength).toBe(15)
     expect(outcomeFor(uncontested.resolved, PLAYER_A, uncontested.colonize.id).type).toBe("RESOLVED")
-    expect(uncontested.resolved.players[PLAYER_A]?.resources).toMatchObject({
+    expect(required(uncontested.resolved.players[PLAYER_A]).resources).toMatchObject({
       [ResourceType.INFLUENCE]: 22,
       [ResourceType.FUEL]: 99,
     })
@@ -199,12 +200,12 @@ describe("Fleet Colonization", () => {
     const weakenedJourney = journeyTo(weakened.resolved, weakened.destination.id)
     Assert.isDefined(weakenedJourney)
     Assert.isDefined(weakened.attacker)
-    expect(weakened.resolved.planets[weakened.origin.id]?.ownerPlayerId).toBeNull()
-    expect(weakened.resolved.fleets[weakened.source.id]?.strength).toBe(19)
+    expect(required(weakened.resolved.planets[weakened.origin.id]).ownerPlayerId).toBeNull()
+    expect(required(weakened.resolved.fleets[weakened.source.id]).strength).toBe(19)
     expect(weakened.resolved.fleets[weakened.attacker.id]).toBeUndefined()
     expect(weakenedJourney.strength).toBe(15)
     expect(outcomeFor(weakened.resolved, PLAYER_A, weakened.colonize.id).type).toBe("PREVENTED")
-    expect(weakened.resolved.players[PLAYER_A]?.resources).toMatchObject({
+    expect(required(weakened.resolved.players[PLAYER_A]).resources).toMatchObject({
       [ResourceType.INFLUENCE]: 22,
       [ResourceType.FUEL]: 99,
     })
@@ -313,13 +314,13 @@ describe("Fleet Colonization", () => {
     Assert.isSuccess(claimantResult)
     const claimantTurn = claimantResult.value
     expect(claimantTurn.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
-    expect(claimantTurn.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(25)
+    expect(required(claimantTurn.players[PLAYER_A]).resources[ResourceType.INFLUENCE]).toBe(25)
 
     const finalTurn = resolveContinuation(claimantTurn, 4)
     expect(finalTurn.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
     expect(finalTurn.fleets[journey.id]).toMatchObject({ originPlanetId: target.id, strength: 35, movement: undefined })
-    expect(finalTurn.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(25)
-    expect(finalTurn.resolvedContinuations[0]?.actionOutcomes.at(-1)).toMatchObject({ type: "PREVENTED" })
+    expect(required(finalTurn.players[PLAYER_A]).resources[ResourceType.INFLUENCE]).toBe(25)
+    expect(required(finalTurn.resolvedContinuations[0]).actionOutcomes.at(-1)).toMatchObject({ type: "PREVENTED" })
   })
 
   it("should use current post-Combat force for a tick4/tick8 full-Turn claimant race", () => {
@@ -443,32 +444,19 @@ describe("Fleet Colonization", () => {
   })
 })
 
-function verify({
-  target,
-  originOrdinary,
-  originLate,
-  originEarly,
-  survivor,
-  ordinarySource,
-  lateSource,
-  earlySource,
-  submissions,
-  ruleset,
-  late,
-}: VerifyInput): void {
+function verify(input: VerifyInput): void {
   const resolved = resolve({
-    planets: [target, originOrdinary, originLate, originEarly],
-    fleets: [survivor, ordinarySource, lateSource, earlySource],
-    submissions,
-    ruleset,
+    ...input,
+    planets: [input.target, input.originOrdinary, input.originLate, input.originEarly],
+    fleets: [input.survivor, input.ordinarySource, input.lateSource, input.earlySource],
   })
 
-  assert({ resolved, target, survivor, ordinarySource, lateSource, earlySource })
+  assert({ ...input, resolved })
 
   const lateTickTarget = planet("merge-late-tick-target", null, 1)
   const lateTickOrigin = planet("merge-late-tick-origin", PLAYER_A, 0.2)
   const lateTickSource = fleet("merge-late-tick-source", PLAYER_A, lateTickOrigin, 25)
-  const lateTickRuleset = createRuleset([late], [{ id: "LATE_TICK_ONLY_1", actionDefinitionId: late.id }])
+  const lateTickRuleset = createRuleset([input.late], [{ id: "LATE_TICK_ONLY_1", actionDefinitionId: input.late.id }])
   const lateTickResolved = resolve({
     planets: [lateTickOrigin, lateTickTarget],
     fleets: [lateTickSource],
@@ -476,7 +464,7 @@ function verify({
       submit({
         id: "LATE_TICK_ONLY_1",
         playerId: PLAYER_A,
-        actionDefinitionId: late.id,
+        actionDefinitionId: input.late.id,
         source: lateTickSource,
         target: lateTickTarget,
         strength: 25,
@@ -490,37 +478,37 @@ function verify({
   })
 }
 
-function assert({ resolved, target, survivor, ordinarySource, lateSource, earlySource }: AssertInput): void {
-  expect(resolved.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
-  expect(resolved.fleets[survivor.id]).toMatchObject({
-    id: survivor.id,
-    name: survivor.name,
+function assert(input: AssertInput): void {
+  expect(input.resolved.planets[input.target.id]?.ownerPlayerId).toBe(PLAYER_B)
+  expect(input.resolved.fleets[input.survivor.id]).toMatchObject({
+    id: input.survivor.id,
+    name: input.survivor.name,
     strength: 40,
-    originPlanetId: target.id,
+    originPlanetId: input.target.id,
     arrivedAtTick: 2,
   })
-  expect(fleetAtPlanetForOwner(resolved, target.id, PLAYER_B)).toMatchObject({ strength: 15, arrivedAtTick: 6 })
-  expect(resolved.fleets[ordinarySource.id]?.strength).toBe(5)
-  expect(resolved.fleets[lateSource.id]?.strength).toBe(5)
-  expect(resolved.fleets[earlySource.id]?.strength).toBe(10)
+  expect(fleetAtPlanetForOwner(input.resolved, input.target.id, PLAYER_B)).toMatchObject({ strength: 15, arrivedAtTick: 6 })
+  expect(required(input.resolved.fleets[input.ordinarySource.id]).strength).toBe(5)
+  expect(required(input.resolved.fleets[input.lateSource.id]).strength).toBe(5)
+  expect(required(input.resolved.fleets[input.earlySource.id]).strength).toBe(10)
   expect(
-    Object.values(resolved.fleets)
+    Object.values(input.resolved.fleets)
       .filter(({ ownerPlayerId }) => ownerPlayerId === PLAYER_B)
       .map(({ strength }) => strength)
       .toSorted((first, second) => first - second),
   ).toStrictEqual([10, 15])
-  expect(resolved.removedFleetIds).toHaveLength(2)
-  expect(outcomeFor(resolved, PLAYER_B, "EARLY_1").type).toBe("RESOLVED")
-  expect(outcomeFor(resolved, PLAYER_A, "LATE_1").type).toBe("PREVENTED")
+  expect(input.resolved.removedFleetIds).toHaveLength(2)
+  expect(outcomeFor(input.resolved, PLAYER_B, "EARLY_1").type).toBe("RESOLVED")
+  expect(outcomeFor(input.resolved, PLAYER_A, "LATE_1").type).toBe("PREVENTED")
 }
 
-function assertLaterEnemy({ ordinary, late }: AssertLaterEnemyInput): void {
+function assertLaterEnemy(input: AssertLaterEnemyInput): void {
   const laterEnemy = createColonizeMoveAction({ id: "TEST_COLONIZE_SPEED_ONE_CONTROL", speed: 1 })
   const laterRuleset = createRuleset(
-    [ordinary, late, laterEnemy],
+    [input.ordinary, input.late, laterEnemy],
     [
-      { id: "ORDINARY_CONTROL_1", actionDefinitionId: ordinary.id },
-      { id: "LATE_FRIENDLY_1", actionDefinitionId: late.id },
+      { id: "ORDINARY_CONTROL_1", actionDefinitionId: input.ordinary.id },
+      { id: "LATE_FRIENDLY_1", actionDefinitionId: input.late.id },
       { id: "LATER_ENEMY_1", actionDefinitionId: laterEnemy.id },
     ],
   )
@@ -540,7 +528,7 @@ function assertLaterEnemy({ ordinary, late }: AssertLaterEnemyInput): void {
       submit({
         id: "ORDINARY_CONTROL_1",
         playerId: PLAYER_A,
-        actionDefinitionId: ordinary.id,
+        actionDefinitionId: input.ordinary.id,
         source: laterOrdinarySource,
         target: laterTarget,
         strength: 10,
@@ -548,7 +536,7 @@ function assertLaterEnemy({ ordinary, late }: AssertLaterEnemyInput): void {
       submit({
         id: "LATE_FRIENDLY_1",
         playerId: PLAYER_A,
-        actionDefinitionId: late.id,
+        actionDefinitionId: input.late.id,
         source: laterFriendlySource,
         target: laterTarget,
         strength: 20,
@@ -566,7 +554,7 @@ function assertLaterEnemy({ ordinary, late }: AssertLaterEnemyInput): void {
   expect(laterResolved.planets[laterTarget.id]?.ownerPlayerId).toBe(PLAYER_A)
   expect(laterResolved.fleets[laterSurvivor.id]).toMatchObject({ strength: 20, arrivedAtTick: 2 })
   expect(fleetAtPlanetForOwner(laterResolved, laterTarget.id, PLAYER_B)).toMatchObject({ strength: 35, arrivedAtTick: 10 })
-  expect(laterResolved.fleets[laterEnemySource.id]?.strength).toBe(10)
+  expect(required(laterResolved.fleets[laterEnemySource.id]).strength).toBe(10)
   expect(
     Object.values(laterResolved.fleets)
       .filter(({ ownerPlayerId }) => ownerPlayerId === PLAYER_B)
@@ -632,126 +620,136 @@ function verifySuccessPlanet(): void {
   })
   // Assert
   expect(success.planets[successPlanet.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(success.fleets[successfulFleet.id]?.strength).toBe(15)
-  expect(success.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+  expect(required(success.fleets[successfulFleet.id]).strength).toBe(15)
+  expect(required(success.players[PLAYER_A]).resources[ResourceType.COLONY]).toBe(7)
   // Act: resolve the following empty Turn.
   const successEmptyTurn = resolveContinuation(success, 2)
   // Assert the owner, remaining strength, and stockpile persist.
   expect(successEmptyTurn.planets[successPlanet.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(successEmptyTurn.fleets[successfulFleet.id]?.strength).toBe(15)
-  expect(successEmptyTurn.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+  expect(required(successEmptyTurn.fleets[successfulFleet.id]).strength).toBe(15)
+  expect(required(successEmptyTurn.players[PLAYER_A]).resources[ResourceType.COLONY]).toBe(7)
 }
 
-function verifyAttacker({ origin, target, assaultColonize, ruleset }: VerifyAttackerInput): void {
-  const attacker = fleet("colony-stockpile-prevention-attacker", PLAYER_A, origin, 35)
-  const defender = fleet("colony-stockpile-prevention-defender", PLAYER_B, target, 16)
+function verifyAttacker(input: VerifyAttackerInput): void {
+  const attacker = fleet("colony-stockpile-prevention-attacker", PLAYER_A, input.origin, 35)
+  const defender = fleet("colony-stockpile-prevention-defender", PLAYER_B, input.target, 16)
   const attack = submit({
     id: "COLONY_STOCKPILE_ASSAULT_1",
     playerId: PLAYER_A,
-    actionDefinitionId: assaultColonize.id,
+    actionDefinitionId: input.assaultColonize.id,
     source: attacker,
-    target,
+    target: input.target,
     strength: 35,
   })
   // Act
   const prevention = resolve({
-    planets: [origin, target],
+    planets: [input.origin, input.target],
     fleets: [attacker, defender],
     submissions: [attack],
-    ruleset,
+    ruleset: input.ruleset,
     colonyStockpile: 7,
   })
   // Assert combat leaves 19, does not claim, and preserves COLONY7.
-  expect(prevention.planets[target.id]?.ownerPlayerId).toBeNull()
+  expect(required(prevention.planets[input.target.id]).ownerPlayerId).toBeNull()
   expect(fleetStrengthForOwner(prevention, PLAYER_A)).toBe(19)
   expect(prevention.fleets[defender.id]).toBeUndefined()
   expect(outcomesFor(prevention, PLAYER_A, attack.id)).toContainEqual(
     expect.objectContaining({ type: "PREVENTED", reason: expect.stringContaining("below the 20 required") }),
   )
-  expect(prevention.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+  expect(required(prevention.players[PLAYER_A]).resources[ResourceType.COLONY]).toBe(7)
   // Act: resolve the following empty Turn.
-  const preventionEmptyTurn = resolveContinuation(prevention, 2, createSeededRng(1234), ruleset)
+  const preventionEmptyTurn = resolveContinuation(prevention, 2, createSeededRng(1234), input.ruleset)
   // Assert the prevented owner, surviving force, and stockpile persist.
-  expect(preventionEmptyTurn.planets[target.id]?.ownerPlayerId).toBeNull()
+  expect(required(preventionEmptyTurn.planets[input.target.id]).ownerPlayerId).toBeNull()
   expect(fleetStrengthForOwner(preventionEmptyTurn, PLAYER_A)).toBe(19)
-  expect(preventionEmptyTurn.players[PLAYER_A]?.resources[ResourceType.COLONY]).toBe(7)
+  expect(required(preventionEmptyTurn.players[PLAYER_A]).resources[ResourceType.COLONY]).toBe(7)
 }
 
-function verifyResult({
-  target,
-  originA,
-  originB,
-  fleetA,
-  fleetB,
-  intents,
-  rng,
-  before,
-  actionA,
-  colonizeDefinition,
-  actionB,
-}: VerifyResultInput): void {
-  const result = resolveColonizeOnly({ planets: [target, originA, originB], fleets: [fleetA, fleetB], intents, rng })
+function verifyResult(input: VerifyResultInput): void {
+  const result = resolveColonizeOnly({
+    ...input,
+    planets: [input.target, input.originA, input.originB],
+    fleets: [input.fleetA, input.fleetB],
+  })
 
-  expect(result.context.turnState.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
-  expect(result.context.turnState.fleets[fleetA.id]?.strength).toBe(19)
-  expect(result.context.turnState.fleets[fleetB.id]?.strength).toBe(15)
-  expect(intents[0]?.actionOutcomes.at(-1)).toMatchObject({
+  expect(result.context.turnState.planets[input.target.id]?.ownerPlayerId).toBe(PLAYER_B)
+  expect(required(result.context.turnState.fleets[input.fleetA.id]).strength).toBe(19)
+  expect(required(result.context.turnState.fleets[input.fleetB.id]).strength).toBe(15)
+  expect(required(input.intents[0]).actionOutcomes.at(-1)).toMatchObject({
     type: "PREVENTED",
     reason: "Fleet has 19 Strength, below the 20 required to colonize",
   })
-  expect(intents[1]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
-  expect(rng.getState()).toStrictEqual(before)
+  expect(required(input.intents[1]).actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
+  expect(input.rng.getState()).toStrictEqual(input.before)
 
   const deadTarget = planet("phase-dead-target", null, 0)
   const deadFleetB = fleet("phase-dead-valid-b", PLAYER_B, deadTarget, 35)
   const deadIntents = [
-    intent({ fleet: fleetA, action: actionA, target: deadTarget, tick: 4, colonizeDefinition }),
-    intent({ fleet: deadFleetB, action: actionB, target: deadTarget, tick: 8, colonizeDefinition }),
+    intent({ fleet: input.fleetA, action: input.actionA, target: deadTarget, tick: 4, colonizeDefinition: input.colonizeDefinition }),
+    intent({ fleet: deadFleetB, action: input.actionB, target: deadTarget, tick: 8, colonizeDefinition: input.colonizeDefinition }),
   ]
   const deadRng = createSeededRng(0)
   const deadRngBefore = deadRng.getState()
   const dead = resolveColonizeOnly({ planets: [deadTarget], fleets: [deadFleetB], intents: deadIntents, rng: deadRng })
-  expect(dead.context.turnState.fleets[fleetA.id]).toBeUndefined()
-  expect(dead.context.turnState.fleets[deadFleetB.id]?.strength).toBe(15)
-  expect(deadIntents[0]?.actionOutcomes.at(-1)).toMatchObject({
+  expect(dead.context.turnState.fleets[input.fleetA.id]).toBeUndefined()
+  expect(required(dead.context.turnState.fleets[deadFleetB.id]).strength).toBe(15)
+  expect(required(deadIntents[0]).actionOutcomes.at(-1)).toMatchObject({
     type: "PREVENTED",
     reason: expect.stringContaining("destroyed before colonization"),
   })
-  expect(deadIntents[1]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
+  expect(required(deadIntents[1]).actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
   expect(deadRng.getState()).toStrictEqual(deadRngBefore)
   expect(dead.context.turnState.planets[deadTarget.id]?.ownerPlayerId).toBe(PLAYER_B)
 }
 
-function verifyCase({ target, fleetA, fleetB, fleetC, intents, rng }: VerifyCaseInput): void {
-  const resolved = resolveColonizeOnly({ planets: [target], fleets: [fleetA, fleetB, fleetC], intents, rng })
+function verifyCase(input: VerifyCaseInput): void {
+  const resolved = resolveColonizeOnly({ ...input, planets: [input.target], fleets: [input.fleetA, input.fleetB, input.fleetC] })
 
-  expect(resolved.context.turnState.planets[target.id]?.ownerPlayerId).toBe(PLAYER_B)
-  expect(resolved.context.turnState.fleets[fleetA.id]?.strength).toBe(35)
-  expect(resolved.context.turnState.fleets[fleetB.id]?.strength).toBe(15)
-  expect(resolved.context.turnState.fleets[fleetC.id]?.strength).toBe(19)
-  expect(intents[0]?.actionOutcomes.at(-1)).toMatchObject({ type: "PREVENTED" })
-  expect(intents[1]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
-  expect(intents[2]?.actionOutcomes.at(-1)).toMatchObject({
+  expect(resolved.context.turnState.planets[input.target.id]?.ownerPlayerId).toBe(PLAYER_B)
+  expect(required(resolved.context.turnState.fleets[input.fleetA.id]).strength).toBe(35)
+  expect(required(resolved.context.turnState.fleets[input.fleetB.id]).strength).toBe(15)
+  expect(required(resolved.context.turnState.fleets[input.fleetC.id]).strength).toBe(19)
+  expect(required(input.intents[0]).actionOutcomes.at(-1)).toMatchObject({ type: "PREVENTED" })
+  expect(required(input.intents[1]).actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
+  expect(required(input.intents[2]).actionOutcomes.at(-1)).toMatchObject({
     type: "PREVENTED",
     reason: "Fleet has 19 Strength, below the 20 required to colonize",
   })
-  expect(intents[3]?.actionOutcomes.at(-1)).toMatchObject({
+  expect(required(input.intents[3]).actionOutcomes.at(-1)).toMatchObject({
     type: "PREVENTED",
     reason: expect.stringContaining("destroyed before colonization"),
   })
-  expect(rng.getState()).toStrictEqual({ generatorState: 1831565813, spareNormal: null })
+  expect(input.rng.getState()).toStrictEqual({ generatorState: 1831565813, spareNormal: null })
 }
 
-function verifySingletonRng({ deadAction, colonizeDefinition, actionC, actionB }: VerifySingletonRngInput): void {
+function verifySingletonRng(input: VerifySingletonRngInput): void {
   const singletonRng = createSeededRng(0)
   const singletonTarget = planet("invalid-singleton-target", null, 0)
   const singletonFleetB = fleet("invalid-singleton-b", PLAYER_B, singletonTarget, 35)
   const singletonFleetC = fleet("invalid-singleton-c", PLAYER_C, singletonTarget, 19)
   const singletonDeadFleet = fleet("invalid-singleton-dead", PLAYER_A, singletonTarget, 35)
   const singletonIntents = [
-    intent({ fleet: singletonDeadFleet, action: deadAction, target: singletonTarget, tick: 4, colonizeDefinition }),
-    intent({ fleet: singletonFleetC, action: actionC, target: singletonTarget, tick: 4, colonizeDefinition }),
-    intent({ fleet: singletonFleetB, action: actionB, target: singletonTarget, tick: 4, colonizeDefinition }),
+    intent({
+      fleet: singletonDeadFleet,
+      action: input.deadAction,
+      target: singletonTarget,
+      tick: 4,
+      colonizeDefinition: input.colonizeDefinition,
+    }),
+    intent({
+      fleet: singletonFleetC,
+      action: input.actionC,
+      target: singletonTarget,
+      tick: 4,
+      colonizeDefinition: input.colonizeDefinition,
+    }),
+    intent({
+      fleet: singletonFleetB,
+      action: input.actionB,
+      target: singletonTarget,
+      tick: 4,
+      colonizeDefinition: input.colonizeDefinition,
+    }),
   ]
   const singleton = resolveColonizeOnly({
     planets: [singletonTarget],
@@ -760,49 +758,48 @@ function verifySingletonRng({ deadAction, colonizeDefinition, actionC, actionB }
     rng: singletonRng,
   })
   expect(singleton.context.turnState.planets[singletonTarget.id]?.ownerPlayerId).toBe(PLAYER_B)
-  expect(singleton.context.turnState.fleets[singletonFleetB.id]?.strength).toBe(15)
-  expect(singletonIntents[0]?.actionOutcomes.at(-1)).toMatchObject({
+  expect(required(singleton.context.turnState.fleets[singletonFleetB.id]).strength).toBe(15)
+  expect(required(singletonIntents[0]).actionOutcomes.at(-1)).toMatchObject({
     type: "PREVENTED",
     reason: expect.stringContaining("destroyed before colonization"),
   })
-  expect(singletonIntents[1]?.actionOutcomes.at(-1)).toMatchObject({
+  expect(required(singletonIntents[1]).actionOutcomes.at(-1)).toMatchObject({
     type: "PREVENTED",
     reason: "Fleet has 19 Strength, below the 20 required to colonize",
   })
-  expect(singletonIntents[2]?.actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
+  expect(required(singletonIntents[2]).actionOutcomes.at(-1)).toMatchObject({ type: "RESOLVED" })
   expect(singletonRng.getState()).toStrictEqual({ generatorState: 0, spareNormal: null })
 }
 
-function verify2({ target, originEarly, originLate, survivor, sourceEarly, sourceLate, submissions, ruleset }: Verify2Input): void {
+function verify2(input: Verify2Input): void {
   const resolved = resolve({
-    planets: [target, originEarly, originLate],
-    fleets: [survivor, sourceEarly, sourceLate],
-    submissions,
-    ruleset,
+    ...input,
+    planets: [input.target, input.originEarly, input.originLate],
+    fleets: [input.survivor, input.sourceEarly, input.sourceLate],
   })
   const reversed = resolve({
-    planets: [target, originEarly, originLate].toReversed(),
-    fleets: [survivor, sourceEarly, sourceLate].toReversed(),
-    submissions: submissions.toReversed(),
-    ruleset,
+    planets: [input.target, input.originEarly, input.originLate].toReversed(),
+    fleets: [input.survivor, input.sourceEarly, input.sourceLate].toReversed(),
+    submissions: input.submissions.toReversed(),
+    ruleset: input.ruleset,
   })
-  expect(resolved.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(resolved.fleets[survivor.id]).toMatchObject({ strength: 30, arrivedAtTick: 4 })
-  expect(resolved.fleets[sourceEarly.id]?.strength).toBe(5)
-  expect(resolved.fleets[sourceLate.id]?.strength).toBe(5)
+  expect(resolved.planets[input.target.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(resolved.fleets[input.survivor.id]).toMatchObject({ strength: 30, arrivedAtTick: 4 })
+  expect(required(resolved.fleets[input.sourceEarly.id]).strength).toBe(5)
+  expect(required(resolved.fleets[input.sourceLate.id]).strength).toBe(5)
   expect(resolved.removedFleetIds).toHaveLength(2)
   expect(outcomeFor(resolved, PLAYER_A, "DUPLICATE_EARLY_1").type).toBe("RESOLVED")
   expect(outcomeFor(resolved, PLAYER_A, "DUPLICATE_LATE_1").type).toBe("PREVENTED")
-  expect(reversed.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(reversed.fleets[survivor.id]?.strength).toBe(30)
+  expect(reversed.planets[input.target.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(required(reversed.fleets[input.survivor.id]).strength).toBe(30)
   expect(outcomeFor(reversed, PLAYER_A, "DUPLICATE_EARLY_1")).toStrictEqual(outcomeFor(resolved, PLAYER_A, "DUPLICATE_EARLY_1"))
 }
 
-function verifyLateTickTarget({ late }: VerifyLateTickTargetInput): void {
+function verifyLateTickTarget(input: VerifyLateTickTargetInput): void {
   const lateTickTarget = planet("duplicate-late-tick-target", null, 1)
   const lateTickOrigin = planet("duplicate-late-tick-origin", PLAYER_A, 1.8)
   const lateTickSource = fleet("duplicate-late-tick-source", PLAYER_A, lateTickOrigin, 25)
-  const lateTickRuleset = createRuleset([late], [{ id: "DUPLICATE_LATE_TICK_1", actionDefinitionId: late.id }])
+  const lateTickRuleset = createRuleset([input.late], [{ id: "DUPLICATE_LATE_TICK_1", actionDefinitionId: input.late.id }])
   const lateTickResolved = resolve({
     planets: [lateTickOrigin, lateTickTarget],
     fleets: [lateTickSource],
@@ -810,7 +807,7 @@ function verifyLateTickTarget({ late }: VerifyLateTickTargetInput): void {
       submit({
         id: "DUPLICATE_LATE_TICK_1",
         playerId: PLAYER_A,
-        actionDefinitionId: late.id,
+        actionDefinitionId: input.late.id,
         source: lateTickSource,
         target: lateTickTarget,
         strength: 25,

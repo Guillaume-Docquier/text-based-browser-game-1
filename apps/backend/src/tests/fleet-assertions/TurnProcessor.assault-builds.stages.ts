@@ -6,6 +6,7 @@ import type { createSubmittedActionStub } from "shared/domain/turns/actions/Acti
 import type { ActionId } from "shared/domain/turns/actions/ActionId.ts"
 import type { EffectOutcome } from "shared/domain/turns/actions/EffectOutcome.ts"
 import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
+import { required } from "shared/testing/required.ts"
 import { AttackMoveTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { BuildFleetStandard } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
 import { MoveFleetExceptional } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
@@ -34,11 +35,9 @@ import {
 import { HomeArrivalMergeRuleset, createPublicHomeArrivalFixture } from "../fleet-worker/TurnProcessor.ts"
 import { assertOwnerFleetForces, assertReservedView, assertJourneyForces, assertReservedView2 } from "./TurnProcessor.assault-builds.ts"
 
-export async function createFixtureSetup({ db, clock, apiServer }: CreateFixtureSetupInput): Promise<CreateFixtureSetupResult> {
+export async function createFixtureSetup(input: CreateFixtureSetupInput): Promise<CreateFixtureSetupResult> {
   const fixture = await createPublicHomeArrivalFixture({
-    db,
-    clock,
-    apiServer,
+    ...input,
     ruleset: HomeArrivalMergeRuleset,
     aliceDepartureStrength: 0,
     bobDepartureStrength: 20,
@@ -56,7 +55,7 @@ export async function createFixtureSetup({ db, clock, apiServer }: CreateFixture
   Assert.isDefined(playerBId)
   Assert.isDefined(attackerSource)
   Assert.isDefined(defender)
-  expect([attackerSource.strength, defender.strength, fixture.bobAtTarget?.strength]).toStrictEqual([40, 20, 20])
+  expect([attackerSource.strength, defender.strength, required(fixture.bobAtTarget).strength]).toStrictEqual([40, 20, 20])
   expect(fixture.aliceAtSource).toBeUndefined()
 
   // Act: send Alice30 to Bob's home; the public Build action reinforces Bob's stationed20 on the arrival turn.
@@ -128,41 +127,33 @@ export type CreateFixtureSetup3Result = {
   departureView: PlayerView
 }
 
-export async function createAttackJourneySetup({
-  fixture,
-  aliceDepartureView,
-  alice,
-  attackAction,
-  attackerSource,
-  defender,
-  bob,
-}: CreateAttackJourneySetupInput): Promise<CreateAttackJourneySetupResult> {
+export async function createAttackJourneySetup(input: CreateAttackJourneySetupInput): Promise<CreateAttackJourneySetupResult> {
   await processPublicTurn({
-    clients: fixture.clients,
-    gameId: fixture.gameId,
-    turn: aliceDepartureView.turn,
-    turnProcessor: fixture.turnProcessor,
+    clients: input.fixture.clients,
+    gameId: input.fixture.gameId,
+    turn: input.aliceDepartureView.turn,
+    turnProcessor: input.fixture.turnProcessor,
   })
-  let movingView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
-  let attackJourney = movingView.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
+  let movingView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.fixture.gameId })
+  let attackJourney = movingView.fleets.find(({ movement }) => movement?.submission.id === input.attackAction.id)
   Assert.isDefined(attackJourney)
   expect([attackJourney.strength, attackJourney.distanceToEnd]).toStrictEqual([30, 3.418312565270031])
-  expect(movingView.fleets.find(({ id }) => id === attackerSource.id)?.strength).toBe(10)
+  expect(required(movingView.fleets.find(({ id }) => id === input.attackerSource.id)).strength).toBe(10)
   for (const remainingDistance of [2.418312565270031, 1.418312565270031, 0.418312565270031]) {
     await processPublicTurn({
-      clients: fixture.clients,
-      gameId: fixture.gameId,
+      clients: input.fixture.clients,
+      gameId: input.fixture.gameId,
       turn: movingView.turn,
-      turnProcessor: fixture.turnProcessor,
+      turnProcessor: input.fixture.turnProcessor,
     })
-    movingView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
+    movingView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.fixture.gameId })
     attackJourney = movingView.fleets.find(({ id }) => id === attackJourney?.id)
     Assert.isDefined(attackJourney)
     expect(attackJourney.distanceToEnd).toBe(remainingDistance)
-    expect(movingView.fleets.find(({ id }) => id === defender.id)?.strength).toBe(20)
+    expect(required(movingView.fleets.find(({ id }) => id === input.defender.id)).strength).toBe(20)
   }
   const beforeCombatViews = await Promise.all(
-    fixture.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: fixture.gameId })),
+    input.fixture.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: input.fixture.gameId })),
   )
   const aliceBeforeCombat = beforeCombatViews[0]
   const bobBeforeCombat = beforeCombatViews[1]
@@ -170,16 +161,16 @@ export async function createAttackJourneySetup({
   Assert.isDefined(bobBeforeCombat)
   const buildAction = bobBeforeCombat.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
   Assert.isDefined(buildAction)
-  await bob.client.gameplay.updateActionSubmission.mutate({
-    gameId: fixture.gameId,
+  await input.bob.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.fixture.gameId,
     turn: bobBeforeCombat.turn,
-    submittedActionTargets: getActionToSubmintegrationTest(bobBeforeCombat, BuildFleetStandard.id, { planet: fixture.bobHome.id }),
+    submittedActionTargets: getActionToSubmintegrationTest(bobBeforeCombat, BuildFleetStandard.id, { planet: input.fixture.bobHome.id }),
   })
   await processPublicTurn({
-    clients: fixture.clients,
-    gameId: fixture.gameId,
+    clients: input.fixture.clients,
+    gameId: input.fixture.gameId,
     turn: aliceBeforeCombat.turn,
-    turnProcessor: fixture.turnProcessor,
+    turnProcessor: input.fixture.turnProcessor,
     process: false,
   })
   return { attackJourney, aliceBeforeCombat, bobBeforeCombat, buildAction }
@@ -202,34 +193,24 @@ export type CreateAttackJourneySetupResult = {
   buildAction: Action
 }
 
-export async function createExpectedTargetForcesSetup({
-  db,
-  clock,
-  fixture,
-  aliceBeforeCombat,
-  playerAId,
-  playerBId,
-  attackJourney,
-  defender,
-  attackAction,
-  buildAction,
-}: CreateExpectedTargetForcesSetupInput): Promise<CreateExpectedTargetForcesSetupResult> {
+export async function createExpectedTargetForcesSetup(
+  input: CreateExpectedTargetForcesSetupInput,
+): Promise<CreateExpectedTargetForcesSetupResult> {
   const observed = await observeTurnAndRollback({
-    db,
-    clock,
-    turnsRepository: fixture.turnsRepository,
-    gameId: fixture.gameId,
-    turn: aliceBeforeCombat.turn,
+    ...input,
+    turnsRepository: input.fixture.turnsRepository,
+    gameId: input.fixture.gameId,
+    turn: input.aliceBeforeCombat.turn,
   })
   const forward = replayObservedTurn(observed, false)
   const permuted = replayObservedTurn(observed, true)
 
   // Assert: Build reinforces defender20 to30 before the single A30 Assault; both target forces are removed.
-  const expectedTargetForces = { [playerAId]: [], [playerBId]: [] }
+  const expectedTargetForces = { [input.playerAId]: [], [input.playerBId]: [] }
 
-  assertOwnerFleetForces({ forward, fixture, expectedTargetForces, permuted, playerAId, playerBId, attackJourney, defender })
+  assertOwnerFleetForces({ ...input, forward, expectedTargetForces, permuted })
   const attackContinuations = forward.resolved.resolvedContinuations.filter(
-    ({ originatingSubmission }) => originatingSubmission.playerId === playerAId && originatingSubmission.id === attackAction.id,
+    ({ originatingSubmission }) => originatingSubmission.playerId === input.playerAId && originatingSubmission.id === input.attackAction.id,
   )
   expect(attackContinuations).toHaveLength(1)
   const attackContinuation = attackContinuations[0]
@@ -241,7 +222,7 @@ export async function createExpectedTargetForcesSetup({
   expect(assaultResults).toHaveLength(1)
   expect(assaultResults[0]?.result).toContain("exchanged 30 Strength with 30 enemy Strength")
   const buildActionResult = forward.resolved.resolvedActions.find(
-    ({ submittedAction }) => submittedAction.playerId === playerBId && submittedAction.id === buildAction.id,
+    ({ submittedAction }) => submittedAction.playerId === input.playerBId && submittedAction.id === input.buildAction.id,
   )
   Assert.isDefined(buildActionResult)
   return { expectedTargetForces, buildActionResult }
@@ -268,11 +249,9 @@ export type CreateExpectedTargetForcesSetupResult = {
   }>
 }
 
-export async function createFixtureSetup2({ db, clock, apiServer }: CreateFixtureSetup2Input): Promise<CreateFixtureSetup2Result> {
+export async function createFixtureSetup2(input: CreateFixtureSetup2Input): Promise<CreateFixtureSetup2Result> {
   const fixture = await createPublicHomeArrivalFixture({
-    db,
-    clock,
-    apiServer,
+    ...input,
     ruleset: HomeArrivalMergeRuleset,
     aliceDepartureStrength: 40,
     bobDepartureStrength: 10,
@@ -299,68 +278,45 @@ export async function createFixtureSetup2({ db, clock, apiServer }: CreateFixtur
   return { fixture, alice, playerAId, playerBId, source, defender, departureViews, departureView }
 }
 
-export async function createFirstActionSetup({
-  beforeResourcesByOwner,
-  departureView,
-  alice,
-  fixture,
-  source,
-  defender,
-  playerAId,
-  playerBId,
-  db,
-  clock,
-}: CreateFirstActionSetupInput): Promise<CreateFirstActionSetupResult> {
-  const beforePayment = beforeResourcesByOwner[0]
+export async function createFirstActionSetup(input: CreateFirstActionSetupInput): Promise<CreateFirstActionSetupResult> {
+  const beforePayment = input.beforeResourcesByOwner[0]
   Assert.isDefined(beforePayment)
-  const firstAction = departureView.actions.find(({ id }) => id === "TEST_ATTACK_MOVE_1")
-  const secondAction = departureView.actions.find(({ id }) => id === "TEST_ATTACK_MOVE_2")
+  const firstAction = input.departureView.actions.find(({ id }) => id === "TEST_ATTACK_MOVE_1")
+  const secondAction = input.departureView.actions.find(({ id }) => id === "TEST_ATTACK_MOVE_2")
   Assert.isDefined(firstAction)
   Assert.isDefined(secondAction)
 
-  await assertReservedView({ alice, fixture, departureView, source, secondAction, beforePayment })
+  await assertReservedView({ ...input, secondAction, beforePayment })
 
   // Assert: both captured journeys and the5-force source remainder persist across three intermediate worker reloads.
-  let movingView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
-  const journeyIdByAction = new Map<string, typeof source.id>()
+  let movingView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.fixture.gameId })
+  const journeyIdByAction = new Map<string, typeof input.source.id>()
 
-  const updatedVerifyJourneyForces = await assertJourneyForces({
-    firstAction,
-    secondAction,
-    journeyIdByAction,
-    movingView,
-    source,
-    fixture,
-    alice,
-    defender,
-    playerAId,
-    playerBId,
-  })
+  const updatedVerifyJourneyForces = await assertJourneyForces({ ...input, firstAction, secondAction, journeyIdByAction, movingView })
   movingView = updatedVerifyJourneyForces.movingView
 
   const observed = await observeTurnAndRollback({
-    db,
-    clock,
-    turnsRepository: fixture.turnsRepository,
-    gameId: fixture.gameId,
+    ...input,
+    turnsRepository: input.fixture.turnsRepository,
+    gameId: input.fixture.gameId,
     turn: movingView.turn,
   })
   const forward = replayObservedTurn(observed, false)
   const permuted = replayObservedTurn(observed, true)
-  expect(ownerFleetForces(forward.resolved, fixture.playerIds, fixture.aliceHome.id)).toStrictEqual({
-    [playerAId]: [25],
-    [playerBId]: [],
+  expect(ownerFleetForces(forward.resolved, input.fixture.playerIds, input.fixture.aliceHome.id)).toStrictEqual({
+    [input.playerAId]: [25],
+    [input.playerBId]: [],
   })
-  expect(ownerFleetForces(permuted.resolved, fixture.playerIds, fixture.aliceHome.id)).toStrictEqual({
-    [playerAId]: [25],
-    [playerBId]: [],
+  expect(ownerFleetForces(permuted.resolved, input.fixture.playerIds, input.fixture.aliceHome.id)).toStrictEqual({
+    [input.playerAId]: [25],
+    [input.playerBId]: [],
   })
-  expect(forward.resolved.removedFleetIds).toContain(defender.id)
+  expect(forward.resolved.removedFleetIds).toContain(input.defender.id)
   const journeyIds = [firstAction.id, secondAction.id].map((actionId) => journeyIdByAction.get(actionId))
   expect(journeyIds.every((journeyId) => journeyId !== undefined)).toBe(true)
   const survivingArrivals = Object.values(forward.resolved.fleets).filter(
     ({ ownerPlayerId, originPlanetId, strength, movement }) =>
-      ownerPlayerId === playerAId && originPlanetId === fixture.aliceHome.id && strength === 25 && movement === undefined,
+      ownerPlayerId === input.playerAId && originPlanetId === input.fixture.aliceHome.id && strength === 25 && movement === undefined,
   )
   expect(survivingArrivals).toHaveLength(1)
   const survivingArrival = survivingArrivals[0]
@@ -390,23 +346,16 @@ export type CreateFirstActionSetupResult = {
   survivingArrival: undefined | ResolutionFleet
 }
 
-export function createTieDrawSetup({
-  journeyIds,
-  survivingArrival,
-  forward,
-  playerAId,
-  permuted,
-  observed,
-  firstAction,
-  secondAction,
-}: CreateTieDrawSetupInput): CreateTieDrawSetupResult {
-  expect(journeyIds).toContain(survivingArrival.id)
-  expect(journeyIds.filter((journeyId) => journeyId !== undefined && forward.resolved.removedFleetIds.includes(journeyId))).toHaveLength(1)
-  const observedContinuations = forward.resolved.resolvedContinuations
-    .filter(({ originatingSubmission }) => originatingSubmission.playerId === playerAId)
+export function createTieDrawSetup(input: CreateTieDrawSetupInput): CreateTieDrawSetupResult {
+  expect(input.journeyIds).toContain(input.survivingArrival.id)
+  expect(
+    input.journeyIds.filter((journeyId) => journeyId !== undefined && input.forward.resolved.removedFleetIds.includes(journeyId)),
+  ).toHaveLength(1)
+  const observedContinuations = input.forward.resolved.resolvedContinuations
+    .filter(({ originatingSubmission }) => originatingSubmission.playerId === input.playerAId)
     .toSorted((first, second) => compareOrdinalStrings(first.originatingSubmission.id, second.originatingSubmission.id))
-  const permutedContinuations = permuted.resolved.resolvedContinuations
-    .filter(({ originatingSubmission }) => originatingSubmission.playerId === playerAId)
+  const permutedContinuations = input.permuted.resolved.resolvedContinuations
+    .filter(({ originatingSubmission }) => originatingSubmission.playerId === input.playerAId)
     .toSorted((first, second) => compareOrdinalStrings(first.originatingSubmission.id, second.originatingSubmission.id))
   expect(
     observedContinuations.map(({ originatingSubmission, actionOutcomes }) => ({
@@ -419,8 +368,8 @@ export function createTieDrawSetup({
       outcomes: actionOutcomes,
     })),
   )
-  const tieDraw = mulberry32FirstDraw(observed.rngState.generatorState)
-  const canonicalActionIds = [firstAction.id, secondAction.id].toSorted(compareOrdinalStrings)
+  const tieDraw = mulberry32FirstDraw(input.observed.rngState.generatorState)
+  const canonicalActionIds = [input.firstAction.id, input.secondAction.id].toSorted(compareOrdinalStrings)
   const expectedActionOrder = tieDraw.value < 0.5 ? canonicalActionIds.toReversed() : canonicalActionIds
   expect(observedContinuations).toHaveLength(2)
   const perActionAssaultResults = observedContinuations.map(({ originatingSubmission, actionOutcomes }) => ({
@@ -471,38 +420,31 @@ export async function createFixtureSetup3(options: CreateFixtureSetup3Input): Pr
   return { fixture, alice, playerAId, playerBId, source, enemy: defender, departureViews, departureView }
 }
 
-export async function createOrdinaryActionSetup({
-  beforeResourcesByOwner,
-  departureView,
-  alice,
-  fixture,
-  source,
-  db,
-  clock,
-  playerAId,
-  playerBId,
-}: CreateOrdinaryActionSetupInput): Promise<CreateOrdinaryActionSetupResult> {
-  const beforeAlicePayment = beforeResourcesByOwner[0]
+export async function createOrdinaryActionSetup(input: CreateOrdinaryActionSetupInput): Promise<CreateOrdinaryActionSetupResult> {
+  const beforeAlicePayment = input.beforeResourcesByOwner[0]
   Assert.isDefined(beforeAlicePayment)
-  const ordinaryAction = departureView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetExceptional.id)
-  const attackAction = departureView.actions.find(({ actionDefinitionId }) => actionDefinitionId === AttackMoveTest.id)
+  const ordinaryAction = input.departureView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetExceptional.id)
+  const attackAction = input.departureView.actions.find(({ actionDefinitionId }) => actionDefinitionId === AttackMoveTest.id)
   Assert.isDefined(ordinaryAction)
   Assert.isDefined(attackAction)
 
-  await assertReservedView2({ alice, fixture, departureView, source, beforeAlicePayment })
+  await assertReservedView2({ ...input, beforeAlicePayment })
 
   const firstArrivalObservation = await observeTurnAndRollback({
-    db,
-    clock,
-    turnsRepository: fixture.turnsRepository,
-    gameId: fixture.gameId,
-    turn: departureView.turn,
+    ...input,
+    turnsRepository: input.fixture.turnsRepository,
+    gameId: input.fixture.gameId,
+    turn: input.departureView.turn,
   })
   const firstArrivalForward = replayObservedTurn(firstArrivalObservation, false)
   const firstArrivalPermuted = replayObservedTurn(firstArrivalObservation, true)
-  const firstArrivalForces = { [playerAId]: [20], [playerBId]: [10] }
-  expect(ownerFleetForces(firstArrivalForward.resolved, fixture.playerIds, fixture.aliceHome.id)).toStrictEqual(firstArrivalForces)
-  expect(ownerFleetForces(firstArrivalPermuted.resolved, fixture.playerIds, fixture.aliceHome.id)).toStrictEqual(firstArrivalForces)
+  const firstArrivalForces = { [input.playerAId]: [20], [input.playerBId]: [10] }
+  expect(ownerFleetForces(firstArrivalForward.resolved, input.fixture.playerIds, input.fixture.aliceHome.id)).toStrictEqual(
+    firstArrivalForces,
+  )
+  expect(ownerFleetForces(firstArrivalPermuted.resolved, input.fixture.playerIds, input.fixture.aliceHome.id)).toStrictEqual(
+    firstArrivalForces,
+  )
   expect(normalizedOutcomeSequence(firstArrivalForward.resolved)).toStrictEqual(normalizedOutcomeSequence(firstArrivalPermuted.resolved))
   expect(firstArrivalForward.rngState).toStrictEqual(firstArrivalPermuted.rngState)
   const firstArrivalOutcomes = [
@@ -518,15 +460,15 @@ export async function createOrdinaryActionSetup({
   expect(
     Object.values(firstArrivalForward.resolved.fleets).find(
       ({ ownerPlayerId, originPlanetId, strength, movement }) =>
-        ownerPlayerId === playerAId && originPlanetId === fixture.aliceHome.id && strength === 20 && movement === undefined,
+        ownerPlayerId === input.playerAId && originPlanetId === input.fixture.aliceHome.id && strength === 20 && movement === undefined,
     ),
   ).toBeDefined()
 
-  expect(await fixture.turnProcessor.processNextDueTurn()).toBe("processed")
-  const movingView = await alice.client.gameplay.getPlayerView.query({ gameId: fixture.gameId })
+  expect(await input.fixture.turnProcessor.processNextDueTurn()).toBe("processed")
+  const movingView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.fixture.gameId })
   const ordinaryArrival = movingView.fleets.find(
     ({ ownerPlayerId, originPlanetId, strength, movement }) =>
-      ownerPlayerId === playerAId && originPlanetId === fixture.aliceHome.id && strength === 20 && movement === undefined,
+      ownerPlayerId === input.playerAId && originPlanetId === input.fixture.aliceHome.id && strength === 20 && movement === undefined,
   )
   const attackJourney = movingView.fleets.find(({ movement }) => movement?.submission.id === attackAction.id)
   Assert.isDefined(ordinaryArrival)

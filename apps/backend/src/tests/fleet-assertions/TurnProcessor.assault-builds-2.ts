@@ -10,43 +10,31 @@ import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { processPublicTurn, observeTurnAndRollback, getActionToSubmintegrationTest } from "../fleet-worker/TurnProcessor.scenarios.ts"
 
-export async function assertActionSelections({
-  alice,
-  gameId,
-  aliceFinalView,
-  inboundAction,
-  aliceAtStaging,
-  target,
-  outboundAction,
-  defender,
-  bobHome,
-  clients,
-  turnProcessor,
-}: AssertActionSelectionsInput): Promise<void> {
-  await alice.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: aliceFinalView.turn,
+export async function assertActionSelections(input: AssertActionSelectionsInput): Promise<void> {
+  await input.alice.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.aliceFinalView.turn,
     submittedActionTargets: {
-      actionId: inboundAction.id,
-      selectedTargets: { fleet: aliceAtStaging.id, planet: target.id },
+      actionId: input.inboundAction.id,
+      selectedTargets: { fleet: input.aliceAtStaging.id, planet: input.target.id },
       selectedInputs: { strength: 5 },
     },
   })
-  await alice.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: aliceFinalView.turn,
+  await input.alice.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.aliceFinalView.turn,
     submittedActionTargets: {
-      actionId: outboundAction.id,
-      selectedTargets: { fleet: defender.id, planet: bobHome.id },
+      actionId: input.outboundAction.id,
+      selectedTargets: { fleet: input.defender.id, planet: input.bobHome.id },
       selectedInputs: { strength: 20 },
     },
   })
-  await alice.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: aliceFinalView.turn,
-    submittedActionTargets: getActionToSubmintegrationTest(aliceFinalView, BuildFleetStandard.id, { planet: target.id }),
+  await input.alice.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.aliceFinalView.turn,
+    submittedActionTargets: getActionToSubmintegrationTest(input.aliceFinalView, BuildFleetStandard.id, { planet: input.target.id }),
   })
-  await processPublicTurn({ clients, gameId, turn: aliceFinalView.turn, turnProcessor })
+  await processPublicTurn({ ...input, turn: input.aliceFinalView.turn })
 }
 
 export type AssertActionSelectionsInput = {
@@ -63,33 +51,16 @@ export type AssertActionSelectionsInput = {
   turnProcessor: TurnProcessor
 }
 
-export async function assertDefenderAfter({
-  defenderAfter,
-  defender,
-  outboundJourney,
-  target,
-  bobHome,
-  afterCombat,
-  playerIds,
-  aliceAtStaging,
-  enemyJourney,
-  clients,
-  gameId,
-  turnProcessor,
-  db,
-  clock,
-  turnsRepository,
-  alice,
-}: AssertDefenderAfterInput): Promise<void> {
-  assertDefenderAfter2({ defenderAfter, defender, outboundJourney, target, bobHome, afterCombat, playerIds, aliceAtStaging, enemyJourney })
-  const emptyTurn = afterCombat.turn
-  await processPublicTurn({ clients, gameId, turn: emptyTurn, turnProcessor, process: false })
-  const emptyObserved = await observeTurnAndRollback({ db, clock, turnsRepository, gameId, turn: emptyTurn })
+export async function assertDefenderAfter(input: AssertDefenderAfterInput): Promise<void> {
+  assertDefenderAfter2({ ...input })
+  const emptyTurn = input.afterCombat.turn
+  await processPublicTurn({ ...input, turn: emptyTurn, process: false })
+  const emptyObserved = await observeTurnAndRollback({ ...input, turn: emptyTurn })
   expect(emptyObserved.submittedActions).toStrictEqual([])
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-  const afterEmpty = await alice.client.gameplay.getPlayerView.query({ gameId })
-  expect(afterEmpty.fleets.find(({ id }) => id === defenderAfter.id)?.strength).toBe(5)
-  expect(afterEmpty.fleets.find(({ id }) => id === outboundJourney.id)?.strength).toBe(20)
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
+  const afterEmpty = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(afterEmpty.fleets.find(({ id }) => id === input.defenderAfter.id)?.strength).toBe(5)
+  expect(afterEmpty.fleets.find(({ id }) => id === input.outboundJourney.id)?.strength).toBe(20)
 }
 
 export type AssertDefenderAfterInput = {
@@ -123,31 +94,22 @@ export type AssertDefenderAfter2Input = {
   enemyJourney: Fleet
 }
 
-export function assertDefenderAfter2({
-  defenderAfter,
-  defender,
-  outboundJourney,
-  target,
-  bobHome,
-  afterCombat,
-  playerIds,
-  aliceAtStaging,
-  enemyJourney,
-}: AssertDefenderAfter2Input): void {
-  expect(defenderAfter).toMatchObject({ id: defender.id, name: defender.name, strength: 5 })
-  expect(outboundJourney).toMatchObject({
+export function assertDefenderAfter2(input: AssertDefenderAfter2Input): void {
+  expect(input.defenderAfter).toMatchObject({ id: input.defender.id, name: input.defender.name, strength: 5 })
+  expect(input.outboundJourney).toMatchObject({
     strength: 20,
-    originPlanetId: target.id,
-    destinationPlanetId: bobHome.id,
+    originPlanetId: input.target.id,
+    destinationPlanetId: input.bobHome.id,
     movement: { speed: 0.1 },
     distanceToEnd: 4.318312565270031,
   })
-  expect(afterCombat.fleets.some(({ ownerPlayerId }) => ownerPlayerId === playerIds[1])).toBe(false)
-  expect(afterCombat.fleets.find(({ id }) => id === aliceAtStaging.id)?.strength).toBe(5)
+  expect(input.afterCombat.fleets.some(({ ownerPlayerId }) => ownerPlayerId === input.playerIds[1])).toBe(false)
+  expect(input.afterCombat.fleets.find(({ id }) => id === input.aliceAtStaging.id)?.strength).toBe(5)
   expect(
-    afterCombat.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === target.id)?.ownerPlayerId,
-  ).toBe(playerIds[0])
-  expect(afterCombat.actions.find(({ id }) => id === enemyJourney.movement?.submission.id)).toMatchObject({
+    input.afterCombat.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === input.target.id)
+      ?.ownerPlayerId,
+  ).toBe(input.playerIds[0])
+  expect(input.afterCombat.actions.find(({ id }) => id === input.enemyJourney.movement?.submission.id)).toMatchObject({
     selectedTargets: null,
     isInProgress: false,
   })

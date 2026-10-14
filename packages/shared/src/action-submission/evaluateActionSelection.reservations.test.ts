@@ -47,11 +47,11 @@ describe("evaluateActionSelection", () => {
   it("should keep an absent constructor source dependency incomplete and accept its declared value", () => {
     // Arrange
 
-    const createOwnerIdSetupPhase1Result = createOwnerIdSetup()
-    const { sourceFleetId } = createOwnerIdSetupPhase1Result
+    const ownerIdSetup1 = createOwnerIdSetup()
+    const { sourceFleetId } = ownerIdSetup1
 
-    const createCompleteSetupPhase2Result = createCompleteSetup({ ...createOwnerIdSetupPhase1Result })
-    const { complete } = createCompleteSetupPhase2Result
+    const completeSetup2 = createCompleteSetup({ ...ownerIdSetup1 })
+    const { complete } = completeSetup2
     expect(complete.strengthCommitments[sourceFleetId]).toBe(1)
     expect(complete.remainingStrength[sourceFleetId]).toBe(49)
   })
@@ -463,49 +463,40 @@ function createOwnerIdSetup(): CreateOwnerIdSetupResult {
   return { ownerId, actionId, sourceFleetId, destinationId, ruleset, origin, destination, sourceFleet }
 }
 
-function createCompleteSetup({
-  ownerId,
-  origin,
-  destination,
-  sourceFleet,
-  ruleset,
-  actionId,
-  destinationId,
-  sourceFleetId,
-}: CreateCompleteSetupInput): CreateCompleteSetupResult {
+function createCompleteSetup(input: CreateCompleteSetupInput): CreateCompleteSetupResult {
   const state: EligibilityState = {
     gameId: typedParse(GameIdSchema, 1),
     turn: 1,
-    submittingPlayerId: ownerId,
+    submittingPlayerId: input.ownerId,
     resources: createResourcesStub({ [ResourceType.INFLUENCE]: 10, [ResourceType.FUEL]: 10 }),
-    players: indexBy("id", [{ id: ownerId, ownerPlayerId: ownerId }]),
-    planets: indexBy("id", [origin, destination]),
-    fleets: indexBy("id", [sourceFleet]),
-    actions: computeAvailableActions({ playerIds: [ownerId], ruleset }),
+    players: indexBy("id", [{ id: input.ownerId, ownerPlayerId: input.ownerId }]),
+    planets: indexBy("id", [input.origin, input.destination]),
+    fleets: indexBy("id", [input.sourceFleet]),
+    actions: computeAvailableActions({ playerIds: [input.ownerId], ruleset: input.ruleset }),
   }
   const partialDraft: ActionSelectionDraft = {
-    actionId,
-    selectedTargets: { [branded<TargetTag>("landingSite")]: destinationId },
+    actionId: input.actionId,
+    selectedTargets: { [branded<TargetTag>("landingSite")]: input.destinationId },
     selectedInputs: { [branded<InputTag>("units")]: 1 },
   }
 
   // Act
-  const partial = evaluateActionSelection({ state, ruleset, draft: partialDraft })
+  const partial = evaluateActionSelection({ state, ruleset: input.ruleset, draft: partialDraft })
   const candidate = evaluateTargetCandidate({
     state,
-    ruleset,
-    draft: { actionId, selectedTargets: {}, selectedInputs: { [branded<InputTag>("units")]: 1 } },
+    ruleset: input.ruleset,
+    draft: { actionId: input.actionId, selectedTargets: {}, selectedInputs: { [branded<InputTag>("units")]: 1 } },
     targetTag: branded<TargetTag>("landingSite"),
-    targetId: destinationId,
+    targetId: input.destinationId,
   })
   const complete = evaluateActionSelection({
     state,
-    ruleset,
+    ruleset: input.ruleset,
     draft: {
-      actionId,
+      actionId: input.actionId,
       selectedTargets: {
-        [branded<TargetTag>("constructor")]: sourceFleetId,
-        [branded<TargetTag>("landingSite")]: destinationId,
+        [branded<TargetTag>("constructor")]: input.sourceFleetId,
+        [branded<TargetTag>("landingSite")]: input.destinationId,
       },
       selectedInputs: { [branded<InputTag>("units")]: 1 },
     },

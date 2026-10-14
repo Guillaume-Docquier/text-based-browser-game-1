@@ -44,20 +44,10 @@ describe("public Colonization worker companions", () => {
   it("should preserve the public 15+20 stationary Colonize budget through selection, replacement, cancellation, and the exact40 boundary", async () => {
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createCreatePlayerSetupPhase1ResultSetupPhase1Result = await createCreatePlayerSetupResultSetup({ server })
-    const {
-      createPlayerSetupPhase1Result,
-      player,
-      gameId,
-      clock,
-      turnProcessor,
-      turnsRepository,
-      home,
-      target,
-      replacementTarget,
-      stationary,
-    } = createCreatePlayerSetupPhase1ResultSetupPhase1Result
-    let { view } = createCreatePlayerSetupPhase1ResultSetupPhase1Result
+    const playerScenario1 = await preparePlayerScenario({ server })
+    const { playerSetup1, player, gameId, clock, turnProcessor, turnsRepository, home, target, replacementTarget, stationary } =
+      playerScenario1
+    let { view } = playerScenario1
     const replacementSource = getFleetAt(view, view.player.id, replacementTarget.id, 30)
     expect(getFleetAt(view, view.player.id, target.id, 35).strength).toBe(35)
     expect(getPlanets(view).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
@@ -85,8 +75,8 @@ describe("public Colonization worker companions", () => {
       moveAction,
     })
 
-    const createExact35ViewSetupPhase2Result = await createExact35ViewSetup({
-      ...createPlayerSetupPhase1Result,
+    const exact35ViewSetup2 = await createExact35ViewSetup({
+      ...playerSetup1,
       moveAction,
       colonizeAction,
       submitMove,
@@ -96,7 +86,7 @@ describe("public Colonization worker companions", () => {
       cancelAction,
       secondColonizeAction,
     })
-    const { exact35View } = createExact35ViewSetupPhase2Result
+    const { exact35View } = exact35ViewSetup2
     view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: exact35View.turn })
     const fiveStrengthFleet = getFleetAt(view, view.player.id, home.id, 5)
     const nextStageAction = view.actions.find(({ id }) => id === "PUBLIC_BUDGET_STAGE_FLEET")
@@ -112,32 +102,40 @@ describe("public Colonization worker companions", () => {
     })
     view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
 
-    const createFullForceSetupPhase3Result = await createFullForceSetup({ ...createPlayerSetupPhase1Result, view, currentView, server })
-    const { exact40WorkerInput, exact40Replay } = createFullForceSetupPhase3Result
+    const fullForceSetup3 = await createFullForceSetup({ ...playerSetup1, view, currentView, server })
+    const { exact40WorkerInput, exact40Replay } = fullForceSetup3
     Assert.isSuccess(exact40Replay.resolved)
     expect(exact40WorkerInput.submittedActions).toHaveLength(2)
     Assert.isSuccess(exact40Replay.resolved)
 
     await verifyExact40({
-      ...createCreatePlayerSetupPhase1ResultSetupPhase1Result,
-      ...createPlayerSetupPhase1Result,
-      ...createFullForceSetupPhase3Result,
-      createFullForceSetupPhase3Result,
+      ...playerScenario1,
+      ...playerSetup1,
+      ...fullForceSetup3,
+      fullForceSetup3,
       server,
       replacementSource,
     })
   })
 })
 
-function assertScenarioState2({ home, target, replacementTarget, view }: AssertScenarioState2Input): void {
-  expect({ id: home.id, name: home.name, coordinates: home.coordinates, x: home.x, y: home.y }).toStrictEqual({
-    id: "78821e36-f066-5df0-adbd-19785571d245",
-    name: "planet 278494",
-    coordinates: "45:98:30",
-    x: 58.43842436611536,
-    y: 49.61917707239218,
-  })
-  expect({ id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y }).toStrictEqual({
+function assertScenarioState2(input: AssertScenarioState2Input): void {
+  expect({ id: input.home.id, name: input.home.name, coordinates: input.home.coordinates, x: input.home.x, y: input.home.y }).toStrictEqual(
+    {
+      id: "78821e36-f066-5df0-adbd-19785571d245",
+      name: "planet 278494",
+      coordinates: "45:98:30",
+      x: 58.43842436611536,
+      y: 49.61917707239218,
+    },
+  )
+  expect({
+    id: input.target.id,
+    name: input.target.name,
+    coordinates: input.target.coordinates,
+    x: input.target.x,
+    y: input.target.y,
+  }).toStrictEqual({
     id: "a34e5eae-656c-5330-ac90-9f9a7e0afa5d",
     name: "planet 684163",
     coordinates: "55:07:50",
@@ -145,11 +143,11 @@ function assertScenarioState2({ home, target, replacementTarget, view }: AssertS
     y: 50.556704120958045,
   })
   expect({
-    id: replacementTarget.id,
-    name: replacementTarget.name,
-    coordinates: replacementTarget.coordinates,
-    x: replacementTarget.x,
-    y: replacementTarget.y,
+    id: input.replacementTarget.id,
+    name: input.replacementTarget.name,
+    coordinates: input.replacementTarget.coordinates,
+    x: input.replacementTarget.x,
+    y: input.replacementTarget.y,
   }).toStrictEqual({
     id: "3f56a5c2-d379-5b15-a6c5-1d5948724fea",
     name: "planet 499054",
@@ -157,34 +155,21 @@ function assertScenarioState2({ home, target, replacementTarget, view }: AssertS
     x: 58.43825730690875,
     y: 49.61937512280339,
   })
-  expect(Math.hypot(home.x - target.x, home.y - target.y)).toBeCloseTo(1.1456435045942517, 12)
-  expect(target.ownerPlayerId).toBeNull()
-  expect(view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 100 })
-  expect(view.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
-  expect(view.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
+  expect(Math.hypot(input.home.x - input.target.x, input.home.y - input.target.y)).toBeCloseTo(1.1456435045942517, 12)
+  expect(input.target.ownerPlayerId).toBeNull()
+  expect(input.view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 100 })
+  expect(input.view.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
+  expect(input.view.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
 }
 
-async function assertCombinedReservation({
-  moveAction,
-  stationary,
-  home,
-  colonizeAction,
-  target,
-  submitMove,
-  submitColonize,
-  currentView,
-  replacementSource,
-  replacementTarget,
-  cancelAction,
-  secondColonizeAction,
-}: AssertCombinedReservationInput): Promise<void> {
+async function assertCombinedReservation(input: AssertCombinedReservationInput): Promise<void> {
   const assertCombinedReservation = (selected: PlayerView): void => {
-    expect(selected.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
-      selectedTargets: { fleet: stationary.id, planet: home.id },
+    expect(selected.actions.find(({ id }) => id === input.moveAction.id)).toMatchObject({
+      selectedTargets: { fleet: input.stationary.id, planet: input.home.id },
       selectedInputs: { strength: 15 },
     })
-    expect(selected.actions.find(({ id }) => id === colonizeAction.id)).toMatchObject({
-      selectedTargets: { fleet: stationary.id, planet: target.id },
+    expect(selected.actions.find(({ id }) => id === input.colonizeAction.id)).toMatchObject({
+      selectedTargets: { fleet: input.stationary.id, planet: input.target.id },
       selectedInputs: {},
     })
     expect(selected.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 72 })
@@ -192,65 +177,30 @@ async function assertCombinedReservation({
     expect(selected.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
   }
 
-  await verifySourceReplacementView({
-    submitMove,
-    submitColonize,
-    colonizeAction,
-    assertCombinedReservation,
-    currentView,
-    replacementSource,
-    replacementTarget,
-    moveAction,
-    stationary,
-    home,
-    cancelAction,
-  })
+  await verifySourceReplacementView({ ...input, assertCombinedReservation })
 
-  await verifyEditedView({ currentView, moveAction, stationary, home, submitMove, colonizeAction, target, cancelAction })
+  await verifyEditedView({ ...input })
 
-  await verifyCancelledView({
-    currentView,
-    colonizeAction,
-    stationary,
-    target,
-    cancelAction,
-    submitMove,
-    submitColonize,
-    moveAction,
-    secondColonizeAction,
-  })
+  await verifyCancelledView({ ...input })
 }
 
-function assertExact40PersistedRngState({
-  exact40SavedNextTurn,
-  exact40Replay,
-  gameId,
-  home,
-  target,
-  stationary,
-  replacementTarget,
-  replacementSource,
-  exact40WorkerInput,
-  exact40ColonizeOutcomes,
-  exact40CompletedView,
-  exact40View,
-}: AssertExact40PersistedRngStateInput): void {
+function assertExact40PersistedRngState(input: AssertExact40PersistedRngStateInput): void {
   const exact40PersistedRngState = {
-    generatorState: exact40SavedNextTurn.rngGeneratorState,
-    spareNormal: exact40SavedNextTurn.rngSpareNormal,
+    generatorState: input.exact40SavedNextTurn.rngGeneratorState,
+    spareNormal: input.exact40SavedNextTurn.rngSpareNormal,
   }
-  expect(exact40PersistedRngState).toStrictEqual(exact40Replay.nextRngState)
+  expect(exact40PersistedRngState).toStrictEqual(input.exact40Replay.nextRngState)
   logReceipt("[C3-18 public API aggregate budget receipt]", {
-    gameId,
+    gameId: input.gameId,
     seed: 1234,
-    route: { from: home.coordinates, to: target.coordinates, distance: 1.1456435045942517 },
+    route: { from: input.home.coordinates, to: input.target.coordinates, distance: 1.1456435045942517 },
     startingBalances: { influence: 100, fuel: 10, colony: 0 },
     force35: { move15PlusStationary20: { influenceUncommitted: 72, fuelUncommitted: 9 }, rejectedMove16: true },
     sourceReplacement: {
-      sourceP: { planet: target.coordinates, force: stationary.strength, moveReservation: 15, remaining: 20 },
+      sourceP: { planet: input.target.coordinates, force: input.stationary.strength, moveReservation: 15, remaining: 20 },
       sourceQ: {
-        planet: replacementTarget.coordinates,
-        force: replacementSource.strength,
+        planet: input.replacementTarget.coordinates,
+        force: input.replacementSource.strength,
         colonizeReservation: 20,
         remaining: 10,
       },
@@ -262,14 +212,14 @@ function assertExact40PersistedRngState({
     },
     exactBoundary: { force35SecondColonizeRejected: true, force40TwoColonizeAccepted: true, influenceUncommitted: 50 },
     worker: {
-      loadedTurn: exact40WorkerInput.turn,
-      loadedActions: exact40WorkerInput.submittedActions.map(({ id, selectedTargets }) => ({ id, selectedTargets })),
-      outcomes: exact40ColonizeOutcomes,
-      persistedOwner: getPlanets(exact40CompletedView).find(({ id }) => id === target.id)?.ownerPlayerId,
-      persistedFleetStrength: getFleetAt(exact40CompletedView, exact40View.player.id, target.id, 20).strength,
+      loadedTurn: input.exact40WorkerInput.turn,
+      loadedActions: input.exact40WorkerInput.submittedActions.map(({ id, selectedTargets }) => ({ id, selectedTargets })),
+      outcomes: input.exact40ColonizeOutcomes,
+      persistedOwner: getPlanets(input.exact40CompletedView).find(({ id }) => id === input.target.id)?.ownerPlayerId,
+      persistedFleetStrength: getFleetAt(input.exact40CompletedView, input.exact40View.player.id, input.target.id, 20).strength,
       resources: {
-        influence: exact40CompletedView.resources[ResourceType.INFLUENCE].total,
-        fuel: exact40CompletedView.resources[ResourceType.FUEL].total,
+        influence: input.exact40CompletedView.resources[ResourceType.INFLUENCE].total,
+        fuel: input.exact40CompletedView.resources[ResourceType.FUEL].total,
       },
       persistedNextRngState: exact40PersistedRngState,
     },
@@ -322,10 +272,10 @@ type AssertExact40PersistedRngStateInput = {
   exact40View: PlayerView
 }
 
-async function createPlayerSetup({ server }: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
-  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
+async function createPlayerSetup(input: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
+  const rulesetsRepository = new RulesetsRepository({ db: input.server.database, logger: Logger.get() })
   Assert.isSuccess(await rulesetsRepository.upsertRuleset(PublicColonizationBudgetRuleset))
-  const player = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000091" })
+  const player = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000091" })
   const { createdGameId: gameId } = await player.client.games.create.mutate({
     configuration: createGameConfigurationStub({
       rulesetId: PublicColonizationBudgetRuleset.id,
@@ -336,7 +286,7 @@ async function createPlayerSetup({ server }: CreatePlayerSetupInput): Promise<Cr
   })
   await player.client.games.startGame.mutate({ gameId })
   const clock = new ControlledClock({ startDate: new Date() })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.server.database, clock })
   let view = await player.client.gameplay.getPlayerView.query({ gameId })
   const home = getHome(view)
   const target = getPlanets(view).find(({ coordinates }) => coordinates === "55:07:50")
@@ -376,168 +326,114 @@ async function createPlayerSetup({ server }: CreatePlayerSetupInput): Promise<Cr
   return { player, gameId, clock, turnProcessor, turnsRepository, view, home, target, replacementTarget, stationary, buildThirtyAction }
 }
 
-async function createExact35ViewSetup({
-  moveAction,
-  stationary,
-  home,
-  colonizeAction,
-  target,
-  submitMove,
-  submitColonize,
-  currentView,
-  replacementSource,
-  replacementTarget,
-  cancelAction,
-  secondColonizeAction,
-  player,
-  gameId,
-}: CreateExact35ViewSetupInput): Promise<CreateExact35ViewSetupResult> {
-  await assertCombinedReservation({
-    moveAction,
-    stationary,
-    home,
-    colonizeAction,
-    target,
-    submitMove,
-    submitColonize,
-    currentView,
-    replacementSource,
-    replacementTarget,
-    cancelAction,
-    secondColonizeAction,
-  })
+async function createExact35ViewSetup(input: CreateExact35ViewSetupInput): Promise<CreateExact35ViewSetupResult> {
+  await assertCombinedReservation({ ...input })
 
-  const exact35View = await currentView()
-  expect(exact35View.actions.find(({ id }) => id === colonizeAction.id)?.selectedTargets).toStrictEqual({
-    fleet: stationary.id,
-    planet: target.id,
+  const exact35View = await input.currentView()
+  expect(exact35View.actions.find(({ id }) => id === input.colonizeAction.id)?.selectedTargets).toStrictEqual({
+    fleet: input.stationary.id,
+    planet: input.target.id,
   })
-  expect(exact35View.actions.find(({ id }) => id === secondColonizeAction.id)?.selectedTargets).toBeNull()
+  expect(exact35View.actions.find(({ id }) => id === input.secondColonizeAction.id)?.selectedTargets).toBeNull()
   expect(exact35View.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 75 })
-  await cancelAction({ actionId: colonizeAction.id })
+  await input.cancelAction({ actionId: input.colonizeAction.id })
 
   const buildFiveAction = exact35View.actions.find(({ id }) => id === "PUBLIC_BUDGET_BUILD5")
   Assert.isDefined(buildFiveAction)
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
     turn: exact35View.turn,
     submittedActionTargets: {
       actionId: buildFiveAction.id,
-      selectedTargets: { planet: home.id },
+      selectedTargets: { planet: input.home.id },
       selectedInputs: {},
     },
   })
   return { exact35View }
 }
 
-async function createFullForceSetup({
-  view,
-  target,
-  player,
-  gameId,
-  currentView,
-  server,
-  clock,
-  turnsRepository,
-}: CreateFullForceSetupInput): Promise<CreateFullForceSetupResult> {
-  const fullForce = getFleetAt(view, view.player.id, target.id, 40)
-  expect(getPlanets(view).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
-  expect(view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 100 })
-  expect(view.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
+async function createFullForceSetup(input: CreateFullForceSetupInput): Promise<CreateFullForceSetupResult> {
+  const fullForce = getFleetAt(input.view, input.view.player.id, input.target.id, 40)
+  expect(getPlanets(input.view).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBeNull()
+  expect(input.view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 100 })
+  expect(input.view.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
 
-  const currentColonizeActions = view.actions.filter((action) => isColonizeDefinitionId(action.actionDefinitionId))
+  const currentColonizeActions = input.view.actions.filter((action) => isColonizeDefinitionId(action.actionDefinitionId))
   const fullColonizeAction = currentColonizeActions.find(({ actionDefinitionId }) => actionDefinitionId === ColonizeHereTest.id)
   const fullSecondColonizeAction = currentColonizeActions.find(
     ({ actionDefinitionId }) => actionDefinitionId === PublicBudgetSecondColonizeHere.id,
   )
   Assert.isDefined(fullColonizeAction)
   Assert.isDefined(fullSecondColonizeAction)
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: view.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.view.turn,
     submittedActionTargets: {
       actionId: fullColonizeAction.id,
-      selectedTargets: { fleet: fullForce.id, planet: target.id },
+      selectedTargets: { fleet: fullForce.id, planet: input.target.id },
       selectedInputs: {},
     },
   })
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: view.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.view.turn,
     submittedActionTargets: {
       actionId: fullSecondColonizeAction.id,
-      selectedTargets: { fleet: fullForce.id, planet: target.id },
+      selectedTargets: { fleet: fullForce.id, planet: input.target.id },
       selectedInputs: {},
     },
   })
-  const exact40View = await currentView()
+  const exact40View = await input.currentView()
   expect(exact40View.actions.find(({ id }) => id === fullColonizeAction.id)?.selectedTargets).toStrictEqual({
     fleet: fullForce.id,
-    planet: target.id,
+    planet: input.target.id,
   })
   expect(exact40View.actions.find(({ id }) => id === fullSecondColonizeAction.id)?.selectedTargets).toStrictEqual({
     fleet: fullForce.id,
-    planet: target.id,
+    planet: input.target.id,
   })
   expect(exact40View.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 50 })
   expect(exact40View.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
-  const exact40WorkerInput = await captureWorkerInput({
-    server,
-    clock,
-    turnsRepository,
-    gameId,
-    turn: exact40View.turn,
-  })
+  const exact40WorkerInput = await captureWorkerInput({ ...input, turn: exact40View.turn })
   const exact40Replay = replayWorkerInputWithState(exact40WorkerInput)
   return { fullForce, fullColonizeAction, fullSecondColonizeAction, exact40View, exact40WorkerInput, exact40Replay }
 }
 
-async function createExact40ColonizeOutcomesSetup({
-  exact40Results,
-  exact40Replay,
-  target,
-  exact40View,
-  fullForce,
-  turnProcessor,
-  player,
-  gameId,
-  fullColonizeAction,
-  fullSecondColonizeAction,
-  server,
-  exact40WorkerInput,
-}: CreateExact40ColonizeOutcomesSetupInput): Promise<CreateExact40ColonizeOutcomesSetupResult> {
-  const exact40ColonizeOutcomes = exact40Results.flatMap(({ actionOutcomes }) => actionOutcomes)
+async function createExact40ColonizeOutcomesSetup(
+  input: CreateExact40ColonizeOutcomesSetupInput,
+): Promise<CreateExact40ColonizeOutcomesSetupResult> {
+  const exact40ColonizeOutcomes = input.exact40Results.flatMap(({ actionOutcomes }) => actionOutcomes)
   expect(exact40ColonizeOutcomes.filter((outcome) => hasResolvedResult(outcome, " colonized Planet "))).toHaveLength(1)
   expect(exact40ColonizeOutcomes.filter((outcome) => outcome.type === "PREVENTED")).toHaveLength(1)
-  Assert.isSuccess(exact40Replay.resolved)
-  Assert.isSuccess(exact40Replay.resolved)
-  expect(exact40Replay.resolved.value.planets[target.id]?.ownerPlayerId).toBe(exact40View.player.id)
-  Assert.isSuccess(exact40Replay.resolved)
-  Assert.isSuccess(exact40Replay.resolved)
-  expect(exact40Replay.resolved.value.fleets[fullForce.id]).toMatchObject({
-    id: fullForce.id,
-    ownerPlayerId: exact40View.player.id,
-    originPlanetId: target.id,
+  Assert.isSuccess(input.exact40Replay.resolved)
+  Assert.isSuccess(input.exact40Replay.resolved)
+  expect(input.exact40Replay.resolved.value.planets[input.target.id]?.ownerPlayerId).toBe(input.exact40View.player.id)
+  Assert.isSuccess(input.exact40Replay.resolved)
+  Assert.isSuccess(input.exact40Replay.resolved)
+  expect(input.exact40Replay.resolved.value.fleets[input.fullForce.id]).toMatchObject({
+    id: input.fullForce.id,
+    ownerPlayerId: input.exact40View.player.id,
+    originPlanetId: input.target.id,
     strength: 20,
   })
-  Assert.isSuccess(exact40Replay.resolved)
-  Assert.isSuccess(exact40Replay.resolved)
-  expect(exact40Replay.resolved.value.fleets[fullForce.id]?.movement).toBeUndefined()
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-  const exact40CompletedView = await player.client.gameplay.getPlayerView.query({ gameId })
-  expect(exact40CompletedView.turn).toBe(exact40View.turn + 1)
-  expect(getPlanets(exact40CompletedView).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(exact40View.player.id)
-  expect(getFleetAt(exact40CompletedView, exact40View.player.id, target.id, 20).id).toBe(fullForce.id)
+  Assert.isSuccess(input.exact40Replay.resolved)
+  Assert.isSuccess(input.exact40Replay.resolved)
+  expect(input.exact40Replay.resolved.value.fleets[input.fullForce.id]?.movement).toBeUndefined()
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
+  const exact40CompletedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(exact40CompletedView.turn).toBe(input.exact40View.turn + 1)
+  expect(getPlanets(exact40CompletedView).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBe(input.exact40View.player.id)
+  expect(getFleetAt(exact40CompletedView, input.exact40View.player.id, input.target.id, 20).id).toBe(input.fullForce.id)
   expect(exact40CompletedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 50 })
   expect(exact40CompletedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
-  for (const actionId of [fullColonizeAction.id, fullSecondColonizeAction.id]) {
+  for (const actionId of [input.fullColonizeAction.id, input.fullSecondColonizeAction.id]) {
     expect(exact40CompletedView.actions.find(({ id }) => id === actionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
   }
-  const exact40SavedTurns = await server.database
+  const exact40SavedTurns = await input.server.database
     .select()
     .from(turnsTable)
-    .where(eq(turnsTable.gameId, typedParse(GameIdSchema, gameId)))
-  const exact40SavedNextTurn = exact40SavedTurns.find(({ turn: candidateTurn }) => candidateTurn === exact40WorkerInput.turn + 1)
+    .where(eq(turnsTable.gameId, typedParse(GameIdSchema, input.gameId)))
+  const exact40SavedNextTurn = exact40SavedTurns.find(({ turn: candidateTurn }) => candidateTurn === input.exact40WorkerInput.turn + 1)
   Assert.isDefined(exact40SavedNextTurn)
   return { exact40ColonizeOutcomes, exact40CompletedView, exact40SavedNextTurn }
 }
@@ -629,152 +525,101 @@ type CreateExact40ColonizeOutcomesSetupResult = {
   }
 }
 
-async function verifyExact40({
-  exact40Replay,
-  fullColonizeAction,
-  fullSecondColonizeAction,
-  createPlayerSetupPhase1Result,
-  createFullForceSetupPhase3Result,
-  server,
-  gameId,
-  home,
-  target,
-  stationary,
-  replacementTarget,
-  replacementSource,
-  exact40WorkerInput,
-  exact40View,
-}: VerifyExact40Input): Promise<void> {
-  Assert.isSuccess(exact40Replay.resolved)
-  const exact40Resolved = exact40Replay.resolved.value
-  const exact40Results = [fullColonizeAction.id, fullSecondColonizeAction.id].map((actionId) => {
+async function verifyExact40(input: VerifyExact40Input): Promise<void> {
+  Assert.isSuccess(input.exact40Replay.resolved)
+  const exact40Resolved = input.exact40Replay.resolved.value
+  const exact40Results = [input.fullColonizeAction.id, input.fullSecondColonizeAction.id].map((actionId) => {
     const result = exact40Resolved.resolvedActions.find(({ submittedAction }) => submittedAction.id === actionId)
     Assert.isDefined(result)
     return result
   })
 
-  const createExact40ColonizeOutcomesSetupPhase4Result = await createExact40ColonizeOutcomesSetup({
-    ...createPlayerSetupPhase1Result,
-    ...createFullForceSetupPhase3Result,
+  const exact40ColonizeOutcomesSetup4 = await createExact40ColonizeOutcomesSetup({
+    ...input.playerSetup1,
+    ...input.fullForceSetup3,
     exact40Results,
-    server,
+    server: input.server,
   })
 
-  assertExact40PersistedRngState({
-    ...createExact40ColonizeOutcomesSetupPhase4Result,
-    exact40Replay,
-    gameId,
-    home,
-    target,
-    stationary,
-    replacementTarget,
-    replacementSource,
-    exact40WorkerInput,
-    exact40View,
-  })
+  assertExact40PersistedRngState({ ...input, ...exact40ColonizeOutcomesSetup4 })
 }
 
-async function verifySourceReplacementView({
-  submitMove,
-  submitColonize,
-  colonizeAction,
-  assertCombinedReservation,
-  currentView,
-  replacementSource,
-  replacementTarget,
-  moveAction,
-  stationary,
-  home,
-  cancelAction,
-}: VerifySourceReplacementViewInput): Promise<void> {
-  await submitMove({ strength: 15 })
-  await submitColonize({ actionId: colonizeAction.id })
-  assertCombinedReservation(await currentView())
+async function verifySourceReplacementView(input: VerifySourceReplacementViewInput): Promise<void> {
+  await input.submitMove({ strength: 15 })
+  await input.submitColonize({ actionId: input.colonizeAction.id })
+  input.assertCombinedReservation(await input.currentView())
 
-  await submitColonize({ actionId: colonizeAction.id, selectedFleetId: replacementSource.id, selectedPlanetId: replacementTarget.id })
-  const sourceReplacementView = await currentView()
-  expect(sourceReplacementView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
-    selectedTargets: { fleet: stationary.id, planet: home.id },
+  await input.submitColonize({
+    actionId: input.colonizeAction.id,
+    selectedFleetId: input.replacementSource.id,
+    selectedPlanetId: input.replacementTarget.id,
+  })
+  const sourceReplacementView = await input.currentView()
+  expect(sourceReplacementView.actions.find(({ id }) => id === input.moveAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.stationary.id, planet: input.home.id },
     selectedInputs: { strength: 15 },
   })
-  expect(sourceReplacementView.actions.find(({ id }) => id === colonizeAction.id)).toMatchObject({
-    selectedTargets: { fleet: replacementSource.id, planet: replacementTarget.id },
+  expect(sourceReplacementView.actions.find(({ id }) => id === input.colonizeAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.replacementSource.id, planet: input.replacementTarget.id },
     selectedInputs: {},
   })
-  expect(sourceReplacementView.fleets.find(({ id }) => id === stationary.id)?.strength).toBe(35)
-  expect(sourceReplacementView.fleets.find(({ id }) => id === replacementSource.id)?.strength).toBe(30)
+  expect(sourceReplacementView.fleets.find(({ id }) => id === input.stationary.id)?.strength).toBe(35)
+  expect(sourceReplacementView.fleets.find(({ id }) => id === input.replacementSource.id)?.strength).toBe(30)
   expect(sourceReplacementView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 72 })
   expect(sourceReplacementView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 9 })
-  await submitColonize({ actionId: colonizeAction.id })
+  await input.submitColonize({ actionId: input.colonizeAction.id })
 
-  await cancelAction({ actionId: moveAction.id })
-  await cancelAction({ actionId: colonizeAction.id })
-  await submitColonize({ actionId: colonizeAction.id })
-  await submitMove({ strength: 15 })
-  assertCombinedReservation(await currentView())
+  await input.cancelAction({ actionId: input.moveAction.id })
+  await input.cancelAction({ actionId: input.colonizeAction.id })
+  await input.submitColonize({ actionId: input.colonizeAction.id })
+  await input.submitMove({ strength: 15 })
+  input.assertCombinedReservation(await input.currentView())
 
-  await submitMove({ strength: 14 })
+  await input.submitMove({ strength: 14 })
 }
 
-async function verifyEditedView({
-  currentView,
-  moveAction,
-  stationary,
-  home,
-  submitMove,
-  colonizeAction,
-  target,
-  cancelAction,
-}: VerifyEditedViewInput): Promise<void> {
-  let editedView = await currentView()
-  expect(editedView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
-    selectedTargets: { fleet: stationary.id, planet: home.id },
+async function verifyEditedView(input: VerifyEditedViewInput): Promise<void> {
+  let editedView = await input.currentView()
+  expect(editedView.actions.find(({ id }) => id === input.moveAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.stationary.id, planet: input.home.id },
     selectedInputs: { strength: 14 },
   })
   expect(editedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 72 })
   expect(editedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 9 })
-  await expect(submitMove({ strength: 16 })).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
-  editedView = await currentView()
-  expect(editedView.actions.find(({ id }) => id === moveAction.id)?.selectedInputs).toStrictEqual({ strength: 14 })
-  expect(editedView.actions.find(({ id }) => id === colonizeAction.id)?.selectedTargets).toStrictEqual({
-    fleet: stationary.id,
-    planet: target.id,
+  await expect(input.submitMove({ strength: 16 })).rejects.toThrow(
+    "Invalid action submission, targets are invalid or costs cannot be paid.",
+  )
+  editedView = await input.currentView()
+  expect(editedView.actions.find(({ id }) => id === input.moveAction.id)?.selectedInputs).toStrictEqual({ strength: 14 })
+  expect(editedView.actions.find(({ id }) => id === input.colonizeAction.id)?.selectedTargets).toStrictEqual({
+    fleet: input.stationary.id,
+    planet: input.target.id,
   })
 
-  await cancelAction({ actionId: moveAction.id })
+  await input.cancelAction({ actionId: input.moveAction.id })
 }
 
-async function verifyCancelledView({
-  currentView,
-  colonizeAction,
-  stationary,
-  target,
-  cancelAction,
-  submitMove,
-  submitColonize,
-  moveAction,
-  secondColonizeAction,
-}: VerifyCancelledViewInput): Promise<void> {
-  let cancelledView = await currentView()
+async function verifyCancelledView(input: VerifyCancelledViewInput): Promise<void> {
+  let cancelledView = await input.currentView()
   expect(cancelledView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 75 })
   expect(cancelledView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
-  expect(cancelledView.actions.find(({ id }) => id === colonizeAction.id)?.selectedTargets).toStrictEqual({
-    fleet: stationary.id,
-    planet: target.id,
+  expect(cancelledView.actions.find(({ id }) => id === input.colonizeAction.id)?.selectedTargets).toStrictEqual({
+    fleet: input.stationary.id,
+    planet: input.target.id,
   })
-  await cancelAction({ actionId: colonizeAction.id })
+  await input.cancelAction({ actionId: input.colonizeAction.id })
 
-  await submitMove({ strength: 15 })
-  await submitColonize({ actionId: colonizeAction.id })
-  await cancelAction({ actionId: colonizeAction.id })
-  cancelledView = await currentView()
+  await input.submitMove({ strength: 15 })
+  await input.submitColonize({ actionId: input.colonizeAction.id })
+  await input.cancelAction({ actionId: input.colonizeAction.id })
+  cancelledView = await input.currentView()
   expect(cancelledView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 97 })
   expect(cancelledView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 9 })
-  expect(cancelledView.actions.find(({ id }) => id === moveAction.id)?.selectedInputs).toStrictEqual({ strength: 15 })
-  await cancelAction({ actionId: moveAction.id })
+  expect(cancelledView.actions.find(({ id }) => id === input.moveAction.id)?.selectedInputs).toStrictEqual({ strength: 15 })
+  await input.cancelAction({ actionId: input.moveAction.id })
 
-  await submitColonize({ actionId: colonizeAction.id })
-  await expect(submitColonize({ actionId: secondColonizeAction.id })).rejects.toThrow(
+  await input.submitColonize({ actionId: input.colonizeAction.id })
+  await expect(input.submitColonize({ actionId: input.secondColonizeAction.id })).rejects.toThrow(
     "Invalid action submission, targets are invalid or costs cannot be paid.",
   )
 }
@@ -783,8 +628,8 @@ type VerifyExact40Input = {
   exact40Replay: ReturnType<typeof CapturedreplayWorkerInputWithState>
   fullColonizeAction: Action
   fullSecondColonizeAction: Action
-  createPlayerSetupPhase1Result: CreatePlayerSetupResult
-  createFullForceSetupPhase3Result: CreateFullForceSetupResult
+  playerSetup1: CreatePlayerSetupResult
+  fullForceSetup3: CreateFullForceSetupResult
   server: ConcurrencyTestApiServer
   gameId: GameId
   home: Planet
@@ -833,13 +678,11 @@ type VerifyCancelledViewInput = {
   secondColonizeAction: Action
 }
 
-async function createCreatePlayerSetupResultSetup({
-  server,
-}: CreateCreatePlayerSetupResultSetupInput): Promise<CreateCreatePlayerSetupResultSetupResult> {
-  const createPlayerSetupPhase1Result = await createPlayerSetup({ server })
+async function preparePlayerScenario(input: PreparePlayerScenarioInput): Promise<PreparePlayerScenarioResult> {
+  const playerSetup1 = await createPlayerSetup({ server: input.server })
   const { player, gameId, clock, turnProcessor, turnsRepository, home, target, replacementTarget, stationary, buildThirtyAction } =
-    createPlayerSetupPhase1Result
-  let { view } = createPlayerSetupPhase1Result
+    playerSetup1
+  let { view } = playerSetup1
   Assert.isDefined(buildThirtyAction)
   await player.client.gameplay.updateActionSubmission.mutate({
     gameId,
@@ -865,7 +708,7 @@ async function createCreatePlayerSetupResultSetup({
   })
   view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
   return {
-    createPlayerSetupPhase1Result,
+    playerSetup1,
     player,
     gameId,
     clock,
@@ -879,10 +722,10 @@ async function createCreatePlayerSetupResultSetup({
   }
 }
 
-type CreateCreatePlayerSetupResultSetupInput = { server: ConcurrencyTestApiServer }
+type PreparePlayerScenarioInput = { server: ConcurrencyTestApiServer }
 
-type CreateCreatePlayerSetupResultSetupResult = {
-  createPlayerSetupPhase1Result: CreatePlayerSetupResult
+type PreparePlayerScenarioResult = {
+  playerSetup1: CreatePlayerSetupResult
   player: AuthenticatedApiClient
   gameId: GameId
   clock: ControlledClock

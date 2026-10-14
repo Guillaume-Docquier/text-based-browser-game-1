@@ -68,8 +68,8 @@ describe("resolveTurn", () => {
       })
     }
 
-    const createOverflowStateSetupPhase1Result = createOverflowStateSetup({ defenderPlayerId, target, createState, secondDefenderPlayerId })
-    const { overflowState, overflowStateBefore, overflowRng, overflowRngBefore } = createOverflowStateSetupPhase1Result
+    const overflowStateSetup1 = createOverflowStateSetup({ defenderPlayerId, target, createState, secondDefenderPlayerId })
+    const { overflowState, overflowStateBefore, overflowRng, overflowRngBefore } = overflowStateSetup1
 
     expect(resolveTurn(overflowState, TestRuleset, overflowRng)).toStrictEqual(
       Result.Failure(
@@ -765,21 +765,16 @@ describe("resolveTurn", () => {
   })
 })
 
-function createOverflowStateSetup({
-  defenderPlayerId,
-  target,
-  createState,
-  secondDefenderPlayerId,
-}: CreateOverflowStateSetupInput): CreateOverflowStateSetupResult {
+function createOverflowStateSetup(input: CreateOverflowStateSetupInput): CreateOverflowStateSetupResult {
   const fractionalDefender = createFleetStub({
     id: "unsafe-combat-fractional-defender",
-    ownerPlayerId: defenderPlayerId,
-    originPlanetId: target.id,
+    ownerPlayerId: input.defenderPlayerId,
+    originPlanetId: input.target.id,
     strength: 2,
   })
   Object.assign(fractionalDefender, { strength: 1.5 })
   expect(FleetSchema.safeParse(fractionalDefender).success).toBe(false)
-  const fractionalState = createState([fractionalDefender])
+  const fractionalState = input.createState([fractionalDefender])
   const fractionalStateBefore = structuredClone(fractionalState)
   const fractionalRng = createSeededRng(1234)
   const fractionalRngBefore = fractionalRng.getState()
@@ -792,31 +787,31 @@ function createOverflowStateSetup({
 
   const maximumDefender = createFleetStub({
     id: "safe-maximum-defender",
-    ownerPlayerId: defenderPlayerId,
-    originPlanetId: target.id,
+    ownerPlayerId: input.defenderPlayerId,
+    originPlanetId: input.target.id,
     strength: Number.MAX_SAFE_INTEGER,
   })
   expect(FleetSchema.safeParse(maximumDefender).success).toBe(true)
-  const safeBoundaryState = createState([maximumDefender])
+  const safeBoundaryState = input.createState([maximumDefender])
   const safeBoundary = resolveTurn(safeBoundaryState, TestRuleset, createSeededRng(1234))
   Assert.isSuccess(safeBoundary)
   expect(safeBoundary.value.fleets[maximumDefender.id]?.strength).toBe(Number.MAX_SAFE_INTEGER - 30)
 
   const overflowMaximumDefender = createFleetStub({
     id: "overflow-maximum-defender",
-    ownerPlayerId: defenderPlayerId,
-    originPlanetId: target.id,
+    ownerPlayerId: input.defenderPlayerId,
+    originPlanetId: input.target.id,
     strength: Number.MAX_SAFE_INTEGER,
   })
   const overflowOtherDefender = createFleetStub({
     id: "overflow-other-defender",
-    ownerPlayerId: secondDefenderPlayerId,
-    originPlanetId: target.id,
+    ownerPlayerId: input.secondDefenderPlayerId,
+    originPlanetId: input.target.id,
     strength: 1,
   })
   expect(FleetSchema.safeParse(overflowMaximumDefender).success).toBe(true)
   expect(FleetSchema.safeParse(overflowOtherDefender).success).toBe(true)
-  const overflowState = createState([overflowMaximumDefender, overflowOtherDefender])
+  const overflowState = input.createState([overflowMaximumDefender, overflowOtherDefender])
   const overflowStateBefore = structuredClone(overflowState)
   const overflowRng = createSeededRng(1234)
   const overflowRngBefore = overflowRng.getState()

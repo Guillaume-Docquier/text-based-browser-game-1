@@ -91,25 +91,13 @@ export type AssertDefenderSourceInput = {
 
 export type AssertDefenderSourceResult = { view: PlayerView; defenderView: PlayerView }
 
-export async function assertFindPlayerResource({
-  preSaveSnapshot,
-  failureView,
-  source,
-  movingFleet,
-  stagedDefender,
-  afterFailure,
-  target,
-  expectedFailureActionInputs,
-  server,
-  untouchedGameId,
-  untouchedBefore,
-}: AssertFindPlayerResourceInput): Promise<void> {
-  assertFindPlayerResource2({ preSaveSnapshot, failureView, source, movingFleet, stagedDefender, afterFailure, target })
-  const persistedFailureActionInputs = projectPersistedActionInputs(afterFailure, failureView.player.id, failureView.turn)
-  expect(persistedFailureActionInputs).toStrictEqual(expectedFailureActionInputs)
+export async function assertFindPlayerResource(input: AssertFindPlayerResourceInput): Promise<void> {
+  assertFindPlayerResource2({ ...input })
+  const persistedFailureActionInputs = projectPersistedActionInputs(input.afterFailure, input.failureView.player.id, input.failureView.turn)
+  expect(persistedFailureActionInputs).toStrictEqual(input.expectedFailureActionInputs)
 
-  const untouchedAfter = await readColonizationPersistenceSnapshot(server.database, untouchedGameId)
-  expect(untouchedAfter).toStrictEqual(untouchedBefore)
+  const untouchedAfter = await readColonizationPersistenceSnapshot(input.server.database, input.untouchedGameId)
+  expect(untouchedAfter).toStrictEqual(input.untouchedBefore)
 }
 
 export type AssertFindPlayerResourceInput = {
@@ -136,100 +124,43 @@ export type AssertFindPlayerResource2Input = {
   target: Planet
 }
 
-export function assertFindPlayerResource2({
-  preSaveSnapshot,
-  failureView,
-  source,
-  movingFleet,
-  stagedDefender,
-  afterFailure,
-  target,
-}: AssertFindPlayerResource2Input): void {
-  expect(findPlayerResource(preSaveSnapshot.resources, failureView.player.id, ResourceType.INFLUENCE)?.amount).toBe(19)
-  expect(findPlayerResource(preSaveSnapshot.resources, failureView.player.id, ResourceType.METAL)?.amount).toBe(2)
-  expect(preSaveSnapshot.fleets.find(({ id }) => id === source.id)?.strength).toBe(65)
-  expect(preSaveSnapshot.fleets.find(({ id }) => id === movingFleet.id)?.strength).toBe(35)
-  expect(preSaveSnapshot.fleets.find(({ id }) => id === stagedDefender.id)?.strength).toBe(10)
-  expect(afterFailure).toStrictEqual(preSaveSnapshot)
-  expect(findPlanetOwnerInView(failureView, target.id)).toBeNull()
-  expect(afterFailure.resources).toStrictEqual(preSaveSnapshot.resources)
-  expect(afterFailure.fleets).toStrictEqual(preSaveSnapshot.fleets)
-  expect(afterFailure.turns.find(({ turn }) => turn === failureView.turn)).toMatchObject({
-    turn: failureView.turn,
+export function assertFindPlayerResource2(input: AssertFindPlayerResource2Input): void {
+  expect(findPlayerResource(input.preSaveSnapshot.resources, input.failureView.player.id, ResourceType.INFLUENCE)?.amount).toBe(19)
+  expect(findPlayerResource(input.preSaveSnapshot.resources, input.failureView.player.id, ResourceType.METAL)?.amount).toBe(2)
+  expect(input.preSaveSnapshot.fleets.find(({ id }) => id === input.source.id)?.strength).toBe(65)
+  expect(input.preSaveSnapshot.fleets.find(({ id }) => id === input.movingFleet.id)?.strength).toBe(35)
+  expect(input.preSaveSnapshot.fleets.find(({ id }) => id === input.stagedDefender.id)?.strength).toBe(10)
+  expect(input.afterFailure).toStrictEqual(input.preSaveSnapshot)
+  expect(findPlanetOwnerInView(input.failureView, input.target.id)).toBeNull()
+  expect(input.afterFailure.resources).toStrictEqual(input.preSaveSnapshot.resources)
+  expect(input.afterFailure.fleets).toStrictEqual(input.preSaveSnapshot.fleets)
+  expect(input.afterFailure.turns.find(({ turn }) => turn === input.failureView.turn)).toMatchObject({
+    turn: input.failureView.turn,
     status: TurnStatus.PROCESSING,
   })
-  expect(afterFailure.turns.map(({ turn }) => turn).toSorted((first, second) => first - second)).toStrictEqual(
-    Array.from({ length: failureView.turn }, (_, index) => index + 1),
+  expect(input.afterFailure.turns.map(({ turn }) => turn).toSorted((first, second) => first - second)).toStrictEqual(
+    Array.from({ length: input.failureView.turn }, (_, index) => index + 1),
   )
-  expect(afterFailure.turnsProcessing.find(({ turn }) => turn === failureView.turn)).toMatchObject({
-    turn: failureView.turn,
+  expect(input.afterFailure.turnsProcessing.find(({ turn }) => turn === input.failureView.turn)).toMatchObject({
+    turn: input.failureView.turn,
     processingEndedAt: null,
   })
-  expect(hasActionForTurn(afterFailure.actions, failureView.turn + 1)).toBe(false)
+  expect(hasActionForTurn(input.afterFailure.actions, input.failureView.turn + 1)).toBe(false)
 }
 
-export async function assertAfterReset({
-  afterReset,
-  failureView,
-  expectedFailureActionInputs,
-  turnsRepository,
-  turnProcessor,
-  player,
-  gameId,
-  defender,
-  server,
-  target,
-  home,
-  source,
-  movingFleet,
-  clock,
-  untouchedGameId,
-  invalidOwnerPlayerId,
-  preSaveSnapshot,
-  afterFailure,
-}: AssertAfterResetInput): Promise<void> {
-  const createRetryDefenderViewSetupPhase1Result = await createRetryDefenderViewSetup({
-    afterReset,
-    failureView,
-    expectedFailureActionInputs,
-    turnsRepository,
-    turnProcessor,
-    player,
-    gameId,
-    defender,
-    server,
-    target,
-    home,
-    source,
-    movingFleet,
-  })
-  const { retryDefenderView, emptyTurn } = createRetryDefenderViewSetupPhase1Result
-  await processManualDeadlineTurn({
-    clock,
-    turnProcessor,
-    turnsRepository,
-    client: player.client,
-    gameId,
-    turn: emptyTurn,
-  })
-  const emptyView = await player.client.gameplay.getPlayerView.query({ gameId })
-  const afterEmptyTurn = await readColonizationPersistenceSnapshot(server.database, gameId)
+export async function assertAfterReset(options: AssertAfterResetInput): Promise<void> {
+  const retryDefenderViewSetup1 = await createRetryDefenderViewSetup({ ...options })
+  const { retryDefenderView, emptyTurn } = retryDefenderViewSetup1
+  await processManualDeadlineTurn({ ...options, client: options.player.client, turn: emptyTurn })
+  const emptyView = await options.player.client.gameplay.getPlayerView.query({ gameId: options.gameId })
+  const afterEmptyTurn = await readColonizationPersistenceSnapshot(options.server.database, options.gameId)
 
-  assertEmptyView({
-    ...createRetryDefenderViewSetupPhase1Result,
-    emptyView,
-    target,
-    home,
-    source,
-    movingFleet,
-    afterEmptyTurn,
-    failureView,
-  })
+  assertEmptyView({ ...options, ...retryDefenderViewSetup1, emptyView, afterEmptyTurn })
 
   Logger.get().info("[C3-22 invalid-owner rollback and retry receipt]", {
-    gameId,
-    untouchedGameId,
-    target: { id: target.id, coordinates: target.coordinates, owner: findPlanetOwnerInView(emptyView, target.id) },
+    gameId: options.gameId,
+    untouchedGameId: options.untouchedGameId,
+    target: { id: options.target.id, coordinates: options.target.coordinates, owner: findPlanetOwnerInView(emptyView, options.target.id) },
     input: {
       sourceStrength: 100,
       submittedAssaultColonizeStrength: 35,
@@ -241,19 +172,19 @@ export async function assertAfterReset({
     rollback: {
       structuralSnapshotAssertion: "afterFailure.toStrictEqual(preSaveSnapshot) passed",
       resetKeptRngState: true,
-      restoredActions: afterReset.actions.filter(({ turn }) => turn === failureView.turn).length,
+      restoredActions: options.afterReset.actions.filter(({ turn }) => turn === options.failureView.turn).length,
     },
     retry: {
       result: "processed",
-      attackerHomeStrength: findStationaryFleetAt(emptyView, emptyView.player.id, home.id)?.strength,
-      attackerTargetStrength: findStationaryFleetAt(emptyView, emptyView.player.id, target.id)?.strength,
-      defenderRemainsAtTarget: hasFleetAtPlanet(retryDefenderView, retryDefenderView.player.id, target.id),
+      attackerHomeStrength: findStationaryFleetAt(emptyView, emptyView.player.id, options.home.id)?.strength,
+      attackerTargetStrength: findStationaryFleetAt(emptyView, emptyView.player.id, options.target.id)?.strength,
+      defenderRemainsAtTarget: hasFleetAtPlanet(retryDefenderView, retryDefenderView.player.id, options.target.id),
       immediateNoDuePoll: "idle",
       ordinaryEmptyTurn: emptyView.turn,
     },
-    invalidOwnerPlayerId,
-    preSaveTurnStatus: preSaveSnapshot.turns.find(({ turn }) => turn === failureView.turn)?.status,
-    postFailureTurnStatus: afterFailure.turns.find(({ turn }) => turn === failureView.turn)?.status,
+    invalidOwnerPlayerId: options.invalidOwnerPlayerId,
+    preSaveTurnStatus: options.preSaveSnapshot.turns.find(({ turn }) => turn === options.failureView.turn)?.status,
+    postFailureTurnStatus: options.afterFailure.turns.find(({ turn }) => turn === options.failureView.turn)?.status,
     nextActionStatuses: emptyView.actions.map(({ id, isInProgress, selectedTargets }) => ({ id, isInProgress, selectedTargets })),
   })
 }
@@ -279,33 +210,26 @@ export type AssertAfterResetInput = {
   afterFailure: Awaited<ReturnType<typeof CapturedreadColonizationPersistenceSnapshot>>
 }
 
-export function assertEmptyView({
-  emptyView,
-  emptyTurn,
-  target,
-  home,
-  source,
-  movingFleet,
-  afterEmptyTurn,
-  afterRetry,
-  failureView,
-}: AssertEmptyViewInput): void {
-  expect(emptyView.turn).toBe(emptyTurn + 1)
-  expect(emptyView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
-  expect(findPlanetOwnerInView(emptyView, target.id)).toBe(emptyView.player.id)
-  expect(findStationaryFleetAt(emptyView, emptyView.player.id, home.id)).toMatchObject({ id: source.id, strength: 75 })
-  expect(findStationaryFleetAt(emptyView, emptyView.player.id, target.id)).toMatchObject({
-    id: movingFleet.id,
+export function assertEmptyView(input: AssertEmptyViewInput): void {
+  expect(input.emptyView.turn).toBe(input.emptyTurn + 1)
+  expect(input.emptyView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
+  expect(findPlanetOwnerInView(input.emptyView, input.target.id)).toBe(input.emptyView.player.id)
+  expect(findStationaryFleetAt(input.emptyView, input.emptyView.player.id, input.home.id)).toMatchObject({
+    id: input.source.id,
+    strength: 75,
+  })
+  expect(findStationaryFleetAt(input.emptyView, input.emptyView.player.id, input.target.id)).toMatchObject({
+    id: input.movingFleet.id,
     strength: 5,
   })
-  expect(emptyView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 22, uncommitted: 22 })
-  expect(emptyView.resources[ResourceType.METAL]).toStrictEqual({ total: 1, uncommitted: 1 })
-  expect(areActionInstancesReleased(emptyView.actions)).toBe(true)
-  expect(afterEmptyTurn.fleets).toStrictEqual(afterRetry.fleets)
-  expect(afterEmptyTurn.planets).toStrictEqual(afterRetry.planets)
-  expect(afterEmptyTurn.resources).toStrictEqual(afterRetry.resources)
-  expect(afterEmptyTurn.turns.find(({ turn }) => turn === failureView.turn)?.status).toBe(TurnStatus.COMPLETED)
-  expect(afterEmptyTurn.turns.find(({ turn }) => turn === emptyTurn)?.status).toBe(TurnStatus.COMPLETED)
+  expect(input.emptyView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 22, uncommitted: 22 })
+  expect(input.emptyView.resources[ResourceType.METAL]).toStrictEqual({ total: 1, uncommitted: 1 })
+  expect(areActionInstancesReleased(input.emptyView.actions)).toBe(true)
+  expect(input.afterEmptyTurn.fleets).toStrictEqual(input.afterRetry.fleets)
+  expect(input.afterEmptyTurn.planets).toStrictEqual(input.afterRetry.planets)
+  expect(input.afterEmptyTurn.resources).toStrictEqual(input.afterRetry.resources)
+  expect(input.afterEmptyTurn.turns.find(({ turn }) => turn === input.failureView.turn)?.status).toBe(TurnStatus.COMPLETED)
+  expect(input.afterEmptyTurn.turns.find(({ turn }) => turn === input.emptyTurn)?.status).toBe(TurnStatus.COMPLETED)
 }
 
 export type AssertEmptyViewInput = {
@@ -320,40 +244,40 @@ export type AssertEmptyViewInput = {
   failureView: PlayerView
 }
 
-export async function assertMath({ aliceHome, bobHome, alice, gameId, bob, submit, processDeadlineTurn }: AssertMathInput): Promise<void> {
-  expect([aliceHome.coordinates, bobHome.coordinates].toSorted()).toStrictEqual(["44:98:05", "45:83:40"])
-  expect(Math.hypot(bobHome.x - aliceHome.x, bobHome.y - aliceHome.y)).toBe(4.418312565270031)
+export async function assertMath(input: AssertMathInput): Promise<void> {
+  expect([input.aliceHome.coordinates, input.bobHome.coordinates].toSorted()).toStrictEqual(["44:98:05", "45:83:40"])
+  expect(Math.hypot(input.bobHome.x - input.aliceHome.x, input.bobHome.y - input.aliceHome.y)).toBe(4.418312565270031)
 
   // Act: create forces through submitted Build actions and actual saved worker turns.
   for (let buildTurn = 0; buildTurn < 2; buildTurn += 1) {
-    const aliceBuildView = await alice.client.gameplay.getPlayerView.query({ gameId })
-    const bobBuildView = await bob.client.gameplay.getPlayerView.query({ gameId })
-    await submit({
-      client: alice.client,
+    const aliceBuildView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+    const bobBuildView = await input.bob.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+    await input.submit({
+      client: input.alice.client,
       view: aliceBuildView,
       actionDefinitionId: BuildFleetStandard.id,
-      selectedTargets: { planet: aliceHome.id },
+      selectedTargets: { planet: input.aliceHome.id },
       selectedInputs: {},
     })
-    await submit({
-      client: bob.client,
+    await input.submit({
+      client: input.bob.client,
       view: bobBuildView,
       actionDefinitionId: BuildFleetStandard.id,
-      selectedTargets: { planet: bobHome.id },
+      selectedTargets: { planet: input.bobHome.id },
       selectedInputs: {},
     })
-    await processDeadlineTurn(aliceBuildView.turn)
+    await input.processDeadlineTurn(aliceBuildView.turn)
   }
   for (let buildTurn = 0; buildTurn < 3; buildTurn += 1) {
-    const aliceBuildView = await alice.client.gameplay.getPlayerView.query({ gameId })
-    await submit({
-      client: alice.client,
+    const aliceBuildView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+    await input.submit({
+      client: input.alice.client,
       view: aliceBuildView,
       actionDefinitionId: BuildFleetStandard.id,
-      selectedTargets: { planet: aliceHome.id },
+      selectedTargets: { planet: input.aliceHome.id },
       selectedInputs: {},
     })
-    await processDeadlineTurn(aliceBuildView.turn)
+    await input.processDeadlineTurn(aliceBuildView.turn)
   }
 }
 
@@ -367,37 +291,29 @@ export type AssertMathInput = {
   processDeadlineTurn: (turn: number) => Promise<void>
 }
 
-export function assertJourney2({
-  journey,
-  bobHome,
-  assaultActionId,
-  aliceSource,
-  firstReload,
-  bobDefender,
-  friendlyGuard,
-}: AssertJourney2Input): void {
-  expect(journey).toMatchObject({ strength: 30, distanceToEnd: 3.418312565270031, destinationPlanetId: bobHome.id })
-  expect(journey.movement).toMatchObject({
+export function assertJourney2(input: AssertJourney2Input): void {
+  expect(input.journey).toMatchObject({ strength: 30, distanceToEnd: 3.418312565270031, destinationPlanetId: input.bobHome.id })
+  expect(input.journey.movement).toMatchObject({
     speed: 1,
     submission: {
-      id: assaultActionId,
+      id: input.assaultActionId,
       actionDefinitionId: AttackMoveTest.id,
-      selectedTargets: { fleet: aliceSource.id, planet: bobHome.id },
+      selectedTargets: { fleet: input.aliceSource.id, planet: input.bobHome.id },
       selectedInputs: { strength: 30 },
     },
     pendingArrivalEffects: [{ definitionOrdinal: 3, effectDefinition: { type: "FLEET_ASSAULT" } }],
   })
-  expect(firstReload.fleets.find(({ id }) => id === bobDefender.id)?.strength).toBe(20)
-  expect(firstReload.fleets.find(({ id }) => id === friendlyGuard.id)?.strength).toBe(7)
-  expect(firstReload.fleets.find(({ id }) => id === aliceSource.id)?.strength).toBe(13)
+  expect(input.firstReload.fleets.find(({ id }) => id === input.bobDefender.id)?.strength).toBe(20)
+  expect(input.firstReload.fleets.find(({ id }) => id === input.friendlyGuard.id)?.strength).toBe(7)
+  expect(input.firstReload.fleets.find(({ id }) => id === input.aliceSource.id)?.strength).toBe(13)
   // Assert: the new collecting-turn row is blank while the journey retains its historical captured submission.
-  expect(firstReload.actions.find(({ id }) => id === assaultActionId)).toMatchObject({
+  expect(input.firstReload.actions.find(({ id }) => id === input.assaultActionId)).toMatchObject({
     selectedTargets: null,
     selectedInputs: null,
     isInProgress: true,
   })
-  expect(firstReload.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 82, uncommitted: 82 })
-  expect(firstReload.resources[ResourceType.FUEL]).toStrictEqual({ total: 94, uncommitted: 94 })
+  expect(input.firstReload.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 82, uncommitted: 82 })
+  expect(input.firstReload.resources[ResourceType.FUEL]).toStrictEqual({ total: 94, uncommitted: 94 })
 }
 
 export type AssertJourney2Input = {
@@ -410,36 +326,27 @@ export type AssertJourney2Input = {
   friendlyGuard: Fleet
 }
 
-async function verifyRetryView({
-  retryView,
-  failureView,
-  target,
-  home,
-  source,
-  movingFleet,
-  retryDefenderView,
-  afterRetry,
-  turnProcessor,
-  server,
-  gameId,
-}: VerifyRetryViewInput): Promise<void> {
-  expect(retryView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
-  expect(retryView.turn).toBe(failureView.turn + 1)
-  expect(findPlanetOwnerInView(retryView, target.id)).toBe(retryView.player.id)
-  expect(findStationaryFleetAt(retryView, retryView.player.id, home.id)).toMatchObject({ id: source.id, strength: 75 })
-  expect(findStationaryFleetAt(retryView, retryView.player.id, target.id)).toMatchObject({
-    id: movingFleet.id,
+async function verifyRetryView(input: VerifyRetryViewInput): Promise<void> {
+  expect(input.retryView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
+  expect(input.retryView.turn).toBe(input.failureView.turn + 1)
+  expect(findPlanetOwnerInView(input.retryView, input.target.id)).toBe(input.retryView.player.id)
+  expect(findStationaryFleetAt(input.retryView, input.retryView.player.id, input.home.id)).toMatchObject({
+    id: input.source.id,
+    strength: 75,
+  })
+  expect(findStationaryFleetAt(input.retryView, input.retryView.player.id, input.target.id)).toMatchObject({
+    id: input.movingFleet.id,
     strength: 5,
   })
-  expect(hasFleetAtPlanet(retryDefenderView, retryDefenderView.player.id, target.id)).toBe(false)
-  expect(retryView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 22, uncommitted: 22 })
-  expect(retryView.resources[ResourceType.METAL]).toStrictEqual({ total: 1, uncommitted: 1 })
-  expect(areActionInstancesReleased(retryView.actions)).toBe(true)
-  expect(afterRetry.turns.find(({ turn }) => turn === failureView.turn)?.status).toBe(TurnStatus.COMPLETED)
+  expect(hasFleetAtPlanet(input.retryDefenderView, input.retryDefenderView.player.id, input.target.id)).toBe(false)
+  expect(input.retryView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 22, uncommitted: 22 })
+  expect(input.retryView.resources[ResourceType.METAL]).toStrictEqual({ total: 1, uncommitted: 1 })
+  expect(areActionInstancesReleased(input.retryView.actions)).toBe(true)
+  expect(input.afterRetry.turns.find(({ turn }) => turn === input.failureView.turn)?.status).toBe(TurnStatus.COMPLETED)
 
-  expect(await turnProcessor.processNextDueTurn()).toBe("idle")
-  const afterNoDuePoll = await readColonizationPersistenceSnapshot(server.database, gameId)
-  expect(afterNoDuePoll).toStrictEqual(afterRetry)
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("idle")
+  const afterNoDuePoll = await readColonizationPersistenceSnapshot(input.server.database, input.gameId)
+  expect(afterNoDuePoll).toStrictEqual(input.afterRetry)
 }
 
 type VerifyRetryViewInput = {
@@ -456,45 +363,19 @@ type VerifyRetryViewInput = {
   gameId: GameId
 }
 
-async function createRetryDefenderViewSetup({
-  afterReset,
-  failureView,
-  expectedFailureActionInputs,
-  turnsRepository,
-  turnProcessor,
-  player,
-  gameId,
-  defender,
-  server,
-  target,
-  home,
-  source,
-  movingFleet,
-}: CreateRetryDefenderViewSetupInput): Promise<CreateRetryDefenderViewSetupResult> {
-  expect(afterReset.turnsProcessing.find(({ turn }) => turn === failureView.turn)?.processingStartedAt).toBeNull()
-  expect(afterReset.turnsProcessing.find(({ turn }) => turn === failureView.turn)?.processingEndedAt).toBeNull()
-  const restoredFailureActionInputs = projectPersistedActionInputs(afterReset, failureView.player.id, failureView.turn)
-  expect(restoredFailureActionInputs).toStrictEqual(expectedFailureActionInputs)
+async function createRetryDefenderViewSetup(input: CreateRetryDefenderViewSetupInput): Promise<CreateRetryDefenderViewSetupResult> {
+  expect(input.afterReset.turnsProcessing.find(({ turn }) => turn === input.failureView.turn)?.processingStartedAt).toBeNull()
+  expect(input.afterReset.turnsProcessing.find(({ turn }) => turn === input.failureView.turn)?.processingEndedAt).toBeNull()
+  const restoredFailureActionInputs = projectPersistedActionInputs(input.afterReset, input.failureView.player.id, input.failureView.turn)
+  expect(restoredFailureActionInputs).toStrictEqual(input.expectedFailureActionInputs)
 
-  turnsRepository.allowOwnershipChangesForRetry()
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-  const retryView = await player.client.gameplay.getPlayerView.query({ gameId })
-  const retryDefenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
-  const afterRetry = await readColonizationPersistenceSnapshot(server.database, gameId)
+  input.turnsRepository.allowOwnershipChangesForRetry()
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
+  const retryView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const retryDefenderView = await input.defender.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const afterRetry = await readColonizationPersistenceSnapshot(input.server.database, input.gameId)
 
-  await verifyRetryView({
-    retryView,
-    failureView,
-    target,
-    home,
-    source,
-    movingFleet,
-    retryDefenderView,
-    afterRetry,
-    turnProcessor,
-    server,
-    gameId,
-  })
+  await verifyRetryView({ ...input, retryView, retryDefenderView, afterRetry })
 
   const emptyTurn = retryView.turn
   return { retryDefenderView, afterRetry, emptyTurn }

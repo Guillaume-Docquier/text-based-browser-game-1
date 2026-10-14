@@ -89,7 +89,7 @@ type ForkedServer = {
  * Starts a real api in a forked process.
  * The goal of this is to use an unadulterated api server running on its own thread.
  */
-async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<ForkedServer> {
+async function forkApiServer(input: { databaseUrl: string }): Promise<ForkedServer> {
   const apiProcess = fork("src/api/entry.api.ts", {
     cwd: process.cwd(),
     detached: true,
@@ -97,7 +97,7 @@ async function forkApiServer({ databaseUrl }: { databaseUrl: string }): Promise<
       AUTH_SERVICE: "test-header",
       CLERK_PUBLISHABLE_KEY: "does not matter with test-header auth",
       CLERK_SECRET_KEY: "does not matter with test-header auth",
-      DATABASE_URL: databaseUrl,
+      DATABASE_URL: input.databaseUrl,
       PORT: ANY_UNUSED_PORT.toString(),
     },
     stdio: API_LOGS,

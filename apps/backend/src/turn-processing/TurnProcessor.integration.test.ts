@@ -2,6 +2,7 @@ import { Assert } from "@guillaume-docquier/tools-ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
+import { required } from "shared/testing/required.ts"
 import { StationaryAssaultTest } from "shared/testing/test-ruleset/action-definitions/attack-move.ts"
 import { BuildFleetStandard } from "shared/testing/test-ruleset/action-definitions/build-fleet.ts"
 import { describe, expect } from "vitest"
@@ -41,36 +42,36 @@ describe("TurnProcessor", () => {
       using apiServer = new ApiServer(apiServices)
       const alice = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
 
-      const createClientsSetupPhase1Result = await createClientsSetup({ apiServer, alice, db, clock })
-      const { clients, gameId } = createClientsSetupPhase1Result
+      const clientsSetup1 = await createClientsSetup({ apiServer, alice, db, clock })
+      const { clients, gameId } = clientsSetup1
 
       // Act: move the non-target owner's complete fleet to the fixed target through a public ordinary Move order.
 
-      const createStationedSetupPhase2Result = await createStationedSetup({ ...createClientsSetupPhase1Result, alice })
+      const stationedSetup2 = await createStationedSetup({ ...clientsSetup1, alice })
 
-      await submitStationaryAssaults({ ...createClientsSetupPhase1Result, ...createStationedSetupPhase2Result })
+      await submitStationaryAssaults({ ...clientsSetup1, ...stationedSetup2 })
 
-      const createObservedSetupPhase3Result = await createObservedSetup({
-        ...createClientsSetupPhase1Result,
-        ...createStationedSetupPhase2Result,
+      const observedSetup3 = await createObservedSetup({
+        ...clientsSetup1,
+        ...stationedSetup2,
         db,
         clock,
       })
 
-      await assertOutcomeB({ ...createClientsSetupPhase1Result, ...createStationedSetupPhase2Result, ...createObservedSetupPhase3Result })
+      await assertOutcomeB({ ...clientsSetup1, ...stationedSetup2, ...observedSetup3 })
 
       const afterCombatViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
 
-      verifyAfterCombatViews({ ...createClientsSetupPhase1Result, ...createStationedSetupPhase2Result, afterCombatViews })
+      verifyAfterCombatViews({ ...clientsSetup1, ...stationedSetup2, afterCombatViews })
 
       // Assert: the next publicly closed empty turn observes the saved one-draw RNG and an empty action list.
       const emptyTurn = afterCombatViews[0]
       Assert.isDefined(emptyTurn)
 
       await assertEmptyObservedValue1({
-        ...createClientsSetupPhase1Result,
-        ...createStationedSetupPhase2Result,
-        ...createObservedSetupPhase3Result,
+        ...clientsSetup1,
+        ...stationedSetup2,
+        ...observedSetup3,
         emptyTurn,
         db,
         clock,
@@ -108,7 +109,7 @@ describe("TurnProcessor", () => {
       ownerIndices: [0, 1],
     })
 
-    const createObservedSetupPhase4Result = await createObservedSetup2({
+    const observedSetup4 = await createObservedSetup2({
       assaultActionIds,
       preAssaultViews,
       clients,
@@ -120,8 +121,8 @@ describe("TurnProcessor", () => {
       homes,
     })
 
-    const createAfterCombatViewsSetupPhase5Result = await createAfterCombatViewsSetup({
-      ...createObservedSetupPhase4Result,
+    const afterCombatViewsSetup5 = await createAfterCombatViewsSetup({
+      ...observedSetup4,
       assaultActionIds,
       playerIds,
       stationed,
@@ -133,14 +134,14 @@ describe("TurnProcessor", () => {
       clients,
       gameId,
     })
-    const { afterCombatViews } = createAfterCombatViewsSetupPhase5Result
+    const { afterCombatViews } = afterCombatViewsSetup5
 
-    verifyActualFleet({ ...createObservedSetupPhase4Result, ...createAfterCombatViewsSetupPhase5Result, stationed, target })
+    verifyActualFleet({ ...observedSetup4, ...afterCombatViewsSetup5, stationed, target })
     const actualWorkerBuildNames: string[] = []
 
     verifyActualBuild({
-      ...createObservedSetupPhase4Result,
-      ...createAfterCombatViewsSetupPhase5Result,
+      ...observedSetup4,
+      ...afterCombatViewsSetup5,
       actualWorkerBuildNames,
       clients,
       preAssaultViews,
@@ -153,8 +154,8 @@ describe("TurnProcessor", () => {
     Assert.isDefined(emptyTurn)
 
     await assertEmptyObservedValue12({
-      ...createObservedSetupPhase4Result,
-      ...createAfterCombatViewsSetupPhase5Result,
+      ...observedSetup4,
+      ...afterCombatViewsSetup5,
       clients,
       gameId,
       emptyTurn,
@@ -200,7 +201,7 @@ describe("TurnProcessor", () => {
       ownerIndices: [0, 1],
     })
 
-    const createObservedSetupPhase6Result = await createObservedSetup3({
+    const observedSetup6 = await createObservedSetup3({
       assaultActionIds,
       preAssaultViews,
       clients,
@@ -212,8 +213,8 @@ describe("TurnProcessor", () => {
       stationed,
     })
 
-    const createAfterCombatViewsSetupPhase7Result = await createAfterCombatViewsSetup2({
-      ...createObservedSetupPhase6Result,
+    const afterCombatViewsSetup7 = await createAfterCombatViewsSetup2({
+      ...observedSetup6,
       target,
       playerIds,
       playerAId,
@@ -223,7 +224,7 @@ describe("TurnProcessor", () => {
       clients,
       gameId,
     })
-    const { afterCombatViews } = createAfterCombatViewsSetupPhase7Result
+    const { afterCombatViews } = afterCombatViewsSetup7
     for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
       const before = preAssaultViews[ownerIndex]
       const after = afterCombatViews[ownerIndex]
@@ -244,8 +245,8 @@ describe("TurnProcessor", () => {
     Assert.isDefined(emptyTurn)
 
     await assertEmptyObservedValue13({
-      ...createObservedSetupPhase6Result,
-      ...createAfterCombatViewsSetupPhase7Result,
+      ...observedSetup6,
+      ...afterCombatViewsSetup7,
       clients,
       gameId,
       emptyTurn,
@@ -262,126 +263,83 @@ describe("TurnProcessor", () => {
   })
 })
 
-async function submitStationaryAssaults({
-  clients,
-  preAssaultViews,
-  stationed,
-  actionIds,
-  gameId,
-  target,
-  ownerIndices,
-}: VerifyOwnerIndexInput): Promise<void> {
-  for (const ownerIndex of ownerIndices ?? clients.map((_, index) => index)) {
-    const client = clients[ownerIndex]
-    const view = preAssaultViews[ownerIndex]
-    const fleet = stationed[ownerIndex]
+async function submitStationaryAssaults(input: VerifyOwnerIndexInput): Promise<void> {
+  for (const ownerIndex of input.ownerIndices ?? input.clients.map((_, index) => index)) {
+    const client = input.clients[ownerIndex]
+    const view = input.preAssaultViews[ownerIndex]
+    const fleet = input.stationed[ownerIndex]
     Assert.isDefined(client)
     Assert.isDefined(view)
     Assert.isDefined(fleet)
     const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
     Assert.isDefined(action)
-    actionIds.push(action.id)
+    input.actionIds.push(action.id)
     await client.client.gameplay.updateActionSubmission.mutate({
-      gameId,
+      gameId: input.gameId,
       turn: view.turn,
       submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
         station: fleet.id,
-        battlePlanet: target.id,
+        battlePlanet: input.target.id,
       }),
     })
   }
 }
 
-function verifyAfterCombatViews({
-  afterCombatViews,
-  playerIds,
-  target,
-  clients,
-  preAssaultViews,
-  actionIds,
-}: VerifyAfterCombatViewsInput): void {
+function verifyAfterCombatViews(input: VerifyAfterCombatViewsInput): void {
   expect(
-    afterCombatViews[0]?.fleets.find((fleet) => fleet.ownerPlayerId === playerIds[0] && isStationaryPublicFleet(fleet, target.id))
-      ?.strength,
+    required(
+      required(input.afterCombatViews[0]).fleets.find(
+        (fleet) => fleet.ownerPlayerId === input.playerIds[0] && isStationaryPublicFleet(fleet, input.target.id),
+      ),
+    ).strength,
   ).toBe(10)
-  expect(afterCombatViews[0]?.fleets.some(({ ownerPlayerId }) => ownerPlayerId === playerIds[1])).toBe(false)
-  for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-    const before = preAssaultViews[ownerIndex]
-    const after = afterCombatViews[ownerIndex]
+  expect(required(input.afterCombatViews[0]).fleets.some(({ ownerPlayerId }) => ownerPlayerId === input.playerIds[1])).toBe(false)
+  for (let ownerIndex = 0; ownerIndex < input.clients.length; ownerIndex += 1) {
+    const before = input.preAssaultViews[ownerIndex]
+    const after = input.afterCombatViews[ownerIndex]
     Assert.isDefined(before)
     Assert.isDefined(after)
     expect(
-      after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === target.id)?.ownerPlayerId,
-    ).toBe(target.ownerPlayerId)
+      after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === input.target.id)?.ownerPlayerId,
+    ).toBe(input.target.ownerPlayerId)
     for (const resourceType of Object.values(ResourceType)) {
       expect(after.resources[resourceType].total).toBe(before.resources[resourceType].total)
     }
-    expect(after.actions.find(({ id }) => id === actionIds[ownerIndex])).toMatchObject({ selectedTargets: null, isInProgress: false })
+    expect(after.actions.find(({ id }) => id === input.actionIds[ownerIndex])).toMatchObject({ selectedTargets: null, isInProgress: false })
   }
 }
 
-async function assertEmptyObservedValue1({
-  draw,
-  observed,
-  clients,
-  gameId,
-  emptyTurn,
-  turnProcessor,
-  db,
-  clock,
-  turnsRepository,
-  forward,
-  stationed,
-  playerIds,
-  actionIds,
-  afterCombatViews,
-}: AssertEmptyObservedValue1Input): Promise<void> {
-  const assertEmptyObservedPhase3Value1 = draw.value
-  const assertEmptyObservedPhase3Observed = observed
+async function assertEmptyObservedValue1(input: AssertEmptyObservedValue1Input): Promise<void> {
+  const assertEmptyObservedPhase3Value1 = input.draw.value
+  const assertEmptyObservedPhase3Observed = input.observed
 
-  await assertEmptyObserved({
-    clients,
-    gameId,
-    emptyTurn,
-    turnProcessor,
-    db,
-    clock,
-    turnsRepository,
-    forward,
-    assertEmptyObservedPhase3Observed,
-    assertEmptyObservedPhase3Value1,
-    draw,
-    stationed,
-    playerIds,
-    actionIds,
-    afterCombatViews,
-  })
+  await assertEmptyObserved({ ...input, assertEmptyObservedPhase3Observed, assertEmptyObservedPhase3Value1 })
 }
 
-async function verifyBuildActionIds({ clients, preAssaultViews, homes, buildActionIds, gameId }: VerifyBuildActionIdsInput): Promise<void> {
+async function verifyBuildActionIds(input: VerifyBuildActionIdsInput): Promise<void> {
   for (const ownerIndex of [2, 1, 0]) {
-    const client = clients[ownerIndex]
-    const view = preAssaultViews[ownerIndex]
-    const home = homes[ownerIndex]
+    const client = input.clients[ownerIndex]
+    const view = input.preAssaultViews[ownerIndex]
+    const home = input.homes[ownerIndex]
     Assert.isDefined(client)
     Assert.isDefined(view)
     Assert.isDefined(home)
     const buildAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
     Assert.isDefined(buildAction)
-    buildActionIds.push(buildAction.id)
+    input.buildActionIds.push(buildAction.id)
     await client.client.gameplay.updateActionSubmission.mutate({
-      gameId,
+      gameId: input.gameId,
       turn: view.turn,
       submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
     })
   }
-  expect(buildActionIds).toStrictEqual(["BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1"])
+  expect(input.buildActionIds).toStrictEqual(["BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1"])
 }
 
-function verifyActualFleet({ stationed, forward, afterCombatViews, target }: VerifyActualFleetInput): void {
-  for (const originalFleet of stationed) {
-    const expectedFleet = Object.values(forward.resolved.fleets).find(({ id }) => id === originalFleet.id)
-    const actualFleet = afterCombatViews[0]?.fleets.find(({ id }) => id === originalFleet.id)
+function verifyActualFleet(input: VerifyActualFleetInput): void {
+  for (const originalFleet of input.stationed) {
+    const expectedFleet = Object.values(input.forward.resolved.fleets).find(({ id }) => id === originalFleet.id)
+    const actualFleet = input.afterCombatViews[0]?.fleets.find(({ id }) => id === originalFleet.id)
     if (expectedFleet === undefined) {
       expect(actualFleet).toBeUndefined()
     } else {
@@ -390,37 +348,29 @@ function verifyActualFleet({ stationed, forward, afterCombatViews, target }: Ver
         name: originalFleet.name,
         ownerPlayerId: originalFleet.ownerPlayerId,
         strength: expectedFleet.strength,
-        originPlanetId: target.id,
+        originPlanetId: input.target.id,
       })
     }
   }
 }
 
-function verifyActualBuild({
-  replayBuilds,
-  afterCombatViews,
-  actualWorkerBuildNames,
-  clients,
-  preAssaultViews,
-  target,
-  assaultActionIds,
-}: VerifyActualBuildInput): void {
-  for (const replayBuild of replayBuilds) {
-    const actualBuild = afterCombatViews[0]?.fleets.find(({ id }) => id === replayBuild.id)
+function verifyActualBuild(input: VerifyActualBuildInput): void {
+  for (const replayBuild of input.replayBuilds) {
+    const actualBuild = input.afterCombatViews[0]?.fleets.find(({ id }) => id === replayBuild.id)
     Assert.isDefined(actualBuild)
     expect(actualBuild).toMatchObject(replayBuild)
-    actualWorkerBuildNames.push(actualBuild.name)
+    input.actualWorkerBuildNames.push(actualBuild.name)
   }
-  for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-    const before = preAssaultViews[ownerIndex]
-    const after = afterCombatViews[ownerIndex]
+  for (let ownerIndex = 0; ownerIndex < input.clients.length; ownerIndex += 1) {
+    const before = input.preAssaultViews[ownerIndex]
+    const after = input.afterCombatViews[ownerIndex]
     Assert.isDefined(before)
     Assert.isDefined(after)
     expect(
-      after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === target.id)?.ownerPlayerId,
-    ).toBe(target.ownerPlayerId)
-    expect(after.actions.find(({ id }) => id === assaultActionIds[0])).toMatchObject({ selectedTargets: null, isInProgress: false })
-    expect(after.actions.find(({ id }) => id === assaultActionIds[1])).toMatchObject({ selectedTargets: null, isInProgress: false })
+      after.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets).find(({ id }) => id === input.target.id)?.ownerPlayerId,
+    ).toBe(input.target.ownerPlayerId)
+    expect(after.actions.find(({ id }) => id === input.assaultActionIds[0])).toMatchObject({ selectedTargets: null, isInProgress: false })
+    expect(after.actions.find(({ id }) => id === input.assaultActionIds[1])).toMatchObject({ selectedTargets: null, isInProgress: false })
     for (const resourceType of Object.values(ResourceType)) {
       const spent = resourceType === ResourceType.INFLUENCE ? 2 : resourceType === ResourceType.METAL ? 1 : 0
       expect(after.resources[resourceType].total).toBe(before.resources[resourceType].total - spent)
@@ -428,97 +378,18 @@ function verifyActualBuild({
   }
 }
 
-async function assertEmptyObservedValue12({
-  draw,
-  observed,
-  clients,
-  gameId,
-  emptyTurn,
-  db,
-  clock,
-  turnsRepository,
-  forward,
-  rngSequence,
-  actualWorkerBuildNames,
-  expectedBuildNames,
-  playerIds,
-  buildActionIds,
-  homes,
-  stationed,
-  assaultActionIds,
-  turnProcessor,
-  alice,
-  target,
-  actualForces,
-}: AssertEmptyObservedValue12Input): Promise<void> {
-  const assertEmptyObservedPhase6Value1 = draw.value
-  const assertEmptyObservedPhase6Observed = observed
+async function assertEmptyObservedValue12(input: AssertEmptyObservedValue12Input): Promise<void> {
+  const assertEmptyObservedPhase6Value1 = input.draw.value
+  const assertEmptyObservedPhase6Observed = input.observed
 
-  await assertEmptyObserved2({
-    clients,
-    gameId,
-    emptyTurn,
-    db,
-    clock,
-    turnsRepository,
-    forward,
-    assertEmptyObservedPhase6Observed,
-    rngSequence,
-    actualWorkerBuildNames,
-    expectedBuildNames,
-    playerIds,
-    buildActionIds,
-    homes,
-    stationed,
-    assaultActionIds,
-    assertEmptyObservedPhase6Value1,
-    turnProcessor,
-    alice,
-    target,
-    actualForces,
-  })
+  await assertEmptyObserved2({ ...input, assertEmptyObservedPhase6Observed, assertEmptyObservedPhase6Value1 })
 }
 
-async function assertEmptyObservedValue13({
-  draw,
-  observed,
-  clients,
-  gameId,
-  emptyTurn,
-  db,
-  clock,
-  turnsRepository,
-  forward,
-  stationed,
-  playerIds,
-  assaultActionIds,
-  turnProcessor,
-  alice,
-  target,
-  actualForces,
-}: AssertEmptyObservedValue13Input): Promise<void> {
-  const assertEmptyObservedPhase8Value1 = draw.value
-  const assertEmptyObservedPhase8Observed = observed
+async function assertEmptyObservedValue13(input: AssertEmptyObservedValue13Input): Promise<void> {
+  const assertEmptyObservedPhase8Value1 = input.draw.value
+  const assertEmptyObservedPhase8Observed = input.observed
 
-  await assertEmptyObserved3({
-    clients,
-    gameId,
-    emptyTurn,
-    db,
-    clock,
-    turnsRepository,
-    forward,
-    assertEmptyObservedPhase8Observed,
-    assertEmptyObservedPhase8Value1,
-    draw,
-    stationed,
-    playerIds,
-    assaultActionIds,
-    turnProcessor,
-    alice,
-    target,
-    actualForces,
-  })
+  await assertEmptyObserved3({ ...input, assertEmptyObservedPhase8Observed, assertEmptyObservedPhase8Value1 })
 }
 
 type VerifyOwnerIndexInput = {

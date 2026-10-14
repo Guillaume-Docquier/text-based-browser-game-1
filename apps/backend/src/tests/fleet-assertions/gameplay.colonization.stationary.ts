@@ -20,30 +20,19 @@ import { getPlanets, getFleetAt, processTurn } from "../colonization/gameplay.co
 import { SeedOutpost, logReceipt, playerIdFor } from "../colonization/gameplay.colonization.ts"
 import { assertFindPlayerAction2 } from "./gameplay.colonization.stationary-2.ts"
 
-export async function assertJourney2({
-  journey,
-  home,
-  target,
-  selectedView,
-  colonizeActionId,
-  sourceFleet,
-  sourceRemainder,
-  departedView,
-  player,
-  gameId,
-}: AssertJourney2Input): Promise<void> {
-  expect(journey).toMatchObject({
+export async function assertJourney2(input: AssertJourney2Input): Promise<void> {
+  expect(input.journey).toMatchObject({
     strength: 35,
-    originPlanetId: home.id,
-    destinationPlanetId: target.id,
+    originPlanetId: input.home.id,
+    destinationPlanetId: input.target.id,
     distanceToEnd: expect.closeTo(0.1456435045942517, 12),
     movement: {
       speed: 1,
-      departureTurn: selectedView.turn,
+      departureTurn: input.selectedView.turn,
       submission: {
-        id: colonizeActionId,
+        id: input.colonizeActionId,
         actionDefinitionId: ColonizePlanetTest.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: target.id },
+        selectedTargets: { fleet: input.sourceFleet.id, planet: input.target.id },
         selectedInputs: { strength: 35 },
       },
       pendingArrivalEffects: [
@@ -61,31 +50,36 @@ export async function assertJourney2({
       ],
     },
   })
-  expect(sourceRemainder).toMatchObject({ id: sourceFleet.id, name: sourceFleet.name, strength: 15, originPlanetId: home.id })
-  expect(getPlanets(departedView).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
-  expect(departedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 25, uncommitted: 25 })
-  expect(departedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
-  expect(departedView.actions.find(({ id }) => id === colonizeActionId)?.isInProgress).toBe(true)
+  expect(input.sourceRemainder).toMatchObject({
+    id: input.sourceFleet.id,
+    name: input.sourceFleet.name,
+    strength: 15,
+    originPlanetId: input.home.id,
+  })
+  expect(getPlanets(input.departedView).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBeNull()
+  expect(input.departedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 25, uncommitted: 25 })
+  expect(input.departedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
+  expect(input.departedView.actions.find(({ id }) => id === input.colonizeActionId)?.isInProgress).toBe(true)
 
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: departedView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.departedView.turn,
       submittedActionTargets: {
-        actionId: colonizeActionId,
-        selectedTargets: { fleet: journey.id, planet: target.id },
+        actionId: input.colonizeActionId,
+        selectedTargets: { fleet: input.journey.id, planet: input.target.id },
         selectedInputs: { strength: 34 },
       },
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: departedView.turn,
-      submittedActionTargets: { actionId: colonizeActionId, selectedTargets: null, selectedInputs: null },
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.departedView.turn,
+      submittedActionTargets: { actionId: input.colonizeActionId, selectedTargets: null, selectedInputs: null },
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(departedView)
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toStrictEqual(input.departedView)
 }
 
 export type AssertJourney2Input = {
@@ -101,62 +95,47 @@ export type AssertJourney2Input = {
   gameId: number
 }
 
-export async function assertReplayedArrival({
-  replayedArrival,
-  clock,
-  turnsRepository,
-  turnProcessor,
-  player,
-  gameId,
-  departedView,
-  target,
-  home,
-  sourceFleet,
-  colonizeActionId,
-  selectedView,
-  arrivalInput,
-}: AssertReplayedArrivalInput): Promise<void> {
-  expect(replayedArrival.arrivedAtTick).toBe(3)
+export async function assertReplayedArrival(input: AssertReplayedArrivalInput): Promise<void> {
+  expect(input.replayedArrival.arrivedAtTick).toBe(3)
 
-  const arrivedView = await processTurn({
-    clock,
-    turnsRepository,
-    turnProcessor,
-    client: player.client,
-    gameId,
-    turn: departedView.turn,
-  })
-  const claimedFleet = getFleetAt(arrivedView, arrivedView.player.id, target.id, 15)
-  expect(getPlanets(arrivedView).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(arrivedView.player.id)
+  const arrivedView = await processTurn({ ...input, client: input.player.client, turn: input.departedView.turn })
+  const claimedFleet = getFleetAt(arrivedView, arrivedView.player.id, input.target.id, 15)
+  expect(getPlanets(arrivedView).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBe(arrivedView.player.id)
   expect(claimedFleet.strength).toBe(15)
   expect(claimedFleet.movement).toBeUndefined()
-  expect(getFleetAt(arrivedView, arrivedView.player.id, home.id, 15)).toMatchObject({ id: sourceFleet.id })
+  expect(getFleetAt(arrivedView, arrivedView.player.id, input.home.id, 15)).toMatchObject({ id: input.sourceFleet.id })
   expect(arrivedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 25, uncommitted: 25 })
   expect(arrivedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
   expect(arrivedView.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
-  expect(arrivedView.actions.find(({ id }) => id === colonizeActionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
+  expect(arrivedView.actions.find(({ id }) => id === input.colonizeActionId)).toMatchObject({ selectedTargets: null, isInProgress: false })
   logReceipt("[C3-14 public natural route receipt]", {
-    gameId,
+    gameId: input.gameId,
     seed: 1234,
     player: arrivedView.player.id,
-    home: { id: home.id, name: home.name, coordinates: home.coordinates, x: home.x, y: home.y },
-    target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
+    home: { id: input.home.id, name: input.home.name, coordinates: input.home.coordinates, x: input.home.x, y: input.home.y },
+    target: { id: input.target.id, name: input.target.name, coordinates: input.target.coordinates, x: input.target.x, y: input.target.y },
     routeDistance: 1.1456435045942517,
     buildSubmissions: 5,
-    departure: { turn: selectedView.turn, selected: 35, sourceRemainder: 15, journeyForce: 35, remainingDistance: 0.1456435045942517 },
+    departure: {
+      turn: input.selectedView.turn,
+      selected: 35,
+      sourceRemainder: 15,
+      journeyForce: 35,
+      remainingDistance: 0.1456435045942517,
+    },
     arrival: { turn: arrivedView.turn, tick: 3, owner: arrivedView.player.id, targetForce: claimedFleet.strength },
     observedReplay: {
       source: "captured genuine worker input before real worker processing",
-      inputTurn: arrivalInput.turn,
-      arrivedAtTick: replayedArrival.arrivedAtTick,
+      inputTurn: input.arrivalInput.turn,
+      arrivedAtTick: input.replayedArrival.arrivedAtTick,
     },
     resources: {
       influence: arrivedView.resources[ResourceType.INFLUENCE].total,
       fuel: arrivedView.resources[ResourceType.FUEL].total,
       colony: arrivedView.resources[ResourceType.COLONY].total,
     },
-    pendingActionAfterDeparture: departedView.actions.find(({ id }) => id === colonizeActionId),
-    releasedActionAfterArrival: arrivedView.actions.find(({ id }) => id === colonizeActionId),
+    pendingActionAfterDeparture: input.departedView.actions.find(({ id }) => id === input.colonizeActionId),
+    releasedActionAfterArrival: arrivedView.actions.find(({ id }) => id === input.colonizeActionId),
   })
 }
 
@@ -176,21 +155,13 @@ export type AssertReplayedArrivalInput = {
   arrivalInput: ReturnType<typeof reverseWorkerInputEnumeration>
 }
 
-export async function assertMoveDistance({
-  moveDestination,
-  moveDistance,
-  movePlayer,
-  moveGameId,
-  moveColonizePending,
-  moveAction,
-  sourceWithFifteen,
-}: AssertMoveDistanceInput): Promise<void> {
+export async function assertMoveDistance(input: AssertMoveDistanceInput): Promise<void> {
   expect({
-    id: moveDestination.id,
-    name: moveDestination.name,
-    coordinates: moveDestination.coordinates,
-    x: moveDestination.x,
-    y: moveDestination.y,
+    id: input.moveDestination.id,
+    name: input.moveDestination.name,
+    coordinates: input.moveDestination.coordinates,
+    x: input.moveDestination.x,
+    y: input.moveDestination.y,
   }).toStrictEqual({
     id: "3f56a5c2-d379-5b15-a6c5-1d5948724fea",
     name: "planet 499054",
@@ -198,13 +169,13 @@ export async function assertMoveDistance({
     x: 58.43825730690875,
     y: 49.61937512280339,
   })
-  expect(moveDistance).toBeCloseTo(0.0002590998724286934, 12)
-  await movePlayer.client.gameplay.updateActionSubmission.mutate({
-    gameId: moveGameId,
-    turn: moveColonizePending.turn,
+  expect(input.moveDistance).toBeCloseTo(0.0002590998724286934, 12)
+  await input.movePlayer.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.moveGameId,
+    turn: input.moveColonizePending.turn,
     submittedActionTargets: {
-      actionId: moveAction.id,
-      selectedTargets: { fleet: sourceWithFifteen.id, planet: moveDestination.id },
+      actionId: input.moveAction.id,
+      selectedTargets: { fleet: input.sourceWithFifteen.id, planet: input.moveDestination.id },
       selectedInputs: { strength: 5 },
     },
   })
@@ -220,50 +191,41 @@ export type AssertMoveDistanceInput = {
   sourceWithFifteen: Fleet
 }
 
-export async function assertReplayedMovedFive({
-  replayedMovedFive,
-  moveClock,
-  moveTurns,
-  moveProcessor,
-  movePlayer,
-  moveGameId,
-  simultaneousSelections,
-  moveFixture,
-  moveHome,
-  moveSource,
-  moveDestination,
-  moveColonizeId,
-  moveDistance,
-  moveInput,
-}: AssertReplayedMovedFiveInput): Promise<void> {
-  expect(replayedMovedFive.arrivedAtTick).toBe(1)
+export async function assertReplayedMovedFive(input: AssertReplayedMovedFiveInput): Promise<void> {
+  expect(input.replayedMovedFive.arrivedAtTick).toBe(1)
   const bothInProgress = await processTurn({
-    clock: moveClock,
-    turnsRepository: moveTurns,
-    turnProcessor: moveProcessor,
-    client: movePlayer.client,
-    gameId: moveGameId,
-    turn: simultaneousSelections.turn,
+    clock: input.moveClock,
+    turnsRepository: input.moveTurns,
+    turnProcessor: input.moveProcessor,
+    client: input.movePlayer.client,
+    gameId: input.moveGameId,
+    turn: input.simultaneousSelections.turn,
   })
-  expect(getPlanets(bothInProgress).find(({ id }) => id === moveFixture.target.id)?.ownerPlayerId).toBe(bothInProgress.player.id)
-  expect(getFleetAt(bothInProgress, bothInProgress.player.id, moveHome.id, 10)).toMatchObject({ id: moveSource.id })
-  const movedFive = getFleetAt(bothInProgress, bothInProgress.player.id, moveDestination.id, 5)
+  expect(getPlanets(bothInProgress).find(({ id }) => id === input.moveFixture.target.id)?.ownerPlayerId).toBe(bothInProgress.player.id)
+  expect(getFleetAt(bothInProgress, bothInProgress.player.id, input.moveHome.id, 10)).toMatchObject({ id: input.moveSource.id })
+  const movedFive = getFleetAt(bothInProgress, bothInProgress.player.id, input.moveDestination.id, 5)
   expect(movedFive.ownerPlayerId).toBe(bothInProgress.player.id)
   expect(movedFive.movement).toBeUndefined()
-  expect(movedFive.id).toBe(replayedMovedFive.id)
+  expect(movedFive.id).toBe(input.replayedMovedFive.id)
   expect(bothInProgress.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 22, uncommitted: 22 })
   expect(bothInProgress.resources[ResourceType.FUEL]).toStrictEqual({ total: 9, uncommitted: 9 })
-  expect(bothInProgress.actions.find(({ id }) => id === moveColonizeId)?.isInProgress).toBe(false)
+  expect(bothInProgress.actions.find(({ id }) => id === input.moveColonizeId)?.isInProgress).toBe(false)
   logReceipt("[C3-14 public reservation positive-control receipt]", {
-    gameId: moveGameId,
-    home: { id: moveHome.id, name: moveHome.name, coordinates: moveHome.coordinates, x: moveHome.x, y: moveHome.y },
+    gameId: input.moveGameId,
+    home: {
+      id: input.moveHome.id,
+      name: input.moveHome.name,
+      coordinates: input.moveHome.coordinates,
+      x: input.moveHome.x,
+      y: input.moveHome.y,
+    },
     moveDestination: {
-      id: moveDestination.id,
-      name: moveDestination.name,
-      coordinates: moveDestination.coordinates,
-      x: moveDestination.x,
-      y: moveDestination.y,
-      distance: moveDistance,
+      id: input.moveDestination.id,
+      name: input.moveDestination.name,
+      coordinates: input.moveDestination.coordinates,
+      x: input.moveDestination.x,
+      y: input.moveDestination.y,
+      distance: input.moveDistance,
     },
     initialSource: 15,
     ordinaryMove: {
@@ -272,7 +234,7 @@ export async function assertReplayedMovedFive({
       remainingSource: 10,
       configuredSpeed: 0.1,
     },
-    moveArrivalReplay: { inputTurn: moveInput.turn, arrivedAtTick: replayedMovedFive.arrivedAtTick },
+    moveArrivalReplay: { inputTurn: input.moveInput.turn, arrivedAtTick: input.replayedMovedFive.arrivedAtTick },
     colonizeInstanceRemainedLockedUntilResolution: true,
     resourcesAfterBothCosts: { influence: 22, fuel: 9 },
   })
@@ -295,21 +257,12 @@ export type AssertReplayedMovedFiveInput = {
   moveInput: ReturnType<typeof reverseWorkerInputEnumeration>
 }
 
-export async function assertOutOfRangeDistance({
-  outOfRangeTarget,
-  home,
-  player,
-  gameId,
-  builtView,
-  seedOutpostAction,
-  sourceFleet,
-  target,
-}: AssertOutOfRangeDistanceInput): Promise<void> {
-  verifyOutOfRangeDistance({ outOfRangeTarget, home })
+export async function assertOutOfRangeDistance(input: AssertOutOfRangeDistanceInput): Promise<void> {
+  verifyOutOfRangeDistance({ ...input })
 
-  await verifyBeforeOutOfRangeAttempt({ player, gameId, builtView, seedOutpostAction, sourceFleet, outOfRangeTarget, target })
+  await verifyBeforeOutOfRangeAttempt({ ...input })
 
-  await verifyQuotaThirtyView({ player, gameId, builtView, seedOutpostAction, sourceFleet, target })
+  await verifyQuotaThirtyView({ ...input })
 }
 
 export type AssertOutOfRangeDistanceInput = {
@@ -323,13 +276,8 @@ export type AssertOutOfRangeDistanceInput = {
   target: Planet
 }
 
-export function assertActualWorkerInput2({
-  actualWorkerInput,
-  seedOutpostAction,
-  sourceFleet,
-  target,
-}: AssertActualWorkerInput2Input): void {
-  expect(actualWorkerInput.ruleset.actionDefinitions[SeedOutpost.id]).toMatchObject({
+export function assertActualWorkerInput2(input: AssertActualWorkerInput2Input): void {
+  expect(input.actualWorkerInput.ruleset.actionDefinitions[SeedOutpost.id]).toMatchObject({
     id: "TEST_SEED_OUTPOST",
     name: "Seed Outpost",
     tier: "IMPROVED",
@@ -348,8 +296,8 @@ export function assertActualWorkerInput2({
       },
     ],
   })
-  expect(actualWorkerInput.submittedActions.find(({ id }) => id === seedOutpostAction.id)).toMatchObject({
-    selectedTargets: { force: sourceFleet.id, site: target.id },
+  expect(input.actualWorkerInput.submittedActions.find(({ id }) => id === input.seedOutpostAction.id)).toMatchObject({
+    selectedTargets: { force: input.sourceFleet.id, site: input.target.id },
     selectedInputs: { quota: 45 },
   })
 }
@@ -361,49 +309,35 @@ export type AssertActualWorkerInput2Input = {
   target: Planet
 }
 
-export async function assertReplayedSeedFleet({
-  replayedSeedFleet,
-  clock,
-  turnsRepository,
-  turnProcessor,
-  player,
-  gameId,
-  selectedView,
-  target,
-  home,
-  sourceFleet,
-  seedOutpostAction,
-  actualWorkerInput,
-}: AssertReplayedSeedFleetInput): Promise<void> {
-  expect(replayedSeedFleet.arrivedAtTick).toBe(12)
+export async function assertReplayedSeedFleet(options: AssertReplayedSeedFleetInput): Promise<void> {
+  expect(options.replayedSeedFleet.arrivedAtTick).toBe(12)
 
-  const resolvedView = await processTurn({
-    clock,
-    turnsRepository,
-    turnProcessor,
-    client: player.client,
-    gameId,
-    turn: selectedView.turn,
-  })
-  const claimedFleet = getFleetAt(resolvedView, resolvedView.player.id, target.id, 15)
-  expect(getPlanets(resolvedView).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(resolvedView.player.id)
+  const resolvedView = await processTurn({ ...options, client: options.player.client, turn: options.selectedView.turn })
+  const claimedFleet = getFleetAt(resolvedView, resolvedView.player.id, options.target.id, 15)
+  expect(getPlanets(resolvedView).find(({ id }) => id === options.target.id)?.ownerPlayerId).toBe(resolvedView.player.id)
   expect(claimedFleet.strength).toBe(15)
   expect(claimedFleet.movement).toBeUndefined()
-  expect(getFleetAt(resolvedView, resolvedView.player.id, home.id, 5)).toMatchObject({ id: sourceFleet.id })
+  expect(getFleetAt(resolvedView, resolvedView.player.id, options.home.id, 5)).toMatchObject({ id: options.sourceFleet.id })
   expect(resolvedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 43, uncommitted: 43 })
   expect(resolvedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 8, uncommitted: 8 })
   expect(resolvedView.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
-  expect(resolvedView.actions.find(({ id }) => id === seedOutpostAction.id)).toMatchObject({
+  expect(resolvedView.actions.find(({ id }) => id === options.seedOutpostAction.id)).toMatchObject({
     actionDefinitionId: SeedOutpost.id,
     selectedTargets: null,
     isInProgress: false,
   })
   logReceipt("[C3-20 public alternate natural-route receipt]", {
-    gameId,
+    gameId: options.gameId,
     seed: 1234,
     player: resolvedView.player.id,
-    home: { id: home.id, name: home.name, coordinates: home.coordinates, x: home.x, y: home.y },
-    target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
+    home: { id: options.home.id, name: options.home.name, coordinates: options.home.coordinates, x: options.home.x, y: options.home.y },
+    target: {
+      id: options.target.id,
+      name: options.target.name,
+      coordinates: options.target.coordinates,
+      x: options.target.x,
+      y: options.target.y,
+    },
     routeDistance: 1.1456435045942517,
     definition: {
       id: SeedOutpost.id,
@@ -415,12 +349,12 @@ export async function assertReplayedSeedFleet({
     arrival: { tick: 12, selectedForce: 45, targetForce: claimedFleet.strength, homeRemainder: 5 },
     observedReplay: {
       source: "captured genuine worker input before real worker processing",
-      inputTurn: actualWorkerInput.turn,
-      arrivedAtTick: replayedSeedFleet.arrivedAtTick,
+      inputTurn: options.actualWorkerInput.turn,
+      arrivedAtTick: options.replayedSeedFleet.arrivedAtTick,
     },
     payment: { influence: 7, fuel: 2, remaining: { influence: 43, fuel: 8 } },
-    loadedActionDefinition: actualWorkerInput.ruleset.actionDefinitions[SeedOutpost.id],
-    loadedSubmission: actualWorkerInput.submittedActions.find(({ id }) => id === seedOutpostAction.id),
+    loadedActionDefinition: options.actualWorkerInput.ruleset.actionDefinitions[SeedOutpost.id],
+    loadedSubmission: options.actualWorkerInput.submittedActions.find(({ id }) => id === options.seedOutpostAction.id),
   })
 }
 
@@ -511,13 +445,13 @@ export type AssertFindPlayerAction2Input = {
   turnProcessor: TurnProcessor
 }
 
-function verifyOutOfRangeDistance({ outOfRangeTarget, home }: VerifyOutOfRangeDistanceInput): void {
+function verifyOutOfRangeDistance(input: VerifyOutOfRangeDistanceInput): void {
   expect({
-    id: outOfRangeTarget.id,
-    name: outOfRangeTarget.name,
-    coordinates: outOfRangeTarget.coordinates,
-    x: outOfRangeTarget.x,
-    y: outOfRangeTarget.y,
+    id: input.outOfRangeTarget.id,
+    name: input.outOfRangeTarget.name,
+    coordinates: input.outOfRangeTarget.coordinates,
+    x: input.outOfRangeTarget.x,
+    y: input.outOfRangeTarget.y,
   }).toStrictEqual({
     id: "72f899ea-98e3-5c0e-b896-f41c0b3bf6c5",
     name: "planet 596186",
@@ -525,80 +459,65 @@ function verifyOutOfRangeDistance({ outOfRangeTarget, home }: VerifyOutOfRangeDi
     x: 48.592171610357454,
     y: 51.996922937376276,
   })
-  const outOfRangeDistance = Math.hypot(home.x - outOfRangeTarget.x, home.y - outOfRangeTarget.y)
+  const outOfRangeDistance = Math.hypot(input.home.x - input.outOfRangeTarget.x, input.home.y - input.outOfRangeTarget.y)
   expect(outOfRangeDistance).toBeCloseTo(10.129282735155494, 12)
-  expect(outOfRangeTarget.ownerPlayerId).toBeNull()
+  expect(input.outOfRangeTarget.ownerPlayerId).toBeNull()
 }
 
-async function verifyBeforeOutOfRangeAttempt({
-  player,
-  gameId,
-  builtView,
-  seedOutpostAction,
-  sourceFleet,
-  outOfRangeTarget,
-  target,
-}: VerifyBeforeOutOfRangeAttemptInput): Promise<void> {
-  const beforeOutOfRangeAttempt = await player.client.gameplay.getPlayerView.query({ gameId })
+async function verifyBeforeOutOfRangeAttempt(input: VerifyBeforeOutOfRangeAttemptInput): Promise<void> {
+  const beforeOutOfRangeAttempt = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: builtView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.builtView.turn,
       submittedActionTargets: {
-        actionId: seedOutpostAction.id,
-        selectedTargets: { force: sourceFleet.id, site: outOfRangeTarget.id },
+        actionId: input.seedOutpostAction.id,
+        selectedTargets: { force: input.sourceFleet.id, site: input.outOfRangeTarget.id },
         selectedInputs: { quota: 30 },
       },
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeOutOfRangeAttempt)
-  const unchangedAfterQuotaFailure = await player.client.gameplay.getPlayerView.query({ gameId })
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toStrictEqual(beforeOutOfRangeAttempt)
+  const unchangedAfterQuotaFailure = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: builtView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.builtView.turn,
       submittedActionTargets: {
-        actionId: seedOutpostAction.id,
-        selectedTargets: { force: sourceFleet.id, site: target.id },
+        actionId: input.seedOutpostAction.id,
+        selectedTargets: { force: input.sourceFleet.id, site: input.target.id },
         selectedInputs: { quota: 29 },
       },
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(unchangedAfterQuotaFailure)
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toStrictEqual(unchangedAfterQuotaFailure)
 }
 
-async function verifyQuotaThirtyView({
-  player,
-  gameId,
-  builtView,
-  seedOutpostAction,
-  sourceFleet,
-  target,
-}: VerifyQuotaThirtyViewInput): Promise<void> {
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: builtView.turn,
+async function verifyQuotaThirtyView(input: VerifyQuotaThirtyViewInput): Promise<void> {
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.builtView.turn,
     submittedActionTargets: {
-      actionId: seedOutpostAction.id,
-      selectedTargets: { force: sourceFleet.id, site: target.id },
+      actionId: input.seedOutpostAction.id,
+      selectedTargets: { force: input.sourceFleet.id, site: input.target.id },
       selectedInputs: { quota: 30 },
     },
   })
-  const quotaThirtyView = await player.client.gameplay.getPlayerView.query({ gameId })
-  expect(quotaThirtyView.actions.find(({ id }) => id === seedOutpostAction.id)).toMatchObject({
+  const quotaThirtyView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(quotaThirtyView.actions.find(({ id }) => id === input.seedOutpostAction.id)).toMatchObject({
     actionDefinitionId: SeedOutpost.id,
-    selectedTargets: { force: sourceFleet.id, site: target.id },
+    selectedTargets: { force: input.sourceFleet.id, site: input.target.id },
     selectedInputs: { quota: 30 },
   })
   expect(quotaThirtyView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 43 })
   expect(quotaThirtyView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
     turn: quotaThirtyView.turn,
     submittedActionTargets: {
-      actionId: seedOutpostAction.id,
-      selectedTargets: { force: sourceFleet.id, site: target.id },
+      actionId: input.seedOutpostAction.id,
+      selectedTargets: { force: input.sourceFleet.id, site: input.target.id },
       selectedInputs: { quota: 45 },
     },
   })

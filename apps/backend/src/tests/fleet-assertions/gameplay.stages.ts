@@ -36,12 +36,12 @@ import {
 } from "../fleet-concurrency/gameplay.ts"
 import { assertUntouchedTarget, assertObservedPreResolutionRngState, assertCapturedInput2 } from "./gameplay.ts"
 
-export async function createClockSetup({ server }: CreateClockSetupInput): Promise<CreateClockSetupResult> {
+export async function createClockSetup(input: CreateClockSetupInput): Promise<CreateClockSetupResult> {
   const clock = new ControlledClock({ startDate: Clock.now() })
-  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
+  const rulesetsRepository = new RulesetsRepository({ db: input.server.database, logger: Logger.get() })
   Assert.isSuccess(await rulesetsRepository.upsertRuleset(PostgresColonizeWorkerRuleset))
-  const alice = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
-  const bob = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
+  const alice = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
+  const bob = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
 
   const { createdGameId: gameId } = await alice.client.games.create.mutate({
     configuration: createGameConfigurationStub({
@@ -65,7 +65,7 @@ export async function createClockSetup({ server }: CreateClockSetupInput): Promi
   await bob.client.games.join.mutate({ gameId: untouchedGameId })
   await alice.client.games.startGame.mutate({ gameId: untouchedGameId })
 
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.server.database, clock })
   const clients = [alice, bob] as const
   return { clock, alice, bob, gameId, untouchedGameId, turnProcessor, turnsRepository, clients }
 }
@@ -83,18 +83,10 @@ export type CreateClockSetupResult = {
   clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
 }
 
-export async function createHomeASetup({
-  readViews,
-  clients,
-  alice,
-  untouchedGameId,
-  submit,
-  processDeadlineTurn,
-  gameId,
-}: CreateHomeASetupInput): Promise<CreateHomeASetupResult> {
-  const initialViews = await readViews()
+export async function createHomeASetup(input: CreateHomeASetupInput): Promise<CreateHomeASetupResult> {
+  const initialViews = await input.readViews()
   const allPlanets = initialViews[0].galaxy.systems.flatMap(({ planets }) => planets)
-  const homes = clients.map(({ account }) => allPlanets.find(({ ownerPlayerId }) => ownerPlayerId === branded<PlayerId>(account.id)))
+  const homes = input.clients.map(({ account }) => allPlanets.find(({ ownerPlayerId }) => ownerPlayerId === branded<PlayerId>(account.id)))
   const homeA = homes[0]
   const homeB = homes[1]
   Assert.isDefined(homeA)
@@ -112,23 +104,13 @@ export async function createHomeASetup({
   expect(distances).toStrictEqual([2.404059226669645, 2.4665348802971394])
   expect(target.ownerPlayerId).toBeNull()
 
-  const untouchedInitialView = await alice.client.gameplay.getPlayerView.query({ gameId: untouchedGameId })
+  const untouchedInitialView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.untouchedGameId })
   const untouchedTarget = untouchedInitialView.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === target.id)
   Assert.isDefined(untouchedTarget)
 
-  await assertUntouchedTarget({
-    untouchedTarget,
-    untouchedInitialView,
-    readViews,
-    clients,
-    homes,
-    submit,
-    processDeadlineTurn,
-    target,
-    gameId,
-  })
+  await assertUntouchedTarget({ ...input, untouchedTarget, untouchedInitialView, homes, target })
 
-  const stationedViews = await readViews()
+  const stationedViews = await input.readViews()
   return { homeA, homeB, target, distances, untouchedInitialView, stationedViews }
 }
 
@@ -151,67 +133,54 @@ export type CreateHomeASetupResult = {
   stationedViews: [PlayerView, PlayerView]
 }
 
-export async function createObservedPreResolutionRngStateSetup({
-  observed,
-  alice,
-  bob,
-  colonizeActionIds,
-  target,
-  stationedViews,
-  stationedFleets,
-  turnProcessor,
-  gameId,
-}: CreateObservedPreResolutionRngStateSetupInput): Promise<CreateObservedPreResolutionRngStateSetupResult> {
-  const observedPreResolutionRngState = observed.rngState
+export async function createObservedPreResolutionRngStateSetup(
+  input: CreateObservedPreResolutionRngStateSetupInput,
+): Promise<CreateObservedPreResolutionRngStateSetupResult> {
+  const observedPreResolutionRngState = input.observed.rngState
 
-  const assertObservedPreResolutionRngStatePhase2Observed = observed
+  const assertObservedPreResolutionRngStatePhase2Observed = input.observed
 
-  assertObservedPreResolutionRngState({
-    observedPreResolutionRngState,
-    alice,
-    bob,
-    assertObservedPreResolutionRngStatePhase2Observed,
-    colonizeActionIds,
-    target,
-    stationedViews,
-    stationedFleets,
-  })
+  assertObservedPreResolutionRngState({ ...input, observedPreResolutionRngState, assertObservedPreResolutionRngStatePhase2Observed })
 
-  const forwardReplay = replayWorkerInput(observed)
-  const reversedReplay = replayWorkerInput(reverseWorkerInputEnumeration(observed))
+  const forwardReplay = replayWorkerInput(input.observed)
+  const reversedReplay = replayWorkerInput(reverseWorkerInputEnumeration(input.observed))
   // Independently apply the documented two-entry Fisher-Yates draw to the pinned canonical Alice/Bob order.
   const tieOraclePrng = mulberry32Prng(observedPreResolutionRngState.generatorState)
   const firstTieShuffleDraw = tieOraclePrng.next()
-  const expectedOwner = expectedTwoPlayerTieWinner(firstTieShuffleDraw, alice.account.id, bob.account.id)
+  const expectedOwner = expectedTwoPlayerTieWinner(firstTieShuffleDraw, input.alice.account.id, input.bob.account.id)
   const expectedNextRngState = {
     generatorState: tieOraclePrng.getState(),
     spareNormal: observedPreResolutionRngState.spareNormal,
   }
-  expect(forwardReplay.resolved.planets[target.id]?.ownerPlayerId).toBe(expectedOwner)
+  expect(forwardReplay.resolved.planets[input.target.id]?.ownerPlayerId).toBe(expectedOwner)
   expect(forwardReplay.rngState).toStrictEqual(expectedNextRngState)
-  expect(reversedReplay.resolved.planets[target.id]?.ownerPlayerId).toBe(forwardReplay.resolved.planets[target.id]?.ownerPlayerId)
+  expect(reversedReplay.resolved.planets[input.target.id]?.ownerPlayerId).toBe(
+    forwardReplay.resolved.planets[input.target.id]?.ownerPlayerId,
+  )
   expect(reversedReplay.actionOutcomes).toStrictEqual(forwardReplay.actionOutcomes)
   expect(reversedReplay.rngState).toStrictEqual(forwardReplay.rngState)
   expect(forwardReplay.resolved.planetOwnershipChanges).toHaveLength(1)
 
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-  const aliceAfter = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const bobAfter = await bob.client.gameplay.getPlayerView.query({ gameId })
-  const replayOwner = forwardReplay.resolved.planets[target.id]?.ownerPlayerId
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
+  const aliceAfter = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const bobAfter = await input.bob.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const replayOwner = forwardReplay.resolved.planets[input.target.id]?.ownerPlayerId
   Assert.isDefined(replayOwner)
   expect(replayOwner).toBe(expectedOwner)
-  const persistedOwner = aliceAfter.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === target.id)?.ownerPlayerId
+  const persistedOwner = aliceAfter.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === input.target.id)?.ownerPlayerId
   expect(persistedOwner).toBe(expectedOwner)
-  expect(bobAfter.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === target.id)?.ownerPlayerId).toBe(expectedOwner)
-  const alicePlayerId = branded<PlayerId>(alice.account.id)
-  const bobPlayerId = branded<PlayerId>(bob.account.id)
+  expect(bobAfter.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBe(
+    expectedOwner,
+  )
+  const alicePlayerId = branded<PlayerId>(input.alice.account.id)
+  const bobPlayerId = branded<PlayerId>(input.bob.account.id)
   const finalViews = [aliceAfter, bobAfter]
   const aliceFinalView = findViewForPlayer(finalViews, alicePlayerId)
   const bobFinalView = findViewForPlayer(finalViews, bobPlayerId)
   Assert.isDefined(aliceFinalView)
   Assert.isDefined(bobFinalView)
-  const aliceSurvivor = findStationaryFleetAt(aliceFinalView, alicePlayerId, target.id)
-  const bobSurvivor = findStationaryFleetAt(bobFinalView, bobPlayerId, target.id)
+  const aliceSurvivor = findStationaryFleetAt(aliceFinalView, alicePlayerId, input.target.id)
+  const bobSurvivor = findStationaryFleetAt(bobFinalView, bobPlayerId, input.target.id)
   Assert.isDefined(aliceSurvivor)
   Assert.isDefined(bobSurvivor)
   return {
@@ -257,23 +226,11 @@ export type CreateObservedPreResolutionRngStateSetupResult = {
   bobSurvivor: Fleet
 }
 
-export async function createViewsSetup({
-  readViews,
-  alice,
-  bob,
-  submitAction,
-  buildActionDefinitionId,
-  clock,
-  turnProcessor,
-  turnsRepository,
-  gameId,
-  builtStrength,
-  findPlanetOwner,
-}: CreateViewsSetupInput): Promise<CreateViewsSetupResult> {
-  let views = await readViews()
+export async function createViewsSetup(input: CreateViewsSetupInput): Promise<CreateViewsSetupResult> {
+  let views = await input.readViews()
   const allPlanets = views[0].galaxy.systems.flatMap(({ planets }) => planets)
-  const alicePlayerId = branded<PlayerId>(alice.account.id)
-  const bobPlayerId = branded<PlayerId>(bob.account.id)
+  const alicePlayerId = branded<PlayerId>(input.alice.account.id)
+  const bobPlayerId = branded<PlayerId>(input.bob.account.id)
   const homeA = allPlanets.find(({ ownerPlayerId }) => ownerPlayerId === alicePlayerId)
   const homeB = allPlanets.find(({ ownerPlayerId }) => ownerPlayerId === bobPlayerId)
   const target = allPlanets.find(({ coordinates }) => coordinates === "45:80:45")
@@ -298,22 +255,28 @@ export async function createViewsSetup({
   const aliceInitialView = views[0]
   const bobInitialView = views[1]
   const buildTurn = aliceInitialView.turn
-  await submitAction(alice.client, aliceInitialView, WorkerBuildFleetForty.id, { planet: homeA.id }, {})
-  await submitAction(bob.client, bobInitialView, buildActionDefinitionId, { planet: homeB.id }, {})
-  await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: alice.client, gameId, turn: buildTurn })
-  views = await readViews()
+  await input.submitAction(input.alice.client, aliceInitialView, WorkerBuildFleetForty.id, { planet: homeA.id }, {})
+  await input.submitAction(input.bob.client, bobInitialView, input.buildActionDefinitionId, { planet: homeB.id }, {})
+  await processManualDeadlineTurn({ ...input, client: input.alice.client, turn: buildTurn })
+  views = await input.readViews()
   const aliceBuild = findStationaryFleetAt(views[0], alicePlayerId, homeA.id)
   const bobBuild = findStationaryFleetAt(views[1], bobPlayerId, homeB.id)
   Assert.isDefined(aliceBuild)
   Assert.isDefined(bobBuild)
   expect(aliceBuild.strength).toBe(40)
-  expect(bobBuild.strength).toBe(builtStrength)
-  expect(findPlanetOwner(views[0], target.id)).toBeNull()
+  expect(bobBuild.strength).toBe(input.builtStrength)
+  expect(input.findPlanetOwner(views[0], target.id)).toBeNull()
 
   const stageTurn = views[0].turn
-  await submitAction(alice.client, views[0], MoveFleetExceptional.id, { fleet: aliceBuild.id, planet: target.id }, { strength: 35 })
-  await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: alice.client, gameId, turn: stageTurn })
-  views = await readViews()
+  await input.submitAction(
+    input.alice.client,
+    views[0],
+    MoveFleetExceptional.id,
+    { fleet: aliceBuild.id, planet: target.id },
+    { strength: 35 },
+  )
+  await processManualDeadlineTurn({ ...input, client: input.alice.client, turn: stageTurn })
+  views = await input.readViews()
   const stagedAlice = findStationaryFleetAt(views[0], alicePlayerId, target.id)
   const stagedAliceHomeRemainder = findStationaryFleetAt(views[0], alicePlayerId, homeA.id)
   const stagedBob = findStationaryFleetAt(views[1], bobPlayerId, homeB.id)
@@ -350,45 +313,29 @@ export type CreateViewsSetupResult = {
   stagedBob: Fleet
 }
 
-export async function createPriorityTurnSetup({
-  stagedAlice,
-  stagedAliceHomeRemainder,
-  stagedBob,
-  builtStrength,
-  findPlanetOwner,
-  views,
-  target,
-  submitAction,
-  alice,
-  bob,
-  movingStrength,
-  readViews,
-  clock,
-  turnsRepository,
-  gameId,
-}: CreatePriorityTurnSetupInput): Promise<CreatePriorityTurnSetupResult> {
-  expect(stagedAlice.strength).toBe(35)
-  expect(stagedAliceHomeRemainder.strength).toBe(5)
-  expect(stagedBob.strength).toBe(builtStrength)
-  expect(findPlanetOwner(views[0], target.id)).toBeNull()
+export async function createPriorityTurnSetup(input: CreatePriorityTurnSetupInput): Promise<CreatePriorityTurnSetupResult> {
+  expect(input.stagedAlice.strength).toBe(35)
+  expect(input.stagedAliceHomeRemainder.strength).toBe(5)
+  expect(input.stagedBob.strength).toBe(input.builtStrength)
+  expect(input.findPlanetOwner(input.views[0], input.target.id)).toBeNull()
 
   // Act & Assert
-  const priorityTurn = views[0].turn
-  const aliceColonizeActionId = await submitAction(
-    alice.client,
-    views[0],
+  const priorityTurn = input.views[0].turn
+  const aliceColonizeActionId = await input.submitAction(
+    input.alice.client,
+    input.views[0],
     ColonizeHereTest.id,
-    { fleet: stagedAlice.id, planet: target.id },
+    { fleet: input.stagedAlice.id, planet: input.target.id },
     {},
   )
-  const bobColonizeActionId = await submitAction(
-    bob.client,
-    views[1],
+  const bobColonizeActionId = await input.submitAction(
+    input.bob.client,
+    input.views[1],
     ColonizePlanetSpeedFive.id,
-    { fleet: stagedBob.id, planet: target.id },
-    { strength: movingStrength },
+    { fleet: input.stagedBob.id, planet: input.target.id },
+    { strength: input.movingStrength },
   )
-  const selectedViews = await readViews()
+  const selectedViews = await input.readViews()
   expect(selectedViews.map(({ resources }) => resources[ResourceType.INFLUENCE])).toStrictEqual([
     { total: 95, uncommitted: 70 },
     { total: 98, uncommitted: 73 },
@@ -397,11 +344,11 @@ export async function createPriorityTurnSetup({
     { total: 0, uncommitted: 0 },
     { total: 0, uncommitted: 0 },
   ])
-  expect(findPlanetOwner(selectedViews[0], target.id)).toBeNull()
+  expect(input.findPlanetOwner(selectedViews[0], input.target.id)).toBeNull()
 
-  await markManualDeadlineDue({ clock, turnsRepository })
+  await markManualDeadlineDue({ ...input })
   const observed: TurnToProcessModel | undefined = undefined
-  const rollbackMessage = "Intentional C3-07 worker input observation rollback for game " + gameId
+  const rollbackMessage = "Intentional C3-07 worker input observation rollback for game " + input.gameId
   return { priorityTurn, aliceColonizeActionId, bobColonizeActionId, observed, rollbackMessage }
 }
 
@@ -431,57 +378,33 @@ export type CreatePriorityTurnSetupResult = {
   rollbackMessage: string
 }
 
-export async function createCapturedInputSetup({
-  observed,
-  target,
-  alicePlayerId,
-  bobPlayerId,
-  stagedAlice,
-  stagedBob,
-  homeB,
-  builtStrength,
-  aliceColonizeActionId,
-  bobColonizeActionId,
-  movingStrength,
-  turnProcessor,
-}: CreateCapturedInputSetupInput): Promise<CreateCapturedInputSetupResult> {
-  const capturedInput = observed
+export async function createCapturedInputSetup(input: CreateCapturedInputSetupInput): Promise<CreateCapturedInputSetupResult> {
+  const capturedInput = input.observed
 
   const assertAssertCapturedInputState1Phase4CapturedInput = capturedInput
 
-  assertCapturedInput2({
-    assertAssertCapturedInputState1Phase4CapturedInput,
-    target,
-    alicePlayerId,
-    bobPlayerId,
-    stagedAlice,
-    stagedBob,
-    homeB,
-    builtStrength,
-    aliceColonizeActionId,
-    bobColonizeActionId,
-  })
+  assertCapturedInput2({ ...input, assertAssertCapturedInputState1Phase4CapturedInput })
 
   const replay = replayWorkerInput(capturedInput)
-  expect(replay.resolved.planets[target.id]?.ownerPlayerId).toBe(alicePlayerId)
-  expect(replay.resolved.fleets[stagedAlice.id]).toMatchObject({
-    ownerPlayerId: alicePlayerId,
-    originPlanetId: target.id,
+  expect(replay.resolved.planets[input.target.id]?.ownerPlayerId).toBe(input.alicePlayerId)
+  expect(replay.resolved.fleets[input.stagedAlice.id]).toMatchObject({
+    ownerPlayerId: input.alicePlayerId,
+    originPlanetId: input.target.id,
     strength: 15,
   })
-  const bobArrivals = Object.values(replay.resolved.fleets).filter(({ strength }) => strength === movingStrength)
+  const bobArrivals = Object.values(replay.resolved.fleets).filter(({ strength }) => strength === input.movingStrength)
   expect(bobArrivals).toHaveLength(1)
   const bobArrival = bobArrivals[0]
   Assert.isDefined(bobArrival)
   expect(bobArrival).toMatchObject({
-    ownerPlayerId: bobPlayerId,
-    originPlanetId: target.id,
-    strength: movingStrength,
+    ownerPlayerId: input.bobPlayerId,
+    originPlanetId: input.target.id,
+    strength: input.movingStrength,
     arrivedAtTick: 10,
   })
   expect(bobArrival.movement).toBeUndefined()
-  const replayAliceOutcomes = replay.actionOutcomes.find(({ actionId }) => actionId === aliceColonizeActionId)
-  const replayBobOutcomes = replay.actionOutcomes.find(({ actionId }) => actionId === bobColonizeActionId)
+  const replayAliceOutcomes = replay.actionOutcomes.find(({ actionId }) => actionId === input.aliceColonizeActionId)
+  const replayBobOutcomes = replay.actionOutcomes.find(({ actionId }) => actionId === input.bobColonizeActionId)
   Assert.isDefined(replayAliceOutcomes)
   Assert.isDefined(replayBobOutcomes)
   expect(replayAliceOutcomes.outcomes).toContainEqual(
@@ -490,7 +413,7 @@ export async function createCapturedInputSetup({
   expect(replayBobOutcomes.outcomes).toContainEqual(expect.objectContaining({ type: "PREVENTED", reason: "Planet is already claimed" }))
   expect(replay.rngState).toStrictEqual(capturedInput.rngState)
 
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
   return { capturedInput, replay, bobArrival }
 }
 

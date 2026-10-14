@@ -34,22 +34,13 @@ import {
 } from "../colonization/gameplay.colonization.ts"
 import type { AssertFindPlayerAction2Input } from "./gameplay.colonization.stationary.ts"
 
-export async function assertFindPlayerAction2({
-  workerInput,
-  colonizeActionId,
-  player,
-  stationary,
-  target,
-  assertFindPlayerActionState1Resolved,
-  replay,
-  turnProcessor,
-}: AssertFindPlayerAction2Input): Promise<void> {
-  expect(findPlayerAction(workerInput.submittedActions, colonizeActionId, playerIdFor(player))).toMatchObject({
+export async function assertFindPlayerAction2(input: AssertFindPlayerAction2Input): Promise<void> {
+  expect(findPlayerAction(input.workerInput.submittedActions, input.colonizeActionId, playerIdFor(input.player))).toMatchObject({
     actionDefinitionId: SeedOutpostHere.id,
-    selectedTargets: { force: stationary.id, site: target.id },
+    selectedTargets: { force: input.stationary.id, site: input.target.id },
     selectedInputs: {},
   })
-  expect(workerInput.ruleset.actionDefinitions[SeedOutpostHere.id]).toMatchObject({
+  expect(input.workerInput.ruleset.actionDefinitions[SeedOutpostHere.id]).toMatchObject({
     id: "TEST_SEED_OUTPOST_HERE",
     name: "Seed Outpost Here",
     tier: "IMPROVED",
@@ -59,26 +50,32 @@ export async function assertFindPlayerAction2({
     },
     effects: [{ type: "FLEET_COLONIZE", parameters: { strengthRequirement: 30 } }],
   })
-  expect(assertFindPlayerActionState1Resolved.removedFleetIds).toContain(stationary.id)
-  expect(assertFindPlayerActionState1Resolved.fleets[stationary.id]).toBeUndefined()
-  expect(assertFindPlayerActionState1Resolved.planets[target.id]?.ownerPlayerId).toBe(playerIdFor(player))
-  expect(assertFindPlayerActionState1Resolved.planetOwnershipChanges).toStrictEqual([
-    { planetId: target.id, ownerPlayerId: playerIdFor(player) },
+  expect(input.assertFindPlayerActionState1Resolved.removedFleetIds).toContain(input.stationary.id)
+  expect(input.assertFindPlayerActionState1Resolved.fleets[input.stationary.id]).toBeUndefined()
+  expect(input.assertFindPlayerActionState1Resolved.planets[input.target.id]?.ownerPlayerId).toBe(playerIdFor(input.player))
+  expect(input.assertFindPlayerActionState1Resolved.planetOwnershipChanges).toStrictEqual([
+    { planetId: input.target.id, ownerPlayerId: playerIdFor(input.player) },
   ])
-  expect(replay.nextRngState).toStrictEqual(workerInput.rngState)
+  expect(input.replay.nextRngState).toStrictEqual(input.workerInput.rngState)
 
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
 }
 
-export function assertScenarioState2({ target, homes }: AssertScenarioState2Input): void {
-  expect({ id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y }).toStrictEqual({
+export function assertScenarioState2(input: AssertScenarioState2Input): void {
+  expect({
+    id: input.target.id,
+    name: input.target.name,
+    coordinates: input.target.coordinates,
+    x: input.target.x,
+    y: input.target.y,
+  }).toStrictEqual({
     id: "838f0f2a-3fe5-5c47-bf22-ce0d74d8653b",
     name: "planet 457985",
     coordinates: "54:59:10",
     x: 49.41298329646574,
     y: 55.182944416215065,
   })
-  expect(homes.map(({ id, name, coordinates, x, y }) => ({ id, name, coordinates, x, y }))).toStrictEqual([
+  expect(input.homes.map(({ id, name, coordinates, x, y }) => ({ id, name, coordinates, x, y }))).toStrictEqual([
     {
       id: "2e5272ce-7a3a-545c-ab41-a924ca3bb5b5",
       name: "planet 624762",
@@ -268,40 +265,27 @@ export type AssertPublicStateInput = {
 
 export type AssertPublicStateResult = { stage: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>; views: PlayerView[] }
 
-export function assertPersistedNextRngState({
-  savedNextTurn,
-  finalTurnInput,
-  gameId,
-  target,
-  homes,
-  distances,
-  bobJourney,
-  assertPersistedNextRngStatePhase12Value1,
-  finalReplay,
-  ownerByFleet,
-  views,
-  homeIdsByPlayer,
-}: AssertPersistedNextRngStateInput): void {
-  const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-  expect(persistedNextRngState).toStrictEqual(finalTurnInput.rngState)
+export function assertPersistedNextRngState(input: AssertPersistedNextRngStateInput): void {
+  const persistedNextRngState = { generatorState: input.savedNextTurn.rngGeneratorState, spareNormal: input.savedNextTurn.rngSpareNormal }
+  expect(persistedNextRngState).toStrictEqual(input.finalTurnInput.rngState)
   logReceipt("[C3-08 public Assault receipt]", {
-    gameId,
+    gameId: input.gameId,
     seed: 1,
-    target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
-    homes: homes.map(({ id, name, coordinates, x, y }) => ({ id, name, coordinates, x, y })),
-    distances,
+    target: { id: input.target.id, name: input.target.name, coordinates: input.target.coordinates, x: input.target.x, y: input.target.y },
+    homes: input.homes.map(({ id, name, coordinates, x, y }) => ({ id, name, coordinates, x, y })),
+    distances: input.distances,
     stagedForces: [35, 70, 48],
     stagedArrivalTicks: { alice: 3, carol: 10 },
-    bobJourneyDistanceBeforeFinalTurn: bobJourney.distanceToEnd,
-    positiveTickArrival: assertPersistedNextRngStatePhase12Value1.fleets[bobJourney.id]?.arrivedAtTick,
-    loadedRngState: finalTurnInput.rngState,
-    replayNextRngState: finalReplay.nextRngState,
+    bobJourneyDistanceBeforeFinalTurn: input.bobJourney.distanceToEnd,
+    positiveTickArrival: input.assertPersistedNextRngStatePhase12Value1.fleets[input.bobJourney.id]?.arrivedAtTick,
+    loadedRngState: input.finalTurnInput.rngState,
+    replayNextRngState: input.finalReplay.nextRngState,
     persistedNextRngState,
-    replaySurvivors: ownerByFleet,
-    persistedOwner: getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId,
-    persistedForces: views.map((view, index) => {
-      const ownerPlayerId = required(homeIdsByPlayer[index])
-      const fleet = findPublicFleet(view.fleets, { ownerPlayerId, originPlanetId: target.id, stationary: true })
+    replaySurvivors: input.ownerByFleet,
+    persistedOwner: getPlanets(required(input.views[0])).find(({ id }) => id === input.target.id)?.ownerPlayerId,
+    persistedForces: input.views.map((view, index) => {
+      const ownerPlayerId = required(input.homeIdsByPlayer[index])
+      const fleet = findPublicFleet(view.fleets, { ownerPlayerId, originPlanetId: input.target.id, stationary: true })
       return { playerId: ownerPlayerId, strength: fleet?.strength }
     }),
   })

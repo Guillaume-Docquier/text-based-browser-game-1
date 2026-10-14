@@ -121,200 +121,152 @@ describe("Seed Outpost API boundary", () => {
   })
 })
 
-async function assertOutOfRange({
-  home,
-  outOfRangeSite,
-  player,
-  createdGameId,
-  view,
-  firstOutpost,
-  source,
-  firstSite,
-  secondOutpost,
-}: AssertOutOfRangeInput): Promise<void> {
-  const outOfRange = Math.hypot(home.x - outOfRangeSite.x, home.y - outOfRangeSite.y)
+async function assertOutOfRange(input: AssertOutOfRangeInput): Promise<void> {
+  const outOfRange = Math.hypot(input.home.x - input.outOfRangeSite.x, input.home.y - input.outOfRangeSite.y)
   expect(outOfRange).toBeCloseTo(10.129282735155494, 12)
 
-  const beforeInvalidSelections = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  const beforeInvalidSelections = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
 
-  await assertScenarioState({
-    player,
-    createdGameId,
-    view,
-    firstOutpost,
-    source,
-    firstSite,
-    secondOutpost,
-    outOfRangeSite,
-    beforeInvalidSelections,
-  })
+  await assertScenarioState({ ...input, beforeInvalidSelections })
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: view.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.view.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: firstOutpost.id,
-      selectedTargets: { force: source.id, site: firstSite.site.id },
+      actionId: input.firstOutpost.id,
+      selectedTargets: { force: input.source.id, site: input.firstSite.site.id },
       selectedInputs: { quota: 30 },
     }),
   })
-  const firstSelected = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(firstSelected.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
-    selectedTargets: { force: source.id, site: firstSite.site.id },
+  const firstSelected = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  expect(firstSelected.actions.find(({ id }) => id === input.firstOutpost.id)).toMatchObject({
+    selectedTargets: { force: input.source.id, site: input.firstSite.site.id },
     selectedInputs: { quota: 30 },
     isInProgress: false,
   })
   expect(firstSelected.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 43 })
   expect(firstSelected.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
     turn: firstSelected.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: firstOutpost.id,
-      selectedTargets: { force: source.id, site: firstSite.site.id },
+      actionId: input.firstOutpost.id,
+      selectedTargets: { force: input.source.id, site: input.firstSite.site.id },
       selectedInputs: { quota: 35 },
     }),
   })
-  const replaced = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(replaced.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
-    selectedTargets: { force: source.id, site: firstSite.site.id },
+  const replaced = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  expect(replaced.actions.find(({ id }) => id === input.firstOutpost.id)).toMatchObject({
+    selectedTargets: { force: input.source.id, site: input.firstSite.site.id },
     selectedInputs: { quota: 35 },
     isInProgress: false,
   })
   expect(replaced.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 43 })
   expect(replaced.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
-  expect(replaced.actions.find(({ id }) => id === secondOutpost.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
+  expect(replaced.actions.find(({ id }) => id === input.secondOutpost.id)).toMatchObject({ selectedTargets: null, isInProgress: false })
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
     turn: replaced.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: firstOutpost.id,
+      actionId: input.firstOutpost.id,
       selectedTargets: null,
       selectedInputs: null,
     }),
   })
 }
 
-async function assertScenarioState({
-  player,
-  createdGameId,
-  view,
-  firstOutpost,
-  source,
-  firstSite,
-  secondOutpost,
-  outOfRangeSite,
-  beforeInvalidSelections,
-}: AssertScenarioStateInput): Promise<void> {
+async function assertScenarioState(input: AssertScenarioStateInput): Promise<void> {
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: view.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.view.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: firstOutpost.id,
-        selectedTargets: { force: source.id, site: firstSite.site.id },
+        actionId: input.firstOutpost.id,
+        selectedTargets: { force: input.source.id, site: input.firstSite.site.id },
         selectedInputs: { quota: 29 },
       }),
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: view.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.view.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: secondOutpost.id,
-        selectedTargets: { force: source.id, site: outOfRangeSite.id },
+        actionId: input.secondOutpost.id,
+        selectedTargets: { force: input.source.id, site: input.outOfRangeSite.id },
         selectedInputs: { quota: 30 },
       }),
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeInvalidSelections)
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })).toStrictEqual(
+    input.beforeInvalidSelections,
+  )
 }
 
-async function assertCancelled({
-  player,
-  createdGameId,
-  firstOutpost,
-  source,
-  firstSite,
-  secondOutpost,
-  secondSite,
-  clock,
-  turnProcessor,
-  turnsRepository,
-}: AssertCancelledInput): Promise<void> {
-  const cancelled = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(cancelled.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
+async function assertCancelled(input: AssertCancelledInput): Promise<void> {
+  const cancelled = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  expect(cancelled.actions.find(({ id }) => id === input.firstOutpost.id)).toMatchObject({
     selectedTargets: null,
     selectedInputs: null,
     isInProgress: false,
   })
   expect(cancelled.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 50 })
   expect(cancelled.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 10 })
-  expect(cancelled.fleets.find(({ id }) => id === source.id)).toMatchObject({ id: source.id, strength: 60 })
+  expect(cancelled.fleets.find(({ id }) => id === input.source.id)).toMatchObject({ id: input.source.id, strength: 60 })
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
     turn: cancelled.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: firstOutpost.id,
-      selectedTargets: { force: source.id, site: firstSite.site.id },
+      actionId: input.firstOutpost.id,
+      selectedTargets: { force: input.source.id, site: input.firstSite.site.id },
       selectedInputs: { quota: 30 },
     }),
   })
-  const firstReselected = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
+  const firstReselected = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
     turn: firstReselected.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: secondOutpost.id,
-      selectedTargets: { force: source.id, site: secondSite.site.id },
+      actionId: input.secondOutpost.id,
+      selectedTargets: { force: input.source.id, site: input.secondSite.site.id },
       selectedInputs: { quota: 30 },
     }),
   })
-  const selected = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  const selected = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
 
-  await assertSelected({ selected, firstOutpost, source, firstSite, secondOutpost, secondSite, player, createdGameId })
+  await assertSelected({ ...input, selected })
 
-  await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+  await processNextRouterTurn({ ...input })
 }
 
-async function assertSelected({
-  selected,
-  firstOutpost,
-  source,
-  firstSite,
-  secondOutpost,
-  secondSite,
-  player,
-  createdGameId,
-}: AssertSelectedInput): Promise<void> {
-  expect(selected.actions.find(({ id }) => id === firstOutpost.id)).toMatchObject({
-    selectedTargets: { force: source.id, site: firstSite.site.id },
+async function assertSelected(input: AssertSelectedInput): Promise<void> {
+  expect(input.selected.actions.find(({ id }) => id === input.firstOutpost.id)).toMatchObject({
+    selectedTargets: { force: input.source.id, site: input.firstSite.site.id },
     selectedInputs: { quota: 30 },
     isInProgress: false,
   })
-  expect(selected.actions.find(({ id }) => id === secondOutpost.id)).toMatchObject({
-    selectedTargets: { force: source.id, site: secondSite.site.id },
+  expect(input.selected.actions.find(({ id }) => id === input.secondOutpost.id)).toMatchObject({
+    selectedTargets: { force: input.source.id, site: input.secondSite.site.id },
     selectedInputs: { quota: 30 },
     isInProgress: false,
   })
-  expect(selected.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 36 })
-  expect(selected.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 6 })
-  expect(selected.fleets.find(({ id }) => id === source.id)).toMatchObject({ id: source.id, strength: 60 })
+  expect(input.selected.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 50, uncommitted: 36 })
+  expect(input.selected.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 6 })
+  expect(input.selected.fleets.find(({ id }) => id === input.source.id)).toMatchObject({ id: input.source.id, strength: 60 })
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: selected.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.selected.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: firstOutpost.id,
-        selectedTargets: { force: source.id, site: firstSite.site.id },
+        actionId: input.firstOutpost.id,
+        selectedTargets: { force: input.source.id, site: input.firstSite.site.id },
         selectedInputs: { quota: 31 },
       }),
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(selected)
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })).toStrictEqual(input.selected)
 }
 
 async function assertDeparted({

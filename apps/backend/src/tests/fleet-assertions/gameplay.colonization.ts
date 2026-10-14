@@ -31,32 +31,22 @@ import {
   readViews,
 } from "../colonization/gameplay.colonization.ts"
 
-export function assertLoadedJourney2({
-  loadedJourney,
-  attackerJourney,
-  alice,
-  target,
-  composedActionId,
-  attacker,
-  arrivalInput,
-  defender,
-  bob,
-}: AssertLoadedJourney2Input): void {
-  expect(loadedJourney).toMatchObject({
-    id: attackerJourney.id,
-    ownerPlayerId: playerIdFor(alice),
+export function assertLoadedJourney2(input: AssertLoadedJourney2Input): void {
+  expect(input.loadedJourney).toMatchObject({
+    id: input.attackerJourney.id,
+    ownerPlayerId: playerIdFor(input.alice),
     strength: 50,
-    destinationPlanetId: target.id,
-    movement: { speed: 1, submission: { id: composedActionId } },
+    destinationPlanetId: input.target.id,
+    movement: { speed: 1, submission: { id: input.composedActionId } },
   })
-  expect(loadedJourney.movement?.submission).toMatchObject({
+  expect(input.loadedJourney.movement?.submission).toMatchObject({
     actionDefinitionId: ComposedSuccessAttackColonize.id,
-    selectedTargets: { fleet: attacker.id, planet: target.id },
+    selectedTargets: { fleet: input.attacker.id, planet: input.target.id },
     selectedInputs: { strength: 50 },
   })
-  expect(loadedJourney.distanceToEnd).toBeCloseTo(0.2645395167985714, 12)
+  expect(input.loadedJourney.distanceToEnd).toBeCloseTo(0.2645395167985714, 12)
   expect(
-    loadedJourney.movement?.pendingArrivalEffects.map(({ effectDefinition, definitionOrdinal }) => ({
+    input.loadedJourney.movement?.pendingArrivalEffects.map(({ effectDefinition, definitionOrdinal }) => ({
       type: effectDefinition.type,
       definitionOrdinal,
       targets: effectDefinition.targets,
@@ -79,8 +69,12 @@ export function assertLoadedJourney2({
       },
     },
   ])
-  expect(arrivalInput.fleets[defender.id]).toMatchObject({ id: defender.id, ownerPlayerId: playerIdFor(bob), strength: 10 })
-  expect(arrivalInput.planets[target.id]?.ownerPlayerId).toBeNull()
+  expect(input.arrivalInput.fleets[input.defender.id]).toMatchObject({
+    id: input.defender.id,
+    ownerPlayerId: playerIdFor(input.bob),
+    strength: 10,
+  })
+  expect(input.arrivalInput.planets[input.target.id]?.ownerPlayerId).toBeNull()
 }
 
 export type AssertLoadedJourney2Input = {
@@ -175,42 +169,32 @@ export type AssertContinuation2Input = {
   turnProcessor: TurnProcessor
 }
 
-export async function assertContinuation2({
-  continuation,
-  assertContinuationState2Resolved,
-  defender,
-  attackerJourney,
-  alice,
-  target,
-  arrivalReplay,
-  arrivalInput,
-  turnProcessor,
-}: AssertContinuation2Input): Promise<void> {
-  expect(continuation.actionOutcomes).toHaveLength(4)
-  expect(continuation.actionOutcomes.every(({ type }) => type === "RESOLVED")).toBe(true)
-  expect(continuation.actionOutcomes.some((outcome) => hasResolvedResult(outcome, "moved "))).toBe(true)
-  expect(continuation.actionOutcomes.some((outcome) => hasResolvedResult(outcome, "arrived on Planet"))).toBe(true)
-  expect(continuation.actionOutcomes.some((outcome) => hasResolvedResult(outcome, "exchanged 10 Strength with 10 enemy Strength"))).toBe(
-    true,
-  )
-  expect(continuation.actionOutcomes.some((outcome) => hasResolvedResult(outcome, "colonized Planet"))).toBe(true)
-  expect(assertContinuationState2Resolved.removedFleetIds).toContain(defender.id)
-  expect(assertContinuationState2Resolved.fleets[defender.id]).toBeUndefined()
-  expect(assertContinuationState2Resolved.fleets[attackerJourney.id]).toMatchObject({
-    ownerPlayerId: playerIdFor(alice),
-    originPlanetId: target.id,
+export async function assertContinuation2(input: AssertContinuation2Input): Promise<void> {
+  expect(input.continuation.actionOutcomes).toHaveLength(4)
+  expect(input.continuation.actionOutcomes.every(({ type }) => type === "RESOLVED")).toBe(true)
+  expect(input.continuation.actionOutcomes.some((outcome) => hasResolvedResult(outcome, "moved "))).toBe(true)
+  expect(input.continuation.actionOutcomes.some((outcome) => hasResolvedResult(outcome, "arrived on Planet"))).toBe(true)
+  expect(
+    input.continuation.actionOutcomes.some((outcome) => hasResolvedResult(outcome, "exchanged 10 Strength with 10 enemy Strength")),
+  ).toBe(true)
+  expect(input.continuation.actionOutcomes.some((outcome) => hasResolvedResult(outcome, "colonized Planet"))).toBe(true)
+  expect(input.assertContinuationState2Resolved.removedFleetIds).toContain(input.defender.id)
+  expect(input.assertContinuationState2Resolved.fleets[input.defender.id]).toBeUndefined()
+  expect(input.assertContinuationState2Resolved.fleets[input.attackerJourney.id]).toMatchObject({
+    ownerPlayerId: playerIdFor(input.alice),
+    originPlanetId: input.target.id,
     strength: 20,
     movement: undefined,
     destinationPlanetId: undefined,
     distanceToEnd: undefined,
   })
-  expect(assertContinuationState2Resolved.planets[target.id]?.ownerPlayerId).toBe(playerIdFor(alice))
-  expect(assertContinuationState2Resolved.planetOwnershipChanges).toStrictEqual([
-    { planetId: target.id, ownerPlayerId: playerIdFor(alice) },
+  expect(input.assertContinuationState2Resolved.planets[input.target.id]?.ownerPlayerId).toBe(playerIdFor(input.alice))
+  expect(input.assertContinuationState2Resolved.planetOwnershipChanges).toStrictEqual([
+    { planetId: input.target.id, ownerPlayerId: playerIdFor(input.alice) },
   ])
-  expect(arrivalReplay.nextRngState).toStrictEqual(arrivalInput.rngState)
+  expect(input.arrivalReplay.nextRngState).toStrictEqual(input.arrivalInput.rngState)
 
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
 }
 
 export async function assertReplayedTarget({
@@ -286,92 +270,62 @@ export type AssertReplayedTarget2Input = {
   turnProcessor: TurnProcessor
 }
 
-export async function assertReplayedTarget2({
-  replayedTarget,
-  assertReplayedTargetState1Resolved,
-  continuation,
-  defenderStrength,
-  preventedReason,
-  loadedAttacker,
-  expectedSurvivingAttackerStrength,
-  loadedDefender,
-  expectedAttackerFleetCount,
-  expectedAttackerRemovalCount,
-  turnProcessor,
-}: AssertReplayedTarget2Input): Promise<void> {
-  expect(replayedTarget?.ownerPlayerId).toBeNull()
-  expect(assertReplayedTargetState1Resolved.planetOwnershipChanges).toStrictEqual([])
-  expect(continuation.actionOutcomes).toContainEqual(
+export async function assertReplayedTarget2(input: AssertReplayedTarget2Input): Promise<void> {
+  expect(input.replayedTarget?.ownerPlayerId).toBeNull()
+  expect(input.assertReplayedTargetState1Resolved.planetOwnershipChanges).toStrictEqual([])
+  expect(input.continuation.actionOutcomes).toContainEqual(
     expect.objectContaining({
       type: "RESOLVED",
-      result: expect.stringContaining(`exchanged ${defenderStrength} Strength with ${defenderStrength} enemy Strength`),
+      result: expect.stringContaining(`exchanged ${input.defenderStrength} Strength with ${input.defenderStrength} enemy Strength`),
     }),
   )
-  expect(continuation.actionOutcomes.some((outcome) => hasPreventedReason(outcome, preventedReason))).toBe(true)
-  expect(assertReplayedTargetState1Resolved.fleets[loadedAttacker.id]?.strength).toBe(expectedSurvivingAttackerStrength)
-  expect(assertReplayedTargetState1Resolved.fleets[loadedDefender.id]).toBeUndefined()
-  expect(assertReplayedTargetState1Resolved.removedFleetIds).toContain(loadedDefender.id)
-  expect(Object.values(assertReplayedTargetState1Resolved.fleets).filter(({ id }) => id === loadedAttacker.id)).toHaveLength(
-    expectedAttackerFleetCount,
+  expect(input.continuation.actionOutcomes.some((outcome) => hasPreventedReason(outcome, input.preventedReason))).toBe(true)
+  expect(input.assertReplayedTargetState1Resolved.fleets[input.loadedAttacker.id]?.strength).toBe(input.expectedSurvivingAttackerStrength)
+  expect(input.assertReplayedTargetState1Resolved.fleets[input.loadedDefender.id]).toBeUndefined()
+  expect(input.assertReplayedTargetState1Resolved.removedFleetIds).toContain(input.loadedDefender.id)
+  expect(Object.values(input.assertReplayedTargetState1Resolved.fleets).filter(({ id }) => id === input.loadedAttacker.id)).toHaveLength(
+    input.expectedAttackerFleetCount,
   )
-  expect(assertReplayedTargetState1Resolved.removedFleetIds.filter((id) => id === loadedAttacker.id)).toHaveLength(
-    expectedAttackerRemovalCount,
+  expect(input.assertReplayedTargetState1Resolved.removedFleetIds.filter((id) => id === input.loadedAttacker.id)).toHaveLength(
+    input.expectedAttackerRemovalCount,
   )
 
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
 }
 
-export function assertPersistedNextRngState({
-  savedNextTurn,
-  replay,
-  gameId,
-  target,
-  defenderDistance,
-  attackerStrength,
-  defenderStrength,
-  expectedSurvivingAttackerStrength,
-  composedActionId,
-  replayedTarget,
-  assertPersistedNextRngStatePhase4Value1,
-  loadedAttacker,
-  loadedDefender,
-  continuation,
-  views,
-  persistedAttacker,
-  persistedFleetRows,
-}: AssertPersistedNextRngStateInput): void {
-  const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-  expect(persistedNextRngState).toStrictEqual(replay.nextRngState)
+export function assertPersistedNextRngState(input: AssertPersistedNextRngStateInput): void {
+  const persistedNextRngState = { generatorState: input.savedNextTurn.rngGeneratorState, spareNormal: input.savedNextTurn.rngSpareNormal }
+  expect(persistedNextRngState).toStrictEqual(input.replay.nextRngState)
 
   logReceipt("[C3-16 public composed prevention receipt]", {
-    gameId,
+    gameId: input.gameId,
     seed: 1,
-    target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
-    routes: { attacker: 1.2645395167985714, defender: defenderDistance },
+    target: { id: input.target.id, name: input.target.name, coordinates: input.target.coordinates, x: input.target.x, y: input.target.y },
+    routes: { attacker: 1.2645395167985714, defender: input.defenderDistance },
     forces: {
-      attackerBeforeCombat: attackerStrength,
-      defenderBeforeCombat: defenderStrength,
-      attackerAfterCombat: expectedSurvivingAttackerStrength,
+      attackerBeforeCombat: input.attackerStrength,
+      defenderBeforeCombat: input.defenderStrength,
+      attackerAfterCombat: input.expectedSurvivingAttackerStrength,
     },
     action: {
-      id: composedActionId,
+      id: input.composedActionId,
       definitionId: ComposedSuccessAttackColonize.id,
       paidInfluenceOnce: 25,
       pendingTypes: ["FLEET_COLONIZE", "FLEET_ASSAULT"],
     },
     replay: {
-      targetOwner: replayedTarget?.ownerPlayerId,
-      attacker: assertPersistedNextRngStatePhase4Value1.fleets[loadedAttacker.id]?.strength,
-      defenderRemoved: assertPersistedNextRngStatePhase4Value1.fleets[loadedDefender.id] === undefined,
-      outcomes: continuation.actionOutcomes.map(describeOutcomeRecord),
+      targetOwner: input.replayedTarget?.ownerPlayerId,
+      attacker: input.assertPersistedNextRngStatePhase4Value1.fleets[input.loadedAttacker.id]?.strength,
+      defenderRemoved: input.assertPersistedNextRngStatePhase4Value1.fleets[input.loadedDefender.id] === undefined,
+      outcomes: input.continuation.actionOutcomes.map(describeOutcomeRecord),
     },
     persisted: {
-      targetOwner: getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId,
-      attacker: persistedAttacker?.strength,
-      defenderRemoved: persistedFleetRows.find(({ id }) => id === loadedDefender.id) === undefined,
-      influence: required(views[0]).resources[ResourceType.INFLUENCE],
-      colony: required(views[0]).resources[ResourceType.COLONY],
-      actionReleased: required(views[0]).actions.find(({ id }) => id === composedActionId)?.isInProgress === false,
+      targetOwner: getPlanets(required(input.views[0])).find(({ id }) => id === input.target.id)?.ownerPlayerId,
+      attacker: input.persistedAttacker?.strength,
+      defenderRemoved: input.persistedFleetRows.find(({ id }) => id === input.loadedDefender.id) === undefined,
+      influence: required(input.views[0]).resources[ResourceType.INFLUENCE],
+      colony: required(input.views[0]).resources[ResourceType.COLONY],
+      actionReleased: required(input.views[0]).actions.find(({ id }) => id === input.composedActionId)?.isInProgress === false,
       persistedNextRngState,
     },
   })
@@ -448,32 +402,23 @@ export type AssertPersistedNextRngState2Input = {
   workerInput: ReturnType<typeof reverseWorkerInputEnumeration>
 }
 
-export function assertRequired({
-  selectedViews,
-  moveActionId,
-  aliceStationary,
-  homeA,
-  colonizeActionId,
-  target,
-  assaultActionId,
-  bobAssaultFleet,
-}: AssertRequiredInput): void {
-  expect(required(selectedViews[0]).actions.find(({ id }) => id === moveActionId)).toMatchObject({
-    selectedTargets: { fleet: aliceStationary.id, planet: homeA.id },
+export function assertRequired(input: AssertRequiredInput): void {
+  expect(required(input.selectedViews[0]).actions.find(({ id }) => id === input.moveActionId)).toMatchObject({
+    selectedTargets: { fleet: input.aliceStationary.id, planet: input.homeA.id },
     selectedInputs: { strength: 15 },
   })
-  expect(required(selectedViews[0]).actions.find(({ id }) => id === colonizeActionId)).toMatchObject({
-    selectedTargets: { fleet: aliceStationary.id, planet: target.id },
+  expect(required(input.selectedViews[0]).actions.find(({ id }) => id === input.colonizeActionId)).toMatchObject({
+    selectedTargets: { fleet: input.aliceStationary.id, planet: input.target.id },
     selectedInputs: {},
   })
-  expect(required(selectedViews[1]).actions.find(({ id }) => id === assaultActionId)).toMatchObject({
-    selectedTargets: { station: bobAssaultFleet.id, battlePlanet: target.id },
+  expect(required(input.selectedViews[1]).actions.find(({ id }) => id === input.assaultActionId)).toMatchObject({
+    selectedTargets: { station: input.bobAssaultFleet.id, battlePlanet: input.target.id },
     selectedInputs: {},
   })
-  expect(required(selectedViews[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 495, uncommitted: 467 })
-  expect(required(selectedViews[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 94 })
-  expect(required(selectedViews[1]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 495, uncommitted: 495 })
-  expect(required(selectedViews[1]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
+  expect(required(input.selectedViews[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 495, uncommitted: 467 })
+  expect(required(input.selectedViews[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 94 })
+  expect(required(input.selectedViews[1]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 495, uncommitted: 495 })
+  expect(required(input.selectedViews[1]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
 }
 
 export type AssertRequiredInput = {
@@ -487,28 +432,20 @@ export type AssertRequiredInput = {
   bobAssaultFleet: Fleet
 }
 
-export function assertPersistedJourney({
-  persistedJourney,
-  target,
-  homeA,
-  moveActionId,
-  routeDistance,
-  views,
-  colonizeActionId,
-}: AssertPersistedJourneyInput): void {
-  expect(persistedJourney).toMatchObject({
+export function assertPersistedJourney(input: AssertPersistedJourneyInput): void {
+  expect(input.persistedJourney).toMatchObject({
     strength: 15,
-    originPlanetId: target.id,
-    destinationPlanetId: homeA.id,
-    movement: { speed: 0.1, submission: { id: moveActionId }, pendingArrivalEffects: [] },
+    originPlanetId: input.target.id,
+    destinationPlanetId: input.homeA.id,
+    movement: { speed: 0.1, submission: { id: input.moveActionId }, pendingArrivalEffects: [] },
   })
-  expect(persistedJourney.distanceToEnd).toBeCloseTo(routeDistance - 0.1, 12)
-  expect(required(views[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 467, uncommitted: 467 })
-  expect(required(views[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 94, uncommitted: 94 })
-  expect(required(views[0]).resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
-  expect(required(views[1]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 495, uncommitted: 495 })
-  expect(required(views[1]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
-  expect(required(views[0]).actions.find(({ id }) => id === colonizeActionId)).toMatchObject({
+  expect(input.persistedJourney.distanceToEnd).toBeCloseTo(input.routeDistance - 0.1, 12)
+  expect(required(input.views[0]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 467, uncommitted: 467 })
+  expect(required(input.views[0]).resources[ResourceType.FUEL]).toStrictEqual({ total: 94, uncommitted: 94 })
+  expect(required(input.views[0]).resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
+  expect(required(input.views[1]).resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 495, uncommitted: 495 })
+  expect(required(input.views[1]).resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
+  expect(required(input.views[0]).actions.find(({ id }) => id === input.colonizeActionId)).toMatchObject({
     selectedTargets: null,
     isInProgress: false,
   })
@@ -524,49 +461,33 @@ export type AssertPersistedJourneyInput = {
   colonizeActionId: string
 }
 
-export function assertPersistedNextRngState2({
-  savedNextTurn,
-  replay,
-  gameId,
-  target,
-  routeDistance,
-  aliceStationary,
-  bobAssaultFleet,
-  moveActionId,
-  colonizeActionId,
-  assaultActionId,
-  views,
-  colonizeResult,
-  persistedJourney,
-  homeA,
-  workerInput,
-}: AssertPersistedNextRngState2Input): void {
-  const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-  expect(persistedNextRngState).toStrictEqual(replay.nextRngState)
+export function assertPersistedNextRngState2(input: AssertPersistedNextRngState2Input): void {
+  const persistedNextRngState = { generatorState: input.savedNextTurn.rngGeneratorState, spareNormal: input.savedNextTurn.rngSpareNormal }
+  expect(persistedNextRngState).toStrictEqual(input.replay.nextRngState)
 
   logReceipt("[C3-19 public stationary post-Move/Assault receipt]", {
-    gameId,
+    gameId: input.gameId,
     seed: 1,
-    target: { id: target.id, coordinates: target.coordinates, x: target.x, y: target.y },
-    sourceDistance: routeDistance,
-    stagedForces: { alice35: aliceStationary.id, bob1: bobAssaultFleet.id },
-    selected: { move15: moveActionId, stationaryColonize20: colonizeActionId, enemyAssault1: assaultActionId },
+    target: { id: input.target.id, coordinates: input.target.coordinates, x: input.target.x, y: input.target.y },
+    sourceDistance: input.routeDistance,
+    stagedForces: { alice35: input.aliceStationary.id, bob1: input.bobAssaultFleet.id },
+    selected: { move15: input.moveActionId, stationaryColonize20: input.colonizeActionId, enemyAssault1: input.assaultActionId },
     workerOutcome: {
-      owner: getPlanets(required(views[0])).find(({ id }) => id === target.id)?.ownerPlayerId,
+      owner: getPlanets(required(input.views[0])).find(({ id }) => id === input.target.id)?.ownerPlayerId,
       stationaryAfterAssault: 19,
-      colonize: colonizeResult.actionOutcomes,
+      colonize: input.colonizeResult.actionOutcomes,
       defenderRemoved: true,
     },
     outgoingJourney: {
-      id: persistedJourney.id,
-      strength: persistedJourney.strength,
-      destination: homeA.coordinates,
-      remainingDistance: persistedJourney.distanceToEnd,
+      id: input.persistedJourney.id,
+      strength: input.persistedJourney.strength,
+      destination: input.homeA.coordinates,
+      remainingDistance: input.persistedJourney.distanceToEnd,
     },
     resourcesAfterUnrefundedCosts: {
-      influence: required(views[0]).resources[ResourceType.INFLUENCE].total,
-      fuel: required(views[0]).resources[ResourceType.FUEL].total,
+      influence: required(input.views[0]).resources[ResourceType.INFLUENCE].total,
+      fuel: required(input.views[0]).resources[ResourceType.FUEL].total,
     },
-    rng: { preResolution: workerInput.rngState, replayNext: replay.nextRngState, persistedNext: persistedNextRngState },
+    rng: { preResolution: input.workerInput.rngState, replayNext: input.replay.nextRngState, persistedNext: persistedNextRngState },
   })
 }

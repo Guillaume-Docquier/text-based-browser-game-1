@@ -26,15 +26,15 @@ import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { SeedOutpostTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import { assertMoveReplacement } from "./evaluateActionSelection.reservations.assertions-2.test-support.ts"
 
-export function assertEvaluate({ state, ruleset, actionId, force, playerId, site, beyondRange }: AssertEvaluateInput): void {
-  const evaluate = (siteId: PlanetId, quota: number, resources = state.resources): ReturnType<typeof evaluateActionSelection> =>
+export function assertEvaluate(input: AssertEvaluateInput): void {
+  const evaluate = (siteId: PlanetId, quota: number, resources = input.state.resources): ReturnType<typeof evaluateActionSelection> =>
     evaluateActionSelection({
-      state: { ...state, resources },
-      ruleset,
+      state: { ...input.state, resources },
+      ruleset: input.ruleset,
       draft: {
-        actionId,
+        actionId: input.actionId,
         selectedTargets: {
-          [branded<TargetTag>("force")]: force.id,
+          [branded<TargetTag>("force")]: input.force.id,
           [branded<TargetTag>("site")]: siteId,
         },
         selectedInputs: { [branded<InputTag>("quota")]: quota },
@@ -42,14 +42,14 @@ export function assertEvaluate({ state, ruleset, actionId, force, playerId, site
     })
 
   const exactThresholdSubmission = createSubmittedActionStub({
-    id: actionId,
-    playerId,
+    id: input.actionId,
+    playerId: input.playerId,
     actionDefinitionId: SeedOutpostTest.id,
-    selectedTargets: { force: force.id, site: site.id },
+    selectedTargets: { force: input.force.id, site: input.site.id },
     selectedInputs: { quota: 30 },
   })
   const evaluateSubmittedAtBudget = (resources: EligibilityState["resources"]): ReturnType<typeof evaluateSubmittedActions> =>
-    evaluateSubmittedActions({ state: { ...state, resources }, ruleset, submissions: [exactThresholdSubmission] })
+    evaluateSubmittedActions({ state: { ...input.state, resources }, ruleset: input.ruleset, submissions: [exactThresholdSubmission] })
   const submittedAtInsufficientInfluence = evaluateSubmittedAtBudget(
     createResourcesStub({ [ResourceType.INFLUENCE]: 6, [ResourceType.FUEL]: 2 }),
   )
@@ -57,18 +57,18 @@ export function assertEvaluate({ state, ruleset, actionId, force, playerId, site
     createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 1 }),
   )
   const submittedAtExactBudget = evaluateSubmittedAtBudget(createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 2 }))
-  const insufficientInfluence = evaluate(site.id, 30, createResourcesStub({ [ResourceType.INFLUENCE]: 6, [ResourceType.FUEL]: 2 }))
-  const insufficientFuel = evaluate(site.id, 30, createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 1 }))
-  const belowRequirement = evaluate(site.id, 29)
-  const exactRequirement = evaluate(site.id, 30)
-  const fullForce = evaluate(site.id, 45)
-  const beyondRangeSelection = evaluate(beyondRange.id, 30)
+  const insufficientInfluence = evaluate(input.site.id, 30, createResourcesStub({ [ResourceType.INFLUENCE]: 6, [ResourceType.FUEL]: 2 }))
+  const insufficientFuel = evaluate(input.site.id, 30, createResourcesStub({ [ResourceType.INFLUENCE]: 7, [ResourceType.FUEL]: 1 }))
+  const belowRequirement = evaluate(input.site.id, 29)
+  const exactRequirement = evaluate(input.site.id, 30)
+  const fullForce = evaluate(input.site.id, 45)
+  const beyondRangeSelection = evaluate(input.beyondRange.id, 30)
 
   assertSubmittedAtInsufficientInfluence({
     submittedAtInsufficientInfluence,
     submittedAtInsufficientFuel,
     submittedAtExactBudget,
-    force,
+    force: input.force,
     insufficientInfluence,
     insufficientFuel,
     belowRequirement,
@@ -97,58 +97,47 @@ export type AssertEvaluateInput = {
   beyondRange: ReturnType<typeof createPlanetStub>
 }
 
-export function assertSubmittedAtInsufficientInfluence({
-  submittedAtInsufficientInfluence,
-  submittedAtInsufficientFuel,
-  submittedAtExactBudget,
-  force,
-  insufficientInfluence,
-  insufficientFuel,
-  belowRequirement,
-  exactRequirement,
-  fullForce,
-  beyondRangeSelection,
-}: AssertSubmittedAtInsufficientInfluenceInput): void {
-  expect(submittedAtInsufficientInfluence.status).toBe("INELIGIBLE")
-  expect(submittedAtInsufficientInfluence.issues).toContainEqual(
+export function assertSubmittedAtInsufficientInfluence(input: AssertSubmittedAtInsufficientInfluenceInput): void {
+  expect(input.submittedAtInsufficientInfluence.status).toBe("INELIGIBLE")
+  expect(input.submittedAtInsufficientInfluence.issues).toContainEqual(
     expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
   )
-  expect(submittedAtInsufficientFuel.status).toBe("INELIGIBLE")
-  expect(submittedAtInsufficientFuel.issues).toContainEqual(
+  expect(input.submittedAtInsufficientFuel.status).toBe("INELIGIBLE")
+  expect(input.submittedAtInsufficientFuel.issues).toContainEqual(
     expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
   )
-  expect(submittedAtExactBudget.status).toBe("ELIGIBLE")
-  expect(submittedAtExactBudget.resourceCommitments[ResourceType.INFLUENCE]).toBe(7)
-  expect(submittedAtExactBudget.resourceCommitments[ResourceType.FUEL]).toBe(2)
-  expect(submittedAtExactBudget.strengthCommitments[force.id]).toBe(30)
-  expect(insufficientInfluence.status).toBe("INELIGIBLE")
-  expect(insufficientInfluence.issues).toContainEqual(
+  expect(input.submittedAtExactBudget.status).toBe("ELIGIBLE")
+  expect(input.submittedAtExactBudget.resourceCommitments[ResourceType.INFLUENCE]).toBe(7)
+  expect(input.submittedAtExactBudget.resourceCommitments[ResourceType.FUEL]).toBe(2)
+  expect(input.submittedAtExactBudget.strengthCommitments[input.force.id]).toBe(30)
+  expect(input.insufficientInfluence.status).toBe("INELIGIBLE")
+  expect(input.insufficientInfluence.issues).toContainEqual(
     expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
   )
-  expect(insufficientFuel.status).toBe("INELIGIBLE")
-  expect(insufficientFuel.issues).toContainEqual(
+  expect(input.insufficientFuel.status).toBe("INELIGIBLE")
+  expect(input.insufficientFuel.issues).toContainEqual(
     expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
   )
-  expect(belowRequirement.status).toBe("INELIGIBLE")
-  expect(belowRequirement.issues).toContainEqual(
+  expect(input.belowRequirement.status).toBe("INELIGIBLE")
+  expect(input.belowRequirement.issues).toContainEqual(
     expect.objectContaining({ code: "INSUFFICIENT_STRENGTH", targetTag: branded<TargetTag>("site") }),
   )
-  expect(exactRequirement.status).toBe("ELIGIBLE")
-  expect(exactRequirement.strengthCommitments[force.id]).toBe(30)
-  expect(exactRequirement.remainingStrength[force.id]).toBe(15)
-  expect(exactRequirement.resourceCommitments).toStrictEqual({
+  expect(input.exactRequirement.status).toBe("ELIGIBLE")
+  expect(input.exactRequirement.strengthCommitments[input.force.id]).toBe(30)
+  expect(input.exactRequirement.remainingStrength[input.force.id]).toBe(15)
+  expect(input.exactRequirement.resourceCommitments).toStrictEqual({
     [ResourceType.INFLUENCE]: 7,
     [ResourceType.METAL]: 0,
     [ResourceType.FUEL]: 2,
     [ResourceType.ENERGY]: 0,
     [ResourceType.COLONY]: 0,
   })
-  expect(fullForce.status).toBe("ELIGIBLE")
-  expect(fullForce.strengthCommitments[force.id]).toBe(45)
-  expect(fullForce.remainingStrength[force.id]).toBe(0)
-  expect(fullForce.resourceCommitments).toStrictEqual(exactRequirement.resourceCommitments)
-  expect(beyondRangeSelection.status).toBe("INELIGIBLE")
-  expect(beyondRangeSelection.issues).toContainEqual(
+  expect(input.fullForce.status).toBe("ELIGIBLE")
+  expect(input.fullForce.strengthCommitments[input.force.id]).toBe(45)
+  expect(input.fullForce.remainingStrength[input.force.id]).toBe(0)
+  expect(input.fullForce.resourceCommitments).toStrictEqual(input.exactRequirement.resourceCommitments)
+  expect(input.beyondRangeSelection.status).toBe("INELIGIBLE")
+  expect(input.beyondRangeSelection.issues).toContainEqual(
     expect.objectContaining({ code: "OUT_OF_RANGE", targetTag: branded<TargetTag>("site") }),
   )
 }
@@ -319,44 +308,37 @@ export type AssertSubmittedAtInsufficientInfluenceInput = {
   }>
 }
 
-export function assertEitherUpdateOrder({
-  fixture,
-  move15,
-  colonize20,
-  moveSubmission,
-  occupied,
-  moveDraft,
-}: AssertEitherUpdateOrderInput): void {
+export function assertEitherUpdateOrder(input: AssertEitherUpdateOrderInput): void {
   const eitherUpdateOrder = evaluateSubmittedActions({
-    state: fixture.state,
-    ruleset: fixture.ruleset,
-    submissions: [move15, colonize20],
+    state: input.fixture.state,
+    ruleset: input.fixture.ruleset,
+    submissions: [input.move15, input.colonize20],
   })
   const reversedUpdateOrder = evaluateSubmittedActions({
-    state: fixture.state,
-    ruleset: fixture.ruleset,
-    submissions: [colonize20, move15],
+    state: input.fixture.state,
+    ruleset: input.fixture.ruleset,
+    submissions: [input.colonize20, input.move15],
   })
   const overcommittedMove = evaluateSubmittedActions({
-    state: fixture.state,
-    ruleset: fixture.ruleset,
-    submissions: [moveSubmission(16), colonize20],
+    state: input.fixture.state,
+    ruleset: input.fixture.ruleset,
+    submissions: [input.moveSubmission(16), input.colonize20],
   })
   const moveReplacement = evaluateActionSelection({
-    state: occupied,
-    ruleset: fixture.ruleset,
-    draft: moveDraft(14),
+    state: input.occupied,
+    ruleset: input.fixture.ruleset,
+    draft: input.moveDraft(14),
   })
-  const cancelMove = evaluateSubmittedActions({ state: occupied, ruleset: fixture.ruleset, submissions: [colonize20] })
-  const cancelColonize = evaluateSubmittedActions({ state: occupied, ruleset: fixture.ruleset, submissions: [move15] })
+  const cancelMove = evaluateSubmittedActions({ state: input.occupied, ruleset: input.fixture.ruleset, submissions: [input.colonize20] })
+  const cancelColonize = evaluateSubmittedActions({ state: input.occupied, ruleset: input.fixture.ruleset, submissions: [input.move15] })
   const replaceColonizeSource = evaluateActionSelection({
-    state: occupied,
-    ruleset: fixture.ruleset,
+    state: input.occupied,
+    ruleset: input.fixture.ruleset,
     draft: {
-      actionId: fixture.colonizeActionId,
+      actionId: input.fixture.colonizeActionId,
       selectedTargets: {
-        [branded<TargetTag>("fleet")]: fixture.secondFleetId,
-        [branded<TargetTag>("planet")]: fixture.destinationId,
+        [branded<TargetTag>("fleet")]: input.fixture.secondFleetId,
+        [branded<TargetTag>("planet")]: input.fixture.destinationId,
       },
       selectedInputs: {},
     },
@@ -364,7 +346,7 @@ export function assertEitherUpdateOrder({
 
   assertMoveReplacement({
     moveReplacement,
-    fixture,
+    fixture: input.fixture,
     eitherUpdateOrder,
     reversedUpdateOrder,
     overcommittedMove,

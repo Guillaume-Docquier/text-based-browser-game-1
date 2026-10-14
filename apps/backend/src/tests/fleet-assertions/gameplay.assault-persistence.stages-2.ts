@@ -13,47 +13,19 @@ import { ResourceRaceRuleset, createStartGate, submitActionAfterGate } from "../
 import { MANUAL_WORKER_TURN_INTERVAL } from "../fleet-concurrency/gameplay.ts"
 import { assertMoveOneBeforeDeparture } from "./gameplay.assault-persistence.stages.ts"
 
-export async function createResourceGameIdSetup({
-  moveOneBeforeDeparture,
-  sourceFleet,
-  destination,
-  moveTwoBeforeDeparture,
-  beforeDeparture,
-  clock,
-  turnProcessor,
-  turnsRepository,
-  player,
-  strengthGameId,
-  moveOne,
-  moveTwo,
-  origin,
-}: CreateResourceGameIdSetupInput): Promise<CreateResourceGameIdSetupResult> {
-  await assertMoveOneBeforeDeparture({
-    moveOneBeforeDeparture,
-    sourceFleet,
-    destination,
-    moveTwoBeforeDeparture,
-    beforeDeparture,
-    clock,
-    turnProcessor,
-    turnsRepository,
-    player,
-    strengthGameId,
-    moveOne,
-    moveTwo,
-    origin,
-  })
+export async function createResourceGameIdSetup(input: CreateResourceGameIdSetupInput): Promise<CreateResourceGameIdSetupResult> {
+  await assertMoveOneBeforeDeparture({ ...input })
 
   // A separate resource-only race cannot spend the same Influence twice.
-  const { createdGameId: resourceGameId } = await player.client.games.create.mutate({
+  const { createdGameId: resourceGameId } = await input.player.client.games.create.mutate({
     configuration: createGameConfigurationStub({
       rulesetId: ResourceRaceRuleset.id,
       turnIntervalSeconds: Time.in(MANUAL_WORKER_TURN_INTERVAL, UnitOfTime.SECONDS),
       mapGenerationSeed: 1234,
     }),
   })
-  await player.client.games.startGame.mutate({ gameId: resourceGameId })
-  const resourceView = await player.client.gameplay.getPlayerView.query({ gameId: resourceGameId })
+  await input.player.client.games.startGame.mutate({ gameId: resourceGameId })
+  const resourceView = await input.player.client.gameplay.getPlayerView.query({ gameId: resourceGameId })
   const resourceOrigin = resourceView.galaxy.systems
     .flatMap(({ planets }) => planets)
     .find(({ ownerPlayerId }) => ownerPlayerId === resourceView.player.id)
@@ -91,43 +63,39 @@ export type CreateResourceGameIdSetupResult = {
   resourceGate: () => Promise<void>
 }
 
-export async function createResourceResultsSetup({
-  resourceGate,
-  player,
-  resourceGameId,
-  resourceView,
-  firstBuild,
-  resourceOrigin,
-  secondBuild,
-}: CreateResourceResultsSetupInput): Promise<CreateResourceResultsSetupResult> {
+export async function createResourceResultsSetup(input: CreateResourceResultsSetupInput): Promise<CreateResourceResultsSetupResult> {
   const resourceResults = await Promise.allSettled([
-    submitActionAfterGate(resourceGate, {
-      client: player.client,
+    submitActionAfterGate(input.resourceGate, {
+      client: input.player.client,
       submission: {
-        gameId: resourceGameId,
-        turn: resourceView.turn,
-        submittedActionTargets: { actionId: firstBuild.id, selectedTargets: { planet: resourceOrigin.id }, selectedInputs: {} },
+        gameId: input.resourceGameId,
+        turn: input.resourceView.turn,
+        submittedActionTargets: { actionId: input.firstBuild.id, selectedTargets: { planet: input.resourceOrigin.id }, selectedInputs: {} },
       },
     }),
-    submitActionAfterGate(resourceGate, {
-      client: player.client,
+    submitActionAfterGate(input.resourceGate, {
+      client: input.player.client,
       submission: {
-        gameId: resourceGameId,
-        turn: resourceView.turn,
-        submittedActionTargets: { actionId: secondBuild.id, selectedTargets: { planet: resourceOrigin.id }, selectedInputs: {} },
+        gameId: input.resourceGameId,
+        turn: input.resourceView.turn,
+        submittedActionTargets: {
+          actionId: input.secondBuild.id,
+          selectedTargets: { planet: input.resourceOrigin.id },
+          selectedInputs: {},
+        },
       },
     }),
   ])
   expect(resourceResults.filter(({ status }) => status === "fulfilled")).toHaveLength(1)
   expect(resourceResults.filter(({ status }) => status === "rejected")).toHaveLength(1)
-  const afterResourceRace = await player.client.gameplay.getPlayerView.query({ gameId: resourceGameId })
+  const afterResourceRace = await input.player.client.gameplay.getPlayerView.query({ gameId: input.resourceGameId })
   expect(afterResourceRace.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 3, uncommitted: 1 })
-  const firstBuildAfterRace = afterResourceRace.actions.find(({ id }) => id === firstBuild.id)
-  const secondBuildAfterRace = afterResourceRace.actions.find(({ id }) => id === secondBuild.id)
+  const firstBuildAfterRace = afterResourceRace.actions.find(({ id }) => id === input.firstBuild.id)
+  const secondBuildAfterRace = afterResourceRace.actions.find(({ id }) => id === input.secondBuild.id)
   Assert.isDefined(firstBuildAfterRace)
   Assert.isDefined(secondBuildAfterRace)
   const expectedBuildSelectionByStatus = {
-    fulfilled: { selectedTargets: { planet: resourceOrigin.id }, selectedInputs: {} },
+    fulfilled: { selectedTargets: { planet: input.resourceOrigin.id }, selectedInputs: {} },
     rejected: { selectedTargets: null, selectedInputs: null },
   }
   return { resourceResults, firstBuildAfterRace, secondBuildAfterRace, expectedBuildSelectionByStatus }

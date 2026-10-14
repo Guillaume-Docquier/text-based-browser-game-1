@@ -105,7 +105,7 @@ describe("gameplay.router", () => {
       const unowned = planets.filter(({ ownerPlayerId, id }) => ownerPlayerId === null && id !== origin.id)
       const distanceFromOrigin = (planet: (typeof unowned)[number]): number => Math.hypot(planet.x - origin.x, planet.y - origin.y)
 
-      const createStandardDestinationSetupPhase1Result = await createStandardDestinationSetup({
+      const standardDestinationSetup1 = await createStandardDestinationSetup({
         unowned,
         distanceFromOrigin,
         initialView,
@@ -116,7 +116,7 @@ describe("gameplay.router", () => {
         turnProcessor,
         turnsRepository,
       })
-      const { builtView, sourceFleet, standardAction, improvedAction } = createStandardDestinationSetupPhase1Result
+      const { builtView, sourceFleet, standardAction, improvedAction } = standardDestinationSetup1
       const exceptionalAction = builtView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetExceptional.id)
       Assert.isDefined(sourceFleet)
       Assert.isDefined(standardAction)
@@ -126,7 +126,7 @@ describe("gameplay.router", () => {
       // Act
 
       await verifyPublicState({
-        ...createStandardDestinationSetupPhase1Result,
+        ...standardDestinationSetup1,
         player,
         gameId,
         exceptionalAction,
@@ -247,8 +247,8 @@ describe("gameplay.router", () => {
       // Arrange
       using apiServer = new ApiServer(await createApiStub({ db }))
 
-      const createSelectedPlayerViewSetupPhase2Result = await createSelectedPlayerViewSetup({ apiServer })
-      const { selectedPlayerView, deselectedPlayerView } = createSelectedPlayerViewSetupPhase2Result
+      const selectedPlayerViewSetup2 = await createSelectedPlayerViewSetup({ apiServer })
+      const { selectedPlayerView, deselectedPlayerView } = selectedPlayerViewSetup2
 
       // Assert
 
@@ -323,109 +323,59 @@ async function verifyActionSelections({
   return { playerView }
 }
 
-async function verifySourceFleet({
-  sourceFleet,
-  playerView,
-  player,
-  createdGameId,
-  gainAction,
-  moveAction,
-  destination,
-}: VerifySourceFleetInput): Promise<void> {
-  expect(sourceFleet.strength).toBe(50)
-  expect(playerView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 7, uncommitted: 7 })
-  expect(playerView.resources[ResourceType.METAL].total).toBe(5)
-  expect(playerView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 2 })
+async function verifySourceFleet(input: VerifySourceFleetInput): Promise<void> {
+  expect(input.sourceFleet.strength).toBe(50)
+  expect(input.playerView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 7, uncommitted: 7 })
+  expect(input.playerView.resources[ResourceType.METAL].total).toBe(5)
+  expect(input.playerView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 2 })
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: gainAction.id,
+      actionId: input.gainAction.id,
       selectedTargets: {},
       selectedInputs: {},
     }),
   })
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: moveAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      actionId: input.moveAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: 20 },
     }),
   })
 }
 
-async function verifyGainAndMoveView({
-  player,
-  createdGameId,
-  gainAction,
-  moveAction,
-  sourceFleet,
-  destination,
-  attackAction,
-}: VerifyGainAndMoveViewInput): Promise<void> {
-  const gainAndMoveView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(gainAndMoveView.actions.find(({ id }) => id === gainAction.id)).toMatchObject({ selectedTargets: {}, selectedInputs: {} })
-  expect(gainAndMoveView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
-    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+async function verifyGainAndMoveView(input: VerifyGainAndMoveViewInput): Promise<void> {
+  const gainAndMoveView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  expect(gainAndMoveView.actions.find(({ id }) => id === input.gainAction.id)).toMatchObject({ selectedTargets: {}, selectedInputs: {} })
+  expect(gainAndMoveView.actions.find(({ id }) => id === input.moveAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
     selectedInputs: { strength: 20 },
   })
   expect(gainAndMoveView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 7, uncommitted: 4 })
   expect(gainAndMoveView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 1 })
 
   // Assert
-  const attackAfterGainAndMove = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
+  const attackAfterGainAndMove = input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
     turn: gainAndMoveView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: attackAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      actionId: input.attackAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: 30 },
     }),
   })
   await expect(attackAfterGainAndMove).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
   await expect(attackAfterGainAndMove).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(gainAndMoveView)
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })).toStrictEqual(gainAndMoveView)
 }
 
-async function verifyPublicState({
-  player,
-  gameId,
-  builtView,
-  exceptionalAction,
-  sourceFleet,
-  beyondExceptionalRange,
-  standardAction,
-  standardDestination,
-  improvedAction,
-  improvedDestination,
-  exceptionalDestination,
-  clock,
-  turnProcessor,
-  turnsRepository,
-  initialView,
-  origin,
-}: VerifyPublicStateInput): Promise<void> {
-  await assertBeforeOutOfRangeAttempt({
-    player,
-    gameId,
-    builtView,
-    exceptionalAction,
-    sourceFleet,
-    beyondExceptionalRange,
-    standardAction,
-    standardDestination,
-    improvedAction,
-    improvedDestination,
-    exceptionalDestination,
-    clock,
-    turnProcessor,
-    turnsRepository,
-    initialView,
-    origin,
-  })
+async function verifyPublicState(input: VerifyPublicStateInput): Promise<void> {
+  await assertBeforeOutOfRangeAttempt({ ...input })
 }
 
 type VerifyActionSelectionsInput = {
@@ -480,44 +430,34 @@ type VerifyPublicStateInput = {
   origin: Planet
 }
 
-async function createStandardDestinationSetup({
-  unowned,
-  distanceFromOrigin,
-  initialView,
-  player,
-  gameId,
-  origin,
-  clock,
-  turnProcessor,
-  turnsRepository,
-}: CreateStandardDestinationSetupInput): Promise<CreateStandardDestinationSetupResult> {
-  const standardDestination = unowned.find(({ coordinates }) => coordinates === "45:87:40")
-  const improvedDestination = unowned.find(({ coordinates }) => coordinates === "45:18:35")
-  const exceptionalDestination = unowned.find(({ coordinates }) => coordinates === "54:18:10")
-  const beyondExceptionalRange = unowned.find(({ coordinates }) => coordinates === "63:50:25")
+async function createStandardDestinationSetup(input: CreateStandardDestinationSetupInput): Promise<CreateStandardDestinationSetupResult> {
+  const standardDestination = input.unowned.find(({ coordinates }) => coordinates === "45:87:40")
+  const improvedDestination = input.unowned.find(({ coordinates }) => coordinates === "45:18:35")
+  const exceptionalDestination = input.unowned.find(({ coordinates }) => coordinates === "54:18:10")
+  const beyondExceptionalRange = input.unowned.find(({ coordinates }) => coordinates === "63:50:25")
   Assert.isDefined(standardDestination)
   Assert.isDefined(improvedDestination)
   Assert.isDefined(exceptionalDestination)
   Assert.isDefined(beyondExceptionalRange)
-  expect(distanceFromOrigin(standardDestination)).toBeCloseTo(1.9357059928924176, 12)
-  expect(distanceFromOrigin(improvedDestination)).toBeCloseTo(7.693909440718526, 12)
-  expect(distanceFromOrigin(exceptionalDestination)).toBeCloseTo(10.129282735155494, 12)
-  expect(distanceFromOrigin(beyondExceptionalRange)).toBeCloseTo(31.73237553747045, 12)
+  expect(input.distanceFromOrigin(standardDestination)).toBeCloseTo(1.9357059928924176, 12)
+  expect(input.distanceFromOrigin(improvedDestination)).toBeCloseTo(7.693909440718526, 12)
+  expect(input.distanceFromOrigin(exceptionalDestination)).toBeCloseTo(10.129282735155494, 12)
+  expect(input.distanceFromOrigin(beyondExceptionalRange)).toBeCloseTo(31.73237553747045, 12)
 
-  const buildAction = initialView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+  const buildAction = input.initialView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
   Assert.isDefined(buildAction)
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: initialView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.initialView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
       actionId: buildAction.id,
-      selectedTargets: { planet: origin.id },
+      selectedTargets: { planet: input.origin.id },
       selectedInputs: {},
     }),
   })
-  await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
-  const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
-  const sourceFleet = builtView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
+  await processNextRouterTurn({ ...input })
+  const builtView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const sourceFleet = builtView.fleets.find(({ originPlanetId }) => originPlanetId === input.origin.id)
   const standardAction = builtView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetStandard.id)
   const improvedAction = builtView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetImproved.id)
   return {
@@ -532,10 +472,8 @@ async function createStandardDestinationSetup({
   }
 }
 
-async function createSelectedPlayerViewSetup({
-  apiServer,
-}: CreateSelectedPlayerViewSetupInput): Promise<CreateSelectedPlayerViewSetupResult> {
-  const player = await apiServer.createClient({ authenticated: true })
+async function createSelectedPlayerViewSetup(input: CreateSelectedPlayerViewSetupInput): Promise<CreateSelectedPlayerViewSetupResult> {
+  const player = await input.apiServer.createClient({ authenticated: true })
   const { createdGameId } = await player.client.games.create.mutate({ configuration: createGameConfigurationStub() })
   await player.client.games.startGame.mutate({ gameId: createdGameId })
 

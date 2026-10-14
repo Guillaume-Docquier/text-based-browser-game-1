@@ -1,6 +1,7 @@
 import { branded } from "@guillaume-docquier/tools-ts"
 import { evaluateTargetCandidate } from "shared/action-submission/evaluateActionSelection.ts"
 import type { EligibilityIssueCode, TargetCandidateEvaluation } from "shared/action-submission/selectionEvaluation.ts"
+import { compareOrdinalStrings } from "shared/domain/compareOrdinalStrings.ts"
 import type { GameId } from "shared/domain/games/GameId.ts"
 import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import type { createResourcesStub } from "shared/domain/resources/Resources.stub.ts"
@@ -16,32 +17,25 @@ import type { createFleetStub } from "shared/domain/world/fleets/Fleet.stub.ts"
 import type { FleetId } from "shared/domain/world/fleets/FleetId.ts"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
 import { FleetActionSelectionParity } from "shared/testing/FleetActionSelectionParity.ts"
+import { required } from "shared/testing/required.ts"
 import { expect } from "vitest"
 import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActionTargetsDto.stub.ts"
 import type { PlayerView, Action, Fleet, Planet } from "#api/types.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 import { ComposedReservationRuleset } from "../fleet-gameplay/gameplay.router.ts"
 
-export async function assertOutOfRangeSubmission({
-  player,
-  createdGameId,
-  playerView,
-  standardAction,
-  sourceFleet,
-  outsideStandardRange,
-  destination,
-}: AssertOutOfRangeSubmissionInput): Promise<void> {
-  await verifyOutOfRangeSubmission({ player, createdGameId, playerView, standardAction, sourceFleet, outsideStandardRange, destination })
+export async function assertOutOfRangeSubmission(input: AssertOutOfRangeSubmissionInput): Promise<void> {
+  await verifyOutOfRangeSubmission({ ...input })
 
-  await verifyOverStrengthSubmission({ player, createdGameId, playerView, standardAction, sourceFleet, destination })
+  await verifyOverStrengthSubmission({ ...input })
 
   // Exercise positive-safe-integer validation at the HTTP boundary, including JSON's null encoding
   // for non-finite JavaScript numbers.
 
-  await verifyAfterRejectedDrafts({ player, createdGameId, playerView, standardAction, sourceFleet, destination })
-  const fullForceView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(fullForceView.actions.find(({ id }) => id === standardAction.id)).toMatchObject({
-    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+  await verifyAfterRejectedDrafts({ ...input })
+  const fullForceView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  expect(fullForceView.actions.find(({ id }) => id === input.standardAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
     selectedInputs: { strength: 50 },
   })
   expect(fullForceView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 3 })
@@ -58,28 +52,19 @@ export type AssertOutOfRangeSubmissionInput = {
   destination: Planet
 }
 
-export async function assertAfterFullForceCancel({
-  player,
-  createdGameId,
-  playerView,
-  standardAction,
-  improvedAction,
-  sourceFleet,
-  destination,
-  secondStandardAction,
-}: AssertAfterFullForceCancelInput): Promise<void> {
-  await verifyAfterFullForceCancel({ player, createdGameId, playerView, standardAction, improvedAction, sourceFleet, destination })
+export async function assertAfterFullForceCancel(input: AssertAfterFullForceCancelInput): Promise<void> {
+  await verifyAfterFullForceCancel({ ...input })
 
-  await verifyBeforeThirdCostAttempt({ player, createdGameId, sourceFleet, playerView, secondStandardAction, destination })
+  await verifyBeforeThirdCostAttempt({ ...input })
 
-  for (const action of [standardAction, improvedAction]) {
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
+  for (const action of [input.standardAction, input.improvedAction]) {
+    await input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.playerView.turn,
       submittedActionTargets: { actionId: action.id, selectedTargets: null, selectedInputs: null },
     })
   }
-  const afterCostReservationCancel = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  const afterCostReservationCancel = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
   expect(afterCostReservationCancel.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 6 })
   expect(afterCostReservationCancel.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 4 })
 }
@@ -95,37 +80,29 @@ export type AssertAfterFullForceCancelInput = {
   secondStandardAction: Action
 }
 
-export async function assertImprovedRangeView({
-  player,
-  createdGameId,
-  playerView,
-  improvedAction,
-  sourceFleet,
-  improvedOnlyDestination,
-  destination,
-}: AssertImprovedRangeViewInput): Promise<void> {
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+export async function assertImprovedRangeView(input: AssertImprovedRangeViewInput): Promise<void> {
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: improvedAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: improvedOnlyDestination.id },
+      actionId: input.improvedAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.improvedOnlyDestination.id },
       selectedInputs: { strength: 1 },
     }),
   })
-  const improvedRangeView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(improvedRangeView.actions.find(({ id }) => id === improvedAction.id)).toMatchObject({
-    selectedTargets: { fleet: sourceFleet.id, planet: improvedOnlyDestination.id },
+  const improvedRangeView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  expect(improvedRangeView.actions.find(({ id }) => id === input.improvedAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.improvedOnlyDestination.id },
     selectedInputs: { strength: 1 },
   })
 
   // Submit the same semantic vector used by the Storybook and shared resolver tests.
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: improvedAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      actionId: input.improvedAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: FleetActionSelectionParity.improvedStrength },
     }),
   })
@@ -141,85 +118,63 @@ export type AssertImprovedRangeViewInput = {
   destination: Planet
 }
 
-export async function assertNormalizedInput({
-  retainedView,
-  retainedSource,
-  origin,
-  destination,
-  standardAction,
-  player,
-  createdGameId,
-  playerView,
-  sourceFleet,
-}: AssertNormalizedInputInput): Promise<void> {
+export async function assertNormalizedInput(input: AssertNormalizedInputInput): Promise<void> {
   const normalizedInput = {
     resources: {
       total: Object.fromEntries(
-        Object.values(ResourceType).map((resourceType) => [resourceType, retainedView.resources[resourceType].total]),
+        Object.values(ResourceType).map((resourceType) => [resourceType, input.retainedView.resources[resourceType].total]),
       ),
       uncommitted: Object.fromEntries(
-        Object.values(ResourceType).map((resourceType) => [resourceType, retainedView.resources[resourceType].uncommitted]),
+        Object.values(ResourceType).map((resourceType) => [resourceType, input.retainedView.resources[resourceType].uncommitted]),
       ),
     },
     source: {
       role: "source",
-      owner: retainedSource.ownerPlayerId === retainedView.player.id ? "player" : "other",
-      strength: retainedSource.strength,
-      origin: retainedSource.originPlanetId === origin.id ? "origin" : "other",
-      movement: retainedSource.movement ?? null,
+      owner: input.retainedSource.ownerPlayerId === input.retainedView.player.id ? "player" : "other",
+      strength: input.retainedSource.strength,
+      origin: input.retainedSource.originPlanetId === input.origin.id ? "origin" : "other",
+      movement: input.retainedSource.movement ?? null,
     },
     planets: [
       {
         role: "origin",
-        owner: origin.ownerPlayerId === retainedView.player.id ? "player" : origin.ownerPlayerId,
-        x: origin.x,
-        y: origin.y,
+        owner: input.origin.ownerPlayerId === input.retainedView.player.id ? "player" : input.origin.ownerPlayerId,
+        x: input.origin.x,
+        y: input.origin.y,
       },
       {
         role: "destination",
-        owner: destination.ownerPlayerId === null ? null : "other",
-        x: destination.x,
-        y: destination.y,
+        owner: input.destination.ownerPlayerId === null ? null : "other",
+        x: input.destination.x,
+        y: input.destination.y,
       },
     ],
-    authorizedActions: retainedView.ruleset.actionPool
+    authorizedActions: input.retainedView.ruleset.actionPool
       .map(({ id, actionDefinitionId }) => ({ id, actionDefinitionId }))
-      .toSorted((first, second) => (first.id < second.id ? -1 : first.id > second.id ? 1 : 0)),
-    currentActions: retainedView.actions
+      .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
+    currentActions: input.retainedView.actions
       .map(({ id, actionDefinitionId, selectedTargets, selectedInputs, isInProgress }) => ({
         id,
         actionDefinitionId,
-        selectedTargets:
-          selectedTargets === null
-            ? null
-            : {
-                fleet:
-                  selectedTargets[branded<TargetTag>("fleet")] === retainedSource.id
-                    ? "source"
-                    : selectedTargets[branded<TargetTag>("fleet")],
-                planet:
-                  selectedTargets[branded<TargetTag>("planet")] === destination.id
-                    ? "destination"
-                    : selectedTargets[branded<TargetTag>("planet")],
-              },
+        selectedTargets: normalizeParityTargets(selectedTargets, input.retainedSource.id, input.destination.id),
         selectedInputs,
         isInProgress,
       }))
-      .toSorted((first, second) => (first.id < second.id ? -1 : first.id > second.id ? 1 : 0)),
+      .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
     candidate: {
-      id: standardAction.id,
-      actionDefinitionId: standardAction.actionDefinitionId,
+      id: input.standardAction.id,
+      actionDefinitionId: input.standardAction.actionDefinitionId,
       selectedTargets: { fleet: "source", planet: "destination" },
       selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
     },
   }
   expect(normalizedInput).toStrictEqual(FleetActionSelectionParity.normalizedInput)
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: standardAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      actionId: input.standardAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
     }),
   })
@@ -237,38 +192,30 @@ export type AssertNormalizedInputInput = {
   sourceFleet: Fleet
 }
 
-export function assertSelectedView({
-  selectedView,
-  moveAction,
-  sourceFleet,
-  destination,
-  attackAction,
-  evaluatePublicView,
-  extraAttackAction,
-}: AssertSelectedViewInput): void {
-  expect(selectedView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({
-    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+export function assertSelectedView(input: AssertSelectedViewInput): void {
+  expect(input.selectedView.actions.find(({ id }) => id === input.moveAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
     selectedInputs: { strength: 20 },
   })
-  expect(selectedView.actions.find(({ id }) => id === attackAction.id)).toMatchObject({
-    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+  expect(input.selectedView.actions.find(({ id }) => id === input.attackAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
     selectedInputs: { strength: 30 },
   })
-  expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 8, uncommitted: 0 })
-  expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 0 })
-  const selectedEvaluation = evaluatePublicView(selectedView)
+  expect(input.selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 8, uncommitted: 0 })
+  expect(input.selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 0 })
+  const selectedEvaluation = input.evaluatePublicView(input.selectedView)
 
-  assertScenarioState({ selectedEvaluation, sourceFleet })
+  assertScenarioState({ selectedEvaluation, sourceFleet: input.sourceFleet })
 
   const partialCandidate = evaluateTargetCandidate({
     state: selectedEvaluation.state,
     ruleset: ComposedReservationRuleset,
-    draft: { actionId: extraAttackAction.id, selectedTargets: {}, selectedInputs: {} },
+    draft: { actionId: input.extraAttackAction.id, selectedTargets: {}, selectedInputs: {} },
     targetTag: branded<TargetTag>("fleet"),
-    targetId: sourceFleet.id,
+    targetId: input.sourceFleet.id,
   })
 
-  assertScenarioState2({ partialCandidate, sourceFleet })
+  assertScenarioState2({ partialCandidate, sourceFleet: input.sourceFleet })
 }
 
 export type AssertSelectedViewInput = {
@@ -281,13 +228,13 @@ export type AssertSelectedViewInput = {
   extraAttackAction: Action
 }
 
-export function assertScenarioState({ selectedEvaluation, sourceFleet }: AssertScenarioStateInput): void {
+export function assertScenarioState(input: AssertScenarioStateInput): void {
   expect({
-    status: selectedEvaluation.evaluation.status,
-    issues: selectedEvaluation.evaluation.issues,
-    strengthCommitment: selectedEvaluation.evaluation.strengthCommitments[sourceFleet.id],
-    remainingStrength: selectedEvaluation.evaluation.remainingStrength[sourceFleet.id],
-    resourceCommitments: selectedEvaluation.evaluation.resourceCommitments,
+    status: input.selectedEvaluation.evaluation.status,
+    issues: input.selectedEvaluation.evaluation.issues,
+    strengthCommitment: input.selectedEvaluation.evaluation.strengthCommitments[input.sourceFleet.id],
+    remainingStrength: input.selectedEvaluation.evaluation.remainingStrength[input.sourceFleet.id],
+    resourceCommitments: input.selectedEvaluation.evaluation.resourceCommitments,
   }).toStrictEqual({
     status: "ELIGIBLE",
     issues: [],
@@ -365,16 +312,16 @@ export type AssertScenarioState3Input = {
 
 export type AssertScenarioState4Input = { aliceView: PlayerView; source: Fleet; defender: Fleet }
 
-export function assertScenarioState2({ partialCandidate, sourceFleet }: AssertScenarioState2Input): void {
+export function assertScenarioState2(input: AssertScenarioState2Input): void {
   expect({
-    status: partialCandidate.status,
-    candidateStatus: partialCandidate.candidateStatus,
-    candidateIssues: partialCandidate.candidateIssues.map(({ code }) => code),
-    missingTargets: partialCandidate.missingTargets,
-    missingInputs: partialCandidate.missingInputs,
-    strengthCommitment: partialCandidate.strengthCommitments[sourceFleet.id],
-    remainingStrength: partialCandidate.remainingStrength[sourceFleet.id],
-    resourceCommitments: partialCandidate.resourceCommitments,
+    status: input.partialCandidate.status,
+    candidateStatus: input.partialCandidate.candidateStatus,
+    candidateIssues: input.partialCandidate.candidateIssues.map(({ code }) => code),
+    missingTargets: input.partialCandidate.missingTargets,
+    missingInputs: input.partialCandidate.missingInputs,
+    strengthCommitment: input.partialCandidate.strengthCommitments[input.sourceFleet.id],
+    remainingStrength: input.partialCandidate.remainingStrength[input.sourceFleet.id],
+    resourceCommitments: input.partialCandidate.resourceCommitments,
   }).toStrictEqual({
     status: "INELIGIBLE",
     candidateStatus: "INELIGIBLE",
@@ -393,51 +340,36 @@ export function assertScenarioState2({ partialCandidate, sourceFleet }: AssertSc
   })
 }
 
-async function verifyOutOfRangeSubmission({
-  player,
-  createdGameId,
-  playerView,
-  standardAction,
-  sourceFleet,
-  outsideStandardRange,
-  destination,
-}: VerifyOutOfRangeSubmissionInput): Promise<void> {
-  const outOfRangeSubmission = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+async function verifyOutOfRangeSubmission(input: VerifyOutOfRangeSubmissionInput): Promise<void> {
+  const outOfRangeSubmission = input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: standardAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: outsideStandardRange.id },
+      actionId: input.standardAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.outsideStandardRange.id },
       selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
     }),
   })
   await expect(outOfRangeSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  const missingForceSubmission = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+  const missingForceSubmission = input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: standardAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      actionId: input.standardAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: {},
     }),
   })
   await expect(missingForceSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
 }
 
-async function verifyOverStrengthSubmission({
-  player,
-  createdGameId,
-  playerView,
-  standardAction,
-  sourceFleet,
-  destination,
-}: VerifyOverStrengthSubmissionInput): Promise<void> {
-  const overStrengthSubmission = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+async function verifyOverStrengthSubmission(input: VerifyOverStrengthSubmissionInput): Promise<void> {
+  const overStrengthSubmission = input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: standardAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      actionId: input.standardAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: 51 },
     }),
   })
@@ -445,119 +377,97 @@ async function verifyOverStrengthSubmission({
 
   // The public DTO accepts only matched target/input objects or a matched null cancellation.
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
-      submittedActionTargets: { actionId: standardAction.id, selectedTargets: null, selectedInputs: {} },
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.playerView.turn,
+      submittedActionTargets: { actionId: input.standardAction.id, selectedTargets: null, selectedInputs: {} },
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
-      submittedActionTargets: { actionId: standardAction.id, selectedTargets: {}, selectedInputs: null },
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.playerView.turn,
+      submittedActionTargets: { actionId: input.standardAction.id, selectedTargets: {}, selectedInputs: null },
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
 }
 
-async function verifyAfterRejectedDrafts({
-  player,
-  createdGameId,
-  playerView,
-  standardAction,
-  sourceFleet,
-  destination,
-}: VerifyAfterRejectedDraftsInput): Promise<void> {
+async function verifyAfterRejectedDrafts(input: VerifyAfterRejectedDraftsInput): Promise<void> {
   for (const invalidStrength of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1]) {
     await expect(
-      player.client.gameplay.updateActionSubmission.mutate({
-        gameId: createdGameId,
-        turn: playerView.turn,
+      input.player.client.gameplay.updateActionSubmission.mutate({
+        gameId: input.createdGameId,
+        turn: input.playerView.turn,
         submittedActionTargets: {
-          actionId: standardAction.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          actionId: input.standardAction.id,
+          selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
           selectedInputs: { strength: invalidStrength },
         },
       }),
     ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
   }
 
-  const afterRejectedDrafts = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(afterRejectedDrafts).toStrictEqual(playerView)
+  const afterRejectedDrafts = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  expect(afterRejectedDrafts).toStrictEqual(input.playerView)
 
   // The API accepts a full unreserved force of 50 and releases its costs when the draft is cancelled.
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: standardAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      actionId: input.standardAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: 50 },
     }),
   })
 }
 
-async function verifyAfterFullForceCancel({
-  player,
-  createdGameId,
-  playerView,
-  standardAction,
-  improvedAction,
-  sourceFleet,
-  destination,
-}: VerifyAfterFullForceCancelInput): Promise<void> {
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
-    submittedActionTargets: { actionId: standardAction.id, selectedTargets: null, selectedInputs: null },
+async function verifyAfterFullForceCancel(input: VerifyAfterFullForceCancelInput): Promise<void> {
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
+    submittedActionTargets: { actionId: input.standardAction.id, selectedTargets: null, selectedInputs: null },
   })
-  const afterFullForceCancel = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  const afterFullForceCancel = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
   expect(afterFullForceCancel.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 6 })
   expect(afterFullForceCancel.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 4 })
 
   // Exhaust the action costs while leaving one unallocated Strength; the third draft must fail atomically.
   for (const [action, strength] of [
-    [standardAction, 20],
-    [improvedAction, 29],
+    [input.standardAction, 20],
+    [input.improvedAction, 29],
   ] as const) {
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
+    await input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.playerView.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
         actionId: action.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
         selectedInputs: { strength },
       }),
     })
   }
 }
 
-async function verifyBeforeThirdCostAttempt({
-  player,
-  createdGameId,
-  sourceFleet,
-  playerView,
-  secondStandardAction,
-  destination,
-}: VerifyBeforeThirdCostAttemptInput): Promise<void> {
-  const beforeThirdCostAttempt = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+async function verifyBeforeThirdCostAttempt(input: VerifyBeforeThirdCostAttemptInput): Promise<void> {
+  const beforeThirdCostAttempt = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
   expect(beforeThirdCostAttempt.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 0 })
   expect(beforeThirdCostAttempt.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 0 })
-  expect(beforeThirdCostAttempt.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(50)
+  expect(required(beforeThirdCostAttempt.fleets.find(({ id }) => id === input.sourceFleet.id)).strength).toBe(50)
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.playerView.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: secondStandardAction.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        actionId: input.secondStandardAction.id,
+        selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
         selectedInputs: { strength: 1 },
       }),
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  const afterThirdCostAttempt = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  const afterThirdCostAttempt = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
   expect(afterThirdCostAttempt).toStrictEqual(beforeThirdCostAttempt)
-  expect(afterThirdCostAttempt.actions.find(({ id }) => id === secondStandardAction.id)).toMatchObject({
+  expect(afterThirdCostAttempt.actions.find(({ id }) => id === input.secondStandardAction.id)).toMatchObject({
     selectedTargets: null,
     selectedInputs: null,
     isInProgress: false,
@@ -652,3 +562,13 @@ type EvaluatePublicViewProjection = {
 }
 
 type EvaluatePublicViewCallback = (view: PlayerView) => EvaluatePublicViewProjection
+
+type ParityTargets = { fleet: string | undefined; planet: string | undefined } | null
+function normalizeParityTargets(targets: Action["selectedTargets"], sourceId: Fleet["id"], destinationId: Planet["id"]): ParityTargets {
+  if (targets === null) {
+    return null
+  }
+  const fleet = targets[branded<TargetTag>("fleet")],
+    planet = targets[branded<TargetTag>("planet")]
+  return { fleet: fleet === sourceId ? "source" : fleet, planet: planet === destinationId ? "destination" : planet }
+}

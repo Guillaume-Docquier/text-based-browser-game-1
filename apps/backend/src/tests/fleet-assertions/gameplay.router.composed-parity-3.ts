@@ -7,105 +7,93 @@ import { createSubmittedActionTargetsDtoStub } from "#api/gameplay/SubmittedActi
 import type { PlayerView, Action, Fleet, Planet } from "#api/types.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
 
-export async function assertRedirectedTargets({
-  source,
-  redirectPlanet,
-  alice,
-  gameId,
-  firstReload,
-  freeComposedAction,
-  customAction,
-  occupiedComposedAction,
-  journey,
-  occupiedJourney,
-  validTargets,
-}: AssertRedirectedTargetsInput): Promise<void> {
-  const redirectedTargets = { originForce: source.id, landingSite: redirectPlanet.planet.id }
+export async function assertRedirectedTargets(input: AssertRedirectedTargetsInput): Promise<void> {
+  const redirectedTargets = { originForce: input.source.id, landingSite: input.redirectPlanet.planet.id }
 
   const proveFreeInstanceSelectionAndCancel = async (selectedTargets: Record<string, string>, units: number): Promise<void> => {
-    expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(firstReload)
-    await alice.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: firstReload.turn,
+    expect(await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toStrictEqual(input.firstReload)
+    await input.alice.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.firstReload.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: freeComposedAction.id,
+        actionId: input.freeComposedAction.id,
         selectedTargets,
         selectedInputs: { units },
       }),
     })
-    const freeSelectionView = await alice.client.gameplay.getPlayerView.query({ gameId })
-    expect(freeSelectionView.actions.find(({ id }) => id === freeComposedAction.id)).toMatchObject({
+    const freeSelectionView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+    expect(freeSelectionView.actions.find(({ id }) => id === input.freeComposedAction.id)).toMatchObject({
       selectedTargets,
       selectedInputs: { units },
       isInProgress: false,
     })
-    expect(freeSelectionView.actions.find(({ id }) => id === customAction.id)).toStrictEqual(occupiedComposedAction)
-    expect(freeSelectionView.fleets.find(({ id }) => id === journey.id)).toStrictEqual(occupiedJourney)
+    expect(freeSelectionView.actions.find(({ id }) => id === input.customAction.id)).toStrictEqual(input.occupiedComposedAction)
+    expect(freeSelectionView.fleets.find(({ id }) => id === input.journey.id)).toStrictEqual(input.occupiedJourney)
     expect(freeSelectionView.resources[ResourceType.INFLUENCE]).toStrictEqual({
-      total: firstReload.resources[ResourceType.INFLUENCE].total,
-      uncommitted: firstReload.resources[ResourceType.INFLUENCE].uncommitted - 7,
+      total: input.firstReload.resources[ResourceType.INFLUENCE].total,
+      uncommitted: input.firstReload.resources[ResourceType.INFLUENCE].uncommitted - 7,
     })
     expect(freeSelectionView.resources[ResourceType.FUEL]).toStrictEqual({
-      total: firstReload.resources[ResourceType.FUEL].total,
-      uncommitted: firstReload.resources[ResourceType.FUEL].uncommitted - 2,
+      total: input.firstReload.resources[ResourceType.FUEL].total,
+      uncommitted: input.firstReload.resources[ResourceType.FUEL].uncommitted - 2,
     })
-    await alice.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: firstReload.turn,
-      submittedActionTargets: { actionId: freeComposedAction.id, selectedTargets: null, selectedInputs: null },
+    await input.alice.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.firstReload.turn,
+      submittedActionTargets: { actionId: input.freeComposedAction.id, selectedTargets: null, selectedInputs: null },
     })
-    expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(firstReload)
+    expect(await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toStrictEqual(input.firstReload)
   }
 
-  await proveFreeInstanceSelectionAndCancel(validTargets, 1)
+  await proveFreeInstanceSelectionAndCancel(input.validTargets, 1)
   await proveFreeInstanceSelectionAndCancel(redirectedTargets, 1)
-  await proveFreeInstanceSelectionAndCancel(validTargets, 19)
+  await proveFreeInstanceSelectionAndCancel(input.validTargets, 19)
 
   const rejectOccupiedAttemptWithoutMutation = async (
     submittedActionTargets: ReturnType<typeof createSubmittedActionTargetsDtoStub>,
     expectedMessage: string,
   ): Promise<void> => {
-    expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(firstReload)
-    const updatePromise = alice.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: firstReload.turn,
+    expect(await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toStrictEqual(input.firstReload)
+    const updatePromise = input.alice.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.firstReload.turn,
       submittedActionTargets,
     })
     await expect(updatePromise).rejects.toThrow(expectedMessage)
     await expect(updatePromise).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-    const unchangedView = await alice.client.gameplay.getPlayerView.query({ gameId })
-    expect(unchangedView).toStrictEqual(firstReload)
-    expect(unchangedView.actions.find(({ id }) => id === customAction.id)).toStrictEqual(occupiedComposedAction)
-    expect(unchangedView.resources).toStrictEqual(firstReload.resources)
-    expect(unchangedView.fleets.find(({ id }) => id === journey.id)).toStrictEqual(occupiedJourney)
+    const unchangedView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+    expect(unchangedView).toStrictEqual(input.firstReload)
+    expect(unchangedView.actions.find(({ id }) => id === input.customAction.id)).toStrictEqual(input.occupiedComposedAction)
+    expect(unchangedView.resources).toStrictEqual(input.firstReload.resources)
+    expect(unchangedView.fleets.find(({ id }) => id === input.journey.id)).toStrictEqual(input.occupiedJourney)
   }
   const occupiedMessage = "An Action cannot be changed or cancelled while it is in progress."
   await rejectOccupiedAttemptWithoutMutation(
     createSubmittedActionTargetsDtoStub({
-      actionId: customAction.id,
-      selectedTargets: validTargets,
+      actionId: input.customAction.id,
+      selectedTargets: input.validTargets,
       selectedInputs: { units: 1 },
     }),
     occupiedMessage,
   )
   await rejectOccupiedAttemptWithoutMutation(
     createSubmittedActionTargetsDtoStub({
-      actionId: customAction.id,
-      selectedTargets: validTargets,
+      actionId: input.customAction.id,
+      selectedTargets: input.validTargets,
       selectedInputs: { units: 19 },
     }),
     occupiedMessage,
   )
   await rejectOccupiedAttemptWithoutMutation(
     createSubmittedActionTargetsDtoStub({
-      actionId: customAction.id,
+      actionId: input.customAction.id,
       selectedTargets: redirectedTargets,
       selectedInputs: { units: 1 },
     }),
     occupiedMessage,
   )
   await rejectOccupiedAttemptWithoutMutation(
-    { actionId: customAction.id, selectedTargets: null, selectedInputs: null },
+    { actionId: input.customAction.id, selectedTargets: null, selectedInputs: null },
     "An Action cannot be changed or cancelled while it is in progress.",
   )
 }
@@ -124,31 +112,18 @@ export type AssertRedirectedTargetsInput = {
   validTargets: { originForce: FleetId; landingSite: PlanetId }
 }
 
-export async function assertSecondReload({
-  processReadyTurn,
-  gameId,
-  firstReload,
-  alice,
-  bob,
-  journey,
-  defender,
-  aliceView,
-  bobHome,
-  source,
-  aliceHome,
-  customAction,
-}: AssertSecondReloadInput): Promise<void> {
-  await processReadyTurn(gameId, firstReload.turn, [alice, bob])
-  const secondReload = await alice.client.gameplay.getPlayerView.query({ gameId })
-  expect(secondReload.fleets.find(({ id }) => id === journey.id)?.distanceToEnd).toBe(0.418312565270031)
-  expect(secondReload.fleets.find(({ id }) => id === defender.id)?.strength).toBe(20)
+export async function assertSecondReload(input: AssertSecondReloadInput): Promise<void> {
+  await input.processReadyTurn(input.gameId, input.firstReload.turn, [input.alice, input.bob])
+  const secondReload = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(secondReload.fleets.find(({ id }) => id === input.journey.id)?.distanceToEnd).toBe(0.418312565270031)
+  expect(secondReload.fleets.find(({ id }) => id === input.defender.id)?.strength).toBe(20)
   expect(secondReload.resources[ResourceType.INFLUENCE].total).toBe(80)
   expect(secondReload.resources[ResourceType.FUEL].total).toBe(95)
 
-  await processReadyTurn(gameId, secondReload.turn, [alice, bob])
-  const arrivalView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  await input.processReadyTurn(input.gameId, secondReload.turn, [input.alice, input.bob])
+  const arrivalView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
 
-  assertArrivalView({ arrivalView, defender, journey, aliceView, bobHome, source, aliceHome, customAction })
+  assertArrivalView({ ...input, arrivalView })
 }
 
 export type AssertSecondReloadInput = {
@@ -166,33 +141,24 @@ export type AssertSecondReloadInput = {
   customAction: Action
 }
 
-export function assertArrivalView({
-  arrivalView,
-  defender,
-  journey,
-  aliceView,
-  bobHome,
-  source,
-  aliceHome,
-  customAction,
-}: AssertArrivalViewInput): void {
-  expect(arrivalView.fleets.find(({ id }) => id === defender.id)).toBeUndefined()
-  expect(arrivalView.fleets.find(({ id }) => id === journey.id)).toStrictEqual({
-    id: journey.id,
-    name: journey.name,
-    ownerPlayerId: aliceView.player.id,
+export function assertArrivalView(input: AssertArrivalViewInput): void {
+  expect(input.arrivalView.fleets.find(({ id }) => id === input.defender.id)).toBeUndefined()
+  expect(input.arrivalView.fleets.find(({ id }) => id === input.journey.id)).toStrictEqual({
+    id: input.journey.id,
+    name: input.journey.name,
+    ownerPlayerId: input.aliceView.player.id,
     strength: 10,
-    originPlanetId: bobHome.id,
+    originPlanetId: input.bobHome.id,
   })
-  expect(arrivalView.fleets.find(({ id }) => id === source.id)).toMatchObject({
-    id: source.id,
-    name: source.name,
+  expect(input.arrivalView.fleets.find(({ id }) => id === input.source.id)).toMatchObject({
+    id: input.source.id,
+    name: input.source.name,
     strength: 19,
-    originPlanetId: aliceHome.id,
+    originPlanetId: input.aliceHome.id,
   })
-  expect(arrivalView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 80, uncommitted: 80 })
-  expect(arrivalView.resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
-  expect(arrivalView.actions.find(({ id }) => id === customAction.id)?.isInProgress).toBe(false)
+  expect(input.arrivalView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 80, uncommitted: 80 })
+  expect(input.arrivalView.resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
+  expect(input.arrivalView.actions.find(({ id }) => id === input.customAction.id)?.isInProgress).toBe(false)
 }
 
 export type AssertArrivalViewInput = {

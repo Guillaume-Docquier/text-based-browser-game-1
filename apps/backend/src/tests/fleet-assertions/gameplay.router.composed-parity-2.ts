@@ -28,41 +28,18 @@ import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { ComposedReservationRuleset, RenamedComposedAssault, processNextRouterTurn } from "../fleet-gameplay/gameplay.router.ts"
 import type { AssertScenarioState3Input, AssertScenarioState4Input } from "./gameplay.router.composed-parity.ts"
 
-export async function assertBeforeRejectedDrafts({
-  player,
-  createdGameId,
-  selectedView,
-  attackAction,
-  sourceFleet,
-  destination,
-  buildAction,
-  origin,
-  submitSelection,
-  moveAction,
-  evaluatePublicView,
-  extraMoveAction,
-}: AssertBeforeRejectedDraftsInput): Promise<void> {
-  const beforeRejectedDrafts = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+export async function assertBeforeRejectedDrafts(input: AssertBeforeRejectedDraftsInput): Promise<void> {
+  const beforeRejectedDrafts = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
 
-  await assertScenarioState3({
-    player,
-    createdGameId,
-    selectedView,
-    attackAction,
-    sourceFleet,
-    destination,
-    buildAction,
-    origin,
-    beforeRejectedDrafts,
-  })
+  await assertScenarioState3({ ...input, beforeRejectedDrafts })
 
-  await submitSelection(moveAction.id, 19)
-  const editedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  const editedEvaluation = evaluatePublicView(editedView).evaluation
+  await input.submitSelection(input.moveAction.id, 19)
+  const editedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  const editedEvaluation = input.evaluatePublicView(editedView).evaluation
 
-  verifyEditedEvaluation({ editedEvaluation, sourceFleet, extraMoveAction, editedView, destination, evaluatePublicView })
+  verifyEditedEvaluation({ ...input, editedEvaluation, editedView })
 
-  await verifyBeforeResourceRejection({ player, createdGameId, editedView, extraMoveAction, sourceFleet, destination, moveAction })
+  await verifyBeforeResourceRejection({ ...input, editedView })
 }
 
 export type AssertBeforeRejectedDraftsInput = {
@@ -80,80 +57,59 @@ export type AssertBeforeRejectedDraftsInput = {
   extraMoveAction: Action
 }
 
-export async function assertScenarioState3({
-  player,
-  createdGameId,
-  selectedView,
-  attackAction,
-  sourceFleet,
-  destination,
-  buildAction,
-  origin,
-  beforeRejectedDrafts,
-}: AssertScenarioState3Input): Promise<void> {
+export async function assertScenarioState3(input: AssertScenarioState3Input): Promise<void> {
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: selectedView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.selectedView.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: attackAction.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        actionId: input.attackAction.id,
+        selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
         selectedInputs: { strength: 31 },
       }),
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: selectedView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.createdGameId,
+      turn: input.selectedView.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: buildAction.id,
-        selectedTargets: { planet: origin.id },
+        actionId: input.buildAction.id,
+        selectedTargets: { planet: input.origin.id },
         selectedInputs: {},
       }),
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeRejectedDrafts)
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })).toStrictEqual(input.beforeRejectedDrafts)
 }
 
-export async function assertCanceledView({
-  player,
-  createdGameId,
-  evaluatePublicView,
-  moveAction,
-  sourceFleet,
-  submitSelection,
-  clock,
-  turnProcessor,
-  turnsRepository,
-  attackAction,
-}: AssertCanceledViewInput): Promise<void> {
-  const canceledView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  const canceledEvaluation = evaluatePublicView(canceledView).evaluation
-  expect(canceledView.actions.find(({ id }) => id === moveAction.id)).toMatchObject({ selectedTargets: null, selectedInputs: null })
+export async function assertCanceledView(input: AssertCanceledViewInput): Promise<void> {
+  const canceledView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  const canceledEvaluation = input.evaluatePublicView(canceledView).evaluation
+  expect(canceledView.actions.find(({ id }) => id === input.moveAction.id)).toMatchObject({ selectedTargets: null, selectedInputs: null })
   expect(canceledView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 8, uncommitted: 3 })
   expect(canceledView.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 1 })
   expect(canceledEvaluation.status).toBe("ELIGIBLE")
-  expect(canceledEvaluation.strengthCommitments[sourceFleet.id]).toBe(30)
-  expect(canceledEvaluation.remainingStrength[sourceFleet.id]).toBe(20)
+  expect(canceledEvaluation.strengthCommitments[input.sourceFleet.id]).toBe(30)
+  expect(canceledEvaluation.remainingStrength[input.sourceFleet.id]).toBe(20)
   expect(canceledEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(5)
   expect(canceledEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(1)
 
-  await submitSelection(moveAction.id, 20)
-  const restoredPair = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  await input.submitSelection(input.moveAction.id, 20)
+  const restoredPair = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
   expect(restoredPair.resources[ResourceType.INFLUENCE].uncommitted).toBe(0)
   expect(restoredPair.resources[ResourceType.FUEL].uncommitted).toBe(0)
 
   // Assert
-  await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
-  const afterWorkerDeparture = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+  await processNextRouterTurn({ ...input })
+  const afterWorkerDeparture = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
   expect(afterWorkerDeparture.fleets.map(({ strength }) => strength).toSorted((first, second) => first - second)).toStrictEqual([20, 30])
-  expect(afterWorkerDeparture.fleets.some(({ id }) => id === sourceFleet.id)).toBe(false)
+  expect(afterWorkerDeparture.fleets.some(({ id }) => id === input.sourceFleet.id)).toBe(false)
   expect(afterWorkerDeparture.fleets.every(({ movement }) => movement !== undefined)).toBe(true)
   expect(afterWorkerDeparture.resources[ResourceType.INFLUENCE].total).toBe(0)
   expect(afterWorkerDeparture.resources[ResourceType.FUEL].total).toBe(0)
-  expect(afterWorkerDeparture.actions.find(({ id }) => id === moveAction.id)?.isInProgress).toBe(true)
-  expect(afterWorkerDeparture.actions.find(({ id }) => id === attackAction.id)?.isInProgress).toBe(true)
+  expect(afterWorkerDeparture.actions.find(({ id }) => id === input.moveAction.id)?.isInProgress).toBe(true)
+  expect(afterWorkerDeparture.actions.find(({ id }) => id === input.attackAction.id)?.isInProgress).toBe(true)
 }
 
 export type AssertCanceledViewInput = {
@@ -169,58 +125,16 @@ export type AssertCanceledViewInput = {
   attackAction: Action
 }
 
-export async function assertBeforeOutOfRangeAttempt({
-  player,
-  gameId,
-  builtView,
-  exceptionalAction,
-  sourceFleet,
-  beyondExceptionalRange,
-  standardAction,
-  standardDestination,
-  improvedAction,
-  improvedDestination,
-  exceptionalDestination,
-  clock,
-  turnProcessor,
-  turnsRepository,
-  initialView,
-  origin,
-}: AssertBeforeOutOfRangeAttemptInput): Promise<void> {
-  await verifyBeforeOutOfRangeAttempt({
-    player,
-    gameId,
-    builtView,
-    exceptionalAction,
-    sourceFleet,
-    beyondExceptionalRange,
-    standardAction,
-    standardDestination,
-    improvedAction,
-    improvedDestination,
-    exceptionalDestination,
-  })
-  const submittedView = await player.client.gameplay.getPlayerView.query({ gameId })
-  expect(submittedView.actions.find(({ id }) => id === exceptionalAction.id)).toMatchObject({
-    selectedTargets: { fleet: sourceFleet.id, planet: exceptionalDestination.id },
+export async function assertBeforeOutOfRangeAttempt(input: AssertBeforeOutOfRangeAttemptInput): Promise<void> {
+  await verifyBeforeOutOfRangeAttempt({ ...input })
+  const submittedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(submittedView.actions.find(({ id }) => id === input.exceptionalAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.exceptionalDestination.id },
     selectedInputs: { strength: 1 },
   })
-  await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
+  await processNextRouterTurn({ ...input })
 
-  await verifyView({
-    player,
-    gameId,
-    standardAction,
-    standardDestination,
-    improvedAction,
-    improvedDestination,
-    exceptionalAction,
-    exceptionalDestination,
-    initialView,
-    origin,
-    submittedView,
-    sourceFleet,
-  })
+  await verifyView({ ...input, submittedView })
 }
 
 export type AssertBeforeOutOfRangeAttemptInput = {
@@ -348,9 +262,9 @@ export type AssertActionSelectionsInput = {
 
 export type AssertActionSelectionsResult = { aliceView: PlayerView }
 
-export function assertScenarioState4({ aliceView, source, defender }: AssertScenarioState4Input): void {
+export function assertScenarioState4(input: AssertScenarioState4Input): void {
   expect(
-    aliceView.fleets
+    input.aliceView.fleets
       .map(({ id, name, ownerPlayerId, originPlanetId, strength, movement }) => ({
         id,
         name,
@@ -361,7 +275,7 @@ export function assertScenarioState4({ aliceView, source, defender }: AssertScen
       }))
       .toSorted((left, right) => left.id.localeCompare(right.id)),
   ).toStrictEqual(
-    [source, defender]
+    [input.source, input.defender]
       .map(({ id, name, ownerPlayerId, originPlanetId, strength, movement }) => ({
         id,
         name,
@@ -374,27 +288,17 @@ export function assertScenarioState4({ aliceView, source, defender }: AssertScen
   )
 }
 
-export function assertJourney2({
-  journey,
-  bobHome,
-  customAction,
-  validTargets,
-  remainder,
-  source,
-  aliceHome,
-  firstReload,
-  defender,
-}: AssertJourney2Input): void {
-  expect(journey).toMatchObject({
+export function assertJourney2(input: AssertJourney2Input): void {
+  expect(input.journey).toMatchObject({
     strength: 30,
     distanceToEnd: 2.418312565270031,
-    destinationPlanetId: bobHome.id,
+    destinationPlanetId: input.bobHome.id,
     movement: {
       speed: 2,
       submission: {
-        id: customAction.id,
+        id: input.customAction.id,
         actionDefinitionId: RenamedComposedAssault.id,
-        selectedTargets: validTargets,
+        selectedTargets: input.validTargets,
         selectedInputs: { units: 30 },
       },
       pendingArrivalEffects: [
@@ -411,10 +315,10 @@ export function assertJourney2({
       ],
     },
   })
-  expect(remainder).toMatchObject({ id: source.id, name: source.name, strength: 19, originPlanetId: aliceHome.id })
-  expect(firstReload.fleets.find(({ id }) => id === defender.id)?.strength).toBe(20)
-  expect(firstReload.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 80, uncommitted: 80 })
-  expect(firstReload.resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
+  expect(input.remainder).toMatchObject({ id: input.source.id, name: input.source.name, strength: 19, originPlanetId: input.aliceHome.id })
+  expect(input.firstReload.fleets.find(({ id }) => id === input.defender.id)?.strength).toBe(20)
+  expect(input.firstReload.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 80, uncommitted: 80 })
+  expect(input.firstReload.resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
 }
 
 export type AssertJourney2Input = {
@@ -429,35 +333,28 @@ export type AssertJourney2Input = {
   defender: Fleet
 }
 
-function verifyEditedEvaluation({
-  editedEvaluation,
-  sourceFleet,
-  extraMoveAction,
-  editedView,
-  destination,
-  evaluatePublicView,
-}: VerifyEditedEvaluationInput): void {
-  expect(editedEvaluation.status).toBe("ELIGIBLE")
-  expect(editedEvaluation.strengthCommitments[sourceFleet.id]).toBe(49)
-  expect(editedEvaluation.remainingStrength[sourceFleet.id]).toBe(1)
-  expect(editedEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
-  expect(editedEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(2)
+function verifyEditedEvaluation(input: VerifyEditedEvaluationInput): void {
+  expect(input.editedEvaluation.status).toBe("ELIGIBLE")
+  expect(input.editedEvaluation.strengthCommitments[input.sourceFleet.id]).toBe(49)
+  expect(input.editedEvaluation.remainingStrength[input.sourceFleet.id]).toBe(1)
+  expect(input.editedEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
+  expect(input.editedEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(2)
 
   const resourceAttempt = createSubmittedActionStub({
-    id: extraMoveAction.id,
-    playerId: editedView.player.id,
+    id: input.extraMoveAction.id,
+    playerId: input.editedView.player.id,
     actionDefinitionId: MoveFleetStandard.id,
-    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
     selectedInputs: { strength: 1 },
   })
-  const editedProjection = evaluatePublicView(editedView)
+  const editedProjection = input.evaluatePublicView(input.editedView)
   const resourceAttemptEvaluation = evaluateSubmittedActions({
     state: editedProjection.state,
     ruleset: ComposedReservationRuleset,
     submissions: [...editedProjection.submissions, resourceAttempt],
   })
   expect(resourceAttemptEvaluation.status).toBe("INELIGIBLE")
-  expect(resourceAttemptEvaluation.strengthCommitments[sourceFleet.id]).toBe(50)
+  expect(resourceAttemptEvaluation.strengthCommitments[input.sourceFleet.id]).toBe(50)
   expect(resourceAttemptEvaluation.resourceCommitments[ResourceType.INFLUENCE]).toBe(11)
   expect(resourceAttemptEvaluation.resourceCommitments[ResourceType.FUEL]).toBe(3)
   expect(resourceAttemptEvaluation.issues).toStrictEqual(
@@ -468,126 +365,93 @@ function verifyEditedEvaluation({
   )
 }
 
-async function verifyBeforeResourceRejection({
-  player,
-  createdGameId,
-  editedView,
-  extraMoveAction,
-  sourceFleet,
-  destination,
-  moveAction,
-}: VerifyBeforeResourceRejectionInput): Promise<void> {
-  const beforeResourceRejection = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  const exhaustedResourcesSubmission = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: editedView.turn,
+async function verifyBeforeResourceRejection(input: VerifyBeforeResourceRejectionInput): Promise<void> {
+  const beforeResourceRejection = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  const exhaustedResourcesSubmission = input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.editedView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: extraMoveAction.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      actionId: input.extraMoveAction.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: 1 },
     }),
   })
   await expect(exhaustedResourcesSubmission).rejects.toThrow("Invalid action submission, targets are invalid or costs cannot be paid.")
   await expect(exhaustedResourcesSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })).toStrictEqual(beforeResourceRejection)
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })).toStrictEqual(beforeResourceRejection)
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: editedView.turn,
-    submittedActionTargets: { actionId: moveAction.id, selectedTargets: null, selectedInputs: null },
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.editedView.turn,
+    submittedActionTargets: { actionId: input.moveAction.id, selectedTargets: null, selectedInputs: null },
   })
 }
 
-async function verifyBeforeOutOfRangeAttempt({
-  player,
-  gameId,
-  builtView,
-  exceptionalAction,
-  sourceFleet,
-  beyondExceptionalRange,
-  standardAction,
-  standardDestination,
-  improvedAction,
-  improvedDestination,
-  exceptionalDestination,
-}: VerifyBeforeOutOfRangeAttemptInput): Promise<void> {
-  const beforeOutOfRangeAttempt = await player.client.gameplay.getPlayerView.query({ gameId })
+async function verifyBeforeOutOfRangeAttempt(input: VerifyBeforeOutOfRangeAttemptInput): Promise<void> {
+  const beforeOutOfRangeAttempt = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: builtView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.builtView.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: exceptionalAction.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: beyondExceptionalRange.id },
+        actionId: input.exceptionalAction.id,
+        selectedTargets: { fleet: input.sourceFleet.id, planet: input.beyondExceptionalRange.id },
         selectedInputs: { strength: 1 },
       }),
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
   // Assert
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeOutOfRangeAttempt)
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toStrictEqual(beforeOutOfRangeAttempt)
 
   // Act
   for (const [action, destination] of [
-    [standardAction, standardDestination],
-    [improvedAction, improvedDestination],
-    [exceptionalAction, exceptionalDestination],
+    [input.standardAction, input.standardDestination],
+    [input.improvedAction, input.improvedDestination],
+    [input.exceptionalAction, input.exceptionalDestination],
   ] as const) {
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: builtView.turn,
+    await input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.builtView.turn,
       submittedActionTargets: createSubmittedActionTargetsDtoStub({
         actionId: action.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedTargets: { fleet: input.sourceFleet.id, planet: destination.id },
         selectedInputs: { strength: 1 },
       }),
     })
   }
 }
 
-async function verifyView({
-  player,
-  gameId,
-  standardAction,
-  standardDestination,
-  improvedAction,
-  improvedDestination,
-  exceptionalAction,
-  exceptionalDestination,
-  initialView,
-  origin,
-  submittedView,
-  sourceFleet,
-}: VerifyViewInput): Promise<void> {
-  const resolvedView = await player.client.gameplay.getPlayerView.query({ gameId })
+async function verifyView(input: VerifyViewInput): Promise<void> {
+  const resolvedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
 
   // Assert
   for (const [action, destination, speed, expectedRemainingDistance] of [
-    [standardAction, standardDestination, 0.1, Number.parseFloat("1.8357059928924176")],
-    [improvedAction, improvedDestination, 1, 6.693909440718526],
-    [exceptionalAction, exceptionalDestination, 5, 5.129282735155494],
+    [input.standardAction, input.standardDestination, 0.1, Number.parseFloat("1.8357059928924176")],
+    [input.improvedAction, input.improvedDestination, 1, 6.693909440718526],
+    [input.exceptionalAction, input.exceptionalDestination, 5, 5.129282735155494],
   ] as const) {
     const journey = resolvedView.fleets.find(({ movement }) => movement?.submission.id === action.id)
     Assert.isDefined(journey)
     expect(journey).toMatchObject({
-      ownerPlayerId: initialView.player.id,
-      originPlanetId: origin.id,
+      ownerPlayerId: input.initialView.player.id,
+      originPlanetId: input.origin.id,
       destinationPlanetId: destination.id,
       strength: 1,
       distanceToEnd: expect.closeTo(expectedRemainingDistance, 12),
       movement: {
         speed,
-        departureTurn: submittedView.turn,
+        departureTurn: input.submittedView.turn,
         pendingArrivalEffects: [],
         submission: {
           id: action.id,
           actionDefinitionId: action.actionDefinitionId,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedTargets: { fleet: input.sourceFleet.id, planet: destination.id },
           selectedInputs: { strength: 1 },
         },
       },
     })
   }
-  expect(resolvedView.fleets.find(({ id, movement }) => id === sourceFleet.id && movement === undefined)?.strength).toBe(7)
+  expect(resolvedView.fleets.find(({ id, movement }) => id === input.sourceFleet.id && movement === undefined)?.strength).toBe(7)
 }
 
 type VerifyEditedEvaluationInput = {

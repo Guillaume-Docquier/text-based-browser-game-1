@@ -242,20 +242,17 @@ type HomePair = Pick<
 type HomeArrivalFleets = { aliceBuilt: PlayerView["fleets"][number]; bobBuilt: PlayerView["fleets"][number] }
 type HomeArrivalStrengths = { aliceDepartureStrength: number; bobDepartureStrength: number; bobStartingStrength: number }
 type HomeArrivalPositions = Pick<PublicHomeArrivalFixture, "aliceAtSource" | "aliceAtTarget" | "bobAtSource" | "bobAtTarget">
-async function createHomePair({
-  db,
-  clock,
-  apiServer,
-  ruleset,
-}: Pick<CreatePublicHomeArrivalFixtureInput, "db" | "clock" | "apiServer" | "ruleset">): Promise<HomePair> {
+async function createHomePair(
+  input: Pick<CreatePublicHomeArrivalFixtureInput, "db" | "clock" | "apiServer" | "ruleset">,
+): Promise<HomePair> {
   // Arrange: establish the fixed seed-147 home pair through the public game lifecycle.
-  const alice = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
-  const bob = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
+  const alice = await input.apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
+  const bob = await input.apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
   const clients = [alice, bob] as const
   const playerIds = [branded<PlayerId>(alice.account.id), branded<PlayerId>(bob.account.id)] as const
   const { createdGameId: gameId } = await alice.client.games.create.mutate({
     configuration: createGameConfigurationStub({
-      rulesetId: ruleset.id,
+      rulesetId: input.ruleset.id,
       nbSeats: 2,
       turnIntervalSeconds: Time.in(Time.create(10, UnitOfTime.SECONDS), UnitOfTime.SECONDS),
       mapGenerationSeed: 147,
@@ -263,7 +260,7 @@ async function createHomePair({
   })
   await bob.client.games.join.mutate({ gameId })
   await alice.client.games.startGame.mutate({ gameId })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.db, clock: input.clock })
   const initialView = await alice.client.gameplay.getPlayerView.query({ gameId })
   const planets = initialView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
   const aliceHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerIds[0])
@@ -357,28 +354,20 @@ export type PublicAssaultStagingFixture = {
   stationed: Array<PlayerView["fleets"][number]>
 }
 
-export async function createPublicAssaultStagingFixture({
-  clients: availableClients,
-  forces,
-  stagingCoordinates,
-  targetOwnerFirst,
-  turnProcessor,
-  expectedRouteDistances,
-  ruleset,
-  stagePlayerIndices,
-}: CreatePublicAssaultStagingFixtureInput): Promise<PublicAssaultStagingFixture> {
+export async function createPublicAssaultStagingFixture(
+  input: CreatePublicAssaultStagingFixtureInput,
+): Promise<PublicAssaultStagingFixture> {
   // Arrange: create/join/start a fresh fixed-seed game exclusively through the public API.
 
-  const createInitialClientsSetupPhase1Result = await createInitialClientsSetup({
-    availableClients,
-    forces,
-    ruleset,
-    stagePlayerIndices,
-    stagingCoordinates,
+  const initialClientsSetup1 = await createInitialClientsSetup({
+    ...input,
+    availableClients: input.clients,
+    ruleset: input.ruleset,
+    stagePlayerIndices: input.stagePlayerIndices,
   })
-  const { initialClients, playersToStage, gameId, planets, stagingPlanet } = createInitialClientsSetupPhase1Result
-  let { roleClients } = createInitialClientsSetupPhase1Result
-  if (targetOwnerFirst) {
+  const { initialClients, playersToStage, gameId, planets, stagingPlanet } = initialClientsSetup1
+  let { roleClients } = initialClientsSetup1
+  if (input.targetOwnerFirst) {
     const ownerIndex = initialClients.findIndex(({ account }) => String(account.id) === String(stagingPlanet.ownerPlayerId))
     expect(ownerIndex).toBeGreaterThanOrEqual(0)
     const ownerClient = initialClients[ownerIndex]
@@ -392,14 +381,7 @@ export async function createPublicAssaultStagingFixture({
     return home
   })
 
-  await verifyRouteDistances({
-    ...createInitialClientsSetupPhase1Result,
-    homes,
-    expectedRouteDistances,
-    forces,
-    roleClients,
-    turnProcessor,
-  })
+  await verifyRouteDistances({ ...input, ...initialClientsSetup1, homes, roleClients })
   const builtView = await roleClients[0]?.client.gameplay.getPlayerView.query({ gameId })
   Assert.isDefined(builtView)
   const builtFleets = homes.map((home, roleIndex) => {
@@ -412,16 +394,8 @@ export async function createPublicAssaultStagingFixture({
     return fleet
   })
 
-  const createStagingViewSetupPhase2Result = await createStagingViewSetup({
-    ...createInitialClientsSetupPhase1Result,
-    builtFleets,
-    forces,
-    roleClients,
-    homes,
-    turnProcessor,
-    playerIds,
-  })
-  const { stagingView } = createStagingViewSetupPhase2Result
+  const stagingViewSetup2 = await createStagingViewSetup({ ...input, ...initialClientsSetup1, builtFleets, roleClients, homes, playerIds })
+  const { stagingView } = stagingViewSetup2
   const stationed = playerIds.map((playerId, roleIndex) => {
     const home = homes[roleIndex]
     Assert.isDefined(home)
@@ -431,11 +405,11 @@ export async function createPublicAssaultStagingFixture({
         ownerPlayerId === playerId && originPlanetId === location.id && movement === undefined,
     )
     Assert.isDefined(fleet)
-    expect(fleet.strength).toBe(forces[roleIndex])
+    expect(fleet.strength).toBe(input.forces[roleIndex])
     return fleet
   })
 
-  return { clients: roleClients, playerIds, gameId, turnProcessor, stagingPlanet, homes, stationed }
+  return { clients: roleClients, playerIds, gameId, turnProcessor: input.turnProcessor, stagingPlanet, homes, stationed }
 }
 
 export type ThreeOwnerStationedAssaultFixture = {
@@ -453,112 +427,84 @@ export type ThreeOwnerStationedAssaultFixture = {
   stationed: readonly [PlayerView["fleets"][number], PlayerView["fleets"][number], PlayerView["fleets"][number]]
 }
 
-async function verifyBobBuildRounds({
-  bobDepartureStrength,
-  bobStartingStrength,
-  clients,
-  gameId,
-  alice,
-  aliceHome,
-  bob,
-  bobHome,
-  turnProcessor,
-}: VerifyBobBuildRoundsInput): Promise<void> {
-  const bobBuildRounds = Math.ceil(Math.max(bobDepartureStrength, bobStartingStrength) / 10)
+async function verifyBobBuildRounds(input: VerifyBobBuildRoundsInput): Promise<void> {
+  const bobBuildRounds = Math.ceil(Math.max(input.bobDepartureStrength, input.bobStartingStrength) / 10)
   for (let buildRound = 0; buildRound < Math.max(4, bobBuildRounds); buildRound += 1) {
-    const views = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
+    const views = await Promise.all(
+      input.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: input.gameId })),
+    )
     const aliceView = views[0]
     const bobView = views[1]
     Assert.isDefined(aliceView)
     Assert.isDefined(bobView)
     if (buildRound < 4) {
-      await alice.client.gameplay.updateActionSubmission.mutate({
-        gameId,
+      await input.alice.client.gameplay.updateActionSubmission.mutate({
+        gameId: input.gameId,
         turn: aliceView.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(aliceView, BuildFleetStandard.id, { planet: aliceHome.id }),
+        submittedActionTargets: getActionToSubmintegrationTest(aliceView, BuildFleetStandard.id, { planet: input.aliceHome.id }),
       })
     }
     if (buildRound < bobBuildRounds) {
-      await bob.client.gameplay.updateActionSubmission.mutate({
-        gameId,
+      await input.bob.client.gameplay.updateActionSubmission.mutate({
+        gameId: input.gameId,
         turn: bobView.turn,
-        submittedActionTargets: getActionToSubmintegrationTest(bobView, BuildFleetStandard.id, { planet: bobHome.id }),
+        submittedActionTargets: getActionToSubmintegrationTest(bobView, BuildFleetStandard.id, { planet: input.bobHome.id }),
       })
     }
-    await processPublicTurn({ clients, gameId, turn: aliceView.turn, turnProcessor })
+    await processPublicTurn({ ...input, turn: aliceView.turn })
   }
 }
 
-async function verifyActionSelections({
-  aliceDepartureStrength,
-  alice,
-  gameId,
-  aliceDepartureView,
-  aliceBuilt,
-  bobHome,
-  bobDepartureStrength,
-  bob,
-  bobDepartureView,
-  bobBuilt,
-  aliceHome,
-  clients,
-  turnProcessor,
-}: VerifyActionSelectionsInput): Promise<void> {
-  if (aliceDepartureStrength > 0) {
-    await alice.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: aliceDepartureView.turn,
+async function verifyActionSelections(input: VerifyActionSelectionsInput): Promise<void> {
+  if (input.aliceDepartureStrength > 0) {
+    await input.alice.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.aliceDepartureView.turn,
       submittedActionTargets: getActionToSubmintegrationTest(
-        aliceDepartureView,
+        input.aliceDepartureView,
         MoveFleetExceptional.id,
-        { fleet: aliceBuilt.id, planet: bobHome.id },
-        { strength: aliceDepartureStrength },
+        { fleet: input.aliceBuilt.id, planet: input.bobHome.id },
+        { strength: input.aliceDepartureStrength },
       ),
     })
   }
-  if (bobDepartureStrength > 0) {
-    await bob.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: bobDepartureView.turn,
+  if (input.bobDepartureStrength > 0) {
+    await input.bob.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.bobDepartureView.turn,
       submittedActionTargets: getActionToSubmintegrationTest(
-        bobDepartureView,
+        input.bobDepartureView,
         MoveFleetExceptional.id,
-        { fleet: bobBuilt.id, planet: aliceHome.id },
-        { strength: bobDepartureStrength },
+        { fleet: input.bobBuilt.id, planet: input.aliceHome.id },
+        { strength: input.bobDepartureStrength },
       ),
     })
   }
-  await processPublicTurn({ clients, gameId, turn: aliceDepartureView.turn, turnProcessor })
+  await processPublicTurn({ ...input, turn: input.aliceDepartureView.turn })
 }
 
-async function verifyRouteDistances({
-  homes,
-  stagingPlanet,
-  expectedRouteDistances,
-  forces,
-  roleClients,
-  gameId,
-  turnProcessor,
-}: VerifyRouteDistancesInput): Promise<void> {
-  const routeDistances = homes.map((home) => Math.hypot(home.x - stagingPlanet.x, home.y - stagingPlanet.y))
-  expect(routeDistances).toStrictEqual([...expectedRouteDistances])
+async function verifyRouteDistances(input: VerifyRouteDistancesInput): Promise<void> {
+  const routeDistances = input.homes.map((home) => Math.hypot(home.x - input.stagingPlanet.x, home.y - input.stagingPlanet.y))
+  expect(routeDistances).toStrictEqual([...input.expectedRouteDistances])
 
   // Arrange: build each requested force through actual public Build submissions and worker turns.
-  const buildRounds = Math.max(...forces.map((strength) => Math.ceil(strength / 10)))
+  const buildRounds = Math.max(...input.forces.map((strength) => Math.ceil(strength / 10)))
   for (let buildRound = 0; buildRound < buildRounds; buildRound += 1) {
-    const views = await Promise.all(roleClients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
-    for (let roleIndex = 0; roleIndex < roleClients.length; roleIndex += 1) {
-      const client = roleClients[roleIndex]
+    const views = await Promise.all(
+      input.roleClients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: input.gameId })),
+    )
+    for (let roleIndex = 0; roleIndex < input.roleClients.length; roleIndex += 1) {
+      const client = input.roleClients[roleIndex]
       const view = views[roleIndex]
-      const home = homes[roleIndex]
-      const force = forces[roleIndex]
+      const home = input.homes[roleIndex]
+      const force = input.forces[roleIndex]
       Assert.isDefined(client)
       Assert.isDefined(view)
       Assert.isDefined(home)
       Assert.isDefined(force)
       if (buildRound < Math.ceil(force / 10)) {
         await client.client.gameplay.updateActionSubmission.mutate({
-          gameId,
+          gameId: input.gameId,
           turn: view.turn,
           submittedActionTargets: getActionToSubmintegrationTest(view, BuildFleetStandard.id, { planet: home.id }),
         })
@@ -566,42 +512,33 @@ async function verifyRouteDistances({
     }
     const view = views[0]
     Assert.isDefined(view)
-    await processPublicTurn({ clients: roleClients, gameId, turn: view.turn, turnProcessor })
+    await processPublicTurn({ ...input, clients: input.roleClients, turn: view.turn })
   }
 }
 
-async function verifyRoleIndex({
-  roleClients,
-  playersToStage,
-  departureViews,
-  homes,
-  builtFleets,
-  forces,
-  stagingPlanet,
-  gameId,
-}: VerifyRoleIndexInput): Promise<void> {
-  for (let roleIndex = 0; roleIndex < roleClients.length; roleIndex += 1) {
-    if (!playersToStage.includes(roleIndex)) {
+async function verifyRoleIndex(input: VerifyRoleIndexInput): Promise<void> {
+  for (let roleIndex = 0; roleIndex < input.roleClients.length; roleIndex += 1) {
+    if (!input.playersToStage.includes(roleIndex)) {
       continue
     }
-    const client = roleClients[roleIndex]
-    const view = departureViews[roleIndex]
-    const home = homes[roleIndex]
-    const fleet = builtFleets[roleIndex]
-    const force = forces[roleIndex]
+    const client = input.roleClients[roleIndex]
+    const view = input.departureViews[roleIndex]
+    const home = input.homes[roleIndex]
+    const fleet = input.builtFleets[roleIndex]
+    const force = input.forces[roleIndex]
     Assert.isDefined(client)
     Assert.isDefined(view)
     Assert.isDefined(home)
     Assert.isDefined(fleet)
     Assert.isDefined(force)
-    if (home.id !== stagingPlanet.id) {
+    if (home.id !== input.stagingPlanet.id) {
       await client.client.gameplay.updateActionSubmission.mutate({
-        gameId,
+        gameId: input.gameId,
         turn: view.turn,
         submittedActionTargets: getActionToSubmintegrationTest(
           view,
           MoveFleetExceptional.id,
-          { fleet: fleet.id, planet: stagingPlanet.id },
+          { fleet: fleet.id, planet: input.stagingPlanet.id },
           { strength: force },
         ),
       })
@@ -733,22 +670,16 @@ function stationaryHomeFleet(
   return view.fleets.find((fleet) => fleet.ownerPlayerId === owner && fleet.originPlanetId === planet && fleet.movement === undefined)
 }
 
-async function createInitialClientsSetup({
-  availableClients,
-  forces,
-  ruleset,
-  stagePlayerIndices,
-  stagingCoordinates,
-}: CreateInitialClientsSetupInput): Promise<CreateInitialClientsSetupResult> {
-  const initialClients = availableClients.slice(0, forces.length)
-  const gameRuleset = ruleset ?? AssaultWorkerRuleset
-  const playersToStage = stagePlayerIndices ?? forces.map((_, index) => index)
+async function createInitialClientsSetup(input: CreateInitialClientsSetupInput): Promise<CreateInitialClientsSetupResult> {
+  const initialClients = input.availableClients.slice(0, input.forces.length)
+  const gameRuleset = input.ruleset ?? AssaultWorkerRuleset
+  const playersToStage = input.stagePlayerIndices ?? input.forces.map((_, index) => index)
   const host = initialClients[0]
   Assert.isDefined(host)
   const { createdGameId: gameId } = await host.client.games.create.mutate({
     configuration: createGameConfigurationStub({
       rulesetId: gameRuleset.id,
-      nbSeats: forces.length,
+      nbSeats: input.forces.length,
       turnIntervalSeconds: Time.in(Time.create(10, UnitOfTime.SECONDS), UnitOfTime.SECONDS),
       mapGenerationSeed: 147,
     }),
@@ -759,7 +690,7 @@ async function createInitialClientsSetup({
   await host.client.games.startGame.mutate({ gameId })
   const initialView = await host.client.gameplay.getPlayerView.query({ gameId })
   const planets = initialView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-  const stagingPlanet = planets.find(({ coordinates }) => coordinates === stagingCoordinates)
+  const stagingPlanet = planets.find(({ coordinates }) => coordinates === input.stagingCoordinates)
   Assert.isDefined(stagingPlanet)
 
   // Arrange: role A owns the fixed target for two-seat stationary controls; three-seat roles retain caller order.
@@ -767,38 +698,22 @@ async function createInitialClientsSetup({
   return { initialClients, playersToStage, gameId, planets, stagingPlanet, roleClients }
 }
 
-async function createStagingViewSetup({
-  builtFleets,
-  forces,
-  roleClients,
-  gameId,
-  playersToStage,
-  homes,
-  stagingPlanet,
-  turnProcessor,
-  playerIds,
-}: CreateStagingViewSetupInput): Promise<CreateStagingViewSetupResult> {
-  expect(builtFleets.map(({ strength }) => strength)).toStrictEqual(forces.map((strength) => Math.ceil(strength / 10) * 10))
+async function createStagingViewSetup(input: CreateStagingViewSetupInput): Promise<CreateStagingViewSetupResult> {
+  expect(input.builtFleets.map(({ strength }) => strength)).toStrictEqual(input.forces.map((strength) => Math.ceil(strength / 10) * 10))
 
   // Act: stage each role's literal selected force at the named public planet through ordinary Move submissions.
-  const departureViews = await Promise.all(roleClients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
+  const departureViews = await Promise.all(
+    input.roleClients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: input.gameId })),
+  )
 
-  await verifyRoleIndex({ roleClients, playersToStage, departureViews, homes, builtFleets, forces, stagingPlanet, gameId })
+  await verifyRoleIndex({ ...input, departureViews })
   let stagingView = departureViews[0]
   Assert.isDefined(stagingView)
-  await processPublicTurn({ clients: roleClients, gameId, turn: stagingView.turn, turnProcessor })
-  const firstAdvanceClient = roleClients[0]
+  await processPublicTurn({ ...input, clients: input.roleClients, turn: stagingView.turn })
+  const firstAdvanceClient = input.roleClients[0]
   Assert.isDefined(firstAdvanceClient)
 
-  const updatedVerifyPublicState = await verifyPublicState({
-    stagingView,
-    firstAdvanceClient,
-    gameId,
-    playerIds,
-    stagingPlanet,
-    roleClients,
-    turnProcessor,
-  })
+  const updatedVerifyPublicState = await verifyPublicState({ ...input, stagingView, firstAdvanceClient })
   stagingView = updatedVerifyPublicState.stagingView
   Assert.isDefined(stagingView)
   return { stagingView }

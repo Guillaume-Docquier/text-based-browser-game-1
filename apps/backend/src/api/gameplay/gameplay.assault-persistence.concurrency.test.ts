@@ -35,14 +35,14 @@ describe("gameplay submission concurrency", () => {
     // Arrange
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createClockSetupPhase1Result = await createClockSetup({ server })
+    const clockSetup1 = await createClockSetup({ server })
 
     // Act
     // Both independent 30-strength submissions start together; the turn-row lock permits one.
 
-    const createThirtyStrengthResultsSetupPhase2Result = await createThirtyStrengthResultsSetup({ ...createClockSetupPhase1Result })
+    const thirtyStrengthResultsSetup2 = await createThirtyStrengthResultsSetup({ ...clockSetup1 })
     const { thirtyStrengthResults, firstStrengthAction, secondStrengthAction, expectedThirtyStrengthSelectionByStatus } =
-      createThirtyStrengthResultsSetupPhase2Result
+      thirtyStrengthResultsSetup2
     for (const [index, action] of [firstStrengthAction, secondStrengthAction].entries()) {
       const submission = thirtyStrengthResults[index]
       Assert.isDefined(submission)
@@ -51,22 +51,21 @@ describe("gameplay submission concurrency", () => {
       expect(action.selectedInputs).toStrictEqual(expectedSelection.selectedInputs)
     }
 
-    const createBeforeDepartureSetupPhase3Result = await createBeforeDepartureSetup({
-      ...createClockSetupPhase1Result,
-      ...createThirtyStrengthResultsSetupPhase2Result,
+    const beforeDepartureSetup3 = await createBeforeDepartureSetup({
+      ...clockSetup1,
+      ...thirtyStrengthResultsSetup2,
     })
 
-    const createResourceGameIdSetupPhase4Result = await createResourceGameIdSetup({
-      ...createClockSetupPhase1Result,
-      ...createBeforeDepartureSetupPhase3Result,
+    const resourceGameIdSetup4 = await createResourceGameIdSetup({
+      ...clockSetup1,
+      ...beforeDepartureSetup3,
     })
 
-    const createResourceResultsSetupPhase5Result = await createResourceResultsSetup({
-      ...createClockSetupPhase1Result,
-      ...createResourceGameIdSetupPhase4Result,
+    const resourceResultsSetup5 = await createResourceResultsSetup({
+      ...clockSetup1,
+      ...resourceGameIdSetup4,
     })
-    const { resourceResults, firstBuildAfterRace, secondBuildAfterRace, expectedBuildSelectionByStatus } =
-      createResourceResultsSetupPhase5Result
+    const { resourceResults, firstBuildAfterRace, secondBuildAfterRace, expectedBuildSelectionByStatus } = resourceResultsSetup5
     for (const [index, action] of [firstBuildAfterRace, secondBuildAfterRace].entries()) {
       const submission = resourceResults[index]
       Assert.isDefined(submission)

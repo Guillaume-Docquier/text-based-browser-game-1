@@ -35,14 +35,14 @@ import {
 import { AssaultWorkerRuleset } from "../fleet-worker/TurnProcessor.ts"
 import { assertHomes, assertOwnerIndex, assertOutcomeB2, assertOutcomeB3 } from "./TurnProcessor.ts"
 
-export async function createClientsSetup({ apiServer, alice, db, clock }: CreateClientsSetupInput): Promise<CreateClientsSetupResult> {
-  const bob = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
-  const clients = [alice, bob] as const
-  const playerAId = branded<PlayerId>(alice.account.id)
+export async function createClientsSetup(input: CreateClientsSetupInput): Promise<CreateClientsSetupResult> {
+  const bob = await input.apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
+  const clients = [input.alice, bob] as const
+  const playerAId = branded<PlayerId>(input.alice.account.id)
   const playerBId = branded<PlayerId>(bob.account.id)
   const playerIds = [playerAId, playerBId] as const
   const turnInterval = Time.create(10, UnitOfTime.SECONDS)
-  const { createdGameId: gameId } = await alice.client.games.create.mutate({
+  const { createdGameId: gameId } = await input.alice.client.games.create.mutate({
     configuration: createGameConfigurationStub({
       rulesetId: AssaultWorkerRuleset.id,
       nbSeats: 2,
@@ -51,9 +51,9 @@ export async function createClientsSetup({ apiServer, alice, db, clock }: Create
     }),
   })
   await bob.client.games.join.mutate({ gameId })
-  await alice.client.games.startGame.mutate({ gameId })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-  const initialView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  await input.alice.client.games.startGame.mutate({ gameId })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.db, clock: input.clock })
+  const initialView = await input.alice.client.gameplay.getPlayerView.query({ gameId })
   const planets = initialView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
   const target = planets.find(({ coordinates }) => coordinates === "45:83:40")
   Assert.isDefined(target)
@@ -64,7 +64,7 @@ export async function createClientsSetup({ apiServer, alice, db, clock }: Create
 
   await assertHomes({ homeA, homeB, target, playerIds, clients, gameId, turnProcessor })
 
-  const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const builtView = await input.alice.client.gameplay.getPlayerView.query({ gameId })
   const builtFleetA = builtView.fleets.find(
     ({ ownerPlayerId, originPlanetId, movement }) => ownerPlayerId === playerAId && originPlanetId === homeA.id && movement === undefined,
   )
@@ -77,7 +77,7 @@ export async function createClientsSetup({ apiServer, alice, db, clock }: Create
   expect(builtFleets.map(({ strength }) => strength)).toStrictEqual([30, 20])
   const targetOwnerIndex = target.id === homeA.id ? 0 : target.id === homeB.id ? 1 : -1
   expect(targetOwnerIndex).toBeGreaterThanOrEqual(0)
-  const movingClient = targetOwnerIndex === 0 ? bob : alice
+  const movingClient = targetOwnerIndex === 0 ? bob : input.alice
   const movingFleet = targetOwnerIndex === 0 ? builtFleetB : builtFleetA
   return {
     clients,
@@ -112,35 +112,26 @@ export type CreateClientsSetupResult = {
   movingFleet: Fleet
 }
 
-export async function createStationedSetup({
-  movingClient,
-  gameId,
-  builtView,
-  movingFleet,
-  target,
-  clients,
-  turnProcessor,
-  alice,
-  playerAId,
-  playerBId,
-}: CreateStationedSetupInput): Promise<CreateStationedSetupResult> {
-  await movingClient.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: builtView.turn,
+export async function createStationedSetup(input: CreateStationedSetupInput): Promise<CreateStationedSetupResult> {
+  await input.movingClient.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.builtView.turn,
     submittedActionTargets: getActionToSubmintegrationTest(
-      builtView,
+      input.builtView,
       MoveFleetExceptional.id,
-      { fleet: movingFleet.id, planet: target.id },
-      { strength: movingFleet.strength },
+      { fleet: input.movingFleet.id, planet: input.target.id },
+      { strength: input.movingFleet.strength },
     ),
   })
-  await processPublicTurn({ clients, gameId, turn: builtView.turn, turnProcessor })
-  const stationedView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  await processPublicTurn({ ...input, turn: input.builtView.turn })
+  const stationedView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const stationedA = stationedView.fleets.find(
-    ({ ownerPlayerId, originPlanetId, movement }) => ownerPlayerId === playerAId && originPlanetId === target.id && movement === undefined,
+    ({ ownerPlayerId, originPlanetId, movement }) =>
+      ownerPlayerId === input.playerAId && originPlanetId === input.target.id && movement === undefined,
   )
   const stationedB = stationedView.fleets.find(
-    ({ ownerPlayerId, originPlanetId, movement }) => ownerPlayerId === playerBId && originPlanetId === target.id && movement === undefined,
+    ({ ownerPlayerId, originPlanetId, movement }) =>
+      ownerPlayerId === input.playerBId && originPlanetId === input.target.id && movement === undefined,
   )
   Assert.isDefined(stationedA)
   Assert.isDefined(stationedB)
@@ -148,7 +139,9 @@ export async function createStationedSetup({
   expect(stationed.map(({ strength }) => strength)).toStrictEqual([30, 20])
 
   // Act: both owners submit the same pooled stationary Assault instance, then publicly close the turn.
-  const preAssaultViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
+  const preAssaultViews = await Promise.all(
+    input.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: input.gameId })),
+  )
   const actionIds: string[] = []
   return { stationed, preAssaultViews, actionIds }
 }
@@ -168,33 +161,25 @@ export type CreateStationedSetupInput = {
 
 export type CreateStationedSetupResult = { stationed: readonly [Fleet, Fleet]; preAssaultViews: PlayerView[]; actionIds: string[] }
 
-export async function createObservedSetup({
-  actionIds,
-  preAssaultViews,
-  clients,
-  gameId,
-  db,
-  clock,
-  turnsRepository,
-  playerIds,
-  target,
-}: CreateObservedSetupInput): Promise<CreateObservedSetupResult> {
-  expect(actionIds).toStrictEqual(["TEST_STATIONARY_ASSAULT_1", "TEST_STATIONARY_ASSAULT_1"])
-  const assaultTurn = preAssaultViews[0]
+export async function createObservedSetup(input: CreateObservedSetupInput): Promise<CreateObservedSetupResult> {
+  expect(input.actionIds).toStrictEqual(["TEST_STATIONARY_ASSAULT_1", "TEST_STATIONARY_ASSAULT_1"])
+  const assaultTurn = input.preAssaultViews[0]
   Assert.isDefined(assaultTurn)
   await Promise.all(
-    clients.map(async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId, turn: assaultTurn.turn, isReady: true })),
+    input.clients.map(
+      async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId: input.gameId, turn: assaultTurn.turn, isReady: true }),
+    ),
   )
 
   // Act: capture the production-parsed turn inside a transaction that must roll back every processing mutation.
-  const observed = await observeTurnAndRollback({ db, clock, turnsRepository, gameId, turn: assaultTurn.turn })
+  const observed = await observeTurnAndRollback({ ...input, turn: assaultTurn.turn })
 
   // Assert: the shared replay independently predicts the canonical shuffled order and full per-owner outcome sequence.
   expect(observed.submittedActions).toHaveLength(2)
   expect(observed.submittedActions.map(({ id }) => id)).toStrictEqual(["TEST_STATIONARY_ASSAULT_1", "TEST_STATIONARY_ASSAULT_1"])
   expect(
     Object.values(observed.fleets)
-      .filter(({ ownerPlayerId, originPlanetId }) => playerIds.includes(ownerPlayerId) && originPlanetId === target.id)
+      .filter(({ ownerPlayerId, originPlanetId }) => input.playerIds.includes(ownerPlayerId) && originPlanetId === input.target.id)
       .map(({ strength }) => strength)
       .toSorted((first, second) => second - first),
   ).toStrictEqual([30, 20])
@@ -215,8 +200,8 @@ export async function createObservedSetup({
       .map(({ id, name, ownerPlayerId, originPlanetId, strength }) => ({ id, name, ownerPlayerId, originPlanetId, strength }))
       .toSorted((left, right) => compareOrdinalStrings(left.id, right.id)),
   )
-  const outcomeA = outcomeForOwner(forward.resolved, playerIds[0])
-  const outcomeB = outcomeForOwner(forward.resolved, playerIds[1])
+  const outcomeA = outcomeForOwner(forward.resolved, input.playerIds[0])
+  const outcomeB = outcomeForOwner(forward.resolved, input.playerIds[1])
   Assert.isDefined(outcomeA)
   Assert.isDefined(outcomeB)
 
@@ -293,26 +278,18 @@ export type CreateObservedSetup3Result = {
   assertOutcomeBPhase7Observed: ReturnType<typeof reverseWorkerInputEnumeration>
 }
 
-export async function createObservedSetup2({
-  assaultActionIds,
-  preAssaultViews,
-  clients,
-  gameId,
-  db,
-  clock,
-  turnsRepository,
-  playerIds,
-  homes,
-}: CreateObservedSetup2Input): Promise<CreateObservedSetup2Result> {
-  expect(assaultActionIds).toStrictEqual(["TEST_STATIONARY_ASSAULT_1", "TEST_STATIONARY_ASSAULT_1"])
-  const assaultTurn = preAssaultViews[0]
+export async function createObservedSetup2(input: CreateObservedSetup2Input): Promise<CreateObservedSetup2Result> {
+  expect(input.assaultActionIds).toStrictEqual(["TEST_STATIONARY_ASSAULT_1", "TEST_STATIONARY_ASSAULT_1"])
+  const assaultTurn = input.preAssaultViews[0]
   Assert.isDefined(assaultTurn)
   await Promise.all(
-    clients.map(async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId, turn: assaultTurn.turn, isReady: true })),
+    input.clients.map(
+      async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId: input.gameId, turn: assaultTurn.turn, isReady: true }),
+    ),
   )
 
   // Act: observe the parsed production input with an intentional transaction rollback; no gameplay setup uses SQL.
-  const observed = await observeTurnAndRollback({ db, clock, turnsRepository, gameId, turn: assaultTurn.turn })
+  const observed = await observeTurnAndRollback({ ...input, turn: assaultTurn.turn })
 
   // Assert: replay the independent captured input in both row orders and check the literal branch selected by Mulberry32.
   expect(observed.submittedActions).toHaveLength(5)
@@ -321,7 +298,7 @@ export async function createObservedSetup2({
     observedBuildActions
       .map(({ id, playerId }) => ({ id, playerId }))
       .toSorted((left, right) => compareOrdinalStrings(left.playerId, right.playerId)),
-  ).toStrictEqual(playerIds.map((playerId) => ({ id: "BUILD_FLEET_STANDARD_1", playerId })))
+  ).toStrictEqual(input.playerIds.map((playerId) => ({ id: "BUILD_FLEET_STANDARD_1", playerId })))
   expect(
     observed.submittedActions.filter(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id).map(({ id }) => id),
   ).toStrictEqual(["TEST_STATIONARY_ASSAULT_1", "TEST_STATIONARY_ASSAULT_1"])
@@ -356,72 +333,44 @@ export async function createObservedSetup2({
     strength: number
   }> = []
 
-  assertOwnerIndex({ playerIds, homes, expectedBuildNames, forward, replayBuilds, permuted })
+  assertOwnerIndex({ ...input, expectedBuildNames, forward, replayBuilds, permuted })
   return { observed, rngSequence, draw, forward, expectedBuildNames, replayBuilds }
 }
 
-export async function createAfterCombatViewsSetup({
-  assaultActionIds,
-  forward,
-  playerIds,
-  stationed,
-  draw,
-  observed,
-  target,
-  playerAId,
-  playerBId,
-  playerCId,
-  turnProcessor,
-  clients,
-  gameId,
-}: CreateAfterCombatViewsSetupInput): Promise<CreateAfterCombatViewsSetupResult> {
-  const assaultActionIdA = assaultActionIds[0]
-  const assaultActionIdB = assaultActionIds[1]
+export async function createAfterCombatViewsSetup(input: CreateAfterCombatViewsSetupInput): Promise<CreateAfterCombatViewsSetupResult> {
+  const assaultActionIdA = input.assaultActionIds[0]
+  const assaultActionIdB = input.assaultActionIds[1]
   Assert.isDefined(assaultActionIdA)
   Assert.isDefined(assaultActionIdB)
-  const outcomeA = outcomeForOwner(forward.resolved, playerIds[0], assaultActionIdA)
-  const outcomeB = outcomeForOwner(forward.resolved, playerIds[1], assaultActionIdB)
+  const outcomeA = outcomeForOwner(input.forward.resolved, input.playerIds[0], assaultActionIdA)
+  const outcomeB = outcomeForOwner(input.forward.resolved, input.playerIds[1], assaultActionIdB)
   Assert.isDefined(outcomeA)
   Assert.isDefined(outcomeB)
-  const fleetA = stationed[0]
-  const fleetB = stationed[1]
-  const fleetC = stationed[2]
+  const fleetA = input.stationed[0]
+  const fleetB = input.stationed[1]
+  const fleetC = input.stationed[2]
   Assert.isDefined(fleetA)
   Assert.isDefined(fleetB)
   Assert.isDefined(fleetC)
 
-  const assertOutcomeBPhase5Value1 = draw.value
-  const assertOutcomeBPhase5Observed = observed
+  const assertOutcomeBPhase5Value1 = input.draw.value
+  const assertOutcomeBPhase5Observed = input.observed
 
-  await assertOutcomeB2({
-    assertOutcomeBPhase5Value1,
-    outcomeB,
-    fleetB,
-    target,
-    outcomeA,
-    fleetA,
-    forward,
-    playerIds,
-    playerAId,
-    playerBId,
-    playerCId,
-    fleetC,
-    draw,
-    assertOutcomeBPhase5Observed,
-    turnProcessor,
-  })
+  await assertOutcomeB2({ ...input, assertOutcomeBPhase5Value1, outcomeB, fleetB, outcomeA, fleetA, fleetC, assertOutcomeBPhase5Observed })
 
-  const afterCombatViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
+  const afterCombatViews = await Promise.all(
+    input.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: input.gameId })),
+  )
   const actualForces = Object.fromEntries(
-    playerIds.map((playerId) => [
+    input.playerIds.map((playerId) => [
       playerId,
       afterCombatViews[0]?.fleets
-        .filter(({ ownerPlayerId, originPlanetId }) => ownerPlayerId === playerId && originPlanetId === target.id)
+        .filter(({ ownerPlayerId, originPlanetId }) => ownerPlayerId === playerId && originPlanetId === input.target.id)
         .map(({ strength }) => strength)
         .toSorted((first, second) => first - second),
     ]),
   )
-  expect(actualForces).toStrictEqual(ownerFleetForces(forward.resolved, playerIds, target.id))
+  expect(actualForces).toStrictEqual(ownerFleetForces(input.forward.resolved, input.playerIds, input.target.id))
   return { afterCombatViews, actualForces }
 }
 
@@ -465,26 +414,18 @@ export type CreateAfterCombatViewsSetup2Input = {
 
 export type CreateAfterCombatViewsSetup2Result = { afterCombatViews: PlayerView[]; actualForces: Record<string, undefined | number[]> }
 
-export async function createObservedSetup3({
-  assaultActionIds,
-  preAssaultViews,
-  clients,
-  gameId,
-  db,
-  clock,
-  turnsRepository,
-  playerIds,
-  stationed,
-}: CreateObservedSetup3Input): Promise<CreateObservedSetup3Result> {
-  expect(assaultActionIds).toStrictEqual(["TEST_STATIONARY_ASSAULT_1", "TEST_STATIONARY_ASSAULT_1"])
-  const assaultTurn = preAssaultViews[0]
+export async function createObservedSetup3(input: CreateObservedSetup3Input): Promise<CreateObservedSetup3Result> {
+  expect(input.assaultActionIds).toStrictEqual(["TEST_STATIONARY_ASSAULT_1", "TEST_STATIONARY_ASSAULT_1"])
+  const assaultTurn = input.preAssaultViews[0]
   Assert.isDefined(assaultTurn)
   await Promise.all(
-    clients.map(async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId, turn: assaultTurn.turn, isReady: true })),
+    input.clients.map(
+      async ({ client }) => await client.gameplay.updateReadiness.mutate({ gameId: input.gameId, turn: assaultTurn.turn, isReady: true }),
+    ),
   )
 
   // Act: observe the parsed production input with an intentional transaction rollback; no gameplay setup uses SQL.
-  const observed = await observeTurnAndRollback({ db, clock, turnsRepository, gameId, turn: assaultTurn.turn })
+  const observed = await observeTurnAndRollback({ ...input, turn: assaultTurn.turn })
 
   // Assert: replay the independent captured input in both row orders and check the literal branch selected by Mulberry32.
   expect(observed.submittedActions).toHaveLength(2)
@@ -506,17 +447,17 @@ export async function createObservedSetup3({
       .map(({ id, name, ownerPlayerId, originPlanetId, strength }) => ({ id, name, ownerPlayerId, originPlanetId, strength }))
       .toSorted((left, right) => compareOrdinalStrings(left.id, right.id)),
   )
-  const assaultActionIdA = assaultActionIds[0]
-  const assaultActionIdB = assaultActionIds[1]
+  const assaultActionIdA = input.assaultActionIds[0]
+  const assaultActionIdB = input.assaultActionIds[1]
   Assert.isDefined(assaultActionIdA)
   Assert.isDefined(assaultActionIdB)
-  const outcomeA = outcomeForOwner(forward.resolved, playerIds[0], assaultActionIdA)
-  const outcomeB = outcomeForOwner(forward.resolved, playerIds[1], assaultActionIdB)
+  const outcomeA = outcomeForOwner(forward.resolved, input.playerIds[0], assaultActionIdA)
+  const outcomeB = outcomeForOwner(forward.resolved, input.playerIds[1], assaultActionIdB)
   Assert.isDefined(outcomeA)
   Assert.isDefined(outcomeB)
-  const fleetA = stationed[0]
-  const fleetB = stationed[1]
-  const fleetC = stationed[2]
+  const fleetA = input.stationed[0]
+  const fleetB = input.stationed[1]
+  const fleetC = input.stationed[2]
   Assert.isDefined(fleetA)
   Assert.isDefined(fleetB)
   Assert.isDefined(fleetC)
@@ -526,53 +467,37 @@ export async function createObservedSetup3({
   return { observed, draw, forward, outcomeA, outcomeB, fleetA, fleetB, fleetC, assertOutcomeBPhase7Value1, assertOutcomeBPhase7Observed }
 }
 
-export async function createAfterCombatViewsSetup2({
-  assertOutcomeBPhase7Value1,
-  outcomeB,
-  fleetB,
-  target,
-  outcomeA,
-  fleetA,
-  forward,
-  playerIds,
-  playerAId,
-  playerBId,
-  playerCId,
-  fleetC,
-  draw,
-  assertOutcomeBPhase7Observed,
-  turnProcessor,
-  clients,
-  gameId,
-}: CreateAfterCombatViewsSetup2Input): Promise<CreateAfterCombatViewsSetup2Result> {
+export async function createAfterCombatViewsSetup2(input: CreateAfterCombatViewsSetup2Input): Promise<CreateAfterCombatViewsSetup2Result> {
   await assertOutcomeB3({
-    assertOutcomeBPhase7Value1,
-    outcomeB,
-    fleetB,
-    target,
-    outcomeA,
-    fleetA,
-    forward,
-    playerIds,
-    playerAId,
-    playerBId,
-    playerCId,
-    fleetC,
-    draw,
-    assertOutcomeBPhase7Observed,
-    turnProcessor,
+    assertOutcomeBPhase7Value1: input.assertOutcomeBPhase7Value1,
+    outcomeB: input.outcomeB,
+    fleetB: input.fleetB,
+    target: input.target,
+    outcomeA: input.outcomeA,
+    fleetA: input.fleetA,
+    forward: input.forward,
+    playerIds: input.playerIds,
+    playerAId: input.playerAId,
+    playerBId: input.playerBId,
+    playerCId: input.playerCId,
+    fleetC: input.fleetC,
+    draw: input.draw,
+    assertOutcomeBPhase7Observed: input.assertOutcomeBPhase7Observed,
+    turnProcessor: input.turnProcessor,
   })
 
-  const afterCombatViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
+  const afterCombatViews = await Promise.all(
+    input.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: input.gameId })),
+  )
   const actualForces = Object.fromEntries(
-    playerIds.map((playerId) => [
+    input.playerIds.map((playerId) => [
       playerId,
       afterCombatViews[0]?.fleets
-        .filter(({ ownerPlayerId, originPlanetId }) => ownerPlayerId === playerId && originPlanetId === target.id)
+        .filter(({ ownerPlayerId, originPlanetId }) => ownerPlayerId === playerId && originPlanetId === input.target.id)
         .map(({ strength }) => strength)
         .toSorted((first, second) => first - second),
     ]),
   )
-  expect(actualForces).toStrictEqual(ownerFleetForces(forward.resolved, playerIds, target.id))
+  expect(actualForces).toStrictEqual(ownerFleetForces(input.forward.resolved, input.playerIds, input.target.id))
   return { afterCombatViews, actualForces }
 }

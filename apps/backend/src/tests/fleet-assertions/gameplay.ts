@@ -4,6 +4,7 @@ import type { PlayerId } from "shared/domain/players/PlayerId.ts"
 import { ResourceType } from "shared/domain/resources/ResourceType.ts"
 import type { ActionDefinitionId } from "shared/domain/ruleset/action-definitions/ActionDefinitionId.ts"
 import type { PlanetId } from "shared/domain/world/planets/PlanetId.ts"
+import { required } from "shared/testing/required.ts"
 import { MoveFleetExceptional } from "shared/testing/test-ruleset/action-definitions/move-fleet.ts"
 import type { ResolutionFleet } from "shared/turn-resolution/state/ResolutionFleet.ts"
 import { expect } from "vitest"
@@ -22,48 +23,38 @@ import {
   fundingTargetsFor,
 } from "../fleet-concurrency/gameplay.ts"
 
-export async function assertUntouchedTarget({
-  untouchedTarget,
-  untouchedInitialView,
-  readViews,
-  clients,
-  homes,
-  submit,
-  processDeadlineTurn,
-  target,
-  gameId,
-}: AssertUntouchedTargetInput): Promise<void> {
-  expect(untouchedTarget.ownerPlayerId).toBeNull()
-  expect(untouchedInitialView.fleets).toStrictEqual([])
-  expect(untouchedInitialView.turn).toBe(1)
+export async function assertUntouchedTarget(input: AssertUntouchedTargetInput): Promise<void> {
+  expect(input.untouchedTarget.ownerPlayerId).toBeNull()
+  expect(input.untouchedInitialView.fleets).toStrictEqual([])
+  expect(input.untouchedInitialView.turn).toBe(1)
 
   // Public funding: ship40 costs2I/1M; the single GainMetal and GainFuel actions cover the supported movement costs.
   for (const fundingRound of getWorkerTieFundingRounds()) {
-    const views = await readViews()
-    for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-      const client = clients[ownerIndex]
+    const views = await input.readViews()
+    for (let ownerIndex = 0; ownerIndex < input.clients.length; ownerIndex += 1) {
+      const client = input.clients[ownerIndex]
       const view = views[ownerIndex]
-      const home = homes[ownerIndex]
+      const home = input.homes[ownerIndex]
       Assert.isDefined(client)
       Assert.isDefined(view)
       Assert.isDefined(home)
       for (const actionDefinitionId of fundingRound.actionDefinitionIds) {
-        await submit(client.client, view, actionDefinitionId, fundingTargetsFor(actionDefinitionId, home.id), {})
+        await input.submit(client.client, view, actionDefinitionId, fundingTargetsFor(actionDefinitionId, home.id), {})
       }
     }
-    await processDeadlineTurn(views[0].turn)
-    const afterFundingTurn = await readViews()
+    await input.processDeadlineTurn(views[0].turn)
+    const afterFundingTurn = await input.readViews()
     expect(afterFundingTurn.map(({ resources }) => resources[ResourceType.INFLUENCE].total)).toStrictEqual([
       fundingRound.expectedInfluence,
       fundingRound.expectedInfluence,
     ])
   }
 
-  const fundedViews = await readViews()
-  for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
-    const client = clients[ownerIndex]
+  const fundedViews = await input.readViews()
+  for (let ownerIndex = 0; ownerIndex < input.clients.length; ownerIndex += 1) {
+    const client = input.clients[ownerIndex]
     const view = fundedViews[ownerIndex]
-    const home = homes[ownerIndex]
+    const home = input.homes[ownerIndex]
     Assert.isDefined(client)
     Assert.isDefined(view)
     Assert.isDefined(home)
@@ -73,12 +64,12 @@ export async function assertUntouchedTarget({
     const source = findStationaryFleetAt(view, view.player.id, home.id)
     Assert.isDefined(source)
     expect(source.strength).toBe(40)
-    await submit(client.client, view, MoveFleetExceptional.id, { fleet: source.id, planet: target.id }, { strength: 35 })
-    const selectedView = await client.client.gameplay.getPlayerView.query({ gameId })
+    await input.submit(client.client, view, MoveFleetExceptional.id, { fleet: source.id, planet: input.target.id }, { strength: 35 })
+    const selectedView = await client.client.gameplay.getPlayerView.query({ gameId: input.gameId })
     expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 53, uncommitted: 50 })
     expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 6, uncommitted: 1 })
   }
-  await processDeadlineTurn(fundedViews[0].turn)
+  await input.processDeadlineTurn(fundedViews[0].turn)
 }
 
 export type AssertUntouchedTargetInput = {
@@ -93,41 +84,43 @@ export type AssertUntouchedTargetInput = {
   gameId: GameId
 }
 
-export function assertObservedPreResolutionRngState({
-  observedPreResolutionRngState,
-  alice,
-  bob,
-  assertObservedPreResolutionRngStatePhase2Observed,
-  colonizeActionIds,
-  target,
-  stationedViews,
-  stationedFleets,
-}: AssertObservedPreResolutionRngStateInput): void {
-  expect(observedPreResolutionRngState.spareNormal).toBeNull()
-  expect([alice.account.id, bob.account.id]).toStrictEqual(["00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"])
-  expect(assertObservedPreResolutionRngStatePhase2Observed.ruleset.id).toBe(PostgresColonizeWorkerRuleset.id)
-  expect(assertObservedPreResolutionRngStatePhase2Observed.submittedActions.map(({ id }) => id).toSorted()).toStrictEqual(
-    [...colonizeActionIds].toSorted(),
+export function assertObservedPreResolutionRngState(input: AssertObservedPreResolutionRngStateInput): void {
+  expect(input.observedPreResolutionRngState.spareNormal).toBeNull()
+  expect([input.alice.account.id, input.bob.account.id]).toStrictEqual([
+    "00000000-0000-4000-8000-000000000001",
+    "00000000-0000-4000-8000-000000000002",
+  ])
+  expect(input.assertObservedPreResolutionRngStatePhase2Observed.ruleset.id).toBe(PostgresColonizeWorkerRuleset.id)
+  expect(input.assertObservedPreResolutionRngStatePhase2Observed.submittedActions.map(({ id }) => id).toSorted()).toStrictEqual(
+    [...input.colonizeActionIds].toSorted(),
   )
-  expect(assertObservedPreResolutionRngStatePhase2Observed.planets[target.id]?.ownerPlayerId).toBeNull()
-  expect(assertObservedPreResolutionRngStatePhase2Observed.players[stationedViews[0].player.id]?.resources[ResourceType.INFLUENCE]).toBe(50)
-  expect(assertObservedPreResolutionRngStatePhase2Observed.players[stationedViews[1].player.id]?.resources[ResourceType.INFLUENCE]).toBe(50)
-  for (const fleet of stationedFleets) {
+  expect(required(input.assertObservedPreResolutionRngStatePhase2Observed.planets[input.target.id]).ownerPlayerId).toBeNull()
+  expect(
+    required(input.assertObservedPreResolutionRngStatePhase2Observed.players[input.stationedViews[0].player.id]).resources[
+      ResourceType.INFLUENCE
+    ],
+  ).toBe(50)
+  expect(
+    required(input.assertObservedPreResolutionRngStatePhase2Observed.players[input.stationedViews[1].player.id]).resources[
+      ResourceType.INFLUENCE
+    ],
+  ).toBe(50)
+  for (const fleet of input.stationedFleets) {
     Assert.isDefined(fleet)
-    expect(assertObservedPreResolutionRngStatePhase2Observed.fleets[fleet.id]?.strength).toBe(35)
-    expect(assertObservedPreResolutionRngStatePhase2Observed.fleets[fleet.id]?.movement).toBeUndefined()
+    expect(required(input.assertObservedPreResolutionRngStatePhase2Observed.fleets[fleet.id]).strength).toBe(35)
+    expect(input.assertObservedPreResolutionRngStatePhase2Observed.fleets[fleet.id]?.movement).toBeUndefined()
   }
 
-  const capturedInput = assertObservedPreResolutionRngStatePhase2Observed
+  const capturedInput = input.assertObservedPreResolutionRngStatePhase2Observed
   Logger.get().info("[C3-10 captured input before replay]", {
-    targetOwner: capturedInput.planets[target.id]?.ownerPlayerId,
+    targetOwner: capturedInput.planets[input.target.id]?.ownerPlayerId,
     submissions: capturedInput.submittedActions.map(({ id, playerId, selectedTargets, selectedInputs }) => ({
       id,
       playerId,
       selectedTargets,
       selectedInputs,
     })),
-    contenders: stationedFleets.map((fleet) => {
+    contenders: input.stationedFleets.map((fleet) => {
       Assert.isDefined(fleet)
       return {
         id: fleet.id,
@@ -150,68 +143,50 @@ export type AssertObservedPreResolutionRngStateInput = {
   stationedFleets: Array<undefined | Fleet>
 }
 
-export async function assertUntouchedAfter({
-  savedNextTurn,
-  expectedNextRngState,
-  forwardReplay,
-  alice,
-  untouchedGameId,
-  untouchedInitialView,
-  target,
-  gameId,
-  homeA,
-  homeB,
-  distances,
-  observationView,
-  observedPreResolutionRngState,
-  assertUntouchedAfterPhase3Observed,
-  bob,
-  firstTieShuffleDraw,
-  expectedOwner,
-  persistedOwner,
-  finalStrengths,
-  aliceAfter,
-  bobAfter,
-}: AssertUntouchedAfterInput): Promise<void> {
-  expect({ generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }).toStrictEqual(expectedNextRngState)
-  expect({ generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }).toStrictEqual(
-    forwardReplay.rngState,
+export async function assertUntouchedAfter(input: AssertUntouchedAfterInput): Promise<void> {
+  expect({ generatorState: input.savedNextTurn.rngGeneratorState, spareNormal: input.savedNextTurn.rngSpareNormal }).toStrictEqual(
+    input.expectedNextRngState,
+  )
+  expect({ generatorState: input.savedNextTurn.rngGeneratorState, spareNormal: input.savedNextTurn.rngSpareNormal }).toStrictEqual(
+    input.forwardReplay.rngState,
   )
 
-  const untouchedAfter = await alice.client.gameplay.getPlayerView.query({ gameId: untouchedGameId })
-  expect(untouchedAfter.turn).toBe(untouchedInitialView.turn)
+  const untouchedAfter = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.untouchedGameId })
+  expect(untouchedAfter.turn).toBe(input.untouchedInitialView.turn)
   expect(untouchedAfter.fleets).toStrictEqual([])
-  expect(untouchedAfter.resources).toStrictEqual(untouchedInitialView.resources)
-  expect(untouchedAfter.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  expect(untouchedAfter.resources).toStrictEqual(input.untouchedInitialView.resources)
+  expect(
+    required(untouchedAfter.galaxy.systems.flatMap(({ planets }) => planets).find(({ id }) => id === input.target.id)).ownerPlayerId,
+  ).toBeNull()
 
   Logger.get().info("[C3-10 public worker receipt]", {
-    gameId,
-    untouchedGameId,
+    gameId: input.gameId,
+    untouchedGameId: input.untouchedGameId,
     seed: 147,
-    target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
-    homes: [homeA, homeB].map((home) => ({ id: home.id, name: home.name, coordinates: home.coordinates })),
-    distances,
-    observationTurn: observationView.turn,
-    loadedRngState: observedPreResolutionRngState,
-    loadedPlayers: Object.values(assertUntouchedAfterPhase3Observed.players).map(({ id, resources }) => ({
+    target: { id: input.target.id, name: input.target.name, coordinates: input.target.coordinates, x: input.target.x, y: input.target.y },
+    homes: [input.homeA, input.homeB].map((home) => ({ id: home.id, name: home.name, coordinates: home.coordinates })),
+    distances: input.distances,
+    observationTurn: input.observationView.turn,
+    loadedRngState: input.observedPreResolutionRngState,
+    loadedPlayers: Object.values(input.assertUntouchedAfterPhase3Observed.players).map(({ id, resources }) => ({
       id,
       influence: resources[ResourceType.INFLUENCE],
     })),
-    loadedTargetOwner: assertUntouchedAfterPhase3Observed.planets[target.id]?.ownerPlayerId,
-    independentlyPinnedContenders: [alice.account.id, bob.account.id],
-    independentFirstTieDraw: firstTieShuffleDraw,
-    independentExpectedOwner: expectedOwner,
-    independentExpectedNextRngState: expectedNextRngState,
-    persistedOwner,
-    persistedTargetForces: finalStrengths,
-    persistedResources: [aliceAfter, bobAfter].map(({ player, resources }) => ({
+    loadedTargetOwner: input.assertUntouchedAfterPhase3Observed.planets[input.target.id]?.ownerPlayerId,
+    independentlyPinnedContenders: [input.alice.account.id, input.bob.account.id],
+    independentFirstTieDraw: input.firstTieShuffleDraw,
+    independentExpectedOwner: input.expectedOwner,
+    independentExpectedNextRngState: input.expectedNextRngState,
+    persistedOwner: input.persistedOwner,
+    persistedTargetForces: input.finalStrengths,
+    persistedResources: [input.aliceAfter, input.bobAfter].map(({ player, resources }) => ({
       playerId: player.id,
       influence: resources[ResourceType.INFLUENCE].total,
       metal: resources[ResourceType.METAL].total,
       fuel: resources[ResourceType.FUEL].total,
     })),
-    persistedNextRngState: { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal },
-    replayNextRngState: forwardReplay.rngState,
+    persistedNextRngState: { generatorState: input.savedNextTurn.rngGeneratorState, spareNormal: input.savedNextTurn.rngSpareNormal },
+    replayNextRngState: input.forwardReplay.rngState,
   })
 }
 
@@ -248,36 +223,29 @@ export type AssertUntouchedAfterInput = {
   bobAfter: PlayerView
 }
 
-export function assertCapturedInput2({
-  assertAssertCapturedInputState1Phase4CapturedInput,
-  target,
-  alicePlayerId,
-  bobPlayerId,
-  stagedAlice,
-  stagedBob,
-  homeB,
-  builtStrength,
-  aliceColonizeActionId,
-  bobColonizeActionId,
-}: AssertCapturedInput2Input): void {
-  expect(assertAssertCapturedInputState1Phase4CapturedInput.ruleset.id).toBe(PostgresColonizeTickZeroPriorityRuleset.id)
-  expect(assertAssertCapturedInputState1Phase4CapturedInput.planets[target.id]?.ownerPlayerId).toBeNull()
-  expect(assertAssertCapturedInputState1Phase4CapturedInput.players[alicePlayerId]?.resources[ResourceType.INFLUENCE]).toBe(95)
-  expect(assertAssertCapturedInputState1Phase4CapturedInput.players[bobPlayerId]?.resources[ResourceType.INFLUENCE]).toBe(98)
-  expect(assertAssertCapturedInputState1Phase4CapturedInput.fleets[stagedAlice.id]).toMatchObject({
-    ownerPlayerId: alicePlayerId,
-    originPlanetId: target.id,
+export function assertCapturedInput2(input: AssertCapturedInput2Input): void {
+  expect(input.assertAssertCapturedInputState1Phase4CapturedInput.ruleset.id).toBe(PostgresColonizeTickZeroPriorityRuleset.id)
+  expect(required(input.assertAssertCapturedInputState1Phase4CapturedInput.planets[input.target.id]).ownerPlayerId).toBeNull()
+  expect(
+    required(input.assertAssertCapturedInputState1Phase4CapturedInput.players[input.alicePlayerId]).resources[ResourceType.INFLUENCE],
+  ).toBe(95)
+  expect(
+    required(input.assertAssertCapturedInputState1Phase4CapturedInput.players[input.bobPlayerId]).resources[ResourceType.INFLUENCE],
+  ).toBe(98)
+  expect(input.assertAssertCapturedInputState1Phase4CapturedInput.fleets[input.stagedAlice.id]).toMatchObject({
+    ownerPlayerId: input.alicePlayerId,
+    originPlanetId: input.target.id,
     strength: 35,
   })
-  expect(assertAssertCapturedInputState1Phase4CapturedInput.fleets[stagedAlice.id]?.movement).toBeUndefined()
-  expect(assertAssertCapturedInputState1Phase4CapturedInput.fleets[stagedBob.id]).toMatchObject({
-    ownerPlayerId: bobPlayerId,
-    originPlanetId: homeB.id,
-    strength: builtStrength,
+  expect(input.assertAssertCapturedInputState1Phase4CapturedInput.fleets[input.stagedAlice.id]?.movement).toBeUndefined()
+  expect(input.assertAssertCapturedInputState1Phase4CapturedInput.fleets[input.stagedBob.id]).toMatchObject({
+    ownerPlayerId: input.bobPlayerId,
+    originPlanetId: input.homeB.id,
+    strength: input.builtStrength,
   })
-  expect(assertAssertCapturedInputState1Phase4CapturedInput.fleets[stagedBob.id]?.movement).toBeUndefined()
-  expect(assertAssertCapturedInputState1Phase4CapturedInput.submittedActions.map(({ id }) => id).toSorted()).toStrictEqual(
-    [aliceColonizeActionId, bobColonizeActionId].toSorted(),
+  expect(input.assertAssertCapturedInputState1Phase4CapturedInput.fleets[input.stagedBob.id]?.movement).toBeUndefined()
+  expect(input.assertAssertCapturedInputState1Phase4CapturedInput.submittedActions.map(({ id }) => id).toSorted()).toStrictEqual(
+    [input.aliceColonizeActionId, input.bobColonizeActionId].toSorted(),
   )
 }
 
@@ -294,24 +262,12 @@ export type AssertCapturedInput2Input = {
   bobColonizeActionId: string
 }
 
-export function assertPersistedAlice({
-  persistedAlice,
-  stagedAlice,
-  persistedBob,
-  bobArrival,
-  movingStrength,
-  views,
-  homeB,
-  bobHomeRemainderStrengths,
-  bobPlayerId,
-  aliceColonizeActionId,
-  bobColonizeActionId,
-}: AssertPersistedAliceInput): void {
-  expect(persistedAlice).toMatchObject({ id: stagedAlice.id, strength: 15 })
-  expect(persistedBob).toMatchObject({ id: bobArrival.id, strength: movingStrength })
-  const bobHomeFleets = views[1].fleets.filter(({ originPlanetId }) => originPlanetId === homeB.id)
+export function assertPersistedAlice(input: AssertPersistedAliceInput): void {
+  expect(input.persistedAlice).toMatchObject({ id: input.stagedAlice.id, strength: 15 })
+  expect(input.persistedBob).toMatchObject({ id: input.bobArrival.id, strength: input.movingStrength })
+  const bobHomeFleets = input.views[1].fleets.filter(({ originPlanetId }) => originPlanetId === input.homeB.id)
 
-  assertScenarioState({ bobHomeFleets, bobHomeRemainderStrengths, bobPlayerId, views, aliceColonizeActionId, bobColonizeActionId })
+  assertScenarioState({ ...input, bobHomeFleets })
 }
 
 export type AssertPersistedAliceInput = {
@@ -328,36 +284,29 @@ export type AssertPersistedAliceInput = {
   bobColonizeActionId: string
 }
 
-export function assertScenarioState({
-  bobHomeFleets,
-  bobHomeRemainderStrengths,
-  bobPlayerId,
-  views,
-  aliceColonizeActionId,
-  bobColonizeActionId,
-}: AssertScenarioStateInput): void {
+export function assertScenarioState(input: AssertScenarioStateInput): void {
   expect(
-    bobHomeFleets
+    input.bobHomeFleets
       .map(({ ownerPlayerId, movement, strength }) => ({ ownerPlayerId, movement, strength }))
       .toSorted((first, second) => first.strength - second.strength),
   ).toStrictEqual(
-    bobHomeRemainderStrengths.map((strength) => ({
-      ownerPlayerId: bobPlayerId,
+    input.bobHomeRemainderStrengths.map((strength) => ({
+      ownerPlayerId: input.bobPlayerId,
       movement: undefined,
       strength,
     })),
   )
-  expect(views[0].resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 70, uncommitted: 70 })
-  expect(views[1].resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 73, uncommitted: 73 })
-  expect(views[0].resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
-  expect(views[1].resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
-  expect(views[0].resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
-  expect(views[1].resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 100 })
-  expect(views[0].actions.find(({ id }) => id === aliceColonizeActionId)).toMatchObject({
+  expect(input.views[0].resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 70, uncommitted: 70 })
+  expect(input.views[1].resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 73, uncommitted: 73 })
+  expect(input.views[0].resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
+  expect(input.views[1].resources[ResourceType.METAL]).toStrictEqual({ total: 99, uncommitted: 99 })
+  expect(input.views[0].resources[ResourceType.FUEL]).toStrictEqual({ total: 95, uncommitted: 95 })
+  expect(input.views[1].resources[ResourceType.FUEL]).toStrictEqual({ total: 100, uncommitted: 100 })
+  expect(input.views[0].actions.find(({ id }) => id === input.aliceColonizeActionId)).toMatchObject({
     selectedTargets: null,
     isInProgress: false,
   })
-  expect(views[1].actions.find(({ id }) => id === bobColonizeActionId)).toMatchObject({
+  expect(input.views[1].actions.find(({ id }) => id === input.bobColonizeActionId)).toMatchObject({
     selectedTargets: null,
     isInProgress: false,
   })
@@ -372,52 +321,34 @@ export type AssertScenarioStateInput = {
   bobColonizeActionId: string
 }
 
-export function assertPersistedNextRngState({
-  savedNextTurn,
-  assertPersistedNextRngStatePhase6CapturedInput,
-  replay,
-  gameId,
-  movingStrength,
-  homeA,
-  homeB,
-  target,
-  distances,
-  stagedAlice,
-  stagedBob,
-  aliceColonizeActionId,
-  bobColonizeActionId,
-  findPlanetOwner,
-  views,
-  persistedAlice,
-  persistedBob,
-}: AssertPersistedNextRngStateInput): void {
-  const persistedNextRngState = { generatorState: savedNextTurn.rngGeneratorState, spareNormal: savedNextTurn.rngSpareNormal }
-  expect(persistedNextRngState).toStrictEqual(assertPersistedNextRngStatePhase6CapturedInput.rngState)
-  expect(persistedNextRngState).toStrictEqual(replay.rngState)
+export function assertPersistedNextRngState(input: AssertPersistedNextRngStateInput): void {
+  const persistedNextRngState = { generatorState: input.savedNextTurn.rngGeneratorState, spareNormal: input.savedNextTurn.rngSpareNormal }
+  expect(persistedNextRngState).toStrictEqual(input.assertPersistedNextRngStatePhase6CapturedInput.rngState)
+  expect(persistedNextRngState).toStrictEqual(input.replay.rngState)
 
   Logger.get().info("[C3-07 public tick-zero priority receipt]", {
-    gameId,
+    gameId: input.gameId,
     seed: 147,
-    movingStrength,
-    homes: [homeA, homeB].map(({ id, name, coordinates }) => ({ id, name, coordinates })),
-    target: { id: target.id, name: target.name, coordinates: target.coordinates, x: target.x, y: target.y },
-    routeDistances: { aliceStage: distances[0], bobColonize: distances[1] },
-    stagedForces: { aliceAtTarget: stagedAlice.strength, bobBeforeDeparture: stagedBob.strength },
+    movingStrength: input.movingStrength,
+    homes: [input.homeA, input.homeB].map(({ id, name, coordinates }) => ({ id, name, coordinates })),
+    target: { id: input.target.id, name: input.target.name, coordinates: input.target.coordinates, x: input.target.x, y: input.target.y },
+    routeDistances: { aliceStage: input.distances[0], bobColonize: input.distances[1] },
+    stagedForces: { aliceAtTarget: input.stagedAlice.strength, bobBeforeDeparture: input.stagedBob.strength },
     attempts: {
-      alice: { actionId: aliceColonizeActionId, selectedStrength: 35, tick: 0 },
-      bob: { actionId: bobColonizeActionId, selectedStrength: movingStrength, speed: 5, tick: 10 },
+      alice: { actionId: input.aliceColonizeActionId, selectedStrength: 35, tick: 0 },
+      bob: { actionId: input.bobColonizeActionId, selectedStrength: input.movingStrength, speed: 5, tick: 10 },
     },
     replay: {
-      owner: replay.resolved.planets[target.id]?.ownerPlayerId,
-      outcomes: replay.actionOutcomes,
-      nextRngState: replay.rngState,
+      owner: input.replay.resolved.planets[input.target.id]?.ownerPlayerId,
+      outcomes: input.replay.actionOutcomes,
+      nextRngState: input.replay.rngState,
     },
     persisted: {
-      owner: findPlanetOwner(views[0], target.id),
-      aliceForce: persistedAlice.strength,
-      bobForce: persistedBob.strength,
-      influence: views.map(({ resources }) => resources[ResourceType.INFLUENCE].total),
-      colony: views.map(({ resources }) => resources[ResourceType.COLONY].total),
+      owner: input.findPlanetOwner(input.views[0], input.target.id),
+      aliceForce: input.persistedAlice.strength,
+      bobForce: input.persistedBob.strength,
+      influence: input.views.map(({ resources }) => resources[ResourceType.INFLUENCE].total),
+      colony: input.views.map(({ resources }) => resources[ResourceType.COLONY].total),
       nextRngState: persistedNextRngState,
     },
   })

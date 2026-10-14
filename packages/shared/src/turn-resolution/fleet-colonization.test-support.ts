@@ -155,11 +155,11 @@ export type ArrivalRace = {
   secondAction: ReturnType<typeof createSubmittedActionStub>
 }
 
-export function createArrivalRace({ firstDistance, secondDistance }: { firstDistance: number; secondDistance: number }): ArrivalRace {
+export function createArrivalRace(input: { firstDistance: number; secondDistance: number }): ArrivalRace {
   const originA = planet("race-origin-a", PLAYER_A, 0)
-  const target = planet("race-target", null, firstDistance)
+  const target = planet("race-target", null, input.firstDistance)
   const firstSource = fleet("race-source-a", PLAYER_A, originA, 35)
-  const originB = planet("race-origin-b", PLAYER_B, firstDistance - secondDistance)
+  const originB = planet("race-origin-b", PLAYER_B, input.firstDistance - input.secondDistance)
   const secondSource = fleet("race-source-b", PLAYER_B, originB, 35)
   const firstAction = submit({
     id: ColonizePlanetTest.id + "_1",
@@ -207,12 +207,12 @@ export function createColonizeMoveAction({
   return typedParse(ActionDefinitionSchema, { ...ColonizePlanetTest, id, name: id, effects })
 }
 
-export function createMovementAction({ id, speed }: { id: string; speed: number }): ActionDefinition {
+export function createMovementAction(input: { id: string; speed: number }): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {
     ...ColonizePlanetTest,
-    id,
-    name: id,
-    effects: [FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed })],
+    id: input.id,
+    name: input.id,
+    effects: [FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed: input.speed })],
   })
 }
 
@@ -297,12 +297,7 @@ export function resolveContinuation(
   return result.value
 }
 
-export function resolveColonizeOnly({
-  planets,
-  fleets,
-  intents,
-  rng,
-}: {
+export function resolveColonizeOnly(input: {
   planets: readonly Planet[]
   fleets: readonly Fleet[]
   intents: PendingArrivalColonizationIntent[]
@@ -318,11 +313,11 @@ export function resolveColonizeOnly({
         resources: createResourcesStub({ [ResourceType.INFLUENCE]: 100 }),
       })),
     ),
-    planets: indexBy("id", planets),
-    fleets: indexBy("id", fleets),
+    planets: indexBy("id", input.planets),
+    fleets: indexBy("id", input.fleets),
   })
   const context: TurnContext = {
-    rng,
+    rng: input.rng,
     turnState: state,
     effectPool: new EffectPool([]),
     ruleset: TestRuleset,
@@ -332,7 +327,7 @@ export function resolveColonizeOnly({
     changedPlanetIds: new Set(),
     resolvedContinuations: [],
     pendingArrivalAssaults: [],
-    pendingArrivalColonizations: intents,
+    pendingArrivalColonizations: input.intents,
     fleetIdRebindings: new Map(),
   }
   const result = resolveColonizationPhase(context)
@@ -340,13 +335,7 @@ export function resolveColonizeOnly({
   return { context }
 }
 
-export function intent({
-  fleet: targetFleet,
-  action,
-  target,
-  tick,
-  colonizeDefinition,
-}: {
+export function intent(input: {
   fleet: Fleet
   action: ReturnType<typeof createSubmittedActionStub>
   target: Planet
@@ -354,14 +343,14 @@ export function intent({
   colonizeDefinition: ReturnType<typeof FleetColonizeEffectDefinition.create>
 }): PendingArrivalColonizationIntent {
   return {
-    effectDefinition: colonizeDefinition,
+    effectDefinition: input.colonizeDefinition,
     definitionOrdinal: typedParse(NonNegativeSafeIntegerSchema, 2),
-    submittedAction: action,
+    submittedAction: input.action,
     departureTurn: typedParse(PositiveIntegerSchema, 1),
-    initiatingJourneyId: targetFleet.id,
-    actualFleetId: targetFleet.id,
-    planetId: target.id,
-    tick,
+    initiatingJourneyId: input.fleet.id,
+    actualFleetId: input.fleet.id,
+    planetId: input.target.id,
+    tick: input.tick,
     actionOutcomes: [],
   }
 }
@@ -374,14 +363,7 @@ export function fleet(id: string, ownerPlayerId: PlayerId, origin: Planet, stren
   return createFleetStub({ id, ownerPlayerId, originPlanetId: origin.id, name: id, strength })
 }
 
-export function submit({
-  id,
-  playerId,
-  actionDefinitionId,
-  source,
-  target,
-  strength,
-}: {
+export function submit(input: {
   id: string
   playerId: PlayerId
   actionDefinitionId: string
@@ -390,11 +372,11 @@ export function submit({
   strength: number
 }): ReturnType<typeof createSubmittedActionStub> {
   return createSubmittedActionStub({
-    id,
-    playerId,
-    actionDefinitionId,
-    selectedTargets: { fleet: source.id, planet: target.id },
-    selectedInputs: { strength },
+    id: input.id,
+    playerId: input.playerId,
+    actionDefinitionId: input.actionDefinitionId,
+    selectedTargets: { fleet: input.source.id, planet: input.target.id },
+    selectedInputs: { strength: input.strength },
   })
 }
 

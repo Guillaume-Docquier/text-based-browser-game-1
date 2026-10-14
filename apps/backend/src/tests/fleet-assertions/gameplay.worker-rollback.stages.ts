@@ -35,12 +35,12 @@ import {
 } from "../fleet-concurrency/gameplay.ts"
 import { assertFindPlayerResource, assertMath } from "./gameplay.worker-rollback.ts"
 
-export async function createClockSetup({ server }: CreateClockSetupInput): Promise<CreateClockSetupResult> {
+export async function createClockSetup(input: CreateClockSetupInput): Promise<CreateClockSetupResult> {
   const clock = new ControlledClock({ startDate: Clock.now() })
-  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
+  const rulesetsRepository = new RulesetsRepository({ db: input.server.database, logger: Logger.get() })
   Assert.isSuccess(await rulesetsRepository.upsertRuleset(PostgresColonizeSaveFailureRuleset))
-  const player = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000041" })
-  const defender = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000042" })
+  const player = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000041" })
+  const defender = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000042" })
   const { createdGameId: gameId } = await player.client.games.create.mutate({
     configuration: createGameConfigurationStub({
       rulesetId: PostgresColonizeSaveFailureRuleset.id,
@@ -99,18 +99,15 @@ export type CreateClockSetupResult = {
   }
 }
 
-export async function createTurnProcessorSetup({
-  server,
-  clock,
-  turnsRepository,
-  player,
-  gameId,
-  defender,
-}: CreateTurnProcessorSetupInput): Promise<CreateTurnProcessorSetupResult> {
-  const { turnProcessor } = await createTurnProcessorStub({ db: server.database, clock, turnsRepository })
+export async function createTurnProcessorSetup(input: CreateTurnProcessorSetupInput): Promise<CreateTurnProcessorSetupResult> {
+  const { turnProcessor } = await createTurnProcessorStub({
+    db: input.server.database,
+    clock: input.clock,
+    turnsRepository: input.turnsRepository,
+  })
 
-  const view = await player.client.gameplay.getPlayerView.query({ gameId })
-  const defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+  const view = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const defenderView = await input.defender.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const planets = view.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
   const home = planets.find(({ ownerPlayerId }) => ownerPlayerId === view.player.id)
   const defenderHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === defenderView.player.id)
@@ -260,44 +257,19 @@ export type CreateFailureViewSetupResult = {
   preSaveSnapshot: Awaited<ReturnType<typeof CapturedreadColonizationPersistenceSnapshot>>
 }
 
-export async function createAfterFailureSetup({
-  server,
-  gameId,
-  preSaveSnapshot,
-  failureView,
-  source,
-  movingFleet,
-  stagedDefender,
-  target,
-  expectedFailureActionInputs,
-  untouchedGameId,
-  untouchedBefore,
-  turnsRepository,
-}: CreateAfterFailureSetupInput): Promise<CreateAfterFailureSetupResult> {
-  const afterFailure = await readColonizationPersistenceSnapshot(server.database, gameId)
+export async function createAfterFailureSetup(input: CreateAfterFailureSetupInput): Promise<CreateAfterFailureSetupResult> {
+  const afterFailure = await readColonizationPersistenceSnapshot(input.server.database, input.gameId)
 
-  await assertFindPlayerResource({
-    preSaveSnapshot,
-    failureView,
-    source,
-    movingFleet,
-    stagedDefender,
-    afterFailure,
-    target,
-    expectedFailureActionInputs,
-    server,
-    untouchedGameId,
-    untouchedBefore,
-  })
+  await assertFindPlayerResource({ ...input, afterFailure })
 
-  Assert.isSuccess(await turnsRepository.resetProcessingAttempt({ gameId, turn: failureView.turn }))
-  const afterReset = await readColonizationPersistenceSnapshot(server.database, gameId)
+  Assert.isSuccess(await input.turnsRepository.resetProcessingAttempt({ gameId: input.gameId, turn: input.failureView.turn }))
+  const afterReset = await readColonizationPersistenceSnapshot(input.server.database, input.gameId)
   expect(afterReset.actions).toStrictEqual(afterFailure.actions)
   expect(afterReset.fleets).toStrictEqual(afterFailure.fleets)
   expect(afterReset.planets).toStrictEqual(afterFailure.planets)
   expect(afterReset.resources).toStrictEqual(afterFailure.resources)
-  const failedTurnRow = afterFailure.turns.find(({ turn }) => turn === failureView.turn)
-  const resetTurnRow = afterReset.turns.find(({ turn }) => turn === failureView.turn)
+  const failedTurnRow = afterFailure.turns.find(({ turn }) => turn === input.failureView.turn)
+  const resetTurnRow = afterReset.turns.find(({ turn }) => turn === input.failureView.turn)
   Assert.isDefined(failedTurnRow)
   Assert.isDefined(resetTurnRow)
   expect({
@@ -331,24 +303,18 @@ export type CreateAfterFailureSetupResult = {
   afterReset: Awaited<ReturnType<typeof CapturedreadColonizationPersistenceSnapshot>>
 }
 
-export async function createAliceHomeSetup({
-  alice,
-  gameId,
-  bob,
-  submit,
-  processDeadlineTurn,
-}: CreateAliceHomeSetupInput): Promise<CreateAliceHomeSetupResult> {
-  const initialView = await alice.client.gameplay.getPlayerView.query({ gameId })
+export async function createAliceHomeSetup(input: CreateAliceHomeSetupInput): Promise<CreateAliceHomeSetupResult> {
+  const initialView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const allPlanets = initialView.galaxy.systems.flatMap(({ planets }) => planets)
   const aliceHome = allPlanets.find(({ ownerPlayerId }) => ownerPlayerId === initialView.player.id)
-  const bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+  const bobView = await input.bob.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const bobHome = bobView.galaxy.systems.flatMap(({ planets }) => planets).find(({ ownerPlayerId }) => ownerPlayerId === bobView.player.id)
   Assert.isDefined(aliceHome)
   Assert.isDefined(bobHome)
 
-  await assertMath({ aliceHome, bobHome, alice, gameId, bob, submit, processDeadlineTurn })
+  await assertMath({ ...input, aliceHome, bobHome })
 
-  const readyView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const readyView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const aliceSource = readyView.fleets
     .filter(({ ownerPlayerId }) => ownerPlayerId === readyView.player.id)
     .filter(({ originPlanetId }) => originPlanetId === aliceHome.id)
@@ -363,18 +329,18 @@ export async function createAliceHomeSetup({
   expect(bobDefender.strength).toBe(20)
 
   // Arrange: move a seven-strength friendly fleet to the target through a public action for the merge survivor.
-  await submit({
-    client: alice.client,
+  await input.submit({
+    client: input.alice.client,
     view: readyView,
     actionDefinitionId: MoveFleetExceptional.id,
     selectedTargets: { fleet: aliceSource.id, planet: bobHome.id },
     selectedInputs: { strength: 7 },
   })
-  const guardDeparture = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const guardDeparture = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   expect(guardDeparture.resources[ResourceType.INFLUENCE].uncommitted).toBe(87)
   expect(guardDeparture.resources[ResourceType.FUEL].uncommitted).toBe(95)
-  await processDeadlineTurn(readyView.turn)
-  const guardArrivalView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  await input.processDeadlineTurn(readyView.turn)
+  const guardArrivalView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const friendlyGuard = guardArrivalView.fleets
     .filter(({ ownerPlayerId }) => ownerPlayerId === readyView.player.id)
     .filter(({ originPlanetId }) => originPlanetId === bobHome.id)
@@ -407,70 +373,57 @@ export type CreateAliceHomeSetupResult = {
   friendlyGuard: Fleet
 }
 
-export async function createRemainderJourneyIdSetup({
-  expectedRemainders,
-  advanceRemainderTurn,
-  remainderSelectedView,
-  remainderAction,
-  aliceHome,
-  alternateDestination,
-  alternateDistance,
-  processDeadlineTurn,
-  alice,
-  gameId,
-  bobDefender,
-  journey,
-  friendlyGuard,
-  readyView,
-  bobHome,
-  aliceSource,
-  assaultActionId,
-}: CreateRemainderJourneyIdSetupInput): Promise<CreateRemainderJourneyIdSetupResult> {
-  const [firstExpectedRemainder, ...laterExpectedRemainders] = expectedRemainders
+export async function createRemainderJourneyIdSetup(
+  input: CreateRemainderJourneyIdSetupInput,
+): Promise<CreateRemainderJourneyIdSetupResult> {
+  const [firstExpectedRemainder, ...laterExpectedRemainders] = input.expectedRemainders
   Assert.isDefined(firstExpectedRemainder)
-  let savedView = await advanceRemainderTurn(remainderSelectedView, firstExpectedRemainder)
-  const remainderJourney = savedView.fleets.find(({ movement }) => movement?.submission.id === remainderAction.id)
+  let savedView = await input.advanceRemainderTurn(input.remainderSelectedView, firstExpectedRemainder)
+  const remainderJourney = savedView.fleets.find(({ movement }) => movement?.submission.id === input.remainderAction.id)
   Assert.isDefined(remainderJourney)
   const remainderJourneyId = remainderJourney.id
   const remainderJourneyName = remainderJourney.name
   expect(remainderJourney).toMatchObject({
     strength: 1,
-    originPlanetId: aliceHome.id,
-    destinationPlanetId: alternateDestination.id,
+    originPlanetId: input.aliceHome.id,
+    destinationPlanetId: input.alternateDestination.id,
     movement: { pendingArrivalEffects: [{ definitionOrdinal: 3, effectDefinition: { type: "FLEET_ASSAULT" } }] },
   })
-  expect(remainderJourney.distanceToEnd).toBeCloseTo(alternateDistance - 1, 12)
+  expect(remainderJourney.distanceToEnd).toBeCloseTo(input.alternateDistance - 1, 12)
   for (const expectedRemainder of laterExpectedRemainders) {
-    savedView = await advanceRemainderTurn(savedView, expectedRemainder)
+    savedView = await input.advanceRemainderTurn(savedView, expectedRemainder)
   }
 
-  await processDeadlineTurn(savedView.turn)
-  const arrivalView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  await input.processDeadlineTurn(savedView.turn)
+  const arrivalView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
 
   // Assert: zero-strength enemy and merged incoming rows disappear; the named friendly survivor keeps its identity.
-  expect(arrivalView.fleets.find(({ id }) => id === bobDefender.id)).toBeUndefined()
-  expect(arrivalView.fleets.find(({ id }) => id === journey.id)).toBeUndefined()
-  expect(arrivalView.fleets.find(({ id }) => id === friendlyGuard.id)).toStrictEqual({
-    id: friendlyGuard.id,
-    name: friendlyGuard.name,
-    ownerPlayerId: readyView.player.id,
+  expect(arrivalView.fleets.find(({ id }) => id === input.bobDefender.id)).toBeUndefined()
+  expect(arrivalView.fleets.find(({ id }) => id === input.journey.id)).toBeUndefined()
+  expect(arrivalView.fleets.find(({ id }) => id === input.friendlyGuard.id)).toStrictEqual({
+    id: input.friendlyGuard.id,
+    name: input.friendlyGuard.name,
+    ownerPlayerId: input.readyView.player.id,
     strength: 17,
-    originPlanetId: bobHome.id,
+    originPlanetId: input.bobHome.id,
   })
-  expect(arrivalView.fleets.find(({ id }) => id === aliceSource.id)).toMatchObject({ strength: 12, originPlanetId: aliceHome.id })
-  expect(arrivalView.actions.find(({ id }) => id === assaultActionId)?.isInProgress).toBe(false)
+  expect(arrivalView.fleets.find(({ id }) => id === input.aliceSource.id)).toMatchObject({
+    strength: 12,
+    originPlanetId: input.aliceHome.id,
+  })
+  expect(arrivalView.actions.find(({ id }) => id === input.assaultActionId)?.isInProgress).toBe(false)
   Assert.isDefined(remainderJourneyId)
   Assert.isDefined(remainderJourneyName)
-  expect(arrivalView.actions.find(({ id }) => id === remainderAction.id)?.isInProgress).toBe(true)
+  expect(arrivalView.actions.find(({ id }) => id === input.remainderAction.id)?.isInProgress).toBe(true)
   const remainderAtAssaultArrival = arrivalView.fleets.find(({ id }) => id === remainderJourneyId)
   Assert.isDefined(remainderAtAssaultArrival)
   expect(remainderAtAssaultArrival).toMatchObject({
     id: remainderJourneyId,
     name: remainderJourneyName,
-    ownerPlayerId: readyView.player.id,
+    ownerPlayerId: input.readyView.player.id,
     strength: 1,
-    originPlanetId: aliceHome.id,
-    destinationPlanetId: alternateDestination.id,
+    originPlanetId: input.aliceHome.id,
+    destinationPlanetId: input.alternateDestination.id,
     movement: { pendingArrivalEffects: [{ definitionOrdinal: 3, effectDefinition: { type: "FLEET_ASSAULT" } }] },
   })
   expect(remainderAtAssaultArrival.distanceToEnd).toBeGreaterThan(0)

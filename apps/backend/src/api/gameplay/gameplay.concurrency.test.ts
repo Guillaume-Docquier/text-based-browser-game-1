@@ -11,7 +11,6 @@ import { describe, expect, it } from "vitest"
 import type { SubmittedActionTargetsDto } from "#api/gameplay/SubmittedActionTargetsDto.ts"
 import type { SelectedTargets, SelectedInputs, Planet, Fleet, PlayerView } from "#api/types.ts"
 import { ControlledClock } from "#lib/ControlledClock.ts"
-import { TransactionRollbackError } from "#lib/db/drizzle/TransactionRollbackError.ts"
 import { turnsTable } from "#lib/db/schema.ts"
 import { RulesetsRepository } from "#lib/rulesets/rulesets.repository.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
@@ -25,9 +24,10 @@ import type {
 } from "#tests/fleet-assertions/gameplay.stages.ts"
 import type { normalizeApiDate } from "#tests/fleet-concurrency/gameplay.scenarios.ts"
 import type { reverseWorkerInputEnumeration, replayWorkerInput } from "#tests/fleet-concurrency/gameplay.ts"
+import { observeTurnAndRollback } from "#tests/fleet-worker/TurnProcessor.scenarios.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
-import type { TurnsRepository, TurnToProcessModel } from "#turn-processing/turns.repository.ts"
+import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { createPersistedAliceSetup } from "../../tests/fleet-assertions/gameplay.stages-2.ts"
 import {
   createClockSetup,
@@ -51,8 +51,8 @@ describe("gameplay submission concurrency", () => {
   it("should persist a natural tick-zero Colonize tie through the public worker and reload", async () => {
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createClockSetupPhase1Result = await createClockSetup({ server })
-    const { clock, alice, bob, gameId, turnProcessor, turnsRepository, clients } = createClockSetupPhase1Result
+    const clockSetup1 = await createClockSetup({ server })
+    const { clock, alice, bob, gameId, turnProcessor, turnsRepository, clients } = clockSetup1
     const readViews = async (): Promise<[PlayerView, PlayerView]> =>
       await Promise.all([alice.client.gameplay.getPlayerView.query({ gameId }), bob.client.gameplay.getPlayerView.query({ gameId })])
     const submit = async (
@@ -75,8 +75,8 @@ describe("gameplay submission concurrency", () => {
       await processManualDeadlineTurn({ clock, turnProcessor, turnsRepository, client: alice.client, gameId, turn })
     }
 
-    const createHomeASetupPhase2Result = await createHomeASetup({ ...createClockSetupPhase1Result, readViews, submit, processDeadlineTurn })
-    const { target, stationedViews } = createHomeASetupPhase2Result
+    const homeASetup2 = await createHomeASetup({ ...clockSetup1, readViews, submit, processDeadlineTurn })
+    const { target, stationedViews } = homeASetup2
     const stationedFleets = clients.map(({ account }, index) => {
       const view = stationedViews[index]
       Assert.isDefined(view)
@@ -108,30 +108,17 @@ describe("gameplay submission concurrency", () => {
 
     const observationView = await alice.client.gameplay.getPlayerView.query({ gameId })
     await markManualDeadlineDue({ clock, turnsRepository })
-    let observed: TurnToProcessModel | undefined
-    const rollbackMessage = `Intentional C3-10 worker input observation rollback for game ${gameId}`
-    await expect(
-      server.database.transaction(async (tx) => {
-        const turn = await turnsRepository.getNextTurnForProcessing({ since: clock.now() }, tx)
-        Assert.isDefined(turn)
-        expect(turn.gameId).toBe(gameId)
-        expect(turn.turn).toBe(observationView.turn)
-        observed = structuredClone(await turnsRepository.startTurnProcessing({ turn, processingStartedAt: clock.now() }, tx))
-        throw new TransactionRollbackError(rollbackMessage)
-      }),
-    ).rejects.toMatchObject({ name: "TransactionRollbackError", message: rollbackMessage })
+    const observed = await observeTurnAndRollback({ db: server.database, clock, turnsRepository, gameId, turn: observationView.turn })
     Assert.isDefined(observed)
 
-    const createCreateObservedPreResolutionRngStateSetupPhase3ResultSetupPhase1Result =
-      await createCreateObservedPreResolutionRngStateSetupResultSetup({
-        createClockSetupPhase1Result,
-        createHomeASetupPhase2Result,
-        observed,
-        colonizeActionIds,
-        stationedFleets,
-      })
-    const { createObservedPreResolutionRngStateSetupPhase3Result, aliceAfter, bobAfter } =
-      createCreateObservedPreResolutionRngStateSetupPhase3ResultSetupPhase1Result
+    const observedPreResolutionRngStateScenario1 = await prepareObservedPreResolutionRngStateScenario({
+      clockSetup1,
+      homeASetup2,
+      observed,
+      colonizeActionIds,
+      stationedFleets,
+    })
+    const { observedPreResolutionRngStateSetup3, aliceAfter, bobAfter } = observedPreResolutionRngStateScenario1
     for (const view of [aliceAfter, bobAfter]) {
       expect(view.turn).toBe(observationView.turn + 1)
       expect(view.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 25, uncommitted: 25 })
@@ -148,10 +135,10 @@ describe("gameplay submission concurrency", () => {
     Assert.isDefined(savedNextTurn)
 
     await assertUntouchedAfterObserved({
-      ...createCreateObservedPreResolutionRngStateSetupPhase3ResultSetupPhase1Result,
-      ...createClockSetupPhase1Result,
-      ...createHomeASetupPhase2Result,
-      ...createObservedPreResolutionRngStateSetupPhase3Result,
+      ...observedPreResolutionRngStateScenario1,
+      ...clockSetup1,
+      ...homeASetup2,
+      ...observedPreResolutionRngStateSetup3,
       observed,
       savedNextTurn,
       observationView,
@@ -203,7 +190,7 @@ describe("gameplay submission concurrency", () => {
         return action.id
       }
 
-      const createCreateViewsSetupPhase4ResultSetupPhase2Result = await createCreateViewsSetupResultSetup({
+      const viewsScenario2 = await prepareViewsScenario({
         readViews,
         alice,
         bob,
@@ -217,38 +204,28 @@ describe("gameplay submission concurrency", () => {
         findPlanetOwner,
         movingStrength,
       })
-      const { createViewsSetupPhase4Result, createPriorityTurnSetupPhase5Result } = createCreateViewsSetupPhase4ResultSetupPhase2Result
-      let { views } = createCreateViewsSetupPhase4ResultSetupPhase2Result
-      const { priorityTurn, rollbackMessage } = createPriorityTurnSetupPhase5Result
-      let { observed } = createPriorityTurnSetupPhase5Result
-      await expect(
-        server.database.transaction(async (tx) => {
-          const turn = await turnsRepository.getNextTurnForProcessing({ since: clock.now() }, tx)
-          Assert.isDefined(turn)
-          expect(turn.gameId).toBe(gameId)
-          expect(turn.turn).toBe(priorityTurn)
-          observed = structuredClone(await turnsRepository.startTurnProcessing({ turn, processingStartedAt: clock.now() }, tx))
-          throw new TransactionRollbackError(rollbackMessage)
-        }),
-      ).rejects.toMatchObject({ name: "TransactionRollbackError", message: rollbackMessage })
+      const { viewsSetup4, priorityTurnSetup5 } = viewsScenario2
+      let { views } = viewsScenario2
+      const { priorityTurn } = priorityTurnSetup5
+      const observed = await observeTurnAndRollback({ db: server.database, clock, turnsRepository, gameId, turn: priorityTurn })
       Assert.isDefined(observed)
 
-      const createCapturedInputSetupPhase6Result = await createCapturedInputSetup({
-        ...createViewsSetupPhase4Result,
-        ...createPriorityTurnSetupPhase5Result,
+      const capturedInputSetup6 = await createCapturedInputSetup({
+        ...viewsSetup4,
+        ...priorityTurnSetup5,
         observed,
         builtStrength,
         movingStrength,
         turnProcessor,
       })
-      const { capturedInput } = createCapturedInputSetupPhase6Result
+      const { capturedInput } = capturedInputSetup6
       Assert.isDefined(capturedInput)
       views = await readViews()
 
-      const createPersistedAliceSetupPhase7Result = await createPersistedAliceSetup({
-        ...createViewsSetupPhase4Result,
-        ...createPriorityTurnSetupPhase5Result,
-        ...createCapturedInputSetupPhase6Result,
+      const persistedAliceSetup7 = await createPersistedAliceSetup({
+        ...viewsSetup4,
+        ...priorityTurnSetup5,
+        ...capturedInputSetup6,
         views,
         findPlanetOwner,
         movingStrength,
@@ -257,15 +234,15 @@ describe("gameplay submission concurrency", () => {
         gameId,
         capturedInput,
       })
-      const { assertPersistedNextRngStatePhase6CapturedInput } = createPersistedAliceSetupPhase7Result
+      const { assertPersistedNextRngStatePhase6CapturedInput } = persistedAliceSetup7
 
       Assert.isDefined(assertPersistedNextRngStatePhase6CapturedInput)
 
       verifyPublicState({
-        ...createViewsSetupPhase4Result,
-        ...createPriorityTurnSetupPhase5Result,
-        ...createCapturedInputSetupPhase6Result,
-        ...createPersistedAliceSetupPhase7Result,
+        ...viewsSetup4,
+        ...priorityTurnSetup5,
+        ...capturedInputSetup6,
+        ...persistedAliceSetup7,
         assertPersistedNextRngStatePhase6CapturedInput,
         gameId,
         movingStrength,
@@ -276,95 +253,15 @@ describe("gameplay submission concurrency", () => {
   )
 })
 
-async function assertUntouchedAfterObserved({
-  observed,
-  savedNextTurn,
-  expectedNextRngState,
-  forwardReplay,
-  alice,
-  untouchedGameId,
-  untouchedInitialView,
-  target,
-  gameId,
-  homeA,
-  homeB,
-  distances,
-  observationView,
-  observedPreResolutionRngState,
-  bob,
-  firstTieShuffleDraw,
-  expectedOwner,
-  persistedOwner,
-  finalStrengths,
-  aliceAfter,
-  bobAfter,
-}: AssertUntouchedAfterObservedInput): Promise<void> {
-  Assert.isDefined(observed)
-  const assertUntouchedAfterPhase3Observed = observed
+async function assertUntouchedAfterObserved(input: AssertUntouchedAfterObservedInput): Promise<void> {
+  Assert.isDefined(input.observed)
+  const assertUntouchedAfterPhase3Observed = input.observed
 
-  await assertUntouchedAfter({
-    savedNextTurn,
-    expectedNextRngState,
-    forwardReplay,
-    alice,
-    untouchedGameId,
-    untouchedInitialView,
-    target,
-    gameId,
-    homeA,
-    homeB,
-    distances,
-    observationView,
-    observedPreResolutionRngState,
-    assertUntouchedAfterPhase3Observed,
-    bob,
-    firstTieShuffleDraw,
-    expectedOwner,
-    persistedOwner,
-    finalStrengths,
-    aliceAfter,
-    bobAfter,
-  })
+  await assertUntouchedAfter({ ...input, assertUntouchedAfterPhase3Observed, persistedOwner: input.persistedOwner })
 }
 
-function verifyPublicState({
-  savedNextTurn,
-  assertPersistedNextRngStatePhase6CapturedInput,
-  replay,
-  gameId,
-  movingStrength,
-  homeA,
-  homeB,
-  target,
-  distances,
-  stagedAlice,
-  stagedBob,
-  aliceColonizeActionId,
-  bobColonizeActionId,
-  findPlanetOwner,
-  views,
-  persistedAlice,
-  persistedBob,
-}: VerifyPublicStateInput): void {
-  assertPersistedNextRngState({
-    savedNextTurn,
-    assertPersistedNextRngStatePhase6CapturedInput,
-    replay,
-    gameId,
-    movingStrength,
-    homeA,
-    homeB,
-    target,
-    distances,
-    stagedAlice,
-    stagedBob,
-    aliceColonizeActionId,
-    bobColonizeActionId,
-    findPlanetOwner,
-    views,
-    persistedAlice,
-    persistedBob,
-  })
+function verifyPublicState(input: VerifyPublicStateInput): void {
+  assertPersistedNextRngState({ ...input })
 }
 
 type AssertUntouchedAfterObservedInput = {
@@ -429,23 +326,18 @@ type VerifyPublicStateInput = {
   persistedBob: Fleet
 }
 
-async function createCreateObservedPreResolutionRngStateSetupResultSetup({
-  createClockSetupPhase1Result,
-  createHomeASetupPhase2Result,
-  observed,
-  colonizeActionIds,
-  stationedFleets,
-}: CreateCreateObservedPreResolutionRngStateSetupResultSetupInput): Promise<CreateCreateObservedPreResolutionRngStateSetupResultSetupResult> {
-  Assert.isDefined(observed)
-  const createObservedPreResolutionRngStateSetupPhase3Result = await createObservedPreResolutionRngStateSetup({
-    ...createClockSetupPhase1Result,
-    ...createHomeASetupPhase2Result,
-    observed,
-    colonizeActionIds,
-    stationedFleets,
+async function prepareObservedPreResolutionRngStateScenario(
+  input: PrepareObservedPreResolutionRngStateScenarioInput,
+): Promise<PrepareObservedPreResolutionRngStateScenarioResult> {
+  Assert.isDefined(input.observed)
+  const observedPreResolutionRngStateSetup3 = await createObservedPreResolutionRngStateSetup({
+    ...input,
+    ...input.clockSetup1,
+    ...input.homeASetup2,
+    observed: input.observed,
   })
   const { expectedOwner, aliceAfter, bobAfter, alicePlayerId, bobPlayerId, aliceSurvivor, bobSurvivor } =
-    createObservedPreResolutionRngStateSetupPhase3Result
+    observedPreResolutionRngStateSetup3
   const finalStrengths = [
     { playerId: alicePlayerId, strength: aliceSurvivor.strength },
     { playerId: bobPlayerId, strength: bobSurvivor.strength },
@@ -453,71 +345,34 @@ async function createCreateObservedPreResolutionRngStateSetupResultSetup({
   expect(finalStrengths).toHaveLength(2)
   expect(aliceSurvivor.strength).toBe(tieWinnerForce(alicePlayerId, expectedOwner))
   expect(bobSurvivor.strength).toBe(tieWinnerForce(bobPlayerId, expectedOwner))
-  return { createObservedPreResolutionRngStateSetupPhase3Result, aliceAfter, bobAfter, finalStrengths }
+  return { observedPreResolutionRngStateSetup3, aliceAfter, bobAfter, finalStrengths }
 }
 
-async function createCreateViewsSetupResultSetup({
-  readViews,
-  alice,
-  bob,
-  submitAction,
-  buildActionDefinitionId,
-  clock,
-  turnProcessor,
-  turnsRepository,
-  gameId,
-  builtStrength,
-  findPlanetOwner,
-  movingStrength,
-}: CreateCreateViewsSetupResultSetupInput): Promise<CreateCreateViewsSetupResultSetupResult> {
-  const createViewsSetupPhase4Result = await createViewsSetup({
-    readViews,
-    alice,
-    bob,
-    submitAction,
-    buildActionDefinitionId,
-    clock,
-    turnProcessor,
-    turnsRepository,
-    gameId,
-    builtStrength,
-    findPlanetOwner,
-  })
+async function prepareViewsScenario(input: PrepareViewsScenarioInput): Promise<PrepareViewsScenarioResult> {
+  const viewsSetup4 = await createViewsSetup({ ...input })
 
-  const { views } = createViewsSetupPhase4Result
+  const { views } = viewsSetup4
 
-  const createPriorityTurnSetupPhase5Result = await createPriorityTurnSetup({
-    ...createViewsSetupPhase4Result,
-    builtStrength,
-    findPlanetOwner,
-    submitAction,
-    alice,
-    bob,
-    movingStrength,
-    readViews,
-    clock,
-    turnsRepository,
-    gameId,
-  })
-  return { createViewsSetupPhase4Result, views, createPriorityTurnSetupPhase5Result }
+  const priorityTurnSetup5 = await createPriorityTurnSetup({ ...input, ...viewsSetup4 })
+  return { viewsSetup4, views, priorityTurnSetup5 }
 }
 
-type CreateCreateObservedPreResolutionRngStateSetupResultSetupInput = {
-  createClockSetupPhase1Result: Awaited<ReturnType<typeof CapturedcreateClockSetup>>
-  createHomeASetupPhase2Result: Awaited<ReturnType<typeof CapturedcreateHomeASetup>>
+type PrepareObservedPreResolutionRngStateScenarioInput = {
+  clockSetup1: Awaited<ReturnType<typeof CapturedcreateClockSetup>>
+  homeASetup2: Awaited<ReturnType<typeof CapturedcreateHomeASetup>>
   observed: undefined | ReturnType<typeof reverseWorkerInputEnumeration>
   colonizeActionIds: string[]
   stationedFleets: Array<undefined | Fleet>
 }
 
-type CreateCreateObservedPreResolutionRngStateSetupResultSetupResult = {
-  createObservedPreResolutionRngStateSetupPhase3Result: Awaited<ReturnType<typeof CapturedcreateObservedPreResolutionRngStateSetup>>
+type PrepareObservedPreResolutionRngStateScenarioResult = {
+  observedPreResolutionRngStateSetup3: Awaited<ReturnType<typeof CapturedcreateObservedPreResolutionRngStateSetup>>
   aliceAfter: PlayerView
   bobAfter: PlayerView
   finalStrengths: Array<{ playerId: PlayerId; strength: number }>
 }
 
-type CreateCreateViewsSetupResultSetupInput = {
+type PrepareViewsScenarioInput = {
   readViews: () => Promise<[PlayerView, PlayerView]>
   alice: AuthenticatedApiClient
   bob: AuthenticatedApiClient
@@ -532,10 +387,10 @@ type CreateCreateViewsSetupResultSetupInput = {
   movingStrength: 35 | 70
 }
 
-type CreateCreateViewsSetupResultSetupResult = {
-  createViewsSetupPhase4Result: Awaited<ReturnType<typeof CapturedcreateViewsSetup>>
+type PrepareViewsScenarioResult = {
+  viewsSetup4: Awaited<ReturnType<typeof CapturedcreateViewsSetup>>
   views: [PlayerView, PlayerView]
-  createPriorityTurnSetupPhase5Result: Awaited<ReturnType<typeof CapturedcreatePriorityTurnSetup>>
+  priorityTurnSetup5: Awaited<ReturnType<typeof CapturedcreatePriorityTurnSetup>>
 }
 
 type SubmitActionCallback = (

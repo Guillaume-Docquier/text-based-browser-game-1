@@ -196,31 +196,31 @@ export const PublicStationarySeedOutpostRuleset = Ruleset.create({
   actionPool: [...PublicColonizationBudgetRuleset.actionPool, { id: "TEST_SEED_OUTPOST_HERE_1", actionDefinitionId: SeedOutpostHere.id }],
 })
 
-export function createFixtureBuildFleetAction({ id, strength }: { id: string; strength: number }): ActionDefinition {
+export function createFixtureBuildFleetAction(input: { id: string; strength: number }): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {
     ...BuildFleetStandard,
-    id,
-    name: `Fixture Build ${strength}`,
-    effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength })],
+    id: input.id,
+    name: `Fixture Build ${input.strength}`,
+    effects: [FleetBuildEffectDefinition.create({ planetTag: "planet", strength: input.strength })],
   })
 }
 
-export function createFixtureMoveFleetAction({ id, speed }: { id: string; speed: number }): ActionDefinition {
+export function createFixtureMoveFleetAction(input: { id: string; speed: number }): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {
     ...MoveFleetExceptional,
-    id,
-    name: `Fixture Move ${speed}`,
-    effects: [FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed })],
+    id: input.id,
+    name: `Fixture Move ${input.speed}`,
+    effects: [FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed: input.speed })],
   })
 }
 
-export function createFixtureColonizeAction({ id, speed }: { id: string; speed: number }): ActionDefinition {
+export function createFixtureColonizeAction(input: { id: string; speed: number }): ActionDefinition {
   return typedParse(ActionDefinitionSchema, {
     ...ColonizePlanetTest,
-    id,
-    name: `Fixture Colonize ${speed}`,
+    id: input.id,
+    name: `Fixture Colonize ${input.speed}`,
     effects: [
-      FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed }),
+      FleetMoveEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthTag: "strength", speed: input.speed }),
       FleetColonizeEffectDefinition.create({ fleetTag: "fleet", planetTag: "planet", strengthRequirement: 20 }),
     ],
   })
@@ -521,20 +521,13 @@ export type PublicTwoPlayerFixture = {
   target: PublicPlanet
 }
 
-export async function submitAction({
-  client,
-  gameId,
-  view,
-  actionDefinitionId,
-  selectedTargets,
-  selectedInputs,
-}: SubmitActionInput): Promise<string> {
-  const action = view.actions.find(({ actionDefinitionId: candidate }) => candidate === actionDefinitionId)
+export async function submitAction(input: SubmitActionInput): Promise<string> {
+  const action = input.view.actions.find(({ actionDefinitionId: candidate }) => candidate === input.actionDefinitionId)
   Assert.isDefined(action)
-  await client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: view.turn,
-    submittedActionTargets: { actionId: action.id, selectedTargets, selectedInputs },
+  await input.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.view.turn,
+    submittedActionTargets: { actionId: action.id, selectedTargets: input.selectedTargets, selectedInputs: input.selectedInputs },
   })
   return action.id
 }

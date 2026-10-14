@@ -240,10 +240,10 @@ describe("evaluateActionSelection", () => {
   it("should use dependent target constraints for candidates and reject an out-of-range destination", () => {
     // Arrange
 
-    const createFixtureSetupPhase1Result = createFixtureSetup()
+    const fixtureSetup1 = createFixtureSetup()
 
-    const createMissingOriginCandidateSetupPhase2Result = createMissingOriginCandidateSetup({ ...createFixtureSetupPhase1Result })
-    const { missingOriginCandidate } = createMissingOriginCandidateSetupPhase2Result
+    const missingOriginCandidateSetup2 = createMissingOriginCandidateSetup({ ...fixtureSetup1 })
+    const { missingOriginCandidate } = missingOriginCandidateSetup2
     expect(missingOriginCandidate.candidateIssues.map(({ code }) => code)).toContain("MISSING_ORIGIN")
   })
 
@@ -543,14 +543,7 @@ function createFixtureSetup(): CreateFixtureSetupResult {
   return { fixture, draft, inRange, outOfRange, withoutSource, afterSourceChange }
 }
 
-function createMissingOriginCandidateSetup({
-  fixture,
-  draft,
-  inRange,
-  outOfRange,
-  withoutSource,
-  afterSourceChange,
-}: CreateMissingOriginCandidateSetupInput): CreateMissingOriginCandidateSetupResult {
+function createMissingOriginCandidateSetup(input: CreateMissingOriginCandidateSetupInput): CreateMissingOriginCandidateSetupResult {
   const coLocatedPlanet = createPlanetStub({
     id: branded<PlanetId>("distinct-co-located-planet"),
     ownerPlayerId: null,
@@ -558,42 +551,42 @@ function createMissingOriginCandidateSetup({
     y: 0,
   })
   const coLocatedCandidate = evaluateTargetCandidate({
-    state: { ...fixture.state, planets: { ...fixture.state.planets, [coLocatedPlanet.id]: coLocatedPlanet } },
-    ruleset: fixture.ruleset,
-    draft,
+    state: { ...input.fixture.state, planets: { ...input.fixture.state.planets, [coLocatedPlanet.id]: coLocatedPlanet } },
+    ruleset: input.fixture.ruleset,
+    draft: input.draft,
     targetTag: branded("planet"),
     targetId: coLocatedPlanet.id,
   })
   const originCandidate = evaluateTargetCandidate({
-    state: fixture.state,
-    ruleset: fixture.ruleset,
-    draft,
+    state: input.fixture.state,
+    ruleset: input.fixture.ruleset,
+    draft: input.draft,
     targetTag: branded("planet"),
-    targetId: fixture.originId,
+    targetId: input.fixture.originId,
   })
   const missingOriginFleet = createFleetStub({
-    id: fixture.fleetId,
-    ownerPlayerId: fixture.playerId,
+    id: input.fixture.fleetId,
+    ownerPlayerId: input.fixture.playerId,
     originPlanetId: branded<PlanetId>("missing-origin-planet"),
     strength: 50,
     name: "Source Fleet",
   })
   const missingOriginCandidate = evaluateTargetCandidate({
-    state: { ...fixture.state, fleets: { ...fixture.state.fleets, [missingOriginFleet.id]: missingOriginFleet } },
-    ruleset: fixture.ruleset,
-    draft,
+    state: { ...input.fixture.state, fleets: { ...input.fixture.state.fleets, [missingOriginFleet.id]: missingOriginFleet } },
+    ruleset: input.fixture.ruleset,
+    draft: input.draft,
     targetTag: branded("planet"),
-    targetId: fixture.destinationId,
+    targetId: input.fixture.destinationId,
   })
 
   // Assert
-  expect(inRange.candidateStatus).toBe("ELIGIBLE")
-  expect(outOfRange.candidateStatus).toBe("INELIGIBLE")
-  expect(outOfRange.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
-  expect(withoutSource.candidateStatus).toBe("INCOMPLETE")
-  expect(withoutSource.candidateIssues.map(({ code }) => code)).toContain("DEPENDENCY_INCOMPLETE")
-  expect(afterSourceChange.candidateStatus).toBe("INELIGIBLE")
-  expect(afterSourceChange.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
+  expect(input.inRange.candidateStatus).toBe("ELIGIBLE")
+  expect(input.outOfRange.candidateStatus).toBe("INELIGIBLE")
+  expect(input.outOfRange.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
+  expect(input.withoutSource.candidateStatus).toBe("INCOMPLETE")
+  expect(input.withoutSource.candidateIssues.map(({ code }) => code)).toContain("DEPENDENCY_INCOMPLETE")
+  expect(input.afterSourceChange.candidateStatus).toBe("INELIGIBLE")
+  expect(input.afterSourceChange.candidateIssues.map(({ code }) => code)).toContain("OUT_OF_RANGE")
   expect(coLocatedCandidate.candidateStatus).toBe("ELIGIBLE")
   expect(coLocatedCandidate.candidateIssues).toStrictEqual([])
   expect(originCandidate.candidateStatus).toBe("INELIGIBLE")

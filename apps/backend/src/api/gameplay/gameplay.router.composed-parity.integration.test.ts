@@ -88,11 +88,11 @@ describe("gameplay.router", () => {
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(FleetActionParityRuleset))
       using apiServer = new ApiServer(apiServices)
 
-      const createPlayerSetupPhase1Result = await createPlayerSetup({ apiServer, db, clock })
-      const { createdGameId, turnProcessor, turnsRepository, origin, destination } = createPlayerSetupPhase1Result
+      const playerSetup1 = await createPlayerSetup({ apiServer, db, clock })
+      const { createdGameId, turnProcessor, turnsRepository, origin, destination } = playerSetup1
 
-      const createSourceFleetSetupPhase2Result = await createSourceFleetSetupCase({ ...createPlayerSetupPhase1Result })
-      const { sourceFleet, createSelectedViewSetupPhase2Result, selectedView } = createSourceFleetSetupPhase2Result
+      const sourceFleetSetup2 = await createSourceFleetSetupCase({ ...playerSetup1 })
+      const { sourceFleet, selectedViewSetup2, selectedView } = sourceFleetSetup2
 
       const isStringRecord = (value: unknown): value is Record<string, string> =>
         typeof value === "object" &&
@@ -129,13 +129,13 @@ describe("gameplay.router", () => {
         }
       }
 
-      const createNormalizedSelectedViewSetupPhase3Result = await createNormalizedSelectedViewSetup({
-        ...createPlayerSetupPhase1Result,
-        ...createSelectedViewSetupPhase2Result,
+      const normalizedSelectedViewSetup3 = await createNormalizedSelectedViewSetup({
+        ...playerSetup1,
+        ...selectedViewSetup2,
         normalizeAction,
         clock,
       })
-      const { normalizedSelectedView, delegateStartTurnProcessing } = createNormalizedSelectedViewSetupPhase3Result
+      const { normalizedSelectedView, delegateStartTurnProcessing } = normalizedSelectedViewSetup3
       const lockedInputObserver = vi.spyOn(turnsRepository, "startTurnProcessing").mockImplementation(async (startModel, tx) => {
         expect(startModel.turn.gameId).toBe(createdGameId)
         expect(startModel.turn.turn).toBe(selectedView.turn)
@@ -250,9 +250,9 @@ describe("gameplay.router", () => {
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(ComposedReservationRuleset))
       using apiServer = new ApiServer(apiServices)
 
-      const createPlayerSetupPhase3Result = await createPlayerSetup2({ apiServer, db, clock })
-      const { player, createdGameId, destination, sourceFleet } = createPlayerSetupPhase3Result
-      const { playerView } = createPlayerSetupPhase3Result
+      const playerSetup3 = await createPlayerSetup2({ apiServer, db, clock })
+      const { player, createdGameId, destination, sourceFleet } = playerSetup3
+      const { playerView } = playerSetup3
       const moveAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
       const attackAction = playerView.actions.find(({ id }) => id === AttackMoveTest.id + "_1")
       const extraMoveAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_2")
@@ -332,7 +332,7 @@ describe("gameplay.router", () => {
       }
 
       await verifyPublicState({
-        ...createPlayerSetupPhase3Result,
+        ...playerSetup3,
         submitSelection,
         moveAction,
         attackAction,
@@ -344,7 +344,7 @@ describe("gameplay.router", () => {
       })
 
       await assertCanceledView({
-        ...createPlayerSetupPhase3Result,
+        ...playerSetup3,
         evaluatePublicView,
         moveAction,
         sourceFleet,
@@ -356,30 +356,23 @@ describe("gameplay.router", () => {
   })
 })
 
-async function createSourceFleetSetup({
-  playerView,
-  player,
-  createdGameId,
-  planets,
-  origin,
-  destination,
-}: CreateSourceFleetSetupInput): Promise<CreateSourceFleetSetupResult> {
-  const sourceFleet = playerView.fleets[0]
-  const standardAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
-  const secondStandardAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_2")
-  const improvedAction = playerView.actions.find(({ id }) => id === "MOVE_FLEET_IMPROVED_1")
+async function createSourceFleetSetup(input: CreateSourceFleetSetupInput): Promise<CreateSourceFleetSetupResult> {
+  const sourceFleet = input.playerView.fleets[0]
+  const standardAction = input.playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
+  const secondStandardAction = input.playerView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_2")
+  const improvedAction = input.playerView.actions.find(({ id }) => id === "MOVE_FLEET_IMPROVED_1")
   Assert.isDefined(sourceFleet)
   Assert.isDefined(standardAction)
   Assert.isDefined(secondStandardAction)
   Assert.isDefined(improvedAction)
   expect(sourceFleet.strength).toBe(FleetActionSelectionParity.sourceStrength)
-  expect(playerView.resources[ResourceType.INFLUENCE].total).toBe(FleetActionSelectionParity.totalResources.INFLUENCE)
-  expect(playerView.resources[ResourceType.FUEL].total).toBe(FleetActionSelectionParity.totalResources.FUEL)
+  expect(input.playerView.resources[ResourceType.INFLUENCE].total).toBe(FleetActionSelectionParity.totalResources.INFLUENCE)
+  expect(input.playerView.resources[ResourceType.FUEL].total).toBe(FleetActionSelectionParity.totalResources.FUEL)
 
   // A partial API draft and a destination beyond Standard range cannot be persisted.
-  const partialSubmission = player.client.gameplay.updateActionSubmission.mutate({
-    gameId: createdGameId,
-    turn: playerView.turn,
+  const partialSubmission = input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.createdGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
       actionId: standardAction.id,
       selectedTargets: { fleet: sourceFleet.id },
@@ -387,151 +380,104 @@ async function createSourceFleetSetup({
     }),
   })
   await expect(partialSubmission).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  const outsideStandardRange = planets.find(
-    (planet) => planet.ownerPlayerId === null && planet.id !== origin.id && Math.hypot(planet.x - origin.x, planet.y - origin.y) > 5,
+  const outsideStandardRange = input.planets.find(
+    (planet) =>
+      planet.ownerPlayerId === null &&
+      planet.id !== input.origin.id &&
+      Math.hypot(planet.x - input.origin.x, planet.y - input.origin.y) > 5,
   )
   Assert.isDefined(outsideStandardRange)
 
-  await assertOutOfRangeSubmission({
-    player,
-    createdGameId,
-    playerView,
-    standardAction,
-    sourceFleet,
-    outsideStandardRange,
-    destination,
-  })
+  await assertOutOfRangeSubmission({ ...input, standardAction, sourceFleet, outsideStandardRange })
 
-  await assertAfterFullForceCancel({
-    player,
-    createdGameId,
-    playerView,
-    standardAction,
-    improvedAction,
-    sourceFleet,
-    destination,
-    secondStandardAction,
-  })
+  await assertAfterFullForceCancel({ ...input, standardAction, improvedAction, sourceFleet, secondStandardAction })
 
   // A candidate beyond Standard's five-light-year range but within Improved's ten-light-year range is legal.
-  const improvedOnlyDestination = planets.find((planet) => {
-    const distance = Math.hypot(planet.x - origin.x, planet.y - origin.y)
+  const improvedOnlyDestination = input.planets.find((planet) => {
+    const distance = Math.hypot(planet.x - input.origin.x, planet.y - input.origin.y)
     return planet.ownerPlayerId === null && distance > 5 && distance <= 10
   })
   return { sourceFleet, standardAction, improvedAction, improvedOnlyDestination }
 }
 
-async function createSelectedViewSetup({
-  player,
-  createdGameId,
-  playerView,
-  improvedAction,
-  sourceFleet,
-  improvedOnlyDestination,
-  destination,
-  origin,
-  standardAction,
-}: CreateSelectedViewSetupInput): Promise<CreateSelectedViewSetupResult> {
-  await assertImprovedRangeView({
-    player,
-    createdGameId,
-    playerView,
-    improvedAction,
-    sourceFleet,
-    improvedOnlyDestination,
-    destination,
-  })
-  const retainedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  const retainedSource = retainedView.fleets.find(({ id }) => id === sourceFleet.id)
+async function createSelectedViewSetup(input: CreateSelectedViewSetupInput): Promise<CreateSelectedViewSetupResult> {
+  await assertImprovedRangeView({ ...input })
+  const retainedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  const retainedSource = retainedView.fleets.find(({ id }) => id === input.sourceFleet.id)
   Assert.isDefined(retainedSource)
 
-  await assertNormalizedInput({
-    retainedView,
-    retainedSource,
-    origin,
-    destination,
-    standardAction,
-    player,
-    createdGameId,
-    playerView,
-    sourceFleet,
-  })
+  await assertNormalizedInput({ ...input, retainedView, retainedSource })
 
   // Assert
-  const selectedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  expect(selectedView.actions.find(({ id }) => id === standardAction.id)).toMatchObject({
-    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+  const selectedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
+  expect(selectedView.actions.find(({ id }) => id === input.standardAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
     selectedInputs: { strength: FleetActionSelectionParity.standardStrength },
   })
-  expect(selectedView.actions.find(({ id }) => id === improvedAction.id)).toMatchObject({
-    selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+  expect(selectedView.actions.find(({ id }) => id === input.improvedAction.id)).toMatchObject({
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
     selectedInputs: { strength: FleetActionSelectionParity.improvedStrength },
   })
   expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 0 })
   expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 4, uncommitted: 0 })
-  expect(selectedView.fleets.find(({ id }) => id === sourceFleet.id)?.strength).toBe(FleetActionSelectionParity.sourceStrength)
+  expect(selectedView.fleets.find(({ id }) => id === input.sourceFleet.id)?.strength).toBe(FleetActionSelectionParity.sourceStrength)
 
-  const selectedSource = selectedView.fleets.find(({ id }) => id === sourceFleet.id)
+  const selectedSource = selectedView.fleets.find(({ id }) => id === input.sourceFleet.id)
   const selectedPlanets = selectedView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-  const selectedOrigin = selectedPlanets.find(({ id }) => id === origin.id)
-  const selectedDestination = selectedPlanets.find(({ id }) => id === destination.id)
+  const selectedOrigin = selectedPlanets.find(({ id }) => id === input.origin.id)
+  const selectedDestination = selectedPlanets.find(({ id }) => id === input.destination.id)
   Assert.isDefined(selectedSource)
   Assert.isDefined(selectedOrigin)
   Assert.isDefined(selectedDestination)
   return { selectedView, selectedSource, selectedOrigin, selectedDestination }
 }
 
-async function createNormalizedSelectedViewSetup({
-  selectedView,
-  selectedSource,
-  origin,
-  selectedOrigin,
-  selectedDestination,
-  normalizeAction,
-  clock,
-  turnsRepository,
-}: CreateNormalizedSelectedViewSetupInput): Promise<CreateNormalizedSelectedViewSetupResult> {
+async function createNormalizedSelectedViewSetup(
+  input: CreateNormalizedSelectedViewSetupInput,
+): Promise<CreateNormalizedSelectedViewSetupResult> {
   const normalizedSelectedView = {
     resources: {
       total: Object.fromEntries(
-        Object.values(ResourceType).map((resourceType) => [resourceType, selectedView.resources[resourceType].total]),
+        Object.values(ResourceType).map((resourceType) => [resourceType, input.selectedView.resources[resourceType].total]),
       ),
       uncommitted: Object.fromEntries(
-        Object.values(ResourceType).map((resourceType) => [resourceType, selectedView.resources[resourceType].uncommitted]),
+        Object.values(ResourceType).map((resourceType) => [resourceType, input.selectedView.resources[resourceType].uncommitted]),
       ),
     },
     source: {
       role: "source",
-      owner: selectedSource.ownerPlayerId === selectedView.player.id ? "player" : "other",
-      strength: selectedSource.strength,
-      origin: selectedSource.originPlanetId === origin.id ? "origin" : "other",
-      movement: selectedSource.movement ?? null,
+      owner: input.selectedSource.ownerPlayerId === input.selectedView.player.id ? "player" : "other",
+      strength: input.selectedSource.strength,
+      origin: input.selectedSource.originPlanetId === input.origin.id ? "origin" : "other",
+      movement: input.selectedSource.movement ?? null,
     },
     planets: [
       {
         role: "origin",
-        owner: selectedOrigin.ownerPlayerId === selectedView.player.id ? "player" : selectedOrigin.ownerPlayerId,
-        x: selectedOrigin.x,
-        y: selectedOrigin.y,
+        owner: input.selectedOrigin.ownerPlayerId === input.selectedView.player.id ? "player" : input.selectedOrigin.ownerPlayerId,
+        x: input.selectedOrigin.x,
+        y: input.selectedOrigin.y,
       },
       {
         role: "destination",
-        owner: selectedDestination.ownerPlayerId === null ? null : "other",
-        x: selectedDestination.x,
-        y: selectedDestination.y,
+        owner: input.selectedDestination.ownerPlayerId === null ? null : "other",
+        x: input.selectedDestination.x,
+        y: input.selectedDestination.y,
       },
     ],
-    authorizedActions: selectedView.ruleset.actionPool
+    authorizedActions: input.selectedView.ruleset.actionPool
       .map(({ id, actionDefinitionId }) => ({ id, actionDefinitionId }))
       .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
-    currentActions: selectedView.actions.map(normalizeAction).toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
+    currentActions: input.selectedView.actions
+      .map(input.normalizeAction)
+      .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
   }
   expect(normalizedSelectedView).toStrictEqual(FleetActionSelectionParity.lockedNormalizedInput)
 
   // Observe the exact production-loaded worker input inside the real worker call.
-  clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-  const delegateStartTurnProcessing = turnsRepository.startTurnProcessing.bind(turnsRepository)
+  input.clock.increment({ time: Time.create(10, UnitOfTime.SECONDS) })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
+  const delegateStartTurnProcessing = input.turnsRepository.startTurnProcessing.bind(input.turnsRepository)
   return { normalizedSelectedView, delegateStartTurnProcessing }
 }
 
@@ -666,40 +612,14 @@ async function verifyActionSelections({
   return { playerView }
 }
 
-async function verifyPublicState({
-  submitSelection,
-  moveAction,
-  attackAction,
-  player,
-  createdGameId,
-  sourceFleet,
-  destination,
-  evaluatePublicView,
-  extraAttackAction,
-  buildAction,
-  origin,
-  extraMoveAction,
-}: VerifyPublicStateInput): Promise<void> {
-  await submitSelection(moveAction.id, 20)
-  await submitSelection(attackAction.id, 30)
-  const selectedView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
+async function verifyPublicState(input: VerifyPublicStateInput): Promise<void> {
+  await input.submitSelection(input.moveAction.id, 20)
+  await input.submitSelection(input.attackAction.id, 30)
+  const selectedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.createdGameId })
 
-  assertSelectedView({ selectedView, moveAction, sourceFleet, destination, attackAction, evaluatePublicView, extraAttackAction })
+  assertSelectedView({ ...input, selectedView })
 
-  await assertBeforeRejectedDrafts({
-    player,
-    createdGameId,
-    selectedView,
-    attackAction,
-    sourceFleet,
-    destination,
-    buildAction,
-    origin,
-    submitSelection,
-    moveAction,
-    evaluatePublicView,
-    extraMoveAction,
-  })
+  await assertBeforeRejectedDrafts({ ...input, selectedView })
 }
 
 type VerifyActionSelectionsInput = {
@@ -765,36 +685,14 @@ async function createPlayerSetup(
   return { player, createdGameId, turnProcessor, turnsRepository, playerView, planets, origin, destination }
 }
 
-async function createSourceFleetSetupCase({
-  playerView,
-  player,
-  createdGameId,
-  planets,
-  origin,
-  destination,
-}: CreateSourceFleetSetupCaseInput): Promise<CreateSourceFleetSetupCaseResult> {
-  const createSourceFleetSetupPhase1Result = await createSourceFleetSetup({
-    playerView,
-    player,
-    createdGameId,
-    planets,
-    origin,
-    destination,
-  })
-  const { sourceFleet, improvedOnlyDestination } = createSourceFleetSetupPhase1Result
+async function createSourceFleetSetupCase(input: CreateSourceFleetSetupCaseInput): Promise<CreateSourceFleetSetupCaseResult> {
+  const sourceFleetSetup1 = await createSourceFleetSetup({ ...input })
+  const { sourceFleet, improvedOnlyDestination } = sourceFleetSetup1
   Assert.isDefined(improvedOnlyDestination)
 
-  const createSelectedViewSetupPhase2Result = await createSelectedViewSetup({
-    ...createSourceFleetSetupPhase1Result,
-    player,
-    createdGameId,
-    playerView,
-    improvedOnlyDestination,
-    destination,
-    origin,
-  })
-  const { selectedView } = createSelectedViewSetupPhase2Result
-  return { sourceFleet, createSelectedViewSetupPhase2Result, selectedView }
+  const selectedViewSetup2 = await createSelectedViewSetup({ ...input, ...sourceFleetSetup1, improvedOnlyDestination })
+  const { selectedView } = selectedViewSetup2
+  return { sourceFleet, selectedViewSetup2, selectedView }
 }
 
 async function createPlayerSetup2(options: CreatePlayerSetup2Input): Promise<CreatePlayerSetup2Result> {
@@ -827,7 +725,7 @@ type CreateSourceFleetSetupCaseInput = {
 
 type CreateSourceFleetSetupCaseResult = {
   sourceFleet: Fleet
-  createSelectedViewSetupPhase2Result: CreateSelectedViewSetupResult
+  selectedViewSetup2: CreateSelectedViewSetupResult
   selectedView: PlayerView
 }
 

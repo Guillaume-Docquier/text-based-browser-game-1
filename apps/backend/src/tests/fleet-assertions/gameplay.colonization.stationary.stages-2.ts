@@ -25,56 +25,33 @@ import {
 } from "../colonization/gameplay.colonization.scenarios.ts"
 import { required, submitAction } from "../colonization/gameplay.colonization.ts"
 
-export async function createStagedAliceSetup({
-  stagingResolutions,
-  stagedAliceJourneyId,
-  stagedCarolJourneyId,
-  views,
-  homeIdsByPlayer,
-  target,
-  bob,
-  gameId,
-  homes,
-  server,
-  clock,
-  turnsRepository,
-  turnProcessor,
-  clients,
-}: CreateStagedAliceSetupInput): Promise<CreateStagedAliceSetupResult> {
-  const aliceStagingArrival = stagingResolutions.find(({ fleets }) => fleets[stagedAliceJourneyId]?.arrivedAtTick !== undefined)
-  const carolStagingArrival = stagingResolutions.find(({ fleets }) => fleets[stagedCarolJourneyId]?.arrivedAtTick !== undefined)
+export async function createStagedAliceSetup(input: CreateStagedAliceSetupInput): Promise<CreateStagedAliceSetupResult> {
+  const aliceStagingArrival = input.stagingResolutions.find(({ fleets }) => fleets[input.stagedAliceJourneyId]?.arrivedAtTick !== undefined)
+  const carolStagingArrival = input.stagingResolutions.find(({ fleets }) => fleets[input.stagedCarolJourneyId]?.arrivedAtTick !== undefined)
   Assert.isDefined(aliceStagingArrival)
   Assert.isDefined(carolStagingArrival)
-  expect(aliceStagingArrival.fleets[stagedAliceJourneyId]?.arrivedAtTick).toBe(3)
-  expect(carolStagingArrival.fleets[stagedCarolJourneyId]?.arrivedAtTick).toBe(10)
-  const stagedAlice = getFleetAt(required(views[0]), required(homeIdsByPlayer[0]), target.id, 35)
-  const stagedCarol = getFleetAt(required(views[2]), required(homeIdsByPlayer[2]), target.id, 48)
+  expect(aliceStagingArrival.fleets[input.stagedAliceJourneyId]?.arrivedAtTick).toBe(3)
+  expect(carolStagingArrival.fleets[input.stagedCarolJourneyId]?.arrivedAtTick).toBe(10)
+  const stagedAlice = getFleetAt(required(input.views[0]), required(input.homeIdsByPlayer[0]), input.target.id, 35)
+  const stagedCarol = getFleetAt(required(input.views[2]), required(input.homeIdsByPlayer[2]), input.target.id, 48)
   expect(
-    required(views[0])
+    required(input.views[0])
       .galaxy.systems.flatMap(({ planets }) => planets)
-      .find(({ id }) => id === target.id)?.ownerPlayerId,
+      .find(({ id }) => id === input.target.id)?.ownerPlayerId,
   ).toBeNull()
 
   const bobColonizeActionId = await submitAction({
-    client: bob.client,
-    gameId,
-    view: required(views[1]),
+    client: input.bob.client,
+    gameId: input.gameId,
+    view: required(input.views[1]),
     actionDefinitionId: ColonizePlanetTest.id,
     selectedTargets: {
-      fleet: getFleetAt(required(views[1]), required(homeIdsByPlayer[1]), required(homes[1]).id, 70).id,
-      planet: target.id,
+      fleet: getFleetAt(required(input.views[1]), required(input.homeIdsByPlayer[1]), required(input.homes[1]).id, 70).id,
+      planet: input.target.id,
     },
     selectedInputs: { strength: 70 },
   })
-  const bobDeparture = await processTurnWithReplay({
-    server,
-    clock,
-    turnsRepository,
-    turnProcessor,
-    clients,
-    gameId,
-    turn: required(views[0]).turn,
-  })
+  const bobDeparture = await processTurnWithReplay({ ...input, turn: required(input.views[0]).turn })
   return { stagedAlice, stagedCarol, bobColonizeActionId, bobDeparture }
 }
 
@@ -102,50 +79,32 @@ export type CreateStagedAliceSetupResult = {
   bobDeparture: Awaited<ReturnType<typeof CapturedprocessTurnWithReplay>>
 }
 
-export async function createReadyViewsSetup({
-  views,
-  homeIdsByPlayer,
-  target,
-  movingBobId,
-  alice,
-  gameId,
-  carol,
-  server,
-  clock,
-  turnsRepository,
-  bobColonizeActionId,
-}: CreateReadyViewsSetupInput): Promise<CreateReadyViewsSetupResult> {
-  const readyViews = views
-  const currentAlice = getFleetAt(required(readyViews[0]), required(homeIdsByPlayer[0]), target.id, 35)
-  const currentCarol = getFleetAt(required(readyViews[2]), required(homeIdsByPlayer[2]), target.id, 48)
-  const bobJourney = required(readyViews[1]).fleets.find(({ id }) => id === movingBobId)
+export async function createReadyViewsSetup(input: CreateReadyViewsSetupInput): Promise<CreateReadyViewsSetupResult> {
+  const readyViews = input.views
+  const currentAlice = getFleetAt(required(readyViews[0]), required(input.homeIdsByPlayer[0]), input.target.id, 35)
+  const currentCarol = getFleetAt(required(readyViews[2]), required(input.homeIdsByPlayer[2]), input.target.id, 48)
+  const bobJourney = required(readyViews[1]).fleets.find(({ id }) => id === input.movingBobId)
   Assert.isDefined(bobJourney)
   expect(bobJourney.movement).toBeDefined()
   expect(bobJourney.distanceToEnd).toBeCloseTo(0.116999448433268, 12)
   const aliceColonizeActionId = await submitAction({
-    client: alice.client,
-    gameId,
+    client: input.alice.client,
+    gameId: input.gameId,
     view: required(readyViews[0]),
     actionDefinitionId: ColonizeHereTest.id,
-    selectedTargets: { fleet: currentAlice.id, planet: target.id },
+    selectedTargets: { fleet: currentAlice.id, planet: input.target.id },
     selectedInputs: {},
   })
   const carolAssaultActionId = await submitAction({
-    client: carol.client,
-    gameId,
+    client: input.carol.client,
+    gameId: input.gameId,
     view: required(readyViews[2]),
     actionDefinitionId: StationaryAssaultTest.id,
-    selectedTargets: { station: currentCarol.id, battlePlanet: target.id },
+    selectedTargets: { station: currentCarol.id, battlePlanet: input.target.id },
     selectedInputs: {},
   })
 
-  const finalTurnInput = await captureWorkerInput({
-    server,
-    clock,
-    turnsRepository,
-    gameId,
-    turn: required(readyViews[0]).turn,
-  })
+  const finalTurnInput = await captureWorkerInput({ ...input, turn: required(readyViews[0]).turn })
   const finalReplay = replayWorkerInputWithState(finalTurnInput)
   const publicReplay = finalReplay.resolved
   Assert.isSuccess(publicReplay)
@@ -159,7 +118,7 @@ export async function createReadyViewsSetup({
   ).toContainEqual(expect.objectContaining({ type: "RESOLVED" }))
   expect(
     publicReplay.value.resolvedContinuations
-      .find(({ originatingSubmission }) => originatingSubmission.id === bobColonizeActionId)
+      .find(({ originatingSubmission }) => originatingSubmission.id === input.bobColonizeActionId)
       ?.actionOutcomes.at(-1)?.type,
   ).toBe("RESOLVED")
   return { readyViews, bobJourney, finalTurnInput, finalReplay, publicReplay }

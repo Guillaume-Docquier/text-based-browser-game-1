@@ -141,14 +141,13 @@ describe("gameplay.router", () => {
           expect(await turnProcessor.processNextDueTurn()).toBe("processed")
         }
 
-        const createCreateForeignFleetSetupPhase1ResultSetupPhase1Result = await createCreateForeignFleetSetupResultSetup({
+        const foreignFleetScenario1 = await prepareForeignFleetScenario({
           alice,
           processReadyTurn,
           bob,
         })
-        const { createForeignFleetSetupPhase1Result, gameId, source, movingView, movingDestination, moveAction } =
-          createCreateForeignFleetSetupPhase1ResultSetupPhase1Result
-        let { aliceView } = createCreateForeignFleetSetupPhase1ResultSetupPhase1Result
+        const { foreignFleetSetup1, gameId, source, movingView, movingDestination, moveAction } = foreignFleetScenario1
+        let { aliceView } = foreignFleetScenario1
         await alice.client.gameplay.updateActionSubmission.mutate({
           gameId,
           turn: movingView.turn,
@@ -195,8 +194,8 @@ describe("gameplay.router", () => {
           expect(await alice.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeRejectedDraft)
         }
 
-        const createCreateValidTargetsSetupPhase2ResultSetupPhase2Result = await createCreateValidTargetsSetupResultSetup({
-          ...createCreateForeignFleetSetupPhase1ResultSetupPhase1Result,
+        const validTargetsScenario2 = await prepareValidTargetsScenario({
+          ...foreignFleetScenario1,
           rejectDraftWithoutMutation,
           movingSource,
           alice,
@@ -205,14 +204,14 @@ describe("gameplay.router", () => {
           processReadyTurn,
           bob,
         })
-        const { createValidTargetsSetupPhase2Result } = createCreateValidTargetsSetupPhase2ResultSetupPhase2Result
+        const { validTargetsSetup2 } = validTargetsScenario2
 
         Assert.isDefined(source)
         await verifyPublicState({
-          ...createCreateForeignFleetSetupPhase1ResultSetupPhase1Result,
-          ...createCreateValidTargetsSetupPhase2ResultSetupPhase2Result,
-          ...createForeignFleetSetupPhase1Result,
-          ...createValidTargetsSetupPhase2Result,
+          ...foreignFleetScenario1,
+          ...validTargetsScenario2,
+          ...foreignFleetSetup1,
+          ...validTargetsSetup2,
           alice,
           customAction,
           processReadyTurn,
@@ -247,23 +246,19 @@ describe("gameplay.router", () => {
   })
 })
 
-async function createForeignFleetSetup({
-  alice,
-  processReadyTurn,
-  bob,
-}: CreateForeignFleetSetupInput): Promise<CreateForeignFleetSetupResult> {
-  const { createdGameId: foreignGameId } = await alice.client.games.create.mutate({
+async function createForeignFleetSetup(input: CreateForeignFleetSetupInput): Promise<CreateForeignFleetSetupResult> {
+  const { createdGameId: foreignGameId } = await input.alice.client.games.create.mutate({
     configuration: createGameConfigurationStub({ rulesetId: RenamedComposedAssaultRuleset.id, nbSeats: 1, mapGenerationSeed: 147 }),
   })
-  await alice.client.games.startGame.mutate({ gameId: foreignGameId })
-  const foreignView = await alice.client.gameplay.getPlayerView.query({ gameId: foreignGameId })
+  await input.alice.client.games.startGame.mutate({ gameId: foreignGameId })
+  const foreignView = await input.alice.client.gameplay.getPlayerView.query({ gameId: foreignGameId })
   const foreignHome = foreignView.galaxy.systems
     .flatMap(({ planets }) => planets)
     .find(({ ownerPlayerId }) => ownerPlayerId === foreignView.player.id)
   const foreignBuild = foreignView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
   Assert.isDefined(foreignHome)
   Assert.isDefined(foreignBuild)
-  await alice.client.gameplay.updateActionSubmission.mutate({
+  await input.alice.client.gameplay.updateActionSubmission.mutate({
     gameId: foreignGameId,
     turn: foreignView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
@@ -272,31 +267,31 @@ async function createForeignFleetSetup({
       selectedInputs: {},
     }),
   })
-  await processReadyTurn(foreignGameId, foreignView.turn, [alice])
-  const foreignBuiltView = await alice.client.gameplay.getPlayerView.query({ gameId: foreignGameId })
+  await input.processReadyTurn(foreignGameId, foreignView.turn, [input.alice])
+  const foreignBuiltView = await input.alice.client.gameplay.getPlayerView.query({ gameId: foreignGameId })
   const foreignFleet = foreignBuiltView.fleets.find(({ originPlanetId }) => originPlanetId === foreignHome.id)
   Assert.isDefined(foreignFleet)
   expect(foreignFleet.strength).toBe(10)
 
   // Arrange: create the fixed seed-147 two-owner route and build the 50/20 fleets publicly.
-  const { createdGameId: gameId } = await alice.client.games.create.mutate({
+  const { createdGameId: gameId } = await input.alice.client.games.create.mutate({
     configuration: createGameConfigurationStub({
       rulesetId: RenamedComposedAssaultRuleset.id,
       nbSeats: 2,
       mapGenerationSeed: 147,
     }),
   })
-  await bob.client.games.join.mutate({ gameId })
-  await alice.client.games.startGame.mutate({ gameId })
-  let aliceView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  let bobView = await bob.client.gameplay.getPlayerView.query({ gameId })
+  await input.bob.client.games.join.mutate({ gameId })
+  await input.alice.client.games.startGame.mutate({ gameId })
+  let aliceView = await input.alice.client.gameplay.getPlayerView.query({ gameId })
+  let bobView = await input.bob.client.gameplay.getPlayerView.query({ gameId })
   const planets = aliceView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
   const aliceHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === aliceView.player.id)
   const bobHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === bobView.player.id)
   Assert.isDefined(aliceHome)
   Assert.isDefined(bobHome)
 
-  const updatedVerifyMath = await assertMath({ aliceHome, bobHome, aliceView, alice, gameId, bobView, bob, processReadyTurn })
+  const updatedVerifyMath = await assertMath({ ...input, aliceHome, bobHome, aliceView, gameId, bobView })
   aliceView = updatedVerifyMath.aliceView
   bobView = updatedVerifyMath.bobView
   const source = aliceView.fleets.find(
@@ -306,48 +301,33 @@ async function createForeignFleetSetup({
   return { foreignFleet, gameId, aliceView, bobView, planets, aliceHome, bobHome, source }
 }
 
-async function createValidTargetsSetup({
-  source,
-  bobHome,
-  rejectDraftWithoutMutation,
-  defender,
-  aliceHome,
-  movingSource,
-  foreignFleet,
-  planets,
-  alice,
-  gameId,
-  aliceView,
-  customAction,
-  processReadyTurn,
-  bob,
-}: CreateValidTargetsSetupInput): Promise<CreateValidTargetsSetupResult> {
-  const validTargets = { originForce: source.id, landingSite: bobHome.id }
-  await rejectDraftWithoutMutation(validTargets, {})
-  await rejectDraftWithoutMutation(validTargets, { units: 0 })
-  await rejectDraftWithoutMutation(validTargets, { units: 1.5 })
-  await rejectDraftWithoutMutation({ originForce: defender.id, landingSite: aliceHome.id }, { units: 1 })
-  await rejectDraftWithoutMutation({ originForce: movingSource.id, landingSite: bobHome.id }, { units: 1 })
-  await rejectDraftWithoutMutation({ originForce: foreignFleet.id, landingSite: bobHome.id }, { units: 1 })
-  const distantPlanet = planets
-    .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
+async function createValidTargetsSetup(input: CreateValidTargetsSetupInput): Promise<CreateValidTargetsSetupResult> {
+  const validTargets = { originForce: input.source.id, landingSite: input.bobHome.id }
+  await input.rejectDraftWithoutMutation(validTargets, {})
+  await input.rejectDraftWithoutMutation(validTargets, { units: 0 })
+  await input.rejectDraftWithoutMutation(validTargets, { units: 1.5 })
+  await input.rejectDraftWithoutMutation({ originForce: input.defender.id, landingSite: input.aliceHome.id }, { units: 1 })
+  await input.rejectDraftWithoutMutation({ originForce: input.movingSource.id, landingSite: input.bobHome.id }, { units: 1 })
+  await input.rejectDraftWithoutMutation({ originForce: input.foreignFleet.id, landingSite: input.bobHome.id }, { units: 1 })
+  const distantPlanet = input.planets
+    .map((planet) => ({ planet, distance: Math.hypot(planet.x - input.aliceHome.x, planet.y - input.aliceHome.y) }))
     .filter(({ distance }) => distance > 5)
     .toSorted((left, right) => right.distance - left.distance)[0]
   Assert.isDefined(distantPlanet)
-  await rejectDraftWithoutMutation({ originForce: source.id, landingSite: distantPlanet.planet.id }, { units: 1 })
+  await input.rejectDraftWithoutMutation({ originForce: input.source.id, landingSite: distantPlanet.planet.id }, { units: 1 })
 
   // Act: submit the renamed, two-instance action through the public API and resolve it with the real worker.
-  await alice.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: aliceView.turn,
+  await input.alice.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.aliceView.turn,
     submittedActionTargets: createSubmittedActionTargetsDtoStub({
-      actionId: customAction.id,
+      actionId: input.customAction.id,
       selectedTargets: validTargets,
       selectedInputs: { units: 30 },
     }),
   })
-  const selectedView = await alice.client.gameplay.getPlayerView.query({ gameId })
-  expect(selectedView.actions.find(({ id }) => id === customAction.id)).toMatchObject({
+  const selectedView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(selectedView.actions.find(({ id }) => id === input.customAction.id)).toMatchObject({
     actionDefinitionId: RenamedComposedAssault.id,
     selectedTargets: validTargets,
     selectedInputs: { units: 30 },
@@ -355,20 +335,20 @@ async function createValidTargetsSetup({
   expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 87, uncommitted: 80 })
   expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 97, uncommitted: 95 })
 
-  await processReadyTurn(gameId, selectedView.turn, [alice, bob])
-  const firstReload = await alice.client.gameplay.getPlayerView.query({ gameId })
-  const journey = firstReload.fleets.find(({ movement }) => movement?.submission.id === customAction.id)
-  const remainder = firstReload.fleets.find(({ id }) => id === source.id)
+  await input.processReadyTurn(input.gameId, selectedView.turn, [input.alice, input.bob])
+  const firstReload = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const journey = firstReload.fleets.find(({ movement }) => movement?.submission.id === input.customAction.id)
+  const remainder = firstReload.fleets.find(({ id }) => id === input.source.id)
   Assert.isDefined(journey)
   Assert.isDefined(remainder)
 
-  assertJourney2({ journey, bobHome, customAction, validTargets, remainder, source, aliceHome, firstReload, defender })
+  assertJourney2({ ...input, journey, validTargets, remainder, firstReload })
 
   // The composed action remains locked while its captured selection travels. Verify the same edits
   // would be valid through the free second instance, then prove each rejected API attempt preserves
   // the exact public view, saved journey, selections, and resources.
   const freeComposedAction = firstReload.actions.find(({ id }) => id === `${RenamedComposedAssault.id}_2`)
-  const occupiedComposedAction = firstReload.actions.find(({ id }) => id === customAction.id)
+  const occupiedComposedAction = firstReload.actions.find(({ id }) => id === input.customAction.id)
   const occupiedJourney = firstReload.fleets.find(({ id }) => id === journey.id)
   Assert.isDefined(freeComposedAction)
   Assert.isDefined(occupiedComposedAction)
@@ -421,53 +401,10 @@ type CreateValidTargetsSetupResult = {
   occupiedJourney: Fleet
 }
 
-async function verifyPublicState({
-  source,
-  redirectPlanet,
-  alice,
-  gameId,
-  firstReload,
-  freeComposedAction,
-  customAction,
-  occupiedComposedAction,
-  journey,
-  occupiedJourney,
-  validTargets,
-  processReadyTurn,
-  bob,
-  defender,
-  aliceView,
-  bobHome,
-  aliceHome,
-}: VerifyPublicStateInput): Promise<void> {
-  await assertRedirectedTargets({
-    source,
-    redirectPlanet,
-    alice,
-    gameId,
-    firstReload,
-    freeComposedAction,
-    customAction,
-    occupiedComposedAction,
-    journey,
-    occupiedJourney,
-    validTargets,
-  })
+async function verifyPublicState(input: VerifyPublicStateInput): Promise<void> {
+  await assertRedirectedTargets({ ...input })
 
-  await assertSecondReload({
-    processReadyTurn,
-    gameId,
-    firstReload,
-    alice,
-    bob,
-    journey,
-    defender,
-    aliceView,
-    bobHome,
-    source,
-    aliceHome,
-    customAction,
-  })
+  await assertSecondReload({ ...input })
 }
 
 type VerifyPublicStateInput = {
@@ -490,14 +427,10 @@ type VerifyPublicStateInput = {
   aliceHome: Planet
 }
 
-async function createCreateForeignFleetSetupResultSetup({
-  alice,
-  processReadyTurn,
-  bob,
-}: CreateCreateForeignFleetSetupResultSetupInput): Promise<CreateCreateForeignFleetSetupResultSetupResult> {
-  const createForeignFleetSetupPhase1Result = await createForeignFleetSetup({ alice, processReadyTurn, bob })
-  const { gameId, planets, aliceHome, bobHome, source } = createForeignFleetSetupPhase1Result
-  let { aliceView, bobView } = createForeignFleetSetupPhase1Result
+async function prepareForeignFleetScenario(input: PrepareForeignFleetScenarioInput): Promise<PrepareForeignFleetScenarioResult> {
+  const foreignFleetSetup1 = await createForeignFleetSetup({ ...input })
+  const { gameId, planets, aliceHome, bobHome, source } = foreignFleetSetup1
+  let { aliceView, bobView } = foreignFleetSetup1
   const defender = bobView.fleets.find(
     ({ ownerPlayerId, originPlanetId, movement }) =>
       ownerPlayerId === bobView.player.id && originPlanetId === bobHome.id && movement === undefined,
@@ -512,18 +445,16 @@ async function createCreateForeignFleetSetupResultSetup({
   Assert.isDefined(stationaryAssault)
 
   const updatedVerifyActionSelections = await assertActionSelections({
-    ...createForeignFleetSetupPhase1Result,
-    alice,
+    ...input,
+    ...foreignFleetSetup1,
     stationaryAssault,
     source,
-    processReadyTurn,
-    bob,
     defender,
   })
   aliceView = updatedVerifyActionSelections.aliceView
 
   // Arrange: create a genuinely moving source with an ordinary public Move and worker turn.
-  const movingView = await alice.client.gameplay.getPlayerView.query({ gameId })
+  const movingView = await input.alice.client.gameplay.getPlayerView.query({ gameId })
   const movingDestination = planets
     .filter(({ ownerPlayerId, id }) => ownerPlayerId === null && id !== aliceHome.id)
     .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
@@ -533,7 +464,7 @@ async function createCreateForeignFleetSetupResultSetup({
   Assert.isDefined(movingDestination)
   Assert.isDefined(moveAction)
   return {
-    createForeignFleetSetupPhase1Result,
+    foreignFleetSetup1,
     gameId,
     planets,
     aliceHome,
@@ -547,59 +478,39 @@ async function createCreateForeignFleetSetupResultSetup({
   }
 }
 
-async function createCreateValidTargetsSetupResultSetup({
-  createForeignFleetSetupPhase1Result,
-  source,
-  rejectDraftWithoutMutation,
-  defender,
-  movingSource,
-  alice,
-  aliceView,
-  customAction,
-  processReadyTurn,
-  bob,
-  planets,
-  aliceHome,
-  bobHome,
-}: CreateCreateValidTargetsSetupResultSetupInput): Promise<CreateCreateValidTargetsSetupResultSetupResult> {
-  const createValidTargetsSetupPhase2Result = await createValidTargetsSetup({
-    ...createForeignFleetSetupPhase1Result,
-    source,
-    rejectDraftWithoutMutation,
-    defender,
-    movingSource,
-    alice,
-    aliceView,
-    customAction,
-    processReadyTurn,
-    bob,
+async function prepareValidTargetsScenario(input: PrepareValidTargetsScenarioInput): Promise<PrepareValidTargetsScenarioResult> {
+  const validTargetsSetup2 = await createValidTargetsSetup({
+    ...input,
+    ...input.foreignFleetSetup1,
+    source: input.source,
+    aliceView: input.aliceView,
   })
-  const { validTargets, occupiedJourney } = createValidTargetsSetupPhase2Result
+  const { validTargets, occupiedJourney } = validTargetsSetup2
   expect(occupiedJourney.movement?.submission).toStrictEqual({
-    id: customAction.id,
-    playerId: aliceView.player.id,
+    id: input.customAction.id,
+    playerId: input.aliceView.player.id,
     actionDefinitionId: RenamedComposedAssault.id,
     selectedTargets: validTargets,
     selectedInputs: { units: 30 },
   })
 
-  const redirectPlanet = planets
-    .filter(({ id }) => id !== aliceHome.id && id !== bobHome.id)
-    .map((planet) => ({ planet, distance: Math.hypot(planet.x - aliceHome.x, planet.y - aliceHome.y) }))
+  const redirectPlanet = input.planets
+    .filter(({ id }) => id !== input.aliceHome.id && id !== input.bobHome.id)
+    .map((planet) => ({ planet, distance: Math.hypot(planet.x - input.aliceHome.x, planet.y - input.aliceHome.y) }))
     .filter(({ distance }) => distance <= 5)
     .toSorted((left, right) => left.distance - right.distance)[0]
   Assert.isDefined(redirectPlanet)
-  return { createValidTargetsSetupPhase2Result, redirectPlanet }
+  return { validTargetsSetup2, redirectPlanet }
 }
 
-type CreateCreateForeignFleetSetupResultSetupInput = {
+type PrepareForeignFleetScenarioInput = {
   alice: AuthenticatedApiClient
   processReadyTurn: (gameId: number, turn: number, clients: readonly AuthenticatedApiClient[]) => Promise<void>
   bob: AuthenticatedApiClient
 }
 
-type CreateCreateForeignFleetSetupResultSetupResult = {
-  createForeignFleetSetupPhase1Result: CreateForeignFleetSetupResult
+type PrepareForeignFleetScenarioResult = {
+  foreignFleetSetup1: CreateForeignFleetSetupResult
   gameId: GameId
   planets: Planet[]
   aliceHome: Planet
@@ -612,8 +523,8 @@ type CreateCreateForeignFleetSetupResultSetupResult = {
   moveAction: Action
 }
 
-type CreateCreateValidTargetsSetupResultSetupInput = {
-  createForeignFleetSetupPhase1Result: CreateForeignFleetSetupResult
+type PrepareValidTargetsScenarioInput = {
+  foreignFleetSetup1: CreateForeignFleetSetupResult
   source: Fleet
   rejectDraftWithoutMutation: (selectedTargets: Record<string, string>, selectedInputs: Record<string, number>) => Promise<void>
   defender: Fleet
@@ -628,7 +539,7 @@ type CreateCreateValidTargetsSetupResultSetupInput = {
   bobHome: Planet
 }
 
-type CreateCreateValidTargetsSetupResultSetupResult = {
-  createValidTargetsSetupPhase2Result: CreateValidTargetsSetupResult
+type PrepareValidTargetsScenarioResult = {
+  validTargetsSetup2: CreateValidTargetsSetupResult
   redirectPlanet: { planet: Planet; distance: number }
 }

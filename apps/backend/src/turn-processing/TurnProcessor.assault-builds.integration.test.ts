@@ -39,21 +39,21 @@ describe("TurnProcessor", () => {
     Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(HomeArrivalMergeRuleset))
     using apiServer = new ApiServer(apiServices)
 
-    const createFixtureSetupPhase1Result = await createFixtureSetup({ db, clock, apiServer })
+    const fixtureSetup1 = await createFixtureSetup({ db, clock, apiServer })
 
-    const createAttackJourneySetupPhase2Result = await createAttackJourneySetup({ ...createFixtureSetupPhase1Result })
+    const attackJourneySetup2 = await createAttackJourneySetup({ ...fixtureSetup1 })
 
-    const createExpectedTargetForcesSetupPhase3Result = await createExpectedTargetForcesSetup({
-      ...createFixtureSetupPhase1Result,
-      ...createAttackJourneySetupPhase2Result,
+    const expectedTargetForcesSetup3 = await createExpectedTargetForcesSetup({
+      ...fixtureSetup1,
+      ...attackJourneySetup2,
       db,
       clock,
     })
 
     await assertBuildActionResult({
-      ...createFixtureSetupPhase1Result,
-      ...createAttackJourneySetupPhase2Result,
-      ...createExpectedTargetForcesSetupPhase3Result,
+      ...fixtureSetup1,
+      ...attackJourneySetup2,
+      ...expectedTargetForcesSetup3,
     })
   })
 
@@ -67,8 +67,8 @@ describe("TurnProcessor", () => {
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(HomeArrivalMergeRuleset))
       using apiServer = new ApiServer(apiServices)
 
-      const createFixtureSetupPhase4Result = await createFixtureSetup2({ db, clock, apiServer })
-      const { fixture, playerAId, playerBId, source, defender, departureViews } = createFixtureSetupPhase4Result
+      const fixtureSetup4 = await createFixtureSetup2({ db, clock, apiServer })
+      const { fixture, playerAId, playerBId, source, defender, departureViews } = fixtureSetup4
       const beforeResourcesByOwner = departureViews.map((view) => {
         Assert.isDefined(view)
         return {
@@ -77,21 +77,21 @@ describe("TurnProcessor", () => {
         }
       })
 
-      const createFirstActionSetupPhase5Result = await createFirstActionSetup({
-        ...createFixtureSetupPhase4Result,
+      const firstActionSetup5 = await createFirstActionSetup({
+        ...fixtureSetup4,
         beforeResourcesByOwner,
         db,
         clock,
       })
-      const { firstAction, secondAction, observed, forward, permuted, journeyIds, survivingArrival } = createFirstActionSetupPhase5Result
+      const { firstAction, secondAction, observed, forward, permuted, journeyIds, survivingArrival } = firstActionSetup5
       Assert.isDefined(survivingArrival)
 
-      const createTieDrawSetupPhase6Result = createTieDrawSetup({
-        ...createFixtureSetupPhase4Result,
-        ...createFirstActionSetupPhase5Result,
+      const tieDrawSetup6 = createTieDrawSetup({
+        ...fixtureSetup4,
+        ...firstActionSetup5,
         survivingArrival,
       })
-      const { tieDraw } = createTieDrawSetupPhase6Result
+      const { tieDraw } = tieDrawSetup6
       expect(forward.rngState).toStrictEqual({
         generatorState: tieDraw.nextGeneratorState,
         spareNormal: observed.rngState.spareNormal,
@@ -145,9 +145,9 @@ describe("TurnProcessor", () => {
       const assertEmptyObservedPhase4Observed = observed
 
       await assertEmptyObserved({
-        ...createFixtureSetupPhase4Result,
-        ...createFirstActionSetupPhase5Result,
-        ...createTieDrawSetupPhase6Result,
+        ...fixtureSetup4,
+        ...firstActionSetup5,
+        ...tieDrawSetup6,
         emptyTurn,
         db,
         clock,
@@ -165,8 +165,8 @@ describe("TurnProcessor", () => {
     Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(HomeArrivalMergeRuleset))
     using apiServer = new ApiServer(apiServices)
 
-    const createFixtureSetupPhase7Result = await createFixtureSetup3({ db, clock, apiServer })
-    const { departureViews } = createFixtureSetupPhase7Result
+    const fixtureSetup7 = await createFixtureSetup3({ db, clock, apiServer })
+    const { departureViews } = fixtureSetup7
     const beforeResourcesByOwner = departureViews.map((view) => {
       Assert.isDefined(view)
       return {
@@ -175,35 +175,35 @@ describe("TurnProcessor", () => {
       }
     })
 
-    const createOrdinaryActionSetupPhase8Result = await createOrdinaryActionSetup({
-      ...createFixtureSetupPhase7Result,
+    const ordinaryActionSetup8 = await createOrdinaryActionSetup({
+      ...fixtureSetup7,
       beforeResourcesByOwner,
       db,
       clock,
     })
 
-    let { movingView } = createOrdinaryActionSetupPhase8Result
+    let { movingView } = ordinaryActionSetup8
 
     const updatedVerifyOwnerPublicForces = await assertOwnerPublicForces({
-      ...createFixtureSetupPhase7Result,
-      ...createOrdinaryActionSetupPhase8Result,
+      ...fixtureSetup7,
+      ...ordinaryActionSetup8,
       beforeResourcesByOwner,
       movingView,
     })
     movingView = updatedVerifyOwnerPublicForces.movingView
 
-    const createFinalTargetForcesSetupPhase9Result = await createFinalTargetForcesSetup({
-      ...createFixtureSetupPhase7Result,
-      ...createOrdinaryActionSetupPhase8Result,
+    const finalTargetForcesSetup9 = await createFinalTargetForcesSetup({
+      ...fixtureSetup7,
+      ...ordinaryActionSetup8,
       db,
       clock,
       movingView,
     })
 
     await assertAssaultResults({
-      ...createFixtureSetupPhase7Result,
-      ...createOrdinaryActionSetupPhase8Result,
-      ...createFinalTargetForcesSetupPhase9Result,
+      ...fixtureSetup7,
+      ...ordinaryActionSetup8,
+      ...finalTargetForcesSetup9,
       beforeResourcesByOwner,
     })
   })
@@ -215,9 +215,8 @@ describe("TurnProcessor", () => {
     Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(WorkerI207Ruleset))
     using apiServer = new ApiServer(apiServices)
 
-    const createAliceSetupPhase10Result = await createAliceSetup({ apiServer, db, clock })
-    const { alice, bob, clients, playerIds, gameId, turnProcessor, target, bobHome, aliceInitial, afterSplit } =
-      createAliceSetupPhase10Result
+    const aliceSetup10 = await createAliceSetup({ apiServer, db, clock })
+    const { alice, bob, clients, playerIds, gameId, turnProcessor, target, bobHome, aliceInitial, afterSplit } = aliceSetup10
     const aliceAtStaging = afterSplit.fleets.find(
       ({ ownerPlayerId, originPlanetId, movement }) =>
         ownerPlayerId === playerIds[0] && originPlanetId === bobHome.id && movement === undefined,
@@ -249,8 +248,8 @@ describe("TurnProcessor", () => {
       await processPublicTurn({ clients, gameId, turn: view.turn, turnProcessor })
     }
 
-    const createEnemyJourneySetupPhase11Result = await createEnemyJourneySetup({ ...createAliceSetupPhase10Result, aliceAtStaging })
+    const enemyJourneySetup11 = await createEnemyJourneySetup({ ...aliceSetup10, aliceAtStaging })
 
-    await assertDefenderAfter({ ...createAliceSetupPhase10Result, ...createEnemyJourneySetupPhase11Result, aliceAtStaging, db, clock })
+    await assertDefenderAfter({ ...aliceSetup10, ...enemyJourneySetup11, aliceAtStaging, db, clock })
   })
 })

@@ -52,8 +52,8 @@ import {
 import { assertScenarioState2, assertPublicState } from "./gameplay.colonization.stationary-2.ts"
 import { assertJourney2, assertReplayedArrival, assertMoveDistance, assertFindPlayerAction } from "./gameplay.colonization.stationary.ts"
 
-export async function createPlayerSetup({ server }: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
-  const fixture = await createPublicNaturalRouteFixture(server, "00000000-0000-4000-8000-000000000031")
+export async function createPlayerSetup(input: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
+  const fixture = await createPublicNaturalRouteFixture(input.server, "00000000-0000-4000-8000-000000000031")
   const { player, gameId, clock, turnProcessor, turnsRepository, home, target } = fixture
   const { view: builtView, fleet: sourceFleet } = await publiclyBuildFleetToFifty(fixture)
 
@@ -146,50 +146,16 @@ export type CreatePlayerSetup2Result = {
   routeDistance: number
 }
 
-export async function createMoveFixtureSetup({
-  server,
-  clock,
-  turnsRepository,
-  gameId,
-  departedView,
-  journey,
-  turnProcessor,
-  player,
-  target,
-  home,
-  sourceFleet,
-  colonizeActionId,
-  selectedView,
-}: CreateMoveFixtureSetupInput): Promise<CreateMoveFixtureSetupResult> {
-  const arrivalInput = await captureWorkerInput({
-    server,
-    clock,
-    turnsRepository,
-    gameId,
-    turn: departedView.turn,
-  })
+export async function createMoveFixtureSetup(input: CreateMoveFixtureSetupInput): Promise<CreateMoveFixtureSetupResult> {
+  const arrivalInput = await captureWorkerInput({ ...input, turn: input.departedView.turn })
   const arrivalReplay = replayWorkerInput(arrivalInput)
   Assert.isSuccess(arrivalReplay)
-  const replayedArrival = arrivalReplay.value.fleets[journey.id]
+  const replayedArrival = arrivalReplay.value.fleets[input.journey.id]
   Assert.isDefined(replayedArrival)
 
-  await verifyPublicState({
-    replayedArrival,
-    clock,
-    turnsRepository,
-    turnProcessor,
-    player,
-    gameId,
-    departedView,
-    target,
-    home,
-    sourceFleet,
-    colonizeActionId,
-    selectedView,
-    arrivalInput,
-  })
+  await verifyPublicState({ ...input, replayedArrival, arrivalInput })
 
-  const moveFixture = await createPublicNaturalRouteFixture(server, "00000000-0000-4000-8000-000000000032")
+  const moveFixture = await createPublicNaturalRouteFixture(input.server, "00000000-0000-4000-8000-000000000032")
   const {
     player: movePlayer,
     gameId: moveGameId,
@@ -251,46 +217,36 @@ export type CreateMoveFixtureSetupResult = {
   selectedMoveColonize: PlayerView
 }
 
-export async function createMoveDestinationSetup({
-  moveClock,
-  moveTurns,
-  moveProcessor,
-  movePlayer,
-  moveGameId,
-  selectedMoveColonize,
-  moveColonizeId,
-  moveHome,
-  server,
-}: CreateMoveDestinationSetupInput): Promise<CreateMoveDestinationSetupResult> {
+export async function createMoveDestinationSetup(input: CreateMoveDestinationSetupInput): Promise<CreateMoveDestinationSetupResult> {
   const moveColonizePending = await processTurn({
-    clock: moveClock,
-    turnsRepository: moveTurns,
-    turnProcessor: moveProcessor,
-    client: movePlayer.client,
-    gameId: moveGameId,
-    turn: selectedMoveColonize.turn,
+    clock: input.moveClock,
+    turnsRepository: input.moveTurns,
+    turnProcessor: input.moveProcessor,
+    client: input.movePlayer.client,
+    gameId: input.moveGameId,
+    turn: input.selectedMoveColonize.turn,
   })
-  const pendingJourney = moveColonizePending.fleets.find(({ movement }) => movement?.submission.id === moveColonizeId)
+  const pendingJourney = moveColonizePending.fleets.find(({ movement }) => movement?.submission.id === input.moveColonizeId)
   Assert.isDefined(pendingJourney)
-  const sourceWithFifteen = getFleetAt(moveColonizePending, moveColonizePending.player.id, moveHome.id, 15)
+  const sourceWithFifteen = getFleetAt(moveColonizePending, moveColonizePending.player.id, input.moveHome.id, 15)
   const moveAction = moveColonizePending.actions.find(({ id }) => id === "TEST_MOVE_FLEET_STANDARD_2")
   Assert.isDefined(moveAction)
   expect(moveAction.actionDefinitionId).toBe(MoveFleetStandard.id)
   const moveDestination = getPlanets(moveColonizePending).find(({ coordinates }) => coordinates === "45:98:25")
   Assert.isDefined(moveDestination)
-  const moveDistance = Math.hypot(moveDestination.x - moveHome.x, moveDestination.y - moveHome.y)
+  const moveDistance = Math.hypot(moveDestination.x - input.moveHome.x, moveDestination.y - input.moveHome.y)
 
-  await assertMoveDistance({ moveDestination, moveDistance, movePlayer, moveGameId, moveColonizePending, moveAction, sourceWithFifteen })
+  await assertMoveDistance({ ...input, moveDestination, moveDistance, moveColonizePending, moveAction, sourceWithFifteen })
 
-  const simultaneousSelections = await movePlayer.client.gameplay.getPlayerView.query({ gameId: moveGameId })
+  const simultaneousSelections = await input.movePlayer.client.gameplay.getPlayerView.query({ gameId: input.moveGameId })
   expect(simultaneousSelections.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 25, uncommitted: 22 })
   expect(simultaneousSelections.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 9 })
   expect(simultaneousSelections.fleets.find(({ id }) => id === sourceWithFifteen.id)?.strength).toBe(15)
   const moveInput = await captureWorkerInput({
-    server,
-    clock: moveClock,
-    turnsRepository: moveTurns,
-    gameId: moveGameId,
+    server: input.server,
+    clock: input.moveClock,
+    turnsRepository: input.moveTurns,
+    gameId: input.moveGameId,
     turn: simultaneousSelections.turn,
   })
   const moveReplay = replayWorkerInput(moveInput)
@@ -324,10 +280,10 @@ export type CreateMoveDestinationSetupResult = {
   replayedMovedFive: ResolutionFleet
 }
 
-export async function createPlayerSetup2({ server }: CreatePlayerSetup2Input): Promise<CreatePlayerSetup2Result> {
-  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
+export async function createPlayerSetup2(input: CreatePlayerSetup2Input): Promise<CreatePlayerSetup2Result> {
+  const rulesetsRepository = new RulesetsRepository({ db: input.server.database, logger: Logger.get() })
   Assert.isSuccess(await rulesetsRepository.upsertRuleset(PublicStationarySeedOutpostRuleset))
-  const player = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000045" })
+  const player = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000045" })
   const { createdGameId: gameId } = await player.client.games.create.mutate({
     configuration: createGameConfigurationStub({
       rulesetId: PublicStationarySeedOutpostRuleset.id,
@@ -338,7 +294,7 @@ export async function createPlayerSetup2({ server }: CreatePlayerSetup2Input): P
   })
   await player.client.games.startGame.mutate({ gameId })
   const clock = new ControlledClock({ startDate: Clock.now() })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.server.database, clock })
   const view = await player.client.gameplay.getPlayerView.query({ gameId })
   const home = getHome(view)
   const target = getPlanets(view).find(({ id }) => id === "a34e5eae-656c-5330-ac90-9f9a7e0afa5d")
@@ -377,68 +333,46 @@ export async function createPlayerSetup2({ server }: CreatePlayerSetup2Input): P
   return { player, gameId, clock, turnProcessor, turnsRepository, view, home, target, routeDistance }
 }
 
-export async function createArrivalSetup({
-  staged,
-  view,
-  target,
-  player,
-  gameId,
-  server,
-  clock,
-  turnsRepository,
-  turnProcessor,
-}: CreateArrivalSetupInput): Promise<CreateArrivalSetupResult> {
-  const arrival = Object.values(staged.resolved.fleets).find((fleet) =>
-    matchesPublicFleet(fleet, { ownerPlayerId: view.player.id, originPlanetId: target.id, strength: 30 }),
+export async function createArrivalSetup(input: CreateArrivalSetupInput): Promise<CreateArrivalSetupResult> {
+  const arrival = Object.values(input.staged.resolved.fleets).find((fleet) =>
+    matchesPublicFleet(fleet, { ownerPlayerId: input.view.player.id, originPlanetId: input.target.id, strength: 30 }),
   )
   Assert.isDefined(arrival)
   expect(arrival.arrivedAtTick).toBeDefined()
-  const stationary = getFleetAt(view, view.player.id, target.id, 30)
+  const stationary = getFleetAt(input.view, input.view.player.id, input.target.id, 30)
   expect(stationary.id).toBe(arrival.id)
-  expect(getPlanets(view).find(({ id }) => id === target.id)?.ownerPlayerId).toBeNull()
+  expect(getPlanets(input.view).find(({ id }) => id === input.target.id)?.ownerPlayerId).toBeNull()
 
   const colonizeActionId = await submitAction({
-    client: player.client,
-    gameId,
-    view,
+    ...input,
+    client: input.player.client,
     actionDefinitionId: SeedOutpostHere.id,
-    selectedTargets: { force: stationary.id, site: target.id },
+    selectedTargets: { force: stationary.id, site: input.target.id },
     selectedInputs: {},
   })
-  const selectedView = await player.client.gameplay.getPlayerView.query({ gameId })
+  const selectedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   expect(selectedView.actions.find(({ id }) => id === colonizeActionId)).toMatchObject({
     actionDefinitionId: SeedOutpostHere.id,
-    selectedTargets: { force: stationary.id, site: target.id },
+    selectedTargets: { force: stationary.id, site: input.target.id },
     selectedInputs: {},
   })
   expect(selectedView.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 100, uncommitted: 93 })
   expect(selectedView.resources[ResourceType.FUEL]).toStrictEqual({ total: 10, uncommitted: 8 })
 
-  const workerInput = await captureWorkerInput({
-    server,
-    clock,
-    turnsRepository,
-    gameId,
-    turn: selectedView.turn,
-  })
+  const workerInput = await captureWorkerInput({ ...input, turn: selectedView.turn })
   const replay = replayWorkerInputWithState(workerInput)
   Assert.isSuccess(replay.resolved)
 
   const assertAssertFindPlayerActionState1ResolvedPhase8Value1 = replay.resolved.value
 
   const updatedAssertFindPlayerAction = await assertFindPlayerAction({
+    ...input,
     assertAssertFindPlayerActionState1ResolvedPhase8Value1,
     workerInput,
     colonizeActionId,
-    player,
     stationary,
-    target,
     replay,
-    turnProcessor,
-    view,
-    gameId,
     selectedView,
-    server,
   })
   return { arrival, workerInput, replay, updatedAssertFindPlayerAction }
 }
@@ -462,13 +396,13 @@ export type CreateArrivalSetupResult = {
   updatedAssertFindPlayerAction: AssertFindPlayerActionResult
 }
 
-export async function createClockSetup({ server }: CreateClockSetupInput): Promise<CreateClockSetupResult> {
+export async function createClockSetup(input: CreateClockSetupInput): Promise<CreateClockSetupResult> {
   const clock = new ControlledClock({ startDate: Clock.now() })
-  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
+  const rulesetsRepository = new RulesetsRepository({ db: input.server.database, logger: Logger.get() })
   Assert.isSuccess(await rulesetsRepository.upsertRuleset(PublicColonizationFixtureRuleset))
-  const alice = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000011" })
-  const bob = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000012" })
-  const carol = await server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000013" })
+  const alice = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000011" })
+  const bob = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000012" })
+  const carol = await input.server.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000013" })
   const clients = [alice, bob, carol] as const
 
   const { createdGameId: gameId } = await alice.client.games.create.mutate({
@@ -482,7 +416,7 @@ export async function createClockSetup({ server }: CreateClockSetupInput): Promi
   await bob.client.games.join.mutate({ gameId })
   await carol.client.games.join.mutate({ gameId })
   await alice.client.games.startGame.mutate({ gameId })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.server.database, clock })
 
   const views = await readViews(clients, gameId)
   const homes = views.map(getHome)
@@ -511,26 +445,16 @@ export type CreateClockSetupResult = {
   target: Planet
 }
 
-export async function createStagedAliceJourneyIdSetup({
-  views,
-  homeIdsByPlayer,
-  target,
-  stage,
-  homes,
-  server,
-  clock,
-  turnsRepository,
-  turnProcessor,
-  clients,
-  gameId,
-}: CreateStagedAliceJourneyIdSetupInput): Promise<CreateStagedAliceJourneyIdSetupResult> {
-  const stagedAliceJourney = findPublicFleet(required(views[0]).fleets, {
-    ownerPlayerId: required(homeIdsByPlayer[0]),
-    destinationPlanetId: target.id,
+export async function createStagedAliceJourneyIdSetup(
+  input: CreateStagedAliceJourneyIdSetupInput,
+): Promise<CreateStagedAliceJourneyIdSetupResult> {
+  const stagedAliceJourney = findPublicFleet(required(input.views[0]).fleets, {
+    ownerPlayerId: required(input.homeIdsByPlayer[0]),
+    destinationPlanetId: input.target.id,
   })
-  const stagedCarolJourney = findPublicFleet(required(views[2]).fleets, {
-    ownerPlayerId: required(homeIdsByPlayer[2]),
-    destinationPlanetId: target.id,
+  const stagedCarolJourney = findPublicFleet(required(input.views[2]).fleets, {
+    ownerPlayerId: required(input.homeIdsByPlayer[2]),
+    destinationPlanetId: input.target.id,
   })
   Assert.isDefined(stagedAliceJourney)
   Assert.isDefined(stagedCarolJourney)
@@ -538,23 +462,9 @@ export async function createStagedAliceJourneyIdSetup({
   const stagedCarolJourneyId = stagedCarolJourney.id
   expect(stagedAliceJourney.distanceToEnd).toBeCloseTo(5.679420165502142, 12)
   expect(stagedCarolJourney.distanceToEnd).toBeCloseTo(12.277541605730438, 12)
-  const stagingResolutions = [stage.resolved]
+  const stagingResolutions = [input.stage.resolved]
 
-  const updatedVerifyPublicState = await assertPublicState({
-    homes,
-    target,
-    stage,
-    server,
-    clock,
-    turnsRepository,
-    turnProcessor,
-    clients,
-    gameId,
-    views,
-    stagingResolutions,
-    stagedAliceJourneyId,
-    stagedCarolJourneyId,
-  })
+  const updatedVerifyPublicState = await assertPublicState({ ...input, stagingResolutions, stagedAliceJourneyId, stagedCarolJourneyId })
   return { stagedAliceJourneyId, stagedCarolJourneyId, stagingResolutions, updatedVerifyPublicState }
 }
 
@@ -579,36 +489,8 @@ export type CreateStagedAliceJourneyIdSetupResult = {
   updatedVerifyPublicState: Awaited<ReturnType<typeof CapturedassertPublicState>>
 }
 
-async function verifyPublicState({
-  replayedArrival,
-  clock,
-  turnsRepository,
-  turnProcessor,
-  player,
-  gameId,
-  departedView,
-  target,
-  home,
-  sourceFleet,
-  colonizeActionId,
-  selectedView,
-  arrivalInput,
-}: VerifyPublicStateInput): Promise<void> {
-  await assertReplayedArrival({
-    replayedArrival,
-    clock,
-    turnsRepository,
-    turnProcessor,
-    player,
-    gameId,
-    departedView,
-    target,
-    home,
-    sourceFleet,
-    colonizeActionId,
-    selectedView,
-    arrivalInput,
-  })
+async function verifyPublicState(input: VerifyPublicStateInput): Promise<void> {
+  await assertReplayedArrival({ ...input })
 }
 
 type VerifyPublicStateInput = {

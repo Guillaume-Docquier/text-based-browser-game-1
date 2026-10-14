@@ -116,53 +116,41 @@ export function getFleetAt(view: PlayerView, ownerPlayerId: PlayerId, planetId: 
   return fleet
 }
 
-export async function processTurn({ clock, turnsRepository, turnProcessor, client, gameId, turn }: ProcessTurnInput): Promise<PlayerView> {
-  clock.increment({ time: MANUAL_CLOCK_ADVANCE })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-  const nextView = await client.gameplay.getPlayerView.query({ gameId })
-  expect(nextView.turn).toBe(turn + 1)
+export async function processTurn(input: ProcessTurnInput): Promise<PlayerView> {
+  input.clock.increment({ time: MANUAL_CLOCK_ADVANCE })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
+  const nextView = await input.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(nextView.turn).toBe(input.turn + 1)
   expect(nextView.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
   return nextView
 }
 
-export async function processTurnWithReplay({
-  server,
-  clock,
-  turnsRepository,
-  turnProcessor,
-  clients,
-  gameId,
-  turn,
-}: ProcessTurnWithReplayInput): Promise<ProcessTurnWithReplayResult> {
-  const workerInput = await captureWorkerInput({ server, clock, turnsRepository, gameId, turn })
+export async function processTurnWithReplay(input: ProcessTurnWithReplayInput): Promise<ProcessTurnWithReplayResult> {
+  const workerInput = await captureWorkerInput({ ...input })
   const replay = replayWorkerInput(workerInput)
   Assert.isSuccess(replay)
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-  const views = await readViews(clients, gameId)
-  expect(views[0]?.turn).toBe(turn + 1)
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
+  const views = await readViews(input.clients, input.gameId)
+  expect(views[0]?.turn).toBe(input.turn + 1)
   expect(views[0]?.turnStatus).toBe(TurnStatus.COLLECTING_ACTIONS)
   return { views, resolved: replay.value }
 }
 
-export async function captureWorkerInput({
-  server,
-  clock,
-  turnsRepository,
-  gameId,
-  turn,
-}: CaptureWorkerInputInput): Promise<TurnToProcessModel> {
-  clock.increment({ time: MANUAL_CLOCK_ADVANCE })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+export async function captureWorkerInput(input: CaptureWorkerInputInput): Promise<TurnToProcessModel> {
+  input.clock.increment({ time: MANUAL_CLOCK_ADVANCE })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
   let observed: TurnToProcessModel | undefined
-  const rollbackMessage = `Intentional public colonization observation rollback for game ${gameId} turn ${turn}`
+  const rollbackMessage = `Intentional public colonization observation rollback for game ${input.gameId} turn ${input.turn}`
   await expect(
-    server.database.transaction(async (tx) => {
-      const nextTurn = await turnsRepository.getNextTurnForProcessing({ since: clock.now() }, tx)
+    input.server.database.transaction(async (tx) => {
+      const nextTurn = await input.turnsRepository.getNextTurnForProcessing({ since: input.clock.now() }, tx)
       Assert.isDefined(nextTurn)
-      expect(nextTurn.gameId).toBe(gameId)
-      expect(nextTurn.turn).toBe(turn)
-      observed = structuredClone(await turnsRepository.startTurnProcessing({ turn: nextTurn, processingStartedAt: clock.now() }, tx))
+      expect(nextTurn.gameId).toBe(input.gameId)
+      expect(nextTurn.turn).toBe(input.turn)
+      observed = structuredClone(
+        await input.turnsRepository.startTurnProcessing({ turn: nextTurn, processingStartedAt: input.clock.now() }, tx),
+      )
       throw new TransactionRollbackError(rollbackMessage)
     }),
   ).rejects.toMatchObject({ name: "TransactionRollbackError", message: rollbackMessage })
@@ -254,21 +242,21 @@ async function verifyPublicState({
   return { views }
 }
 
-async function verifyPublicState2({ alice, gameId, views, aliceStagingFleet, target, homeA }: VerifyPublicState2Input): Promise<void> {
+async function verifyPublicState2(input: VerifyPublicState2Input): Promise<void> {
   await submitAction({
-    client: alice.client,
-    gameId,
-    view: required(views[0]),
+    client: input.alice.client,
+    gameId: input.gameId,
+    view: required(input.views[0]),
     actionDefinitionId: MoveFleetExceptional.id,
-    selectedTargets: { fleet: aliceStagingFleet.id, planet: target.id },
+    selectedTargets: { fleet: input.aliceStagingFleet.id, planet: input.target.id },
     selectedInputs: { strength: 10 },
   })
   await submitAction({
-    client: alice.client,
-    gameId,
-    view: required(views[0]),
+    client: input.alice.client,
+    gameId: input.gameId,
+    view: required(input.views[0]),
     actionDefinitionId: BuildFleet50.id,
-    selectedTargets: { planet: homeA.id },
+    selectedTargets: { planet: input.homeA.id },
     selectedInputs: {},
   })
 }

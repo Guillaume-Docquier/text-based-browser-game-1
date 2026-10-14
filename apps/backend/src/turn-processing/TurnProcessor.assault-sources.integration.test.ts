@@ -257,14 +257,14 @@ describe("TurnProcessor", () => {
       Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(SlowContinuationRuleset))
       using apiServer = new ApiServer(apiServices)
 
-      const createPlayerSetupPhase1Result = await createPlayerSetup({ apiServer, db, clock })
-      const { sourceFleet, departedView, journey } = createPlayerSetupPhase1Result
+      const playerSetup1 = await createPlayerSetup({ apiServer, db, clock })
+      const { sourceFleet, departedView, journey } = playerSetup1
       const remainder = departedView.fleets.find(({ id, movement }) => id === sourceFleet.id && movement === undefined)
       Assert.isDefined(journey)
       Assert.isDefined(remainder)
 
-      const createExpectedMovementProvenanceSetupPhase2Result = await createExpectedMovementProvenanceSetup({
-        ...createPlayerSetupPhase1Result,
+      const expectedMovementProvenanceSetup2 = await createExpectedMovementProvenanceSetup({
+        ...playerSetup1,
         remainder,
         journey,
         clock,
@@ -273,8 +273,8 @@ describe("TurnProcessor", () => {
       // Assert
 
       await assertContinuedJourney({
-        ...createPlayerSetupPhase1Result,
-        ...createExpectedMovementProvenanceSetupPhase2Result,
+        ...playerSetup1,
+        ...expectedMovementProvenanceSetup2,
         clock,
         journey,
       })
@@ -390,7 +390,7 @@ describe("TurnProcessor", () => {
         fleetView = await player.client.gameplay.getPlayerView.query({ gameId })
       }
 
-      const createImmediateMoveSetupPhase3Result = await createImmediateMoveSetup({
+      const immediateMoveSetup3 = await createImmediateMoveSetup({
         fleetView,
         player,
         gameId,
@@ -402,8 +402,8 @@ describe("TurnProcessor", () => {
         turnProcessor,
       })
 
-      const createBeforeOccupiedRedirectSetupPhase4Result = await createBeforeOccupiedRedirectSetup({
-        ...createImmediateMoveSetupPhase3Result,
+      const beforeOccupiedRedirectSetup4 = await createBeforeOccupiedRedirectSetup({
+        ...immediateMoveSetup3,
         origin,
         quickDestination,
         player,
@@ -411,8 +411,8 @@ describe("TurnProcessor", () => {
       })
 
       await assertPlayer({
-        ...createImmediateMoveSetupPhase3Result,
-        ...createBeforeOccupiedRedirectSetupPhase4Result,
+        ...immediateMoveSetup3,
+        ...beforeOccupiedRedirectSetup4,
         player,
         gameId,
         destination,
@@ -422,8 +422,8 @@ describe("TurnProcessor", () => {
   })
 })
 
-async function createPlayerSetup({ apiServer, db, clock }: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
-  const player = await apiServer.createClient({ authenticated: true })
+async function createPlayerSetup(input: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
+  const player = await input.apiServer.createClient({ authenticated: true })
   const turnInterval = Time.create(10, UnitOfTime.SECONDS)
   const { createdGameId: gameId } = await player.client.games.create.mutate({
     configuration: createGameConfigurationStub({
@@ -433,7 +433,7 @@ async function createPlayerSetup({ apiServer, db, clock }: CreatePlayerSetupInpu
     }),
   })
   await player.client.games.startGame.mutate({ gameId })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.db, clock: input.clock })
   const initialView = await player.client.gameplay.getPlayerView.query({ gameId })
   const planets = initialView.galaxy.systems.flatMap(({ planets }) => planets)
   const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === branded(player.account.id))
@@ -449,8 +449,8 @@ async function createPlayerSetup({ apiServer, db, clock }: CreatePlayerSetupInpu
     turn: initialView.turn,
     submittedActionTargets: getActionToSubmintegrationTest(initialView, BuildFleetImproved.id, { planet: origin.id }),
   })
-  clock.increment({ time: turnInterval })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+  input.clock.increment({ time: turnInterval })
+  await turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
   expect(await turnProcessor.processNextDueTurn()).toBe("processed")
   const builtView = await player.client.gameplay.getPlayerView.query({ gameId })
   const sourceFleet = builtView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
@@ -458,7 +458,17 @@ async function createPlayerSetup({ apiServer, db, clock }: CreatePlayerSetupInpu
   Assert.isDefined(sourceFleet)
   Assert.isDefined(moveAction)
 
-  await assertSourceFleet({ sourceFleet, builtView, player, gameId, destination, clock, turnInterval, turnsRepository, turnProcessor })
+  await assertSourceFleet({
+    sourceFleet,
+    builtView,
+    player,
+    gameId,
+    destination,
+    clock: input.clock,
+    turnInterval,
+    turnsRepository,
+    turnProcessor,
+  })
   const departedView = await player.client.gameplay.getPlayerView.query({ gameId })
   // Assert
   const journey = departedView.fleets.find(({ movement }) => movement?.submission.id === moveAction.id)
@@ -478,30 +488,17 @@ async function createPlayerSetup({ apiServer, db, clock }: CreatePlayerSetupInpu
   }
 }
 
-async function createExpectedMovementProvenanceSetup({
-  builtView,
-  moveAction,
-  sourceFleet,
-  destination,
-  departedView,
-  remainder,
-  origin,
-  journey,
-  clock,
-  turnInterval,
-  turnsRepository,
-  turnProcessor,
-  player,
-  gameId,
-}: CreateExpectedMovementProvenanceSetupInput): Promise<CreateExpectedMovementProvenanceSetupResult> {
+async function createExpectedMovementProvenanceSetup(
+  input: CreateExpectedMovementProvenanceSetupInput,
+): Promise<CreateExpectedMovementProvenanceSetupResult> {
   const expectedMovementProvenance = {
     speed: 0.5,
-    departureTurn: builtView.turn,
+    departureTurn: input.builtView.turn,
     submission: {
-      id: moveAction.id,
-      playerId: builtView.player.id,
+      id: input.moveAction.id,
+      playerId: input.builtView.player.id,
       actionDefinitionId: MoveFleetStandard.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: 20 },
     },
     pendingArrivalEffects: [],
@@ -514,67 +511,28 @@ async function createExpectedMovementProvenanceSetup({
     [ResourceType.COLONY]: { total: 0, uncommitted: 0 },
   }
 
-  await assertDepartedView({
-    departedView,
-    expectedResourcesAfterPayment,
-    remainder,
-    origin,
-    journey,
-    expectedMovementProvenance,
-    destination,
-    builtView,
-    moveAction,
-    sourceFleet,
-    clock,
-    turnInterval,
-    turnsRepository,
-    turnProcessor,
-  })
-  const continuedView = await player.client.gameplay.getPlayerView.query({ gameId })
-  const continuedJourney = continuedView.fleets.find(({ id }) => id === journey.id)
+  await assertDepartedView({ ...input, expectedResourcesAfterPayment, expectedMovementProvenance })
+  const continuedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  const continuedJourney = continuedView.fleets.find(({ id }) => id === input.journey.id)
   Assert.isDefined(continuedJourney)
   return { expectedMovementProvenance, expectedResourcesAfterPayment, continuedView, continuedJourney }
 }
 
-async function createImmediateMoveSetup({
-  fleetView,
-  player,
-  gameId,
-  destination,
-  quickDestination,
-  clock,
-  turnInterval,
-  turnsRepository,
-  turnProcessor,
-}: CreateImmediateMoveSetupInput): Promise<CreateImmediateMoveSetupResult> {
-  expect(fleetView.fleets).toHaveLength(1)
-  const sourceFleet = fleetView.fleets[0]
-  const firstMove = fleetView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
-  const secondMove = fleetView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_2")
-  const thirdMove = fleetView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_3")
-  const immediateMove = fleetView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetImproved.id)
+async function createImmediateMoveSetup(input: CreateImmediateMoveSetupInput): Promise<CreateImmediateMoveSetupResult> {
+  expect(input.fleetView.fleets).toHaveLength(1)
+  const sourceFleet = input.fleetView.fleets[0]
+  const firstMove = input.fleetView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_1")
+  const secondMove = input.fleetView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_2")
+  const thirdMove = input.fleetView.actions.find(({ id }) => id === "MOVE_FLEET_STANDARD_3")
+  const immediateMove = input.fleetView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetImproved.id)
   Assert.isDefined(sourceFleet)
   Assert.isDefined(firstMove)
   Assert.isDefined(secondMove)
   Assert.isDefined(thirdMove)
   Assert.isDefined(immediateMove)
 
-  await assertSourceFleet2({
-    sourceFleet,
-    firstMove,
-    secondMove,
-    player,
-    gameId,
-    fleetView,
-    destination,
-    immediateMove,
-    quickDestination,
-    clock,
-    turnInterval,
-    turnsRepository,
-    turnProcessor,
-  })
-  const inTransitView = await player.client.gameplay.getPlayerView.query({ gameId })
+  await assertSourceFleet2({ ...input, sourceFleet, firstMove, secondMove, immediateMove })
+  const inTransitView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
   const firstOccupied = inTransitView.actions.find(({ id }) => id === firstMove.id)
   const secondOccupied = inTransitView.actions.find(({ id }) => id === secondMove.id)
   const freeThird = inTransitView.actions.find(({ id }) => id === thirdMove.id)
@@ -588,49 +546,27 @@ async function createImmediateMoveSetup({
   return { immediateMove, inTransitView, firstOccupied, secondOccupied, freeThird, stationaryRemainder, otherStationaryFleet }
 }
 
-async function createBeforeOccupiedRedirectSetup({
-  stationaryRemainder,
-  origin,
-  otherStationaryFleet,
-  quickDestination,
-  inTransitView,
-  firstOccupied,
-  secondOccupied,
-  freeThird,
-  immediateMove,
-  player,
-  gameId,
-}: CreateBeforeOccupiedRedirectSetupInput): Promise<CreateBeforeOccupiedRedirectSetupResult> {
-  await assertStationaryRemainder({
-    stationaryRemainder,
-    origin,
-    otherStationaryFleet,
-    quickDestination,
-    inTransitView,
-    firstOccupied,
-    secondOccupied,
-    freeThird,
-    immediateMove,
-    player,
-    gameId,
-  })
-  const beforeOccupiedRedirect = await player.client.gameplay.getPlayerView.query({ gameId })
-  expect(beforeOccupiedRedirect).toStrictEqual(inTransitView)
+async function createBeforeOccupiedRedirectSetup(
+  input: CreateBeforeOccupiedRedirectSetupInput,
+): Promise<CreateBeforeOccupiedRedirectSetupResult> {
+  await assertStationaryRemainder({ ...input })
+  const beforeOccupiedRedirect = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(beforeOccupiedRedirect).toStrictEqual(input.inTransitView)
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: inTransitView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.inTransitView.turn,
       submittedActionTargets: {
-        actionId: firstOccupied.id,
-        selectedTargets: { fleet: otherStationaryFleet.id, planet: origin.id },
+        actionId: input.firstOccupied.id,
+        selectedTargets: { fleet: input.otherStationaryFleet.id, planet: input.origin.id },
         selectedInputs: { strength: 1 },
       },
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeOccupiedRedirect)
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toStrictEqual(beforeOccupiedRedirect)
 
   // The third instance remains available while the first two are occupied and cannot select an in-flight child.
-  const journeyFleet = inTransitView.fleets.find(({ movement }) => movement !== undefined)
+  const journeyFleet = input.inTransitView.fleets.find(({ movement }) => movement !== undefined)
   Assert.isDefined(journeyFleet)
   return { beforeOccupiedRedirect, journeyFleet }
 }

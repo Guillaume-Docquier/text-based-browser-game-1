@@ -37,24 +37,14 @@ import type { TurnsRepository } from "#turn-processing/turns.repository.ts"
 import { getActionToSubmintegrationTest } from "../fleet-worker/TurnProcessor.scenarios.ts"
 import type { AssertSourceFleet2Input, AssertTurnProcessor2Input } from "./TurnProcessor.assault-sources.ts"
 
-export async function assertUpdatedRows({
-  db,
-  corruptedMovement,
-  journey,
-  gameId,
-  clock,
-  turnInterval,
-  turnsRepository,
-  turnProcessor,
-  departedView,
-}: AssertUpdatedRowsInput): Promise<void> {
-  const updatedRows = await db
+export async function assertUpdatedRows(input: AssertUpdatedRowsInput): Promise<void> {
+  const updatedRows = await input.db
     .update(fleetsTable)
-    .set({ movement: corruptedMovement })
-    .where(eq(fleetsTable.id, journey.id))
+    .set({ movement: input.corruptedMovement })
+    .where(eq(fleetsTable.id, input.journey.id))
     .returning({ id: fleetsTable.id })
 
-  expect(updatedRows).toStrictEqual([{ id: journey.id }])
+  expect(updatedRows).toStrictEqual([{ id: input.journey.id }])
 
   const readPersistedGameState = async (): Promise<{
     games: Array<typeof gamesTable.$inferSelect>
@@ -66,49 +56,51 @@ export async function assertUpdatedRows({
     fleets: Array<typeof fleetsTable.$inferSelect>
   }> => {
     const [games, players, resources, actions, stars, planets, fleets] = await Promise.all([
-      db.select().from(gamesTable).where(eq(gamesTable.id, gameId)),
-      db.select().from(playersTable).where(eq(playersTable.gameId, gameId)).orderBy(asc(playersTable.playerId)),
-      db
+      input.db.select().from(gamesTable).where(eq(gamesTable.id, input.gameId)),
+      input.db.select().from(playersTable).where(eq(playersTable.gameId, input.gameId)).orderBy(asc(playersTable.playerId)),
+      input.db
         .select()
         .from(resourcesTable)
-        .where(eq(resourcesTable.gameId, gameId))
+        .where(eq(resourcesTable.gameId, input.gameId))
         .orderBy(asc(resourcesTable.playerId), asc(resourcesTable.resourceType)),
-      db
+      input.db
         .select()
         .from(actionsTable)
-        .where(eq(actionsTable.gameId, gameId))
+        .where(eq(actionsTable.gameId, input.gameId))
         .orderBy(asc(actionsTable.playerId), asc(actionsTable.turn), asc(actionsTable.id)),
-      db.select().from(starsTable).where(eq(starsTable.gameId, gameId)).orderBy(asc(starsTable.id)),
-      db.select().from(planetsTable).where(eq(planetsTable.gameId, gameId)).orderBy(asc(planetsTable.id)),
-      db.select().from(fleetsTable).where(eq(fleetsTable.gameId, gameId)).orderBy(asc(fleetsTable.id)),
+      input.db.select().from(starsTable).where(eq(starsTable.gameId, input.gameId)).orderBy(asc(starsTable.id)),
+      input.db.select().from(planetsTable).where(eq(planetsTable.gameId, input.gameId)).orderBy(asc(planetsTable.id)),
+      input.db.select().from(fleetsTable).where(eq(fleetsTable.gameId, input.gameId)).orderBy(asc(fleetsTable.id)),
     ])
     return { games, players, resources, actions, stars, planets, fleets }
   }
 
-  clock.increment({ time: turnInterval })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
+  input.clock.increment({ time: input.turnInterval })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
   const gameStateBeforeFailure = await readPersistedGameState()
-  const turnsBeforeFailure = await db
+  const turnsBeforeFailure = await input.db
     .select({ turn: turnsTable.turn, status: turnsTable.status })
     .from(turnsTable)
-    .where(eq(turnsTable.gameId, gameId))
+    .where(eq(turnsTable.gameId, input.gameId))
     .orderBy(asc(turnsTable.turn))
 
   // Act
-  const processingResult = await turnProcessor.processNextDueTurn()
+  const processingResult = await input.turnProcessor.processNextDueTurn()
 
   // Assert
   expect(processingResult).toBe("failed")
   expect(await readPersistedGameState()).toStrictEqual(gameStateBeforeFailure)
-  const turnsAfterFailure = await db
+  const turnsAfterFailure = await input.db
     .select({ turn: turnsTable.turn, status: turnsTable.status })
     .from(turnsTable)
-    .where(eq(turnsTable.gameId, gameId))
+    .where(eq(turnsTable.gameId, input.gameId))
     .orderBy(asc(turnsTable.turn))
   expect(turnsAfterFailure).toStrictEqual(
-    turnsBeforeFailure.map((turn) => (turn.turn === departedView.turn ? { ...turn, status: "PROCESSING" } : turn)),
+    turnsBeforeFailure.map((turn) => (turn.turn === input.departedView.turn ? { ...turn, status: "PROCESSING" } : turn)),
   )
-  expect((await db.select().from(fleetsTable).where(eq(fleetsTable.id, journey.id)))[0]?.movement).toStrictEqual(corruptedMovement)
+  expect((await input.db.select().from(fleetsTable).where(eq(fleetsTable.id, input.journey.id)))[0]?.movement).toStrictEqual(
+    input.corruptedMovement,
+  )
 }
 
 export type AssertUpdatedRowsInput = {
@@ -151,120 +143,84 @@ export type AssertUpdatedRowsInput = {
   departedView: PlayerView
 }
 
-export async function assertSourceFleet2({
-  sourceFleet,
-  firstMove,
-  secondMove,
-  player,
-  gameId,
-  fleetView,
-  destination,
-  immediateMove,
-  quickDestination,
-  clock,
-  turnInterval,
-  turnsRepository,
-  turnProcessor,
-}: AssertSourceFleet2Input): Promise<void> {
-  expect(sourceFleet.strength).toBe(50)
+export async function assertSourceFleet2(input: AssertSourceFleet2Input): Promise<void> {
+  expect(input.sourceFleet.strength).toBe(50)
 
   // Act
   // Reserve 20 + 15 from one source Fleet. Replacing 15 with 31 would overcommit it by one.
   for (const [action, strength] of [
-    [firstMove, 20],
-    [secondMove, 15],
+    [input.firstMove, 20],
+    [input.secondMove, 15],
   ] as const) {
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: fleetView.turn,
+    await input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.fleetView.turn,
       submittedActionTargets: {
         actionId: action.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
         selectedInputs: { strength },
       },
     })
   }
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: fleetView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.fleetView.turn,
       submittedActionTargets: {
-        actionId: secondMove.id,
-        selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+        actionId: input.secondMove.id,
+        selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
         selectedInputs: { strength: 31 },
       },
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: fleetView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.fleetView.turn,
     submittedActionTargets: {
-      actionId: immediateMove.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: quickDestination.id },
+      actionId: input.immediateMove.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.quickDestination.id },
       selectedInputs: { strength: 1 },
     },
   })
-  const beforeDeparture = await player.client.gameplay.getPlayerView.query({ gameId })
+  const beforeDeparture = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
 
   // Assert
-  expect(beforeDeparture.actions.find(({ id }) => id === firstMove.id)?.selectedInputs).toStrictEqual({ strength: 20 })
-  expect(beforeDeparture.actions.find(({ id }) => id === secondMove.id)?.selectedInputs).toStrictEqual({ strength: 15 })
-  expect(beforeDeparture.actions.find(({ id }) => id === immediateMove.id)).toMatchObject({
-    selectedTargets: { fleet: sourceFleet.id, planet: quickDestination.id },
+  expect(beforeDeparture.actions.find(({ id }) => id === input.firstMove.id)?.selectedInputs).toStrictEqual({ strength: 20 })
+  expect(beforeDeparture.actions.find(({ id }) => id === input.secondMove.id)?.selectedInputs).toStrictEqual({ strength: 15 })
+  expect(beforeDeparture.actions.find(({ id }) => id === input.immediateMove.id)).toMatchObject({
+    selectedTargets: { fleet: input.sourceFleet.id, planet: input.quickDestination.id },
     selectedInputs: { strength: 1 },
   })
 
   // Resolve both accepted allocations and verify the untouched source remainder survived persistence.
-  clock.increment({ time: turnInterval })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  input.clock.increment({ time: input.turnInterval })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
 }
 
-export async function assertStationaryRemainder({
-  stationaryRemainder,
-  origin,
-  otherStationaryFleet,
-  quickDestination,
-  inTransitView,
-  firstOccupied,
-  secondOccupied,
-  freeThird,
-  immediateMove,
-  player,
-  gameId,
-}: AssertStationaryRemainderInput): Promise<void> {
-  assertStationaryRemainder2({
-    stationaryRemainder,
-    origin,
-    otherStationaryFleet,
-    quickDestination,
-    inTransitView,
-    firstOccupied,
-    secondOccupied,
-    freeThird,
-    immediateMove,
-  })
+export async function assertStationaryRemainder(input: AssertStationaryRemainderInput): Promise<void> {
+  assertStationaryRemainder2({ ...input })
 
   // Prove the other stationary Fleet and return target are valid with the free instance,
   // cancel that draft, then try the same selection on the occupied instance.
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: inTransitView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.inTransitView.turn,
     submittedActionTargets: {
-      actionId: freeThird.id,
-      selectedTargets: { fleet: otherStationaryFleet.id, planet: origin.id },
+      actionId: input.freeThird.id,
+      selectedTargets: { fleet: input.otherStationaryFleet.id, planet: input.origin.id },
       selectedInputs: { strength: 1 },
     },
   })
-  const validRedirectReference = await player.client.gameplay.getPlayerView.query({ gameId })
-  expect(validRedirectReference.actions.find(({ id }) => id === freeThird.id)).toMatchObject({
-    selectedTargets: { fleet: otherStationaryFleet.id, planet: origin.id },
+  const validRedirectReference = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(validRedirectReference.actions.find(({ id }) => id === input.freeThird.id)).toMatchObject({
+    selectedTargets: { fleet: input.otherStationaryFleet.id, planet: input.origin.id },
     selectedInputs: { strength: 1 },
   })
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: inTransitView.turn,
-    submittedActionTargets: { actionId: freeThird.id, selectedTargets: null, selectedInputs: null },
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.inTransitView.turn,
+    submittedActionTargets: { actionId: input.freeThird.id, selectedTargets: null, selectedInputs: null },
   })
 }
 
@@ -294,77 +250,56 @@ export type AssertStationaryRemainder2Input = {
   immediateMove: Action
 }
 
-export function assertStationaryRemainder2({
-  stationaryRemainder,
-  origin,
-  otherStationaryFleet,
-  quickDestination,
-  inTransitView,
-  firstOccupied,
-  secondOccupied,
-  freeThird,
-  immediateMove,
-}: AssertStationaryRemainder2Input): void {
-  expect(stationaryRemainder).toMatchObject({ strength: 14, originPlanetId: origin.id })
-  expect(otherStationaryFleet).toMatchObject({ strength: 1, originPlanetId: quickDestination.id })
-  expect(otherStationaryFleet.id).not.toBe(stationaryRemainder.id)
-  expect(inTransitView.fleets.map(({ strength }) => strength).toSorted((first, second) => first - second)).toStrictEqual([1, 14, 15, 20])
+export function assertStationaryRemainder2(input: AssertStationaryRemainder2Input): void {
+  expect(input.stationaryRemainder).toMatchObject({ strength: 14, originPlanetId: input.origin.id })
+  expect(input.otherStationaryFleet).toMatchObject({ strength: 1, originPlanetId: input.quickDestination.id })
+  expect(input.otherStationaryFleet.id).not.toBe(input.stationaryRemainder.id)
+  expect(input.inTransitView.fleets.map(({ strength }) => strength).toSorted((first, second) => first - second)).toStrictEqual([
+    1, 14, 15, 20,
+  ])
   expect(
-    inTransitView.fleets
+    input.inTransitView.fleets
       .filter(({ movement }) => movement !== undefined)
       .map(({ strength }) => strength)
       .toSorted((first, second) => first - second),
   ).toStrictEqual([15, 20])
-  expect(firstOccupied.isInProgress).toBe(true)
-  expect(secondOccupied.isInProgress).toBe(true)
-  expect(freeThird.isInProgress).toBe(false)
-  expect(inTransitView.actions.find(({ id }) => id === immediateMove.id)?.isInProgress).toBe(false)
+  expect(input.firstOccupied.isInProgress).toBe(true)
+  expect(input.secondOccupied.isInProgress).toBe(true)
+  expect(input.freeThird.isInProgress).toBe(false)
+  expect(input.inTransitView.actions.find(({ id }) => id === input.immediateMove.id)?.isInProgress).toBe(false)
 }
 
-export async function assertPlayer({
-  player,
-  gameId,
-  inTransitView,
-  freeThird,
-  journeyFleet,
-  destination,
-  beforeOccupiedRedirect,
-  stationaryRemainder,
-  firstOccupied,
-  secondOccupied,
-  otherStationaryFleet,
-  quickDestination,
-}: AssertPlayerInput): Promise<void> {
+export async function assertPlayer(input: AssertPlayerInput): Promise<void> {
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: inTransitView.turn,
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.inTransitView.turn,
       submittedActionTargets: {
-        actionId: freeThird.id,
-        selectedTargets: { fleet: journeyFleet.id, planet: destination.id },
+        actionId: input.freeThird.id,
+        selectedTargets: { fleet: input.journeyFleet.id, planet: input.destination.id },
         selectedInputs: { strength: 1 },
       },
     }),
   ).rejects.toMatchObject({ data: { code: "BAD_REQUEST" } })
-  expect(await player.client.gameplay.getPlayerView.query({ gameId })).toStrictEqual(beforeOccupiedRedirect)
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: inTransitView.turn,
+  expect(await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })).toStrictEqual(input.beforeOccupiedRedirect)
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.inTransitView.turn,
     submittedActionTargets: {
-      actionId: freeThird.id,
-      selectedTargets: { fleet: stationaryRemainder.id, planet: destination.id },
+      actionId: input.freeThird.id,
+      selectedTargets: { fleet: input.stationaryRemainder.id, planet: input.destination.id },
       selectedInputs: { strength: 14 },
     },
   })
 
-  const updatedView = await player.client.gameplay.getPlayerView.query({ gameId })
-  expect(updatedView.actions.find(({ id }) => id === firstOccupied.id)?.isInProgress).toBe(true)
-  expect(updatedView.actions.find(({ id }) => id === secondOccupied.id)?.isInProgress).toBe(true)
-  expect(updatedView.actions.find(({ id }) => id === freeThird.id)?.isInProgress).toBe(false)
-  expect(updatedView.actions.find(({ id }) => id === freeThird.id)?.selectedInputs).toStrictEqual({ strength: 14 })
-  expect(updatedView.fleets.find(({ id }) => id === otherStationaryFleet.id)).toMatchObject({
+  const updatedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
+  expect(updatedView.actions.find(({ id }) => id === input.firstOccupied.id)?.isInProgress).toBe(true)
+  expect(updatedView.actions.find(({ id }) => id === input.secondOccupied.id)?.isInProgress).toBe(true)
+  expect(updatedView.actions.find(({ id }) => id === input.freeThird.id)?.isInProgress).toBe(false)
+  expect(updatedView.actions.find(({ id }) => id === input.freeThird.id)?.selectedInputs).toStrictEqual({ strength: 14 })
+  expect(updatedView.fleets.find(({ id }) => id === input.otherStationaryFleet.id)).toMatchObject({
     strength: 1,
-    originPlanetId: quickDestination.id,
+    originPlanetId: input.quickDestination.id,
   })
 }
 
@@ -383,87 +318,66 @@ export type AssertPlayerInput = {
   quickDestination: Planet
 }
 
-export async function assertTurnProcessor2({
-  player,
-  gameId,
-  initialView,
-  clock,
-  turnInterval,
-  turnsRepository,
-  turnProcessor,
-  homePlanet,
-}: AssertTurnProcessor2Input): Promise<void> {
+export async function assertTurnProcessor2(input: AssertTurnProcessor2Input): Promise<void> {
   for (const actionDefinitionId of [GainInfluence.id, GainMetal.id]) {
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: initialView.turn,
-      submittedActionTargets: getActionToSubmintegrationTest(initialView, actionDefinitionId),
+    await input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.initialView.turn,
+      submittedActionTargets: getActionToSubmintegrationTest(input.initialView, actionDefinitionId),
     })
   }
-  clock.increment({ time: turnInterval })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
-  const fundedView = await player.client.gameplay.getPlayerView.query({ gameId })
+  input.clock.increment({ time: input.turnInterval })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
+  const fundedView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
 
   for (const submittedActionTargets of [
-    getActionToSubmintegrationTest(fundedView, BuildFleetStandard.id, { planet: homePlanet.id }),
+    getActionToSubmintegrationTest(fundedView, BuildFleetStandard.id, { planet: input.homePlanet.id }),
     getActionToSubmintegrationTest(fundedView, GainFuel.id),
     getActionToSubmintegrationTest(fundedView, GainInfluence.id),
   ]) {
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
+    await input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
       turn: fundedView.turn,
       submittedActionTargets,
     })
   }
-  clock.increment({ time: turnInterval })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  input.clock.increment({ time: input.turnInterval })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
 }
 
-export async function assertReturnView({
-  returnView,
-  stationedFleet,
-  movingFleet,
-  player,
-  gameId,
-  departedFleet,
-  homePlanet,
-  clock,
-  turnInterval,
-  turnsRepository,
-  turnProcessor,
-}: AssertReturnViewInput): Promise<void> {
-  expect(returnView.fleets).toHaveLength(2)
-  expect(stationedFleet.id).not.toBe(movingFleet.id)
-  expect(returnView.fleets.map(({ strength }) => strength)).toStrictEqual([10, 10])
+export async function assertReturnView(input: AssertReturnViewInput): Promise<void> {
+  expect(input.returnView.fleets).toHaveLength(2)
+  expect(input.stationedFleet.id).not.toBe(input.movingFleet.id)
+  expect(input.returnView.fleets.map(({ strength }) => strength)).toStrictEqual([10, 10])
 
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId,
-    turn: returnView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.gameId,
+    turn: input.returnView.turn,
     submittedActionTargets: getActionToSubmintegrationTest(
-      returnView,
+      input.returnView,
       MoveFleetImproved.id,
       {
-        fleet: departedFleet.id,
-        planet: homePlanet.id,
+        fleet: input.departedFleet.id,
+        planet: input.homePlanet.id,
       },
-      { strength: departedFleet.strength },
+      { strength: input.departedFleet.strength },
     ),
   })
 
   // Act
-  clock.increment({ time: turnInterval })
-  await turnsRepository.markDueTurnsAwaitingProcessing({ since: clock.now() })
-  const turnResult = await turnProcessor.processNextDueTurn()
-  const playerView = await player.client.gameplay.getPlayerView.query({ gameId })
+  input.clock.increment({ time: input.turnInterval })
+  await input.turnsRepository.markDueTurnsAwaitingProcessing({ since: input.clock.now() })
+  const turnResult = await input.turnProcessor.processNextDueTurn()
+  const playerView = await input.player.client.gameplay.getPlayerView.query({ gameId: input.gameId })
 
   // Assert
   expect(turnResult).toBe("processed")
   expect(playerView.turn).toBe(6)
   expect(playerView.fleets).toStrictEqual([
     {
-      ...stationedFleet,
+      ...input.stationedFleet,
       strength: 20,
     },
   ])
@@ -483,37 +397,26 @@ export type AssertReturnViewInput = {
   turnProcessor: TurnProcessor
 }
 
-export function assertPersistedDefenderHome({
-  persistedDefenderHome,
-  defenderPlayerId,
-  resolvedView,
-  persistedEnemyFleet,
-  defendingFleet,
-  defenderHome,
-  persistedArrival,
-  attackerPlayerId,
-  attackingFleet,
-  moveAction,
-}: AssertPersistedDefenderHomeInput): void {
-  expect(persistedDefenderHome.ownerPlayerId).toBe(defenderPlayerId)
-  expect(resolvedView.fleets).toHaveLength(2)
-  expect(persistedEnemyFleet).toStrictEqual({
-    id: defendingFleet.id,
-    name: defendingFleet.name,
-    ownerPlayerId: defenderPlayerId,
+export function assertPersistedDefenderHome(input: AssertPersistedDefenderHomeInput): void {
+  expect(input.persistedDefenderHome.ownerPlayerId).toBe(input.defenderPlayerId)
+  expect(input.resolvedView.fleets).toHaveLength(2)
+  expect(input.persistedEnemyFleet).toStrictEqual({
+    id: input.defendingFleet.id,
+    name: input.defendingFleet.name,
+    ownerPlayerId: input.defenderPlayerId,
     strength: 7,
-    originPlanetId: defenderHome.id,
+    originPlanetId: input.defenderHome.id,
   })
-  expect(persistedArrival).toMatchObject({
-    ownerPlayerId: attackerPlayerId,
+  expect(input.persistedArrival).toMatchObject({
+    ownerPlayerId: input.attackerPlayerId,
     strength: 20,
-    originPlanetId: defenderHome.id,
+    originPlanetId: input.defenderHome.id,
   })
-  expect(persistedArrival.id).not.toBe(attackingFleet.id)
-  expect(persistedArrival).not.toHaveProperty("movement")
-  expect(persistedArrival).not.toHaveProperty("destinationPlanetId")
-  expect(persistedArrival).not.toHaveProperty("distanceToEnd")
-  expect(resolvedView.actions.find(({ id }) => id === moveAction.id)?.isInProgress).toBe(false)
+  expect(input.persistedArrival.id).not.toBe(input.attackingFleet.id)
+  expect(input.persistedArrival).not.toHaveProperty("movement")
+  expect(input.persistedArrival).not.toHaveProperty("destinationPlanetId")
+  expect(input.persistedArrival).not.toHaveProperty("distanceToEnd")
+  expect(input.resolvedView.actions.find(({ id }) => id === input.moveAction.id)?.isInProgress).toBe(false)
 }
 
 export type AssertPersistedDefenderHomeInput = {

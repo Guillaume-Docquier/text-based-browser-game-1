@@ -24,6 +24,7 @@ import type { createPlanetStub } from "#shared/domain/world/planets/Planet.stub.
 import type { Planet } from "#shared/domain/world/planets/Planet.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 import { createSeededRng } from "#shared/testing/createSeededRng.ts"
+import { required } from "#shared/testing/required.ts"
 import { ColonizePlanetTest } from "#shared/testing/test-ruleset/action-definitions/colonize.ts"
 import type {
   CreateAColonizeJourneySetupResult,
@@ -66,11 +67,11 @@ describe("Fleet Colonization", () => {
   it("should resolve the complete three-player fleet-operations vector across reloaded Turns and reuse released Actions", () => {
     expect.hasAssertions()
 
-    const createColonizeSetupPhase1Result = createColonizeSetup()
-    const { attackMove, attackActionId, ruleset, gameId, playerIds } = createColonizeSetupPhase1Result
+    const colonizeSetup1 = createColonizeSetup()
+    const { attackMove, attackActionId, ruleset, gameId, playerIds } = colonizeSetup1
 
-    const createInitialPlayersSetupPhase2Result = createInitialPlayersSetup({ ...createColonizeSetupPhase1Result })
-    const { p, cSource } = createInitialPlayersSetupPhase2Result
+    const initialPlayersSetup2 = createInitialPlayersSetup({ ...colonizeSetup1 })
+    const { p, cSource } = initialPlayersSetup2
     const cAttack = submit({
       id: attackActionId,
       playerId: PLAYER_C,
@@ -107,13 +108,13 @@ describe("Fleet Colonization", () => {
       }
     }
 
-    const createDepartureSetupPhase3Result = createDepartureSetup({
-      ...createColonizeSetupPhase1Result,
-      ...createInitialPlayersSetupPhase2Result,
+    const departureSetup3 = createDepartureSetup({
+      ...colonizeSetup1,
+      ...initialPlayersSetup2,
       eligibilityState,
       cAttack,
     })
-    const { departure, firstRngState } = createDepartureSetupPhase3Result
+    const { departure, firstRngState } = departureSetup3
     const turnTwoRng = Rng.fromState(
       {
         generatorState: Number(firstRngState.generatorState),
@@ -149,25 +150,24 @@ describe("Fleet Colonization", () => {
     const strengthTotal = (state: ResolvedTurnState): number =>
       Object.values(state.fleets).reduce((total, currentFleet) => total + currentFleet.strength, 0)
 
-    const createCreateAColonizeJourneySetupPhase4ResultSetupPhase1Result = createCreateAColonizeJourneySetupResultSetup({
-      ...createInitialPlayersSetupPhase2Result,
-      createColonizeSetupPhase1Result,
-      createInitialPlayersSetupPhase2Result,
-      createDepartureSetupPhase3Result,
+    const aColonizeJourneyScenario1 = prepareAColonizeJourneyScenario({
+      ...initialPlayersSetup2,
+      colonizeSetup1,
+      initialPlayersSetup2,
+      departureSetup3,
       strengthTotal,
       turnTwo,
       eligibilityState,
       afterArrival,
     })
-    const { createAColonizeJourneySetupPhase4Result, createAAtPSetupPhase5Result } =
-      createCreateAColonizeJourneySetupPhase4ResultSetupPhase1Result
+    const { aColonizeJourneySetup4, aAtPSetup5 } = aColonizeJourneyScenario1
 
     verifyPublicState2({
-      ...createCreateAColonizeJourneySetupPhase4ResultSetupPhase1Result,
-      ...createColonizeSetupPhase1Result,
-      ...createInitialPlayersSetupPhase2Result,
-      ...createAColonizeJourneySetupPhase4Result,
-      ...createAAtPSetupPhase5Result,
+      ...aColonizeJourneyScenario1,
+      ...colonizeSetup1,
+      ...initialPlayersSetup2,
+      ...aColonizeJourneySetup4,
+      ...aAtPSetup5,
       eligibilityState,
       afterArrival,
       turnThreeRng,
@@ -193,22 +193,22 @@ describe("Fleet Colonization", () => {
     const departure = resolve({ planets: [origin, target], fleets: [source], submissions: [action], rng })
     const journey = Object.values(departure.fleets).find(({ movement }) => movement !== undefined)
     Assert.isDefined(journey)
-    expect(departure.planets[target.id]?.ownerPlayerId).toBeNull()
-    expect(departure.fleets[source.id]?.strength).toBe(15)
+    expect(required(departure.planets[target.id]).ownerPlayerId).toBeNull()
+    expect(required(departure.fleets[source.id]).strength).toBe(15)
     expect(journey).toMatchObject({ strength: 35, distanceToEnd: 1.5, movement: { departureTurn: 1 } })
-    expect(departure.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(25)
+    expect(required(departure.players[PLAYER_A]).resources[ResourceType.INFLUENCE]).toBe(25)
 
     const continuation = resolveContinuation(departure, 2, rng)
     const reloadedJourney = continuation.fleets[journey.id]
     Assert.isDefined(reloadedJourney)
     expect(reloadedJourney.distanceToEnd).toBe(0.5)
-    expect(continuation.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(25)
+    expect(required(continuation.players[PLAYER_A]).resources[ResourceType.INFLUENCE]).toBe(25)
     expect(continuation.resolvedActions).toStrictEqual([])
 
     const arrival = resolveContinuation(continuation, 3, rng)
     expect(arrival.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(arrival.planetOwnershipChanges).toStrictEqual([{ planetId: target.id, ownerPlayerId: PLAYER_A }])
-    expect(arrival.fleets[source.id]?.strength).toBe(15)
+    expect(required(arrival.fleets[source.id]).strength).toBe(15)
     expect(arrival.fleets[journey.id]).toMatchObject({
       id: journey.id,
       originPlanetId: target.id,
@@ -217,28 +217,28 @@ describe("Fleet Colonization", () => {
       destinationPlanetId: undefined,
       distanceToEnd: undefined,
     })
-    expect(arrival.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(25)
-    expect(arrival.fleets[journey.id]?.arrivedAtTick).toBe(10)
-    expect(arrival.resolvedContinuations[0]?.actionOutcomes.at(-1)).toMatchObject({
+    expect(required(arrival.players[PLAYER_A]).resources[ResourceType.INFLUENCE]).toBe(25)
+    expect(required(arrival.fleets[journey.id]).arrivedAtTick).toBe(10)
+    expect(required(arrival.resolvedContinuations[0]).actionOutcomes.at(-1)).toMatchObject({
       type: "RESOLVED",
       result: expect.stringContaining("colonized Planet"),
     })
     expect(arrival.removedFleetIds).not.toContain(journey.id)
     const emptyTurn = resolveContinuation(arrival, 4)
-    expect(emptyTurn.fleets[journey.id]?.strength).toBe(15)
+    expect(required(emptyTurn.fleets[journey.id]).strength).toBe(15)
     expect(emptyTurn.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
   })
 
   it("should resolve renamed Seed Outpost at its exact threshold and range edge with speed2 and one-time costs", () => {
-    const createRulesetSetupPhase6Result = createRulesetSetup()
-    const { edgeSite, edgeJourney } = createRulesetSetupPhase6Result
+    const rulesetSetup6 = createRulesetSetup()
+    const { edgeSite, edgeJourney } = rulesetSetup6
 
-    const createEdgeArrivalSetupPhase7Result = createEdgeArrivalSetup({ ...createRulesetSetupPhase6Result })
-    const { edgeArrival } = createEdgeArrivalSetupPhase7Result
+    const edgeArrivalSetup7 = createEdgeArrivalSetup({ ...rulesetSetup6 })
+    const { edgeArrival } = edgeArrivalSetup7
     expect(edgeArrival.planets[edgeSite.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(edgeArrival.fleets[edgeJourney.id]).toBeUndefined()
     expect(edgeArrival.removedFleetIds).toContain(edgeJourney.id)
-    expect(edgeArrival.players[PLAYER_A]?.resources).toMatchObject({
+    expect(required(edgeArrival.players[PLAYER_A]).resources).toMatchObject({
       [ResourceType.INFLUENCE]: 43,
       [ResourceType.FUEL]: 98,
     })
@@ -267,7 +267,7 @@ describe("Fleet Colonization", () => {
     expect(arrival.removedFleetIds).toContain(journeyId)
     expect(arrival.fleets[source.id]).toBeUndefined()
     expect(arrival.planetOwnershipChanges).toStrictEqual([{ planetId: target.id, ownerPlayerId: PLAYER_A }])
-    expect(arrival.resolvedContinuations[0]?.actionOutcomes.at(-1)?.type).toBe("RESOLVED")
+    expect(required(required(arrival.resolvedContinuations[0]).actionOutcomes.at(-1)).type).toBe("RESOLVED")
     const emptyTurn = resolveContinuation(arrival, 3)
     expect(emptyTurn.planets[target.id]?.ownerPlayerId).toBe(PLAYER_A)
     expect(emptyTurn.fleets[journeyId]).toBeUndefined()
@@ -360,74 +360,12 @@ describe("Fleet Colonization", () => {
   })
 })
 
-function verifyPublicState({
-  aAtP,
-  aAtQ,
-  bAtP,
-  afterArrival,
-  p,
-  q,
-  cAttackJourney,
-  strengthTotal,
-  colonizeActionId,
-  moveActionId,
-  attackActionId,
-  aColonizeJourney,
-  bColonizeJourney,
-}: VerifyPublicStateInput): void {
-  assertAAtP2({
-    aAtP,
-    aAtQ,
-    bAtP,
-    afterArrival,
-    p,
-    q,
-    cAttackJourney,
-    strengthTotal,
-    colonizeActionId,
-    moveActionId,
-    attackActionId,
-    aColonizeJourney,
-    bColonizeJourney,
-  })
+function verifyPublicState(input: VerifyPublicStateInput): void {
+  assertAAtP2({ ...input })
 }
 
-function verifyPublicState2({
-  aAtP,
-  bAtP,
-  aAtQ,
-  aAtHome,
-  eligibilityState,
-  afterArrival,
-  journeyActionBindings,
-  ruleset,
-  moveActionId,
-  aSource,
-  q,
-  ordinaryMove,
-  turnThreeRng,
-  reloadTurn,
-  p,
-  strengthTotal,
-}: VerifyPublicState2Input): void {
-  assertAAtP({
-    aAtP,
-    bAtP,
-    aAtQ,
-    aAtHome,
-    eligibilityState,
-    afterArrival,
-    journeyActionBindings,
-    ruleset,
-    moveActionId,
-    aSource,
-    q,
-    ordinaryMove,
-    turnThreeRng,
-    reloadTurn,
-    p,
-    strengthTotal,
-  })
+function verifyPublicState2(input: VerifyPublicState2Input): void {
+  assertAAtP({ ...input })
 }
 
 type VerifyPublicStateInput = {
@@ -465,52 +403,32 @@ type VerifyPublicState2Input = {
   strengthTotal: (state: ResolvedTurnState) => number
 }
 
-function createCreateAColonizeJourneySetupResultSetup({
-  createColonizeSetupPhase1Result,
-  createInitialPlayersSetupPhase2Result,
-  createDepartureSetupPhase3Result,
-  strengthTotal,
-  turnTwo,
-  eligibilityState,
-  afterArrival,
-  aSource,
-}: CreateCreateAColonizeJourneySetupResultSetupInput): CreateCreateAColonizeJourneySetupResultSetupResult {
-  const createAColonizeJourneySetupPhase4Result = createAColonizeJourneySetup({
-    ...createColonizeSetupPhase1Result,
-    ...createInitialPlayersSetupPhase2Result,
-    ...createDepartureSetupPhase3Result,
-    strengthTotal,
-    turnTwo,
+function prepareAColonizeJourneyScenario(input: PrepareAColonizeJourneyScenarioInput): PrepareAColonizeJourneyScenarioResult {
+  const aColonizeJourneySetup4 = createAColonizeJourneySetup({
+    ...input,
+    ...input.colonizeSetup1,
+    ...input.initialPlayersSetup2,
+    ...input.departureSetup3,
   })
 
-  const createAAtPSetupPhase5Result = createAAtPSetup({
-    ...createColonizeSetupPhase1Result,
-    ...createInitialPlayersSetupPhase2Result,
-    ...createDepartureSetupPhase3Result,
-    ...createAColonizeJourneySetupPhase4Result,
-    strengthTotal,
-    turnTwo,
-    eligibilityState,
-    afterArrival,
+  const aAtPSetup5 = createAAtPSetup({
+    ...input,
+    ...input.colonizeSetup1,
+    ...input.initialPlayersSetup2,
+    ...input.departureSetup3,
+    ...aColonizeJourneySetup4,
   })
 
-  verifyPublicState({
-    ...createColonizeSetupPhase1Result,
-    ...createInitialPlayersSetupPhase2Result,
-    ...createAColonizeJourneySetupPhase4Result,
-    ...createAAtPSetupPhase5Result,
-    afterArrival,
-    strengthTotal,
-  })
-  const aAtHome = afterArrival.fleets[aSource.id]
+  verifyPublicState({ ...input, ...input.colonizeSetup1, ...input.initialPlayersSetup2, ...aColonizeJourneySetup4, ...aAtPSetup5 })
+  const aAtHome = input.afterArrival.fleets[input.aSource.id]
   Assert.isDefined(aAtHome)
-  return { createAColonizeJourneySetupPhase4Result, createAAtPSetupPhase5Result, aAtHome }
+  return { aColonizeJourneySetup4, aAtPSetup5, aAtHome }
 }
 
-type CreateCreateAColonizeJourneySetupResultSetupInput = {
-  createColonizeSetupPhase1Result: CreateColonizeSetupResult
-  createInitialPlayersSetupPhase2Result: CreateInitialPlayersSetupResult
-  createDepartureSetupPhase3Result: CreateDepartureSetupResult
+type PrepareAColonizeJourneyScenarioInput = {
+  colonizeSetup1: CreateColonizeSetupResult
+  initialPlayersSetup2: CreateInitialPlayersSetupResult
+  departureSetup3: CreateDepartureSetupResult
   strengthTotal: (state: ResolvedTurnState) => number
   turnTwo: ResolvedTurnState
   eligibilityState: EligibilityStateCallback
@@ -518,9 +436,9 @@ type CreateCreateAColonizeJourneySetupResultSetupInput = {
   aSource: ReturnType<typeof createFleetStub>
 }
 
-type CreateCreateAColonizeJourneySetupResultSetupResult = {
-  createAColonizeJourneySetupPhase4Result: CreateAColonizeJourneySetupResult
-  createAAtPSetupPhase5Result: CreateAAtPSetupResult
+type PrepareAColonizeJourneyScenarioResult = {
+  aColonizeJourneySetup4: CreateAColonizeJourneySetupResult
+  aAtPSetup5: CreateAAtPSetupResult
   aAtHome: ResolutionFleet
 }
 

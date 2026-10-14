@@ -31,11 +31,11 @@ describe("Move and Assault action selection", () => {
   it("should share current resource and Strength commitments across Move, Attack Move, edit, cancel, and gain effects", () => {
     expect.hasAssertions()
 
-    const createPlayerIdSetupPhase1Result = createPlayerIdSetup()
-    const { fleet, extraDestination, extraFleet, attack, gain, extraAttack } = createPlayerIdSetupPhase1Result
+    const playerIdSetup1 = createPlayerIdSetup()
+    const { fleet, extraDestination, extraFleet, attack, gain, extraAttack } = playerIdSetup1
 
-    const createBaseStateSetupPhase2Result = createBaseStateSetup({ ...createPlayerIdSetupPhase1Result })
-    const { baseState, currentState } = createBaseStateSetupPhase2Result
+    const baseStateSetup2 = createBaseStateSetup({ ...playerIdSetup1 })
+    const { baseState, currentState } = baseStateSetup2
     const canceledMove = evaluateSubmittedActions({
       state: baseState,
       ruleset: TestRuleset,
@@ -62,8 +62,8 @@ describe("Move and Assault action selection", () => {
     })
 
     assertGainCannotFund({
-      ...createPlayerIdSetupPhase1Result,
-      ...createBaseStateSetupPhase2Result,
+      ...playerIdSetup1,
+      ...baseStateSetup2,
       canceledMove,
       exhaustedSourceCandidate,
       extraCostAttempt,
@@ -91,44 +91,25 @@ function withSubmissions(
   }
 }
 
-function assertGainCannotFund({
-  underfundedState,
-  submissions,
-  submitted,
-  fleet,
-  editedAttack,
-  editedMove,
-  canceledMove,
-  exhaustedSourceCandidate,
-  extraCostAttempt,
-  extraFleet,
-}: AssertGainCannotFundInput): void {
+function assertGainCannotFund(input: AssertGainCannotFundInput): void {
   const gainCannotFund = evaluateSubmittedActions({
-    state: underfundedState,
+    state: input.underfundedState,
     ruleset: TestRuleset,
-    submissions,
+    submissions: input.submissions,
   })
 
   // Assert
 
-  assertSubmitted({ submitted, fleet, editedAttack, editedMove, canceledMove, exhaustedSourceCandidate, extraCostAttempt })
+  assertSubmitted({ ...input })
 
-  assertExtraCostAttempt({ extraCostAttempt, fleet, extraFleet, gainCannotFund })
+  assertExtraCostAttempt({ ...input, gainCannotFund })
 }
 
-function assertSubmitted({
-  submitted,
-  fleet,
-  editedAttack,
-  editedMove,
-  canceledMove,
-  exhaustedSourceCandidate,
-  extraCostAttempt,
-}: AssertSubmittedInput): void {
-  expect(submitted.status).toBe("ELIGIBLE")
-  expect(submitted.strengthCommitments[fleet.id]).toBe(50)
-  expect(submitted.remainingStrength[fleet.id]).toBe(0)
-  expect(submitted.resourceCommitments).toStrictEqual({
+function assertSubmitted(input: AssertSubmittedInput): void {
+  expect(input.submitted.status).toBe("ELIGIBLE")
+  expect(input.submitted.strengthCommitments[input.fleet.id]).toBe(50)
+  expect(input.submitted.remainingStrength[input.fleet.id]).toBe(0)
+  expect(input.submitted.resourceCommitments).toStrictEqual({
     [ResourceType.INFLUENCE]: 8,
     [ResourceType.METAL]: 0,
     [ResourceType.FUEL]: 2,
@@ -136,14 +117,14 @@ function assertSubmitted({
     [ResourceType.COLONY]: 0,
   })
 
-  expect(editedAttack.status).toBe("INELIGIBLE")
-  expect(editedAttack.strengthCommitments[fleet.id]).toBe(51)
-  expect(editedAttack.issues.map(({ code }) => code)).toContain("INSUFFICIENT_STRENGTH")
+  expect(input.editedAttack.status).toBe("INELIGIBLE")
+  expect(input.editedAttack.strengthCommitments[input.fleet.id]).toBe(51)
+  expect(input.editedAttack.issues.map(({ code }) => code)).toContain("INSUFFICIENT_STRENGTH")
 
-  expect(editedMove.status).toBe("ELIGIBLE")
-  expect(editedMove.strengthCommitments[fleet.id]).toBe(49)
-  expect(editedMove.remainingStrength[fleet.id]).toBe(1)
-  expect(editedMove.resourceCommitments).toStrictEqual({
+  expect(input.editedMove.status).toBe("ELIGIBLE")
+  expect(input.editedMove.strengthCommitments[input.fleet.id]).toBe(49)
+  expect(input.editedMove.remainingStrength[input.fleet.id]).toBe(1)
+  expect(input.editedMove.resourceCommitments).toStrictEqual({
     [ResourceType.INFLUENCE]: 8,
     [ResourceType.METAL]: 0,
     [ResourceType.FUEL]: 2,
@@ -151,21 +132,21 @@ function assertSubmitted({
     [ResourceType.COLONY]: 0,
   })
 
-  expect(canceledMove.status).toBe("ELIGIBLE")
-  expect(canceledMove.strengthCommitments[fleet.id]).toBe(30)
-  expect(canceledMove.remainingStrength[fleet.id]).toBe(20)
-  expect(canceledMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(5)
-  expect(canceledMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
+  expect(input.canceledMove.status).toBe("ELIGIBLE")
+  expect(input.canceledMove.strengthCommitments[input.fleet.id]).toBe(30)
+  expect(input.canceledMove.remainingStrength[input.fleet.id]).toBe(20)
+  expect(input.canceledMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(5)
+  expect(input.canceledMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
 
   expect({
-    status: exhaustedSourceCandidate.status,
-    candidateStatus: exhaustedSourceCandidate.candidateStatus,
-    candidateIssues: exhaustedSourceCandidate.candidateIssues.map(({ code }) => code),
-    missingTargets: exhaustedSourceCandidate.missingTargets,
-    missingInputs: exhaustedSourceCandidate.missingInputs,
-    strengthCommitment: exhaustedSourceCandidate.strengthCommitments[fleet.id],
-    remainingStrength: exhaustedSourceCandidate.remainingStrength[fleet.id],
-    resourceCommitments: exhaustedSourceCandidate.resourceCommitments,
+    status: input.exhaustedSourceCandidate.status,
+    candidateStatus: input.exhaustedSourceCandidate.candidateStatus,
+    candidateIssues: input.exhaustedSourceCandidate.candidateIssues.map(({ code }) => code),
+    missingTargets: input.exhaustedSourceCandidate.missingTargets,
+    missingInputs: input.exhaustedSourceCandidate.missingInputs,
+    strengthCommitment: input.exhaustedSourceCandidate.strengthCommitments[input.fleet.id],
+    remainingStrength: input.exhaustedSourceCandidate.remainingStrength[input.fleet.id],
+    resourceCommitments: input.exhaustedSourceCandidate.resourceCommitments,
   }).toStrictEqual({
     status: "INELIGIBLE",
     candidateStatus: "INELIGIBLE",
@@ -183,28 +164,28 @@ function assertSubmitted({
     },
   })
 
-  expect(extraCostAttempt.status).toBe("INELIGIBLE")
-  expect(extraCostAttempt.issues).toContainEqual(
+  expect(input.extraCostAttempt.status).toBe("INELIGIBLE")
+  expect(input.extraCostAttempt.issues).toContainEqual(
     expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
   )
 }
 
-function assertExtraCostAttempt({ extraCostAttempt, fleet, extraFleet, gainCannotFund }: AssertExtraCostAttemptInput): void {
-  expect(extraCostAttempt.issues).toContainEqual(
+function assertExtraCostAttempt(input: AssertExtraCostAttemptInput): void {
+  expect(input.extraCostAttempt.issues).toContainEqual(
     expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
   )
-  expect(extraCostAttempt.strengthCommitments[fleet.id]).toBe(50)
-  expect(extraCostAttempt.strengthCommitments[extraFleet.id]).toBe(1)
-  expect(extraCostAttempt.resourceCommitments[ResourceType.INFLUENCE]).toBe(13)
-  expect(extraCostAttempt.resourceCommitments[ResourceType.FUEL]).toBe(3)
+  expect(input.extraCostAttempt.strengthCommitments[input.fleet.id]).toBe(50)
+  expect(input.extraCostAttempt.strengthCommitments[input.extraFleet.id]).toBe(1)
+  expect(input.extraCostAttempt.resourceCommitments[ResourceType.INFLUENCE]).toBe(13)
+  expect(input.extraCostAttempt.resourceCommitments[ResourceType.FUEL]).toBe(3)
 
-  expect(gainCannotFund.status).toBe("INELIGIBLE")
-  expect(gainCannotFund.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
-  expect(gainCannotFund.resourceCommitments[ResourceType.FUEL]).toBe(2)
-  expect(gainCannotFund.issues).toContainEqual(
+  expect(input.gainCannotFund.status).toBe("INELIGIBLE")
+  expect(input.gainCannotFund.resourceCommitments[ResourceType.INFLUENCE]).toBe(8)
+  expect(input.gainCannotFund.resourceCommitments[ResourceType.FUEL]).toBe(2)
+  expect(input.gainCannotFund.issues).toContainEqual(
     expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.INFLUENCE }),
   )
-  expect(gainCannotFund.issues).not.toContainEqual(
+  expect(input.gainCannotFund.issues).not.toContainEqual(
     expect.objectContaining({ code: "INSUFFICIENT_RESOURCES", resourceType: ResourceType.FUEL }),
   )
 }
@@ -499,33 +480,21 @@ function createPlayerIdSetup(): CreatePlayerIdSetupResult {
   return { playerId, origin, destination, fleet, extraOrigin, extraDestination, extraFleet, move, attack, gain, extraAttack }
 }
 
-function createBaseStateSetup({
-  playerId,
-  origin,
-  destination,
-  extraOrigin,
-  extraDestination,
-  fleet,
-  extraFleet,
-  extraAttack,
-  move,
-  attack,
-  gain,
-}: CreateBaseStateSetupInput): CreateBaseStateSetupResult {
+function createBaseStateSetup(input: CreateBaseStateSetupInput): CreateBaseStateSetupResult {
   const baseState: EligibilityState = {
     gameId: typedParse(GameIdSchema, 1),
     turn: 1,
-    submittingPlayerId: playerId,
+    submittingPlayerId: input.playerId,
     resources: createResourcesStub({
       [ResourceType.INFLUENCE]: 8,
       [ResourceType.FUEL]: 2,
     }),
-    players: indexBy("id", [{ id: playerId, ownerPlayerId: playerId }]),
-    planets: indexBy("id", [origin, destination, extraOrigin, extraDestination]),
-    fleets: indexBy("id", [fleet, extraFleet]),
-    actions: [...computeAvailableActions({ playerIds: [playerId], ruleset: TestRuleset }), extraAttack],
+    players: indexBy("id", [{ id: input.playerId, ownerPlayerId: input.playerId }]),
+    planets: indexBy("id", [input.origin, input.destination, input.extraOrigin, input.extraDestination]),
+    fleets: indexBy("id", [input.fleet, input.extraFleet]),
+    actions: [...computeAvailableActions({ playerIds: [input.playerId], ruleset: TestRuleset }), input.extraAttack],
   }
-  const submissions = [move, attack, gain]
+  const submissions = [input.move, input.attack, input.gain]
   const currentState = withSubmissions(baseState, submissions)
   const underfundedState: EligibilityState = {
     ...baseState,
@@ -545,18 +514,18 @@ function createBaseStateSetup({
     state: currentState,
     ruleset: TestRuleset,
     draft: {
-      actionId: attack.id,
-      selectedTargets: attack.selectedTargets,
-      selectedInputs: { ...attack.selectedInputs, [branded<InputTag>("strength")]: 31 },
+      actionId: input.attack.id,
+      selectedTargets: input.attack.selectedTargets,
+      selectedInputs: { ...input.attack.selectedInputs, [branded<InputTag>("strength")]: 31 },
     },
   })
   const editedMove = evaluateActionSelection({
     state: currentState,
     ruleset: TestRuleset,
     draft: {
-      actionId: move.id,
-      selectedTargets: move.selectedTargets,
-      selectedInputs: { ...move.selectedInputs, [branded<InputTag>("strength")]: 19 },
+      actionId: input.move.id,
+      selectedTargets: input.move.selectedTargets,
+      selectedInputs: { ...input.move.selectedInputs, [branded<InputTag>("strength")]: 19 },
     },
   })
   return { baseState, submissions, currentState, underfundedState, submitted, editedAttack, editedMove }

@@ -22,13 +22,13 @@ import {
   logWorkerObservation,
 } from "../fleet-worker/TurnProcessor.scenarios.ts"
 
-export async function assertIndex({ fixture, beforeViews, definitions, forces, actionIds, target }: AssertIndexInput): Promise<void> {
+export async function assertIndex(input: AssertIndexInput): Promise<void> {
   for (let index = 0; index < 2; index += 1) {
-    const client = fixture.clients[index]
-    const view = beforeViews[index]
-    const fleet = fixture.stationed[index]
-    const definition = definitions[index]
-    const force = forces[index]
+    const client = input.fixture.clients[index]
+    const view = input.beforeViews[index]
+    const fleet = input.fixture.stationed[index]
+    const definition = input.definitions[index]
+    const force = input.forces[index]
     Assert.isDefined(client)
     Assert.isDefined(view)
     Assert.isDefined(fleet)
@@ -36,14 +36,14 @@ export async function assertIndex({ fixture, beforeViews, definitions, forces, a
     Assert.isDefined(force)
     const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === definition.id)
     Assert.isDefined(action)
-    actionIds.push(action.id)
+    input.actionIds.push(action.id)
     await client.client.gameplay.updateActionSubmission.mutate({
-      gameId: fixture.gameId,
+      gameId: input.fixture.gameId,
       turn: view.turn,
       submittedActionTargets: getActionToSubmintegrationTest(
         view,
         definition.id,
-        { fleet: fleet.id, planet: target.id },
+        { fleet: fleet.id, planet: input.target.id },
         { strength: force },
       ),
     })
@@ -370,34 +370,22 @@ export type AssertIndex2Input = {
   target: Planet
 }
 
-export function assertOwnerPublicForces({
-  afterViews,
-  fixture,
-  target,
-  expectedForces,
-  firstFleet,
-  firstJourneyId,
-  playerAId,
-  laterFleet,
-  laterJourneyId,
-  beforeViews,
-  actionIds,
-}: AssertOwnerPublicForcesInput): void {
-  expect(ownerPublicForces(afterViews[0]?.fleets ?? [], fixture.playerIds, target.id)).toStrictEqual(expectedForces)
-  expect(afterViews[0]?.fleets.find(({ id }) => id === firstFleet.id)).toBeUndefined()
-  expect(afterViews[0]?.fleets.find(({ id }) => id === firstJourneyId)).toMatchObject({
-    id: firstJourneyId,
-    name: firstFleet.name,
-    ownerPlayerId: playerAId,
+export function assertOwnerPublicForces(input: AssertOwnerPublicForcesInput): void {
+  expect(ownerPublicForces(input.afterViews[0]?.fleets ?? [], input.fixture.playerIds, input.target.id)).toStrictEqual(input.expectedForces)
+  expect(input.afterViews[0]?.fleets.find(({ id }) => id === input.firstFleet.id)).toBeUndefined()
+  expect(input.afterViews[0]?.fleets.find(({ id }) => id === input.firstJourneyId)).toMatchObject({
+    id: input.firstJourneyId,
+    name: input.firstFleet.name,
+    ownerPlayerId: input.playerAId,
     strength: 10,
-    originPlanetId: target.id,
+    originPlanetId: input.target.id,
   })
-  expect(afterViews[0]?.fleets.find(({ id }) => id === laterFleet.id)).toBeUndefined()
-  expect(afterViews[0]?.fleets.find(({ id }) => id === laterJourneyId)).toBeUndefined()
+  expect(input.afterViews[0]?.fleets.find(({ id }) => id === input.laterFleet.id)).toBeUndefined()
+  expect(input.afterViews[0]?.fleets.find(({ id }) => id === input.laterJourneyId)).toBeUndefined()
   for (let index = 0; index < 2; index += 1) {
-    const before = beforeViews[index]
-    const after = afterViews[index]
-    const actionId = actionIds[index]
+    const before = input.beforeViews[index]
+    const after = input.afterViews[index]
+    const actionId = input.actionIds[index]
     Assert.isDefined(before)
     Assert.isDefined(after)
     Assert.isDefined(actionId)
@@ -421,39 +409,31 @@ export type AssertOwnerPublicForcesInput = {
   actionIds: string[]
 }
 
-export async function assertEmptyObserved({
-  fixture,
-  emptyTurn,
-  db,
-  clock,
-  turnsRepository,
-  assertEmptyObservedPhase3Observed,
-  turnProcessor,
-}: AssertEmptyObservedInput): Promise<void> {
+export async function assertEmptyObserved(input: AssertEmptyObservedInput): Promise<void> {
   await Promise.all(
-    fixture.clients.map(
+    input.fixture.clients.map(
       async ({ client }) =>
         await client.gameplay.updateReadiness.mutate({
-          gameId: fixture.gameId,
-          turn: emptyTurn.turn,
+          gameId: input.fixture.gameId,
+          turn: input.emptyTurn.turn,
           isReady: true,
         }),
     ),
   )
-  const emptyObserved = await observeTurnAndRollback({ db, clock, turnsRepository, gameId: fixture.gameId, turn: emptyTurn.turn })
+  const emptyObserved = await observeTurnAndRollback({ ...input, gameId: input.fixture.gameId, turn: input.emptyTurn.turn })
   expect(emptyObserved.submittedActions).toStrictEqual([])
-  expect(emptyObserved.rngState).toStrictEqual(assertEmptyObservedPhase3Observed.rngState)
+  expect(emptyObserved.rngState).toStrictEqual(input.assertEmptyObservedPhase3Observed.rngState)
   logWorkerObservation(
     "[I2-04 public worker]",
     JSON.stringify({
-      generatorState: assertEmptyObservedPhase3Observed.rngState.generatorState,
+      generatorState: input.assertEmptyObservedPhase3Observed.rngState.generatorState,
       draws: [],
       ticks: [5, 15],
-      order: [fixture.playerIds[0], fixture.playerIds[1]],
+      order: [input.fixture.playerIds[0], input.fixture.playerIds[1]],
       nextState: emptyObserved.rngState,
     }),
   )
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
+  expect(await input.turnProcessor.processNextDueTurn()).toBe("processed")
 }
 
 export type AssertEmptyObservedInput = {

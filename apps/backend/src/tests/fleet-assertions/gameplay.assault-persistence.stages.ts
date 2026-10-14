@@ -74,30 +74,22 @@ export type AssertBuildCountInput = {
 
 export type AssertBuildCountResult = { playerView: PlayerView }
 
-export async function assertCancelReplaceResults({
-  player,
-  strengthGameId,
-  playerView,
-  selectedThirtyAction,
-  moveThree,
-  sourceFleet,
-  destination,
-}: AssertCancelReplaceResultsInput): Promise<void> {
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: strengthGameId,
-    turn: playerView.turn,
-    submittedActionTargets: { actionId: selectedThirtyAction.id, selectedTargets: null, selectedInputs: null },
+export async function assertCancelReplaceResults(input: AssertCancelReplaceResultsInput): Promise<void> {
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.strengthGameId,
+    turn: input.playerView.turn,
+    submittedActionTargets: { actionId: input.selectedThirtyAction.id, selectedTargets: null, selectedInputs: null },
   })
 
   // Cancel and replace the same instance concurrently; PostgreSQL may serialize either
   // mutation first, so the persisted selection and reservations must match one complete
   // serialized outcome rather than client response order.
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: strengthGameId,
-    turn: playerView.turn,
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.strengthGameId,
+    turn: input.playerView.turn,
     submittedActionTargets: {
-      actionId: moveThree.id,
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      actionId: input.moveThree.id,
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: 20 },
     },
   })
@@ -105,20 +97,20 @@ export async function assertCancelReplaceResults({
   const cancelReplaceResults = await Promise.allSettled([
     (async (): Promise<void> => {
       await cancelReplaceGate()
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: strengthGameId,
-        turn: playerView.turn,
-        submittedActionTargets: { actionId: moveThree.id, selectedTargets: null, selectedInputs: null },
+      await input.player.client.gameplay.updateActionSubmission.mutate({
+        gameId: input.strengthGameId,
+        turn: input.playerView.turn,
+        submittedActionTargets: { actionId: input.moveThree.id, selectedTargets: null, selectedInputs: null },
       })
     })(),
     (async (): Promise<void> => {
       await cancelReplaceGate()
-      await player.client.gameplay.updateActionSubmission.mutate({
-        gameId: strengthGameId,
-        turn: playerView.turn,
+      await input.player.client.gameplay.updateActionSubmission.mutate({
+        gameId: input.strengthGameId,
+        turn: input.playerView.turn,
         submittedActionTargets: {
-          actionId: moveThree.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          actionId: input.moveThree.id,
+          selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
           selectedInputs: { strength: 19 },
         },
       })
@@ -137,23 +129,12 @@ export type AssertCancelReplaceResultsInput = {
   destination: Planet
 }
 
-export async function assertPersistedCancelReplaceState({
-  moveThreeAfterRace,
-  afterCancelReplace,
-  sourceFleet,
-  destination,
-  player,
-  strengthGameId,
-  playerView,
-  moveThree,
-  moveOne,
-  moveTwo,
-}: AssertPersistedCancelReplaceStateInput): Promise<void> {
+export async function assertPersistedCancelReplaceState(input: AssertPersistedCancelReplaceStateInput): Promise<void> {
   const persistedCancelReplaceState = {
-    selectedTargets: moveThreeAfterRace.selectedTargets,
-    selectedInputs: moveThreeAfterRace.selectedInputs,
-    influenceUncommitted: afterCancelReplace.resources[ResourceType.INFLUENCE].uncommitted,
-    fuelUncommitted: afterCancelReplace.resources[ResourceType.FUEL].uncommitted,
+    selectedTargets: input.moveThreeAfterRace.selectedTargets,
+    selectedInputs: input.moveThreeAfterRace.selectedInputs,
+    influenceUncommitted: input.afterCancelReplace.resources[ResourceType.INFLUENCE].uncommitted,
+    fuelUncommitted: input.afterCancelReplace.resources[ResourceType.FUEL].uncommitted,
   }
   expect([
     {
@@ -163,41 +144,41 @@ export async function assertPersistedCancelReplaceState({
       fuelUncommitted: 2,
     },
     {
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: 19 },
       influenceUncommitted: 3,
       fuelUncommitted: 1,
     },
   ]).toContainEqual(persistedCancelReplaceState)
-  await player.client.gameplay.updateActionSubmission.mutate({
-    gameId: strengthGameId,
-    turn: playerView.turn,
-    submittedActionTargets: { actionId: moveThree.id, selectedTargets: null, selectedInputs: null },
+  await input.player.client.gameplay.updateActionSubmission.mutate({
+    gameId: input.strengthGameId,
+    turn: input.playerView.turn,
+    submittedActionTargets: { actionId: input.moveThree.id, selectedTargets: null, selectedInputs: null },
   })
 
   // Both 20 and 30 fit the 50-strength source and the exact 6 Influence / 2 Fuel budget.
   const twentyThirtyGate = createStartGate(2)
   const twentyThirtyResults = await Promise.allSettled([
     submitActionAfterGate(twentyThirtyGate, {
-      client: player.client,
+      client: input.player.client,
       submission: {
-        gameId: strengthGameId,
-        turn: playerView.turn,
+        gameId: input.strengthGameId,
+        turn: input.playerView.turn,
         submittedActionTargets: {
-          actionId: moveOne.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          actionId: input.moveOne.id,
+          selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
           selectedInputs: { strength: 20 },
         },
       },
     }),
     submitActionAfterGate(twentyThirtyGate, {
-      client: player.client,
+      client: input.player.client,
       submission: {
-        gameId: strengthGameId,
-        turn: playerView.turn,
+        gameId: input.strengthGameId,
+        turn: input.playerView.turn,
         submittedActionTargets: {
-          actionId: moveTwo.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          actionId: input.moveTwo.id,
+          selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
           selectedInputs: { strength: 30 },
         },
       },
@@ -219,40 +200,19 @@ export type AssertPersistedCancelReplaceStateInput = {
   moveTwo: Action
 }
 
-export async function assertMoveOneBeforeDeparture({
-  moveOneBeforeDeparture,
-  sourceFleet,
-  destination,
-  moveTwoBeforeDeparture,
-  beforeDeparture,
-  clock,
-  turnProcessor,
-  turnsRepository,
-  player,
-  strengthGameId,
-  moveOne,
-  moveTwo,
-  origin,
-}: AssertMoveOneBeforeDepartureInput): Promise<void> {
-  expect(moveOneBeforeDeparture.selectedTargets).toStrictEqual({ fleet: sourceFleet.id, planet: destination.id })
-  expect(moveOneBeforeDeparture.selectedInputs).toStrictEqual({ strength: 20 })
-  expect(moveTwoBeforeDeparture.selectedTargets).toStrictEqual({ fleet: sourceFleet.id, planet: destination.id })
-  expect(moveTwoBeforeDeparture.selectedInputs).toStrictEqual({ strength: 30 })
-  expect(beforeDeparture.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 0 })
-  expect(beforeDeparture.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 0 })
+export async function assertMoveOneBeforeDeparture(input: AssertMoveOneBeforeDepartureInput): Promise<void> {
+  expect(input.moveOneBeforeDeparture.selectedTargets).toStrictEqual({ fleet: input.sourceFleet.id, planet: input.destination.id })
+  expect(input.moveOneBeforeDeparture.selectedInputs).toStrictEqual({ strength: 20 })
+  expect(input.moveTwoBeforeDeparture.selectedTargets).toStrictEqual({ fleet: input.sourceFleet.id, planet: input.destination.id })
+  expect(input.moveTwoBeforeDeparture.selectedInputs).toStrictEqual({ strength: 30 })
+  expect(input.beforeDeparture.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 0 })
+  expect(input.beforeDeparture.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 0 })
 
   // Worker reloads both JSON fields from PostgreSQL; full force removes the original source row.
-  await processManualDeadlineTurn({
-    clock,
-    turnProcessor,
-    turnsRepository,
-    client: player.client,
-    gameId: strengthGameId,
-    turn: beforeDeparture.turn,
-  })
-  const afterDeparture = await player.client.gameplay.getPlayerView.query({ gameId: strengthGameId })
+  await processManualDeadlineTurn({ ...input, client: input.player.client, gameId: input.strengthGameId, turn: input.beforeDeparture.turn })
+  const afterDeparture = await input.player.client.gameplay.getPlayerView.query({ gameId: input.strengthGameId })
   expect(afterDeparture.fleets.map(({ strength }) => strength).toSorted((first, second) => first - second)).toStrictEqual([20, 30])
-  expect(afterDeparture.fleets.some(({ id }) => id === sourceFleet.id)).toBe(false)
+  expect(afterDeparture.fleets.some(({ id }) => id === input.sourceFleet.id)).toBe(false)
   expect(afterDeparture.fleets.every(({ movement }) => movement !== undefined)).toBe(true)
   const departedStrengths = afterDeparture.fleets.map(({ movement }) => {
     Assert.isDefined(movement)
@@ -262,32 +222,32 @@ export async function assertMoveOneBeforeDeparture({
   })
   expect(departedStrengths.toSorted((first, second) => first - second)).toStrictEqual([20, 30])
   for (const [action, strength] of [
-    [moveOne, 20],
-    [moveTwo, 30],
+    [input.moveOne, 20],
+    [input.moveTwo, 30],
   ] as const) {
     const journey = afterDeparture.fleets.find(({ movement }) => movement?.submission.id === action.id)
     Assert.isDefined(journey)
     expect(journey).toMatchObject({
       strength,
-      originPlanetId: origin.id,
-      destinationPlanetId: destination.id,
+      originPlanetId: input.origin.id,
+      destinationPlanetId: input.destination.id,
       distanceToEnd: expect.closeTo(1.04564350459425, 12),
       movement: {
         speed: 0.1,
-        departureTurn: beforeDeparture.turn,
+        departureTurn: input.beforeDeparture.turn,
         pendingArrivalEffects: [],
         submission: {
           id: action.id,
-          playerId: player.account.id,
+          playerId: input.player.account.id,
           actionDefinitionId: MoveFleetStandard.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
           selectedInputs: { strength },
         },
       },
     })
   }
-  expect(afterDeparture.actions.find(({ id }) => id === moveOne.id)?.isInProgress).toBe(true)
-  expect(afterDeparture.actions.find(({ id }) => id === moveTwo.id)?.isInProgress).toBe(true)
+  expect(afterDeparture.actions.find(({ id }) => id === input.moveOne.id)?.isInProgress).toBe(true)
+  expect(afterDeparture.actions.find(({ id }) => id === input.moveTwo.id)?.isInProgress).toBe(true)
 }
 
 export type AssertMoveOneBeforeDepartureInput = {
@@ -306,29 +266,22 @@ export type AssertMoveOneBeforeDepartureInput = {
   origin: Planet
 }
 
-export async function assertSuccessorView({
-  successorView,
-  expected,
-  player,
-  gameId,
-  initialView,
-  action,
-}: AssertSuccessorViewInput): Promise<void> {
-  expect(successorView.resources[ResourceType.INFLUENCE].total).toBe(expected.influenceTotal)
-  expect(normalizeApiDate(successorView.turnEndsAt).getTime()).toBeGreaterThan(Clock.now().getTime() + 5_000)
+export async function assertSuccessorView(input: AssertSuccessorViewInput): Promise<void> {
+  expect(input.successorView.resources[ResourceType.INFLUENCE].total).toBe(input.expected.influenceTotal)
+  expect(normalizeApiDate(input.successorView.turnEndsAt).getTime()).toBeGreaterThan(Clock.now().getTime() + 5_000)
 
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: initialView.turn,
-      submittedActionTargets: { actionId: action.id, selectedTargets: {}, selectedInputs: {} },
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.initialView.turn,
+      submittedActionTargets: { actionId: input.action.id, selectedTargets: {}, selectedInputs: {} },
     }),
   ).rejects.toMatchObject({ data: { code: "CONFLICT" } })
   await expect(
-    player.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: initialView.turn,
-      submittedActionTargets: { actionId: action.id, selectedTargets: null, selectedInputs: null },
+    input.player.client.gameplay.updateActionSubmission.mutate({
+      gameId: input.gameId,
+      turn: input.initialView.turn,
+      submittedActionTargets: { actionId: input.action.id, selectedTargets: null, selectedInputs: null },
     }),
   ).rejects.toMatchObject({ data: { code: "CONFLICT" } })
 }
@@ -344,12 +297,12 @@ export type AssertSuccessorViewInput = {
   action: Action
 }
 
-export async function createClockSetup({ server }: CreateClockSetupInput): Promise<CreateClockSetupResult> {
+export async function createClockSetup(input: CreateClockSetupInput): Promise<CreateClockSetupResult> {
   const clock = new ControlledClock({ startDate: Clock.now() })
-  const rulesetsRepository = new RulesetsRepository({ db: server.database, logger: Logger.get() })
+  const rulesetsRepository = new RulesetsRepository({ db: input.server.database, logger: Logger.get() })
   Assert.isSuccess(await rulesetsRepository.upsertRuleset(StrengthRaceRuleset))
   Assert.isSuccess(await rulesetsRepository.upsertRuleset(ResourceRaceRuleset))
-  const player = await server.createClient({ authenticated: true })
+  const player = await input.server.createClient({ authenticated: true })
   const { createdGameId: strengthGameId } = await player.client.games.create.mutate({
     configuration: createGameConfigurationStub({
       rulesetId: StrengthRaceRuleset.id,
@@ -358,7 +311,7 @@ export async function createClockSetup({ server }: CreateClockSetupInput): Promi
     }),
   })
   await player.client.games.startGame.mutate({ gameId: strengthGameId })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: server.database, clock })
+  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db: input.server.database, clock })
 
   // Build a strength-50 source Fleet using the public API and real PostgreSQL turn persistence.
   let playerView = await player.client.gameplay.getPlayerView.query({ gameId: strengthGameId })
@@ -422,37 +375,31 @@ export type CreateClockSetupResult = {
   moveThree: Action
 }
 
-export async function createThirtyStrengthResultsSetup({
-  player,
-  strengthGameId,
-  playerView,
-  moveOne,
-  sourceFleet,
-  destination,
-  moveTwo,
-}: CreateThirtyStrengthResultsSetupInput): Promise<CreateThirtyStrengthResultsSetupResult> {
+export async function createThirtyStrengthResultsSetup(
+  input: CreateThirtyStrengthResultsSetupInput,
+): Promise<CreateThirtyStrengthResultsSetupResult> {
   const thirtyStrengthGate = createStartGate(2)
   const thirtyStrengthResults = await Promise.allSettled([
     submitActionAfterGate(thirtyStrengthGate, {
-      client: player.client,
+      client: input.player.client,
       submission: {
-        gameId: strengthGameId,
-        turn: playerView.turn,
+        gameId: input.strengthGameId,
+        turn: input.playerView.turn,
         submittedActionTargets: {
-          actionId: moveOne.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          actionId: input.moveOne.id,
+          selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
           selectedInputs: { strength: 30 },
         },
       },
     }),
     submitActionAfterGate(thirtyStrengthGate, {
-      client: player.client,
+      client: input.player.client,
       submission: {
-        gameId: strengthGameId,
-        turn: playerView.turn,
+        gameId: input.strengthGameId,
+        turn: input.playerView.turn,
         submittedActionTargets: {
-          actionId: moveTwo.id,
-          selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+          actionId: input.moveTwo.id,
+          selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
           selectedInputs: { strength: 30 },
         },
       },
@@ -462,9 +409,9 @@ export async function createThirtyStrengthResultsSetup({
   // Assert
   expect(thirtyStrengthResults.filter(({ status }) => status === "fulfilled")).toHaveLength(1)
   expect(thirtyStrengthResults.filter(({ status }) => status === "rejected")).toHaveLength(1)
-  const afterThirtyRace = await player.client.gameplay.getPlayerView.query({ gameId: strengthGameId })
-  const firstStrengthAction = afterThirtyRace.actions.find(({ id }) => id === moveOne.id)
-  const secondStrengthAction = afterThirtyRace.actions.find(({ id }) => id === moveTwo.id)
+  const afterThirtyRace = await input.player.client.gameplay.getPlayerView.query({ gameId: input.strengthGameId })
+  const firstStrengthAction = afterThirtyRace.actions.find(({ id }) => id === input.moveOne.id)
+  const secondStrengthAction = afterThirtyRace.actions.find(({ id }) => id === input.moveTwo.id)
   Assert.isDefined(firstStrengthAction)
   Assert.isDefined(secondStrengthAction)
   const thirtyStrengthSelections = [firstStrengthAction, secondStrengthAction].filter(({ selectedInputs }) => selectedInputs !== null)
@@ -472,7 +419,7 @@ export async function createThirtyStrengthResultsSetup({
   expect(thirtyStrengthSelections[0]?.selectedInputs).toStrictEqual({ strength: 30 })
   const expectedThirtyStrengthSelectionByStatus = {
     fulfilled: {
-      selectedTargets: { fleet: sourceFleet.id, planet: destination.id },
+      selectedTargets: { fleet: input.sourceFleet.id, planet: input.destination.id },
       selectedInputs: { strength: 30 },
     },
     rejected: { selectedTargets: null, selectedInputs: null },
@@ -509,50 +456,28 @@ export type CreateThirtyStrengthResultsSetupResult = {
   }
 }
 
-export async function createBeforeDepartureSetup({
-  afterThirtyRace,
-  sourceFleet,
-  thirtyStrengthSelections,
-  player,
-  strengthGameId,
-  playerView,
-  moveThree,
-  destination,
-  moveOne,
-  moveTwo,
-}: CreateBeforeDepartureSetupInput): Promise<CreateBeforeDepartureSetupResult> {
-  expect(afterThirtyRace.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 3 })
-  expect(afterThirtyRace.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 1 })
-  const sourceAfterThirtyRace = afterThirtyRace.fleets.find(({ id }) => id === sourceFleet.id)
-  const reservedThirtyAction = thirtyStrengthSelections[0]
+export async function createBeforeDepartureSetup(input: CreateBeforeDepartureSetupInput): Promise<CreateBeforeDepartureSetupResult> {
+  expect(input.afterThirtyRace.resources[ResourceType.INFLUENCE]).toStrictEqual({ total: 6, uncommitted: 3 })
+  expect(input.afterThirtyRace.resources[ResourceType.FUEL]).toStrictEqual({ total: 2, uncommitted: 1 })
+  const sourceAfterThirtyRace = input.afterThirtyRace.fleets.find(({ id }) => id === input.sourceFleet.id)
+  const reservedThirtyAction = input.thirtyStrengthSelections[0]
   Assert.isDefined(sourceAfterThirtyRace)
   Assert.isDefined(reservedThirtyAction)
   expect(sourceAfterThirtyRace.strength).toBe(50)
   expect(sourceAfterThirtyRace.strength - 30).toBe(20)
 
-  const selectedThirtyAction = thirtyStrengthSelections[0]
+  const selectedThirtyAction = input.thirtyStrengthSelections[0]
   Assert.isDefined(selectedThirtyAction)
 
-  await assertCancelReplaceResults({ player, strengthGameId, playerView, selectedThirtyAction, moveThree, sourceFleet, destination })
-  const afterCancelReplace = await player.client.gameplay.getPlayerView.query({ gameId: strengthGameId })
-  const moveThreeAfterRace = afterCancelReplace.actions.find(({ id }) => id === moveThree.id)
+  await assertCancelReplaceResults({ ...input, selectedThirtyAction })
+  const afterCancelReplace = await input.player.client.gameplay.getPlayerView.query({ gameId: input.strengthGameId })
+  const moveThreeAfterRace = afterCancelReplace.actions.find(({ id }) => id === input.moveThree.id)
   Assert.isDefined(moveThreeAfterRace)
 
-  await assertPersistedCancelReplaceState({
-    moveThreeAfterRace,
-    afterCancelReplace,
-    sourceFleet,
-    destination,
-    player,
-    strengthGameId,
-    playerView,
-    moveThree,
-    moveOne,
-    moveTwo,
-  })
-  const beforeDeparture = await player.client.gameplay.getPlayerView.query({ gameId: strengthGameId })
-  const moveOneBeforeDeparture = beforeDeparture.actions.find(({ id }) => id === moveOne.id)
-  const moveTwoBeforeDeparture = beforeDeparture.actions.find(({ id }) => id === moveTwo.id)
+  await assertPersistedCancelReplaceState({ ...input, moveThreeAfterRace, afterCancelReplace })
+  const beforeDeparture = await input.player.client.gameplay.getPlayerView.query({ gameId: input.strengthGameId })
+  const moveOneBeforeDeparture = beforeDeparture.actions.find(({ id }) => id === input.moveOne.id)
+  const moveTwoBeforeDeparture = beforeDeparture.actions.find(({ id }) => id === input.moveTwo.id)
   Assert.isDefined(moveOneBeforeDeparture)
   Assert.isDefined(moveTwoBeforeDeparture)
   return { beforeDeparture, moveOneBeforeDeparture, moveTwoBeforeDeparture }

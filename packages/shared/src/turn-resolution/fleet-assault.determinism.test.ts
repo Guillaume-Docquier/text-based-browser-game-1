@@ -204,11 +204,11 @@ describe("Fleet Assault", () => {
   it("should reload the exact 5I/1F speed-two Attack Move until distance five arrives once", () => {
     // Arrange
 
-    const createTargetSetupPhase1Result = createTargetSetup()
-    const { firstJourney } = createTargetSetupPhase1Result
+    const targetSetup1 = createTargetSetup()
+    const { firstJourney } = targetSetup1
 
-    const createThirdSetupPhase2Result = createThirdSetup({ ...createTargetSetupPhase1Result })
-    const { third, fourth } = createThirdSetupPhase2Result
+    const thirdSetup2 = createThirdSetup({ ...targetSetup1 })
+    const { third, fourth } = thirdSetup2
     expect(third.value.resolvedContinuations[0]?.actionOutcomes.at(-1)).toMatchObject({
       type: "RESOLVED",
       result: expect.stringContaining("exchanged 20 Strength with 20 enemy Strength"),
@@ -363,23 +363,15 @@ function createTargetSetup(): CreateTargetSetupResult {
   return { target, attacker, defender, first, firstJourney, second, secondJourney }
 }
 
-function createThirdSetup({
-  second,
-  firstJourney,
-  first,
-  attacker,
-  secondJourney,
-  defender,
-  target,
-}: CreateThirdSetupInput): CreateThirdSetupResult {
+function createThirdSetup(input: CreateThirdSetupInput): CreateThirdSetupResult {
   const third = resolveTurn(
     createTurnStateStub({
       turn: 3,
-      players: second.value.players,
-      planets: second.value.planets,
+      players: input.second.value.players,
+      planets: input.second.value.planets,
       fleets: indexBy(
         "id",
-        Object.values(second.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
+        Object.values(input.second.value.fleets).map((fleetValue) => FleetSchema.parse(JSON.parse(JSON.stringify(fleetValue)))),
       ),
     }),
     SpeedTwoAttackMoveRuleset,
@@ -402,25 +394,29 @@ function createThirdSetup({
   Assert.isSuccess(fourth)
 
   // Assert
-  expect(firstJourney).toMatchObject({ strength: 30, distanceToEnd: 3, movement: { pendingArrivalEffects: [{ definitionOrdinal: 3 }] } })
-  expect(first.fleets[attacker.id]?.strength).toBe(20)
-  expect(first.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
-  expect(first.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
-  expect(first.resolvedContinuations).toHaveLength(0)
-  expect(secondJourney.distanceToEnd).toBe(1)
-  expect(second.value.fleets[defender.id]?.strength).toBe(20)
-  expect(second.value.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
-  expect(second.value.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
-  expect(second.value.resolvedContinuations).toHaveLength(1)
-  const secondContinuation = second.value.resolvedContinuations[0]
+  expect(input.firstJourney).toMatchObject({
+    strength: 30,
+    distanceToEnd: 3,
+    movement: { pendingArrivalEffects: [{ definitionOrdinal: 3 }] },
+  })
+  expect(input.first.fleets[input.attacker.id]?.strength).toBe(20)
+  expect(input.first.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
+  expect(input.first.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
+  expect(input.first.resolvedContinuations).toHaveLength(0)
+  expect(input.secondJourney.distanceToEnd).toBe(1)
+  expect(input.second.value.fleets[input.defender.id]?.strength).toBe(20)
+  expect(input.second.value.players[PLAYER_A]?.resources[ResourceType.INFLUENCE]).toBe(95)
+  expect(input.second.value.players[PLAYER_A]?.resources[ResourceType.FUEL]).toBe(99)
+  expect(input.second.value.resolvedContinuations).toHaveLength(1)
+  const secondContinuation = input.second.value.resolvedContinuations[0]
   Assert.isDefined(secondContinuation)
   const resolvedOutcomes = secondContinuation.actionOutcomes.filter(
     (outcome): outcome is Extract<EffectOutcome, { type: "RESOLVED" }> => outcome.type === "RESOLVED",
   )
   expect(resolvedOutcomes.find(({ result }) => result.includes("exchanged"))).toBeUndefined()
-  expect(third.value.fleets[defender.id]).toBeUndefined()
-  expect(third.value.fleets[firstJourney.id]).toMatchObject({ strength: 10, originPlanetId: target.id })
-  expect(third.value.fleets[attacker.id]?.strength).toBe(20)
+  expect(third.value.fleets[input.defender.id]).toBeUndefined()
+  expect(third.value.fleets[input.firstJourney.id]).toMatchObject({ strength: 10, originPlanetId: input.target.id })
+  expect(third.value.fleets[input.attacker.id]?.strength).toBe(20)
   expect(third.value.resolvedContinuations).toHaveLength(1)
   return { third, fourth }
 }

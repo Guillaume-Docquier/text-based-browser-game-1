@@ -22,63 +22,52 @@ import type { ResolvedTurnState } from "#shared/turn-resolution/ResolvedTurnStat
 import type { ResolutionFleet } from "#shared/turn-resolution/state/ResolutionFleet.ts"
 import { PLAYER_A, PLAYER_B, PLAYER_C, resolve, compareNormalizedOutcome, lastOutcome } from "./fleet-assault.test-support.ts"
 
-export function assertLastOutcome({
-  noDefender,
-  transitOnly,
-  noDefenderAttacker,
-  noDefenderBattle,
-  transitAttacker,
-  transitBattle,
-  departedSourceId,
-  transitEnemy,
-  transitOther,
-  transitSubmission,
-}: AssertLastOutcomeInput): void {
-  expect(lastOutcome(noDefender, PLAYER_A)).toMatchObject({
+export function assertLastOutcome(input: AssertLastOutcomeInput): void {
+  expect(lastOutcome(input.noDefender, PLAYER_A)).toMatchObject({
     type: "RESOLVED",
     result: expect.stringContaining("found no enemy Fleets"),
   })
-  expect(lastOutcome(transitOnly, PLAYER_A)).toMatchObject({
+  expect(lastOutcome(input.transitOnly, PLAYER_A)).toMatchObject({
     type: "RESOLVED",
     result: expect.stringContaining("found no enemy Fleets"),
   })
-  expect(noDefender.fleets[noDefenderAttacker.id]).toMatchObject({
-    id: noDefenderAttacker.id,
+  expect(input.noDefender.fleets[input.noDefenderAttacker.id]).toMatchObject({
+    id: input.noDefenderAttacker.id,
     ownerPlayerId: PLAYER_A,
-    name: noDefenderAttacker.name,
-    originPlanetId: noDefenderBattle.id,
+    name: input.noDefenderAttacker.name,
+    originPlanetId: input.noDefenderBattle.id,
     strength: 30,
   })
-  expect(noDefender.fleets[noDefenderAttacker.id]?.movement).toBeUndefined()
-  expect(transitOnly.fleets[transitAttacker.id]).toMatchObject({
-    id: transitAttacker.id,
+  expect(input.noDefender.fleets[input.noDefenderAttacker.id]?.movement).toBeUndefined()
+  expect(input.transitOnly.fleets[input.transitAttacker.id]).toMatchObject({
+    id: input.transitAttacker.id,
     ownerPlayerId: PLAYER_A,
-    name: transitAttacker.name,
-    originPlanetId: transitBattle.id,
+    name: input.transitAttacker.name,
+    originPlanetId: input.transitBattle.id,
     strength: 30,
   })
-  expect(transitOnly.fleets[transitAttacker.id]?.movement).toBeUndefined()
-  expect(Object.values(transitOnly.fleets).some(({ id }) => id === departedSourceId)).toBe(false)
-  expect(transitOnly.fleets[transitEnemy.id]).toMatchObject({
-    id: transitEnemy.id,
+  expect(input.transitOnly.fleets[input.transitAttacker.id]?.movement).toBeUndefined()
+  expect(Object.values(input.transitOnly.fleets).some(({ id }) => id === input.departedSourceId)).toBe(false)
+  expect(input.transitOnly.fleets[input.transitEnemy.id]).toMatchObject({
+    id: input.transitEnemy.id,
     ownerPlayerId: PLAYER_B,
-    name: transitEnemy.name,
-    originPlanetId: transitBattle.id,
-    destinationPlanetId: transitOther.id,
+    name: input.transitEnemy.name,
+    originPlanetId: input.transitBattle.id,
+    destinationPlanetId: input.transitOther.id,
     distanceToEnd: 2,
     strength: 20,
     movement: {
       speed: 1,
       departureTurn: 1,
-      submission: transitSubmission,
+      submission: input.transitSubmission,
       pendingArrivalEffects: [],
     },
   })
-  expect(noDefender.planets[noDefenderBattle.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(transitOnly.planets[transitBattle.id]?.ownerPlayerId).toBe(PLAYER_A)
-  expect(transitOnly.planets[transitOther.id]?.ownerPlayerId).toBe(PLAYER_B)
-  expect(noDefender.removedFleetIds).toStrictEqual([])
-  expect(transitOnly.removedFleetIds).toStrictEqual([])
+  expect(input.noDefender.planets[input.noDefenderBattle.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(input.transitOnly.planets[input.transitBattle.id]?.ownerPlayerId).toBe(PLAYER_A)
+  expect(input.transitOnly.planets[input.transitOther.id]?.ownerPlayerId).toBe(PLAYER_B)
+  expect(input.noDefender.removedFleetIds).toStrictEqual([])
+  expect(input.transitOnly.removedFleetIds).toStrictEqual([])
 }
 
 export type AssertLastOutcomeInput = {
@@ -94,30 +83,34 @@ export type AssertLastOutcomeInput = {
   transitSubmission: ReturnType<typeof createSubmittedActionStub>
 }
 
-export function assertSurvivor({ survivor, fixture, permutedSurvivor, permuted, permutedFixture, result }: AssertSurvivorInput): void {
-  expect(survivor).toMatchObject({
+export function assertSurvivor(input: AssertSurvivorInput): void {
+  expect(input.survivor).toMatchObject({
     ownerPlayerId: PLAYER_A,
-    name: fixture.earlierTwenty.name,
+    name: input.fixture.earlierTwenty.name,
     strength: 25,
-    originPlanetId: fixture.target.id,
+    originPlanetId: input.fixture.target.id,
   })
-  expect(survivor.movement).toBeUndefined()
-  expect(permutedSurvivor).toMatchObject({
-    id: survivor.id,
+  expect(input.survivor.movement).toBeUndefined()
+  expect(input.permutedSurvivor).toMatchObject({
+    id: input.survivor.id,
     ownerPlayerId: PLAYER_A,
-    name: fixture.earlierTwenty.name,
+    name: input.fixture.earlierTwenty.name,
     strength: 25,
-    originPlanetId: fixture.target.id,
+    originPlanetId: input.fixture.target.id,
   })
-  expect(permutedSurvivor.movement).toBeUndefined()
-  expect(permuted.fleets[permutedFixture.defender.id]).toBeUndefined()
-  expect(permuted.removedFleetIds).toHaveLength(4)
-  expect(permuted.removedFleetIds).toStrictEqual(
-    expect.arrayContaining([permutedFixture.earlierTwenty.id, permutedFixture.laterFifteen.id, permutedFixture.defender.id]),
+  expect(input.permutedSurvivor.movement).toBeUndefined()
+  expect(input.permuted.fleets[input.permutedFixture.defender.id]).toBeUndefined()
+  expect(input.permuted.removedFleetIds).toHaveLength(4)
+  expect(input.permuted.removedFleetIds).toStrictEqual(
+    expect.arrayContaining([
+      input.permutedFixture.earlierTwenty.id,
+      input.permutedFixture.laterFifteen.id,
+      input.permutedFixture.defender.id,
+    ]),
   )
-  expect(permuted.removedFleetIds).toStrictEqual(result.removedFleetIds)
-  expect(Object.values(permuted.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id))).toStrictEqual(
-    Object.values(result.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
+  expect(input.permuted.removedFleetIds).toStrictEqual(input.result.removedFleetIds)
+  expect(Object.values(input.permuted.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id))).toStrictEqual(
+    Object.values(input.result.fleets).toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
   )
 }
 
@@ -170,49 +163,35 @@ export type AssertSurvivorInput = {
   result: ResolvedTurnState
 }
 
-export function assertAttackerA({
-  attackerA,
-  battle,
-  attackerB,
-  planets,
-  fleets,
-  forwardSubmissions,
-  actionPool,
-  reversedSubmissions,
-  defenderC,
-  aliceBuildB,
-  aliceBuildA,
-  bobBuildB,
-  bobBuildA,
-}: AssertAttackerAInput): void {
-  expect(attackerA).toMatchObject({ strength: 30, ownerPlayerId: PLAYER_A, originPlanetId: battle.id })
-  expect(attackerB).toMatchObject({ strength: 20, ownerPlayerId: PLAYER_B, originPlanetId: battle.id })
+export function assertAttackerA(input: AssertAttackerAInput): void {
+  expect(input.attackerA).toMatchObject({ strength: 30, ownerPlayerId: PLAYER_A, originPlanetId: input.battle.id })
+  expect(input.attackerB).toMatchObject({ strength: 20, ownerPlayerId: PLAYER_B, originPlanetId: input.battle.id })
 
   // Act
   const forward = resolvePermutation({
-    orderedPlanets: planets,
-    orderedFleets: fleets,
-    orderedSubmissions: forwardSubmissions,
-    orderedActionPool: actionPool,
+    orderedPlanets: input.planets,
+    orderedFleets: input.fleets,
+    orderedSubmissions: input.forwardSubmissions,
+    orderedActionPool: input.actionPool,
   })
   const reversed = resolvePermutation({
-    orderedPlanets: planets.toReversed(),
-    orderedFleets: fleets.toReversed(),
-    orderedSubmissions: reversedSubmissions,
-    orderedActionPool: actionPool.toReversed(),
+    orderedPlanets: input.planets.toReversed(),
+    orderedFleets: input.fleets.toReversed(),
+    orderedSubmissions: input.reversedSubmissions,
+    orderedActionPool: input.actionPool.toReversed(),
   })
 
   // Assert
   for (const { resolved, rng } of [forward, reversed]) {
-    expect(resolved.fleets[attackerA.id]).toMatchObject({ strength: 10, originPlanetId: battle.id, name: attackerA.name })
-    expect(resolved.fleets[attackerB.id]).toBeUndefined()
-    expect(resolved.fleets[defenderC.id]).toBeUndefined()
-    expect(resolved.planets[battle.id]?.ownerPlayerId).toBe(PLAYER_C)
+    expect(resolved.fleets[input.attackerA.id]).toMatchObject({ strength: 10, originPlanetId: input.battle.id, name: input.attackerA.name })
+    expect(resolved.fleets[input.attackerB.id]).toBeUndefined()
+    expect(resolved.fleets[input.defenderC.id]).toBeUndefined()
+    expect(resolved.planets[input.battle.id]?.ownerPlayerId).toBe(PLAYER_C)
     const expectedBuilds = [
-      [aliceBuildB.id, "fleet 74220"],
-      [aliceBuildA.id, "fleet 703708"],
-      [bobBuildB.id, "fleet 902953"],
-      [bobBuildA.id, "fleet 970578"],
+      [input.aliceBuildB.id, "fleet 74220"],
+      [input.aliceBuildA.id, "fleet 703708"],
+      [input.bobBuildB.id, "fleet 902953"],
+      [input.bobBuildA.id, "fleet 970578"],
     ] as const
     for (const [planetId, expectedName] of expectedBuilds) {
       const builtFleet = Object.values(resolved.fleets).find(({ originPlanetId }) => originPlanetId === planetId)
@@ -270,45 +249,40 @@ export type AssertAttackerAInput = {
   bobBuildA: ReturnType<typeof createPlanetStub>
 }
 
-function resolvePermutation({
-  orderedPlanets,
-  orderedFleets,
-  orderedSubmissions,
-  orderedActionPool,
-}: {
+function resolvePermutation(input: {
   orderedPlanets: Planet[]
   orderedFleets: Fleet[]
   orderedSubmissions: Array<ReturnType<typeof createSubmittedActionStub>>
   orderedActionPool: ReturnType<typeof Ruleset.create>["actionPool"]
 }): { resolved: ResolvedTurnState; rng: ReturnType<typeof createSeededRng> } {
-  const ruleset = Ruleset.create({ ...TestRuleset, actionPool: orderedActionPool })
+  const ruleset = Ruleset.create({ ...TestRuleset, actionPool: input.orderedActionPool })
   const rng = createSeededRng(1234)
   const resolved = resolve({
-    planets: structuredClone(orderedPlanets),
-    fleets: structuredClone(orderedFleets),
-    submissions: orderedSubmissions,
+    planets: structuredClone(input.orderedPlanets),
+    fleets: structuredClone(input.orderedFleets),
+    submissions: input.orderedSubmissions,
     rng,
     ruleset,
   })
   return { resolved, rng }
 }
 
-function normalize({ resolved, rng }: ReturnType<typeof resolvePermutation>): object {
+function normalize(input: ReturnType<typeof resolvePermutation>): object {
   return {
-    fleets: Object.values(resolved.fleets)
+    fleets: Object.values(input.resolved.fleets)
       .map(({ id, name, ownerPlayerId, strength, originPlanetId }) => ({ id, name, ownerPlayerId, strength, originPlanetId }))
       .toSorted((first, second) => compareOrdinalStrings(first.id, second.id)),
-    resources: Object.entries(resolved.players)
+    resources: Object.entries(input.resolved.players)
       .map(([playerId, player]) => ({ playerId, ...player.resources }))
       .toSorted((first, second) => compareOrdinalStrings(first.playerId, second.playerId)),
-    outcomes: resolved.resolvedActions
+    outcomes: input.resolved.resolvedActions
       .map(({ submittedAction, actionOutcomes }) => ({
         playerId: submittedAction.playerId,
         actionId: submittedAction.id,
         outcomes: actionOutcomes,
       }))
       .toSorted(compareNormalizedOutcome),
-    removedFleetIds: resolved.removedFleetIds.toSorted(compareOrdinalStrings),
-    rngState: rng.getState(),
+    removedFleetIds: input.resolved.removedFleetIds.toSorted(compareOrdinalStrings),
+    rngState: input.rng.getState(),
   }
 }

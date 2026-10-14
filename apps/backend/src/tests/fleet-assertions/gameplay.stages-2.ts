@@ -14,53 +14,24 @@ import type { reverseWorkerInputEnumeration as CapturedreverseWorkerInputEnumera
 import { findStationaryFleetAt } from "../fleet-concurrency/gameplay.ts"
 import { assertPersistedAlice } from "./gameplay.ts"
 
-export async function createPersistedAliceSetup({
-  views,
-  priorityTurn,
-  findPlanetOwner,
-  target,
-  alicePlayerId,
-  bobPlayerId,
-  stagedAlice,
-  bobArrival,
-  movingStrength,
-  homeB,
-  bobHomeRemainderStrengths,
-  aliceColonizeActionId,
-  bobColonizeActionId,
-  server,
-  gameId,
-  capturedInput,
-}: CreatePersistedAliceSetupInput): Promise<CreatePersistedAliceSetupResult> {
-  expect(views.map(({ turn }) => turn)).toStrictEqual([priorityTurn + 1, priorityTurn + 1])
-  for (const view of views) {
-    expect(findPlanetOwner(view, target.id)).toBe(alicePlayerId)
+export async function createPersistedAliceSetup(input: CreatePersistedAliceSetupInput): Promise<CreatePersistedAliceSetupResult> {
+  expect(input.views.map(({ turn }) => turn)).toStrictEqual([input.priorityTurn + 1, input.priorityTurn + 1])
+  for (const view of input.views) {
+    expect(input.findPlanetOwner(view, input.target.id)).toBe(input.alicePlayerId)
     expect(view.resources[ResourceType.COLONY]).toStrictEqual({ total: 0, uncommitted: 0 })
   }
-  const persistedAlice = findStationaryFleetAt(views[0], alicePlayerId, target.id)
-  const persistedBob = findStationaryFleetAt(views[1], bobPlayerId, target.id)
+  const persistedAlice = findStationaryFleetAt(input.views[0], input.alicePlayerId, input.target.id)
+  const persistedBob = findStationaryFleetAt(input.views[1], input.bobPlayerId, input.target.id)
   Assert.isDefined(persistedAlice)
   Assert.isDefined(persistedBob)
 
-  assertPersistedAlice({
-    persistedAlice,
-    stagedAlice,
-    persistedBob,
-    bobArrival,
-    movingStrength,
-    views,
-    homeB,
-    bobHomeRemainderStrengths,
-    bobPlayerId,
-    aliceColonizeActionId,
-    bobColonizeActionId,
-  })
+  assertPersistedAlice({ ...input, persistedAlice, persistedBob })
 
-  const savedTurns = await server.database.select().from(turnsTable).where(eq(turnsTable.gameId, gameId))
-  const savedNextTurn = savedTurns.find(({ turn }) => turn === priorityTurn + 1)
+  const savedTurns = await input.server.database.select().from(turnsTable).where(eq(turnsTable.gameId, input.gameId))
+  const savedNextTurn = savedTurns.find(({ turn }) => turn === input.priorityTurn + 1)
   Assert.isDefined(savedNextTurn)
 
-  const assertPersistedNextRngStatePhase6CapturedInput = capturedInput
+  const assertPersistedNextRngStatePhase6CapturedInput = input.capturedInput
   return { persistedAlice, persistedBob, savedNextTurn, assertPersistedNextRngStatePhase6CapturedInput }
 }
 

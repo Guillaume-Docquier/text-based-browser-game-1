@@ -13,58 +13,49 @@ import type { createFleetStub } from "#shared/domain/world/fleets/Fleet.stub.ts"
 import type { FleetId } from "#shared/domain/world/fleets/FleetId.ts"
 import type { PlanetId } from "#shared/domain/world/planets/PlanetId.ts"
 
-export function assertMoveReplacement({
-  moveReplacement,
-  fixture,
-  eitherUpdateOrder,
-  reversedUpdateOrder,
-  overcommittedMove,
-  cancelMove,
-  cancelColonize,
-  replaceColonizeSource,
-}: AssertMoveReplacementInput): void {
-  expect(moveReplacement.status).toBe("ELIGIBLE")
-  expect(moveReplacement.strengthCommitments[fixture.fleetId]).toBe(34)
-  expect(moveReplacement.remainingStrength[fixture.fleetId]).toBe(1)
-  expect(moveReplacement.resourceCommitments).toStrictEqual({
+export function assertMoveReplacement(input: AssertMoveReplacementInput): void {
+  expect(input.moveReplacement.status).toBe("ELIGIBLE")
+  expect(input.moveReplacement.strengthCommitments[input.fixture.fleetId]).toBe(34)
+  expect(input.moveReplacement.remainingStrength[input.fixture.fleetId]).toBe(1)
+  expect(input.moveReplacement.resourceCommitments).toStrictEqual({
     [ResourceType.INFLUENCE]: 28,
     [ResourceType.METAL]: 0,
     [ResourceType.FUEL]: 1,
     [ResourceType.ENERGY]: 0,
     [ResourceType.COLONY]: 0,
   })
-  expect(eitherUpdateOrder.status).toBe("ELIGIBLE")
-  expect(reversedUpdateOrder.status).toBe("ELIGIBLE")
-  expect(eitherUpdateOrder.strengthCommitments[fixture.fleetId]).toBe(35)
-  expect(reversedUpdateOrder.strengthCommitments[fixture.fleetId]).toBe(35)
-  expect(eitherUpdateOrder.resourceCommitments).toStrictEqual(reversedUpdateOrder.resourceCommitments)
-  expect(overcommittedMove.status).toBe("INELIGIBLE")
-  expect(overcommittedMove.strengthCommitments[fixture.fleetId]).toBe(36)
-  expect(overcommittedMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(28)
-  expect(overcommittedMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
-  expect(cancelMove.strengthCommitments[fixture.fleetId]).toBe(20)
-  expect(cancelMove.remainingStrength[fixture.fleetId]).toBe(15)
-  expect(cancelMove.resourceCommitments).toStrictEqual({
+  expect(input.eitherUpdateOrder.status).toBe("ELIGIBLE")
+  expect(input.reversedUpdateOrder.status).toBe("ELIGIBLE")
+  expect(input.eitherUpdateOrder.strengthCommitments[input.fixture.fleetId]).toBe(35)
+  expect(input.reversedUpdateOrder.strengthCommitments[input.fixture.fleetId]).toBe(35)
+  expect(input.eitherUpdateOrder.resourceCommitments).toStrictEqual(input.reversedUpdateOrder.resourceCommitments)
+  expect(input.overcommittedMove.status).toBe("INELIGIBLE")
+  expect(input.overcommittedMove.strengthCommitments[input.fixture.fleetId]).toBe(36)
+  expect(input.overcommittedMove.resourceCommitments[ResourceType.INFLUENCE]).toBe(28)
+  expect(input.overcommittedMove.resourceCommitments[ResourceType.FUEL]).toBe(1)
+  expect(input.cancelMove.strengthCommitments[input.fixture.fleetId]).toBe(20)
+  expect(input.cancelMove.remainingStrength[input.fixture.fleetId]).toBe(15)
+  expect(input.cancelMove.resourceCommitments).toStrictEqual({
     [ResourceType.INFLUENCE]: 25,
     [ResourceType.METAL]: 0,
     [ResourceType.FUEL]: 0,
     [ResourceType.ENERGY]: 0,
     [ResourceType.COLONY]: 0,
   })
-  expect(cancelColonize.strengthCommitments[fixture.fleetId]).toBe(15)
-  expect(cancelColonize.remainingStrength[fixture.fleetId]).toBe(20)
-  expect(cancelColonize.resourceCommitments).toStrictEqual({
+  expect(input.cancelColonize.strengthCommitments[input.fixture.fleetId]).toBe(15)
+  expect(input.cancelColonize.remainingStrength[input.fixture.fleetId]).toBe(20)
+  expect(input.cancelColonize.resourceCommitments).toStrictEqual({
     [ResourceType.INFLUENCE]: 3,
     [ResourceType.METAL]: 0,
     [ResourceType.FUEL]: 1,
     [ResourceType.ENERGY]: 0,
     [ResourceType.COLONY]: 0,
   })
-  expect(replaceColonizeSource.strengthCommitments[fixture.fleetId]).toBe(15)
-  expect(replaceColonizeSource.remainingStrength[fixture.fleetId]).toBe(20)
-  expect(replaceColonizeSource.strengthCommitments[fixture.secondFleetId]).toBe(20)
-  expect(replaceColonizeSource.remainingStrength[fixture.secondFleetId]).toBe(10)
-  expect(replaceColonizeSource.resourceCommitments).toStrictEqual({
+  expect(input.replaceColonizeSource.strengthCommitments[input.fixture.fleetId]).toBe(15)
+  expect(input.replaceColonizeSource.remainingStrength[input.fixture.fleetId]).toBe(20)
+  expect(input.replaceColonizeSource.strengthCommitments[input.fixture.secondFleetId]).toBe(20)
+  expect(input.replaceColonizeSource.remainingStrength[input.fixture.secondFleetId]).toBe(10)
+  expect(input.replaceColonizeSource.resourceCommitments).toStrictEqual({
     [ResourceType.INFLUENCE]: 28,
     [ResourceType.METAL]: 0,
     [ResourceType.FUEL]: 1,

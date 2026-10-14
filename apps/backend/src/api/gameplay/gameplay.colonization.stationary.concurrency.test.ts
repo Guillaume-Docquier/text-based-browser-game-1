@@ -70,13 +70,13 @@ describe("public Colonization worker companions", () => {
 
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createPlayerSetupPhase1Result = await createPlayerSetup({ server })
+    const playerSetup1 = await createPlayerSetup({ server })
 
-    const createMoveFixtureSetupPhase2Result = await createMoveFixtureSetup({ ...createPlayerSetupPhase1Result, server })
+    const moveFixtureSetup2 = await createMoveFixtureSetup({ ...playerSetup1, server })
 
-    const createMoveDestinationSetupPhase3Result = await createMoveDestinationSetup({ ...createMoveFixtureSetupPhase2Result, server })
+    const moveDestinationSetup3 = await createMoveDestinationSetup({ ...moveFixtureSetup2, server })
 
-    await assertReplayedMovedFive({ ...createMoveFixtureSetupPhase2Result, ...createMoveDestinationSetupPhase3Result })
+    await assertReplayedMovedFive({ ...moveFixtureSetup2, ...moveDestinationSetup3 })
   })
 
   it("should resolve the renamed Seed Outpost content using its public tags and exact costs", async () => {
@@ -138,9 +138,9 @@ describe("public Colonization worker companions", () => {
   it("should claim a stationary public Seed Outpost with exactly30 Strength after worker arrival", async () => {
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createPlayerSetupPhase4Result = await createPlayerSetup2({ server })
-    const { player, gameId, clock, turnProcessor, turnsRepository, home, target, routeDistance } = createPlayerSetupPhase4Result
-    let { view } = createPlayerSetupPhase4Result
+    const playerSetup4 = await createPlayerSetup2({ server })
+    const { player, gameId, clock, turnProcessor, turnsRepository, home, target, routeDistance } = playerSetup4
+    let { view } = playerSetup4
     view = await processTurn({ clock, turnsRepository, turnProcessor, client: player.client, gameId, turn: view.turn })
     const homeFleet = getFleetAt(view, view.player.id, home.id, 30)
     const stageAction = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === PublicBudgetStageFleet.id)
@@ -165,8 +165,8 @@ describe("public Colonization worker companions", () => {
     })
     view = required(staged.views[0])
 
-    const createArrivalSetupPhase5Result = await createArrivalSetup({ ...createPlayerSetupPhase4Result, staged, view, server })
-    const { arrival, workerInput, replay, updatedAssertFindPlayerAction } = createArrivalSetupPhase5Result
+    const arrivalSetup5 = await createArrivalSetup({ ...playerSetup4, staged, view, server })
+    const { arrival, workerInput, replay, updatedAssertFindPlayerAction } = arrivalSetup5
     view = updatedAssertFindPlayerAction.view
 
     const savedTurns = await server.database
@@ -198,27 +198,19 @@ describe("public Colonization worker companions", () => {
   it("should let the later surviving public claimant succeed after a third-owner Assault weakens the earlier force", async () => {
     await using server = await ConcurrencyTestApiServer.create()
 
-    const createCreateClockSetupPhase6ResultSetupPhase1Result = await createCreateClockSetupResultSetup({ server })
-    const {
-      createClockSetupPhase6Result,
-      clients,
-      gameId,
-      turnProcessor,
-      homeIdsByPlayer,
-      target,
-      createStagedAliceJourneyIdSetupPhase7Result,
-    } = createCreateClockSetupPhase6ResultSetupPhase1Result
-    let { views } = createCreateClockSetupPhase6ResultSetupPhase1Result
+    const clockScenario1 = await prepareClockScenario({ server })
+    const { clockSetup6, clients, gameId, turnProcessor, homeIdsByPlayer, target, stagedAliceJourneyIdSetup7 } = clockScenario1
+    let { views } = clockScenario1
 
-    const createStagedAliceSetupPhase8Result = await createStagedAliceSetup({
-      ...createCreateClockSetupPhase6ResultSetupPhase1Result,
-      ...createClockSetupPhase6Result,
-      ...createStagedAliceJourneyIdSetupPhase7Result,
+    const stagedAliceSetup8 = await createStagedAliceSetup({
+      ...clockScenario1,
+      ...clockSetup6,
+      ...stagedAliceJourneyIdSetup7,
       server,
       views,
     })
-    const { stagedAlice, stagedCarol } = createStagedAliceSetupPhase8Result
-    let { bobDeparture } = createStagedAliceSetupPhase8Result
+    const { stagedAlice, stagedCarol } = stagedAliceSetup8
+    let { bobDeparture } = stagedAliceSetup8
     views = bobDeparture.views
     const movingBob = required(views[1]).fleets.find((fleet) =>
       matchesPublicFleet(fleet, { ownerPlayerId: required(homeIdsByPlayer[1]), destinationPlanetId: target.id }),
@@ -227,8 +219,8 @@ describe("public Colonization worker companions", () => {
     const movingBobId = movingBob.id
 
     const updatedVerifyMovingBob = await verifyMovingBob({
-      ...createClockSetupPhase6Result,
-      ...createStagedAliceSetupPhase8Result,
+      ...clockSetup6,
+      ...stagedAliceSetup8,
       movingBob,
       server,
       views,
@@ -237,14 +229,14 @@ describe("public Colonization worker companions", () => {
     bobDeparture = updatedVerifyMovingBob.bobDeparture
     views = updatedVerifyMovingBob.views
 
-    const createReadyViewsSetupPhase9Result = await createReadyViewsSetup({
-      ...createClockSetupPhase6Result,
-      ...createStagedAliceSetupPhase8Result,
+    const readyViewsSetup9 = await createReadyViewsSetup({
+      ...clockSetup6,
+      ...stagedAliceSetup8,
       views,
       movingBobId,
       server,
     })
-    const { readyViews, bobJourney, publicReplay } = createReadyViewsSetupPhase9Result
+    const { readyViews, bobJourney, publicReplay } = readyViewsSetup9
     const ownerByFleet = [stagedAlice.id, stagedCarol.id, bobJourney.id].map((fleetId) => {
       const fleet = publicReplay.value.fleets[fleetId]
       return { ownerPlayerId: fleet?.ownerPlayerId, strength: fleet?.strength }
@@ -272,9 +264,9 @@ describe("public Colonization worker companions", () => {
     Assert.isDefined(savedNextTurn)
 
     assertPersistedNextRngStateValue1({
-      ...createCreateClockSetupPhase6ResultSetupPhase1Result,
-      ...createClockSetupPhase6Result,
-      ...createReadyViewsSetupPhase9Result,
+      ...clockScenario1,
+      ...clockSetup6,
+      ...readyViewsSetup9,
       savedNextTurn,
       ownerByFleet,
       views,
@@ -349,36 +341,10 @@ async function verifyMovingBob({
   return { bobDeparture, views }
 }
 
-function assertPersistedNextRngStateValue1({
-  publicReplay,
-  savedNextTurn,
-  finalTurnInput,
-  gameId,
-  target,
-  homes,
-  distances,
-  bobJourney,
-  finalReplay,
-  ownerByFleet,
-  views,
-  homeIdsByPlayer,
-}: AssertPersistedNextRngStateValue1Input): void {
-  const assertPersistedNextRngStatePhase12Value1 = publicReplay.value
+function assertPersistedNextRngStateValue1(input: AssertPersistedNextRngStateValue1Input): void {
+  const assertPersistedNextRngStatePhase12Value1 = input.publicReplay.value
 
-  assertPersistedNextRngState({
-    savedNextTurn,
-    finalTurnInput,
-    gameId,
-    target,
-    homes,
-    distances,
-    bobJourney,
-    assertPersistedNextRngStatePhase12Value1,
-    finalReplay,
-    ownerByFleet,
-    views,
-    homeIdsByPlayer,
-  })
+  assertPersistedNextRngState({ ...input, assertPersistedNextRngStatePhase12Value1 })
 }
 
 type VerifyUpdatedVerifyDistancesInput = {
@@ -437,20 +403,18 @@ type AssertPersistedNextRngStateValue1Input = {
   homeIdsByPlayer: PlayerId[]
 }
 
-async function createCreateClockSetupResultSetup({
-  server,
-}: CreateCreateClockSetupResultSetupInput): Promise<CreateCreateClockSetupResultSetupResult> {
-  const createClockSetupPhase6Result = await createClockSetup({ server })
-  const { clock, clients, gameId, turnProcessor, turnsRepository, homes, homeIdsByPlayer, target } = createClockSetupPhase6Result
-  let { views } = createClockSetupPhase6Result
+async function prepareClockScenario(input: PrepareClockScenarioInput): Promise<PrepareClockScenarioResult> {
+  const clockSetup6 = await createClockSetup({ server: input.server })
+  const { clock, clients, gameId, turnProcessor, turnsRepository, homes, homeIdsByPlayer, target } = clockSetup6
+  let { views } = clockSetup6
 
   const distances = homes.map((home) => Math.hypot(home.x - target.x, home.y - target.y))
 
-  const updatedVerifyUpdatedVerifyDistances = await verifyUpdatedVerifyDistances({ ...createClockSetupPhase6Result, distances })
+  const updatedVerifyUpdatedVerifyDistances = await verifyUpdatedVerifyDistances({ ...clockSetup6, distances })
   views = updatedVerifyUpdatedVerifyDistances.views
 
   let stage = await processTurnWithReplay({
-    server,
+    server: input.server,
     clock,
     turnsRepository,
     turnProcessor,
@@ -460,17 +424,17 @@ async function createCreateClockSetupResultSetup({
   })
   views = stage.views
 
-  const createStagedAliceJourneyIdSetupPhase7Result = await createStagedAliceJourneyIdSetup({
-    ...createClockSetupPhase6Result,
+  const stagedAliceJourneyIdSetup7 = await createStagedAliceJourneyIdSetup({
+    ...clockSetup6,
     views,
     stage,
-    server,
+    server: input.server,
   })
-  const { updatedVerifyPublicState } = createStagedAliceJourneyIdSetupPhase7Result
+  const { updatedVerifyPublicState } = stagedAliceJourneyIdSetup7
   stage = updatedVerifyPublicState.stage
   views = updatedVerifyPublicState.views
   return {
-    createClockSetupPhase6Result,
+    clockSetup6,
     clients,
     gameId,
     turnProcessor,
@@ -478,14 +442,14 @@ async function createCreateClockSetupResultSetup({
     target,
     views,
     distances,
-    createStagedAliceJourneyIdSetupPhase7Result,
+    stagedAliceJourneyIdSetup7,
   }
 }
 
-type CreateCreateClockSetupResultSetupInput = { server: ConcurrencyTestApiServer }
+type PrepareClockScenarioInput = { server: ConcurrencyTestApiServer }
 
-type CreateCreateClockSetupResultSetupResult = {
-  createClockSetupPhase6Result: Awaited<ReturnType<typeof CapturedcreateClockSetup>>
+type PrepareClockScenarioResult = {
+  clockSetup6: Awaited<ReturnType<typeof CapturedcreateClockSetup>>
   clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
   gameId: GameId
   turnProcessor: TurnProcessor
@@ -493,5 +457,5 @@ type CreateCreateClockSetupResultSetupResult = {
   target: Planet
   views: PlayerView[]
   distances: number[]
-  createStagedAliceJourneyIdSetupPhase7Result: Awaited<ReturnType<typeof CapturedcreateStagedAliceJourneyIdSetup>>
+  stagedAliceJourneyIdSetup7: Awaited<ReturnType<typeof CapturedcreateStagedAliceJourneyIdSetup>>
 }
