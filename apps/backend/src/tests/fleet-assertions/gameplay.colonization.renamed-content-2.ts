@@ -3,7 +3,6 @@ import { TurnStatus } from "shared/domain/turns/TurnStatus.ts"
 import { expect } from "vitest"
 import type { PlayerView, Planet, Fleet, Action } from "#api/types.ts"
 import type { AuthenticatedApiClient } from "#tests/ApiClient.ts"
-import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
 import { logReceipt, required, findPublicFleet } from "../colonization/gameplay.colonization.ts"
 import type { AssertScenarioState2Input } from "./gameplay.colonization.renamed-content.ts"
 
@@ -36,18 +35,15 @@ export async function assertLockedView(input: AssertLockedViewInput): Promise<vo
       selectedInputs: null,
     },
   ])
-  const completedTurnObservations = [TurnStatus.AWAITING_PROCESSING, TurnStatus.PROCESSING].map((turnStatus) => ({
+  const completedTurnObservation = {
     turn: input.selectedView.turn + 1,
-    turnStatus,
+    turnStatus: TurnStatus.COLLECTING_ACTIONS,
     isReady: false,
     closureSubmissionStatus: input.closureSubmissionStatus,
     selectedTargets: null,
     selectedInputs: null,
-  }))
-  expect([...inFlightTurnObservations, ...completedTurnObservations]).toContainEqual(lockedObservation)
-
-  const processingOutcome = await input.turnProcessor.processNextDueTurn()
-  expect(["processed", "idle"]).toContain(processingOutcome)
+  }
+  expect([...inFlightTurnObservations, completedTurnObservation]).toContainEqual(lockedObservation)
 }
 
 export type AssertLockedViewInput = {
@@ -58,7 +54,6 @@ export type AssertLockedViewInput = {
   selectedView: PlayerView
   stationary: Fleet
   target: Planet
-  turnProcessor: TurnProcessor
 }
 
 export function assertRemainingAtTarget(input: AssertRemainingAtTargetInput): void {

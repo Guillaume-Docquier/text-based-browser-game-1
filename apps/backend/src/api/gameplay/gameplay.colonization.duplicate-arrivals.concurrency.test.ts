@@ -294,6 +294,8 @@ async function createClosureColonizeSetup(input: CreateClosureColonizeSetupInput
   expect(closureRace[2]?.status).toBe("fulfilled")
   const closureSubmissionStatus = required(closureRace[0]).status
 
+  // The API worker owns readiness closure; the setup clock is hours ahead of real time.
+  // Observe completion below without racing it with the manual setup worker.
   await assertLockedView({ ...input, closureColonize, closureSubmissionStatus })
 
   let completedView = await input.alice.client.gameplay.getPlayerView.query({ gameId: input.gameId })
@@ -393,7 +395,6 @@ type CreateClosureColonizeSetupInput = {
   stationary: Fleet
   target: Planet
   bob: AuthenticatedApiClient
-  turnProcessor: TurnProcessor
 }
 
 type CreateClosureColonizeSetupResult = {
