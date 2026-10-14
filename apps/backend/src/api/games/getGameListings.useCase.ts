@@ -3,7 +3,6 @@ import type { AccountId } from "shared/domain/accounts/AccountId.ts"
 import type { GameListingDto } from "./GameListingDto.ts"
 import type { GamesRepository } from "./games.repository.ts"
 import type { GetGameListingsError } from "./getGameListings.error.ts"
-import type { GetGameListingsQuery } from "./getGameListings.query.ts"
 
 /**
  * Gets all game listings, including whether the requesting account has joined.
@@ -20,10 +19,7 @@ export class GetGameListingsUseCase {
   /**
    * Returns a typed failure when listings cannot be loaded.
    */
-  public async execute(
-    _query: GetGameListingsQuery,
-    { accountId }: { accountId: AccountId | undefined },
-  ): Promise<Result<GameListingDto[], GetGameListingsError>> {
+  public async execute({ accountId }: { accountId: AccountId | undefined }): Promise<Result<GameListingDto[], GetGameListingsError>> {
     const getGameListingsResults = await this.gamesRepository.getGameListings({ accountId })
     if (Result.isFailure(getGameListingsResults)) {
       this.logger.error("Could not get game listings", { error: getGameListingsResults.error })

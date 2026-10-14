@@ -3,7 +3,6 @@ import { z } from "zod"
 import { MAX_NB_SEATS } from "./GameLimits.ts"
 import type { GamesRepository } from "./games.repository.ts"
 import type { GetGameCreationSettingsError } from "./getGameCreationSettings.error.ts"
-import type { GetGameCreationSettingsQuery } from "./getGameCreationSettings.query.ts"
 import { RulesetSummaryDtoSchema } from "./RulesetSummaryDto.ts"
 
 /**
@@ -18,7 +17,7 @@ export class GetGameCreationSettingsUseCase {
     this.gamesRepository = gamesRepository
   }
 
-  public async execute(_query: GetGameCreationSettingsQuery): Promise<Result<GameCreationSettingsDto, GetGameCreationSettingsError>> {
+  public async execute(): Promise<Result<GameCreationSettingsDto, GetGameCreationSettingsError>> {
     const gameCreationSettingsResult = await this.gamesRepository.getGameCreationSettings()
     if (Result.isFailure(gameCreationSettingsResult)) {
       this.logger.error("Could not get game creation settings", { error: gameCreationSettingsResult.error })

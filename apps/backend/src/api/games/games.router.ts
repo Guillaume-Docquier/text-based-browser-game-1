@@ -1,6 +1,6 @@
 import { type Logger, branded } from "@guillaume-docquier/tools-ts"
 import { z } from "zod"
-import { NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
+import { NO_INPUT, NO_OUTPUT, type Trpc, toTrpcOutput } from "#api/trpc.ts"
 import { CreateGameCommandSchema } from "./createGame.command.ts"
 import { CreateGameErrorResponses } from "./createGame.error.ts"
 import { CreatedGameDtoSchema, type CreateGameUseCase } from "./createGame.useCase.ts"
@@ -10,10 +10,8 @@ import { GetGameByIdErrorResponses } from "./getGameById.error.ts"
 import { GetGameByIdQuerySchema } from "./getGameById.query.ts"
 import type { GetGameByIdUseCase } from "./getGameById.useCase.ts"
 import { GetGameCreationSettingsErrorResponses } from "./getGameCreationSettings.error.ts"
-import { GetGameCreationSettingsQuerySchema } from "./getGameCreationSettings.query.ts"
 import { type GetGameCreationSettingsUseCase, GameCreationSettingsDtoSchema } from "./getGameCreationSettings.useCase.ts"
 import { GetGameListingsErrorResponses } from "./getGameListings.error.ts"
-import { GetGameListingsQuerySchema } from "./getGameListings.query.ts"
 import type { GetGameListingsUseCase } from "./getGameListings.useCase.ts"
 import { JoinGameCommandSchema } from "./joinGame.command.ts"
 import { JoinGameErrorResponses } from "./joinGame.error.ts"
@@ -52,11 +50,11 @@ export function createGamesRouter({
      * Use to browse games or find games the account has joined.
      */
     getListings: trpc.publicProcedure
-      .input(GetGameListingsQuerySchema)
+      .input(NO_INPUT)
       .output(z.array(GameListingDtoSchema))
       .query(
-        async ({ input, ctx: { account } }) =>
-          await toTrpcOutput(getGameListingsUseCase.execute(input, { accountId: account?.id }), GetGameListingsErrorResponses),
+        async ({ ctx: { account } }) =>
+          await toTrpcOutput(getGameListingsUseCase.execute({ accountId: account?.id }), GetGameListingsErrorResponses),
       ),
 
     /**
@@ -76,9 +74,9 @@ export function createGamesRouter({
      * Use to populate the game creation form before submitting a new lobby.
      */
     getCreationSettings: trpc.privateProcedure
-      .input(GetGameCreationSettingsQuerySchema)
+      .input(NO_INPUT)
       .output(GameCreationSettingsDtoSchema)
-      .query(async ({ input }) => await toTrpcOutput(getGameCreationSettingsUseCase.execute(input), GetGameCreationSettingsErrorResponses)),
+      .query(async () => await toTrpcOutput(getGameCreationSettingsUseCase.execute(), GetGameCreationSettingsErrorResponses)),
 
     /**
      * Creates a lobby with the supplied configuration and joins the authenticated account as its creator.

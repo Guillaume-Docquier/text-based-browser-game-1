@@ -36,9 +36,9 @@ Use cases can have access to a `tx` object through `createTransaction` but shoul
 ### Schema ownership and naming
 
 - Repositories never own Zod schemas. Repositories do not validate user input and should focus on persistence concerns.
-- Each use case owns its client input schema in a sibling `<useCase>.query.ts` or `<useCase>.command.ts` file. Queries read data; commands change state. Export `<UseCase>QuerySchema` / `<UseCase>CommandSchema` and infer the corresponding `<UseCase>Query` / `<UseCase>Command` type with `z.infer`.
-- The first `execute` argument is the parsed query or command. The second argument contains server-authoritative values such as authenticated `accountId` or membership-derived `playerId`; these values must not be part of the client input schema. Omit the second argument when no server values are needed.
-- Use `z.void()` for queries with no client input, keeping the first argument explicit without requiring an empty request object. Routers validate against the use case's schema directly.
+- Each use case with client input owns its schema in a sibling `<useCase>.query.ts` or `<useCase>.command.ts` file. Queries read data; commands change state. Export `<UseCase>QuerySchema` / `<UseCase>CommandSchema` and infer the corresponding `<UseCase>Query` / `<UseCase>Command` type with `z.infer`.
+- When client input is present, the first `execute` argument is the parsed query or command. The second argument contains server-authoritative values such as authenticated `accountId` or membership-derived `playerId`; these values must not be part of the client input schema. Omit the second argument when no server values are needed.
+- Queries and commands without client input use the explicit `NO_INPUT` schema in the router and have no dedicated Query/Command schema or ignored `execute` argument. Pass server-authoritative values as the only argument when needed; otherwise call `execute()` without arguments. Routers validate client input against the use case's schema directly when one exists.
 - Response schemas and reusable nested transport shapes retain the `Dto` suffix (for example: `StarSystemDto`). DTOs reused by multiple use cases live in dedicated DTO modules.
 
 Repository and database types should follow these naming conventions:
