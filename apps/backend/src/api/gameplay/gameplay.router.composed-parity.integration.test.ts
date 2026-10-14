@@ -666,39 +666,6 @@ async function verifyActionSelections({
   return { playerView }
 }
 
-async function verifyActionSelections2({
-  origin,
-  destination,
-  playerView,
-  player,
-  createdGameId,
-  clock,
-  turnProcessor,
-  turnsRepository,
-}: VerifyActionSelections2Input): Promise<VerifyActionSelections2Result> {
-  expect({ x: origin.x, y: origin.y }).toStrictEqual(FleetActionSelectionParity.origin)
-  expect({ x: destination.x, y: destination.y }).toStrictEqual(FleetActionSelectionParity.destination)
-
-  // Act
-  for (let buildCount = 0; buildCount < 5; buildCount += 1) {
-    const buildAction = playerView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-    Assert.isDefined(buildAction)
-    await player.client.gameplay.updateActionSubmission.mutate({
-      gameId: createdGameId,
-      turn: playerView.turn,
-      submittedActionTargets: createSubmittedActionTargetsDtoStub({
-        actionId: buildAction.id,
-        selectedTargets: { planet: origin.id },
-        selectedInputs: {},
-      }),
-    })
-    await processNextRouterTurn({ clock, turnProcessor, turnsRepository })
-    playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  }
-
-  return { playerView }
-}
-
 async function verifyPublicState({
   submitSelection,
   moveAction,
@@ -748,19 +715,6 @@ type VerifyActionSelectionsInput = {
 
 type VerifyActionSelectionsResult = { playerView: PlayerView }
 
-type VerifyActionSelections2Input = {
-  origin: Planet
-  destination: Planet
-  playerView: PlayerView
-  player: AuthenticatedApiClient
-  createdGameId: GameId
-  clock: ControlledClock
-  turnProcessor: TurnProcessor
-  turnsRepository: TurnsRepository
-}
-
-type VerifyActionSelections2Result = { playerView: PlayerView }
-
 type VerifyPublicStateInput = {
   submitSelection: (actionId: string, strength: number) => Promise<void>
   moveAction: Action
@@ -776,11 +730,14 @@ type VerifyPublicStateInput = {
   extraMoveAction: Action
 }
 
-async function createPlayerSetup({ apiServer, db, clock }: CreatePlayerSetupInput): Promise<CreatePlayerSetupResult> {
+async function createPlayerSetup(
+  { apiServer, db, clock }: CreatePlayerSetupInput,
+  rulesetId: typeof FleetActionParityRuleset.id = FleetActionParityRuleset.id,
+): Promise<CreatePlayerSetupResult> {
   const player = await apiServer.createClient({ authenticated: true })
   const { createdGameId } = await player.client.games.create.mutate({
     configuration: createGameConfigurationStub({
-      rulesetId: FleetActionParityRuleset.id,
+      rulesetId,
       mapGenerationSeed: 1234,
       turnIntervalSeconds: 10,
     }),
@@ -840,38 +797,10 @@ async function createSourceFleetSetupCase({
   return { sourceFleet, createSelectedViewSetupPhase2Result, selectedView }
 }
 
-async function createPlayerSetup2({ apiServer, db, clock }: CreatePlayerSetup2Input): Promise<CreatePlayerSetup2Result> {
-  const player = await apiServer.createClient({ authenticated: true })
-  const { createdGameId } = await player.client.games.create.mutate({
-    configuration: createGameConfigurationStub({
-      rulesetId: ComposedReservationRuleset.id,
-      mapGenerationSeed: 1234,
-      turnIntervalSeconds: 10,
-    }),
-  })
-  await player.client.games.startGame.mutate({ gameId: createdGameId })
-  const { turnProcessor, turnsRepository } = await createTurnProcessorStub({ db, clock })
-  let playerView = await player.client.gameplay.getPlayerView.query({ gameId: createdGameId })
-  const planets = playerView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-  const origin = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerView.player.id)
-  const destination = planets.find(({ coordinates }) => coordinates === "55:07:50")
-  Assert.isDefined(origin)
-  Assert.isDefined(destination)
-
-  const updatedVerifyActionSelections2 = await verifyActionSelections2({
-    origin,
-    destination,
-    playerView,
-    player,
-    createdGameId,
-    clock,
-    turnProcessor,
-    turnsRepository,
-  })
-  playerView = updatedVerifyActionSelections2.playerView
-
-  const sourceFleet = playerView.fleets.find(({ originPlanetId }) => originPlanetId === origin.id)
-  return { player, createdGameId, turnProcessor, turnsRepository, playerView, planets, origin, destination, sourceFleet }
+async function createPlayerSetup2(options: CreatePlayerSetup2Input): Promise<CreatePlayerSetup2Result> {
+  const fixture = await createPlayerSetup(options, ComposedReservationRuleset.id)
+  const sourceFleet = fixture.playerView.fleets.find(({ originPlanetId }) => originPlanetId === fixture.origin.id)
+  return { ...fixture, sourceFleet }
 }
 
 type CreatePlayerSetupInput = { apiServer: ApiServer; db: Database; clock: ControlledClock }

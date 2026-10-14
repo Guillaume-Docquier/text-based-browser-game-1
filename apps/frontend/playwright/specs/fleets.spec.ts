@@ -262,24 +262,15 @@ test("a moving fleet keeps its Action bound through continuation and releases it
     const fourStrengthFleet = fleetOptions.find((label) => label.endsWith("(4 strength)"))
     expect(sixStrengthFleet).toBeDefined()
     expect(fourStrengthFleet).toBeDefined()
-    if (sixStrengthFleet === undefined || fourStrengthFleet === undefined) {
-      throw new Error("The stationary remainder and arrived fleet were not both selectable")
-    }
+    Assert.isDefined(sixStrengthFleet)
+    Assert.isDefined(fourStrengthFleet)
 
     await actionsPage.chooseTarget("Fleet", sixStrengthFleet)
     await expect(actionsPage.targetPicker(actionName, actionTier, "Fleet")).toHaveValue(sixStrengthFleet)
-    let targetsFromOrigin: string[]
-    if (await actionsPage.isTargetPickerDisabled(actionName, actionTier, "Planet")) {
-      targetsFromOrigin = [await actionsPage.selectedTargetValue(actionName, actionTier, "Planet")]
-    } else {
-      expect(await actionsPage.openTargetPicker(actionName, actionTier, "Planet")).toBe(true)
-      targetsFromOrigin = await actionsPage.targetOptionLabels("Planet")
-    }
+    const targetsFromOrigin = await actionsPage.availableTargetLabels(actionName, actionTier, "Planet")
     const destinationTarget = targetsFromOrigin.find((label) => label.startsWith(`${destinationPlanetName} `))
     expect(destinationTarget).toBeDefined()
-    if (destinationTarget === undefined) {
-      throw new Error("The arrived planet was not a legal target for the stationary remainder")
-    }
+    Assert.isDefined(destinationTarget)
     if (!(await actionsPage.isTargetPickerDisabled(actionName, actionTier, "Planet"))) {
       await actionsPage.chooseTarget("Planet", destinationTarget)
     }
@@ -287,22 +278,13 @@ test("a moving fleet keeps its Action bound through continuation and releases it
     expect(await actionsPage.openTargetPicker(actionName, actionTier, "Fleet")).toBe(true)
     await actionsPage.chooseTarget("Fleet", fourStrengthFleet)
     await expect(actionsPage.targetPicker(actionName, actionTier, "Fleet")).toHaveValue(fourStrengthFleet)
-    let targetsFromDestination: string[]
-    if (await actionsPage.isTargetPickerDisabled(actionName, actionTier, "Planet")) {
-      targetsFromDestination = [await actionsPage.selectedTargetValue(actionName, actionTier, "Planet")]
-    } else {
-      expect(await actionsPage.openTargetPicker(actionName, actionTier, "Planet")).toBe(true)
-      await actionsPage.searchTarget(actionName, actionTier, "Planet", { query: originCoordinates })
-      targetsFromDestination = await actionsPage.targetOptionLabels("Planet")
-    }
+    const targetsFromDestination = await actionsPage.availableTargetLabels(actionName, actionTier, "Planet", { query: originCoordinates })
     const originTarget = targetsFromDestination.find((label) => label.endsWith(`(${originCoordinates})`))
     expect(
       originTarget,
       `Origin coordinates ${originCoordinates} after switching to ${fourStrengthFleet}: ${targetsFromDestination.join(" | ")}`,
     ).toBeDefined()
-    if (originTarget === undefined) {
-      throw new Error("The original planet was not a legal target for the arrived fleet")
-    }
+    Assert.isDefined(originTarget)
     if (!(await actionsPage.isTargetPickerDisabled(actionName, actionTier, "Planet"))) {
       await actionsPage.chooseTarget("Planet", originTarget)
     }

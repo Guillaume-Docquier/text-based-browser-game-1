@@ -1,6 +1,8 @@
 import { Assert, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import { expect, test } from "../fixtures.ts"
+import type { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
+import type { FleetsPage } from "../pages/FleetsPage.ts"
 import { GameDetailsPage } from "../pages/GameDetailsPage.ts"
 import type { PlayersPage } from "../pages/PlayersPage.ts"
 
@@ -27,29 +29,10 @@ test("partial Attack Move survives worker turns, defeats a defender, updates the
   let alicePlayersPage = await aliceGalaxyPage.openPlayers()
   let bobPlayersPage = await bobGalaxyPage.openPlayers()
 
-  await test.step("Build and fund Alice's 50-strength Fleet and Bob's 20-strength defender through Actions", async () => {
-    for (let turn = 1; turn <= 5; turn += 1) {
-      const aliceActionsPage = await alicePlayersPage.openActions()
-      await aliceActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
-      await aliceActionsPage.toggleActionSelection("Political Campaign")
-      if (turn === 1 || turn === 4) {
-        await aliceActionsPage.toggleActionSelection("Extract Metal")
-      }
-      if (turn === 5) {
-        await aliceActionsPage.toggleActionSelection("Refine Fuel")
-      }
-
-      const bobActionsPage = await bobPlayersPage.openActions()
-      if (turn <= 2) {
-        await bobActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
-        await bobActionsPage.toggleActionSelection("Political Campaign")
-      }
-
-      alicePlayersPage = await aliceActionsPage.openPlayers()
-      bobPlayersPage = await bobActionsPage.openPlayers()
-      await finishTurn(alicePlayersPage, bobPlayersPage, turn + 1)
-    }
-  })
+  const funded = await test.step("Build and fund Alice's 50-strength Fleet and Bob's 20-strength defender through Actions", async () =>
+    await fundAssaultFleets({ alicePlayersPage, bobPlayersPage }))
+  alicePlayersPage = funded.alicePlayersPage
+  bobPlayersPage = funded.bobPlayersPage
 
   const aliceFleetsPage = await alicePlayersPage.openFleets()
   let bobFleetsPage = await bobPlayersPage.openFleets()
@@ -80,32 +63,8 @@ test("partial Attack Move survives worker turns, defeats a defender, updates the
   expect(bobVisibleStrengths.toSorted()).toStrictEqual(["20", "50"])
   bobPlayersPage = await bobFleetsPage.openPlayers()
 
-  const actionsPage = await test.step("Select a partial Attack Move against Bob's seeded home planet", async () => {
-    const page = await aliceFleetsPage.openActions()
-    const sourceChoice = await page.chooseFirstTarget("Attack Move", "Standard Directive", "Fleet")
-    expect(sourceChoice).toContain("(50 strength)")
-    const planetPickerEnabled = await page.openTargetPicker("Attack Move", "Standard Directive", "Planet")
-    if (planetPickerEnabled) {
-      await page.searchTarget("Attack Move", "Standard Directive", "Planet", { query: bobHomeCoordinates })
-      await expect(page.targetChoices("Planet").getByRole("option").first()).toBeVisible()
-
-      const planetChoice = (await page.targetOptionLabels("Planet")).find((option) => option.endsWith(`(${bobHomeCoordinates})`))
-      Assert.isDefined(planetChoice)
-      await page.chooseTarget("Planet", planetChoice)
-    } else {
-      expect(await page.selectedTargetValue("Attack Move", "Standard Directive", "Planet")).toContain(bobHomeCoordinates)
-    }
-    await page.enterNumericInput("Attack Move", "Standard Directive", "Fleet strength", { value: 30 })
-    await expect(page.action("Attack Move", "Standard Directive")).toContainText("On arrival, join friendly fleets")
-    await expect(page.action("Attack Move", "Standard Directive")).toContainText("5 Influence")
-    await expect(page.action("Attack Move", "Standard Directive")).toContainText("1 Fuel")
-    await expect(page.actionInput("Attack Move", "Standard Directive", "Fleet strength")).toHaveValue("30")
-    await expect(page.action("Attack Move", "Standard Directive")).toContainText("20 of 50 strength available after this allocation")
-    await expect(page.selectActionButton("Attack Move", "Standard Directive")).toBeEnabled()
-    await page.toggleActionSelection("Attack Move", "Standard Directive")
-    await expect(page.selectActionButton("Attack Move", "Standard Directive")).toHaveText("Update action")
-    return page
-  })
+  const actionsPage = await test.step("Select a partial Attack Move against Bob's seeded home planet", async () =>
+    await selectPartialAttackMove({ aliceFleetsPage, bobHomeCoordinates }))
 
   alicePlayersPage = await actionsPage.openPlayers()
   await finishTurn(alicePlayersPage, bobPlayersPage, 7)
@@ -250,4 +209,62 @@ async function finishTurn(alice: PlayersPage, bob: PlayersPage, nextTurn: number
   await bob.toggleReady()
   await expect(alice.turn).toHaveText(`Turn ${nextTurn}`, { timeout: 30000 })
   await expect(bob.turn).toHaveText(`Turn ${nextTurn}`, { timeout: 30000 })
+}
+
+type AssaultFundingPages = { alicePlayersPage: PlayersPage; bobPlayersPage: PlayersPage }
+async function fundAssaultFleets({ alicePlayersPage, bobPlayersPage }: AssaultFundingPages): Promise<AssaultFundingPages> {
+  for (let turn = 1; turn <= 5; turn += 1) {
+    const aliceActionsPage = await alicePlayersPage.openActions()
+    await aliceActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
+    await aliceActionsPage.toggleActionSelection("Political Campaign")
+    if (turn === 1 || turn === 4) {
+      await aliceActionsPage.toggleActionSelection("Extract Metal")
+    }
+    if (turn === 5) {
+      await aliceActionsPage.toggleActionSelection("Refine Fuel")
+    }
+
+    const bobActionsPage = await bobPlayersPage.openActions()
+    if (turn <= 2) {
+      await bobActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
+      await bobActionsPage.toggleActionSelection("Political Campaign")
+    }
+
+    alicePlayersPage = await aliceActionsPage.openPlayers()
+    bobPlayersPage = await bobActionsPage.openPlayers()
+    await finishTurn(alicePlayersPage, bobPlayersPage, turn + 1)
+  }
+  return { alicePlayersPage, bobPlayersPage }
+}
+async function selectPartialAttackMove({
+  aliceFleetsPage,
+  bobHomeCoordinates,
+}: {
+  aliceFleetsPage: FleetsPage
+  bobHomeCoordinates: string
+}): Promise<ActionsPage> {
+  const page = await aliceFleetsPage.openActions()
+  const sourceChoice = await page.chooseFirstTarget("Attack Move", "Standard Directive", "Fleet")
+  expect(sourceChoice).toContain("(50 strength)")
+  const planetPickerEnabled = await page.openTargetPicker("Attack Move", "Standard Directive", "Planet")
+  if (planetPickerEnabled) {
+    await page.searchTarget("Attack Move", "Standard Directive", "Planet", { query: bobHomeCoordinates })
+    await expect(page.targetChoices("Planet").getByRole("option").first()).toBeVisible()
+
+    const planetChoice = (await page.targetOptionLabels("Planet")).find((option) => option.endsWith(`(${bobHomeCoordinates})`))
+    Assert.isDefined(planetChoice)
+    await page.chooseTarget("Planet", planetChoice)
+  } else {
+    expect(await page.selectedTargetValue("Attack Move", "Standard Directive", "Planet")).toContain(bobHomeCoordinates)
+  }
+  await page.enterNumericInput("Attack Move", "Standard Directive", "Fleet strength", { value: 30 })
+  await expect(page.action("Attack Move", "Standard Directive")).toContainText("On arrival, join friendly fleets")
+  await expect(page.action("Attack Move", "Standard Directive")).toContainText("5 Influence")
+  await expect(page.action("Attack Move", "Standard Directive")).toContainText("1 Fuel")
+  await expect(page.actionInput("Attack Move", "Standard Directive", "Fleet strength")).toHaveValue("30")
+  await expect(page.action("Attack Move", "Standard Directive")).toContainText("20 of 50 strength available after this allocation")
+  await expect(page.selectActionButton("Attack Move", "Standard Directive")).toBeEnabled()
+  await page.toggleActionSelection("Attack Move", "Standard Directive")
+  await expect(page.selectActionButton("Attack Move", "Standard Directive")).toHaveText("Update action")
+  return page
 }

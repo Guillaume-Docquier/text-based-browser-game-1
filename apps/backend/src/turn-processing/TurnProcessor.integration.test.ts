@@ -48,7 +48,7 @@ describe("TurnProcessor", () => {
 
       const createStationedSetupPhase2Result = await createStationedSetup({ ...createClientsSetupPhase1Result, alice })
 
-      await verifyOwnerIndex({ ...createClientsSetupPhase1Result, ...createStationedSetupPhase2Result })
+      await submitStationaryAssaults({ ...createClientsSetupPhase1Result, ...createStationedSetupPhase2Result })
 
       const createObservedSetupPhase3Result = await createObservedSetup({
         ...createClientsSetupPhase1Result,
@@ -98,7 +98,15 @@ describe("TurnProcessor", () => {
     await verifyBuildActionIds({ clients, preAssaultViews, homes, buildActionIds, gameId })
     const assaultActionIds: string[] = []
 
-    await verifyActionSelections({ clients, preAssaultViews, stationed, assaultActionIds, gameId, target })
+    await submitStationaryAssaults({
+      clients,
+      preAssaultViews,
+      stationed,
+      actionIds: assaultActionIds,
+      gameId,
+      target,
+      ownerIndices: [0, 1],
+    })
 
     const createObservedSetupPhase4Result = await createObservedSetup2({
       assaultActionIds,
@@ -182,7 +190,15 @@ describe("TurnProcessor", () => {
     const preAssaultViews = await Promise.all(clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId })))
     const assaultActionIds: string[] = []
 
-    await verifyActionSelections2({ clients, preAssaultViews, stationed, assaultActionIds, gameId, target })
+    await submitStationaryAssaults({
+      clients,
+      preAssaultViews,
+      stationed,
+      actionIds: assaultActionIds,
+      gameId,
+      target,
+      ownerIndices: [0, 1],
+    })
 
     const createObservedSetupPhase6Result = await createObservedSetup3({
       assaultActionIds,
@@ -246,8 +262,16 @@ describe("TurnProcessor", () => {
   })
 })
 
-async function verifyOwnerIndex({ clients, preAssaultViews, stationed, actionIds, gameId, target }: VerifyOwnerIndexInput): Promise<void> {
-  for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
+async function submitStationaryAssaults({
+  clients,
+  preAssaultViews,
+  stationed,
+  actionIds,
+  gameId,
+  target,
+  ownerIndices,
+}: VerifyOwnerIndexInput): Promise<void> {
+  for (const ownerIndex of ownerIndices ?? clients.map((_, index) => index)) {
     const client = clients[ownerIndex]
     const view = preAssaultViews[ownerIndex]
     const fleet = stationed[ownerIndex]
@@ -277,10 +301,8 @@ function verifyAfterCombatViews({
   actionIds,
 }: VerifyAfterCombatViewsInput): void {
   expect(
-    afterCombatViews[0]?.fleets.find(
-      ({ ownerPlayerId, originPlanetId, movement }) =>
-        ownerPlayerId === playerIds[0] && originPlanetId === target.id && movement === undefined,
-    )?.strength,
+    afterCombatViews[0]?.fleets.find((fleet) => fleet.ownerPlayerId === playerIds[0] && isStationaryPublicFleet(fleet, target.id))
+      ?.strength,
   ).toBe(10)
   expect(afterCombatViews[0]?.fleets.some(({ ownerPlayerId }) => ownerPlayerId === playerIds[1])).toBe(false)
   for (let ownerIndex = 0; ownerIndex < clients.length; ownerIndex += 1) {
@@ -354,35 +376,6 @@ async function verifyBuildActionIds({ clients, preAssaultViews, homes, buildActi
     })
   }
   expect(buildActionIds).toStrictEqual(["BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1", "BUILD_FLEET_STANDARD_1"])
-}
-
-async function verifyActionSelections({
-  clients,
-  preAssaultViews,
-  stationed,
-  assaultActionIds,
-  gameId,
-  target,
-}: VerifyActionSelectionsInput): Promise<void> {
-  for (const ownerIndex of [0, 1]) {
-    const client = clients[ownerIndex]
-    const view = preAssaultViews[ownerIndex]
-    const fleet = stationed[ownerIndex]
-    Assert.isDefined(client)
-    Assert.isDefined(view)
-    Assert.isDefined(fleet)
-    const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
-    Assert.isDefined(action)
-    assaultActionIds.push(action.id)
-    await client.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: view.turn,
-      submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
-        station: fleet.id,
-        battlePlanet: target.id,
-      }),
-    })
-  }
 }
 
 function verifyActualFleet({ stationed, forward, afterCombatViews, target }: VerifyActualFleetInput): void {
@@ -486,35 +479,6 @@ async function assertEmptyObservedValue12({
   })
 }
 
-async function verifyActionSelections2({
-  clients,
-  preAssaultViews,
-  stationed,
-  assaultActionIds,
-  gameId,
-  target,
-}: VerifyActionSelections2Input): Promise<void> {
-  for (const ownerIndex of [0, 1]) {
-    const client = clients[ownerIndex]
-    const view = preAssaultViews[ownerIndex]
-    const fleet = stationed[ownerIndex]
-    Assert.isDefined(client)
-    Assert.isDefined(view)
-    Assert.isDefined(fleet)
-    const action = view.actions.find(({ actionDefinitionId }) => actionDefinitionId === StationaryAssaultTest.id)
-    Assert.isDefined(action)
-    assaultActionIds.push(action.id)
-    await client.client.gameplay.updateActionSubmission.mutate({
-      gameId,
-      turn: view.turn,
-      submittedActionTargets: getActionToSubmintegrationTest(view, StationaryAssaultTest.id, {
-        station: fleet.id,
-        battlePlanet: target.id,
-      }),
-    })
-  }
-}
-
 async function assertEmptyObservedValue13({
   draw,
   observed,
@@ -558,11 +522,12 @@ async function assertEmptyObservedValue13({
 }
 
 type VerifyOwnerIndexInput = {
-  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient]
+  ownerIndices?: readonly number[]
+  clients: readonly AuthenticatedApiClient[]
   preAssaultViews: PlayerView[]
-  stationed: readonly [Fleet, Fleet]
+  stationed: readonly Fleet[]
   actionIds: string[]
-  gameId: GameId
+  gameId: number
   target: Planet
 }
 
@@ -598,15 +563,6 @@ type VerifyBuildActionIdsInput = {
   homes: readonly [Planet, Planet, Planet]
   buildActionIds: string[]
   gameId: number
-}
-
-type VerifyActionSelectionsInput = {
-  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
-  preAssaultViews: PlayerView[]
-  stationed: readonly [Fleet, Fleet, Fleet]
-  assaultActionIds: string[]
-  gameId: number
-  target: Planet
 }
 
 type VerifyActualFleetInput = {
@@ -650,15 +606,6 @@ type AssertEmptyObservedValue12Input = {
   actualForces: Record<string, undefined | number[]>
 }
 
-type VerifyActionSelections2Input = {
-  clients: readonly [AuthenticatedApiClient, AuthenticatedApiClient, AuthenticatedApiClient]
-  preAssaultViews: PlayerView[]
-  stationed: readonly [Fleet, Fleet, Fleet]
-  assaultActionIds: string[]
-  gameId: number
-  target: Planet
-}
-
 type AssertEmptyObservedValue13Input = {
   draw: ReturnType<typeof mulberry32FirstDraw>
   observed: ReturnType<typeof reverseWorkerInputEnumeration>
@@ -676,4 +623,8 @@ type AssertEmptyObservedValue13Input = {
   alice: AuthenticatedApiClient
   target: Planet
   actualForces: Record<string, undefined | number[]>
+}
+
+function isStationaryPublicFleet(fleet: Fleet, planetId: Planet["id"]): boolean {
+  return fleet.originPlanetId === planetId && fleet.movement === undefined
 }

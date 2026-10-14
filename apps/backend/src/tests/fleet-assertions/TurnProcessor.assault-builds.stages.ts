@@ -466,35 +466,9 @@ export type CreateTieDrawSetupResult = {
   expectedActionOrder: ActionId[]
 }
 
-export async function createFixtureSetup3({ db, clock, apiServer }: CreateFixtureSetup3Input): Promise<CreateFixtureSetup3Result> {
-  const fixture = await createPublicHomeArrivalFixture({
-    db,
-    clock,
-    apiServer,
-    ruleset: HomeArrivalMergeRuleset,
-    aliceDepartureStrength: 40,
-    bobDepartureStrength: 10,
-  })
-  const alice = fixture.clients[0]
-  const playerAId = fixture.playerIds[0]
-  const playerBId = fixture.playerIds[1]
-  const source = fixture.aliceAtSource
-  const enemy = fixture.bobAtTarget
-  Assert.isDefined(alice)
-  Assert.isDefined(playerAId)
-  Assert.isDefined(playerBId)
-  Assert.isDefined(source)
-  Assert.isDefined(enemy)
-  expect(fixture.aliceAtTarget).toBeUndefined()
-  expect([source.strength, enemy.strength, fixture.distance]).toStrictEqual([40, 10, 4.418312565270031])
-
-  // Act: launch a speed-five ordinary20 first and a speed-one Attack Move15 from the same source.
-  const departureViews = await Promise.all(
-    fixture.clients.map(async ({ client }) => await client.gameplay.getPlayerView.query({ gameId: fixture.gameId })),
-  )
-  const departureView = departureViews[0]
-  Assert.isDefined(departureView)
-  return { fixture, alice, playerAId, playerBId, source, enemy, departureViews, departureView }
+export async function createFixtureSetup3(options: CreateFixtureSetup3Input): Promise<CreateFixtureSetup3Result> {
+  const { fixture, alice, playerAId, playerBId, source, defender, departureViews, departureView } = await createFixtureSetup2(options)
+  return { fixture, alice, playerAId, playerBId, source, enemy: defender, departureViews, departureView }
 }
 
 export async function createOrdinaryActionSetup({

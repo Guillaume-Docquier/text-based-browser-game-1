@@ -1,5 +1,6 @@
 import { Assert, Time, UnitOfTime } from "@guillaume-docquier/tools-ts"
 import type { Page, TestInfo } from "@playwright/test"
+import type { AuthenticatedUser } from "../AuthenticatedUser.ts"
 import { expect, test } from "../fixtures.ts"
 import type { ActionsPage } from "../pages/ActionsPage.ts"
 import { CreateGamePage } from "../pages/CreateGamePage.ts"
@@ -160,82 +161,14 @@ test("an explicit Assault can prevent an otherwise eligible Colonize action at 1
   const aliceActionsPage = await alicePlanetsPage.openActions()
   const bobActionsPage = await bobGalaxyPage.openActions()
 
-  const colonizerUser = colonizerIsAlice ? alice : bob
-  const attackerUser = colonizerIsAlice ? bob : alice
-  let colonizerActionsPage: ActionsPage = colonizerIsAlice ? aliceActionsPage : bobActionsPage
-  let attackerActionsPage: ActionsPage = colonizerIsAlice ? bobActionsPage : aliceActionsPage
+  const roles = colonizationRoles({ colonizerIsAlice, alice, bob, aliceActionsPage, bobActionsPage })
+  const { colonizerUser, attackerUser } = roles
+  let { colonizerActionsPage, attackerActionsPage } = roles
 
-  await test.step("Build and fund the colonizing and Assault Fleets through public Actions", async () => {
-    for (let turn = 1; turn <= 10; turn += 1) {
-      if (turn <= 5) {
-        await colonizerActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
-        await colonizerActionsPage.toggleActionSelection("Political Campaign")
-        if (turn === 1) {
-          await colonizerActionsPage.toggleActionSelection("Extract Metal")
-        }
-      } else {
-        await colonizerActionsPage.toggleActionSelection("Political Campaign")
-      }
-
-      if (turn === 1) {
-        await attackerActionsPage.toggleActionSelection("Political Campaign")
-        await attackerActionsPage.toggleActionSelection("Extract Metal")
-      }
-      if (turn === 2) {
-        await attackerActionsPage.toggleActionSelection("Build Fleet", "Improved Directive")
-        await attackerActionsPage.toggleActionSelection("Political Campaign")
-      }
-      if (turn === 3) {
-        await attackerActionsPage.toggleActionSelection("Refine Fuel")
-        await attackerActionsPage.toggleActionSelection("Political Campaign")
-      }
-      if (turn === 4) {
-        const sourceChoice = await attackerActionsPage.chooseFirstTarget("Move Fleet", "Exceptional Directive", "Fleet")
-        expect(sourceChoice).toContain("(100 strength)")
-        await selectPlanetTarget(attackerActionsPage, "Move Fleet", "Exceptional Directive", {
-          planetName: "planet 649967",
-          coordinates: "55:19:10",
-        })
-        await attackerActionsPage.enterNumericInput("Move Fleet", "Exceptional Directive", "Fleet strength", { value: 16 })
-        await expect(attackerActionsPage.actionInput("Move Fleet", "Exceptional Directive", "Fleet strength")).toHaveValue("16")
-        await expect(attackerActionsPage.selectActionButton("Move Fleet", "Exceptional Directive")).toBeEnabled()
-        await attackerActionsPage.toggleActionSelection("Move Fleet", "Exceptional Directive")
-      }
-
-      ;[colonizerActionsPage, attackerActionsPage] = await finishBothTurns(colonizerActionsPage, attackerActionsPage, turn + 1)
-    }
-    await expect(colonizerActionsPage.resource("Influence")).toHaveAttribute("aria-label", "42 available of 42 Influence")
-    const bobFleetsPage = await attackerActionsPage.openFleets()
-    await expect(bobFleetsPage.rows).toHaveCount(3)
-    const bobFleets = await Promise.all(
-      (await bobFleetsPage.rowsByJourneyStatus()).stationary.map(async (row) => ({
-        owner: await bobFleetsPage.getOwnerName(row),
-        strength: await bobFleetsPage.getFleetStrength(row),
-        origin: await bobFleetsPage.getOriginPlanet(row),
-        coordinate: await bobFleetsPage.getCoordinate(row),
-      })),
-    )
-    expect(bobFleets).toHaveLength(3)
-    expect(bobFleets).toContainEqual({
-      owner: colonizerUser.alias,
-      strength: "50",
-      origin: "planet 352230",
-      coordinate: "56:10:20",
-    })
-    expect(bobFleets).toContainEqual({
-      owner: attackerUser.alias,
-      strength: "16",
-      origin: "planet 649967",
-      coordinate: "55:19:10",
-    })
-    expect(bobFleets).toContainEqual({
-      owner: attackerUser.alias,
-      strength: "84",
-      origin: "planet 251588",
-      coordinate: "54:00:40",
-    })
-    attackerActionsPage = await bobFleetsPage.openActions()
-  })
+  const funded = await test.step("Build and fund the colonizing and Assault Fleets through public Actions", async () =>
+    await fundCompetingColonizers({ colonizerActionsPage, attackerActionsPage, colonizerUser, attackerUser }))
+  colonizerActionsPage = funded.colonizerActionsPage
+  attackerActionsPage = funded.attackerActionsPage
 
   await test.step("Send 35 strength from the colonizing player's 50-strength Fleet to the unclaimed Planet", async () => {
     const fleetChoice = await colonizerActionsPage.chooseFirstTarget("Colonize Planet", "Exceptional Directive", "Fleet")
@@ -367,4 +300,105 @@ async function captureScreenshot(page: Page, testInfo: TestInfo, name: string): 
   const path = testInfo.outputPath(name)
   await page.screenshot({ path, animations: "disabled" })
   await testInfo.attach(name, { path, contentType: "image/png" })
+}
+
+type ColonizationRoles = {
+  colonizerUser: AuthenticatedUser
+  attackerUser: AuthenticatedUser
+  colonizerActionsPage: ActionsPage
+  attackerActionsPage: ActionsPage
+}
+function colonizationRoles({
+  colonizerIsAlice,
+  alice,
+  bob,
+  aliceActionsPage,
+  bobActionsPage,
+}: {
+  colonizerIsAlice: boolean
+  alice: AuthenticatedUser
+  bob: AuthenticatedUser
+  aliceActionsPage: ActionsPage
+  bobActionsPage: ActionsPage
+}): ColonizationRoles {
+  return colonizerIsAlice
+    ? { colonizerUser: alice, attackerUser: bob, colonizerActionsPage: aliceActionsPage, attackerActionsPage: bobActionsPage }
+    : { colonizerUser: bob, attackerUser: alice, colonizerActionsPage: bobActionsPage, attackerActionsPage: aliceActionsPage }
+}
+async function fundCompetingColonizers({
+  colonizerActionsPage,
+  attackerActionsPage,
+  colonizerUser,
+  attackerUser,
+}: ColonizationRoles): Promise<Pick<ColonizationRoles, "colonizerActionsPage" | "attackerActionsPage">> {
+  for (let turn = 1; turn <= 10; turn += 1) {
+    if (turn <= 5) {
+      await colonizerActionsPage.toggleActionSelection("Build Fleet", "Standard Directive")
+      await colonizerActionsPage.toggleActionSelection("Political Campaign")
+      if (turn === 1) {
+        await colonizerActionsPage.toggleActionSelection("Extract Metal")
+      }
+    } else {
+      await colonizerActionsPage.toggleActionSelection("Political Campaign")
+    }
+
+    if (turn === 1) {
+      await attackerActionsPage.toggleActionSelection("Political Campaign")
+      await attackerActionsPage.toggleActionSelection("Extract Metal")
+    }
+    if (turn === 2) {
+      await attackerActionsPage.toggleActionSelection("Build Fleet", "Improved Directive")
+      await attackerActionsPage.toggleActionSelection("Political Campaign")
+    }
+    if (turn === 3) {
+      await attackerActionsPage.toggleActionSelection("Refine Fuel")
+      await attackerActionsPage.toggleActionSelection("Political Campaign")
+    }
+    if (turn === 4) {
+      const sourceChoice = await attackerActionsPage.chooseFirstTarget("Move Fleet", "Exceptional Directive", "Fleet")
+      expect(sourceChoice).toContain("(100 strength)")
+      await selectPlanetTarget(attackerActionsPage, "Move Fleet", "Exceptional Directive", {
+        planetName: "planet 649967",
+        coordinates: "55:19:10",
+      })
+      await attackerActionsPage.enterNumericInput("Move Fleet", "Exceptional Directive", "Fleet strength", { value: 16 })
+      await expect(attackerActionsPage.actionInput("Move Fleet", "Exceptional Directive", "Fleet strength")).toHaveValue("16")
+      await expect(attackerActionsPage.selectActionButton("Move Fleet", "Exceptional Directive")).toBeEnabled()
+      await attackerActionsPage.toggleActionSelection("Move Fleet", "Exceptional Directive")
+    }
+
+    ;[colonizerActionsPage, attackerActionsPage] = await finishBothTurns(colonizerActionsPage, attackerActionsPage, turn + 1)
+  }
+  await expect(colonizerActionsPage.resource("Influence")).toHaveAttribute("aria-label", "42 available of 42 Influence")
+  const bobFleetsPage = await attackerActionsPage.openFleets()
+  await expect(bobFleetsPage.rows).toHaveCount(3)
+  const bobFleets = await Promise.all(
+    (await bobFleetsPage.rowsByJourneyStatus()).stationary.map(async (row) => ({
+      owner: await bobFleetsPage.getOwnerName(row),
+      strength: await bobFleetsPage.getFleetStrength(row),
+      origin: await bobFleetsPage.getOriginPlanet(row),
+      coordinate: await bobFleetsPage.getCoordinate(row),
+    })),
+  )
+  expect(bobFleets).toHaveLength(3)
+  expect(bobFleets).toContainEqual({
+    owner: colonizerUser.alias,
+    strength: "50",
+    origin: "planet 352230",
+    coordinate: "56:10:20",
+  })
+  expect(bobFleets).toContainEqual({
+    owner: attackerUser.alias,
+    strength: "16",
+    origin: "planet 649967",
+    coordinate: "55:19:10",
+  })
+  expect(bobFleets).toContainEqual({
+    owner: attackerUser.alias,
+    strength: "84",
+    origin: "planet 251588",
+    coordinate: "54:00:40",
+  })
+  attackerActionsPage = await bobFleetsPage.openActions()
+  return { colonizerActionsPage, attackerActionsPage }
 }

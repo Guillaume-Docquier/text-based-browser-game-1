@@ -251,217 +251,10 @@ describe("gameplay.router", () => {
       const { selectedPlayerView, deselectedPlayerView } = createSelectedPlayerViewSetupPhase2Result
 
       // Assert
-      const expectedSelectedActions = [
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainInfluence.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: WinTheGame.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainEnergy.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainFuel.id,
-          selectedTargets: {},
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainMetal.id,
-          selectedTargets: {},
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetStandard.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetStandard.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: "MOVE_FLEET_IMPROVED_2",
-          actionDefinitionId: MoveFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: AttackMoveTest.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: FlexibleAssaultTest.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: StationaryAssaultTest.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: "TEST_COLONIZE_PLANET_1",
-          actionDefinitionId: ColonizePlanetTest.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: "TEST_COLONIZE_HERE_1",
-          actionDefinitionId: ColonizeHereTest.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-      ]
+
       expect(selectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedSelectedActions.map(withDefaultActionViewFields)))
       expect(selectedPlayerView.actions).toHaveLength(expectedSelectedActions.length)
 
-      const expectedDeselectedActions = [
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainInfluence.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: WinTheGame.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainEnergy.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainFuel.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: GainMetal.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetStandard.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: BuildFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetStandard.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: "MOVE_FLEET_IMPROVED_2",
-          actionDefinitionId: MoveFleetImproved.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: MoveFleetExceptional.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: AttackMoveTest.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: FlexibleAssaultTest.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: expect.any(String),
-          actionDefinitionId: StationaryAssaultTest.id,
-          selectedTargets: null,
-          canAfford: true,
-        },
-        {
-          id: "TEST_COLONIZE_PLANET_1",
-          actionDefinitionId: ColonizePlanetTest.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-        {
-          id: "TEST_COLONIZE_HERE_1",
-          actionDefinitionId: ColonizeHereTest.id,
-          selectedTargets: null,
-          canAfford: false,
-        },
-      ]
       expect(deselectedPlayerView.actions).toStrictEqual(expect.arrayContaining(expectedDeselectedActions.map(withDefaultActionViewFields)))
       expect(deselectedPlayerView.actions).toHaveLength(expectedDeselectedActions.length)
     })
@@ -799,3 +592,213 @@ type CreateStandardDestinationSetupResult = {
 type CreateSelectedPlayerViewSetupInput = { apiServer: ApiServer }
 
 type CreateSelectedPlayerViewSetupResult = { selectedPlayerView: PlayerView; deselectedPlayerView: PlayerView }
+
+const expectedSelectedActions = [
+  {
+    id: expect.any(String),
+    actionDefinitionId: GainInfluence.id,
+    selectedTargets: null,
+    canAfford: true,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: WinTheGame.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: GainEnergy.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: GainFuel.id,
+    selectedTargets: {},
+    canAfford: true,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: GainMetal.id,
+    selectedTargets: {},
+    canAfford: true,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: BuildFleetStandard.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: BuildFleetImproved.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: BuildFleetExceptional.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: MoveFleetStandard.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: MoveFleetImproved.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: "MOVE_FLEET_IMPROVED_2",
+    actionDefinitionId: MoveFleetImproved.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: MoveFleetExceptional.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: AttackMoveTest.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: FlexibleAssaultTest.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: StationaryAssaultTest.id,
+    selectedTargets: null,
+    canAfford: true,
+  },
+  {
+    id: "TEST_COLONIZE_PLANET_1",
+    actionDefinitionId: ColonizePlanetTest.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: "TEST_COLONIZE_HERE_1",
+    actionDefinitionId: ColonizeHereTest.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+]
+
+const expectedDeselectedActions = [
+  {
+    id: expect.any(String),
+    actionDefinitionId: GainInfluence.id,
+    selectedTargets: null,
+    canAfford: true,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: WinTheGame.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: GainEnergy.id,
+    selectedTargets: null,
+    canAfford: true,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: GainFuel.id,
+    selectedTargets: null,
+    canAfford: true,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: GainMetal.id,
+    selectedTargets: null,
+    canAfford: true,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: BuildFleetStandard.id,
+    selectedTargets: null,
+    canAfford: true,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: BuildFleetImproved.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: BuildFleetExceptional.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: MoveFleetStandard.id,
+    selectedTargets: null,
+    canAfford: true,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: MoveFleetImproved.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: "MOVE_FLEET_IMPROVED_2",
+    actionDefinitionId: MoveFleetImproved.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: MoveFleetExceptional.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: AttackMoveTest.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: FlexibleAssaultTest.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: expect.any(String),
+    actionDefinitionId: StationaryAssaultTest.id,
+    selectedTargets: null,
+    canAfford: true,
+  },
+  {
+    id: "TEST_COLONIZE_PLANET_1",
+    actionDefinitionId: ColonizePlanetTest.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+  {
+    id: "TEST_COLONIZE_HERE_1",
+    actionDefinitionId: ColonizeHereTest.id,
+    selectedTargets: null,
+    canAfford: false,
+  },
+]

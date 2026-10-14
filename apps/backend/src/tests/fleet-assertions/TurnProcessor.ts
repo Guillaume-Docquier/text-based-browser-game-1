@@ -489,62 +489,10 @@ export async function assertEmptyObserved2({
   expect(ownerPublicForces(afterEmpty.fleets, playerIds, target.id)).toStrictEqual(actualForces)
 }
 
-export async function assertOutcomeB3({
-  assertOutcomeBPhase7Value1,
-  outcomeB,
-  fleetB,
-  target,
-  outcomeA,
-  fleetA,
-  forward,
-  playerIds,
-  playerAId,
-  playerBId,
-  playerCId,
-  fleetC,
-  draw,
-  assertOutcomeBPhase7Observed,
-  turnProcessor,
-}: AssertOutcomeB3Input): Promise<void> {
-  if (assertOutcomeBPhase7Value1 < 0.5) {
-    expect(outcomeB).toStrictEqual({
-      type: "RESOLVED",
-      result: `Fleet "${fleetB.name}" exchanged 20 Strength with 40 enemy Strength at Planet "${target.name}"`,
-    })
-    expect(outcomeA).toStrictEqual({
-      type: "RESOLVED",
-      result: `Fleet "${fleetA.name}" exchanged 5 Strength with 5 enemy Strength at Planet "${target.name}"`,
-    })
-    expect(ownerFleetForces(forward.resolved, playerIds, target.id)).toStrictEqual({
-      [playerAId]: [10],
-      [playerBId]: [],
-      [playerCId]: [],
-    })
-    expect(forward.resolved.removedFleetIds.toSorted(compareOrdinalStrings)).toStrictEqual(
-      [fleetB.id, fleetC.id].toSorted(compareOrdinalStrings),
-    )
-  } else {
-    expect(outcomeA).toStrictEqual({
-      type: "RESOLVED",
-      result: `Fleet "${fleetA.name}" exchanged 30 Strength with 30 enemy Strength at Planet "${target.name}"`,
-    })
-    expect(outcomeB).toStrictEqual({
-      type: "PREVENTED",
-      reason: `Attacking Fleet "${fleetB.id}" was destroyed before its Assault`,
-    })
-    expect(ownerFleetForces(forward.resolved, playerIds, target.id)).toStrictEqual({
-      [playerAId]: [],
-      [playerBId]: [],
-      [playerCId]: [],
-    })
-    expect(forward.resolved.removedFleetIds.toSorted(compareOrdinalStrings)).toStrictEqual(
-      [fleetA.id, fleetB.id, fleetC.id].toSorted(compareOrdinalStrings),
-    )
-  }
-  expect(forward.rngState).toStrictEqual({
-    generatorState: draw.nextGeneratorState,
-    spareNormal: assertOutcomeBPhase7Observed.rngState.spareNormal,
+export async function assertOutcomeB3(options: AssertOutcomeB3Input): Promise<void> {
+  await assertOutcomeB2({
+    ...options,
+    assertOutcomeBPhase5Value1: options.assertOutcomeBPhase7Value1,
+    assertOutcomeBPhase5Observed: options.assertOutcomeBPhase7Observed,
   })
-  // Assert: the actual worker independently reloads/resolves/saves the tied orders; public forces prove the branch.
-  expect(await turnProcessor.processNextDueTurn()).toBe("processed")
 }

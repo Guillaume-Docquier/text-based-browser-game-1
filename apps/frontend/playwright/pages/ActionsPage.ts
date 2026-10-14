@@ -128,4 +128,22 @@ export class ActionsPage extends GamePage {
   public actionCost(name: string, cost: string): Locator {
     return this.action(name).locator(`[aria-label="Costs"] > [aria-label="${cost}"]`)
   }
+
+  public async availableTargetLabels(
+    actionName: string,
+    identifyingText: string,
+    targetName: string,
+    { query }: { query?: string } = {},
+  ): Promise<string[]> {
+    if (await this.isTargetPickerDisabled(actionName, identifyingText, targetName)) {
+      return [await this.selectedTargetValue(actionName, identifyingText, targetName)]
+    }
+    if (!(await this.openTargetPicker(actionName, identifyingText, targetName))) {
+      throw new Error("The target picker could not be opened")
+    }
+    if (query !== undefined) {
+      await this.searchTarget(actionName, identifyingText, targetName, { query })
+    }
+    return await this.targetOptionLabels(targetName)
+  }
 }

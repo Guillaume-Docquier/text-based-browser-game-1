@@ -34,6 +34,7 @@ import type {
 import type { RetryActionInput } from "#tests/fleet-concurrency/gameplay.ts"
 import { createTurnProcessorStub } from "#turn-processing/TurnProcessor.stub.ts"
 import type { TurnProcessor } from "#turn-processing/TurnProcessor.ts"
+import type { ProcessedTurnModel } from "#turn-processing/turns.repository.ts"
 import {
   createClockSetup,
   createTurnProcessorSetup,
@@ -76,26 +77,7 @@ describe("gameplay submission concurrency", () => {
       logger: Logger.get(),
       invalidOwnerPlayerId,
       beforeInvalidSave: async (processedTurn): Promise<void> => {
-        expect(processedTurn.gameId).toBe(gameId)
-        expect(processedTurn.planetOwnershipChanges).toHaveLength(1)
-        const homePlanetId = expectedProjection.homePlanetId
-        const playerId = expectedProjection.playerId
-        const defenderFleetToDeleteId = expectedProjection.defenderFleetToDeleteId
-        const homeFleetUpdate = expectedProjection.homeFleetUpdate
-        const arrivalFleetUpdate = expectedProjection.arrivalFleetUpdate
-        Assert.isDefined(homePlanetId)
-        Assert.isDefined(playerId)
-        Assert.isDefined(defenderFleetToDeleteId)
-        Assert.isDefined(homeFleetUpdate)
-        Assert.isDefined(arrivalFleetUpdate)
-        expect(processedTurn.planetOwnershipChanges[0]?.planetId).toBe(homePlanetId)
-        expect(processedTurn.planetOwnershipChanges[0]?.ownerPlayerId).toBe(playerId)
-        expect(processedTurn.fleetIdsToDelete).toContain(defenderFleetToDeleteId)
-        expect(processedTurn.fleetsToUpdate).toContainEqual(expect.objectContaining(homeFleetUpdate))
-        expect(processedTurn.fleetsToUpdate).toContainEqual(expect.objectContaining(arrivalFleetUpdate))
-        expect(findPlayerResource(processedTurn.playerResources, playerId, ResourceType.INFLUENCE)?.amount).toBe(22)
-        expect(findPlayerResource(processedTurn.playerResources, playerId, ResourceType.METAL)?.amount).toBe(1)
-        expectedProjection.preSaveSnapshot = await readColonizationPersistenceSnapshot(server.database, gameId)
+        await observeInvalidProjection({ processedTurn, gameId, expectedProjection, server })
       },
     })
 
@@ -104,7 +86,7 @@ describe("gameplay submission concurrency", () => {
       server,
       turnsRepository,
     })
-    const { turnProcessor, home, defenderHome } = createTurnProcessorSetupPhase2Result
+    const { turnProcessor, home } = createTurnProcessorSetupPhase2Result
     let { view, defenderView } = createTurnProcessorSetupPhase2Result
 
     const submitAndAdvanceTurn = async (
@@ -130,79 +112,15 @@ describe("gameplay submission concurrency", () => {
     Assert.isDefined(source)
     expect(source.strength).toBe(100)
 
-    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
-    const defenderBuildAction = defenderView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
-    Assert.isDefined(defenderBuildAction)
-
-    const updatedVerifyActionSelections = await verifyActionSelections({
+    const defenderAtTarget = await stageDefenderAtTarget({
       ...createClockSetupPhase1Result,
       ...createTurnProcessorSetupPhase2Result,
-      defenderView,
-      defenderBuildAction,
       turnsRepository,
       view,
-    })
-    view = updatedVerifyActionSelections.view
-    defenderView = updatedVerifyActionSelections.defenderView
-
-    const defenderSource = findStationaryFleetAt(defenderView, defenderView.player.id, defenderHome.id)
-    const defenderMoveAction = defenderView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetExceptional.id)
-    Assert.isDefined(defenderSource)
-    Assert.isDefined(defenderMoveAction)
-
-    const updatedVerifyUpdatedVerifyDefenderSource = await verifyUpdatedVerifyDefenderSource({
-      ...createClockSetupPhase1Result,
-      ...createTurnProcessorSetupPhase2Result,
-      defenderSource,
       defenderView,
-      defenderMoveAction,
-      turnsRepository,
-      view,
     })
-    view = updatedVerifyUpdatedVerifyDefenderSource.view
-    defenderView = updatedVerifyUpdatedVerifyDefenderSource.defenderView
-    let defenderJourney = findMovingFleetForOwner(defenderView, defenderView.player.id)
-    Assert.isDefined(defenderJourney)
-    expect(defenderJourney.distanceToEnd).toBeCloseTo(12.497277624718329, 12)
-
-    await processManualDeadlineTurn({
-      clock,
-      turnProcessor,
-      turnsRepository,
-      client: defender.client,
-      gameId,
-      turn: defenderView.turn,
-    })
-    view = await player.client.gameplay.getPlayerView.query({ gameId })
-    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
-    defenderJourney = findMovingFleetForOwner(defenderView, defenderView.player.id)
-    Assert.isDefined(defenderJourney)
-    expect(defenderJourney.distanceToEnd).toBeCloseTo(7.497277624718329, 12)
-
-    await processManualDeadlineTurn({
-      clock,
-      turnProcessor,
-      turnsRepository,
-      client: defender.client,
-      gameId,
-      turn: defenderView.turn,
-    })
-    view = await player.client.gameplay.getPlayerView.query({ gameId })
-    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
-    defenderJourney = findMovingFleetForOwner(defenderView, defenderView.player.id)
-    Assert.isDefined(defenderJourney)
-    expect(defenderJourney.distanceToEnd).toBeCloseTo(2.497277624718329, 12)
-
-    await processManualDeadlineTurn({
-      clock,
-      turnProcessor,
-      turnsRepository,
-      client: defender.client,
-      gameId,
-      turn: defenderView.turn,
-    })
-    view = await player.client.gameplay.getPlayerView.query({ gameId })
-    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    view = defenderAtTarget.view
+    defenderView = defenderAtTarget.defenderView
 
     const createStagedDefenderSetupPhase1Result = await createStagedDefenderSetup({
       ...createClockSetupPhase1Result,
@@ -994,3 +912,103 @@ type SubmitCallback = (__0: {
   selectedTargets: DeepUnbranded<SelectedTargets>
   selectedInputs: DeepUnbranded<SelectedInputs>
 }) => Promise<string>
+
+type InvalidProjectionObservation = {
+  processedTurn: ProcessedTurnModel
+  gameId: GameId
+  expectedProjection: Awaited<ReturnType<typeof createClockSetup>>["expectedProjection"]
+  server: ConcurrencyTestApiServer
+}
+async function observeInvalidProjection({
+  processedTurn,
+  gameId,
+  expectedProjection,
+  server,
+}: InvalidProjectionObservation): Promise<void> {
+  expect(processedTurn.gameId).toBe(gameId)
+  expect(processedTurn.planetOwnershipChanges).toHaveLength(1)
+  const homePlanetId = expectedProjection.homePlanetId
+  const playerId = expectedProjection.playerId
+  const defenderFleetToDeleteId = expectedProjection.defenderFleetToDeleteId
+  const homeFleetUpdate = expectedProjection.homeFleetUpdate
+  const arrivalFleetUpdate = expectedProjection.arrivalFleetUpdate
+  Assert.isDefined(homePlanetId)
+  Assert.isDefined(playerId)
+  Assert.isDefined(defenderFleetToDeleteId)
+  Assert.isDefined(homeFleetUpdate)
+  Assert.isDefined(arrivalFleetUpdate)
+  expect(processedTurn.planetOwnershipChanges[0]?.planetId).toBe(homePlanetId)
+  expect(processedTurn.planetOwnershipChanges[0]?.ownerPlayerId).toBe(playerId)
+  expect(processedTurn.fleetIdsToDelete).toContain(defenderFleetToDeleteId)
+  expect(processedTurn.fleetsToUpdate).toContainEqual(expect.objectContaining(homeFleetUpdate))
+  expect(processedTurn.fleetsToUpdate).toContainEqual(expect.objectContaining(arrivalFleetUpdate))
+  expect(findPlayerResource(processedTurn.playerResources, playerId, ResourceType.INFLUENCE)?.amount).toBe(22)
+  expect(findPlayerResource(processedTurn.playerResources, playerId, ResourceType.METAL)?.amount).toBe(1)
+  expectedProjection.preSaveSnapshot = await readColonizationPersistenceSnapshot(server.database, gameId)
+}
+type DefenderStagingContext = Awaited<ReturnType<typeof createClockSetup>> &
+  Awaited<ReturnType<typeof createTurnProcessorSetup>> & { turnsRepository: InvalidOwnerProjectionTurnsRepository }
+async function stageDefenderAtTarget(context: DefenderStagingContext): Promise<Pick<DefenderStagingContext, "view" | "defenderView">> {
+  const { clock, defender, player, gameId, defenderHome, turnProcessor, turnsRepository } = context
+  let { view, defenderView } = context
+  defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+  const defenderBuildAction = defenderView.actions.find(({ actionDefinitionId }) => actionDefinitionId === BuildFleetStandard.id)
+  Assert.isDefined(defenderBuildAction)
+
+  const updatedVerifyActionSelections = await verifyActionSelections({
+    ...context,
+    defenderView,
+    defenderBuildAction,
+    turnsRepository,
+    view,
+  })
+  view = updatedVerifyActionSelections.view
+  defenderView = updatedVerifyActionSelections.defenderView
+
+  const defenderSource = findStationaryFleetAt(defenderView, defenderView.player.id, defenderHome.id)
+  const defenderMoveAction = defenderView.actions.find(({ actionDefinitionId }) => actionDefinitionId === MoveFleetExceptional.id)
+  Assert.isDefined(defenderSource)
+  Assert.isDefined(defenderMoveAction)
+
+  const updatedVerifyUpdatedVerifyDefenderSource = await verifyUpdatedVerifyDefenderSource({
+    ...context,
+    defenderSource,
+    defenderView,
+    defenderMoveAction,
+    turnsRepository,
+    view,
+  })
+  view = updatedVerifyUpdatedVerifyDefenderSource.view
+  defenderView = updatedVerifyUpdatedVerifyDefenderSource.defenderView
+  let defenderJourney = findMovingFleetForOwner(defenderView, defenderView.player.id)
+  Assert.isDefined(defenderJourney)
+  expect(defenderJourney.distanceToEnd).toBeCloseTo(12.497277624718329, 12)
+
+  for (const remainingDistance of [7.497277624718329, 2.497277624718329]) {
+    await processManualDeadlineTurn({
+      clock,
+      turnProcessor,
+      turnsRepository,
+      client: defender.client,
+      gameId,
+      turn: defenderView.turn,
+    })
+    view = await player.client.gameplay.getPlayerView.query({ gameId })
+    defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+    defenderJourney = findMovingFleetForOwner(defenderView, defenderView.player.id)
+    Assert.isDefined(defenderJourney)
+    expect(defenderJourney.distanceToEnd).toBeCloseTo(remainingDistance, 12)
+  }
+  await processManualDeadlineTurn({
+    clock,
+    turnProcessor,
+    turnsRepository,
+    client: defender.client,
+    gameId,
+    turn: defenderView.turn,
+  })
+  view = await player.client.gameplay.getPlayerView.query({ gameId })
+  defenderView = await defender.client.gameplay.getPlayerView.query({ gameId })
+
+  return { view, defenderView }
+}
