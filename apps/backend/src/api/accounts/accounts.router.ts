@@ -25,8 +25,8 @@ export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: 
     finishOnboarding: trpc.privateProcedure
       .input(FinishOnboardingCommandSchema)
       .output(NO_OUTPUT)
-      .mutation(async ({ input: finishOnboardingQuery, ctx: { account } }) => {
-        const finishOnboardingResult = await finishOnboardingUseCase.execute(finishOnboardingQuery, { accountId: account.id })
+      .mutation(async ({ input: finishOnboardingCommand, ctx: { account } }) => {
+        const finishOnboardingResult = await finishOnboardingUseCase.execute(finishOnboardingCommand, { accountId: account.id })
         if (Result.isSuccess(finishOnboardingResult)) {
           return
         }
