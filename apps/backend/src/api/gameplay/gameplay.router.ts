@@ -56,7 +56,7 @@ export function createGameplayRouter({
 
       switch (getPlayerViewResult.error) {
         case GetPlayerViewError.VIEW_NOT_FOUND:
-          throw new TRPCError({ code: "NOT_FOUND", message: "No view exists." })
+          throw new TRPCError({ code: "NOT_FOUND", message: "Player view could not be found." })
         case GetPlayerViewError.UNKNOWN:
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Player view could not be loaded." })
       }
