@@ -39,7 +39,7 @@ export class StartGameUseCase {
     this.createTransaction = createTransaction
   }
 
-  public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<void, StartGameError>> {
+  public async execute({ gameId, requesterAccountId }: StartGameDto): Promise<Result<undefined, StartGameError>> {
     const startGameResult = await this.createTransaction(async (tx) => {
       const gameForStart = await this.gamesRepository.getGameForStart({ gameId }, tx)
 
@@ -93,7 +93,7 @@ export class StartGameUseCase {
       return Result.Failure(StartGameError.UNKNOWN)
     }
 
-    return startGameResult
+    return Result.Success(undefined)
   }
 }
 

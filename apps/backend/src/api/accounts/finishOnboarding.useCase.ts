@@ -17,7 +17,7 @@ export class FinishOnboardingUseCase {
   public async execute(
     finishOnboardingCommand: FinishOnboardingCommand,
     { accountId }: { accountId: AccountId },
-  ): Promise<Result<void, FinishOnboardingError>> {
+  ): Promise<Result<undefined, FinishOnboardingError>> {
     return await this.accountsRepository.finishOnboarding({ accountId, alias: finishOnboardingCommand.alias })
   }
 }

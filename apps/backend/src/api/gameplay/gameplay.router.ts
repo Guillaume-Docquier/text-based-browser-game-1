@@ -27,8 +27,9 @@ export function createGameplayRouter({
       .input(UpdateReadinessDtoSchema.omit({ playerId: true }))
       .output(NO_OUTPUT)
       .mutation(async ({ input, ctx: { playerId } }) => {
-        // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
-        return await toTrpcOutput(updateReadinessUseCase.execute({ ...input, playerId }), UpdateReadinessErrorResponses)
+        await toTrpcOutput(updateReadinessUseCase.execute({ ...input, playerId }), UpdateReadinessErrorResponses)
+
+        return undefined
       }),
 
     /**
@@ -47,8 +48,9 @@ export function createGameplayRouter({
       .input(UpdateActionSubmissionDtoSchema.omit({ playerId: true }))
       .output(NO_OUTPUT)
       .mutation(async ({ input, ctx: { playerId } }) => {
-        // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
-        return await toTrpcOutput(updateActionSubmissionUseCase.execute({ ...input, playerId }), UpdateActionSubmissionErrorResponses)
+        await toTrpcOutput(updateActionSubmissionUseCase.execute({ ...input, playerId }), UpdateActionSubmissionErrorResponses)
+
+        return undefined
       }),
   })
 }

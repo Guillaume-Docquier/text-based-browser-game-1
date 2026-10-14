@@ -80,7 +80,7 @@ export class AccountsRepository extends PostgresRepository {
   }: {
     accountId: AccountId
     alias: Alias
-  }): Promise<Result<void, FinishOnboardingError>> {
+  }): Promise<Result<undefined, FinishOnboardingError>> {
     const finishOnboardingResult = await Result.tryCatch(async () => {
       const accounts = await this.db
         .update(accountsTable)

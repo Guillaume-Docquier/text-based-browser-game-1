@@ -57,8 +57,9 @@ export function createGamesRouter({
      * Use when the game creator chooses to start play from the lobby.
      */
     startGame: trpc.inGameProcedure.output(NO_OUTPUT).mutation(async ({ input, ctx: { account } }) => {
-      // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
-      return await toTrpcOutput(startGameUseCase.execute({ ...input, requesterAccountId: account.id }), StartGameErrorResponses)
+      await toTrpcOutput(startGameUseCase.execute({ ...input, requesterAccountId: account.id }), StartGameErrorResponses)
+
+      return undefined
     }),
 
     /**
@@ -108,8 +109,9 @@ export function createGamesRouter({
       .input(JoinGameDtoSchema.pick({ gameId: true }))
       .output(NO_OUTPUT)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
-        return await toTrpcOutput(joinGameUseCase.execute({ gameId, accountId: account.id }), JoinGameErrorResponses)
+        await toTrpcOutput(joinGameUseCase.execute({ gameId, accountId: account.id }), JoinGameErrorResponses)
+
+        return undefined
       }),
 
     /**
@@ -120,8 +122,9 @@ export function createGamesRouter({
       .input(LeaveGameDtoSchema.pick({ gameId: true }))
       .output(NO_OUTPUT)
       .mutation(async ({ input: { gameId }, ctx: { account } }) => {
-        // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
-        return await toTrpcOutput(leaveGameUseCase.execute({ gameId, accountId: account.id }), LeaveGameErrorResponses)
+        await toTrpcOutput(leaveGameUseCase.execute({ gameId, accountId: account.id }), LeaveGameErrorResponses)
+
+        return undefined
       }),
   })
 }

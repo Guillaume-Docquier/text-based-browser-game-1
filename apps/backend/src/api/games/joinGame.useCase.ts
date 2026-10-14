@@ -34,7 +34,7 @@ export class JoinGameUseCase {
   /**
    * Joining an already joined lobby returns a success for idempotency.
    */
-  public async execute({ gameId, accountId }: JoinGameDto): Promise<Result<void, JoinGameError>> {
+  public async execute({ gameId, accountId }: JoinGameDto): Promise<Result<undefined, JoinGameError>> {
     const playerId = branded<PlayerId>(accountId)
     const joinGameResult = await this.createTransaction(async (tx) => {
       const gameForJoin = await this.gamesRepository.getGameForJoin({ gameId }, tx)
@@ -70,7 +70,7 @@ export class JoinGameUseCase {
       return Result.Failure(JoinGameError.UNKNOWN)
     }
 
-    return joinGameResult
+    return Result.Success(undefined)
   }
 }
 

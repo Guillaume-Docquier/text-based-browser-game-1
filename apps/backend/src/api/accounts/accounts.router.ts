@@ -24,11 +24,12 @@ export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: 
       .input(FinishOnboardingCommandSchema)
       .output(NO_OUTPUT)
       .mutation(async ({ input: finishOnboardingCommand, ctx: { account } }) => {
-        // oxlint-disable-next-line typescript/no-confusing-void-expression -- Return the helper's void output to keep router handlers consistent.
-        return await toTrpcOutput(
+        await toTrpcOutput(
           finishOnboardingUseCase.execute(finishOnboardingCommand, { accountId: account.id }),
           FinishOnboardingErrorResponses,
         )
+
+        return undefined
       }),
   })
 }
