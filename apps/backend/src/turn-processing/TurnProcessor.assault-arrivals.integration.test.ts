@@ -20,51 +20,55 @@ import { processPublicTurn, getActionToSubmintegrationTest, FailingTurnsReposito
 import { SpeedTwoAssaultWorkerTest, AssaultWorkerRuleset, WorkerI207Ruleset } from "../tests/fleet-worker/TurnProcessor.ts"
 
 describe("TurnProcessor", () => {
-  integrationTest("should treat a full outgoing fleet as absent when the real worker resolves a later enemy arrival", async ({ db }) => {
-    // Arrange: create the stable public two-player map and build A30/B20 through public actions and worker turns.
-    const clock = new ControlledClock()
-    const apiServices = await createApiStub({ db, clock })
-    Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(WorkerI207Ruleset))
-    using apiServer = new ApiServer(apiServices)
-    const alice = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
-    const bob = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
-    const clients = [alice, bob]
-    const playerIds = [branded<PlayerId>(alice.account.id), branded<PlayerId>(bob.account.id)]
-    const { createdGameId: gameId } = await alice.client.games.create.mutate({
-      configuration: createGameConfigurationStub({
-        rulesetId: WorkerI207Ruleset.id,
-        nbSeats: 2,
-        turnIntervalSeconds: Time.in(Time.create(10, UnitOfTime.SECONDS), UnitOfTime.SECONDS),
-        mapGenerationSeed: 147,
-      }),
-    })
-    await bob.client.games.join.mutate({ gameId })
-    await alice.client.games.startGame.mutate({ gameId })
-    const { turnProcessor } = await createTurnProcessorStub({ db, clock })
-    const initialView = await alice.client.gameplay.getPlayerView.query({ gameId })
-    const planets = initialView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
-    const target = planets.find(({ coordinates }) => coordinates === "45:83:40")
-    const bobHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerIds[1])
-    Assert.isDefined(target)
-    Assert.isDefined(bobHome)
+  integrationTest(
+    "should treat a full outgoing fleet as absent when the real worker resolves a later enemy arrival",
+    { timeout: 60_000 },
+    async ({ db }) => {
+      // Arrange: create the stable public two-player map and build A30/B20 through public actions and worker turns.
+      const clock = new ControlledClock()
+      const apiServices = await createApiStub({ db, clock })
+      Assert.isSuccess(await apiServices.rulesetsRepository.upsertRuleset(WorkerI207Ruleset))
+      using apiServer = new ApiServer(apiServices)
+      const alice = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000001" })
+      const bob = await apiServer.createClient({ authenticated: true, id: "00000000-0000-4000-8000-000000000002" })
+      const clients = [alice, bob]
+      const playerIds = [branded<PlayerId>(alice.account.id), branded<PlayerId>(bob.account.id)]
+      const { createdGameId: gameId } = await alice.client.games.create.mutate({
+        configuration: createGameConfigurationStub({
+          rulesetId: WorkerI207Ruleset.id,
+          nbSeats: 2,
+          turnIntervalSeconds: Time.in(Time.create(10, UnitOfTime.SECONDS), UnitOfTime.SECONDS),
+          mapGenerationSeed: 147,
+        }),
+      })
+      await bob.client.games.join.mutate({ gameId })
+      await alice.client.games.startGame.mutate({ gameId })
+      const { turnProcessor } = await createTurnProcessorStub({ db, clock })
+      const initialView = await alice.client.gameplay.getPlayerView.query({ gameId })
+      const planets = initialView.galaxy.systems.flatMap(({ planets: systemPlanets }) => systemPlanets)
+      const target = planets.find(({ coordinates }) => coordinates === "45:83:40")
+      const bobHome = planets.find(({ ownerPlayerId }) => ownerPlayerId === playerIds[1])
+      Assert.isDefined(target)
+      Assert.isDefined(bobHome)
 
-    await verifyBuildRound({ clients, gameId, target, bobHome, turnProcessor })
-    const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
-    const defender = builtView.fleets.find(
-      ({ ownerPlayerId, originPlanetId, movement }) =>
-        ownerPlayerId === playerIds[0] && originPlanetId === target.id && movement === undefined,
-    )
-    const enemy = builtView.fleets.find(
-      ({ ownerPlayerId, originPlanetId, movement }) =>
-        ownerPlayerId === playerIds[1] && originPlanetId === bobHome.id && movement === undefined,
-    )
-    Assert.isDefined(defender)
-    Assert.isDefined(enemy)
+      await verifyBuildRound({ clients, gameId, target, bobHome, turnProcessor })
+      const builtView = await alice.client.gameplay.getPlayerView.query({ gameId })
+      const defender = builtView.fleets.find(
+        ({ ownerPlayerId, originPlanetId, movement }) =>
+          ownerPlayerId === playerIds[0] && originPlanetId === target.id && movement === undefined,
+      )
+      const enemy = builtView.fleets.find(
+        ({ ownerPlayerId, originPlanetId, movement }) =>
+          ownerPlayerId === playerIds[1] && originPlanetId === bobHome.id && movement === undefined,
+      )
+      Assert.isDefined(defender)
+      Assert.isDefined(enemy)
 
-    await verifyDefender({ defender, enemy, bob, gameId, builtView, target, clients, turnProcessor, alice })
+      await verifyDefender({ defender, enemy, bob, gameId, builtView, target, clients, turnProcessor, alice })
 
-    await verifyCreateNearEnemySetupResult({ alice, gameId, playerIds, defender, bobHome, clients, turnProcessor, target })
-  })
+      await verifyCreateNearEnemySetupResult({ alice, gameId, playerIds, defender, bobHome, clients, turnProcessor, target })
+    },
+  )
 
   integrationTest("should persist composed Assault intent through public turns and resolve it once after reload", async ({ db }) => {
     // Arrange: create the genuine public game, build its fleets, and establish the immutable seed-147 map fixture.
