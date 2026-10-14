@@ -12,7 +12,7 @@ export default defineConfig({
     {
       files: ["src/api/**/*.router.ts", "src/api/**/*.router.test.ts", "src/api/**/*.router.*.test.ts"],
       rules: {
-        // Routers and their tests intentionally return awaited void outputs.
+        // Routers and their tests intentionally return awaited void outputs to streamline the router handlers.
         "typescript/no-confusing-void-expression": "off",
       },
     },
