@@ -33,6 +33,8 @@ export function createGameplayRouter({
         if (Result.isFailure(updateReadinessResult)) {
           throw new TRPCError(UpdateReadinessErrorResponses[updateReadinessResult.error])
         }
+
+        return updateReadinessResult.value
       }),
 
     /**
@@ -60,6 +62,8 @@ export function createGameplayRouter({
         if (Result.isFailure(updateActionSubmissionResult)) {
           throw new TRPCError(UpdateActionSubmissionErrorResponses[updateActionSubmissionResult.error])
         }
+
+        return updateActionSubmissionResult.value
       }),
   })
 }

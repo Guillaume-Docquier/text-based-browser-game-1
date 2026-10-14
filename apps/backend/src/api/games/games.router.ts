@@ -67,6 +67,8 @@ export function createGamesRouter({
       if (Result.isFailure(startGameResult)) {
         throw new TRPCError(StartGameErrorResponses[startGameResult.error])
       }
+
+      return startGameResult.value
     }),
 
     /**
@@ -132,6 +134,8 @@ export function createGamesRouter({
         if (Result.isFailure(joinGameResult)) {
           throw new TRPCError(JoinGameErrorResponses[joinGameResult.error])
         }
+
+        return joinGameResult.value
       }),
 
     /**
@@ -146,6 +150,8 @@ export function createGamesRouter({
         if (Result.isFailure(leaveGameResult)) {
           throw new TRPCError(LeaveGameErrorResponses[leaveGameResult.error])
         }
+
+        return leaveGameResult.value
       }),
   })
 }

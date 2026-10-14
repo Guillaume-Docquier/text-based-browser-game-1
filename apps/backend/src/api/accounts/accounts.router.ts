@@ -30,6 +30,8 @@ export function createAccountsRouter({ trpc, finishOnboardingUseCase }: { trpc: 
         if (Result.isFailure(finishOnboardingResult)) {
           throw new TRPCError(FinishOnboardingErrorResponses[finishOnboardingResult.error])
         }
+
+        return finishOnboardingResult.value
       }),
   })
 }
